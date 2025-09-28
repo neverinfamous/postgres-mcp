@@ -23,6 +23,10 @@ import os
 import sys
 from typing import Dict, Any
 
+# Fix Windows event loop compatibility with psycopg3
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 # Add the src directory to the path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
