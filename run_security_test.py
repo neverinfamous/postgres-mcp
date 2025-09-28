@@ -193,7 +193,7 @@ Examples:
     
     parser.add_argument(
         "--database-url",
-        default=os.environ.get("DATABASE_URL", "postgresql://postgres:password@localhost:5432/postgres"),
+        default=os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@host.docker.internal:5432/postgres"),
         help="PostgreSQL connection URL (default: from DATABASE_URL env var)"
     )
     
