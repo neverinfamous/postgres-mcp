@@ -383,7 +383,8 @@ class PostgresSQLInjectionTester:
             
             # Construct a vulnerable query (simulating the execute_sql function)
             # This mimics how the actual MCP server would handle the input
-            vulnerable_query = f"SELECT * FROM test_users WHERE id = {test.payload}"
+            # The payloads are designed to be injected into a quoted string context
+            vulnerable_query = f"SELECT * FROM test_users WHERE id = '{test.payload}'"
             
             # Execute the potentially malicious query
             result = await sql_driver.execute_query(vulnerable_query)
