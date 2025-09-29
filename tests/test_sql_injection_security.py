@@ -437,13 +437,13 @@ class PostgresSQLInjectionTester:
             # Use appropriate readonly setting based on test type and mode
             if mode == "restricted":
                 # Restricted mode always uses readonly
-                result = await sql_driver.execute_query(vulnerable_query, force_readonly=True)
+                result = await sql_driver.execute_query(vulnerable_query, force_readonly=True)  # type: ignore[arg-type]
             else:
                 # Unrestricted mode: allow writes for stacked queries to test real vulnerability
                 if test.attack_vector == AttackVector.STACKED_QUERIES:
-                    result = await sql_driver.execute_query(vulnerable_query, force_readonly=False)
+                    result = await sql_driver.execute_query(vulnerable_query, force_readonly=False)  # type: ignore[arg-type]
                 else:
-                    result = await sql_driver.execute_query(vulnerable_query, force_readonly=True)
+                    result = await sql_driver.execute_query(vulnerable_query, force_readonly=True)  # type: ignore[arg-type]
 
             # If we get here without exception, check if the injection was successful
             if result is not None:
