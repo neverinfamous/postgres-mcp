@@ -389,7 +389,7 @@ If there is no hypothetical index, you can pass an empty list.""",
 
 # Query function declaration without the decorator - we'll add it dynamically based on access mode
 async def execute_sql(
-    sql: str = Field(description="SQL query to run. Use %s for parameter placeholders."),
+    sql: str = Field(description="SQL query to run. Use %s for parameter placeholders.", default="SELECT 1"),
     params: Optional[List[Any]] = Field(description="Parameters for the SQL query placeholders", default=None),
 ) -> ResponseType:
     """Executes a SQL query against the database with parameter binding for security.
@@ -400,7 +400,9 @@ async def execute_sql(
     """
     try:
         sql_driver = await get_sql_driver()
-        rows = await sql_driver.execute_query(sql, params=params)  # type: ignore
+        # Handle the case where params might be a FieldInfo object due to Pydantic
+        actual_params = params if params is not None and not hasattr(params, 'default') else None
+        rows = await sql_driver.execute_query(sql, params=actual_params)  # type: ignore
         if rows is None:
             return format_text_response("No results")
         return format_text_response(list([r.cells for r in rows]))
