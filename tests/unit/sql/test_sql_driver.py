@@ -303,7 +303,7 @@ async def test_execute_query_with_params(mock_connection):
 @pytest.mark.asyncio
 async def test_execute_query_from_pool(mock_db_pool):
     """Test execute_query using a connection from a pool."""
-    db_pool, connection, cursor = mock_db_pool
+    db_pool, _connection, _cursor = mock_db_pool
 
     # Create a mock execute function
     async def mock_pool_execute(*args, **kwargs):
@@ -329,7 +329,7 @@ async def test_execute_query_from_pool(mock_db_pool):
 @pytest.mark.asyncio
 async def test_connection_error_marks_pool_invalid(mock_db_pool):
     """Test that connection errors mark the pool as invalid."""
-    db_pool, connection, cursor = mock_db_pool
+    db_pool, _connection, _cursor = mock_db_pool
 
     # Configure pool_connect to raise an exception
     db_pool.pool_connect.side_effect = Exception("Connection failed")

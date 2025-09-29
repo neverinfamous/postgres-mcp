@@ -1170,7 +1170,7 @@ async def test_enumerate_greedy_pareto_cost_benefit(async_sql_driver):
 
     current_indexes = set()
     current_cost = base_cost
-    final_indexes_lower_threshold, final_cost_lower_threshold = await dta._enumerate_greedy(  # type: ignore
+    final_indexes_lower_threshold, _final_cost_lower_threshold = await dta._enumerate_greedy(  # type: ignore
         queries, current_indexes, current_cost, candidate_indexes.copy()
     )
 
@@ -1182,7 +1182,7 @@ async def test_enumerate_greedy_pareto_cost_benefit(async_sql_driver):
 
     current_indexes = set()
     current_cost = base_cost
-    final_indexes_higher_threshold, final_cost_higher_threshold = await dta._enumerate_greedy(  # type: ignore
+    final_indexes_higher_threshold, _final_cost_higher_threshold = await dta._enumerate_greedy(  # type: ignore
         queries, current_indexes, current_cost, candidate_indexes.copy()
     )
 
