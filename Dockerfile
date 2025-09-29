@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --frozen --no-dev
 
 
-FROM python:3.12-slim-bookworm
+FROM python:3.13-slim-bookworm
 # It is important to use the image that matches the builder, as the path to the
 # Python executable must be the same, e.g., using `python:3.11-slim-bookworm`
 # will fail.
