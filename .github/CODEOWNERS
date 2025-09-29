@@ -1,0 +1,16 @@
+# Code owners for postgres-mcp-server
+# These users will be automatically requested for review when someone opens a pull request
+
+# Global ownership - neverinfamous owns all code
+* @neverinfamous
+
+# Security-critical files require explicit review
+/SECURITY.md @neverinfamous
+/.github/workflows/ @neverinfamous
+/.github/dependabot.yml @neverinfamous
+/src/postgres_mcp/server.py @neverinfamous
+
+# Test files for security validation
+/tests/test_sql_injection_security.py @neverinfamous
+/run_security_test.py @neverinfamous
+/test_security_fix.py @neverinfamous
