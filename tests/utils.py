@@ -132,7 +132,8 @@ def create_postgres_container(version: str) -> Generator[Tuple[str, str], None, 
             pytest.skip(f"Timeout waiting for PostgreSQL to start: {last_error}")
 
         connection_string = f"postgresql://postgres:{postgres_password}@localhost:{port}/{postgres_db}"
-        logger.info(f"PostgreSQL connection string: {connection_string}")
+        # Log connection info without exposing password (security fix for CodeQL)
+        logger.info(f"PostgreSQL connection established: postgresql://postgres:***@localhost:{port}/{postgres_db}")
 
         yield connection_string, version
 
