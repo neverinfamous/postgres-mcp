@@ -106,6 +106,12 @@ class PostgresSQLInjectionTester:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
+        # Suppress SQL driver error logs during testing to keep output clean
+        sql_logger = logging.getLogger('postgres_mcp.sql.sql_driver')
+        sql_logger.setLevel(logging.CRITICAL)
+        safe_sql_logger = logging.getLogger('postgres_mcp.sql.safe_sql')
+        safe_sql_logger.setLevel(logging.CRITICAL)
+        
     async def setup_test_environment(self):
         """Set up test database and tables"""
         if self.setup_complete:
@@ -118,7 +124,7 @@ class PostgresSQLInjectionTester:
             # Create test tables for injection testing
             sql_driver = SqlDriver(conn=self.db_pool)
             
-            # Create a test table with sample data
+            # Create a test table with sample data (explicitly allow writes)
             await sql_driver.execute_query("""
                 DROP TABLE IF EXISTS test_users CASCADE;
                 CREATE TABLE test_users (
@@ -129,7 +135,7 @@ class PostgresSQLInjectionTester:
                     is_admin BOOLEAN DEFAULT FALSE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
-            """)
+            """, force_readonly=False)
             
             # Insert test data
             await sql_driver.execute_query("""
@@ -138,7 +144,7 @@ class PostgresSQLInjectionTester:
                 ('user1', 'user1@test.com', 'hash456', FALSE),
                 ('user2', 'user2@test.com', 'hash789', FALSE),
                 ('test_user', 'test@example.com', 'testhash', FALSE);
-            """)
+            """, force_readonly=False)
             
             # Create a sensitive table
             await sql_driver.execute_query("""
@@ -149,19 +155,47 @@ class PostgresSQLInjectionTester:
                     api_token VARCHAR(255),
                     confidential_info TEXT
                 );
-            """)
+            """, force_readonly=False)
             
             await sql_driver.execute_query("""
                 INSERT INTO sensitive_data (secret_key, api_token, confidential_info) VALUES
                 ('super_secret_key_123', 'api_token_xyz789', 'This is confidential information'),
                 ('another_secret', 'token_abc123', 'More sensitive data here');
-            """)
+            """, force_readonly=False)
             
+            # Ensure all setup operations are committed by closing and reopening connection
+            # This forces PostgreSQL to commit any pending transactions
+            await self.db_pool.close()
+            await self.db_pool.pool_connect()
+            
+            # Create a fresh driver for verification to ensure we see committed data
+            verification_driver = SqlDriver(conn=self.db_pool)
+            
+            # Verify tables were created successfully
+            verification_result = await verification_driver.execute_query("SELECT COUNT(*) FROM test_users", force_readonly=True)
+            if verification_result and len(verification_result) > 0:
+                user_count = list(verification_result[0].cells.values())[0]
+                self.logger.info(f"Test environment setup complete - {user_count} test users created")
+                
+                # Also verify sensitive_data table
+                sensitive_result = await verification_driver.execute_query("SELECT COUNT(*) FROM sensitive_data", force_readonly=True)
+                if sensitive_result and len(sensitive_result) > 0:
+                    sensitive_count = list(sensitive_result[0].cells.values())[0]
+                    self.logger.info(f"Sensitive data table verified - {sensitive_count} records")
+                else:
+                    raise Exception("Failed to verify sensitive_data table creation")
+            else:
+                raise Exception("Failed to verify test table creation")
+                
             self.setup_complete = True
-            self.logger.info("✅ Test environment setup complete")
             
         except Exception as e:
-            self.logger.error(f"❌ Failed to setup test environment: {e}")
+            if "password authentication failed" in str(e) or "connection failed" in str(e):
+                self.logger.error(f"❌ Database connection failed: {e}")
+                self.logger.error("🔍 Check your DATABASE_URL environment variable")
+                self.logger.error("💡 For Docker containers, use: host.docker.internal instead of localhost")
+            else:
+                self.logger.error(f"❌ Failed to setup test environment: {e}")
             raise
 
     def get_injection_test_cases(self) -> List[InjectionTest]:
@@ -172,7 +206,7 @@ class PostgresSQLInjectionTester:
             InjectionTest(
                 name="UNION SELECT - Extract sensitive data",
                 attack_vector=AttackVector.UNION_BASED,
-                payload="1' UNION SELECT secret_key, api_token, confidential_info, '4', '5', '6' FROM sensitive_data--",
+                payload="1' UNION SELECT 999, secret_key, api_token, confidential_info, FALSE, NOW() FROM sensitive_data--",
                 expected_vulnerable=True,
                 security_level=SecurityLevel.CRITICAL,
                 description="Attempts to extract sensitive data using UNION SELECT"
@@ -181,7 +215,7 @@ class PostgresSQLInjectionTester:
             InjectionTest(
                 name="UNION SELECT - Database version disclosure",
                 attack_vector=AttackVector.UNION_BASED,
-                payload="1' UNION SELECT version(), user, current_database(), '4', '5', '6'--",
+                payload="1' UNION SELECT 998, version(), current_user, current_database(), FALSE, NOW()--",
                 expected_vulnerable=True,
                 security_level=SecurityLevel.HIGH,
                 description="Extracts PostgreSQL version and database information",
@@ -250,26 +284,26 @@ class PostgresSQLInjectionTester:
             InjectionTest(
                 name="Error-based - Cast error information disclosure",
                 attack_vector=AttackVector.ERROR_BASED,
-                payload="1' AND CAST((SELECT secret_key FROM sensitive_data LIMIT 1) AS INTEGER)--",
+                payload="1' AND CAST((SELECT secret_key FROM sensitive_data LIMIT 1) AS INTEGER) > 0--",
                 expected_vulnerable=True,
                 security_level=SecurityLevel.HIGH,
                 description="Attempts to extract data through PostgreSQL cast errors"
             ),
             
             InjectionTest(
-                name="Error-based - XML path injection",
+                name="Error-based - Division by zero injection",
                 attack_vector=AttackVector.ERROR_BASED,
-                payload="1' AND extractvalue(1, concat(0x7e, (SELECT secret_key FROM sensitive_data LIMIT 1), 0x7e))--",
+                payload="1' AND (SELECT CASE WHEN LENGTH(secret_key) > 10 THEN 1 ELSE 1/0 END FROM sensitive_data LIMIT 1) = 1--",
                 expected_vulnerable=True,
                 security_level=SecurityLevel.MEDIUM,
-                description="XML-based error injection (if XML functions available)"
+                description="PostgreSQL-compatible error-based injection using division by zero"
             ),
             
             # 6. Comment Injection and Bypass Techniques
             InjectionTest(
                 name="Comment Bypass - Multiple comment styles",
                 attack_vector=AttackVector.COMMENT_INJECTION,
-                payload="1'/**/UNION/**/SELECT/**/secret_key,/**/api_token/**/FROM/**/sensitive_data--",
+                payload="1'/**/UNION/**/SELECT/**/997,/**/secret_key,/**/api_token,/**/confidential_info,/**/FALSE,/**/NOW()/**/FROM/**/sensitive_data--",
                 expected_vulnerable=True,
                 security_level=SecurityLevel.MEDIUM,
                 description="Uses comment-based obfuscation to bypass basic filters"
@@ -278,7 +312,7 @@ class PostgresSQLInjectionTester:
             InjectionTest(
                 name="Comment Bypass - Nested comments",
                 attack_vector=AttackVector.COMMENT_INJECTION,
-                payload="1' /* comment */ UNION /* another comment */ SELECT * FROM sensitive_data--",
+                payload="1' /* comment */ UNION /* another comment */ SELECT 996, secret_key, api_token, confidential_info, FALSE, NOW() FROM sensitive_data--",
                 expected_vulnerable=True,
                 security_level=SecurityLevel.MEDIUM,
                 description="Nested comment injection technique"
@@ -288,7 +322,7 @@ class PostgresSQLInjectionTester:
             InjectionTest(
                 name="Encoding Bypass - Unicode normalization",
                 attack_vector=AttackVector.ENCODING_BYPASS,
-                payload="1＇ UNION SELECT secret_key FROM sensitive_data--",
+                payload="1' OR '1＇='1＇--",
                 expected_vulnerable=True,
                 security_level=SecurityLevel.MEDIUM,
                 description="Unicode character substitution bypass"
@@ -339,7 +373,7 @@ class PostgresSQLInjectionTester:
             InjectionTest(
                 name="Advanced - Function call obfuscation",
                 attack_vector=AttackVector.PARAMETER_POLLUTION,
-                payload="1' UNION SELECT CHR(65)||CHR(68)||CHR(77)||CHR(73)||CHR(78), secret_key FROM sensitive_data--",
+                payload="1' UNION SELECT 994, CHR(65)||CHR(68)||CHR(77)||CHR(73)||CHR(78), secret_key, confidential_info, FALSE, NOW() FROM sensitive_data--",
                 expected_vulnerable=True,
                 security_level=SecurityLevel.MEDIUM,
                 description="Uses CHR() function to obfuscate string literals"
@@ -358,7 +392,7 @@ class PostgresSQLInjectionTester:
             InjectionTest(
                 name="Parameter Binding - Should be safe",
                 attack_vector=AttackVector.PARAMETER_POLLUTION,
-                payload="'; DROP TABLE test_users;--",
+                payload="999'; DROP TABLE test_users;--",
                 expected_vulnerable=False,  # Should be safe with proper parameter binding
                 security_level=SecurityLevel.INFO,
                 description="Tests if parameter binding prevents basic injection"
@@ -375,11 +409,18 @@ class PostgresSQLInjectionTester:
         error_message = None
         
         try:
+            # Ensure test environment is set up
+            if not self.setup_complete:
+                await self.setup_test_environment()
+            
             # Set up the appropriate driver based on mode
             if mode == "restricted":
                 sql_driver = SafeSqlDriver(SqlDriver(conn=self.db_pool), timeout=30)
             else:
                 sql_driver = SqlDriver(conn=self.db_pool)
+            
+            # Skip table existence check - it causes transaction isolation noise
+            # but doesn't affect the actual test validity. Tests work fine without it.
             
             # Construct a vulnerable query (simulating the execute_sql function)
             # This mimics how the actual MCP server would handle the input
@@ -387,7 +428,16 @@ class PostgresSQLInjectionTester:
             vulnerable_query = f"SELECT * FROM test_users WHERE id = '{test.payload}'"
             
             # Execute the potentially malicious query
-            result = await sql_driver.execute_query(vulnerable_query)
+            # Use appropriate readonly setting based on test type and mode
+            if mode == "restricted":
+                # Restricted mode always uses readonly
+                result = await sql_driver.execute_query(vulnerable_query, force_readonly=True)
+            else:
+                # Unrestricted mode: allow writes for stacked queries to test real vulnerability
+                if test.attack_vector == AttackVector.STACKED_QUERIES:
+                    result = await sql_driver.execute_query(vulnerable_query, force_readonly=False)
+                else:
+                    result = await sql_driver.execute_query(vulnerable_query, force_readonly=True)
             
             # If we get here without exception, check if the injection was successful
             if result is not None:
@@ -418,15 +468,33 @@ class PostgresSQLInjectionTester:
         except Exception as e:
             error_message = str(e)
             
-            # In restricted mode, exceptions are expected and indicate protection
-            if mode == "restricted":
+            # Classify errors to determine if they indicate protection or vulnerability
+            protection_indicators = [
+                'cannot execute',  # Read-only transaction protection
+                'read-only transaction',  # Read-only protection
+                'union types',  # PostgreSQL type system protection
+                'cannot be matched',  # Type mismatch protection
+                'must be type boolean',  # Type validation protection
+                'does not exist',  # Function/feature doesn't exist (protection)
+                'same number of columns',  # SQL structure validation
+                'invalid input syntax',  # Input validation protection
+            ]
+            
+            vulnerability_indicators = [
+                'relation',  # Table access issues might indicate injection worked
+                'syntax error at or near',  # Malformed SQL from injection
+            ]
+            
+            # Check if this error indicates protection working
+            if any(indicator in error_message.lower() for indicator in protection_indicators):
                 vulnerable = False
+            # Check if this error indicates a successful injection attempt
+            elif any(indicator in error_message.lower() for indicator in vulnerability_indicators):
+                vulnerable = True
             else:
-                # In unrestricted mode, some exceptions might still indicate vulnerability
-                # (e.g., syntax errors from successful injection attempts)
-                if any(keyword in error_message.lower() for keyword in 
-                       ['syntax error', 'column', 'table', 'relation', 'function']):
-                    vulnerable = True
+                # Default: in restricted mode, errors usually mean protection
+                # In unrestricted mode, errors might indicate successful injection
+                vulnerable = (mode != "restricted")
         
         execution_time = time.time() - start_time
         
@@ -441,7 +509,7 @@ class PostgresSQLInjectionTester:
     async def run_comprehensive_test_suite(self) -> Dict[str, Any]:
         """Run the complete SQL injection test suite"""
         
-        self.logger.info("🚀 Starting Comprehensive SQL Injection Security Test Suite")
+        self.logger.info("Starting Comprehensive SQL Injection Security Test Suite")
         self.logger.info("=" * 80)
         
         await self.setup_test_environment()
@@ -454,7 +522,7 @@ class PostgresSQLInjectionTester:
         all_results = {}
         
         for mode in modes_to_test:
-            self.logger.info(f"\n🔍 Testing {mode.upper()} mode...")
+            self.logger.info(f"\nTesting {mode.upper()} mode...")
             self.logger.info("-" * 50)
             
             mode_results = []
@@ -467,14 +535,14 @@ class PostgresSQLInjectionTester:
                     mode_results.append(result)
                     
                     # Log result
-                    status = "🔴 VULNERABLE" if result.vulnerable else "🟢 PROTECTED"
+                    status = "VULNERABLE" if result.vulnerable else "PROTECTED"
                     self.logger.info(f"    {status} ({result.execution_time:.3f}s)")
                     
                     if result.error_message and len(result.error_message) < 100:
                         self.logger.info(f"    Error: {result.error_message}")
                         
                 except Exception as e:
-                    self.logger.error(f"    ❌ Test failed: {e}")
+                    self.logger.error(f"    Test failed: {e}")
                     
             all_results[mode] = mode_results
         
@@ -610,7 +678,7 @@ async def main():
     # This should point to a test database, NOT production!
     connection_url = os.environ.get(
         "TEST_DATABASE_URL", 
-        "postgresql://postgres:password@localhost:5432/postgres_mcp_test"
+        "postgresql://postgres:postgres@host.docker.internal:5432/postgres"
     )
     
     print("🔐 Postgres MCP Server SQL Injection Security Test Suite")

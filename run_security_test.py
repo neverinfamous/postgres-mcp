@@ -35,11 +35,11 @@ from tests.test_sql_injection_security import PostgresSQLInjectionTester
 
 def print_banner():
     """Print the security test banner"""
-    print("🛡️" + "=" * 78 + "🛡️")
-    print("🔐 POSTGRES MCP SERVER - SQL INJECTION SECURITY TEST SUITE 🔐")
-    print("🛡️" + "=" * 78 + "🛡️")
+    print("=" * 80)
+    print("POSTGRES MCP SERVER - SQL INJECTION SECURITY TEST SUITE")
+    print("=" * 80)
     print()
-    print("📋 This comprehensive test suite validates security against:")
+    print("This comprehensive test suite validates security against:")
     print("   • Basic SQL Injection (UNION, stacked queries)")
     print("   • Blind SQL Injection (time-based, boolean-based)")
     print("   • Error-based SQL Injection")
@@ -47,15 +47,15 @@ def print_banner():
     print("   • Advanced bypass techniques")
     print("   • Parameter binding validation")
     print()
-    print("🎯 Testing both UNRESTRICTED and RESTRICTED modes")
-    print("⚠️  WARNING: This creates test tables and data!")
+    print("Testing both UNRESTRICTED and RESTRICTED modes")
+    print("WARNING: This creates test tables and data!")
     print()
 
 
 async def run_quick_test(connection_url: str) -> Dict[str, Any]:
     """Run a quick subset of critical security tests"""
     
-    print("⚡ Running QUICK security test (critical vulnerabilities only)...")
+    print("Running QUICK security test (critical vulnerabilities only)...")
     print("-" * 60)
     
     tester = PostgresSQLInjectionTester(connection_url)
@@ -65,11 +65,14 @@ async def run_quick_test(connection_url: str) -> Dict[str, Any]:
     all_tests = tester.get_injection_test_cases()
     critical_tests = [t for t in all_tests if t.security_level.value in ['critical', 'high']]
     
-    print(f"🔍 Testing {len(critical_tests)} critical/high-severity attack vectors...")
+    print(f"Testing {len(critical_tests)} critical/high-severity attack vectors...")
+    print("\nNOTE: Database errors during testing are expected and indicate the test framework")
+    print("      is correctly attempting various attack vectors. The final VULN/SAFE results")
+    print("      show whether each attack succeeded or was blocked.")
     
     results = {}
     for mode in ["unrestricted", "restricted"]:
-        print(f"\n📊 Testing {mode.upper()} mode...")
+        print(f"\nTesting {mode.upper()} mode...")
         
         mode_results = []
         for i, test in enumerate(critical_tests, 1):
@@ -79,11 +82,11 @@ async def run_quick_test(connection_url: str) -> Dict[str, Any]:
                 result = await tester.test_sql_injection(test, mode)
                 mode_results.append(result)
                 
-                status = "🔴 VULN" if result.vulnerable else "🟢 SAFE"
+                status = "VULN" if result.vulnerable else "SAFE"
                 print(f"      {status}")
                 
             except Exception as e:
-                print(f"      ❌ ERROR: {str(e)[:50]}...")
+                print(f"      ERROR: {str(e)[:50]}...")
         
         results[mode] = mode_results
     
@@ -103,78 +106,77 @@ async def run_full_test(connection_url: str) -> Dict[str, Any]:
 def print_summary_report(report: Dict[str, Any], test_type: str):
     """Print a concise summary report"""
     
-    print("\n" + "🛡️" + "=" * 78 + "🛡️")
-    print(f"📊 {test_type.upper()} SECURITY TEST RESULTS")
-    print("🛡️" + "=" * 78 + "🛡️")
+    print("\n" + "=" * 80)
+    print(f"{test_type.upper()} SECURITY TEST RESULTS")
+    print("=" * 80)
     
     # Overall security posture
     score = report["security_score"]
     if score >= 90:
-        score_emoji = "🟢"
         score_text = "EXCELLENT"
     elif score >= 70:
-        score_emoji = "🟡"
         score_text = "GOOD"
     elif score >= 50:
-        score_emoji = "🟠"
         score_text = "NEEDS IMPROVEMENT"
     else:
-        score_emoji = "🔴"
         score_text = "CRITICAL ISSUES FOUND"
     
-    print(f"\n🎯 OVERALL SECURITY SCORE: {score:.1f}/100 {score_emoji} {score_text}")
+    print(f"\nOVERALL SECURITY SCORE: {score:.1f}/100 - {score_text}")
     
     # Mode comparison
-    print(f"\n📋 DETAILED RESULTS:")
+    print(f"\nDETAILED RESULTS:")
     for mode, summary in report["summary"].items():
         vulnerable = summary["vulnerable"]
         total = summary["total_tests"]
         protected = summary["protected"]
         
-        print(f"\n   🔍 {mode.upper()} MODE:")
+        print(f"\n   {mode.upper()} MODE:")
         print(f"      Tests Run: {total}")
-        print(f"      Vulnerable: {vulnerable} 🔴")
-        print(f"      Protected: {protected} 🟢")
+        print(f"      Vulnerable: {vulnerable}")
+        print(f"      Protected: {protected}")
         print(f"      Success Rate: {summary['security_score']:.1f}%")
         
         # Vulnerability breakdown
         vulns = summary["vulnerabilities_by_severity"]
         if vulns["critical"] > 0:
-            print(f"      🚨 Critical: {vulns['critical']}")
+            print(f"      Critical: {vulns['critical']}")
         if vulns["high"] > 0:
-            print(f"      ⚠️  High: {vulns['high']}")
+            print(f"      High: {vulns['high']}")
         if vulns["medium"] > 0:
-            print(f"      ⚡ Medium: {vulns['medium']}")
+            print(f"      Medium: {vulns['medium']}")
     
     # Key findings
-    print(f"\n💡 KEY FINDINGS:")
+    print(f"\nKEY FINDINGS:")
     
     unrestricted_vulns = report["summary"].get("unrestricted", {}).get("vulnerable", 0)
     restricted_vulns = report["summary"].get("restricted", {}).get("vulnerable", 0)
     
     if unrestricted_vulns > 0:
-        print(f"   🚨 CRITICAL: {unrestricted_vulns} vulnerabilities in UNRESTRICTED mode")
-        print(f"      ➤ The execute_sql function is vulnerable to SQL injection")
-        print(f"      ➤ Same vulnerability as original Anthropic SQLite MCP server")
+        print(f"   CRITICAL: {unrestricted_vulns} vulnerabilities in UNRESTRICTED mode")
+        print(f"      - The execute_sql function is vulnerable to SQL injection")
+        print(f"      - Same vulnerability as original Anthropic SQLite MCP server")
     else:
-        print(f"   🟢 UNRESTRICTED mode: No vulnerabilities detected")
+        print(f"   UNRESTRICTED mode: No vulnerabilities detected")
     
     if restricted_vulns == 0:
-        print(f"   🟢 RESTRICTED mode: Successfully blocked all attacks")
-        print(f"      ➤ SafeSqlDriver provides effective protection")
+        print(f"   RESTRICTED mode: Successfully blocked all attacks")
+        print(f"      - SafeSqlDriver provides effective protection")
     else:
-        print(f"   ⚠️  RESTRICTED mode: {restricted_vulns} vulnerabilities found")
+        print(f"   RESTRICTED mode: {restricted_vulns} vulnerabilities found")
     
     # Recommendations
     if report["recommendations"]:
-        print(f"\n🔧 RECOMMENDATIONS:")
+        print(f"\nRECOMMENDATIONS:")
         for i, rec in enumerate(report["recommendations"], 1):
-            priority_emoji = {"CRITICAL": "🚨", "HIGH": "⚠️", "MEDIUM": "⚡", "INFO": "ℹ️"}
-            emoji = priority_emoji.get(rec["priority"], "📝")
-            print(f"   {i}. {emoji} {rec['issue']}")
+            print(f"   {i}. {rec['priority']}: {rec['issue']}")
             print(f"      {rec['solution']}")
     
-    print("\n🛡️" + "=" * 78 + "🛡️")
+    print("\n" + "=" * 80)
+    print("\nTEST EXPLANATION:")
+    print("- Database errors during testing are normal and expected")
+    print("- These errors occur when the test framework attempts various SQL injection attacks")
+    print("- The important results are the final VULNERABLE/PROTECTED counts above")
+    print("- VULNERABLE means the attack succeeded, PROTECTED means it was blocked")
 
 
 def main():
@@ -224,15 +226,15 @@ Examples:
                 user, _ = user_pass.split(":", 1)
                 masked_url = masked_url.replace(user_pass, f"{user}:****")
     
-    print(f"🔗 Database: {masked_url}")
-    print(f"🎯 Test Mode: {'QUICK' if args.quick else 'COMPREHENSIVE'}")
+    print(f"Database: {masked_url}")
+    print(f"Test Mode: {'QUICK' if args.quick else 'COMPREHENSIVE'}")
     
     # Confirmation
     if not os.environ.get("SKIP_CONFIRMATION") and not args.skip_banner:
-        print(f"\n⚠️  This will create test tables in the target database!")
-        response = input("🤔 Continue? (y/N): ")
+        print(f"\nWARNING: This will create test tables in the target database!")
+        response = input("Continue? (y/N): ")
         if response.lower() != 'y':
-            print("❌ Testing cancelled.")
+            print("Testing cancelled.")
             return 1
     
     async def run_tests():
@@ -248,14 +250,14 @@ Examples:
             
             # Exit with appropriate code
             if report["security_score"] < 70:
-                print("\n🚨 SECURITY ALERT: Critical vulnerabilities detected!")
+                print("\nSECURITY ALERT: Critical vulnerabilities detected!")
                 return 1
             else:
-                print("\n✅ Security assessment completed successfully.")
+                print("\nSecurity assessment completed successfully.")
                 return 0
                 
         except Exception as e:
-            print(f"\n❌ Security testing failed: {e}")
+            print(f"\nSecurity testing failed: {e}")
             return 1
     
     # Run the async tests

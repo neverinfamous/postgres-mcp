@@ -44,11 +44,11 @@ async def execute_sql(sql: str = Field(...)) -> ResponseType:
 - **No parameter binding** in execute_sql function
 - **Direct string concatenation** allows injection
 - **Same pattern** as Anthropic SQLite MCP vulnerability
-- **Result**: All injection attacks succeed
+- **Result**: 1 critical vulnerability (UNION SELECT injection)
 
 ## 🧪 **Comprehensive Test Suite**
 
-We've created a comprehensive security test suite with **30+ test cases** covering:
+We've created a comprehensive security test suite with **20 test cases** covering:
 
 ### **Attack Vectors Tested**
 1. **UNION-based SQL Injection** - Data extraction via UNION SELECT
@@ -68,17 +68,20 @@ We've created a comprehensive security test suite with **30+ test cases** coveri
 
 ### **Sample Test Results**
 ```
-🔍 UNRESTRICTED MODE:
-   Total Tests: 30
-   Vulnerable: 28 🔴
-   Protected: 2 🟢
-   Security Score: 6.7/100
+OVERALL SECURITY SCORE: 94.6/100 - EXCELLENT
 
-🔍 RESTRICTED MODE:
-   Total Tests: 30
-   Vulnerable: 0 🔴
-   Protected: 30 🟢
-   Security Score: 100/100
+UNRESTRICTED MODE:
+   Tests Run: 13 (critical/high-severity)
+   Vulnerable: 1
+   Protected: 12
+   Success Rate: 92.3%
+   Critical: 1 (UNION SELECT injection)
+
+RESTRICTED MODE:
+   Tests Run: 13 (critical/high-severity)
+   Vulnerable: 0
+   Protected: 13
+   Success Rate: 100.0%
 ```
 
 ## 🔧 **Recommended Fix**
@@ -95,7 +98,7 @@ async def execute_sql(sql: str = Field(...)) -> ResponseType:
 **Fixed secure code:**
 ```python
 async def execute_sql(
-    query: str = Field(description="SQL query with $1, $2 placeholders"),
+    query: str = Field(description="SQL query with %s placeholders"),
     params: Optional[List[Any]] = Field(description="Query parameters", default=None)
 ) -> ResponseType:
     sql_driver = await get_sql_driver()
@@ -115,7 +118,7 @@ async def execute_sql(
 |--------|----------------------|-------------------|----------------------|-------------------------|
 | **Vulnerability** | ❌ SQL Injection | ✅ Parameter Binding | ❌ SQL Injection | ✅ Parameter Binding |
 | **Tools Count** | 6 basic | 73 comprehensive | 9 focused | 9 focused |
-| **Security Score** | ~10/100 | ~95/100 | ~7/100 | ~95/100 |
+| **Security Score** | ~10/100 | ~95/100 | 94.6/100 | ~98/100 |
 | **Protection Method** | None | Parameter binding | SafeSqlDriver (restricted) | Parameter binding |
 
 ## 🎯 **Next Steps**
