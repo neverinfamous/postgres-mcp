@@ -393,7 +393,7 @@ async def execute_sql(
     params: Optional[List[Any]] = Field(description="Parameters for the SQL query placeholders", default=None),
 ) -> ResponseType:
     """Executes a SQL query against the database with parameter binding for security.
-    
+
     For security, use parameterized queries with %s placeholders:
     - Safe: SELECT * FROM users WHERE id = %s (with params=[123])
     - Unsafe: SELECT * FROM users WHERE id = 123 (direct concatenation)
@@ -401,7 +401,7 @@ async def execute_sql(
     try:
         sql_driver = await get_sql_driver()
         # Handle the case where params might be a FieldInfo object due to Pydantic
-        actual_params = params if params is not None and not hasattr(params, 'default') else None
+        actual_params = params if params is not None and not hasattr(params, "default") else None
         rows = await sql_driver.execute_query(sql, params=actual_params)  # type: ignore
         if rows is None:
             return format_text_response("No results")
