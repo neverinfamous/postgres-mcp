@@ -13,6 +13,10 @@ on:
         required: true
         default: ""
 
+# Security: Explicit permissions following principle of least privilege
+permissions:
+  contents: read
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -60,7 +64,7 @@ jobs:
         id: docker_meta
         uses: docker/metadata-action@v5
         with:
-          images: crystaldba/postgres-mcp
+          images: neverinfamous/postgres-mcp
           tags: |
             type=raw,value=${{ needs.prepare.outputs.version }}
             type=raw,value=latest
@@ -84,5 +88,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
-          cache-from: type=registry,ref=crystaldba/postgres-mcp:buildcache
-          cache-to: type=registry,ref=crystaldba/postgres-mcp:buildcache,mode=max
+          cache-from: type=registry,ref=neverinfamous/postgres-mcp:buildcache
+          cache-to: type=registry,ref=neverinfamous/postgres-mcp:buildcache,mode=max
