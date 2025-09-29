@@ -368,10 +368,7 @@ class PostgresSQLInjectionTester:
             InjectionTest(
                 name="PostgreSQL - Large object manipulation",
                 attack_vector=AttackVector.POSTGRES_SPECIFIC,
-                payload=(
-                    "1'; SELECT lo_create(12345); SELECT lo_put(12345, 0, "
-                    "(SELECT secret_key FROM sensitive_data LIMIT 1)::bytea);--"
-                ),
+                payload=("1'; SELECT lo_create(12345); SELECT lo_put(12345, 0, (SELECT secret_key FROM sensitive_data LIMIT 1)::bytea);--"),
                 expected_vulnerable=True,
                 security_level=SecurityLevel.HIGH,
                 description="Large object manipulation for data exfiltration",
