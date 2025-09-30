@@ -15,6 +15,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+from mcp import types
+
 import postgres_mcp.server as server_module
 from postgres_mcp.server import execute_sql
 
@@ -63,7 +65,7 @@ async def test_mcp_security_fix():
         print("")
 
         # Check if the result contains an error message about injection
-        result_text = result.text if hasattr(result, "text") and result.text else str(result)
+        result_text = result[0].text if result and len(result) > 0 and isinstance(result[0], types.TextContent) else str(result)
         if "injection detected" in result_text.lower():
             print("SECURITY SUCCESS: SQL injection was blocked!")
             print("   The security validation correctly prevented the attack.")
@@ -95,7 +97,7 @@ async def test_mcp_security_fix():
         result = await execute_sql(sql=another_malicious_sql)
 
         # Check if the result contains an error message about injection
-        result_text = result.text if hasattr(result, "text") and result.text else str(result)
+        result_text = result[0].text if result and len(result) > 0 and isinstance(result[0], types.TextContent) else str(result)
         if "injection detected" in result_text.lower():
             print("SECURITY SUCCESS: Stacked query injection was blocked!")
         elif "error:" in result_text.lower():

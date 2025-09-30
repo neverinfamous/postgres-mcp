@@ -44,6 +44,8 @@ if sys.platform == "win32":
 # Add the src directory to the path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+from mcp import types
+
 from postgres_mcp.sql import DbConnPool
 from postgres_mcp.sql import SqlDriver
 
@@ -447,9 +449,9 @@ class PostgresSQLInjectionTester:
             mcp_result = await execute_sql(sql=vulnerable_query)
 
             # Convert MCP result to the format expected by the test
-            if hasattr(mcp_result, "text") and mcp_result.text:
+            if mcp_result and len(mcp_result) > 0 and isinstance(mcp_result[0], types.TextContent) and mcp_result[0].text:
                 # Check if it's an error message (security blocked)
-                if "error:" in mcp_result.text.lower() and "injection detected" in mcp_result.text.lower():
+                if "error:" in mcp_result[0].text.lower() and "injection detected" in mcp_result[0].text.lower():
                     # Security validation blocked the query - treat as no result (protected)
                     result = None
                 else:
@@ -457,10 +459,14 @@ class PostgresSQLInjectionTester:
                     import ast
 
                     try:
-                        result_list = ast.literal_eval(mcp_result.text)
+                        result_list = ast.literal_eval(mcp_result[0].text) if isinstance(mcp_result[0], types.TextContent) else []
                         if isinstance(result_list, list):
                             # Convert to RowResult format for compatibility
-                            result = [type("RowResult", (), {"cells": row})() for row in result_list]
+                            class RowResult:
+                                def __init__(self, cells):
+                                    self.cells = cells
+
+                            result = [RowResult(row) for row in result_list]
                         else:
                             result = None
                     except Exception:
