@@ -401,27 +401,46 @@ async def execute_sql(
     try:
         # Security validation: Check for SQL injection patterns when no params are used
         actual_params = params if params is not None and not hasattr(params, "default") else None
-        
+
         # If no parameters are provided, validate the SQL for potential injection
         if actual_params is None:
             # Check for common SQL injection patterns
             sql_upper = sql.upper().strip()
             suspicious_patterns = [
-                "UNION", "--", "/*", "*/", ";", "DROP", "DELETE", "UPDATE", "INSERT",
-                "CREATE", "ALTER", "EXEC", "EXECUTE", "SP_", "XP_", "SCRIPT",
-                "INFORMATION_SCHEMA", "PG_", "CURRENT_USER", "VERSION()"
+                "UNION",
+                "--",
+                "/*",
+                "*/",
+                ";",
+                "DROP",
+                "DELETE",
+                "UPDATE",
+                "INSERT",
+                "CREATE",
+                "ALTER",
+                "EXEC",
+                "EXECUTE",
+                "SP_",
+                "XP_",
+                "SCRIPT",
+                "INFORMATION_SCHEMA",
+                "PG_",
+                "CURRENT_USER",
+                "VERSION()",
             ]
-            
+
             # Allow basic SELECT queries but block suspicious patterns
             if any(pattern in sql_upper for pattern in suspicious_patterns):
                 # Check if this is a simple SELECT without injection patterns
-                if not (sql_upper.startswith("SELECT") and 
-                       not any(pattern in sql_upper for pattern in ["UNION", "--", "/*", ";", "DROP", "DELETE", "UPDATE", "INSERT"])):
+                if not (
+                    sql_upper.startswith("SELECT")
+                    and not any(pattern in sql_upper for pattern in ["UNION", "--", "/*", ";", "DROP", "DELETE", "UPDATE", "INSERT"])
+                ):
                     return format_error_response(
                         "Potential SQL injection detected. Use parameter binding with %s placeholders for dynamic values. "
                         "Example: SELECT * FROM table WHERE id = %s (with params=[value])"
                     )
-        
+
         sql_driver = await get_sql_driver()
         rows = await sql_driver.execute_query(sql, params=actual_params)  # type: ignore
         if rows is None:

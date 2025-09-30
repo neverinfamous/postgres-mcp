@@ -45,7 +45,6 @@ if sys.platform == "win32":
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from postgres_mcp.sql import DbConnPool
-from postgres_mcp.sql import SafeSqlDriver
 from postgres_mcp.sql import SqlDriver
 
 
@@ -420,10 +419,8 @@ class PostgresSQLInjectionTester:
                 await self.setup_test_environment()
 
             # Set up the appropriate driver based on mode
-            if mode == "restricted":
-                sql_driver = SafeSqlDriver(SqlDriver(conn=self.db_pool), timeout=30)
-            else:
-                sql_driver = SqlDriver(conn=self.db_pool)
+            # Set up the appropriate SQL driver based on mode
+            # (Note: We now test the MCP server function directly instead of the driver)
 
             # Skip table existence check - it causes transaction isolation noise
             # but doesn't affect the actual test validity. Tests work fine without it.
@@ -431,25 +428,26 @@ class PostgresSQLInjectionTester:
             # Test the actual MCP server execute_sql function
             # Import the server module to test the actual MCP function
             import postgres_mcp.server as server_module
-            from postgres_mcp.server import execute_sql, AccessMode
-            
+            from postgres_mcp.server import AccessMode
+            from postgres_mcp.server import execute_sql
+
             # Set up the server's database connection and access mode
             await server_module.db_connection.pool_connect(self.connection_url)
             if mode == "restricted":
                 server_module.current_access_mode = AccessMode.RESTRICTED
             else:
                 server_module.current_access_mode = AccessMode.UNRESTRICTED
-            
+
             # Construct a vulnerable query (simulating what a malicious user would send)
             # The payloads are designed to be injected into a quoted string context
             vulnerable_query = f"SELECT * FROM test_users WHERE id = '{test.payload}'"
-            
+
             # Test the actual MCP server execute_sql function
             # This tests the real security implementation
             mcp_result = await execute_sql(sql=vulnerable_query)
-            
+
             # Convert MCP result to the format expected by the test
-            if hasattr(mcp_result, 'text') and mcp_result.text:
+            if hasattr(mcp_result, "text") and mcp_result.text:
                 # Check if it's an error message (security blocked)
                 if "error:" in mcp_result.text.lower() and "injection detected" in mcp_result.text.lower():
                     # Security validation blocked the query - treat as no result (protected)
@@ -457,14 +455,15 @@ class PostgresSQLInjectionTester:
                 else:
                     # Parse the result text to extract data
                     import ast
+
                     try:
                         result_list = ast.literal_eval(mcp_result.text)
                         if isinstance(result_list, list):
                             # Convert to RowResult format for compatibility
-                            result = [type('RowResult', (), {'cells': row})() for row in result_list]
+                            result = [type("RowResult", (), {"cells": row})() for row in result_list]
                         else:
                             result = None
-                    except:
+                    except Exception:
                         # If parsing fails, assume it's an error or no data
                         result = None
             else:
