@@ -22,13 +22,18 @@ Before using the PostgreSQL MCP Server, ensure you have:
 - Network connectivity to the database
 
 ### **2. Required Extensions** (for enhanced features):
-```sql
--- Enable pg_stat_statements (add to postgresql.conf)
+Enable pg_stat_statements (add to postgresql.conf):
+```
 shared_preload_libraries = 'pg_stat_statements'
+```
 
--- Restart PostgreSQL, then create extensions in your database
+Restart PostgreSQL, then create extensions in your database:
+```sql
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-CREATE EXTENSION IF NOT EXISTS hypopg;  -- Optional but recommended
+```
+
+```sql
+CREATE EXTENSION IF NOT EXISTS hypopg;
 ```
 
 ### **3. Environment Variables**:
@@ -45,10 +50,13 @@ export DATABASE_URI="postgresql://username:password@localhost:5432/dbname"
 ## 🚀 **Quick Start**
 
 ### **Option 1: Docker (Recommended)**
-```bash
-# Pull and run instantly
-docker pull neverinfamous/postgres-mcp:latest
+Pull and run instantly:
 
+```bash
+docker pull neverinfamous/postgres-mcp:latest
+```
+
+```bash
 docker run -i --rm \
   -e DATABASE_URI="postgresql://username:password@localhost:5432/dbname" \
   neverinfamous/postgres-mcp:latest \
@@ -56,32 +64,50 @@ docker run -i --rm \
 ```
 
 ### **Option 2: Python Installation**
-```bash
-# Install from PyPI
-pip install postgres-mcp
+Install from PyPI:
 
-# Run the server
+```bash
+pip install postgres-mcp
+```
+
+Run the server:
+
+```bash
 postgres-mcp --access-mode=restricted
 ```
 
 ### **Option 3: Test in 30 Seconds**
 ```bash
 git clone https://github.com/neverinfamous/postgres-mcp.git
+```
+
+```bash
 cd postgres-mcp
+```
+
+```bash
 uv sync
+```
+
+```bash
 uv run pytest -v
 ```
 
 ### **Verify Installation**
 Test basic connectivity and functionality:
+
+Test basic connectivity (using MCP client):
 ```bash
-# Test basic connectivity (using MCP client)
 mcp_postgres-mcp_list_schemas
+```
 
-# Verify extensions are working
+Verify extensions are working:
+```bash
 mcp_postgres-mcp_get_top_queries --sort_by=total_time --limit=5
+```
 
-# Check database health
+Check database health:
+```bash
 mcp_postgres-mcp_analyze_db_health --health_type=all
 ```
 
@@ -193,17 +219,19 @@ This MCP server leverages powerful PostgreSQL extensions for advanced analytics:
 #### **Installing Extensions**
 
 **For Ubuntu/Debian**:
+Install hypopg extension:
 ```bash
-# Install hypopg extension
 sudo apt-get install postgresql-17-hypopg
+```
 
-# Enable in PostgreSQL
+Enable in PostgreSQL:
+```bash
 sudo -u postgres psql -d your_database -c "CREATE EXTENSION IF NOT EXISTS hypopg;"
 ```
 
 **For Docker PostgreSQL**:
+Add to your Dockerfile:
 ```dockerfile
-# Add to your Dockerfile
 RUN apt-get update && apt-get install -y postgresql-17-hypopg
 ```
 
@@ -334,11 +362,13 @@ analyze_db_health(health_type="connection") # Connection pool analysis
 ### **Testing MCP Connection**
 To verify the MCP server is working, you can test the connection:
 
+Start the server locally for testing:
 ```bash
-# Start the server locally for testing
 python start_local_server.py
+```
 
-# Or using Docker
+Or using Docker:
+```bash
 docker run -i --rm \
   -e DATABASE_URI="postgresql://username:password@localhost:5432/dbname" \
   neverinfamous/postgres-mcp:latest \
@@ -360,14 +390,20 @@ docker run -i --rm \
 - Validate MCP client configuration syntax
 
 **Extension Not Found Errors**:
+Install required extensions:
 ```sql
--- Install required extensions
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+```
+
+```sql
 CREATE EXTENSION IF NOT EXISTS hypopg;
 ```
 
 **Connection Refused**:
-- Verify PostgreSQL is running: `pg_isready -h localhost -p 5432`
+- Verify PostgreSQL is running:
+```bash
+pg_isready -h localhost -p 5432
+```
 - Check firewall settings and network connectivity
 - Validate connection string format and credentials
 - Ensure database exists and user has proper permissions
@@ -376,7 +412,10 @@ CREATE EXTENSION IF NOT EXISTS hypopg;
 - Ensure `shared_preload_libraries = 'pg_stat_statements'` in postgresql.conf
 - Restart PostgreSQL after configuration changes
 - Run some queries to populate statistics
-- Check if extension is properly installed: `\dx pg_stat_statements`
+- Check if extension is properly installed:
+```sql
+\dx pg_stat_statements
+```
 
 **Permission Denied Errors**:
 - Verify database user has necessary permissions
@@ -394,26 +433,34 @@ CREATE EXTENSION IF NOT EXISTS hypopg;
 ## 🧪 **Comprehensive Testing**
 
 ### **Security Testing**
+Run comprehensive security test suite:
 ```bash
-# Run comprehensive security test suite
 python run_security_test.py
+```
 
-# Test specific vulnerability fixes
+Test specific vulnerability fixes:
+```bash
 python test_security_fix.py
+```
 
-# Demonstrate security protections (educational)
+Demonstrate security protections (educational):
+```bash
 python demonstrate_vulnerability.py
 ```
 
 ### **Functional Testing**
+Run all tests:
 ```bash
-# Run all tests
 uv run pytest -v
+```
 
-# Run with coverage
+Run with coverage:
+```bash
 uv run pytest --cov=src tests/
+```
 
-# Integration tests
+Integration tests:
+```bash
 uv run pytest tests/integration/ -v
 ```
 
