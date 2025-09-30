@@ -12,6 +12,36 @@ Transform PostgreSQL into a powerful, AI-ready database engine with **9 speciali
 
 ---
 
+## 📋 **Prerequisites**
+
+Before using the PostgreSQL MCP Server, ensure you have:
+
+### **1. PostgreSQL Database** (version 13-17)
+- Running and accessible PostgreSQL instance
+- Valid connection credentials with appropriate permissions
+- Network connectivity to the database
+
+### **2. Required Extensions** (for enhanced features):
+```sql
+-- Enable pg_stat_statements (add to postgresql.conf)
+shared_preload_libraries = 'pg_stat_statements'
+
+-- Restart PostgreSQL, then create extensions in your database
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+CREATE EXTENSION IF NOT EXISTS hypopg;  -- Optional but recommended
+```
+
+### **3. Environment Variables**:
+```bash
+export DATABASE_URI="postgresql://username:password@localhost:5432/dbname"
+```
+
+### **4. MCP Client**
+- Claude Desktop, Cursor, or other MCP-compatible client
+- Proper MCP server configuration (see Configuration section)
+
+---
+
 ## 🚀 **Quick Start**
 
 ### **Option 1: Docker (Recommended)**
@@ -40,6 +70,19 @@ git clone https://github.com/neverinfamous/postgres-mcp.git
 cd postgres-mcp
 uv sync
 uv run pytest -v
+```
+
+### **Verify Installation**
+Test basic connectivity and functionality:
+```bash
+# Test basic connectivity (using MCP client)
+mcp_postgres-mcp_list_schemas
+
+# Verify extensions are working
+mcp_postgres-mcp_get_top_queries --sort_by=total_time --limit=5
+
+# Check database health
+mcp_postgres-mcp_analyze_db_health --health_type=all
 ```
 
 ---
@@ -115,17 +158,17 @@ This PostgreSQL MCP server has been **comprehensively security-audited** and enh
 
 The PostgreSQL MCP Server provides **9 specialized tools**:
 
-| Tool | Description | Security Level |
-|------|-------------|----------------|
-| `list_schemas` | List all database schemas | 🟢 Safe |
-| `list_objects` | List tables, views, sequences, extensions | 🟢 Safe |
-| `get_object_details` | Detailed object information and schema | 🟢 Safe |
-| `execute_sql` | **Secure SQL execution with parameter binding** | 🛡️ **Enhanced** |
-| `explain_query` | **Query execution plans with hypothetical index support** | 🟢 **Enhanced** |
-| `get_top_queries` | **Real-time query performance analysis via pg_stat_statements** | 🟢 **Enhanced** |
-| `analyze_workload_indexes` | Workload-based index recommendations | 🟢 Safe |
-| `analyze_query_indexes` | Query-specific index optimization | 🟢 Safe |
-| `analyze_db_health` | Comprehensive database health checks | 🟢 Safe |
+| MCP Function | Tool | Description | Security Level |
+|--------------|------|-------------|----------------|
+| `mcp_postgres-mcp_list_schemas` | `list_schemas` | List all database schemas | 🟢 Safe |
+| `mcp_postgres-mcp_list_objects` | `list_objects` | List tables, views, sequences, extensions | 🟢 Safe |
+| `mcp_postgres-mcp_get_object_details` | `get_object_details` | Detailed object information and schema | 🟢 Safe |
+| `mcp_postgres-mcp_execute_sql` | `execute_sql` | **Secure SQL execution with parameter binding** | 🛡️ **Enhanced** |
+| `mcp_postgres-mcp_explain_query` | `explain_query` | **Query execution plans with hypothetical index support** | 🟢 **Enhanced** |
+| `mcp_postgres-mcp_get_top_queries` | `get_top_queries` | **Real-time query performance analysis via pg_stat_statements** | 🟢 **Enhanced** |
+| `mcp_postgres-mcp_analyze_workload_indexes` | `analyze_workload_indexes` | Workload-based index recommendations | 🟢 Safe |
+| `mcp_postgres-mcp_analyze_query_indexes` | `analyze_query_indexes` | Query-specific index optimization | 🟢 Safe |
+| `mcp_postgres-mcp_analyze_db_health` | `analyze_db_health` | Comprehensive database health checks | 🟢 Safe |
 
 ---
 
@@ -146,6 +189,29 @@ This MCP server leverages powerful PostgreSQL extensions for advanced analytics:
 - **Features**: Test index performance impact, cost-benefit analysis
 - **Installation**: Available via package managers (postgresql-XX-hypopg)
 - **Usage**: Simulate index creation for optimization planning
+
+#### **Installing Extensions**
+
+**For Ubuntu/Debian**:
+```bash
+# Install hypopg extension
+sudo apt-get install postgresql-17-hypopg
+
+# Enable in PostgreSQL
+sudo -u postgres psql -d your_database -c "CREATE EXTENSION IF NOT EXISTS hypopg;"
+```
+
+**For Docker PostgreSQL**:
+```dockerfile
+# Add to your Dockerfile
+RUN apt-get update && apt-get install -y postgresql-17-hypopg
+```
+
+**Verify Installation**:
+```sql
+SELECT extname, extversion FROM pg_extension 
+WHERE extname IN ('pg_stat_statements', 'hypopg');
+```
 
 ### **Recent Updates (September 2025)**
 
@@ -265,6 +331,63 @@ analyze_db_health(health_type="connection") # Connection pool analysis
 }
 ```
 
+### **Testing MCP Connection**
+To verify the MCP server is working, you can test the connection:
+
+```bash
+# Start the server locally for testing
+python start_local_server.py
+
+# Or using Docker
+docker run -i --rm \
+  -e DATABASE_URI="postgresql://username:password@localhost:5432/dbname" \
+  neverinfamous/postgres-mcp:latest \
+  --access-mode=restricted
+```
+
+**Note**: Ensure your PostgreSQL database is running and accessible before starting the MCP server.
+
+---
+
+## 🔧 **Troubleshooting**
+
+### **Common Issues**
+
+**MCP Server Not Found**:
+- Ensure the server is properly configured in your MCP client
+- Verify the DATABASE_URI environment variable is set correctly
+- Check that PostgreSQL is running and accessible
+- Validate MCP client configuration syntax
+
+**Extension Not Found Errors**:
+```sql
+-- Install required extensions
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+CREATE EXTENSION IF NOT EXISTS hypopg;
+```
+
+**Connection Refused**:
+- Verify PostgreSQL is running: `pg_isready -h localhost -p 5432`
+- Check firewall settings and network connectivity
+- Validate connection string format and credentials
+- Ensure database exists and user has proper permissions
+
+**No Query Data in pg_stat_statements**:
+- Ensure `shared_preload_libraries = 'pg_stat_statements'` in postgresql.conf
+- Restart PostgreSQL after configuration changes
+- Run some queries to populate statistics
+- Check if extension is properly installed: `\dx pg_stat_statements`
+
+**Permission Denied Errors**:
+- Verify database user has necessary permissions
+- Check if restricted mode is appropriate for your use case
+- Ensure user can access required system tables and views
+
+**Performance Issues**:
+- Monitor database resource usage during operations
+- Check if pg_stat_statements is causing overhead
+- Verify network latency between MCP server and database
+- Consider adjusting query timeouts and connection limits
 
 ---
 
@@ -411,4 +534,3 @@ Security is our top priority. If you discover a security vulnerability, please f
 ---
 
 *This PostgreSQL MCP Server represents a commitment to secure, reliable, and high-performance database operations in AI-driven environments. Enhanced with real-time analytics, hypothetical index testing, and automated dependency management for enterprise-grade PostgreSQL operations.*
-
