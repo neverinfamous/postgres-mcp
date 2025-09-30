@@ -29,9 +29,10 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Add the src directory to the path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from tests.test_sql_injection_security import PostgresSQLInjectionTester
+# Import from the current security directory
+from test_sql_injection_security import PostgresSQLInjectionTester
 
 
 def print_banner():
@@ -97,7 +98,7 @@ async def run_quick_test(connection_url: str) -> Dict[str, Any]:
 async def run_full_test(connection_url: str) -> Dict[str, Any]:
     """Run the complete comprehensive security test suite"""
 
-    print("🔬 Running COMPREHENSIVE security test suite...")
+    print("Running COMPREHENSIVE security test suite...")
     print("-" * 60)
 
     tester = PostgresSQLInjectionTester(connection_url)

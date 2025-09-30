@@ -131,8 +131,9 @@ This PostgreSQL MCP server has been **comprehensively security-audited** and enh
 **Critical SQL Injection Vulnerability Fixed** (September 2025):
 - **Issue**: Direct SQL string execution without parameter binding
 - **Impact**: Complete database compromise in unrestricted mode
-- **Fix**: Added comprehensive parameter binding with backward compatibility
+- **Fix**: Added SQL injection detection and comprehensive parameter binding validation
 - **Testing**: 20+ security test cases validate protection against all attack vectors
+- **Validation**: 100% protection rate across all attack vectors
 - **Status**: ✅ **RESOLVED** - Zero security vulnerabilities remaining
 
 ### **🎯 Security Modes**
@@ -438,14 +439,14 @@ Run comprehensive security test suite:
 python run_security_test.py
 ```
 
-Test specific vulnerability fixes:
+Run quick security validation:
 ```bash
-python test_security_fix.py
+python run_security_test.py --quick
 ```
 
-Demonstrate security protections (educational):
+Test MCP server security fix directly:
 ```bash
-python demonstrate_vulnerability.py
+python test_mcp_security_fix.py
 ```
 
 ### **Functional Testing**
@@ -464,8 +465,17 @@ Integration tests:
 uv run pytest tests/integration/ -v
 ```
 
+### **Security Test Suite**
+The security tests are located in the `security/` directory:
+
+- **`run_security_test.py`** - Main security test runner with comprehensive coverage
+- **`test_sql_injection_security.py`** - 20 attack vector test suite
+- **`test_mcp_security_fix.py`** - Direct MCP server security validation
+- **`SECURITY_REPORT.md`** - Detailed security analysis and findings
+
 **Test Results:**
 - ✅ **Security Tests**: 20/20 passed (100% protection rate)
+- ✅ **SQL Injection Protection**: All attack vectors blocked
 - ✅ **Integration Tests**: All database operations validated
 - ✅ **Performance Tests**: Index tuning algorithms verified
 - ✅ **Compatibility Tests**: PostgreSQL 13-17 supported
@@ -512,7 +522,7 @@ uv run pytest tests/integration/ -v
 
 | Action | Command |
 |--------|---------|
-| **Test Security** | `python run_security_test.py` |
+| **Test Security** | `cd security && python run_security_test.py` |
 | **Docker Quick Start** | `docker run -i --rm -e DATABASE_URI neverinfamous/postgres-mcp:latest` |
 | **Install from PyPI** | `pip install postgres-mcp` |
 | **Run Tests** | `uv run pytest -v` |

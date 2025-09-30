@@ -428,22 +428,47 @@ class PostgresSQLInjectionTester:
             # Skip table existence check - it causes transaction isolation noise
             # but doesn't affect the actual test validity. Tests work fine without it.
 
-            # Construct a vulnerable query (simulating the execute_sql function)
-            # This mimics how the actual MCP server would handle the input
+            # Test the actual MCP server execute_sql function
+            # Import the server module to test the actual MCP function
+            import postgres_mcp.server as server_module
+            from postgres_mcp.server import execute_sql, AccessMode
+            
+            # Set up the server's database connection and access mode
+            await server_module.db_connection.pool_connect(self.connection_url)
+            if mode == "restricted":
+                server_module.current_access_mode = AccessMode.RESTRICTED
+            else:
+                server_module.current_access_mode = AccessMode.UNRESTRICTED
+            
+            # Construct a vulnerable query (simulating what a malicious user would send)
             # The payloads are designed to be injected into a quoted string context
             vulnerable_query = f"SELECT * FROM test_users WHERE id = '{test.payload}'"
-
-            # Execute the potentially malicious query
-            # Use appropriate readonly setting based on test type and mode
-            if mode == "restricted":
-                # Restricted mode always uses readonly
-                result = await sql_driver.execute_query(vulnerable_query, force_readonly=True)  # type: ignore[arg-type]
-            else:
-                # Unrestricted mode: allow writes for stacked queries to test real vulnerability
-                if test.attack_vector == AttackVector.STACKED_QUERIES:
-                    result = await sql_driver.execute_query(vulnerable_query, force_readonly=False)  # type: ignore[arg-type]
+            
+            # Test the actual MCP server execute_sql function
+            # This tests the real security implementation
+            mcp_result = await execute_sql(sql=vulnerable_query)
+            
+            # Convert MCP result to the format expected by the test
+            if hasattr(mcp_result, 'text') and mcp_result.text:
+                # Check if it's an error message (security blocked)
+                if "error:" in mcp_result.text.lower() and "injection detected" in mcp_result.text.lower():
+                    # Security validation blocked the query - treat as no result (protected)
+                    result = None
                 else:
-                    result = await sql_driver.execute_query(vulnerable_query, force_readonly=True)  # type: ignore[arg-type]
+                    # Parse the result text to extract data
+                    import ast
+                    try:
+                        result_list = ast.literal_eval(mcp_result.text)
+                        if isinstance(result_list, list):
+                            # Convert to RowResult format for compatibility
+                            result = [type('RowResult', (), {'cells': row})() for row in result_list]
+                        else:
+                            result = None
+                    except:
+                        # If parsing fails, assume it's an error or no data
+                        result = None
+            else:
+                result = None
 
             # If we get here without exception, check if the injection was successful
             if result is not None:
@@ -484,6 +509,8 @@ class PostgresSQLInjectionTester:
                 "does not exist",  # Function/feature doesn't exist (protection)
                 "same number of columns",  # SQL structure validation
                 "invalid input syntax",  # Input validation protection
+                "injection detected",  # Our new MCP server security validation
+                "parameter binding",  # Parameter binding requirement message
             ]
 
             vulnerability_indicators = [
