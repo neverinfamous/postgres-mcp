@@ -23,6 +23,9 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
+from typing import cast
+
+from typing_extensions import LiteralString
 
 from ..sql import SafeSqlDriver
 from ..sql import SqlDriver
@@ -110,7 +113,7 @@ class JsonAdvancedTools:
 
             result = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
@@ -208,7 +211,7 @@ class JsonAdvancedTools:
 
             result = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
@@ -374,7 +377,7 @@ class JsonAdvancedTools:
 
             result = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
@@ -425,10 +428,18 @@ class JsonAdvancedTools:
         """
         try:
             # Convert to dicts if needed
+            dict1: Dict[str, Any]
+            dict2: Dict[str, Any]
+            
             if isinstance(json1, str):
-                json1 = json.loads(json1)
+                dict1 = json.loads(json1)
+            else:
+                dict1 = json1
+                
             if isinstance(json2, str):
-                json2 = json.loads(json2)
+                dict2 = json.loads(json2)
+            else:
+                dict2 = json2
 
             # Find differences
             added = {}
@@ -436,16 +447,16 @@ class JsonAdvancedTools:
             changed = {}
 
             # Check for added and changed keys
-            for key in json2:
-                if key not in json1:
-                    added[key] = json2[key]
-                elif json1[key] != json2[key]:
-                    changed[key] = {"from": json1[key], "to": json2[key]}
+            for key in dict2:
+                if key not in dict1:
+                    added[key] = dict2[key]
+                elif dict1[key] != dict2[key]:
+                    changed[key] = {"from": dict1[key], "to": dict2[key]}
 
             # Check for removed keys
-            for key in json1:
-                if key not in json2:
-                    removed[key] = json1[key]
+            for key in dict1:
+                if key not in dict2:
+                    removed[key] = dict1[key]
 
             return {
                 "success": True,
@@ -680,7 +691,7 @@ class JsonAdvancedTools:
 
             result = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
