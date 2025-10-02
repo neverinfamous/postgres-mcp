@@ -248,7 +248,7 @@ class TextProcessingTools:
             await regex_extract_all(
                 'users',
                 'bio',
-                r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+                r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})',
                 flags='gi'
             )
 

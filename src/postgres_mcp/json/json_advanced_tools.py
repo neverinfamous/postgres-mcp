@@ -339,16 +339,16 @@ class JsonAdvancedTools:
             # This is a simplified version - for production, you might want a more robust solution
             where_part = f"WHERE {where_clause}" if where_clause else ""
 
-            query = f"""
+            query = """
             WITH RECURSIVE flatten AS (
                 SELECT 
                     id,
                     key,
                     value,
                     key as path
-                FROM {{}},
-                LATERAL jsonb_each({{}})
-                {where_part}
+                FROM {},
+                LATERAL jsonb_each({})
+                """ + where_part + """
                 
                 UNION ALL
                 
@@ -356,7 +356,7 @@ class JsonAdvancedTools:
                     f.id,
                     e.key,
                     e.value,
-                    f.path || '{}' || e.key as path
+                    f.path || {} || e.key as path
                 FROM flatten f,
                 LATERAL jsonb_each(f.value) e
                 WHERE jsonb_typeof(f.value) = 'object'
@@ -367,10 +367,10 @@ class JsonAdvancedTools:
                 jsonb_typeof(value) as value_type
             FROM flatten
             WHERE jsonb_typeof(value) != 'object'
-            LIMIT {{}}
+            LIMIT {}
             """
 
-            params = [table_name, json_column] + (where_params or []) + [separator, limit]
+            params = [table_name, json_column, separator, limit] + (where_params or [])
 
             result = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
