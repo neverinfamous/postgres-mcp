@@ -29,16 +29,24 @@ jobs:
     outputs:
       version: ${{ steps.set-version.outputs.VERSION }}
     steps:
-      - name: Set version from tag
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Extract version from pyproject.toml
         id: set-version
         run: |
-          if [[ "${{ github.event_name }}" == "push" && \
-                "${{ github.ref_type }}" == "tag" ]]; then
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+            # Extract version from git tag (remove 'v' prefix)
             VERSION="${GITHUB_REF#refs/tags/v}"
-          else
+          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+            # Use workflow_dispatch input
             VERSION="${{ github.event.inputs.version }}"
+          else
+            # Extract from pyproject.toml for regular pushes
+            VERSION=$(grep '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
 
   build-and-push:
     needs: prepare
