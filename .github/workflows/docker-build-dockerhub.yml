@@ -18,6 +18,10 @@ on:
 # Security: Explicit permissions following principle of least privilege
 permissions:
   contents: read
+  packages: write
+  security-events: write  # For security scanning
+  pull-requests: write    # For PR comments
+  attestations: write     # For generating attestations
 
 jobs:
   prepare:
