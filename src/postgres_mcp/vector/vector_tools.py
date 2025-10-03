@@ -357,7 +357,8 @@ class VectorTools:
             LIMIT %s
             """
 
-            query_params = params + [
+            query_params = [
+                *params,
                 json.dumps(query_vector),
                 json.dumps(query_vector),
                 limit,
