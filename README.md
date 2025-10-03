@@ -1,6 +1,6 @@
-# PostgreSQL MCP Server
+# PostgreSQL MCP Server - Version 1.0.5
 
-*Version 1.0.5 - Last Updated: October 3, 2025*
+* Last Updated October 3, 2025 7:58 PM EST **
 
 Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive testing, AI-native database operations, and advanced analytics.
 
