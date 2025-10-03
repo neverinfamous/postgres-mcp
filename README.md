@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server
 
-*Version 1.0.0 - Last Updated: October 3, 2025*
+*Version 1.0.5 - Last Updated: October 3, 2025*
 
 Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive testing, AI-native database operations, and advanced analytics.
 
@@ -164,7 +164,7 @@ CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
 ### **Version 1.0.0 Release** 🎉 (October 3, 2025)
 - **Production Ready**: Enterprise-grade PostgreSQL MCP server
 - **63 Specialized Tools**: Complete feature set across 9 categories
-- **Zero Known Vulnerabilities**: Comprehensive security audit passed
+- **Zero Known Vulnerbilities**: Comprehensive security audit passed
 - **Type Safety**: Pyright strict mode compliance
 - **Multi-Platform**: Windows, Linux, macOS (amd64, arm64)
 
@@ -279,7 +279,7 @@ uv run pytest --cov=src tests/
 
 ## 📈 **Project Stats**
 
-- **Version 1.0.0** - Production ready release (October 3, 2025)
+- **Version 1.0.5** - Production ready release (October 3, 2025)
 - **63 MCP Tools** across 9 categories
 - **Phase 5 Complete** ✅ - All enterprise features implemented
 - **Type Safe** - Pyright strict mode
