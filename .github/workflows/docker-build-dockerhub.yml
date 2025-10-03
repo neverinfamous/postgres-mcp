@@ -96,6 +96,14 @@ jobs:
           echo "check pwd: $(pwd)"
           echo "check ls: $(ls -lta)"
 
+      # Login to Docker Hub for Scout scanning (needs auth for full vulnerability data)
+      - name: Login to DockerHub for Scout
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       # Build locally first for security scanning (AMD64 only)
       - name: Build Docker image for scanning
         uses: docker/build-push-action@v6
@@ -141,14 +149,8 @@ jobs:
             echo "ℹ️ Low/medium severity vulnerabilities are acceptable"
           fi
 
-      - name: Login to DockerHub
-        if: github.event_name != 'pull_request' && success()
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       # Only push if security scan passes
+      # Note: Already logged in from Scout scan step
       - name: Build and push
         if: success()
         id: build-push
