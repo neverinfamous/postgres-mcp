@@ -272,8 +272,8 @@ uv run pytest --cov=src tests/
 - **[📚 Complete Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** - Full documentation
 - **[🛡️ Security Policy](SECURITY.md)** - Vulnerability reporting
 - **[🤝 Contributing](CONTRIBUTING.md)** - Development guidelines
-- **[🐳 Docker Hub](https://hub.docker.com/r/neverinfamous/postgres-mcp)** - Container images
-- **[📦 PyPI Package](https://pypi.org/project/postgres-mcp/)** - Python package
+- **[🐳 Docker Hub](https://hub.docker.com/r/neverinfamous/postgres-mcp)** - Container images (coming soon)
+- **[📦 PyPI Package](https://pypi.org/project/postgres-mcp-enhanced/)** - Python package
 
 ---
 
