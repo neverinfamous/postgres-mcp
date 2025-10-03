@@ -248,7 +248,6 @@ class TextProcessingTools:
             # Use regexp_matches to extract all matches
             query = f"""
             SELECT
-                id,
                 {text_column},
                 regexp_matches({text_column}, %s, %s) as matches
             FROM {table_name}
