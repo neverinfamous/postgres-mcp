@@ -27,11 +27,14 @@ from .explain import ExplainPlanTool
 from .index.index_opt_base import MAX_NUM_INDEX_TUNING_QUERIES
 from .index.llm_opt import LLMOptimizerTool
 from .index.presentation import TextPresentation
+from .json import JsonAdvancedTools
+from .json import JsonHelperTools
 from .sql import DbConnPool
 from .sql import SafeSqlDriver
 from .sql import SqlDriver
 from .sql import check_hypopg_installation_status
 from .sql import obfuscate_password
+from .text import TextProcessingTools
 from .top_queries import TopQueriesCalc
 
 # Initialize FastMCP with default settings
@@ -555,6 +558,398 @@ async def get_top_queries(
         return format_text_response(result)
     except Exception as e:
         logger.error(f"Error getting slow queries: {e}")
+        return format_error_response(str(e))
+
+
+# ============================================================================
+# JSON Helper Tools (Phase 2 - 6 tools)
+# ============================================================================
+
+
+@mcp.tool(description="Insert or update JSONB data with validation")
+async def json_insert(
+    table_name: str = Field(description="Target table name"),
+    json_column: str = Field(description="JSONB column name"),
+    json_data: str = Field(description="JSON data to insert (as JSON string)"),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause for UPDATE", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+    validate: bool = Field(description="Whether to validate JSON structure", default=True),
+) -> ResponseType:
+    """Insert or update JSONB data with validation."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_tools = JsonHelperTools(sql_driver)
+        result = await json_tools.json_insert(
+            table_name=table_name,
+            json_column=json_column,
+            json_data=json_data,
+            where_clause=where_clause,
+            where_params=where_params,
+            validate=validate,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in json_insert: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Update JSON value by path, optionally creating path if missing")
+async def json_update(
+    table_name: str = Field(description="Target table name"),
+    json_column: str = Field(description="JSONB column name"),
+    json_path: str = Field(description="JSON path (e.g., '{key,subkey}')"),
+    new_value: Any = Field(description="New value to set"),
+    where_clause: str = Field(description="WHERE clause to identify rows"),
+    where_params: List[Any] = Field(description="Parameters for WHERE clause"),
+    create_if_missing: bool = Field(description="Create path if it doesn't exist", default=True),
+) -> ResponseType:
+    """Update JSON value by path with optional creation."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_tools = JsonHelperTools(sql_driver)
+        result = await json_tools.json_update(
+            table_name=table_name,
+            json_column=json_column,
+            json_path=json_path,
+            new_value=new_value,
+            where_clause=where_clause,
+            where_params=where_params,
+            create_if_missing=create_if_missing,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in json_update: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Extract JSON data with multiple output formats")
+async def json_select(
+    table_name: str = Field(description="Source table name"),
+    json_column: str = Field(description="JSONB column name"),
+    json_path: Optional[str] = Field(description="Optional path to extract (e.g., '$.user.name')", default=None),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+    output_format: str = Field(description="Output format ('json', 'text', 'array')", default="json"),
+    limit: int = Field(description="Maximum rows to return", default=100),
+) -> ResponseType:
+    """Extract JSON data in various formats."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_tools = JsonHelperTools(sql_driver)
+        result = await json_tools.json_select(
+            table_name=table_name,
+            json_column=json_column,
+            json_path=json_path,
+            where_clause=where_clause,
+            where_params=where_params,
+            output_format=output_format,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in json_select: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Complex JSON filtering and aggregation using JSONPath")
+async def json_query(
+    table_name: str = Field(description="Source table name"),
+    json_column: str = Field(description="JSONB column name"),
+    json_path: str = Field(description="JSONPath query expression"),
+    filter_expr: Optional[str] = Field(description="Optional filter expression", default=None),
+    aggregate: Optional[str] = Field(description="Optional aggregate function ('count', 'sum', 'avg', 'min', 'max')", default=None),
+    limit: int = Field(description="Maximum rows to return", default=100),
+) -> ResponseType:
+    """Perform complex JSON queries with optional aggregation."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_tools = JsonHelperTools(sql_driver)
+        result = await json_tools.json_query(
+            table_name=table_name,
+            json_column=json_column,
+            json_path=json_path,
+            filter_expr=filter_expr,
+            aggregate=aggregate,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in json_query: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Validate JSONPath expression with security checks")
+async def json_validate_path(
+    json_path: str = Field(description="JSONPath expression to validate"),
+    json_data: Optional[str] = Field(description="Optional JSON data to test against", default=None),
+) -> ResponseType:
+    """Validate JSONPath with security checks."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_tools = JsonHelperTools(sql_driver)
+        result = await json_tools.json_validate_path(
+            json_path=json_path,
+            json_data=json_data,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in json_validate_path: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Merge JSON objects with conflict resolution strategies")
+async def json_merge(
+    table_name: str = Field(description="Target table name"),
+    json_column: str = Field(description="JSONB column name"),
+    merge_data: str = Field(description="JSON data to merge"),
+    where_clause: str = Field(description="WHERE clause to identify rows"),
+    where_params: List[Any] = Field(description="Parameters for WHERE clause"),
+    strategy: str = Field(description="Merge strategy ('overwrite', 'keep_existing', 'concat_arrays')", default="overwrite"),
+) -> ResponseType:
+    """Merge JSON with configurable strategies."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_tools = JsonHelperTools(sql_driver)
+        result = await json_tools.json_merge(
+            table_name=table_name,
+            json_column=json_column,
+            merge_data=merge_data,
+            where_clause=where_clause,
+            where_params=where_params,
+            strategy=strategy,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in json_merge: {e}")
+        return format_error_response(str(e))
+
+
+# ============================================================================
+# Advanced JSON Tools (Phase 2 - Selection of 5 most useful tools)
+# ============================================================================
+
+
+@mcp.tool(description="Normalize Python-style JSON to valid JSON format")
+async def json_normalize(
+    json_data: str = Field(description="Python-style JSON string to normalize"),
+) -> ResponseType:
+    """Auto-fix Python-style JSON (single quotes, True/False/None)."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_advanced = JsonAdvancedTools(sql_driver)
+        result = await json_advanced.json_normalize(json_data=json_data)
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in json_normalize: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Compare two JSON structures and return differences")
+async def json_diff(
+    json1: str = Field(description="First JSON object (as string)"),
+    json2: str = Field(description="Second JSON object (as string)"),
+) -> ResponseType:
+    """Compare JSON structures."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_advanced = JsonAdvancedTools(sql_driver)
+        result = await json_advanced.json_diff(json1=json1, json2=json2)
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in json_diff: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Suggest indexes for JSONB columns based on usage patterns")
+async def jsonb_index_suggest(
+    table_name: str = Field(description="Target table name"),
+    json_column: str = Field(description="JSONB column name"),
+    common_paths: Optional[List[str]] = Field(description="List of commonly queried paths", default=None),
+    analyze_usage: bool = Field(description="Analyze query patterns", default=True),
+) -> ResponseType:
+    """Get index recommendations for JSON queries."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_advanced = JsonAdvancedTools(sql_driver)
+        result = await json_advanced.jsonb_index_suggest(
+            table_name=table_name,
+            json_column=json_column,
+            common_paths=common_paths,
+            analyze_usage=analyze_usage,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in jsonb_index_suggest: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Scan JSON data for potential security issues")
+async def json_security_scan(
+    json_data: str = Field(description="JSON data to scan (as string)"),
+    check_injection: bool = Field(description="Check for SQL injection patterns", default=True),
+    check_xss: bool = Field(description="Check for XSS patterns", default=True),
+) -> ResponseType:
+    """Scan JSON for security vulnerabilities."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_advanced = JsonAdvancedTools(sql_driver)
+        result = await json_advanced.json_security_scan(
+            json_data=json_data,
+            check_injection=check_injection,
+            check_xss=check_xss,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in json_security_scan: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze JSON structure and generate statistics")
+async def jsonb_stats(
+    table_name: str = Field(description="Source table name"),
+    json_column: str = Field(description="JSONB column name"),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Get JSON structure statistics."""
+    try:
+        sql_driver = await get_sql_driver()
+        json_advanced = JsonAdvancedTools(sql_driver)
+        result = await json_advanced.jsonb_stats(
+            table_name=table_name,
+            json_column=json_column,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in jsonb_stats: {e}")
+        return format_error_response(str(e))
+
+
+# ============================================================================
+# Text Processing Tools (Phase 2 - Selection of 5 most useful tools)
+# ============================================================================
+
+
+@mcp.tool(description="Find similar text using trigram similarity (requires pg_trgm extension)")
+async def text_similarity(
+    table_name: str = Field(description="Source table name"),
+    text_column: str = Field(description="Text column name"),
+    search_text: str = Field(description="Text to search for"),
+    similarity_threshold: float = Field(description="Minimum similarity score (0-1)", default=0.3),
+    limit: int = Field(description="Maximum results to return", default=100),
+) -> ResponseType:
+    """Find similar text using trigram similarity."""
+    try:
+        sql_driver = await get_sql_driver()
+        text_tools = TextProcessingTools(sql_driver)
+        result = await text_tools.text_similarity(
+            table_name=table_name,
+            text_column=text_column,
+            search_text=search_text,
+            similarity_threshold=similarity_threshold,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in text_similarity: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Advanced full-text search with ranking")
+async def text_search_advanced(
+    table_name: str = Field(description="Source table name"),
+    text_columns: List[str] = Field(description="List of text columns to search"),
+    search_query: str = Field(description="Search query (supports AND, OR, NOT operators)"),
+    language: str = Field(description="Text search language configuration", default="english"),
+    rank_normalization: int = Field(description="Rank normalization (0-32)", default=0),
+    limit: int = Field(description="Maximum results to return", default=100),
+) -> ResponseType:
+    """Perform advanced full-text search."""
+    try:
+        sql_driver = await get_sql_driver()
+        text_tools = TextProcessingTools(sql_driver)
+        result = await text_tools.text_search_advanced(
+            table_name=table_name,
+            text_columns=text_columns,
+            search_query=search_query,
+            language=language,
+            rank_normalization=rank_normalization,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in text_search_advanced: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Extract all pattern matches with capture groups using regex")
+async def regex_extract_all(
+    table_name: str = Field(description="Source table name"),
+    text_column: str = Field(description="Text column name"),
+    pattern: str = Field(description="Regular expression pattern"),
+    flags: str = Field(description="Regex flags (g=global, i=case-insensitive)", default="g"),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+    limit: int = Field(description="Maximum results to return", default=100),
+) -> ResponseType:
+    """Extract regex patterns from text."""
+    try:
+        sql_driver = await get_sql_driver()
+        text_tools = TextProcessingTools(sql_driver)
+        result = await text_tools.regex_extract_all(
+            table_name=table_name,
+            text_column=text_column,
+            pattern=pattern,
+            flags=flags,
+            where_clause=where_clause,
+            where_params=where_params,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in regex_extract_all: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Find fuzzy matches using Levenshtein distance (requires fuzzystrmatch extension)")
+async def fuzzy_match(
+    table_name: str = Field(description="Source table name"),
+    text_column: str = Field(description="Text column name"),
+    search_text: str = Field(description="Text to search for"),
+    max_distance: int = Field(description="Maximum edit distance", default=3),
+    limit: int = Field(description="Maximum results to return", default=100),
+) -> ResponseType:
+    """Find fuzzy text matches."""
+    try:
+        sql_driver = await get_sql_driver()
+        text_tools = TextProcessingTools(sql_driver)
+        result = await text_tools.fuzzy_match(
+            table_name=table_name,
+            text_column=text_column,
+            search_text=search_text,
+            max_distance=max_distance,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in fuzzy_match: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Basic sentiment analysis using keyword matching")
+async def text_sentiment(
+    text: str = Field(description="Text to analyze"),
+) -> ResponseType:
+    """Analyze text sentiment."""
+    try:
+        sql_driver = await get_sql_driver()
+        text_tools = TextProcessingTools(sql_driver)
+        result = await text_tools.text_sentiment(text=text)
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in text_sentiment: {e}")
         return format_error_response(str(e))
 
 
