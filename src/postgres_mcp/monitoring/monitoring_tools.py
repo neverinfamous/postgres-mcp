@@ -11,7 +11,6 @@ This module provides 5 monitoring and alerting tools:
 import logging
 from typing import Any
 from typing import Dict
-from typing import List
 from typing import Optional
 from typing import cast
 
@@ -109,7 +108,7 @@ class MonitoringTools:
             conn_query = cast(
                 LiteralString,
                 """
-            SELECT 
+            SELECT
                 state,
                 COUNT(*) as count,
                 COUNT(*) FILTER (WHERE wait_event_type IS NOT NULL) as waiting
@@ -142,8 +141,8 @@ class MonitoringTools:
 
             # Currently running queries
             if include_queries:
-                query_query = f"""
-                SELECT 
+                query_query = """
+                SELECT
                     pid,
                     usename,
                     application_name,
@@ -189,8 +188,8 @@ class MonitoringTools:
 
             # Lock information
             if include_locks:
-                lock_query = f"""
-                SELECT 
+                lock_query = """
+                SELECT
                     locktype,
                     mode,
                     COUNT(*) as count,
@@ -232,20 +231,20 @@ class MonitoringTools:
                 io_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     SUM(heap_blks_read) as heap_blocks_read,
                     SUM(heap_blks_hit) as heap_blocks_hit,
                     SUM(idx_blks_read) as index_blocks_read,
                     SUM(idx_blks_hit) as index_blocks_hit,
-                    CASE 
-                        WHEN SUM(heap_blks_read + heap_blks_hit) > 0 
+                    CASE
+                        WHEN SUM(heap_blks_read + heap_blks_hit) > 0
                         THEN ROUND(100.0 * SUM(heap_blks_hit) / SUM(heap_blks_read + heap_blks_hit), 2)
-                        ELSE 0 
+                        ELSE 0
                     END as heap_hit_ratio,
-                    CASE 
-                        WHEN SUM(idx_blks_read + idx_blks_hit) > 0 
+                    CASE
+                        WHEN SUM(idx_blks_read + idx_blks_hit) > 0
                         THEN ROUND(100.0 * SUM(idx_blks_hit) / SUM(idx_blks_read + idx_blks_hit), 2)
-                        ELSE 0 
+                        ELSE 0
                     END as index_hit_ratio
                 FROM pg_statio_user_tables
                 """,
@@ -266,7 +265,7 @@ class MonitoringTools:
             size_query = cast(
                 LiteralString,
                 """
-            SELECT 
+            SELECT
                 pg_database_size(current_database()) as db_size,
                 pg_size_pretty(pg_database_size(current_database())) as db_size_pretty,
                 (SELECT SUM(n_tup_ins + n_tup_upd + n_tup_del) FROM pg_stat_user_tables) as total_modifications
@@ -338,7 +337,7 @@ class MonitoringTools:
                 query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     COUNT(*) as current_connections,
                     (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') as max_connections
                 FROM pg_stat_activity
@@ -359,11 +358,11 @@ class MonitoringTools:
                 query = cast(
                     LiteralString,
                     """
-                SELECT 
-                    CASE 
-                        WHEN SUM(blks_read + blks_hit) > 0 
+                SELECT
+                    CASE
+                        WHEN SUM(blks_read + blks_hit) > 0
                         THEN ROUND(100.0 * SUM(blks_hit) / SUM(blks_read + blks_hit), 2)
-                        ELSE 0 
+                        ELSE 0
                     END as hit_ratio
                 FROM pg_stat_database
                 WHERE datname = current_database()
@@ -379,7 +378,7 @@ class MonitoringTools:
                 query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     MAX(EXTRACT(EPOCH FROM (NOW() - xact_start))) as max_transaction_age
                 FROM pg_stat_activity
                 WHERE state IN ('idle in transaction', 'active')
@@ -396,7 +395,7 @@ class MonitoringTools:
                 query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     pg_database_size(current_database()) as db_size
                 """,
                 )
@@ -411,7 +410,7 @@ class MonitoringTools:
                 query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     EXTRACT(EPOCH FROM (NOW() - pg_last_xact_replay_timestamp())) as lag_seconds
                 """,
                 )
@@ -483,14 +482,14 @@ class MonitoringTools:
             size_query = cast(
                 LiteralString,
                 """
-            SELECT 
+            SELECT
                 pg_database_size(current_database()) as total_size,
                 pg_size_pretty(pg_database_size(current_database())) as total_size_pretty,
                 (SELECT SUM(pg_total_relation_size(schemaname || '.' || tablename))
-                 FROM pg_tables 
+                 FROM pg_tables
                  WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) as user_data_size,
                 (SELECT SUM(pg_indexes_size(schemaname || '.' || tablename))
-                 FROM pg_tables 
+                 FROM pg_tables
                  WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) as index_size
             """,
             )
@@ -516,8 +515,8 @@ class MonitoringTools:
 
             # Table growth analysis
             if include_table_growth:
-                table_query = f"""
-                SELECT 
+                table_query = """
+                SELECT
                     schemaname,
                     relname as tablename,
                     pg_total_relation_size(schemaname || '.' || relname) as total_size,
@@ -565,7 +564,7 @@ class MonitoringTools:
             # Index growth analysis
             if include_index_growth:
                 index_query = """
-                SELECT 
+                SELECT
                     schemaname,
                     relname as tablename,
                     indexrelname as indexname,
@@ -595,7 +594,7 @@ class MonitoringTools:
             activity_query = cast(
                 LiteralString,
                 """
-            SELECT 
+            SELECT
                 SUM(n_tup_ins) as total_inserts,
                 SUM(n_tup_del) as total_deletes,
                 AVG(n_live_tup) as avg_rows_per_table
@@ -673,17 +672,17 @@ class MonitoringTools:
                 buffer_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     (SELECT setting::bigint FROM pg_settings WHERE name = 'shared_buffers') as shared_buffers_blocks,
                     (SELECT setting FROM pg_settings WHERE name = 'shared_buffers') as shared_buffers_setting,
                     (SELECT setting::bigint FROM pg_settings WHERE name = 'effective_cache_size') as effective_cache_size_blocks,
                     pg_database_size(current_database()) as db_size,
                     SUM(blks_hit) as buffer_hits,
                     SUM(blks_read) as disk_reads,
-                    CASE 
-                        WHEN SUM(blks_hit + blks_read) > 0 
+                    CASE
+                        WHEN SUM(blks_hit + blks_read) > 0
                         THEN ROUND(100.0 * SUM(blks_hit) / SUM(blks_hit + blks_read), 2)
-                        ELSE 0 
+                        ELSE 0
                     END as hit_ratio
                 FROM pg_stat_database
                 WHERE datname = current_database()
@@ -721,7 +720,7 @@ class MonitoringTools:
                 io_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     SUM(heap_blks_read) as heap_disk_blocks,
                     SUM(heap_blks_hit) as heap_cache_blocks,
                     SUM(idx_blks_read) as index_disk_blocks,
@@ -785,7 +784,7 @@ class MonitoringTools:
                     cpu_query = cast(
                         LiteralString,
                         """
-                    SELECT 
+                    SELECT
                         SUM(total_exec_time) as total_cpu_time,
                         SUM(calls) as total_calls,
                         AVG(mean_exec_time) as avg_query_time,
@@ -879,7 +878,7 @@ class MonitoringTools:
                 lag_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     pg_last_wal_receive_lsn() as receive_lsn,
                     pg_last_wal_replay_lsn() as replay_lsn,
                     EXTRACT(EPOCH FROM (NOW() - pg_last_xact_replay_timestamp())) as lag_seconds,
@@ -918,7 +917,7 @@ class MonitoringTools:
                     sender_query = cast(
                         LiteralString,
                         """
-                    SELECT 
+                    SELECT
                         application_name,
                         client_addr,
                         state,
@@ -961,7 +960,7 @@ class MonitoringTools:
                 slot_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     slot_name,
                     slot_type,
                     database,

@@ -84,7 +84,7 @@ class BackupTools:
 
             # Get database information
             db_info_query = """
-            SELECT 
+            SELECT
                 pg_database_size(current_database()) as db_size,
                 current_database() as db_name,
                 version() as pg_version
@@ -101,8 +101,8 @@ class BackupTools:
             # Build table list query
             if schema_name and table_names:
                 # Specific tables in schema
-                table_query = f"""
-                SELECT 
+                table_query = """
+                SELECT
                     schemaname,
                     relname as tablename,
                     pg_total_relation_size(schemaname || '.' || relname) as table_size,
@@ -115,8 +115,8 @@ class BackupTools:
                 params = [schema_name, table_names]
             elif schema_name:
                 # All tables in schema
-                table_query = f"""
-                SELECT 
+                table_query = """
+                SELECT
                     schemaname,
                     relname as tablename,
                     pg_total_relation_size(schemaname || '.' || relname) as table_size,
@@ -128,8 +128,8 @@ class BackupTools:
                 params = [schema_name]
             elif table_names:
                 # Specific tables (any schema)
-                table_query = f"""
-                SELECT 
+                table_query = """
+                SELECT
                     schemaname,
                     relname as tablename,
                     pg_total_relation_size(schemaname || '.' || relname) as table_size,
@@ -144,7 +144,7 @@ class BackupTools:
                 table_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     schemaname,
                     relname as tablename,
                     pg_total_relation_size(schemaname || '.' || relname) as table_size,
@@ -201,7 +201,7 @@ class BackupTools:
 
                 # Check for very wide tables (many columns)
                 column_query = """
-                SELECT 
+                SELECT
                     table_schema,
                     table_name,
                     COUNT(*) as column_count
@@ -287,7 +287,7 @@ class BackupTools:
             wal_query = cast(
                 LiteralString,
                 """
-            SELECT 
+            SELECT
                 name,
                 setting,
                 unit,
@@ -354,7 +354,7 @@ class BackupTools:
                 slot_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     slot_name,
                     slot_type,
                     active,
@@ -385,7 +385,7 @@ class BackupTools:
             wal_location_query = cast(
                 LiteralString,
                 """
-            SELECT 
+            SELECT
                 pg_current_wal_lsn() as current_lsn,
                 pg_walfile_name(pg_current_wal_lsn()) as current_wal_file
             """,
@@ -455,7 +455,7 @@ class BackupTools:
                 disk_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     pg_database_size(current_database()) as current_size,
                     pg_size_pretty(pg_database_size(current_database())) as current_size_pretty
                 """,
@@ -475,7 +475,7 @@ class BackupTools:
                 conn_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     COUNT(*) as total_connections,
                     COUNT(*) FILTER (WHERE state = 'active') as active_connections,
                     COUNT(*) FILTER (WHERE state = 'idle') as idle_connections,
@@ -521,14 +521,14 @@ class BackupTools:
                 constraint_query = cast(
                     LiteralString,
                     """
-                SELECT 
+                SELECT
                     conrelid::regclass as table_name,
                     conname as constraint_name,
                     contype as constraint_type,
                     convalidated as is_validated
                 FROM pg_constraint
                 WHERE connamespace IN (
-                    SELECT oid FROM pg_namespace 
+                    SELECT oid FROM pg_namespace
                     WHERE nspname NOT IN ('pg_catalog', 'information_schema')
                 )
                 AND NOT convalidated
@@ -613,7 +613,7 @@ class BackupTools:
             size_query = cast(
                 LiteralString,
                 """
-            SELECT 
+            SELECT
                 pg_database_size(current_database()) as db_size,
                 pg_size_pretty(pg_database_size(current_database())) as db_size_pretty
             """,
@@ -635,7 +635,7 @@ class BackupTools:
             activity_query = cast(
                 LiteralString,
                 """
-            SELECT 
+            SELECT
                 SUM(n_tup_ins) as total_inserts,
                 SUM(n_tup_upd) as total_updates,
                 SUM(n_tup_del) as total_deletes,
