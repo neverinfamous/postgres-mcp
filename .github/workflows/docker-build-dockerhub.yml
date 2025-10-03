@@ -110,7 +110,7 @@ jobs:
         if: github.event_name == 'push'
         with:
           command: cves,recommendations
-          image: writenotenow/postgres-mcp-enhanced:${{ needs.prepare.outputs.version }}
+          image: writenotenow/postgres-mcp-enhanced:v${{ needs.prepare.outputs.version }}
           only-severities: critical,high
           exit-code: false
           write-comment: true
@@ -120,7 +120,7 @@ jobs:
         if: github.event_name == 'push'
         with:
           command: compare
-          image: writenotenow/postgres-mcp-enhanced:${{ needs.prepare.outputs.version }}
+          image: writenotenow/postgres-mcp-enhanced:v${{ needs.prepare.outputs.version }}
           to: writenotenow/postgres-mcp-enhanced:latest
           exit-code: false
       
