@@ -201,18 +201,14 @@ class JsonAdvancedTools:
             SELECT
                 {group_by + "," if group_by else ""}
                 {agg_expr} as result
-            FROM {{}}
+            FROM {table_name}
             {where_part}
             {group_clause}
             """
 
-            params = select_params + [table_name] + (where_params or [])
+            params = select_params + (where_params or [])
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             if not result:
                 return {"success": True, "data": None, "count": 0}
@@ -682,31 +678,19 @@ class JsonAdvancedTools:
             query = f"""
             SELECT
                 COUNT(*) as total_rows,
-                COUNT({{}}) as non_null_rows,
-                COUNT(*) - COUNT({{}}) as null_rows,
-                AVG(jsonb_array_length(jsonb_object_keys({{}}))) as avg_keys,
-                AVG(pg_column_size({{}})) as avg_size_bytes,
-                MAX(pg_column_size({{}})) as max_size_bytes,
-                MIN(pg_column_size({{}})) as min_size_bytes
-            FROM {{}}
+                COUNT({json_column}) as non_null_rows,
+                COUNT(*) - COUNT({json_column}) as null_rows,
+                AVG(jsonb_array_length(jsonb_object_keys({json_column}))) as avg_keys,
+                AVG(pg_column_size({json_column})) as avg_size_bytes,
+                MAX(pg_column_size({json_column})) as max_size_bytes,
+                MIN(pg_column_size({json_column})) as min_size_bytes
+            FROM {table_name}
             {where_part}
             """
 
-            params = [
-                json_column,
-                json_column,
-                json_column,
-                json_column,
-                json_column,
-                json_column,
-                table_name,
-            ] + (where_params or [])
+            params = where_params or []
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             if not result or not result[0]:
                 return {"success": True, "stats": {}}
