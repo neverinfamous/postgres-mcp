@@ -979,6 +979,8 @@ class StatisticalTools:
                             "error": "No rows found in table",
                         }
 
+                    # At this point, total is guaranteed to be a non-zero int
+                    assert total is not None
                     sample_percent = min((sample_size / float(total)) * 100, 100)
                     sample_clause = f"TABLESAMPLE BERNOULLI ({sample_percent})"
 
