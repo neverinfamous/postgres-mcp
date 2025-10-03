@@ -22,6 +22,7 @@ from postgres_mcp.index.dta_calc import DatabaseTuningAdvisor
 
 from .artifacts import ErrorResult
 from .artifacts import ExplainPlanArtifact
+from .backup import BackupTools
 from .database_health import DatabaseHealthTool
 from .database_health import HealthType
 from .explain import ExplainPlanTool
@@ -31,6 +32,7 @@ from .index.llm_opt import LLMOptimizerTool
 from .index.presentation import TextPresentation
 from .json import JsonAdvancedTools
 from .json import JsonHelperTools
+from .monitoring import MonitoringTools
 from .performance import PerformanceTools
 from .sql import DbConnPool
 from .sql import SafeSqlDriver
@@ -1714,6 +1716,209 @@ async def geo_cluster(
         return format_text_response(result)
     except Exception as e:
         logger.error(f"Error in geo_cluster: {e}")
+        return format_error_response(str(e))
+
+
+# ============================================================================
+# BACKUP & RECOVERY TOOLS (Phase 5)
+# ============================================================================
+
+
+@mcp.tool(description="Generate logical backup plan with validation")
+async def backup_logical(
+    schema_name: Optional[str] = Field(description="Schema to backup (None = all schemas)", default=None),
+    table_names: Optional[List[str]] = Field(description="Specific tables to backup (None = all tables)", default=None),
+    include_data: bool = Field(description="Include table data in backup plan", default=True),
+    include_schema: bool = Field(description="Include schema definitions in backup plan", default=True),
+    validate_after: bool = Field(description="Validate backup strategy", default=True),
+) -> ResponseType:
+    """Generate logical backup plan."""
+    try:
+        sql_driver = await get_sql_driver()
+        backup_tools = BackupTools(sql_driver)
+        result = await backup_tools.backup_logical(
+            schema_name=schema_name,
+            table_names=table_names,
+            include_data=include_data,
+            include_schema=include_schema,
+            validate_after=validate_after,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in backup_logical: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze physical backup readiness and configuration")
+async def backup_physical(
+    check_wal_archiving: bool = Field(description="Check WAL archiving configuration", default=True),
+    check_replication_slots: bool = Field(description="Check replication slot status", default=True),
+) -> ResponseType:
+    """Analyze physical backup readiness."""
+    try:
+        sql_driver = await get_sql_driver()
+        backup_tools = BackupTools(sql_driver)
+        result = await backup_tools.backup_physical(
+            check_wal_archiving=check_wal_archiving,
+            check_replication_slots=check_replication_slots,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in backup_physical: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Validate database readiness for restore operations")
+async def restore_validate(
+    check_disk_space: bool = Field(description="Check available disk space", default=True),
+    check_connections: bool = Field(description="Check active database connections", default=True),
+    check_constraints: bool = Field(description="Check constraint validity", default=True),
+) -> ResponseType:
+    """Validate restore readiness."""
+    try:
+        sql_driver = await get_sql_driver()
+        backup_tools = BackupTools(sql_driver)
+        result = await backup_tools.restore_validate(
+            check_disk_space=check_disk_space,
+            check_connections=check_connections,
+            check_constraints=check_constraints,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in restore_validate: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Optimize backup schedule based on database characteristics")
+async def backup_schedule_optimize(
+    daily_change_rate_mb: Optional[float] = Field(description="Estimated daily data change in MB (auto-calculated if None)", default=None),
+    backup_window_hours: int = Field(description="Available backup window in hours", default=8),
+    retention_days: int = Field(description="Required backup retention period in days", default=30),
+) -> ResponseType:
+    """Optimize backup schedule."""
+    try:
+        sql_driver = await get_sql_driver()
+        backup_tools = BackupTools(sql_driver)
+        result = await backup_tools.backup_schedule_optimize(
+            daily_change_rate_mb=daily_change_rate_mb,
+            backup_window_hours=backup_window_hours,
+            retention_days=retention_days,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in backup_schedule_optimize: {e}")
+        return format_error_response(str(e))
+
+
+# ============================================================================
+# MONITORING & ALERTING TOOLS (Phase 5)
+# ============================================================================
+
+
+@mcp.tool(description="Monitor real-time database performance metrics")
+async def monitor_real_time(
+    include_queries: bool = Field(description="Include currently running queries", default=True),
+    include_locks: bool = Field(description="Include lock information", default=True),
+    include_io: bool = Field(description="Include I/O statistics", default=True),
+    limit: int = Field(description="Maximum number of items per category", default=20),
+) -> ResponseType:
+    """Monitor real-time performance."""
+    try:
+        sql_driver = await get_sql_driver()
+        monitoring_tools = MonitoringTools(sql_driver)
+        result = await monitoring_tools.monitor_real_time(
+            include_queries=include_queries,
+            include_locks=include_locks,
+            include_io=include_io,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in monitor_real_time: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze metrics against alert thresholds")
+async def alert_threshold_set(
+    metric_type: str = Field(description="Type of metric: 'connection_count', 'cache_hit_ratio', 'transaction_age', 'replication_lag', 'disk_usage'"),
+    warning_threshold: Optional[float] = Field(description="Warning level threshold", default=None),
+    critical_threshold: Optional[float] = Field(description="Critical level threshold", default=None),
+    check_current: bool = Field(description="Check current value against thresholds", default=True),
+) -> ResponseType:
+    """Analyze alert thresholds."""
+    try:
+        sql_driver = await get_sql_driver()
+        monitoring_tools = MonitoringTools(sql_driver)
+        result = await monitoring_tools.alert_threshold_set(
+            metric_type=metric_type,
+            warning_threshold=warning_threshold,
+            critical_threshold=critical_threshold,
+            check_current=check_current,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in alert_threshold_set: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze database growth and project future capacity needs")
+async def capacity_planning(
+    forecast_days: int = Field(description="Number of days to forecast ahead", default=90),
+    include_table_growth: bool = Field(description="Include table-level growth analysis", default=True),
+    include_index_growth: bool = Field(description="Include index-level growth analysis", default=True),
+) -> ResponseType:
+    """Capacity planning analysis."""
+    try:
+        sql_driver = await get_sql_driver()
+        monitoring_tools = MonitoringTools(sql_driver)
+        result = await monitoring_tools.capacity_planning(
+            forecast_days=forecast_days,
+            include_table_growth=include_table_growth,
+            include_index_growth=include_index_growth,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in capacity_planning: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze database resource usage patterns (CPU/Memory/IO)")
+async def resource_usage_analyze(
+    include_cpu: bool = Field(description="Include CPU usage analysis (via query statistics)", default=True),
+    include_memory: bool = Field(description="Include memory/buffer usage analysis", default=True),
+    include_io: bool = Field(description="Include I/O pattern analysis", default=True),
+) -> ResponseType:
+    """Analyze resource usage."""
+    try:
+        sql_driver = await get_sql_driver()
+        monitoring_tools = MonitoringTools(sql_driver)
+        result = await monitoring_tools.resource_usage_analyze(
+            include_cpu=include_cpu,
+            include_memory=include_memory,
+            include_io=include_io,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in resource_usage_analyze: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Monitor replication status and lag")
+async def replication_monitor(
+    include_slots: bool = Field(description="Include replication slot information", default=True),
+    include_wal_status: bool = Field(description="Include WAL sender/receiver status", default=True),
+) -> ResponseType:
+    """Monitor replication."""
+    try:
+        sql_driver = await get_sql_driver()
+        monitoring_tools = MonitoringTools(sql_driver)
+        result = await monitoring_tools.replication_monitor(
+            include_slots=include_slots,
+            include_wal_status=include_wal_status,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in replication_monitor: {e}")
         return format_error_response(str(e))
 
 
