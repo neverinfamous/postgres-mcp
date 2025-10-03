@@ -37,6 +37,8 @@ jobs:
   build-and-push:
     needs: prepare
     runs-on: ubuntu-latest
+    # Temporarily disabled - Docker release to be done separately
+    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v5
