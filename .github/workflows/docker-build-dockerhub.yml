@@ -65,9 +65,17 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: writenotenow/postgres-mcp-enhanced
+          flavor: |
+            latest=auto
           tags: |
-            type=raw,value=${{ needs.prepare.outputs.version }}
+            # Always create latest tag for tag pushes
             type=raw,value=latest
+            # Create version tags (v1.0.3)
+            type=raw,value=v${{ needs.prepare.outputs.version }}
+            # Create short SHA tags for all builds (e.g., sha-a317583)
+            type=sha,prefix=sha-
+            # Create timestamped master branch tags (e.g., master-20251003-161652-a317583)
+            type=sha,prefix=master-{{date 'YYYYMMDD-HHmmss'}}-
 
       - name: Check directory structure
         run: |
@@ -90,13 +98,12 @@ jobs:
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
-          cache-from: type=registry,ref=writenotenow/postgres-mcp-enhanced:buildcache
-          cache-to: type=registry,ref=writenotenow/postgres-mcp-enhanced:buildcache,mode=max
+          # Use GitHub Actions cache instead of registry cache to avoid buildcache tag
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           # Security: Enable build attestations for supply chain security
-          provenance: true
+          provenance: mode=max
           sbom: true
-          # Enable reproducible builds
-          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=Enterprise PostgreSQL MCP Server
       
       - name: Docker Scout Analysis
         uses: docker/scout-action@v1
@@ -116,3 +123,13 @@ jobs:
           image: writenotenow/postgres-mcp-enhanced:${{ needs.prepare.outputs.version }}
           to: writenotenow/postgres-mcp-enhanced:latest
           exit-code: false
+      
+      - name: Update Docker Hub Description
+        if: github.event_name == 'push'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: writenotenow/postgres-mcp-enhanced
+          readme-filepath: ./README.md
+          short-description: "Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensive security and AI-native operations"
