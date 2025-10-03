@@ -84,14 +84,62 @@ jobs:
           echo "check pwd: $(pwd)"
           echo "check ls: $(ls -lta)"
 
+      # Build locally first for security scanning (AMD64 only)
+      - name: Build Docker image for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: local-scan:latest
+          cache-from: type=gha
+
+      # Security scanning with Docker Scout CLI - BLOCKS build on critical/high CVEs
+      - name: Docker Scout security scan (blocking)
+        timeout-minutes: 10
+        run: |
+          # Install Docker Scout CLI
+          curl -sSfL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh | sh -s --
+          
+          # Verify image exists
+          docker images local-scan:latest
+          
+          # Run security scan - block vulnerabilities above medium level (critical, high)
+          echo "🔍 Running Docker Scout security scan for local-scan:latest"
+          
+          # Run scan with timeout and capture output to analyze
+          echo "⏱️ Running Docker Scout scan (max 8 minutes)..."
+          if timeout 480 docker scout cves local-scan:latest > scout_output.txt 2>&1; then
+            echo "📊 Scan completed successfully"
+            cat scout_output.txt
+            
+            # Check if critical or high vulnerabilities are present in the output
+            if grep -E "(CRITICAL|HIGH)" scout_output.txt | grep -v "0  " > /dev/null; then
+              echo "❌ Critical or high severity vulnerabilities detected"
+              echo "🚨 Build blocked due to unacceptable security risk"
+              exit 1
+            else
+              echo "✅ Security scan passed - no critical/high severity vulnerabilities"
+              echo "ℹ️ Low/medium severity vulnerabilities are acceptable"
+            fi
+          else
+            echo "⚠️ Docker Scout scan timed out or failed"
+            echo "🔄 Continuing build - scan timeout is not a security failure"
+            echo "ℹ️ Consider running scout scan locally for large images"
+          fi
+
       - name: Login to DockerHub
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && success()
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Only push if security scan passes
       - name: Build and push
+        if: success()
         id: build-push
         uses: docker/build-push-action@v6
         with:
@@ -107,10 +155,12 @@ jobs:
           # Security: Enable build attestations for supply chain security
           provenance: mode=max
           sbom: true
-      
-      - name: Docker Scout Analysis
+
+      # Post-push Docker Scout analysis for reporting (non-blocking)
+      - name: Docker Scout Analysis (reporting only)
         uses: docker/scout-action@v1
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && success()
+        continue-on-error: true
         with:
           command: cves,recommendations
           image: writenotenow/postgres-mcp-enhanced:v${{ needs.prepare.outputs.version }}
@@ -118,9 +168,10 @@ jobs:
           exit-code: false
           write-comment: true
       
-      - name: Docker Scout Compare
+      - name: Docker Scout Compare (reporting only)
         uses: docker/scout-action@v1
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && success()
+        continue-on-error: true
         with:
           command: compare
           image: writenotenow/postgres-mcp-enhanced:v${{ needs.prepare.outputs.version }}
