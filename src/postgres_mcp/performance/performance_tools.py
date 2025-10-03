@@ -15,6 +15,9 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import cast
+
+from typing_extensions import LiteralString
 
 from ..sql import SqlDriver
 
@@ -64,7 +67,7 @@ class PerformanceTools:
             params2 = params2 or []
 
             # Get plan for query 1
-            explain_query1 = f"EXPLAIN (FORMAT JSON, ANALYZE) {query1}"
+            explain_query1 = cast(LiteralString, f"EXPLAIN (FORMAT JSON, ANALYZE) {query1}")
             result1 = await self.sql_driver.execute_query(explain_query1, params1)
 
             if not result1:
@@ -83,7 +86,7 @@ class PerformanceTools:
                 plan1 = {}
 
             # Get plan for query 2
-            explain_query2 = f"EXPLAIN (FORMAT JSON, ANALYZE) {query2}"
+            explain_query2 = cast(LiteralString, f"EXPLAIN (FORMAT JSON, ANALYZE) {query2}")
             result2 = await self.sql_driver.execute_query(explain_query2, params2)
 
             if not result2:
@@ -177,7 +180,7 @@ class PerformanceTools:
 
                 for _ in range(iterations):
                     # Run with EXPLAIN ANALYZE
-                    explain_query = f"EXPLAIN (FORMAT JSON, ANALYZE) {query}"
+                    explain_query = cast(LiteralString, f"EXPLAIN (FORMAT JSON, ANALYZE) {query}")
                     result = await self.sql_driver.execute_query(explain_query)
 
                     if result:
@@ -289,7 +292,7 @@ class PerformanceTools:
             LIMIT {limit}
             """
 
-            result = await self.sql_driver.execute_query(query)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query))
 
             if not result:
                 return {
@@ -512,7 +515,7 @@ class PerformanceTools:
             ORDER BY dead_tuple_percent DESC, table_size_bytes DESC
             """
 
-            result = await self.sql_driver.execute_query(query)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query))
 
             if not result:
                 return {
@@ -601,7 +604,7 @@ class PerformanceTools:
                OR relname = '{table_name}'
             """
 
-            table_result = await self.sql_driver.execute_query(table_query)
+            table_result = await self.sql_driver.execute_query(cast(LiteralString, table_query))
 
             if not table_result:
                 return {
@@ -635,7 +638,7 @@ class PerformanceTools:
                     FROM {table_name}
                     """
 
-                    dist_result = await self.sql_driver.execute_query(dist_query)
+                    dist_result = await self.sql_driver.execute_query(cast(LiteralString, dist_query))
 
                     if dist_result:
                         dist_info = dist_result[0].cells
@@ -659,11 +662,12 @@ class PerformanceTools:
                     ORDER BY ordinal_position
                     """
 
-                    col_result = await self.sql_driver.execute_query(col_query)
+                    col_result = await self.sql_driver.execute_query(cast(LiteralString, col_query))
 
                     if col_result:
-                        temporal_cols = [row.cells.get("column_name") for row in col_result]
-                        recommendations.append(f"Consider RANGE partitioning on temporal columns: {', '.join(temporal_cols)}")
+                        temporal_cols = [str(row.cells.get("column_name")) for row in col_result if row.cells.get("column_name")]
+                        if temporal_cols:
+                            recommendations.append(f"Consider RANGE partitioning on temporal columns: {', '.join(temporal_cols)}")
             else:
                 partition_benefit = "LOW"
                 recommendations.append("Table size doesn't justify partitioning overhead")

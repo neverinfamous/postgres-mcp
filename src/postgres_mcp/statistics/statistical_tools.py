@@ -16,10 +16,33 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import cast
+
+from typing_extensions import LiteralString
 
 from ..sql import SqlDriver
 
 logger = logging.getLogger(__name__)
+
+
+def safe_float(value: Any) -> Optional[float]:
+    """Safely convert a value to float, returning None if not possible."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def safe_int(value: Any) -> Optional[int]:
+    """Safely convert a value to int, returning None if not possible."""
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 class StatisticalTools:
@@ -104,7 +127,7 @@ class StatisticalTools:
             FROM stats
             """
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {
@@ -118,20 +141,20 @@ class StatisticalTools:
                 "table": table_name,
                 "column": column_name,
                 "count": row.get("count"),
-                "mean": float(row.get("mean")) if row.get("mean") else None,
-                "median": float(row.get("median")) if row.get("median") else None,
-                "mode": float(row.get("mode")) if row.get("mode") else None,
-                "std_dev_population": float(row.get("stddev_pop")) if row.get("stddev_pop") else None,
-                "std_dev_sample": float(row.get("stddev_samp")) if row.get("stddev_samp") else None,
-                "variance_population": float(row.get("variance_pop")) if row.get("variance_pop") else None,
-                "variance_sample": float(row.get("variance_samp")) if row.get("variance_samp") else None,
-                "min": float(row.get("min")) if row.get("min") else None,
-                "max": float(row.get("max")) if row.get("max") else None,
-                "q1": float(row.get("q1")) if row.get("q1") else None,
-                "q3": float(row.get("q3")) if row.get("q3") else None,
-                "iqr": float(row.get("iqr")) if row.get("iqr") else None,
-                "range": float(row.get("range")) if row.get("range") else None,
-                "coefficient_of_variation": float(row.get("coefficient_of_variation")) if row.get("coefficient_of_variation") else None,
+                "mean": safe_float(row.get("mean")),
+                "median": safe_float(row.get("median")),
+                "mode": safe_float(row.get("mode")),
+                "std_dev_population": safe_float(row.get("stddev_pop")),
+                "std_dev_sample": safe_float(row.get("stddev_samp")),
+                "variance_population": safe_float(row.get("variance_pop")),
+                "variance_sample": safe_float(row.get("variance_samp")),
+                "min": safe_float(row.get("min")),
+                "max": safe_float(row.get("max")),
+                "q1": safe_float(row.get("q1")),
+                "q3": safe_float(row.get("q3")),
+                "iqr": safe_float(row.get("iqr")),
+                "range": safe_float(row.get("range")),
+                "coefficient_of_variation": safe_float(row.get("coefficient_of_variation")),
             }
 
         except Exception as e:
@@ -232,7 +255,7 @@ class StatisticalTools:
             else:
                 query += "SELECT * FROM percentiles"
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {
@@ -252,17 +275,17 @@ class StatisticalTools:
             for p in percentiles:
                 key = f"p{int(p * 100)}"
                 if key in row:
-                    response["percentiles"][f"p{int(p * 100)}"] = float(row[key]) if row[key] else None
+                    response["percentiles"][f"p{int(p * 100)}"] = safe_float(row[key])
 
             # Add outlier information if detected
             if detect_outliers:
                 response["outlier_detection"] = {
-                    "q1": float(row.get("q1")) if row.get("q1") else None,
-                    "q3": float(row.get("q3")) if row.get("q3") else None,
-                    "iqr": float(row.get("iqr")) if row.get("iqr") else None,
-                    "lower_bound": float(row.get("lower_bound")) if row.get("lower_bound") else None,
-                    "upper_bound": float(row.get("upper_bound")) if row.get("upper_bound") else None,
-                    "outlier_count": int(row.get("outlier_count")) if row.get("outlier_count") else 0,
+                    "q1": safe_float(row.get("q1")),
+                    "q3": safe_float(row.get("q3")),
+                    "iqr": safe_float(row.get("iqr")),
+                    "lower_bound": safe_float(row.get("lower_bound")),
+                    "upper_bound": safe_float(row.get("upper_bound")),
+                    "outlier_count": int(row.get("outlier_count") or 0),
                 }
 
             return response
@@ -355,7 +378,7 @@ class StatisticalTools:
                     "error": f"Unknown correlation method: {method}. Use 'pearson' or 'spearman'",
                 }
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {
@@ -370,19 +393,19 @@ class StatisticalTools:
                 "column1": column1,
                 "column2": column2,
                 "method": method,
-                "n": int(row.get("n")) if row.get("n") else 0,
-                "correlation": float(row.get("correlation")) if row.get("correlation") else None,
-                "r_squared": float(row.get("r_squared")) if row.get("r_squared") else None,
+                "n": int(row.get("n") or 0),
+                "correlation": safe_float(row.get("correlation")),
+                "r_squared": safe_float(row.get("r_squared")),
             }
 
             if method.lower() == "pearson":
                 response.update(
                     {
-                        "mean1": float(row.get("mean1")) if row.get("mean1") else None,
-                        "mean2": float(row.get("mean2")) if row.get("mean2") else None,
-                        "stddev1": float(row.get("stddev1")) if row.get("stddev1") else None,
-                        "stddev2": float(row.get("stddev2")) if row.get("stddev2") else None,
-                        "covariance": float(row.get("covariance")) if row.get("covariance") else None,
+                        "mean1": safe_float(row.get("mean1")),
+                        "mean2": safe_float(row.get("mean2")),
+                        "stddev1": safe_float(row.get("stddev1")),
+                        "stddev2": safe_float(row.get("stddev2")),
+                        "covariance": safe_float(row.get("covariance")),
                     }
                 )
 
@@ -458,7 +481,7 @@ class StatisticalTools:
             FROM regression_data
             """
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {
@@ -467,21 +490,23 @@ class StatisticalTools:
                 }
 
             row = result[0].cells
+            slope = safe_float(row.get("slope"))
+            intercept = safe_float(row.get("intercept"))
             return {
                 "success": True,
                 "table": table_name,
                 "x_column": x_column,
                 "y_column": y_column,
-                "n": int(row.get("n")) if row.get("n") else 0,
-                "slope": float(row.get("slope")) if row.get("slope") else None,
-                "intercept": float(row.get("intercept")) if row.get("intercept") else None,
-                "r_squared": float(row.get("r_squared")) if row.get("r_squared") else None,
-                "r": float(row.get("r")) if row.get("r") else None,
-                "correlation": float(row.get("correlation")) if row.get("correlation") else None,
-                "mean_x": float(row.get("mean_x")) if row.get("mean_x") else None,
-                "mean_y": float(row.get("mean_y")) if row.get("mean_y") else None,
-                "std_error": float(row.get("std_error")) if row.get("std_error") else None,
-                "equation": f"y = {row.get('slope'):.4f}x + {row.get('intercept'):.4f}" if row.get("slope") and row.get("intercept") else None,
+                "n": int(row.get("n") or 0),
+                "slope": slope,
+                "intercept": intercept,
+                "r_squared": safe_float(row.get("r_squared")),
+                "r": safe_float(row.get("r")),
+                "correlation": safe_float(row.get("correlation")),
+                "mean_x": safe_float(row.get("mean_x")),
+                "mean_y": safe_float(row.get("mean_y")),
+                "std_error": safe_float(row.get("std_error")),
+                "equation": f"y = {slope:.4f}x + {intercept:.4f}" if slope is not None and intercept is not None else None,
             }
 
         except Exception as e:
@@ -588,7 +613,7 @@ class StatisticalTools:
             FROM aggregated, first_last, trend
             """
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {
@@ -604,17 +629,17 @@ class StatisticalTools:
                 "value_column": value_column,
                 "interval": interval,
                 "aggregation": aggregation,
-                "period_count": int(row.get("period_count")) if row.get("period_count") else 0,
-                "mean": float(row.get("mean")) if row.get("mean") else None,
-                "stddev": float(row.get("stddev")) if row.get("stddev") else None,
-                "min_value": float(row.get("min_value")) if row.get("min_value") else None,
-                "max_value": float(row.get("max_value")) if row.get("max_value") else None,
-                "first_value": float(row.get("first_value")) if row.get("first_value") else None,
-                "last_value": float(row.get("last_value")) if row.get("last_value") else None,
-                "total_change": float(row.get("total_change")) if row.get("total_change") else None,
-                "percent_change": float(row.get("percent_change")) if row.get("percent_change") else None,
-                "trend_slope": float(row.get("trend_slope")) if row.get("trend_slope") else None,
-                "trend_r_squared": float(row.get("trend_r_squared")) if row.get("trend_r_squared") else None,
+                "period_count": int(row.get("period_count") or 0),
+                "mean": safe_float(row.get("mean")),
+                "stddev": safe_float(row.get("stddev")),
+                "min_value": safe_float(row.get("min_value")),
+                "max_value": safe_float(row.get("max_value")),
+                "first_value": safe_float(row.get("first_value")),
+                "last_value": safe_float(row.get("last_value")),
+                "total_change": safe_float(row.get("total_change")),
+                "percent_change": safe_float(row.get("percent_change")),
+                "trend_slope": safe_float(row.get("trend_slope")),
+                "trend_r_squared": safe_float(row.get("trend_r_squared")),
             }
 
         except Exception as e:
@@ -707,7 +732,7 @@ class StatisticalTools:
                      skewness_calc.skewness, skewness_calc.kurtosis
             """
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {
@@ -721,12 +746,12 @@ class StatisticalTools:
                 "table": table_name,
                 "column": column_name,
                 "bins": bins,
-                "total_count": int(row.get("total_count")) if row.get("total_count") else 0,
-                "mean": float(row.get("mean")) if row.get("mean") else None,
-                "stddev": float(row.get("stddev")) if row.get("stddev") else None,
-                "median": float(row.get("median")) if row.get("median") else None,
-                "skewness": float(row.get("skewness")) if row.get("skewness") else None,
-                "kurtosis": float(row.get("kurtosis")) if row.get("kurtosis") else None,
+                "total_count": int(row.get("total_count") or 0),
+                "mean": safe_float(row.get("mean")),
+                "stddev": safe_float(row.get("stddev")),
+                "median": safe_float(row.get("median")),
+                "skewness": safe_float(row.get("skewness")),
+                "kurtosis": safe_float(row.get("kurtosis")),
                 "histogram": row.get("histogram_data"),
             }
 
@@ -838,7 +863,7 @@ class StatisticalTools:
                     "error": "Invalid test configuration. Provide either hypothesis_value (one-sample) or group_column (two-sample)",
                 }
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {
@@ -847,7 +872,7 @@ class StatisticalTools:
                 }
 
             row = result[0].cells
-            t_stat = float(row.get("t_statistic")) if row.get("t_statistic") else None
+            t_stat = safe_float(row.get("t_statistic"))
 
             response = {
                 "success": True,
@@ -855,7 +880,7 @@ class StatisticalTools:
                 "column": column_name,
                 "test_type": test_type,
                 "t_statistic": t_stat,
-                "degrees_of_freedom": int(row.get("degrees_of_freedom")) if row.get("degrees_of_freedom") else None,
+                "degrees_of_freedom": int(row.get("degrees_of_freedom") or 0) if row.get("degrees_of_freedom") else None,
             }
 
             # Add interpretation
@@ -872,21 +897,21 @@ class StatisticalTools:
             if hypothesis_value is not None:
                 response.update(
                     {
-                        "n": int(row.get("n")) if row.get("n") else 0,
-                        "sample_mean": float(row.get("sample_mean")) if row.get("sample_mean") else None,
-                        "sample_std": float(row.get("sample_std")) if row.get("sample_std") else None,
+                        "n": int(row.get("n") or 0),
+                        "sample_mean": safe_float(row.get("sample_mean")),
+                        "sample_std": safe_float(row.get("sample_std")),
                         "hypothesis_mean": hypothesis_value,
                     }
                 )
             else:
                 response.update(
                     {
-                        "n1": int(row.get("n1")) if row.get("n1") else 0,
-                        "n2": int(row.get("n2")) if row.get("n2") else 0,
-                        "mean1": float(row.get("mean1")) if row.get("mean1") else None,
-                        "mean2": float(row.get("mean2")) if row.get("mean2") else None,
-                        "std1": float(row.get("std1")) if row.get("std1") else None,
-                        "std2": float(row.get("std2")) if row.get("std2") else None,
+                        "n1": int(row.get("n1") or 0),
+                        "n2": int(row.get("n2") or 0),
+                        "mean1": safe_float(row.get("mean1")),
+                        "mean2": safe_float(row.get("mean2")),
+                        "std1": safe_float(row.get("std1")),
+                        "std2": safe_float(row.get("std2")),
                     }
                 )
 
@@ -945,16 +970,16 @@ class StatisticalTools:
                 else:
                     # Get total count first
                     count_query = f"SELECT COUNT(*) as total FROM {table_name} {where_sql}"
-                    count_result = await self.sql_driver.execute_query(count_query, params)
-                    total = int(count_result[0].cells.get("total")) if count_result else 0
+                    count_result = await self.sql_driver.execute_query(cast(LiteralString, count_query), params)
+                    total = safe_int(count_result[0].cells.get("total")) if count_result else 0
 
-                    if total == 0:
+                    if total == 0 or total is None:
                         return {
                             "success": False,
                             "error": "No rows found in table",
                         }
 
-                    sample_percent = min((sample_size / total) * 100, 100)
+                    sample_percent = min((sample_size / float(total)) * 100, 100)
                     sample_clause = f"TABLESAMPLE BERNOULLI ({sample_percent})"
 
                 query = f"""
@@ -975,7 +1000,7 @@ class StatisticalTools:
                 FROM sample, total
                 """
 
-                result = await self.sql_driver.execute_query(query, params)
+                result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
                 if not result:
                     return {
@@ -988,9 +1013,9 @@ class StatisticalTools:
                     "success": True,
                     "table": table_name,
                     "method": method,
-                    "total_rows": int(row.get("total_count")) if row.get("total_count") else 0,
-                    "sample_rows": int(row.get("sample_count")) if row.get("sample_count") else 0,
-                    "sample_percent": float(row.get("actual_percent")) if row.get("actual_percent") else 0,
+                    "total_rows": int(row.get("total_count") or 0),
+                    "sample_rows": int(row.get("sample_count") or 0),
+                    "sample_percent": safe_float(row.get("actual_percent")) or 0.0,
                     "requested_sample_size": sample_size,
                     "requested_sample_percent": sample_percent,
                 }
