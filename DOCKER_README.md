@@ -1,6 +1,8 @@
 # PostgreSQL MCP Server - Enhanced
 
-*Version 1.0.4 - Enterprise-grade PostgreSQL MCP server with comprehensive security and AI-native operations*
+*Last Updated October 3, 2025 5:32 PM EST *
+
+*Version 1.0.5 - Enterprise-grade PostgreSQL MCP server with comprehensive security and AI-native operations*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)
@@ -40,13 +42,13 @@ We provide multiple tags for different use cases:
 | Tag | Description | Use Case |
 |-----|-------------|----------|
 | `latest` | Latest stable release | **Recommended for production** |
-| `v1.0.4` | Specific version | Pin to exact version |
+| `v1.0.5` | Specific version | Pin to exact version |
 | `sha-abc1234` | Commit SHA | Development/testing |
 | `master-YYYYMMDD-HHMMSS-sha` | Timestamped | Audit trail |
 
 **Pull a specific version:**
 ```bash
-docker pull writenotenow/postgres-mcp-enhanced:v1.0.4
+docker pull writenotenow/postgres-mcp-enhanced:v1.0.5
 ```
 
 ---
@@ -104,7 +106,7 @@ This image is built with security as a priority:
 - ✅ **SQL injection prevention** - All queries use parameter binding
 - ✅ **Minimal attack surface** - Alpine-based with only required dependencies
 
-**View Security Details:**
+**View security scan results:**
 ```bash
 docker scout cves writenotenow/postgres-mcp-enhanced:latest
 ```
@@ -175,16 +177,16 @@ The server works with standard PostgreSQL installations. For enhanced functional
 
 **Required for all features:**
 ```sql
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;  -- Query performance tracking
-CREATE EXTENSION IF NOT EXISTS pg_trgm;             -- Text similarity
-CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;       -- Fuzzy matching
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
 ```
 
 **Optional but recommended:**
 ```sql
-CREATE EXTENSION IF NOT EXISTS hypopg;    -- Hypothetical index testing
-CREATE EXTENSION IF NOT EXISTS pgvector;  -- Vector similarity search
-CREATE EXTENSION IF NOT EXISTS postgis;   -- Geospatial operations
+CREATE EXTENSION IF NOT EXISTS hypopg;
+CREATE EXTENSION IF NOT EXISTS pgvector;
+CREATE EXTENSION IF NOT EXISTS postgis;
 ```
 
 The server gracefully handles missing extensions - features requiring them will provide helpful error messages.
@@ -193,13 +195,15 @@ The server gracefully handles missing extensions - features requiring them will 
 
 ## 🧪 Testing the Image
 
-Verify the image works correctly:
+Verify the image works correctly.
 
+**Check server version:**
 ```bash
-# Check server version
 docker run --rm writenotenow/postgres-mcp-enhanced:latest --version
+```
 
-# Test database connection (replace with your connection string)
+**Test database connection:**
+```bash
 docker run -i --rm \
   -e DATABASE_URI="postgresql://user:pass@localhost:5432/dbname" \
   writenotenow/postgres-mcp-enhanced:latest \
@@ -231,6 +235,11 @@ docker run -i --rm \
 
 ## 🆕 Recent Updates
 
+### v1.0.5 (October 3, 2025)
+- ✅ Fixed Docker Scout tag format
+- ✅ Docker-optimized README for Docker Hub
+- ✅ Complete workflow automation
+
 ### v1.0.4 (October 3, 2025)
 - ✅ Improved Docker tagging strategy
 - ✅ Removed buildcache tag clutter
@@ -260,8 +269,3 @@ docker run -i --rm \
 ## 📄 License
 
 MIT License - See [LICENSE](https://github.com/neverinfamous/postgres-mcp/blob/main/LICENSE)
-
----
-
-**Built with ❤️ by Chris LeRoux** | *Enterprise-grade PostgreSQL operations through MCP*
-
