@@ -73,8 +73,14 @@ class PerformanceTools:
                     "error": "Failed to get plan for query 1",
                 }
 
-            plan1_text = result1[0].cells.get("QUERY PLAN")
-            plan1 = json.loads(plan1_text)[0]["Plan"] if plan1_text else {}
+            plan1_data = result1[0].cells.get("QUERY PLAN")
+            # Handle both string and list responses
+            if isinstance(plan1_data, str):
+                plan1 = json.loads(plan1_data)[0]["Plan"]
+            elif isinstance(plan1_data, list):
+                plan1 = plan1_data[0]["Plan"]
+            else:
+                plan1 = {}
 
             # Get plan for query 2
             explain_query2 = f"EXPLAIN (FORMAT JSON, ANALYZE) {query2}"
@@ -86,8 +92,14 @@ class PerformanceTools:
                     "error": "Failed to get plan for query 2",
                 }
 
-            plan2_text = result2[0].cells.get("QUERY PLAN")
-            plan2 = json.loads(plan2_text)[0]["Plan"] if plan2_text else {}
+            plan2_data = result2[0].cells.get("QUERY PLAN")
+            # Handle both string and list responses
+            if isinstance(plan2_data, str):
+                plan2 = json.loads(plan2_data)[0]["Plan"]
+            elif isinstance(plan2_data, list):
+                plan2 = plan2_data[0]["Plan"]
+            else:
+                plan2 = {}
 
             # Extract key metrics
             cost1 = plan1.get("Total Cost", 0)
@@ -169,9 +181,15 @@ class PerformanceTools:
                     result = await self.sql_driver.execute_query(explain_query)
 
                     if result:
-                        plan_text = result[0].cells.get("QUERY PLAN")
-                        if plan_text:
-                            plan = json.loads(plan_text)[0]
+                        plan_data = result[0].cells.get("QUERY PLAN")
+                        if plan_data:
+                            # Handle both string and list responses
+                            if isinstance(plan_data, str):
+                                plan = json.loads(plan_data)[0]
+                            elif isinstance(plan_data, list):
+                                plan = plan_data[0]
+                            else:
+                                continue
                             times.append(plan["Plan"].get("Actual Total Time", 0))
                             costs.append(plan["Plan"].get("Total Cost", 0))
 

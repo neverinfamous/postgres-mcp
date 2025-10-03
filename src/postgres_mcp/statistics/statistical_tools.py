@@ -548,15 +548,19 @@ class StatisticalTools:
                 GROUP BY DATE_TRUNC('{interval}', {time_column})
                 ORDER BY time_bucket
             ),
-            stats AS (
+            aggregated AS (
                 SELECT
                     COUNT(*) as period_count,
                     AVG(value) as mean,
                     STDDEV_POP(value) as stddev,
                     MIN(value) as min_value,
-                    MAX(value) as max_value,
-                    FIRST_VALUE(value) OVER (ORDER BY time_bucket) as first_value,
-                    LAST_VALUE(value) OVER (ORDER BY time_bucket ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as last_value
+                    MAX(value) as max_value
+                FROM time_series
+            ),
+            first_last AS (
+                SELECT
+                    MIN(value) FILTER (WHERE time_bucket = (SELECT MIN(time_bucket) FROM time_series)) as first_value,
+                    MAX(value) FILTER (WHERE time_bucket = (SELECT MAX(time_bucket) FROM time_series)) as last_value
                 FROM time_series
             ),
             trend AS (
@@ -566,22 +570,22 @@ class StatisticalTools:
                 FROM time_series
             )
             SELECT
-                stats.period_count,
-                stats.mean,
-                stats.stddev,
-                stats.min_value,
-                stats.max_value,
-                stats.first_value,
-                stats.last_value,
+                aggregated.period_count,
+                aggregated.mean,
+                aggregated.stddev,
+                aggregated.min_value,
+                aggregated.max_value,
+                first_last.first_value,
+                first_last.last_value,
                 trend.trend_slope,
                 trend.trend_r_squared,
-                (stats.last_value - stats.first_value) as total_change,
+                (first_last.last_value - first_last.first_value) as total_change,
                 CASE
-                    WHEN stats.first_value != 0 THEN
-                        ((stats.last_value - stats.first_value) / stats.first_value) * 100
+                    WHEN first_last.first_value != 0 THEN
+                        ((first_last.last_value - first_last.first_value) / first_last.first_value) * 100
                     ELSE NULL
                 END as percent_change
-            FROM stats, trend
+            FROM aggregated, first_last, trend
             """
 
             result = await self.sql_driver.execute_query(query, params)
