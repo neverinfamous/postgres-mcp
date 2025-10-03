@@ -1,12 +1,14 @@
 # PostgreSQL MCP Server - Enhanced
 
-*Last Updated October 3, 2025 5:32 PM EST *
+*Last Updated October 3, 2025 7:26 PM EST*
 
-*Version 1.0.5 - Enterprise-grade PostgreSQL MCP server with comprehensive security and AI-native operations*
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+![Version](https://img.shields.io/badge/version-v1.0.5-green)
+[![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)
+[![GitHub Stars](https://img.shields.io/github/stars/neverinfamous/postgres-mcp?style=social)](https://github.com/neverinfamous/postgres-mcp)
+
+*Enterprise-grade PostgreSQL MCP server with comprehensive security and AI-native operations*
 
 ---
 
