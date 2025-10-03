@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server
 
-*Last Updated: September 30, 2025 12:10 AM EST *
+*Last Updated: October 3, 2025*
 
 *Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive testing, AI-native database operations, and advanced analytics powered by pg_stat_statements and hypopg extensions*
 
@@ -8,7 +8,12 @@
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](SECURITY.md)
 [![CodeQL](https://img.shields.io/badge/CodeQL-Passing-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp/security/code-scanning)
 
-Transform PostgreSQL into a powerful, AI-ready database engine with **9 specialized tools** for advanced analytics, health monitoring, index optimization, and secure query execution. Enhanced with **pg_stat_statements** and **hypopg** extensions for real-time query performance tracking and hypothetical index analysis.
+**25 specialized MCP tools** for PostgreSQL operations:
+- **Core Database Tools (9)**: Schema/object management, SQL execution, health monitoring, query analysis, index optimization
+- **JSON Tools (11)**: JSONB operations, validation, security scanning, index suggestions, diff/merge
+- **Text Tools (5)**: Similarity search, full-text search, regex extraction, fuzzy matching, sentiment analysis
+
+Enhanced with **pg_stat_statements** and **hypopg** extensions for real-time analytics and hypothetical index testing.
 
 ---
 
@@ -21,19 +26,18 @@ Before using the PostgreSQL MCP Server, ensure you have:
 - Valid connection credentials with appropriate permissions
 - Network connectivity to the database
 
-### **2. Required Extensions** (for enhanced features):
+### **2. Required Extensions**:
 Enable pg_stat_statements (add to postgresql.conf):
 ```
 shared_preload_libraries = 'pg_stat_statements'
 ```
 
-Restart PostgreSQL, then create extensions in your database:
+Restart PostgreSQL, then create extensions:
 ```sql
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-```
-
-```sql
-CREATE EXTENSION IF NOT EXISTS hypopg;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;  -- Query performance tracking
+CREATE EXTENSION IF NOT EXISTS hypopg;              -- Hypothetical indexes
+CREATE EXTENSION IF NOT EXISTS pg_trgm;             -- Trigram similarity search
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;       -- Fuzzy string matching
 ```
 
 ### **3. Environment Variables**:
@@ -181,21 +185,44 @@ This PostgreSQL MCP server has been **comprehensively security-audited** and enh
 
 ---
 
-## 📊 **MCP Tools**
+## 📊 **MCP Tools (25 Total)**
 
-The PostgreSQL MCP Server provides **9 specialized tools**:
+### **Core Database Tools (9)**
+| Tool | Description |
+|------|-------------|
+| `list_schemas` | List all database schemas |
+| `list_objects` | List tables, views, sequences, extensions |
+| `get_object_details` | Detailed object information and schema |
+| `execute_sql` | Secure SQL execution with parameter binding |
+| `explain_query` | Query execution plans with hypothetical index support |
+| `get_top_queries` | Real-time query performance analysis (pg_stat_statements) |
+| `analyze_workload_indexes` | Workload-based index recommendations |
+| `analyze_query_indexes` | Query-specific index optimization |
+| `analyze_db_health` | Comprehensive database health checks |
 
-| MCP Function | Tool | Description | Security Level |
-|--------------|------|-------------|----------------|
-| `mcp_postgres-mcp_list_schemas` | `list_schemas` | List all database schemas | 🟢 Safe |
-| `mcp_postgres-mcp_list_objects` | `list_objects` | List tables, views, sequences, extensions | 🟢 Safe |
-| `mcp_postgres-mcp_get_object_details` | `get_object_details` | Detailed object information and schema | 🟢 Safe |
-| `mcp_postgres-mcp_execute_sql` | `execute_sql` | **Secure SQL execution with parameter binding** | 🛡️ **Enhanced** |
-| `mcp_postgres-mcp_explain_query` | `explain_query` | **Query execution plans with hypothetical index support** | 🟢 **Enhanced** |
-| `mcp_postgres-mcp_get_top_queries` | `get_top_queries` | **Real-time query performance analysis via pg_stat_statements** | 🟢 **Enhanced** |
-| `mcp_postgres-mcp_analyze_workload_indexes` | `analyze_workload_indexes` | Workload-based index recommendations | 🟢 Safe |
-| `mcp_postgres-mcp_analyze_query_indexes` | `analyze_query_indexes` | Query-specific index optimization | 🟢 Safe |
-| `mcp_postgres-mcp_analyze_db_health` | `analyze_db_health` | Comprehensive database health checks | 🟢 Safe |
+### **JSON Tools (11)**
+| Tool | Description |
+|------|-------------|
+| `json_insert` | Insert/update JSONB with validation |
+| `json_update` | Update by path with optional creation |
+| `json_select` | Extract with multiple output formats |
+| `json_query` | Complex filtering and aggregation via JSONPath |
+| `json_validate_path` | Path validation with security checks |
+| `json_merge` | Merge objects with conflict resolution |
+| `json_normalize` | Auto-fix Python-style JSON |
+| `json_diff` | Compare JSON structures |
+| `jsonb_index_suggest` | Index recommendations for JSON queries |
+| `json_security_scan` | Detect SQL injection and XSS patterns |
+| `jsonb_stats` | JSON structure analysis |
+
+### **Text Processing Tools (5)**
+| Tool | Description |
+|------|-------------|
+| `text_similarity` | Trigram similarity search (pg_trgm) |
+| `text_search_advanced` | Full-text search with ranking |
+| `regex_extract_all` | Pattern extraction with capture groups |
+| `fuzzy_match` | Levenshtein distance matching |
+| `text_sentiment` | Sentiment analysis |
 
 ---
 
@@ -532,15 +559,14 @@ The security tests are located in the `security/` directory:
 
 ## 📈 **Project Stats**
 
-- **9 Enhanced MCP Tools** for comprehensive database operations
-- **20+ Security Tests** covering all attack vectors (100% pass rate)
-- **Zero Known Vulnerabilities** after comprehensive security audit
-- **PostgreSQL Extensions**: pg_stat_statements + hypopg integration
+- **25 MCP Tools** (9 core + 11 JSON + 5 text processing)
+- **Phase 2 Complete** - JSON and text processing tools operational
+- **100% Test Coverage** - All tools verified via direct MCP testing
+- **Zero Known Vulnerabilities** - Comprehensive security audit completed
+- **PostgreSQL Extensions**: pg_stat_statements + hypopg + pg_trgm + fuzzystrmatch
 - **Multi-platform Support** (Windows, Linux, macOS)
 - **Docker Images** for amd64 and arm64 architectures
-- **Enterprise Testing** with comprehensive validation and CI/CD
-- **Active Development** with automated dependency updates via Dependabot
-- **Real-Time Analytics** with advanced performance monitoring
+- **CI/CD Passing** - Ruff formatting, Pyright type checking, security tests
 - **PostgreSQL 13-17 Support** with latest driver compatibility
 
 ---
