@@ -974,7 +974,7 @@ class StatisticalTools:
                             "success": False,
                             "error": "Must specify either sample_size or sample_percent",
                         }
-                    
+
                     # Get total count first
                     count_query = f"SELECT COUNT(*) as total FROM {table_name} {where_sql}"
                     count_result = await self.sql_driver.execute_query(cast(LiteralString, count_query), params)
