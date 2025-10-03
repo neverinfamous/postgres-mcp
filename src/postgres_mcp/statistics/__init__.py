@@ -7,4 +7,3 @@ advanced analytical functions.
 from .statistical_tools import StatisticalTools
 
 __all__ = ["StatisticalTools"]
-

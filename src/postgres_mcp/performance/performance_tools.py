@@ -199,15 +199,17 @@ class PerformanceTools:
                     max_time = max(times)
                     stddev_time = (sum((t - avg_time) ** 2 for t in times) / len(times)) ** 0.5
 
-                    baselines.append({
-                        "query": query[:100] + "..." if len(query) > 100 else query,
-                        "iterations": len(times),
-                        "avg_time_ms": avg_time,
-                        "min_time_ms": min_time,
-                        "max_time_ms": max_time,
-                        "stddev_time_ms": stddev_time,
-                        "avg_cost": sum(costs) / len(costs) if costs else 0,
-                    })
+                    baselines.append(
+                        {
+                            "query": query[:100] + "..." if len(query) > 100 else query,
+                            "iterations": len(times),
+                            "avg_time_ms": avg_time,
+                            "min_time_ms": min_time,
+                            "max_time_ms": max_time,
+                            "stddev_time_ms": stddev_time,
+                            "avg_cost": sum(costs) / len(costs) if costs else 0,
+                        }
+                    )
 
             return {
                 "success": True,
@@ -398,24 +400,16 @@ class PerformanceTools:
 
             if utilization > 80:
                 recommended_max = int(max_conn * 1.5)
-                recommendations.append(
-                    f"High connection utilization ({utilization:.1f}%) - consider increasing max_connections to {recommended_max}"
-                )
+                recommendations.append(f"High connection utilization ({utilization:.1f}%) - consider increasing max_connections to {recommended_max}")
 
             if idle > active * 2:
-                recommendations.append(
-                    f"Many idle connections ({idle}) compared to active ({active}) - consider connection pooling (pgBouncer)"
-                )
+                recommendations.append(f"Many idle connections ({idle}) compared to active ({active}) - consider connection pooling (pgBouncer)")
 
             if idle_in_txn > 0:
-                recommendations.append(
-                    f"{idle_in_txn} idle in transaction connections - review application transaction management"
-                )
+                recommendations.append(f"{idle_in_txn} idle in transaction connections - review application transaction management")
 
             if utilization < 20 and max_conn > 100:
-                recommendations.append(
-                    f"Low utilization ({utilization:.1f}%) - max_connections might be too high"
-                )
+                recommendations.append(f"Low utilization ({utilization:.1f}%) - max_connections might be too high")
 
             return {
                 "success": True,
@@ -545,19 +539,21 @@ class PerformanceTools:
                 if cells.get("n_mod_since_analyze", 0) > 10000:
                     recommendations.append("Run ANALYZE to update statistics")
 
-                tables.append({
-                    "schema": cells.get("schemaname"),
-                    "table": cells.get("relname"),
-                    "live_tuples": int(cells.get("n_live_tup", 0)),
-                    "dead_tuples": int(cells.get("n_dead_tup", 0)),
-                    "dead_tuple_percent": dead_pct,
-                    "modifications_since_analyze": int(cells.get("n_mod_since_analyze", 0)),
-                    "table_size": cells.get("table_size"),
-                    "last_vacuum": str(cells.get("last_vacuum")) if cells.get("last_vacuum") else "Never",
-                    "last_autovacuum": str(cells.get("last_autovacuum")) if cells.get("last_autovacuum") else "Never",
-                    "priority": priority,
-                    "recommendations": recommendations,
-                })
+                tables.append(
+                    {
+                        "schema": cells.get("schemaname"),
+                        "table": cells.get("relname"),
+                        "live_tuples": int(cells.get("n_live_tup", 0)),
+                        "dead_tuples": int(cells.get("n_dead_tup", 0)),
+                        "dead_tuple_percent": dead_pct,
+                        "modifications_since_analyze": int(cells.get("n_mod_since_analyze", 0)),
+                        "table_size": cells.get("table_size"),
+                        "last_vacuum": str(cells.get("last_vacuum")) if cells.get("last_vacuum") else "Never",
+                        "last_autovacuum": str(cells.get("last_autovacuum")) if cells.get("last_autovacuum") else "Never",
+                        "priority": priority,
+                        "recommendations": recommendations,
+                    }
+                )
 
             return {
                 "success": True,
@@ -647,24 +643,18 @@ class PerformanceTools:
                         distinct_vals = int(dist_info.get("distinct_values", 0))
 
                         if "timestamp" in col_type.lower() or "date" in col_type.lower():
-                            recommendations.append(
-                                f"RANGE partitioning recommended for {partition_column} (temporal data)"
-                            )
+                            recommendations.append(f"RANGE partitioning recommended for {partition_column} (temporal data)")
                             recommendations.append("Suggested: Partition by month or year")
                         elif distinct_vals < 100:
-                            recommendations.append(
-                                f"LIST partitioning recommended for {partition_column} (low cardinality)"
-                            )
+                            recommendations.append(f"LIST partitioning recommended for {partition_column} (low cardinality)")
                         else:
-                            recommendations.append(
-                                f"HASH partitioning recommended for {partition_column} (high cardinality)"
-                            )
+                            recommendations.append(f"HASH partitioning recommended for {partition_column} (high cardinality)")
                 else:
                     # Suggest analyzing temporal columns
                     col_query = f"""
                     SELECT column_name, data_type
                     FROM information_schema.columns
-                    WHERE table_name = '{table_name.split('.')[-1]}'
+                    WHERE table_name = '{table_name.split(".")[-1]}'
                       AND (data_type LIKE '%timestamp%' OR data_type LIKE '%date%')
                     ORDER BY ordinal_position
                     """
@@ -673,9 +663,7 @@ class PerformanceTools:
 
                     if col_result:
                         temporal_cols = [row.cells.get("column_name") for row in col_result]
-                        recommendations.append(
-                            f"Consider RANGE partitioning on temporal columns: {', '.join(temporal_cols)}"
-                        )
+                        recommendations.append(f"Consider RANGE partitioning on temporal columns: {', '.join(temporal_cols)}")
             else:
                 partition_benefit = "LOW"
                 recommendations.append("Table size doesn't justify partitioning overhead")
@@ -698,4 +686,3 @@ class PerformanceTools:
                 "success": False,
                 "error": str(e),
             }
-

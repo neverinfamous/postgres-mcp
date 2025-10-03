@@ -7,4 +7,3 @@ database optimization and monitoring.
 from .performance_tools import PerformanceTools
 
 __all__ = ["PerformanceTools"]
-

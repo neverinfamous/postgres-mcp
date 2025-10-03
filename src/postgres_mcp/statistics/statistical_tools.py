@@ -181,14 +181,12 @@ class StatisticalTools:
             # Build percentile calculations
             percentile_calcs = []
             for p in percentiles:
-                percentile_calcs.append(
-                    f"PERCENTILE_CONT({p}) WITHIN GROUP (ORDER BY {column_name}) as p{int(p*100)}"
-                )
+                percentile_calcs.append(f"PERCENTILE_CONT({p}) WITHIN GROUP (ORDER BY {column_name}) as p{int(p * 100)}")
 
             query = f"""
             WITH percentiles AS (
                 SELECT
-                    {', '.join(percentile_calcs)}
+                    {", ".join(percentile_calcs)}
                 FROM {table_name}
                 {where_sql}
             )
@@ -216,7 +214,7 @@ class StatisticalTools:
                     SELECT COUNT(*) as outlier_count
                     FROM {table_name}, outlier_bounds
                     {where_sql}
-                    {'AND' if where_clause else 'WHERE'} (
+                    {"AND" if where_clause else "WHERE"} (
                         {column_name} < outlier_bounds.lower_bound OR
                         {column_name} > outlier_bounds.upper_bound
                     )
@@ -252,9 +250,9 @@ class StatisticalTools:
 
             # Extract percentile values
             for p in percentiles:
-                key = f"p{int(p*100)}"
+                key = f"p{int(p * 100)}"
                 if key in row:
-                    response["percentiles"][f"p{int(p*100)}"] = float(row[key]) if row[key] else None
+                    response["percentiles"][f"p{int(p * 100)}"] = float(row[key]) if row[key] else None
 
             # Add outlier information if detected
             if detect_outliers:
@@ -378,13 +376,15 @@ class StatisticalTools:
             }
 
             if method.lower() == "pearson":
-                response.update({
-                    "mean1": float(row.get("mean1")) if row.get("mean1") else None,
-                    "mean2": float(row.get("mean2")) if row.get("mean2") else None,
-                    "stddev1": float(row.get("stddev1")) if row.get("stddev1") else None,
-                    "stddev2": float(row.get("stddev2")) if row.get("stddev2") else None,
-                    "covariance": float(row.get("covariance")) if row.get("covariance") else None,
-                })
+                response.update(
+                    {
+                        "mean1": float(row.get("mean1")) if row.get("mean1") else None,
+                        "mean2": float(row.get("mean2")) if row.get("mean2") else None,
+                        "stddev1": float(row.get("stddev1")) if row.get("stddev1") else None,
+                        "stddev2": float(row.get("stddev2")) if row.get("stddev2") else None,
+                        "covariance": float(row.get("covariance")) if row.get("covariance") else None,
+                    }
+                )
 
             return response
 
@@ -870,21 +870,25 @@ class StatisticalTools:
                     response["interpretation"] = "Not significant (p >= 0.10)"
 
             if hypothesis_value is not None:
-                response.update({
-                    "n": int(row.get("n")) if row.get("n") else 0,
-                    "sample_mean": float(row.get("sample_mean")) if row.get("sample_mean") else None,
-                    "sample_std": float(row.get("sample_std")) if row.get("sample_std") else None,
-                    "hypothesis_mean": hypothesis_value,
-                })
+                response.update(
+                    {
+                        "n": int(row.get("n")) if row.get("n") else 0,
+                        "sample_mean": float(row.get("sample_mean")) if row.get("sample_mean") else None,
+                        "sample_std": float(row.get("sample_std")) if row.get("sample_std") else None,
+                        "hypothesis_mean": hypothesis_value,
+                    }
+                )
             else:
-                response.update({
-                    "n1": int(row.get("n1")) if row.get("n1") else 0,
-                    "n2": int(row.get("n2")) if row.get("n2") else 0,
-                    "mean1": float(row.get("mean1")) if row.get("mean1") else None,
-                    "mean2": float(row.get("mean2")) if row.get("mean2") else None,
-                    "std1": float(row.get("std1")) if row.get("std1") else None,
-                    "std2": float(row.get("std2")) if row.get("std2") else None,
-                })
+                response.update(
+                    {
+                        "n1": int(row.get("n1")) if row.get("n1") else 0,
+                        "n2": int(row.get("n2")) if row.get("n2") else 0,
+                        "mean1": float(row.get("mean1")) if row.get("mean1") else None,
+                        "mean2": float(row.get("mean2")) if row.get("mean2") else None,
+                        "std1": float(row.get("std1")) if row.get("std1") else None,
+                        "std2": float(row.get("std2")) if row.get("std2") else None,
+                    }
+                )
 
             return response
 
@@ -1003,4 +1007,3 @@ class StatisticalTools:
                 "success": False,
                 "error": str(e),
             }
-
