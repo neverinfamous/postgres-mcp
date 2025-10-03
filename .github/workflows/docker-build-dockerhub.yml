@@ -81,6 +81,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push
+        id: build-push
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -88,5 +89,30 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
           cache-from: type=registry,ref=writenotenow/postgres-mcp-enhanced:buildcache
           cache-to: type=registry,ref=writenotenow/postgres-mcp-enhanced:buildcache,mode=max
+          # Security: Enable build attestations for supply chain security
+          provenance: true
+          sbom: true
+          # Enable reproducible builds
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=Enterprise PostgreSQL MCP Server
+      
+      - name: Docker Scout Analysis
+        uses: docker/scout-action@v1
+        if: github.event_name == 'push'
+        with:
+          command: cves,recommendations
+          image: writenotenow/postgres-mcp-enhanced:${{ needs.prepare.outputs.version }}
+          only-severities: critical,high
+          exit-code: false
+          write-comment: true
+      
+      - name: Docker Scout Compare
+        uses: docker/scout-action@v1
+        if: github.event_name == 'push'
+        with:
+          command: compare
+          image: writenotenow/postgres-mcp-enhanced:${{ needs.prepare.outputs.version }}
+          to: writenotenow/postgres-mcp-enhanced:latest
+          exit-code: false

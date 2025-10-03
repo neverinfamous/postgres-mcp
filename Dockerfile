@@ -27,17 +27,8 @@ FROM python:3.13-slim-bookworm
 # Python executable must be the same, e.g., using `python:3.11-slim-bookworm`
 # will fail.
 
-COPY --from=builder --chown=app:app /app /app
-
-ENV PATH="/app/.venv/bin:$PATH"
-
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-LABEL org.opencontainers.image.description="Postgres MCP Agent - Multi-architecture container (${TARGETPLATFORM})"
-LABEL org.opencontainers.image.source="https://github.com/crystaldba/postgres-mcp"
-LABEL org.opencontainers.image.licenses="Apache-2.0"
-LABEL org.opencontainers.image.vendor="Crystal DBA"
-LABEL org.opencontainers.image.url="https://www.crystaldba.ai"
+# Security: Create non-root user
+RUN groupadd -r app && useradd -r -g app -u 1000 app
 
 # Install runtime system dependencies
 RUN apt-get update && apt-get install -y \
@@ -45,17 +36,34 @@ RUN apt-get update && apt-get install -y \
   iputils-ping \
   dnsutils \
   net-tools \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && apt-get clean
 
-COPY docker-entrypoint.sh /app/
+COPY --from=builder --chown=app:app /app /app
+COPY --chown=app:app docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+LABEL org.opencontainers.image.description="Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensive security and AI-native operations (${TARGETPLATFORM})"
+LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgres-mcp"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.vendor="Chris LeRoux"
+LABEL org.opencontainers.image.url="https://github.com/neverinfamous/postgres-mcp"
+LABEL org.opencontainers.image.authors="Chris LeRoux <admin@adamic.tech>"
+LABEL org.opencontainers.image.title="postgres-mcp-enhanced"
 
 # Expose the SSE port
 EXPOSE 8000
 
+# Security: Switch to non-root user
+USER app
+
 # Run the postgres-mcp server
 # Users can pass a database URI or individual connection arguments:
-#   docker run -it --rm postgres-mcp postgres://user:pass@host:port/dbname
-#   docker run -it --rm postgres-mcp -h myhost -p 5432 -U myuser -d mydb
+#   docker run -it --rm postgres-mcp-enhanced postgres://user:pass@host:port/dbname
+#   docker run -it --rm postgres-mcp-enhanced -h myhost -p 5432 -U myuser -d mydb
 ENTRYPOINT ["/app/docker-entrypoint.sh", "postgres-mcp"]
 CMD []
