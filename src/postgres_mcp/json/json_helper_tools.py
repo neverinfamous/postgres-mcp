@@ -78,14 +78,14 @@ class JsonHelperTools:
                 except json.JSONDecodeError as e:
                     return {
                         "success": False,
-                        "error": f"Invalid JSON: {str(e)}",
+                        "error": f"Invalid JSON: {e!s}",
                     }
 
             # Build query based on whether it's insert or update
             if where_clause:
                 # Update existing row
                 query = f"""
-                UPDATE {{}} 
+                UPDATE {{}}
                 SET {{}} = {{}}::jsonb
                 WHERE {where_clause}
                 """
@@ -164,14 +164,7 @@ class JsonHelperTools:
             WHERE {where_clause}
             """
 
-            params = [
-                table_name,
-                json_column,
-                json_column,
-                json_path,
-                value_json,
-                create_if_missing,
-            ] + where_params
+            params = [table_name, json_column, json_column, json_path, value_json, create_if_missing, *where_params]
 
             result = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
@@ -230,13 +223,13 @@ class JsonHelperTools:
             # Build SELECT clause based on path and format
             if json_path:
                 if output_format == "text":
-                    select_expr = f"jsonb_path_query_first({{}}, {{}})::text"
+                    select_expr = "jsonb_path_query_first({}, {})::text"
                     select_params = [json_column, json_path]
                 elif output_format == "array":
-                    select_expr = f"jsonb_path_query_array({{}}, {{}})"
+                    select_expr = "jsonb_path_query_array({}, {})"
                     select_params = [json_column, json_path]
                 else:  # json
-                    select_expr = f"jsonb_path_query_first({{}}, {{}})"
+                    select_expr = "jsonb_path_query_first({}, {})"
                     select_params = [json_column, json_path]
             else:
                 select_expr = "{}"
@@ -502,7 +495,7 @@ class JsonHelperTools:
                 SET {{}} = {{}} || {{}}::jsonb
                 WHERE {where_clause}
                 """
-                params = [table_name, json_column, json_column, merge_json] + where_params
+                params = [table_name, json_column, json_column, merge_json, *where_params]
 
             elif strategy == "keep_existing":
                 # Use || operator (left side takes precedence)
@@ -511,7 +504,7 @@ class JsonHelperTools:
                 SET {{}} = {{}}::jsonb || {{}}
                 WHERE {where_clause}
                 """
-                params = [table_name, json_column, merge_json, json_column] + where_params
+                params = [table_name, json_column, merge_json, json_column, *where_params]
 
             elif strategy == "concat_arrays":
                 # For array values, concatenate instead of replace
@@ -520,7 +513,7 @@ class JsonHelperTools:
                 SET {{}} = jsonb_concat_recursive({{}}, {{}}::jsonb)
                 WHERE {where_clause}
                 """
-                params = [table_name, json_column, json_column, merge_json] + where_params
+                params = [table_name, json_column, json_column, merge_json, *where_params]
 
             else:
                 return {
@@ -546,4 +539,3 @@ class JsonHelperTools:
                 "success": False,
                 "error": str(e),
             }
-

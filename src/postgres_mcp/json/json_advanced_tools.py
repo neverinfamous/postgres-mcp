@@ -78,7 +78,6 @@ class JsonAdvancedTools:
         try:
             # Build WHERE clause
             where_parts = []
-            where_params = []
 
             if filter_conditions:
                 for condition in filter_conditions:
@@ -91,7 +90,7 @@ class JsonAdvancedTools:
 
             # Build query
             query = f"""
-            SELECT 
+            SELECT
                 item,
                 jsonb_typeof(item) as item_type,
                 jsonb_path_exists({{}}, {{}}) as path_exists
@@ -172,10 +171,10 @@ class JsonAdvancedTools:
         try:
             # Build aggregation expression
             if aggregate_type == "object":
-                agg_expr = f"jsonb_object_agg(id::text, {{}})"
+                agg_expr = "jsonb_object_agg(id::text, {})"
                 select_params = [json_column]
             elif aggregate_type == "array":
-                agg_expr = f"jsonb_agg({{}})"
+                agg_expr = "jsonb_agg({})"
                 select_params = [json_column]
             elif aggregate_type in ["sum", "avg", "min", "max"]:
                 if not json_path:
@@ -199,8 +198,8 @@ class JsonAdvancedTools:
 
             # Build full query
             query = f"""
-            SELECT 
-                {group_by + ',' if group_by else ''}
+            SELECT
+                {group_by + "," if group_by else ""}
                 {agg_expr} as result
             FROM {{}}
             {where_part}
@@ -299,7 +298,7 @@ class JsonAdvancedTools:
                 except json.JSONDecodeError as e:
                     return {
                         "success": False,
-                        "error": f"Could not normalize JSON: {str(e)}",
+                        "error": f"Could not normalize JSON: {e!s}",
                         "attempted": normalized,
                     }
 
@@ -342,20 +341,23 @@ class JsonAdvancedTools:
             # This is a simplified version - for production, you might want a more robust solution
             where_part = f"WHERE {where_clause}" if where_clause else ""
 
-            query = """
+            query = (
+                """
             WITH RECURSIVE flatten AS (
-                SELECT 
+                SELECT
                     id,
                     key,
                     value,
                     key as path
                 FROM {},
                 LATERAL jsonb_each({})
-                """ + where_part + """
-                
+                """
+                + where_part
+                + """
+
                 UNION ALL
-                
-                SELECT 
+
+                SELECT
                     f.id,
                     e.key,
                     e.value,
@@ -364,7 +366,7 @@ class JsonAdvancedTools:
                 LATERAL jsonb_each(f.value) e
                 WHERE jsonb_typeof(f.value) = 'object'
             )
-            SELECT 
+            SELECT
                 path,
                 value,
                 jsonb_typeof(value) as value_type
@@ -372,6 +374,7 @@ class JsonAdvancedTools:
             WHERE jsonb_typeof(value) != 'object'
             LIMIT {}
             """
+            )
 
             params = [table_name, json_column, separator, limit] + (where_params or [])
 
@@ -430,12 +433,12 @@ class JsonAdvancedTools:
             # Convert to dicts if needed
             dict1: Dict[str, Any]
             dict2: Dict[str, Any]
-            
+
             if isinstance(json1, str):
                 dict1 = json.loads(json1)
             else:
                 dict1 = json1
-                
+
             if isinstance(json2, str):
                 dict2 = json.loads(json2)
             else:
@@ -500,32 +503,38 @@ class JsonAdvancedTools:
             recommendations = []
 
             # Recommend GIN index for general JSON querying
-            recommendations.append({
-                "index_type": "GIN",
-                "ddl": f"CREATE INDEX idx_{table_name}_{json_column}_gin ON {table_name} USING gin ({json_column});",
-                "use_case": "General JSONB containment and existence queries",
-                "benefit": "Fast querying with @>, @<, ?, ?& operators",
-            })
+            recommendations.append(
+                {
+                    "index_type": "GIN",
+                    "ddl": f"CREATE INDEX idx_{table_name}_{json_column}_gin ON {table_name} USING gin ({json_column});",
+                    "use_case": "General JSONB containment and existence queries",
+                    "benefit": "Fast querying with @>, @<, ?, ?& operators",
+                }
+            )
 
             # Recommend GIN index with jsonb_path_ops for containment
-            recommendations.append({
-                "index_type": "GIN (jsonb_path_ops)",
-                "ddl": f"CREATE INDEX idx_{table_name}_{json_column}_path_ops ON {table_name} USING gin ({json_column} jsonb_path_ops);",
-                "use_case": "Containment queries (@> operator)",
-                "benefit": "Smaller index size, faster containment queries",
-            })
+            recommendations.append(
+                {
+                    "index_type": "GIN (jsonb_path_ops)",
+                    "ddl": f"CREATE INDEX idx_{table_name}_{json_column}_path_ops ON {table_name} USING gin ({json_column} jsonb_path_ops);",
+                    "use_case": "Containment queries (@> operator)",
+                    "benefit": "Smaller index size, faster containment queries",
+                }
+            )
 
             # Recommend expression indexes for common paths
             if common_paths:
                 for path in common_paths:
                     # Clean path for index name
                     clean_path = re.sub(r"[^\w]+", "_", path)
-                    recommendations.append({
-                        "index_type": "B-tree (expression)",
-                        "ddl": f"CREATE INDEX idx_{table_name}_{json_column}_{clean_path} ON {table_name} (({json_column}->'{path}'));",
-                        "use_case": f"Queries filtering on {path}",
-                        "benefit": "Fast equality and range queries on specific path",
-                    })
+                    recommendations.append(
+                        {
+                            "index_type": "B-tree (expression)",
+                            "ddl": f"CREATE INDEX idx_{table_name}_{json_column}_{clean_path} ON {table_name} (({json_column}->'{path}'));",
+                            "use_case": f"Queries filtering on {path}",
+                            "benefit": "Fast equality and range queries on specific path",
+                        }
+                    )
 
             return {
                 "success": True,
@@ -598,13 +607,15 @@ class JsonAdvancedTools:
                 for path, value in flat_values:
                     for pattern in injection_patterns:
                         if re.search(pattern, value, re.IGNORECASE):
-                            issues.append({
-                                "type": "SQL Injection",
-                                "severity": "HIGH",
-                                "path": path,
-                                "value": value[:100],  # Truncate long values
-                                "pattern": pattern,
-                            })
+                            issues.append(
+                                {
+                                    "type": "SQL Injection",
+                                    "severity": "HIGH",
+                                    "path": path,
+                                    "value": value[:100],  # Truncate long values
+                                    "pattern": pattern,
+                                }
+                            )
 
             # Check for XSS patterns
             if check_xss:
@@ -618,13 +629,15 @@ class JsonAdvancedTools:
                 for path, value in flat_values:
                     for pattern in xss_patterns:
                         if re.search(pattern, value, re.IGNORECASE):
-                            issues.append({
-                                "type": "XSS",
-                                "severity": "HIGH",
-                                "path": path,
-                                "value": value[:100],
-                                "pattern": pattern,
-                            })
+                            issues.append(
+                                {
+                                    "type": "XSS",
+                                    "severity": "HIGH",
+                                    "path": path,
+                                    "value": value[:100],
+                                    "pattern": pattern,
+                                }
+                            )
 
             return {
                 "success": True,
@@ -713,4 +726,3 @@ class JsonAdvancedTools:
                 "success": False,
                 "error": str(e),
             }
-

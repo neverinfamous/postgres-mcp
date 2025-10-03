@@ -13,7 +13,6 @@ This module provides 9 text processing tools leveraging PostgreSQL extensions:
 """
 
 import logging
-import re
 from typing import Any
 from typing import Dict
 from typing import List
@@ -81,7 +80,7 @@ class TextProcessingTools:
 
             # Query with similarity
             query = """
-            SELECT 
+            SELECT
                 {},
                 similarity({}, {}) as similarity_score
             FROM {}
@@ -167,13 +166,13 @@ class TextProcessingTools:
                 tsvector_params = [text_columns[0]]
             else:
                 # Concatenate multiple columns with weights
-                weighted_columns = " || ' ' || ".join([f"coalesce({{}}, '')" for _ in text_columns])
+                weighted_columns = " || ' ' || ".join(["coalesce({}, '')" for _ in text_columns])
                 tsvector_expr = f"to_tsvector('{language}', {weighted_columns})"
                 tsvector_params = text_columns
 
             # Build query
             query = f"""
-            SELECT 
+            SELECT
                 *,
                 ts_rank_cd(
                     {tsvector_expr},
@@ -186,12 +185,7 @@ class TextProcessingTools:
             LIMIT {{}}
             """
 
-            params = (
-                tsvector_params
-                + [search_query, rank_normalization, table_name]
-                + tsvector_params
-                + [search_query, limit]
-            )
+            params = [*tsvector_params, search_query, rank_normalization, table_name, *tsvector_params, search_query, limit]
 
             result = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
@@ -256,7 +250,7 @@ class TextProcessingTools:
             await regex_extract_all(
                 'posts',
                 'content',
-                r'#(\w+)',
+                r'#(\\w+)',
                 flags='g'
             )
         """
@@ -265,7 +259,7 @@ class TextProcessingTools:
 
             # Use regexp_matches to extract all matches
             query = f"""
-            SELECT 
+            SELECT
                 id,
                 {{}},
                 regexp_matches({{}}, {{}}, {{}}) as matches
@@ -345,7 +339,7 @@ class TextProcessingTools:
 
             # Query with Levenshtein distance
             query = """
-            SELECT 
+            SELECT
                 {},
                 levenshtein({}, {}) as edit_distance
             FROM {}
@@ -450,7 +444,7 @@ class TextProcessingTools:
 
             # Query with phonetic matching
             query = f"""
-            SELECT 
+            SELECT
                 {{}},
                 {phonetic_func}({{}}) as phonetic_code,
                 {phonetic_func}({{}}) as search_code
@@ -573,7 +567,7 @@ class TextProcessingTools:
         try:
             # Use ts_debug to get detailed tokenization
             query = """
-            SELECT 
+            SELECT
                 token,
                 tokid,
                 token_type,
@@ -764,4 +758,3 @@ class TextProcessingTools:
                 "success": False,
                 "error": str(e),
             }
-
