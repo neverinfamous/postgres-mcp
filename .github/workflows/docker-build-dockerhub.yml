@@ -37,8 +37,6 @@ jobs:
   build-and-push:
     needs: prepare
     runs-on: ubuntu-latest
-    # Temporarily disabled - Docker release to be done separately
-    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -66,7 +64,7 @@ jobs:
         id: docker_meta
         uses: docker/metadata-action@v5
         with:
-          images: neverinfamous/postgres-mcp
+          images: writenotenow/postgres-mcp-enhanced
           tags: |
             type=raw,value=${{ needs.prepare.outputs.version }}
             type=raw,value=latest
@@ -90,5 +88,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
-          cache-from: type=registry,ref=neverinfamous/postgres-mcp:buildcache
-          cache-to: type=registry,ref=neverinfamous/postgres-mcp:buildcache,mode=max
+          cache-from: type=registry,ref=writenotenow/postgres-mcp-enhanced:buildcache
+          cache-to: type=registry,ref=writenotenow/postgres-mcp-enhanced:buildcache,mode=max

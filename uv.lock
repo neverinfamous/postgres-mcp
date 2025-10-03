@@ -625,8 +625,8 @@ wheels = [
 ]
 
 [[package]]
-name = "postgres-mcp"
-version = "0.3.0"
+name = "postgres-mcp-enhanced"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
