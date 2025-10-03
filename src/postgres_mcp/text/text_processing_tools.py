@@ -468,7 +468,7 @@ class TextProcessingTools:
 
             result = await SafeSqlDriver.execute_param_query(
                 self.sql_driver,
-                cast(LiteralString, query),
+                query,
                 params,
             )
 
