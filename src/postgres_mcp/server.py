@@ -7,6 +7,7 @@ import signal
 import sys
 from enum import Enum
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Literal
 from typing import Optional
@@ -24,6 +25,7 @@ from .artifacts import ExplainPlanArtifact
 from .database_health import DatabaseHealthTool
 from .database_health import HealthType
 from .explain import ExplainPlanTool
+from .geo import GeospatialTools
 from .index.index_opt_base import MAX_NUM_INDEX_TUNING_QUERIES
 from .index.llm_opt import LLMOptimizerTool
 from .index.presentation import TextPresentation
@@ -38,6 +40,7 @@ from .sql import obfuscate_password
 from .statistics import StatisticalTools
 from .text import TextProcessingTools
 from .top_queries import TopQueriesCalc
+from .vector import VectorTools
 
 # Initialize FastMCP with default settings
 mcp = FastMCP("postgres-mcp")
@@ -1284,6 +1287,433 @@ async def partition_strategy_suggest(
         return format_text_response(result)
     except Exception as e:
         logger.error(f"Error in partition_strategy_suggest: {e}")
+        return format_error_response(str(e))
+
+
+# ============================================================================
+# Vector/Semantic Search Tools (Phase 4 - 8 tools)
+# ============================================================================
+
+
+@mcp.tool(description="Generate embeddings for text data (requires pgvector extension and API integration)")
+async def vector_embed(
+    table_name: str = Field(description="Source table name"),
+    text_column: str = Field(description="Column containing text to embed"),
+    vector_column: str = Field(description="Column to store embeddings (must be vector type)"),
+    model: str = Field(description="Embedding model name", default="text-embedding-ada-002"),
+    batch_size: int = Field(description="Number of rows to process per batch", default=100),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause for filtering", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Generate embeddings for text data."""
+    try:
+        sql_driver = await get_sql_driver()
+        vector_tools = VectorTools(sql_driver)
+        result = await vector_tools.vector_embed(
+            table_name=table_name,
+            text_column=text_column,
+            vector_column=vector_column,
+            model=model,
+            batch_size=batch_size,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in vector_embed: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Find similar vectors using cosine, L2, or inner product distance (requires pgvector)")
+async def vector_similarity(
+    table_name: str = Field(description="Source table name"),
+    vector_column: str = Field(description="Column containing vectors"),
+    query_vector: List[float] = Field(description="Query vector to find similar vectors"),
+    distance_metric: str = Field(description="Distance metric: 'cosine', 'l2', 'inner_product'", default="cosine"),
+    limit: int = Field(description="Maximum results to return", default=10),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause for filtering", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Find similar vectors."""
+    try:
+        sql_driver = await get_sql_driver()
+        vector_tools = VectorTools(sql_driver)
+        result = await vector_tools.vector_similarity(
+            table_name=table_name,
+            vector_column=vector_column,
+            query_vector=query_vector,
+            distance_metric=distance_metric,
+            limit=limit,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in vector_similarity: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Semantic search with ranking and distance threshold (requires pgvector)")
+async def vector_search(
+    table_name: str = Field(description="Source table name"),
+    vector_column: str = Field(description="Column containing vectors"),
+    query_vector: List[float] = Field(description="Query vector for semantic search"),
+    distance_metric: str = Field(description="Distance metric: 'cosine', 'l2', 'inner_product'", default="cosine"),
+    limit: int = Field(description="Maximum results to return", default=10),
+    threshold: Optional[float] = Field(description="Optional distance threshold for filtering", default=None),
+    return_columns: Optional[List[str]] = Field(description="Specific columns to return (None = all)", default=None),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause for filtering", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Semantic search with ranking."""
+    try:
+        sql_driver = await get_sql_driver()
+        vector_tools = VectorTools(sql_driver)
+        result = await vector_tools.vector_search(
+            table_name=table_name,
+            vector_column=vector_column,
+            query_vector=query_vector,
+            distance_metric=distance_metric,
+            limit=limit,
+            threshold=threshold,
+            return_columns=return_columns,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in vector_search: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="K-means clustering for vector data (requires implementation)")
+async def vector_cluster(
+    table_name: str = Field(description="Source table name"),
+    vector_column: str = Field(description="Column containing vectors"),
+    num_clusters: int = Field(description="Number of clusters (k)", default=5),
+    max_iterations: int = Field(description="Maximum iterations for convergence", default=100),
+    distance_metric: str = Field(description="Distance metric: 'cosine', 'l2', 'inner_product'", default="l2"),
+) -> ResponseType:
+    """K-means clustering for vectors."""
+    try:
+        sql_driver = await get_sql_driver()
+        vector_tools = VectorTools(sql_driver)
+        result = await vector_tools.vector_cluster(
+            table_name=table_name,
+            vector_column=vector_column,
+            num_clusters=num_clusters,
+            max_iterations=max_iterations,
+            distance_metric=distance_metric,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in vector_cluster: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Optimize vector indexes (HNSW/IVFFlat) for performance (requires pgvector)")
+async def vector_index_optimize(
+    table_name: str = Field(description="Source table name"),
+    vector_column: str = Field(description="Column containing vectors"),
+    index_type: str = Field(description="Index type: 'hnsw' or 'ivfflat'", default="hnsw"),
+    distance_metric: str = Field(description="Distance metric: 'cosine', 'l2', 'inner_product'", default="cosine"),
+    index_options: Optional[Dict[str, Any]] = Field(description="Index-specific options", default=None),
+) -> ResponseType:
+    """Optimize vector indexes."""
+    try:
+        sql_driver = await get_sql_driver()
+        vector_tools = VectorTools(sql_driver)
+        result = await vector_tools.vector_index_optimize(
+            table_name=table_name,
+            vector_column=vector_column,
+            index_type=index_type,
+            distance_metric=distance_metric,
+            index_options=index_options,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in vector_index_optimize: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Dimensionality reduction for vector data (requires implementation)")
+async def vector_dimension_reduce(
+    table_name: str = Field(description="Source table name"),
+    vector_column: str = Field(description="Column containing vectors"),
+    target_dimensions: int = Field(description="Target number of dimensions"),
+    method: str = Field(description="Reduction method: 'pca' or 'random_projection'", default="pca"),
+) -> ResponseType:
+    """Reduce vector dimensions."""
+    try:
+        sql_driver = await get_sql_driver()
+        vector_tools = VectorTools(sql_driver)
+        result = await vector_tools.vector_dimension_reduce(
+            table_name=table_name,
+            vector_column=vector_column,
+            target_dimensions=target_dimensions,
+            method=method,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in vector_dimension_reduce: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Hybrid search combining full-text and vector similarity (requires pgvector)")
+async def hybrid_search(
+    table_name: str = Field(description="Source table name"),
+    vector_column: str = Field(description="Column containing vectors"),
+    text_columns: List[str] = Field(description="Columns for full-text search"),
+    query_vector: List[float] = Field(description="Query vector for semantic search"),
+    query_text: str = Field(description="Query text for full-text search"),
+    vector_weight: float = Field(description="Weight for vector similarity (0-1)", default=0.7),
+    text_weight: float = Field(description="Weight for text relevance (0-1)", default=0.3),
+    distance_metric: str = Field(description="Distance metric: 'cosine', 'l2', 'inner_product'", default="cosine"),
+    language: str = Field(description="Text search language configuration", default="english"),
+    limit: int = Field(description="Maximum results to return", default=10),
+) -> ResponseType:
+    """Hybrid search combining text and vector."""
+    try:
+        sql_driver = await get_sql_driver()
+        vector_tools = VectorTools(sql_driver)
+        result = await vector_tools.hybrid_search(
+            table_name=table_name,
+            vector_column=vector_column,
+            text_columns=text_columns,
+            query_vector=query_vector,
+            query_text=query_text,
+            vector_weight=vector_weight,
+            text_weight=text_weight,
+            distance_metric=distance_metric,
+            language=language,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in hybrid_search: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Vector query optimization and performance benchmarking (requires pgvector)")
+async def vector_performance(
+    table_name: str = Field(description="Source table name"),
+    vector_column: str = Field(description="Column containing vectors"),
+    query_vector: List[float] = Field(description="Query vector for benchmarking"),
+    distance_metric: str = Field(description="Distance metric: 'cosine', 'l2', 'inner_product'", default="cosine"),
+    test_limits: Optional[List[int]] = Field(description="List of limits to test", default=None),
+) -> ResponseType:
+    """Benchmark vector query performance."""
+    try:
+        sql_driver = await get_sql_driver()
+        vector_tools = VectorTools(sql_driver)
+        result = await vector_tools.vector_performance(
+            table_name=table_name,
+            vector_column=vector_column,
+            query_vector=query_vector,
+            distance_metric=distance_metric,
+            test_limits=test_limits,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in vector_performance: {e}")
+        return format_error_response(str(e))
+
+
+# ============================================================================
+# Geospatial Tools (Phase 4 - 7 tools)
+# ============================================================================
+
+
+@mcp.tool(description="Calculate distance between geometries (requires PostGIS extension)")
+async def geo_distance(
+    table_name: str = Field(description="Source table name"),
+    geometry_column: str = Field(description="Column containing geometry data"),
+    reference_point: str = Field(description="Reference point in WKT format (e.g., 'POINT(-122.4194 37.7749)')"),
+    distance_type: str = Field(description="Distance unit: 'meters', 'kilometers', 'miles', 'feet'", default="meters"),
+    max_distance: Optional[float] = Field(description="Maximum distance filter", default=None),
+    limit: int = Field(description="Maximum results to return", default=100),
+    srid: int = Field(description="Spatial reference system ID (default: 4326 = WGS84)", default=4326),
+) -> ResponseType:
+    """Calculate distance between geometries."""
+    try:
+        sql_driver = await get_sql_driver()
+        geo_tools = GeospatialTools(sql_driver)
+        result = await geo_tools.geo_distance(
+            table_name=table_name,
+            geometry_column=geometry_column,
+            reference_point=reference_point,
+            distance_type=distance_type,
+            max_distance=max_distance,
+            limit=limit,
+            srid=srid,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in geo_distance: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Point-in-polygon and geometric containment queries (requires PostGIS)")
+async def geo_within(
+    table_name: str = Field(description="Source table name"),
+    geometry_column: str = Field(description="Column containing geometry data"),
+    boundary_geometry: str = Field(description="Boundary in WKT format (e.g., 'POLYGON((...))' )"),
+    geometry_type: str = Field(description="Type of boundary: 'polygon', 'multipolygon', 'circle'", default="polygon"),
+    limit: int = Field(description="Maximum results to return", default=1000),
+    srid: int = Field(description="Spatial reference system ID (default: 4326)", default=4326),
+) -> ResponseType:
+    """Find geometries within boundary."""
+    try:
+        sql_driver = await get_sql_driver()
+        geo_tools = GeospatialTools(sql_driver)
+        result = await geo_tools.geo_within(
+            table_name=table_name,
+            geometry_column=geometry_column,
+            boundary_geometry=boundary_geometry,
+            geometry_type=geometry_type,
+            limit=limit,
+            srid=srid,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in geo_within: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Create buffer zones around geometries (requires PostGIS)")
+async def geo_buffer(
+    table_name: str = Field(description="Source table name"),
+    geometry_column: str = Field(description="Column containing geometry data"),
+    buffer_distance: float = Field(description="Buffer distance"),
+    distance_unit: str = Field(description="Distance unit: 'meters', 'kilometers', 'miles', 'feet'", default="meters"),
+    segments: int = Field(description="Number of segments for buffer (higher = smoother)", default=8),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause for filtering", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+    limit: int = Field(description="Maximum results to return", default=100),
+    srid: int = Field(description="Spatial reference system ID (default: 4326)", default=4326),
+) -> ResponseType:
+    """Create buffer zones around geometries."""
+    try:
+        sql_driver = await get_sql_driver()
+        geo_tools = GeospatialTools(sql_driver)
+        result = await geo_tools.geo_buffer(
+            table_name=table_name,
+            geometry_column=geometry_column,
+            buffer_distance=buffer_distance,
+            distance_unit=distance_unit,
+            segments=segments,
+            where_clause=where_clause,
+            where_params=where_params,
+            limit=limit,
+            srid=srid,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in geo_buffer: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Find geometric intersections (requires PostGIS)")
+async def geo_intersection(
+    table_name: str = Field(description="Source table name"),
+    geometry_column: str = Field(description="Column containing geometry data"),
+    intersecting_geometry: str = Field(description="Geometry to test intersection (WKT format)"),
+    return_intersection: bool = Field(description="Return intersection geometry if True", default=False),
+    limit: int = Field(description="Maximum results to return", default=100),
+    srid: int = Field(description="Spatial reference system ID (default: 4326)", default=4326),
+) -> ResponseType:
+    """Find geometric intersections."""
+    try:
+        sql_driver = await get_sql_driver()
+        geo_tools = GeospatialTools(sql_driver)
+        result = await geo_tools.geo_intersection(
+            table_name=table_name,
+            geometry_column=geometry_column,
+            intersecting_geometry=intersecting_geometry,
+            return_intersection=return_intersection,
+            limit=limit,
+            srid=srid,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in geo_intersection: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Optimize spatial indexes (GIST/BRIN/SP-GIST) for performance (requires PostGIS)")
+async def geo_index_optimize(
+    table_name: str = Field(description="Source table name"),
+    geometry_column: str = Field(description="Column containing geometry data"),
+    index_type: str = Field(description="Index type: 'gist', 'brin', 'spgist'", default="gist"),
+    index_options: Optional[Dict[str, Any]] = Field(description="Index-specific options", default=None),
+) -> ResponseType:
+    """Optimize spatial indexes."""
+    try:
+        sql_driver = await get_sql_driver()
+        geo_tools = GeospatialTools(sql_driver)
+        result = await geo_tools.geo_index_optimize(
+            table_name=table_name,
+            geometry_column=geometry_column,
+            index_type=index_type,
+            index_options=index_options,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in geo_index_optimize: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Transform geometries between coordinate systems (requires PostGIS)")
+async def geo_transform(
+    table_name: str = Field(description="Source table name"),
+    geometry_column: str = Field(description="Column containing geometry data"),
+    source_srid: int = Field(description="Source spatial reference system ID"),
+    target_srid: int = Field(description="Target spatial reference system ID"),
+    limit: int = Field(description="Maximum results to return", default=100),
+) -> ResponseType:
+    """Transform coordinate systems."""
+    try:
+        sql_driver = await get_sql_driver()
+        geo_tools = GeospatialTools(sql_driver)
+        result = await geo_tools.geo_transform(
+            table_name=table_name,
+            geometry_column=geometry_column,
+            source_srid=source_srid,
+            target_srid=target_srid,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in geo_transform: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Spatial clustering using distance-based grouping (requires PostGIS)")
+async def geo_cluster(
+    table_name: str = Field(description="Source table name"),
+    geometry_column: str = Field(description="Column containing geometry data"),
+    cluster_distance: float = Field(description="Maximum distance for clustering"),
+    distance_unit: str = Field(description="Distance unit: 'meters', 'kilometers', 'miles'", default="meters"),
+    min_points: int = Field(description="Minimum points to form a cluster", default=2),
+    limit: int = Field(description="Maximum results to return", default=1000),
+    srid: int = Field(description="Spatial reference system ID (default: 4326)", default=4326),
+) -> ResponseType:
+    """Spatial clustering."""
+    try:
+        sql_driver = await get_sql_driver()
+        geo_tools = GeospatialTools(sql_driver)
+        result = await geo_tools.geo_cluster(
+            table_name=table_name,
+            geometry_column=geometry_column,
+            cluster_distance=cluster_distance,
+            distance_unit=distance_unit,
+            min_points=min_points,
+            limit=limit,
+            srid=srid,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in geo_cluster: {e}")
         return format_error_response(str(e))
 
 
