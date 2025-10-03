@@ -230,25 +230,21 @@ class VectorTools:
             query = f"""
             SELECT
                 *,
-                {{}} {distance_op} {{}}::vector as {distance_name}
-            FROM {{}}
+                {vector_column} {distance_op} %s::vector as {distance_name}
+            FROM {table_name}
             {where_sql}
-            ORDER BY {{}} {distance_op} {{}}::vector
-            LIMIT {{}}
+            ORDER BY {vector_column} {distance_op} %s::vector
+            LIMIT %s
             """
 
             query_params = (where_params or []) + [
-                vector_column,
                 json.dumps(query_vector),
-                table_name,
-                vector_column,
                 json.dumps(query_vector),
                 limit,
             ]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
+            result = await self.sql_driver.execute_query(
+                query,
                 query_params,
             )
 
@@ -342,37 +338,33 @@ class VectorTools:
             if where_clause:
                 where_parts.append(where_clause)
             if threshold is not None:
-                where_parts.append(f"{{}} {distance_op} {{}}::vector < {{}}")
+                where_parts.append(f"{vector_column} {distance_op} %s::vector < %s")
 
             where_sql = f"WHERE {' AND '.join(where_parts)}" if where_parts else ""
 
             # Build parameters
             params = where_params or []
             if threshold is not None:
-                params.extend([vector_column, json.dumps(query_vector), threshold])
+                params.extend([json.dumps(query_vector), threshold])
 
             query = f"""
             SELECT
                 {columns},
-                {{}} {distance_op} {{}}::vector as {distance_name}
-            FROM {{}}
+                {vector_column} {distance_op} %s::vector as {distance_name}
+            FROM {table_name}
             {where_sql}
-            ORDER BY {{}} {distance_op} {{}}::vector
-            LIMIT {{}}
+            ORDER BY {vector_column} {distance_op} %s::vector
+            LIMIT %s
             """
 
-            query_params = [
-                vector_column,
+            query_params = params + [
                 json.dumps(query_vector),
-                table_name,
-                vector_column,
                 json.dumps(query_vector),
                 limit,
             ]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
+            result = await self.sql_driver.execute_query(
+                query,
                 query_params,
             )
 
@@ -759,55 +751,48 @@ class VectorTools:
 
             # Build tsvector expression
             if len(text_columns) == 1:
-                tsvector_expr = f"to_tsvector('{language}', {{}})"
-                tsvector_params = [text_columns[0]]
+                tsvector_expr = f"to_tsvector('{language}', {text_columns[0]})"
             else:
-                weighted_columns = " || ' ' || ".join(["coalesce({}, '')" for _ in text_columns])
+                weighted_columns = " || ' ' || ".join([f"coalesce({col}, '')" for col in text_columns])
                 tsvector_expr = f"to_tsvector('{language}', {weighted_columns})"
-                tsvector_params = text_columns
 
             # Hybrid query with normalized scoring
             query = f"""
             WITH vector_scores AS (
                 SELECT
                     *,
-                    1 - ({{}} {distance_op} {{}}::vector) as vector_score
-                FROM {{}}
+                    1 - ({vector_column} {distance_op} %s::vector) as vector_score
+                FROM {table_name}
             ),
             text_scores AS (
                 SELECT
                     *,
-                    ts_rank_cd({tsvector_expr}, to_tsquery('{language}', {{}})) as text_score
+                    ts_rank_cd({tsvector_expr}, to_tsquery('{language}', %s)) as text_score
                 FROM vector_scores
-                WHERE {tsvector_expr} @@ to_tsquery('{language}', {{}})
+                WHERE {tsvector_expr} @@ to_tsquery('{language}', %s)
             ),
             combined_scores AS (
                 SELECT
                     *,
-                    ({{}}) * vector_score + ({{}}) * text_score as hybrid_score
+                    %s * vector_score + %s * text_score as hybrid_score
                 FROM text_scores
             )
             SELECT * FROM combined_scores
             ORDER BY hybrid_score DESC
-            LIMIT {{}}
+            LIMIT %s
             """
 
             params = [
-                vector_column,
                 json.dumps(query_vector),
-                table_name,
-                *tsvector_params,
                 query_text,
-                *tsvector_params,
                 query_text,
                 vector_weight,
                 text_weight,
                 limit,
             ]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
+            result = await self.sql_driver.execute_query(
+                query,
                 params,
             )
 

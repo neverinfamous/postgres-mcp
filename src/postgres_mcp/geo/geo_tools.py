@@ -143,42 +143,38 @@ class GeospatialTools:
             where_clause = ""
             where_params: List[Any] = []
             if max_distance is not None:
-                where_clause = "WHERE ST_DWithin({}, ST_GeomFromText({}, {}), {})"
-                where_params = [geometry_column, reference_point, srid, max_distance / multiplier]
+                where_clause = f"WHERE ST_DWithin({geometry_column}, ST_GeomFromText(%s, %s), %s)"
+                where_params = [reference_point, srid, max_distance / multiplier]
 
             # Query for distance calculation
             query = f"""
             SELECT
                 *,
                 ST_Distance(
-                    ST_Transform({{}}, 3857),
-                    ST_Transform(ST_GeomFromText({{}}, {{}}), 3857)
-                ) * {{}} as distance_{unit}
-            FROM {{}}
+                    ST_Transform({geometry_column}, 3857),
+                    ST_Transform(ST_GeomFromText(%s, %s), 3857)
+                ) * %s as distance_{unit}
+            FROM {table_name}
             {where_clause}
             ORDER BY ST_Distance(
-                ST_Transform({{}}, 3857),
-                ST_Transform(ST_GeomFromText({{}}, {{}}), 3857)
+                ST_Transform({geometry_column}, 3857),
+                ST_Transform(ST_GeomFromText(%s, %s), 3857)
             )
-            LIMIT {{}}
+            LIMIT %s
             """
 
             params = [
-                geometry_column,
                 reference_point,
                 srid,
                 multiplier,
-                table_name,
                 *where_params,
-                geometry_column,
                 reference_point,
                 srid,
                 limit,
             ]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
+            result = await self.sql_driver.execute_query(
+                query,
                 params,
             )
 
@@ -246,19 +242,18 @@ class GeospatialTools:
                     "error": "PostGIS extension not installed. Run: CREATE EXTENSION IF NOT EXISTS postgis;",
                 }
 
-            query = """
+            query = f"""
             SELECT
                 *
-            FROM {}
-            WHERE ST_Within({}, ST_GeomFromText({}, {}))
-            LIMIT {}
+            FROM {table_name}
+            WHERE ST_Within({geometry_column}, ST_GeomFromText(%s, %s))
+            LIMIT %s
             """
 
-            params = [table_name, geometry_column, boundary_geometry, srid, limit]
+            params = [boundary_geometry, srid, limit]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
+            result = await self.sql_driver.execute_query(
+                query,
                 params,
             )
 
@@ -355,23 +350,22 @@ class GeospatialTools:
                 ST_AsText(
                     ST_Transform(
                         ST_Buffer(
-                            ST_Transform({{}}, 3857),
-                            {{}},
-                            {{}}
+                            ST_Transform({geometry_column}, 3857),
+                            %s,
+                            %s
                         ),
-                        {{}}
+                        %s
                     )
                 ) as buffer_geometry
-            FROM {{}}
+            FROM {table_name}
             {where_sql}
-            LIMIT {{}}
+            LIMIT %s
             """
 
-            query_params = (where_params or []) + [geometry_column, distance_m, segments, srid, table_name, limit]
+            query_params = (where_params or []) + [distance_m, segments, srid, limit]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
+            result = await self.sql_driver.execute_query(
+                query,
                 query_params,
             )
 
@@ -440,8 +434,8 @@ class GeospatialTools:
                 }
 
             if return_intersection:
-                intersection_col = ", ST_AsText(ST_Intersection({}, ST_GeomFromText({}, {}))) as intersection_geometry"
-                intersection_params = [geometry_column, intersecting_geometry, srid]
+                intersection_col = f", ST_AsText(ST_Intersection({geometry_column}, ST_GeomFromText(%s, %s))) as intersection_geometry"
+                intersection_params = [intersecting_geometry, srid]
             else:
                 intersection_col = ""
                 intersection_params = []
@@ -449,16 +443,15 @@ class GeospatialTools:
             query = f"""
             SELECT
                 *{intersection_col}
-            FROM {{}}
-            WHERE ST_Intersects({{}}, ST_GeomFromText({{}}, {{}}))
-            LIMIT {{}}
+            FROM {table_name}
+            WHERE ST_Intersects({geometry_column}, ST_GeomFromText(%s, %s))
+            LIMIT %s
             """
 
-            params = [*intersection_params, table_name, geometry_column, intersecting_geometry, srid, limit]
+            params = [*intersection_params, intersecting_geometry, srid, limit]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
+            result = await self.sql_driver.execute_query(
+                query,
                 params,
             )
 
@@ -660,22 +653,21 @@ class GeospatialTools:
                     "error": "PostGIS extension not installed. Run: CREATE EXTENSION IF NOT EXISTS postgis;",
                 }
 
-            query = """
+            query = f"""
             SELECT
                 *,
-                ST_AsText(ST_Transform(ST_SetSRID({}, {}), {})) as transformed_geometry,
-                {} as source_srid,
-                {} as target_srid
-            FROM {}
-            WHERE {} IS NOT NULL
-            LIMIT {}
+                ST_AsText(ST_Transform(ST_SetSRID({geometry_column}, %s), %s)) as transformed_geometry,
+                %s as source_srid,
+                %s as target_srid
+            FROM {table_name}
+            WHERE {geometry_column} IS NOT NULL
+            LIMIT %s
             """
 
-            params = [geometry_column, source_srid, target_srid, source_srid, target_srid, table_name, geometry_column, limit]
+            params = [source_srid, target_srid, source_srid, target_srid, limit]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
+            result = await self.sql_driver.execute_query(
+                query,
                 params,
             )
 
@@ -757,20 +749,19 @@ class GeospatialTools:
                     "error": f"Invalid distance unit: {distance_unit}. Use 'meters', 'kilometers', or 'miles'.",
                 }
 
-            query = """
+            query = f"""
             SELECT
                 *,
-                ST_ClusterDBSCAN(ST_Transform({}, 3857), {}, {}) OVER () as cluster_id
-            FROM {}
-            WHERE {} IS NOT NULL
-            LIMIT {}
+                ST_ClusterDBSCAN(ST_Transform({geometry_column}, 3857), %s, %s) OVER () as cluster_id
+            FROM {table_name}
+            WHERE {geometry_column} IS NOT NULL
+            LIMIT %s
             """
 
-            params = [geometry_column, distance_m, min_points, table_name, geometry_column, limit]
+            params = [distance_m, min_points, limit]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
+            result = await self.sql_driver.execute_query(
+                query,
                 params,
             )
 
