@@ -104,12 +104,12 @@ class BackupTools:
                 table_query = f"""
                 SELECT 
                     schemaname,
-                    tablename,
-                    pg_total_relation_size(schemaname || '.' || tablename) as table_size,
+                    relname as tablename,
+                    pg_total_relation_size(schemaname || '.' || relname) as table_size,
                     n_live_tup as row_count
                 FROM pg_stat_user_tables
                 WHERE schemaname = %s
-                    AND tablename = ANY(%s)
+                    AND relname = ANY(%s)
                 ORDER BY table_size DESC
                 """
                 params = [schema_name, table_names]
@@ -118,8 +118,8 @@ class BackupTools:
                 table_query = f"""
                 SELECT 
                     schemaname,
-                    tablename,
-                    pg_total_relation_size(schemaname || '.' || tablename) as table_size,
+                    relname as tablename,
+                    pg_total_relation_size(schemaname || '.' || relname) as table_size,
                     n_live_tup as row_count
                 FROM pg_stat_user_tables
                 WHERE schemaname = %s
@@ -131,11 +131,11 @@ class BackupTools:
                 table_query = f"""
                 SELECT 
                     schemaname,
-                    tablename,
-                    pg_total_relation_size(schemaname || '.' || tablename) as table_size,
+                    relname as tablename,
+                    pg_total_relation_size(schemaname || '.' || relname) as table_size,
                     n_live_tup as row_count
                 FROM pg_stat_user_tables
-                WHERE tablename = ANY(%s)
+                WHERE relname = ANY(%s)
                 ORDER BY table_size DESC
                 """
                 params = [table_names]
@@ -146,8 +146,8 @@ class BackupTools:
                     """
                 SELECT 
                     schemaname,
-                    tablename,
-                    pg_total_relation_size(schemaname || '.' || tablename) as table_size,
+                    relname as tablename,
+                    pg_total_relation_size(schemaname || '.' || relname) as table_size,
                     n_live_tup as row_count
                 FROM pg_stat_user_tables
                 ORDER BY table_size DESC

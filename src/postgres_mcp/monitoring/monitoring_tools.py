@@ -519,8 +519,8 @@ class MonitoringTools:
                 table_query = f"""
                 SELECT 
                     schemaname,
-                    tablename,
-                    pg_total_relation_size(schemaname || '.' || tablename) as total_size,
+                    relname as tablename,
+                    pg_total_relation_size(schemaname || '.' || relname) as total_size,
                     n_live_tup as row_count,
                     n_tup_ins as inserts,
                     n_tup_upd as updates,
@@ -567,8 +567,8 @@ class MonitoringTools:
                 index_query = """
                 SELECT 
                     schemaname,
-                    tablename,
-                    indexname,
+                    relname as tablename,
+                    indexrelname as indexname,
                     pg_relation_size(indexrelid) as index_size
                 FROM pg_stat_user_indexes
                 ORDER BY index_size DESC
