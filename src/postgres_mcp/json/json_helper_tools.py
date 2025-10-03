@@ -88,23 +88,19 @@ class JsonHelperTools:
             if where_clause:
                 # Update existing row
                 query = f"""
-                UPDATE {{}}
-                SET {{}} = {{}}::jsonb
+                UPDATE {table_name}
+                SET {json_column} = %s::jsonb
                 WHERE {where_clause}
                 """
-                params = [table_name, json_column, json_str] + (where_params or [])
+                params = [json_str] + (where_params or [])
             else:
                 # Insert new row (requires table to have id or similar)
-                query = """
-                INSERT INTO {} ({}) VALUES ({}::jsonb)
+                query = f"""
+                INSERT INTO {table_name} ({json_column}) VALUES (%s::jsonb)
                 """
-                params = [table_name, json_column, json_str]
+                params = [json_str]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             return {
                 "success": True,
@@ -157,23 +153,19 @@ class JsonHelperTools:
 
             # Use jsonb_set with create_missing parameter
             query = f"""
-            UPDATE {{}}
-            SET {{}} = jsonb_set(
-                {{}},
-                {{}},
-                {{}}::jsonb,
-                {{}}
+            UPDATE {table_name}
+            SET {json_column} = jsonb_set(
+                {json_column},
+                %s,
+                %s::jsonb,
+                %s
             )
             WHERE {where_clause}
             """
 
-            params = [table_name, json_column, json_column, json_path, value_json, create_if_missing, *where_params]
+            params = [json_path, value_json, create_if_missing, *where_params]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             return {
                 "success": True,
@@ -226,34 +218,30 @@ class JsonHelperTools:
             # Build SELECT clause based on path and format
             if json_path:
                 if output_format == "text":
-                    select_expr = "jsonb_path_query_first({}, {})::text"
-                    select_params = [json_column, json_path]
+                    select_expr = f"jsonb_path_query_first({json_column}, %s)::text"
+                    select_params = [json_path]
                 elif output_format == "array":
-                    select_expr = "jsonb_path_query_array({}, {})"
-                    select_params = [json_column, json_path]
+                    select_expr = f"jsonb_path_query_array({json_column}, %s)"
+                    select_params = [json_path]
                 else:  # json
-                    select_expr = "jsonb_path_query_first({}, {})"
-                    select_params = [json_column, json_path]
+                    select_expr = f"jsonb_path_query_first({json_column}, %s)"
+                    select_params = [json_path]
             else:
-                select_expr = "{}"
-                select_params = [json_column]
+                select_expr = json_column
+                select_params = []
 
             # Build full query
             where_part = f"WHERE {where_clause}" if where_clause else ""
             query = f"""
             SELECT {select_expr}
-            FROM {{}}
+            FROM {table_name}
             {where_part}
-            LIMIT {{}}
+            LIMIT %s
             """
 
-            params = select_params + [table_name] + (where_params or []) + [limit]
+            params = select_params + (where_params or []) + [limit]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -323,33 +311,29 @@ class JsonHelperTools:
                     }
 
                 if agg_func == "count":
-                    query = """
+                    query = f"""
                     SELECT COUNT(*) as result
-                    FROM {},
-                    LATERAL jsonb_path_query({}, {}) as item
+                    FROM {table_name},
+                    LATERAL jsonb_path_query({json_column}, %s) as item
                     """
                 else:
                     query = f"""
                     SELECT {agg_func.upper()}((item->>'value')::numeric) as result
-                    FROM {{}},
-                    LATERAL jsonb_path_query({{}}, {{}}) as item
+                    FROM {table_name},
+                    LATERAL jsonb_path_query({json_column}, %s) as item
                     """
 
-                params = [table_name, json_column, json_path]
+                params = [json_path]
             else:
-                query = """
+                query = f"""
                 SELECT item
-                FROM {},
-                LATERAL jsonb_path_query({}, {}) as item
-                LIMIT {}
+                FROM {table_name},
+                LATERAL jsonb_path_query({json_column}, %s) as item
+                LIMIT %s
                 """
-                params = [table_name, json_column, json_path, limit]
+                params = [json_path, limit]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -494,29 +478,29 @@ class JsonHelperTools:
             if strategy == "overwrite":
                 # Use || operator (right side overwrites left)
                 query = f"""
-                UPDATE {{}}
-                SET {{}} = {{}} || {{}}::jsonb
+                UPDATE {table_name}
+                SET {json_column} = {json_column} || %s::jsonb
                 WHERE {where_clause}
                 """
-                params = [table_name, json_column, json_column, merge_json, *where_params]
+                params = [merge_json, *where_params]
 
             elif strategy == "keep_existing":
                 # Use || operator (left side takes precedence)
                 query = f"""
-                UPDATE {{}}
-                SET {{}} = {{}}::jsonb || {{}}
+                UPDATE {table_name}
+                SET {json_column} = %s::jsonb || {json_column}
                 WHERE {where_clause}
                 """
-                params = [table_name, json_column, merge_json, json_column, *where_params]
+                params = [merge_json, *where_params]
 
             elif strategy == "concat_arrays":
                 # For array values, concatenate instead of replace
                 query = f"""
-                UPDATE {{}}
-                SET {{}} = jsonb_concat_recursive({{}}, {{}}::jsonb)
+                UPDATE {table_name}
+                SET {json_column} = jsonb_concat_recursive({json_column}, %s::jsonb)
                 WHERE {where_clause}
                 """
-                params = [table_name, json_column, json_column, merge_json, *where_params]
+                params = [merge_json, *where_params]
 
             else:
                 return {
@@ -524,11 +508,7 @@ class JsonHelperTools:
                     "error": f"Invalid merge strategy: {strategy}",
                 }
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             return {
                 "success": True,

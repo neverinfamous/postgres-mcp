@@ -82,34 +82,25 @@ class TextProcessingTools:
                 }
 
             # Query with similarity
-            query = """
+            query = f"""
             SELECT
-                {},
-                similarity({}, {}) as similarity_score
-            FROM {}
-            WHERE similarity({}, {}) > {}
-            ORDER BY similarity({}, {}) DESC
-            LIMIT {}
+                {text_column},
+                similarity({text_column}, %s) as similarity_score
+            FROM {table_name}
+            WHERE similarity({text_column}, %s) > %s
+            ORDER BY similarity({text_column}, %s) DESC
+            LIMIT %s
             """
 
             params = [
-                text_column,
-                text_column,
                 search_text,
-                table_name,
-                text_column,
                 search_text,
                 similarity_threshold,
-                text_column,
                 search_text,
                 limit,
             ]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -165,13 +156,11 @@ class TextProcessingTools:
         try:
             # Build tsvector expression for multiple columns
             if len(text_columns) == 1:
-                tsvector_expr = f"to_tsvector('{language}', {{}})"
-                tsvector_params = [text_columns[0]]
+                tsvector_expr = f"to_tsvector('{language}', {text_columns[0]})"
             else:
                 # Concatenate multiple columns with weights
-                weighted_columns = " || ' ' || ".join(["coalesce({}, '')" for _ in text_columns])
+                weighted_columns = " || ' ' || ".join([f"coalesce({col}, '')" for col in text_columns])
                 tsvector_expr = f"to_tsvector('{language}', {weighted_columns})"
-                tsvector_params = text_columns
 
             # Build query
             query = f"""
@@ -179,22 +168,18 @@ class TextProcessingTools:
                 *,
                 ts_rank_cd(
                     {tsvector_expr},
-                    to_tsquery('{language}', {{}}),
-                    {{}}
+                    to_tsquery('{language}', %s),
+                    %s
                 ) as rank
-            FROM {{}}
-            WHERE {tsvector_expr} @@ to_tsquery('{language}', {{}})
+            FROM {table_name}
+            WHERE {tsvector_expr} @@ to_tsquery('{language}', %s)
             ORDER BY rank DESC
-            LIMIT {{}}
+            LIMIT %s
             """
 
-            params = [*tsvector_params, search_query, rank_normalization, table_name, *tsvector_params, search_query, limit]
+            params = [search_query, rank_normalization, search_query, limit]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -264,20 +249,16 @@ class TextProcessingTools:
             query = f"""
             SELECT
                 id,
-                {{}},
-                regexp_matches({{}}, {{}}, {{}}) as matches
-            FROM {{}}
+                {text_column},
+                regexp_matches({text_column}, %s, %s) as matches
+            FROM {table_name}
             {where_part}
-            LIMIT {{}}
+            LIMIT %s
             """
 
-            params = [text_column, text_column, pattern, flags, table_name] + (where_params or []) + [limit]
+            params = [pattern, flags] + (where_params or []) + [limit]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -341,34 +322,25 @@ class TextProcessingTools:
                 }
 
             # Query with Levenshtein distance
-            query = """
+            query = f"""
             SELECT
-                {},
-                levenshtein({}, {}) as edit_distance
-            FROM {}
-            WHERE levenshtein({}, {}) <= {}
-            ORDER BY levenshtein({}, {}) ASC
-            LIMIT {}
+                {text_column},
+                levenshtein({text_column}, %s) as edit_distance
+            FROM {table_name}
+            WHERE levenshtein({text_column}, %s) <= %s
+            ORDER BY levenshtein({text_column}, %s) ASC
+            LIMIT %s
             """
 
             params = [
-                text_column,
-                text_column,
                 search_text,
-                table_name,
-                text_column,
                 search_text,
                 max_distance,
-                text_column,
                 search_text,
                 limit,
             ]
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
-                cast(LiteralString, query),
-                params,
-            )
+            result = await self.sql_driver.execute_query(query, params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
