@@ -16,6 +16,9 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
+from typing import cast
+
+from typing_extensions import LiteralString
 
 from ..sql import SafeSqlDriver
 from ..sql import SqlDriver
@@ -97,7 +100,7 @@ class JsonHelperTools:
                 """
                 params = [json_str]
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             return {
                 "success": True,
@@ -162,7 +165,7 @@ class JsonHelperTools:
 
             params = [json_path, value_json, create_if_missing, *where_params]
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             return {
                 "success": True,
@@ -238,7 +241,7 @@ class JsonHelperTools:
 
             params = select_params + (where_params or []) + [limit]
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -330,7 +333,7 @@ class JsonHelperTools:
                 """
                 params = [json_path, limit]
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -505,7 +508,7 @@ class JsonHelperTools:
                     "error": f"Invalid merge strategy: {strategy}",
                 }
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             return {
                 "success": True,

@@ -208,7 +208,7 @@ class JsonAdvancedTools:
 
             params = select_params + (where_params or [])
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {"success": True, "data": None, "count": 0}
@@ -690,7 +690,7 @@ class JsonAdvancedTools:
 
             params = where_params or []
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result or not result[0]:
                 return {"success": True, "stats": {}}

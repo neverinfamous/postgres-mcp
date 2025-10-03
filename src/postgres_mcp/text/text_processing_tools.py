@@ -100,7 +100,7 @@ class TextProcessingTools:
                 limit,
             ]
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -179,7 +179,7 @@ class TextProcessingTools:
 
             params = [search_query, rank_normalization, search_query, limit]
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -257,7 +257,7 @@ class TextProcessingTools:
 
             params = [pattern, flags] + (where_params or []) + [limit]
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
@@ -339,7 +339,7 @@ class TextProcessingTools:
                 limit,
             ]
 
-            result = await self.sql_driver.execute_query(query, params)
+            result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 
             if not result:
                 return {"success": True, "data": [], "count": 0}
