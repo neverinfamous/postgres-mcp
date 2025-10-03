@@ -1,17 +1,19 @@
 [project]
 name = "postgres-mcp-enhanced"
-version = "1.0.2"
+version = "1.0.3"
 description = "Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensive security and AI-native operations"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mcp[cli]>=1.5.0",
+    "mcp[cli]>=1.10.0",
     "psycopg[binary]>=3.2.6",
     "humanize>=4.8.0",
     "pglast==7.7",
     "attrs>=25.3.0",
     "psycopg-pool>=3.2.6",
     "instructor>=1.7.9",
+    "h11>=0.16.0",
+    "setuptools>=78.1.1",
 ]
 license = "mit"
 license-files = ["LICENSE"]

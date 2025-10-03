@@ -31,10 +31,10 @@ FROM python:3.13-slim-bookworm
 RUN groupadd -r app && useradd -r -g app -u 1000 app
 
 # Install runtime system dependencies
+# Removed dnsutils to fix CVE-2025-40777 (bind9 vulnerability)
 RUN apt-get update && apt-get install -y \
   libpq-dev \
   iputils-ping \
-  dnsutils \
   net-tools \
   && rm -rf /var/lib/apt/lists/* \
   && apt-get clean
