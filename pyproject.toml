@@ -1,7 +1,7 @@
 [project]
-name = "postgres-mcp"
+name = "postgres-mcp-enhanced"
 version = "1.0.0"
-description = "PostgreSQL Tuning and Analysis Tool"
+description = "Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensive security and AI-native operations"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -23,6 +23,9 @@ email = "admin@adamic.tech"
 [build-system]
 requires = [ "hatchling",]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/postgres_mcp"]
 
 [project.scripts]
 postgres-mcp = "postgres_mcp:main"

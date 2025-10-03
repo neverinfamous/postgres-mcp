@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/project/postgres-mcp/
+      url: https://pypi.org/project/postgres-mcp-enhanced/
     
     steps:
       - name: Checkout code
@@ -66,5 +66,5 @@ jobs:
       - name: Verify publication
         run: |
           sleep 10  # Wait for PyPI to update
-          pip index versions postgres-mcp
+          pip index versions postgres-mcp-enhanced
 
