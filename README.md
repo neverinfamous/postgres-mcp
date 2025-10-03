@@ -8,10 +8,12 @@
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](SECURITY.md)
 [![CodeQL](https://img.shields.io/badge/CodeQL-Passing-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp/security/code-scanning)
 
-**25 specialized MCP tools** for PostgreSQL operations:
+**39 specialized MCP tools** for PostgreSQL operations:
 - **Core Database Tools (9)**: Schema/object management, SQL execution, health monitoring, query analysis, index optimization
 - **JSON Tools (11)**: JSONB operations, validation, security scanning, index suggestions, diff/merge
 - **Text Tools (5)**: Similarity search, full-text search, regex extraction, fuzzy matching, sentiment analysis
+- **Statistical Analysis Tools (8)**: Descriptive statistics, percentiles, correlation, regression, time series, distribution analysis, hypothesis testing, sampling
+- **Performance Intelligence Tools (6)**: Query plan comparison, performance baselines, slow query analysis, connection pool optimization, vacuum strategy, partitioning recommendations
 
 Enhanced with **pg_stat_statements** and **hypopg** extensions for real-time analytics and hypothetical index testing.
 
@@ -185,7 +187,7 @@ This PostgreSQL MCP server has been **comprehensively security-audited** and enh
 
 ---
 
-## 📊 **MCP Tools (25 Total)**
+## 📊 **MCP Tools (39 Total)**
 
 ### **Core Database Tools (9)**
 | Tool | Description |
@@ -223,6 +225,28 @@ This PostgreSQL MCP server has been **comprehensively security-audited** and enh
 | `regex_extract_all` | Pattern extraction with capture groups |
 | `fuzzy_match` | Levenshtein distance matching |
 | `text_sentiment` | Sentiment analysis |
+
+### **Statistical Analysis Tools (8)** *(Phase 3 - NEW)*
+| Tool | Description |
+|------|-------------|
+| `stats_descriptive` | Calculate mean, median, mode, std dev, variance, quartiles |
+| `stats_percentiles` | Calculate percentiles and detect outliers using IQR method |
+| `stats_correlation` | Pearson and Spearman correlation between columns |
+| `stats_regression` | Linear regression with slope, intercept, R-squared |
+| `stats_time_series` | Time series analysis with trend detection |
+| `stats_distribution` | Distribution analysis with histogram and skewness/kurtosis |
+| `stats_hypothesis` | One-sample and two-sample t-tests with interpretation |
+| `stats_sampling` | Statistical sampling (random, systematic, stratified) |
+
+### **Performance Intelligence Tools (6)** *(Phase 3 - NEW)*
+| Tool | Description |
+|------|-------------|
+| `query_plan_compare` | Compare execution plans of two queries with cost analysis |
+| `performance_baseline` | Establish performance baselines for critical queries |
+| `slow_query_analyzer` | Analyze slow queries with optimization suggestions |
+| `connection_pool_optimize` | Connection pool analysis and recommendations |
+| `vacuum_strategy_recommend` | Vacuum strategy recommendations for tables |
+| `partition_strategy_suggest` | Partitioning strategy recommendations for large tables |
 
 ---
 
@@ -346,6 +370,85 @@ analyze_db_health(health_type="index")     # Index bloat and usage analysis
 analyze_db_health(health_type="buffer")    # Buffer cache hit rate analysis
 analyze_db_health(health_type="vacuum")    # Transaction ID wraparound monitoring
 analyze_db_health(health_type="connection") # Connection pool analysis
+```
+
+### **Statistical Analysis** *(Phase 3 - NEW)*
+```bash
+# Descriptive statistics
+stats_descriptive(
+    table_name="sales",
+    column_name="amount"
+)
+# Returns: mean, median, mode, std dev, variance, quartiles, IQR
+
+# Correlation analysis
+stats_correlation(
+    table_name="sales",
+    column1="advertising_spend",
+    column2="revenue",
+    method="pearson"
+)
+# Returns: correlation coefficient, R-squared, covariance
+
+# Linear regression
+stats_regression(
+    table_name="sales",
+    x_column="advertising_spend",
+    y_column="revenue"
+)
+# Returns: slope, intercept, R-squared, equation
+
+# Time series analysis
+stats_time_series(
+    table_name="orders",
+    time_column="created_at",
+    value_column="amount",
+    interval="1 day",
+    aggregation="sum"
+)
+# Returns: trends, total change, percent change
+
+# Outlier detection
+stats_percentiles(
+    table_name="transactions",
+    column_name="amount",
+    detect_outliers=True
+)
+# Returns: percentiles + outlier bounds and count
+```
+
+### **Performance Intelligence** *(Phase 3 - NEW)*
+```bash
+# Compare query performance
+query_plan_compare(
+    query1="SELECT * FROM users WHERE email = %s",
+    query2="SELECT * FROM users WHERE LOWER(email) = LOWER(%s)",
+    params1=["test@example.com"],
+    params2=["test@example.com"]
+)
+# Returns: execution time comparison, cost analysis, recommendations
+
+# Analyze slow queries
+slow_query_analyzer(
+    min_duration_ms=1000,
+    limit=20
+)
+# Returns: slow queries with optimization suggestions
+
+# Connection pool optimization
+connection_pool_optimize()
+# Returns: current utilization, recommendations for max_connections
+
+# Vacuum strategy
+vacuum_strategy_recommend(table_name="large_table")
+# Returns: dead tuple analysis, vacuum recommendations
+
+# Partitioning recommendations
+partition_strategy_suggest(
+    table_name="orders",
+    partition_column="created_at"
+)
+# Returns: partition benefit analysis, strategy recommendations
 ```
 
 ---
@@ -559,8 +662,8 @@ The security tests are located in the `security/` directory:
 
 ## 📈 **Project Stats**
 
-- **25 MCP Tools** (9 core + 11 JSON + 5 text processing)
-- **Phase 2 Complete** - JSON and text processing tools operational
+- **39 MCP Tools** (9 core + 11 JSON + 5 text + 8 statistics + 6 performance)
+- **Phase 3 Complete** - Statistical analysis and performance intelligence operational
 - **100% Test Coverage** - All tools verified via direct MCP testing
 - **Zero Known Vulnerabilities** - Comprehensive security audit completed
 - **PostgreSQL Extensions**: pg_stat_statements + hypopg + pg_trgm + fuzzystrmatch

@@ -29,11 +29,13 @@ from .index.llm_opt import LLMOptimizerTool
 from .index.presentation import TextPresentation
 from .json import JsonAdvancedTools
 from .json import JsonHelperTools
+from .performance import PerformanceTools
 from .sql import DbConnPool
 from .sql import SafeSqlDriver
 from .sql import SqlDriver
 from .sql import check_hypopg_installation_status
 from .sql import obfuscate_password
+from .statistics import StatisticalTools
 from .text import TextProcessingTools
 from .top_queries import TopQueriesCalc
 
@@ -950,6 +952,338 @@ async def text_sentiment(
         return format_text_response(result)
     except Exception as e:
         logger.error(f"Error in text_sentiment: {e}")
+        return format_error_response(str(e))
+
+
+# ============================================================================
+# Phase 3: Statistical Analysis Suite (8 tools)
+# ============================================================================
+
+
+@mcp.tool(description="Calculate descriptive statistics (mean, median, mode, std dev) for numeric columns")
+async def stats_descriptive(
+    table_name: str = Field(description="Source table name"),
+    column_name: str = Field(description="Numeric column to analyze"),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Calculate descriptive statistics."""
+    try:
+        sql_driver = await get_sql_driver()
+        stats_tools = StatisticalTools(sql_driver)
+        result = await stats_tools.stats_descriptive(
+            table_name=table_name,
+            column_name=column_name,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in stats_descriptive: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Calculate percentiles and detect outliers using IQR method")
+async def stats_percentiles(
+    table_name: str = Field(description="Source table name"),
+    column_name: str = Field(description="Numeric column to analyze"),
+    percentiles: Optional[List[float]] = Field(description="List of percentiles (0-1 scale)", default=None),
+    detect_outliers: bool = Field(description="Whether to detect outliers", default=True),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Calculate percentiles and detect outliers."""
+    try:
+        sql_driver = await get_sql_driver()
+        stats_tools = StatisticalTools(sql_driver)
+        result = await stats_tools.stats_percentiles(
+            table_name=table_name,
+            column_name=column_name,
+            percentiles=percentiles,
+            detect_outliers=detect_outliers,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in stats_percentiles: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Calculate correlation between two numeric columns (Pearson or Spearman)")
+async def stats_correlation(
+    table_name: str = Field(description="Source table name"),
+    column1: str = Field(description="First numeric column"),
+    column2: str = Field(description="Second numeric column"),
+    method: str = Field(description="Correlation method ('pearson' or 'spearman')", default="pearson"),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Calculate correlation between two columns."""
+    try:
+        sql_driver = await get_sql_driver()
+        stats_tools = StatisticalTools(sql_driver)
+        result = await stats_tools.stats_correlation(
+            table_name=table_name,
+            column1=column1,
+            column2=column2,
+            method=method,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in stats_correlation: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Calculate linear regression analysis with coefficients and R-squared")
+async def stats_regression(
+    table_name: str = Field(description="Source table name"),
+    x_column: str = Field(description="Independent variable (X)"),
+    y_column: str = Field(description="Dependent variable (Y)"),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Calculate linear regression."""
+    try:
+        sql_driver = await get_sql_driver()
+        stats_tools = StatisticalTools(sql_driver)
+        result = await stats_tools.stats_regression(
+            table_name=table_name,
+            x_column=x_column,
+            y_column=y_column,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in stats_regression: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze time series data with aggregation and trend analysis")
+async def stats_time_series(
+    table_name: str = Field(description="Source table name"),
+    time_column: str = Field(description="Timestamp column"),
+    value_column: str = Field(description="Value column to aggregate"),
+    interval: str = Field(description="Time interval (e.g., '1 hour', '1 day', '1 week')", default="1 day"),
+    aggregation: str = Field(description="Aggregation function ('avg', 'sum', 'count', 'min', 'max')", default="avg"),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Analyze time series data."""
+    try:
+        sql_driver = await get_sql_driver()
+        stats_tools = StatisticalTools(sql_driver)
+        result = await stats_tools.stats_time_series(
+            table_name=table_name,
+            time_column=time_column,
+            value_column=value_column,
+            interval=interval,
+            aggregation=aggregation,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in stats_time_series: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze data distribution with histogram and distribution fitting")
+async def stats_distribution(
+    table_name: str = Field(description="Source table name"),
+    column_name: str = Field(description="Numeric column to analyze"),
+    bins: int = Field(description="Number of bins for histogram", default=10),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Analyze data distribution."""
+    try:
+        sql_driver = await get_sql_driver()
+        stats_tools = StatisticalTools(sql_driver)
+        result = await stats_tools.stats_distribution(
+            table_name=table_name,
+            column_name=column_name,
+            bins=bins,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in stats_distribution: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Perform hypothesis testing (t-test, z-test)")
+async def stats_hypothesis(
+    table_name: str = Field(description="Source table name"),
+    column_name: str = Field(description="Numeric column to test"),
+    test_type: str = Field(description="Type of test ('t_test', 'z_test')", default="t_test"),
+    hypothesis_value: Optional[float] = Field(description="Hypothesized mean value (for one-sample tests)", default=None),
+    group_column: Optional[str] = Field(description="Column for grouping (for two-sample tests)", default=None),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Perform hypothesis testing."""
+    try:
+        sql_driver = await get_sql_driver()
+        stats_tools = StatisticalTools(sql_driver)
+        result = await stats_tools.stats_hypothesis(
+            table_name=table_name,
+            column_name=column_name,
+            test_type=test_type,
+            hypothesis_value=hypothesis_value,
+            group_column=group_column,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in stats_hypothesis: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Generate statistical samples from tables (random, systematic, stratified)")
+async def stats_sampling(
+    table_name: str = Field(description="Source table name"),
+    sample_size: Optional[int] = Field(description="Absolute number of rows to sample", default=None),
+    sample_percent: Optional[float] = Field(description="Percentage of rows to sample (0-100)", default=None),
+    method: str = Field(description="Sampling method ('random', 'systematic', 'stratified')", default="random"),
+    where_clause: Optional[str] = Field(description="Optional WHERE clause", default=None),
+    where_params: Optional[List[Any]] = Field(description="Parameters for WHERE clause", default=None),
+) -> ResponseType:
+    """Generate statistical samples."""
+    try:
+        sql_driver = await get_sql_driver()
+        stats_tools = StatisticalTools(sql_driver)
+        result = await stats_tools.stats_sampling(
+            table_name=table_name,
+            sample_size=sample_size,
+            sample_percent=sample_percent,
+            method=method,
+            where_clause=where_clause,
+            where_params=where_params,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in stats_sampling: {e}")
+        return format_error_response(str(e))
+
+
+# ============================================================================
+# Phase 3: Performance Intelligence Tools (6 tools)
+# ============================================================================
+
+
+@mcp.tool(description="Compare execution plans of two queries with cost analysis")
+async def query_plan_compare(
+    query1: str = Field(description="First SQL query"),
+    query2: str = Field(description="Second SQL query"),
+    params1: Optional[List[Any]] = Field(description="Parameters for first query", default=None),
+    params2: Optional[List[Any]] = Field(description="Parameters for second query", default=None),
+) -> ResponseType:
+    """Compare two query execution plans."""
+    try:
+        sql_driver = await get_sql_driver()
+        perf_tools = PerformanceTools(sql_driver)
+        result = await perf_tools.query_plan_compare(
+            query1=query1,
+            query2=query2,
+            params1=params1,
+            params2=params2,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in query_plan_compare: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Establish performance baselines for critical queries")
+async def performance_baseline(
+    queries: List[str] = Field(description="List of SQL queries to baseline"),
+    iterations: int = Field(description="Number of times to run each query", default=5),
+) -> ResponseType:
+    """Establish performance baselines."""
+    try:
+        sql_driver = await get_sql_driver()
+        perf_tools = PerformanceTools(sql_driver)
+        result = await perf_tools.performance_baseline(
+            queries=queries,
+            iterations=iterations,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in performance_baseline: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze slow queries with optimization suggestions (requires pg_stat_statements)")
+async def slow_query_analyzer(
+    min_duration_ms: float = Field(description="Minimum query duration (milliseconds)", default=1000),
+    limit: int = Field(description="Maximum queries to return", default=20),
+) -> ResponseType:
+    """Analyze slow queries."""
+    try:
+        sql_driver = await get_sql_driver()
+        perf_tools = PerformanceTools(sql_driver)
+        result = await perf_tools.slow_query_analyzer(
+            min_duration_ms=min_duration_ms,
+            limit=limit,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in slow_query_analyzer: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze connection pool and provide optimization recommendations")
+async def connection_pool_optimize() -> ResponseType:
+    """Optimize connection pool settings."""
+    try:
+        sql_driver = await get_sql_driver()
+        perf_tools = PerformanceTools(sql_driver)
+        result = await perf_tools.connection_pool_optimize()
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in connection_pool_optimize: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Analyze vacuum needs and recommend vacuum strategy")
+async def vacuum_strategy_recommend(
+    table_name: Optional[str] = Field(description="Optional specific table to analyze", default=None),
+) -> ResponseType:
+    """Recommend vacuum strategy."""
+    try:
+        sql_driver = await get_sql_driver()
+        perf_tools = PerformanceTools(sql_driver)
+        result = await perf_tools.vacuum_strategy_recommend(
+            table_name=table_name,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in vacuum_strategy_recommend: {e}")
+        return format_error_response(str(e))
+
+
+@mcp.tool(description="Suggest partitioning strategy for large tables")
+async def partition_strategy_suggest(
+    table_name: str = Field(description="Table to analyze for partitioning"),
+    partition_column: Optional[str] = Field(description="Optional column to analyze", default=None),
+) -> ResponseType:
+    """Suggest partitioning strategy."""
+    try:
+        sql_driver = await get_sql_driver()
+        perf_tools = PerformanceTools(sql_driver)
+        result = await perf_tools.partition_strategy_suggest(
+            table_name=table_name,
+            partition_column=partition_column,
+        )
+        return format_text_response(result)
+    except Exception as e:
+        logger.error(f"Error in partition_strategy_suggest: {e}")
         return format_error_response(str(e))
 
 
