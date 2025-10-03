@@ -21,7 +21,6 @@ from typing import cast
 
 from typing_extensions import LiteralString
 
-from ..sql import SafeSqlDriver
 from ..sql import SqlDriver
 
 logger = logging.getLogger(__name__)
@@ -133,8 +132,7 @@ class VectorTools:
             {where_sql}
             """
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
+            result = await self.sql_driver.execute_query(
                 cast(LiteralString, count_query),
                 params,
             )
@@ -244,7 +242,7 @@ class VectorTools:
             ]
 
             result = await self.sql_driver.execute_query(
-                query,
+                cast(LiteralString, query),
                 query_params,
             )
 
@@ -365,7 +363,7 @@ class VectorTools:
             ]
 
             result = await self.sql_driver.execute_query(
-                query,
+                cast(LiteralString, query),
                 query_params,
             )
 
@@ -439,7 +437,7 @@ class VectorTools:
             WHERE {vector_column} IS NOT NULL
             """
 
-            result = await self.sql_driver.execute_query(count_query)
+            result = await self.sql_driver.execute_query(cast(LiteralString, count_query))
             total_vectors = safe_int(result[0].cells.get("total")) if result else 0
 
             return {
@@ -545,7 +543,7 @@ class VectorTools:
             FROM {table_name}
             """
 
-            result = await self.sql_driver.execute_query(stats_query)
+            result = await self.sql_driver.execute_query(cast(LiteralString, stats_query))
             row_count = safe_int(result[0].cells.get("row_count")) if result else 0
             table_size = result[0].cells.get("table_size") if result else "Unknown"
 
@@ -642,7 +640,7 @@ class VectorTools:
             LIMIT 1
             """
 
-            result = await self.sql_driver.execute_query(dim_query)
+            result = await self.sql_driver.execute_query(cast(LiteralString, dim_query))
             current_dimensions = safe_int(result[0].cells.get("current_dimensions")) if result else None
 
             if not current_dimensions:
@@ -793,7 +791,7 @@ class VectorTools:
             ]
 
             result = await self.sql_driver.execute_query(
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
@@ -876,8 +874,7 @@ class VectorTools:
                 AND indexdef LIKE '%' || {} || '%'
             """
 
-            result = await SafeSqlDriver.execute_param_query(
-                self.sql_driver,
+            result = await self.sql_driver.execute_query(
                 cast(LiteralString, index_query),
                 [table_name, vector_column],
             )
@@ -893,7 +890,7 @@ class VectorTools:
             FROM {table_name}
             """
 
-            result = await self.sql_driver.execute_query(stats_query)
+            result = await self.sql_driver.execute_query(cast(LiteralString, stats_query))
             total_rows = safe_int(result[0].cells.get("total_rows")) if result else 0
             table_size = result[0].cells.get("table_size") if result else "Unknown"
 

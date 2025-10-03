@@ -15,6 +15,9 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import cast
+
+from typing_extensions import LiteralString
 
 from ..sql import SqlDriver
 
@@ -170,7 +173,7 @@ class GeospatialTools:
             ]
 
             result = await self.sql_driver.execute_query(
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
@@ -249,7 +252,7 @@ class GeospatialTools:
             params = [boundary_geometry, srid, limit]
 
             result = await self.sql_driver.execute_query(
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
@@ -361,7 +364,7 @@ class GeospatialTools:
             query_params = (where_params or []) + [distance_m, segments, srid, limit]
 
             result = await self.sql_driver.execute_query(
-                query,
+                cast(LiteralString, query),
                 query_params,
             )
 
@@ -447,7 +450,7 @@ class GeospatialTools:
             params = [*intersection_params, intersecting_geometry, srid, limit]
 
             result = await self.sql_driver.execute_query(
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
@@ -544,7 +547,7 @@ class GeospatialTools:
             FROM {table_name}
             """
 
-            result = await self.sql_driver.execute_query(stats_query)
+            result = await self.sql_driver.execute_query(cast(LiteralString, stats_query))
             row_count = safe_int(result[0].cells.get("row_count")) if result else 0
             table_size = result[0].cells.get("table_size") if result else "Unknown"
             data_size = result[0].cells.get("data_size") if result else "Unknown"
@@ -663,7 +666,7 @@ class GeospatialTools:
             params = [source_srid, target_srid, source_srid, target_srid, limit]
 
             result = await self.sql_driver.execute_query(
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
@@ -757,7 +760,7 @@ class GeospatialTools:
             params = [distance_m, min_points, limit]
 
             result = await self.sql_driver.execute_query(
-                query,
+                cast(LiteralString, query),
                 params,
             )
 
