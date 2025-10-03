@@ -131,5 +131,5 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: writenotenow/postgres-mcp-enhanced
-          readme-filepath: ./README.md
-          short-description: "Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensive security and AI-native operations"
+          readme-filepath: ./DOCKER_README.md
+          short-description: "Enterprise PostgreSQL MCP Server - 63 specialized tools with comprehensive security and AI-native operations"
