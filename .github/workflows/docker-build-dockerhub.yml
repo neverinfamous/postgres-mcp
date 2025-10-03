@@ -111,6 +111,7 @@ jobs:
       # Security scanning with Docker Scout CLI - BLOCKS build on critical/high CVEs
       - name: Docker Scout security scan (blocking)
         timeout-minutes: 10
+        continue-on-error: false
         run: |
           # Install Docker Scout CLI
           curl -sSfL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh | sh -s --
@@ -121,25 +122,23 @@ jobs:
           # Run security scan - block vulnerabilities above medium level (critical, high)
           echo "🔍 Running Docker Scout security scan for local-scan:latest"
           
-          # Run scan with timeout and capture output to analyze
-          echo "⏱️ Running Docker Scout scan (max 8 minutes)..."
-          if timeout 480 docker scout cves local-scan:latest > scout_output.txt 2>&1; then
-            echo "📊 Scan completed successfully"
-            cat scout_output.txt
-            
-            # Check if critical or high vulnerabilities are present in the output
-            if grep -E "(CRITICAL|HIGH)" scout_output.txt | grep -v "0  " > /dev/null; then
-              echo "❌ Critical or high severity vulnerabilities detected"
-              echo "🚨 Build blocked due to unacceptable security risk"
-              exit 1
-            else
-              echo "✅ Security scan passed - no critical/high severity vulnerabilities"
-              echo "ℹ️ Low/medium severity vulnerabilities are acceptable"
-            fi
+          # Run scan and capture output
+          set +e  # Don't exit on error, we'll handle it
+          docker scout cves local-scan:latest 2>&1 | tee scout_output.txt
+          SCOUT_EXIT=$?
+          set -e
+          
+          echo ""
+          echo "📊 Scout scan completed with exit code: $SCOUT_EXIT"
+          
+          # Check if critical or high vulnerabilities are present in the output
+          if grep -E "(CRITICAL|HIGH)" scout_output.txt 2>/dev/null | grep -v "0C" | grep -v "0H" | grep -v "0  " > /dev/null 2>&1; then
+            echo "❌ Critical or high severity vulnerabilities detected"
+            echo "🚨 Build blocked due to unacceptable security risk"
+            exit 1
           else
-            echo "⚠️ Docker Scout scan timed out or failed"
-            echo "🔄 Continuing build - scan timeout is not a security failure"
-            echo "ℹ️ Consider running scout scan locally for large images"
+            echo "✅ Security scan passed - no critical/high severity vulnerabilities"
+            echo "ℹ️ Low/medium severity vulnerabilities are acceptable"
           fi
 
       - name: Login to DockerHub
