@@ -62,7 +62,7 @@ docker run -i --rm \
 
 ### **Python Installation**
 ```bash
-pip install postgres-mcp
+pip install postgres-mcp-enhanced
 postgres-mcp --access-mode=restricted
 ```
 
