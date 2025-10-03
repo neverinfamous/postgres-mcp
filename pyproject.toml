@@ -17,7 +17,7 @@ license = "mit"
 license-files = ["LICENSE"]
 
 [[project.authors]]
-name = "Chris Adams"
+name = "Chris LeRoux"
 email = "admin@adamic.tech"
 
 [build-system]
