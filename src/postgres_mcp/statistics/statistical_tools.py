@@ -968,20 +968,27 @@ class StatisticalTools:
                 if sample_percent:
                     sample_clause = f"TABLESAMPLE BERNOULLI ({sample_percent})"
                 else:
+                    # At this point, sample_size must be set (checked earlier)
+                    if sample_size is None:
+                        return {
+                            "success": False,
+                            "error": "Must specify either sample_size or sample_percent",
+                        }
+                    
                     # Get total count first
                     count_query = f"SELECT COUNT(*) as total FROM {table_name} {where_sql}"
                     count_result = await self.sql_driver.execute_query(cast(LiteralString, count_query), params)
-                    total = safe_int(count_result[0].cells.get("total")) if count_result else 0
+                    total_optional = safe_int(count_result[0].cells.get("total")) if count_result else None
 
-                    if total == 0 or total is None:
+                    if total_optional is None or total_optional == 0:
                         return {
                             "success": False,
                             "error": "No rows found in table",
                         }
 
-                    # At this point, total is guaranteed to be a non-zero int
-                    assert total is not None
-                    sample_percent = min((sample_size / float(total)) * 100, 100)
+                    # Type guard: at this point total_optional is guaranteed to be int
+                    assert isinstance(total_optional, int)
+                    sample_percent = min((sample_size / float(total_optional or 1)) * 100, 100)
                     sample_clause = f"TABLESAMPLE BERNOULLI ({sample_percent})"
 
                 query = f"""
