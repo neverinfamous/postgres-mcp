@@ -17,8 +17,8 @@ license = "mit"
 license-files = ["LICENSE"]
 
 [[project.authors]]
-name = "Johann Schleier-Smith"
-email = "jssmith@crystal.cloud"
+name = "Chris Adams"
+email = "admin@adamic.tech"
 
 [build-system]
 requires = [ "hatchling",]
