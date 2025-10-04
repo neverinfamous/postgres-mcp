@@ -10,13 +10,28 @@ Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive tes
 
 ---
 
+## 🔍 **[AI-Powered Documentation Search →](https://search.adamic.tech)**
+
+Can't find what you're looking for? Use our **AI-powered search interface** to search both PostgreSQL and SQLite MCP Server documentation:
+
+- 🤖 **Natural Language Queries** - Ask questions in plain English
+- ⚡ **Instant Results** - AI-enhanced answers with source attribution
+- 📚 **Comprehensive Coverage** - Searches all 63 PostgreSQL tools + 73 SQLite tools
+- 🎯 **Smart Context** - Understands technical questions and provides relevant examples
+
+**[→ Try AI Search Now](https://search.adamic.tech)**
+
+Example queries: "How do I optimize PostgreSQL query performance?", "What PostGIS features are available?", "How do I use pgvector for semantic search?"
+
+---
+
 ## 📚 **[Complete Documentation - Visit the Wiki →](https://github.com/neverinfamous/postgres-mcp/wiki)**
 
 For detailed documentation, examples, and guides, visit our comprehensive wiki:
 - **[Quick Start Guide](https://github.com/neverinfamous/postgres-mcp/wiki/Quick-Start)** - Get running in 30 seconds
 - **[Installation & Configuration](https://github.com/neverinfamous/postgres-mcp/wiki/Installation-and-Configuration)** - Detailed setup
 - **[All Tool Categories](https://github.com/neverinfamous/postgres-mcp/wiki/Home)** - 63 specialized tools
-- **[Security Best Practices](https://github.com/neverinfamous/postgres-mcp/wiki/Security-and-Best-Practices)** - Production security
+- **[Security Best Practices](https://github.com/neverinfamous/postgres-mcp/wiki/Security-and-Best-practices)** - Production security
 - **[Troubleshooting](https://github.com/neverinfamous/postgres-mcp/wiki/Troubleshooting)** - Common issues
 
 ---

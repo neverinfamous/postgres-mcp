@@ -225,8 +225,24 @@ docker run -i --rm \
 
 ---
 
+## 🔍 AI-Powered Documentation Search
+
+**[→ Search the Documentation with AI](https://search.adamic.tech)**
+
+Can't find what you're looking for? Use our AI-powered search to query both PostgreSQL and SQLite MCP Server documentation:
+
+- 🤖 **Natural Language Queries** - Ask questions in plain English
+- ⚡ **Instant AI Answers** - Get synthesized responses with source attribution
+- 📚 **136 Tools Covered** - Search across 63 PostgreSQL + 73 SQLite tools
+- 🎯 **Smart Context** - Understands technical questions and provides examples
+
+**Example queries:** "How do I use pgvector for semantic search?", "What are the backup best practices?", "How do I optimize query performance?"
+
+---
+
 ## 🔗 Links & Resources
 
+- **[🔍 AI Search](https://search.adamic.tech)** - AI-powered documentation search
 - **[📚 Complete Documentation](https://github.com/neverinfamous/postgres-mcp/wiki)** - Comprehensive wiki
 - **[📝 GitHub Gists](https://gist.github.com/neverinfamous/7a47b6ca39857c7a8e06c4f7e6537a16)** - 7 practical examples and real-world use cases
 - **[🚀 Quick Start Guide](https://github.com/neverinfamous/postgres-mcp/wiki/Quick-Start)** - Get started in 30 seconds
