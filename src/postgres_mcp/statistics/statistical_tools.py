@@ -202,7 +202,7 @@ class StatisticalTools:
             params = where_params or []
 
             # Build percentile calculations
-            percentile_calcs = []
+            percentile_calcs: List[str] = []
             for p in percentiles:
                 percentile_calcs.append(f"PERCENTILE_CONT({p}) WITHIN GROUP (ORDER BY {column_name}) as p{int(p * 100)}")
 
@@ -264,7 +264,7 @@ class StatisticalTools:
                 }
 
             row = result[0].cells
-            response = {
+            response: Dict[str, Any] = {
                 "success": True,
                 "table": table_name,
                 "column": column_name,

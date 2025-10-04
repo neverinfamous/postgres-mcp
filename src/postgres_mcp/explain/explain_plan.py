@@ -4,6 +4,8 @@ import logging
 import re
 from typing import TYPE_CHECKING
 from typing import Any
+from typing import Optional
+from typing import cast
 
 from ..artifacts import ErrorResult
 from ..artifacts import ExplainPlanArtifact
@@ -92,13 +94,10 @@ class ExplainPlanTool:
             ExplainPlanArtifact or ErrorResult
         """
         try:
-            # Validate index definitions format
-            if not isinstance(hypothetical_indexes, list):
-                return ErrorResult(f"Expected list of index definitions, got {type(hypothetical_indexes)}")
-
+            # Validate index definitions format (type is already list[dict[str, Any]] from signature)
+            # Note: isinstance checks removed as they're redundant with type annotations
+            
             for idx in hypothetical_indexes:
-                if not isinstance(idx, dict):
-                    return ErrorResult(f"Expected dictionary for index definition, got {type(idx)}")
                 if "table" not in idx:
                     return ErrorResult("Missing 'table' in index definition")
                 if "columns" not in idx:
@@ -126,8 +125,8 @@ class ExplainPlanTool:
             # Generate the explain plan using the static method
             plan_data = await self.generate_explain_plan_with_hypothetical_indexes(modified_sql_query, indexes, use_generic_plan)
 
-            # Check if we got a valid plan
-            if not plan_data or not isinstance(plan_data, dict) or "Plan" not in plan_data:
+            # Check if we got a valid plan (plan_data is already typed as dict[str, Any])
+            if not plan_data or "Plan" not in plan_data:
                 return ErrorResult("Failed to generate a valid explain plan with the hypothetical indexes")
 
             try:
@@ -162,16 +161,18 @@ class ExplainPlanTool:
             if rows is None:
                 return ErrorResult("No results returned from EXPLAIN")
 
-            query_plan_data = rows[0].cells["QUERY PLAN"]
+            query_plan_data: Any = rows[0].cells["QUERY PLAN"]
 
             if not isinstance(query_plan_data, list):
                 return ErrorResult(f"Expected list from EXPLAIN, got {type(query_plan_data)}")
-            if len(query_plan_data) == 0:
+            
+            # Cast to properly typed list after runtime check
+            typed_plan_data: list[dict[str, Any]] = cast(list[dict[str, Any]], query_plan_data)
+            
+            if len(typed_plan_data) == 0:
                 return ErrorResult("No results returned from EXPLAIN")
 
-            plan_dict = query_plan_data[0]
-            if not isinstance(plan_dict, dict):
-                return ErrorResult(f"Expected dict in EXPLAIN result list, got {type(plan_dict)} with value {plan_dict}")
+            plan_dict: dict[str, Any] = typed_plan_data[0]
 
             try:
                 return ExplainPlanArtifact.from_json_data(plan_dict)
@@ -185,7 +186,7 @@ class ExplainPlanTool:
         query_text: str,
         indexes: frozenset[IndexDefinition],
         use_generic_plan: bool = False,
-        dta=None,
+        dta: Optional[Any] = None,
     ) -> dict[str, Any]:
         """
         Generate an explain plan for a query with specified indexes.
@@ -219,15 +220,20 @@ class ExplainPlanTool:
 
             # Extract the plan
             if plan_result and plan_result[0].cells.get("QUERY PLAN"):
-                plan_data = plan_result[0].cells.get("QUERY PLAN")
-                if isinstance(plan_data, list) and len(plan_data) > 0:
-                    return plan_data[0]
-                else:
-                    dta.dta_trace(  # type: ignore
-                        f"      - plan_data is an empty list with plan_data type: {type(plan_data)}"
-                    )  # type: ignore
+                plan_data: Any = plan_result[0].cells.get("QUERY PLAN")
+                if isinstance(plan_data, list):
+                    # Cast to properly typed list after runtime check
+                    typed_plan_data: list[dict[str, Any]] = cast(list[dict[str, Any]], plan_data)
+                    if len(typed_plan_data) > 0:
+                        return typed_plan_data[0]
+                    else:
+                        if dta:
+                            dta.dta_trace(  # type: ignore[attr-defined]
+                                "      - plan_data is an empty list"
+                            )
 
-            dta.dta_trace("      - returning empty plan")  # type: ignore
+            if dta:
+                dta.dta_trace("      - returning empty plan")  # type: ignore[attr-defined]
             # Return empty plan if no result
             return {"Plan": {"Total Cost": float("inf")}}
 

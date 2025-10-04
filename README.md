@@ -1,8 +1,8 @@
-# PostgreSQL MCP Server - Version 1.0.5
+# PostgreSQL MCP Server - Version 1.1.0
 
-* Last Updated October 3, 2025 7:58 PM EST **
+* Last Updated October 4, 2025 **
 
-Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive testing, AI-native database operations, and advanced analytics.
+Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive testing, AI-native database operations, intelligent meta-awareness, and guided workflows.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](SECURITY.md)
@@ -38,7 +38,9 @@ For detailed documentation, examples, and guides, visit our comprehensive wiki:
 
 ## 🚀 **Quick Overview**
 
-**63 specialized MCP tools** for PostgreSQL operations:
+**63 specialized MCP tools** + **10 intelligent resources** + **10 guided prompts** for PostgreSQL operations:
+
+### MCP Tools (63)
 - **Core Database (9)**: Schema management, SQL execution, health monitoring
 - **JSON Operations (11)**: JSONB operations, validation, security scanning
 - **Text Processing (5)**: Similarity search, full-text search, fuzzy matching
@@ -48,6 +50,31 @@ For detailed documentation, examples, and guides, visit our comprehensive wiki:
 - **Geospatial (7)**: Distance calculation, spatial queries, GIS operations
 - **Backup & Recovery (4)**: Backup planning, restore validation, scheduling
 - **Monitoring & Alerting (5)**: Real-time monitoring, capacity planning, alerting
+
+### MCP Resources (10) - Database Meta-Awareness
+- **database://schema**: Complete schema with tables, columns, indexes
+- **database://capabilities**: Server capabilities and installed extensions
+- **database://performance**: Query performance metrics from pg_stat_statements
+- **database://health**: Comprehensive health status
+- **database://extensions**: Installed extensions with versions
+- **database://indexes**: Index usage statistics and recommendations
+- **database://connections**: Active connections and pool status
+- **database://replication**: Replication status and lag
+- **database://vacuum**: Vacuum status and transaction ID wraparound
+- **database://locks**: Current lock information
+- **database://statistics**: Table statistics quality
+
+### MCP Prompts (10) - Guided Workflows
+- **optimize_query**: Step-by-step query optimization
+- **index_tuning**: Comprehensive index analysis
+- **database_health_check**: Full health assessment
+- **setup_pgvector**: Complete pgvector setup guide
+- **json_operations**: JSONB best practices
+- **performance_baseline**: Establish performance baselines
+- **backup_strategy**: Design backup strategy
+- **setup_postgis**: PostGIS setup and usage
+- **explain_analyze_workflow**: Deep dive into EXPLAIN plans
+- **extension_setup**: Extension installation guide
 
 Enhanced with **pg_stat_statements**, **hypopg**, **pgvector**, and **PostGIS** extensions.
 
@@ -101,6 +128,7 @@ uv run pytest -v
 - ✅ Dual security modes (restricted/unrestricted)
 - ✅ Advanced query validation
 - ✅ CodeQL security scanning passing
+- ✅ **Pyright strict mode** - 2,000+ type issues resolved, 100% type-safe codebase
 
 **Security Modes:**
 - **Restricted (Production)**: Read-only, query validation, resource limits
@@ -134,7 +162,9 @@ uv run pytest -v
 
 ---
 
-## 📊 **Tool Categories (63 Tools)**
+## 📊 **Features Overview**
+
+### MCP Tools (63)
 
 Explore comprehensive documentation for each category:
 
@@ -150,7 +180,46 @@ Explore comprehensive documentation for each category:
 | **Backup & Recovery** | 4 | [Backup Tools →](https://github.com/neverinfamous/postgres-mcp/wiki/Backup-Recovery) |
 | **Monitoring & Alerting** | 5 | [Monitoring →](https://github.com/neverinfamous/postgres-mcp/wiki/Monitoring-Alerting) |
 
-**📖 [View All Tools →](https://github.com/neverinfamous/postgres-mcp/wiki/Home)**
+### MCP Resources (10) - NEW in v1.1.0! 🎉
+
+Resources provide real-time database meta-awareness - AI can access these automatically without explicit tool calls:
+
+| Resource | Purpose | When to Use |
+|----------|---------|-------------|
+| **database://schema** | Complete database structure | Understanding database layout before queries |
+| **database://capabilities** | Server features and extensions | Checking what operations are available |
+| **database://performance** | Query performance metrics | Identifying slow queries proactively |
+| **database://health** | Database health status | Proactive monitoring and issue detection |
+| **database://extensions** | Extension inventory | Verifying required features are installed |
+| **database://indexes** | Index usage statistics | Finding unused or missing indexes |
+| **database://connections** | Connection pool status | Monitoring connection utilization |
+| **database://replication** | Replication lag and status | Ensuring replica consistency |
+| **database://vacuum** | Vacuum and wraparound status | Preventing transaction ID exhaustion |
+| **database://locks** | Lock contention information | Diagnosing deadlocks and blocking |
+| **database://statistics** | Statistics quality | Ensuring accurate query planning |
+
+**💡 Key Benefit:** Resources reduce token usage by providing cached context vs. repeated queries!
+
+### MCP Prompts (10) - NEW in v1.1.0! 🎉
+
+Prompts provide guided workflows for complex operations - step-by-step instructions with examples:
+
+| Prompt | Purpose | Use Case |
+|--------|---------|----------|
+| **optimize_query** | Query optimization workflow | Analyzing and improving slow queries |
+| **index_tuning** | Index analysis and recommendations | Finding unused/missing/duplicate indexes |
+| **database_health_check** | Comprehensive health assessment | Regular maintenance and monitoring |
+| **setup_pgvector** | pgvector installation and setup | Implementing semantic search |
+| **json_operations** | JSONB best practices | Optimizing JSON queries and indexes |
+| **performance_baseline** | Baseline establishment | Setting up performance monitoring |
+| **backup_strategy** | Backup planning and design | Designing enterprise backup strategy |
+| **setup_postgis** | PostGIS installation and usage | Implementing geospatial features |
+| **explain_analyze_workflow** | Deep plan analysis | Understanding query execution |
+| **extension_setup** | Extension installation guide | Installing and configuring extensions |
+
+**💡 Key Benefit:** Prompts guide users through complex multi-step operations with PostgreSQL best practices!
+
+**📖 [View Complete Documentation →](https://github.com/neverinfamous/postgres-mcp/wiki/Home)**
 
 ---
 
@@ -176,10 +245,31 @@ CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
 
 ## 🆕 **Recent Updates**
 
+### **Version 1.1.0 Release** 🎉 (October 4, 2025)
+- **🌟 NEW: MCP Resources (10)**: Real-time database meta-awareness
+  - Instant access to schema, capabilities, performance, health
+  - Reduces token usage by providing cached context
+  - AI can access database state without explicit queries
+- **🌟 NEW: MCP Prompts (10)**: Guided workflows for complex operations
+  - Step-by-step query optimization workflow
+  - Comprehensive index tuning guide
+  - Complete database health assessment
+  - pgvector and PostGIS setup guides
+  - JSONB best practices and optimization
+- **✨ Intelligent Assistant**: Transforms from tool collection to database expert
+  - Proactive optimization suggestions
+  - Context-aware recommendations
+  - PostgreSQL-specific best practices
+- **🔒 Code Quality**: Pyright strict mode compliance
+  - Resolved 2,000+ type issues
+  - 100% type-safe codebase
+  - Enhanced reliability and maintainability
+- **📦 Zero Breaking Changes**: All existing tools work unchanged
+
 ### **Version 1.0.0 Release** 🎉 (October 3, 2025)
 - **Production Ready**: Enterprise-grade PostgreSQL MCP server
 - **63 Specialized Tools**: Complete feature set across 9 categories
-- **Zero Known Vulnerbilities**: Comprehensive security audit passed
+- **Zero Known Vulnerabilities**: Comprehensive security audit passed
 - **Type Safety**: Pyright strict mode compliance
 - **Multi-Platform**: Windows, Linux, macOS (amd64, arm64)
 
@@ -265,6 +355,7 @@ uv run pytest --cov=src tests/
 - ✅ Security: 20/20 passed (100% protection)
 - ✅ SQL Injection: All vectors blocked
 - ✅ Integration: All operations validated
+- ✅ Type Safety: Pyright strict mode (2,000+ issues resolved)
 - ✅ Compatibility: PostgreSQL 13-17 supported
 
 
@@ -273,12 +364,18 @@ uv run pytest --cov=src tests/
 ## 🏆 **Why Choose This Server?**
 
 - ✅ **Zero Known Vulnerabilities** - Comprehensive security audit passed
+- ✅ **Pyright Strict Mode** - 2,000+ type issues resolved, 100% type-safe codebase
 - ✅ **Enterprise-Grade** - Production-ready with advanced features
 - ✅ **63 Specialized Tools** - Complete database operation coverage
+- ✅ **10 Intelligent Resources** - Real-time database meta-awareness (NEW in v1.1.0!)
+- ✅ **10 Guided Prompts** - Step-by-step workflows for complex operations (NEW in v1.1.0!)
+- ✅ **AI Assistant Capabilities** - Proactive optimization and recommendations
 - ✅ **Real-Time Analytics** - pg_stat_statements integration
 - ✅ **AI-Native** - Vector search, semantic operations, ML-ready
 - ✅ **Active Maintenance** - Regular updates and security patches
 - ✅ **Comprehensive Documentation** - 16-page wiki with examples
+
+**🌟 v1.1.0 Differentiation:** Only PostgreSQL MCP server with intelligent meta-awareness and guided workflows!
 
 ---
 
@@ -304,14 +401,16 @@ uv run pytest --cov=src tests/
 
 ## 📈 **Project Stats**
 
-- **Version 1.0.5** - Production ready release (October 3, 2025)
+- **Version 1.1.0** - Intelligent assistant release (October 4, 2025)
 - **63 MCP Tools** across 9 categories
-- **Phase 5 Complete** ✅ - All enterprise features implemented
-- **Type Safe** - Pyright strict mode
+- **10 MCP Resources** - Database meta-awareness (NEW!)
+- **10 MCP Prompts** - Guided workflows (NEW!)
+- **100% Type Safe** - Pyright strict mode (2,000+ issues resolved)
 - **Zero Known Vulnerabilities** - Security audit passed
+- **Zero Linter Errors** - Clean codebase with comprehensive type checking
 - **PostgreSQL 13-17** - Full compatibility
 - **Multi-platform** - Windows, Linux, macOS (amd64, arm64)
-- **6,900+ lines** - 12 modules, comprehensive implementation
+- **7,500+ lines** - 14 modules, comprehensive implementation
 
 ---
 

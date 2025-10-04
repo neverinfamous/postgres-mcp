@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 from typing import Optional
 
 from ..sql import SqlDriver
@@ -28,7 +29,7 @@ class ReplicationCalc:
     async def replication_health_check(self) -> str:
         """Check replication health including lag and slots."""
         metrics = await self._get_replication_metrics()
-        result = []
+        result: List[str] = []
 
         if metrics.is_replica:
             result.append("This is a replica database.")

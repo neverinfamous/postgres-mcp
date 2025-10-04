@@ -1,7 +1,7 @@
 [project]
 name = "postgres-mcp-enhanced"
-version = "1.0.5"
-description = "Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensive security and AI-native operations"
+version = "1.1.0"
+description = "Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensive security, AI-native operations, and intelligent meta-awareness"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -83,9 +83,8 @@ force-single-line = true
 known-first-party = ["postgres-mcp"]
 
 [tool.pyright]
-typeCheckingMode = "standard"
+typeCheckingMode = "strict"
 pythonVersion = "3.12"
-strictParameterNullChecking = true
 reportMissingTypeStubs = false
 # reportUnknownMemberType = true
 # reportUnknownParameterType = true

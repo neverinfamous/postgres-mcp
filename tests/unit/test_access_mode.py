@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any, Type
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -13,7 +14,7 @@ from postgres_mcp.sql.sql_driver import SqlDriver
 
 
 @pytest.fixture
-def mock_db_connection():
+def mock_db_connection() -> MagicMock:
     """Mock database connection pool."""
     conn = MagicMock(spec=DbConnPool)
     conn.is_valid = True
@@ -28,9 +29,9 @@ def mock_db_connection():
     ],
 )
 @pytest.mark.asyncio
-async def test_get_sql_driver_returns_correct_driver(access_mode, expected_driver_type, mock_db_connection):
+async def test_get_sql_driver_returns_correct_driver(access_mode: AccessMode, expected_driver_type: Type[Any], mock_db_connection: MagicMock) -> None:
     """Test that get_sql_driver returns the correct driver type based on access mode."""
-    with patch("postgres_mcp.server.current_access_mode", access_mode), patch("postgres_mcp.server.db_connection", mock_db_connection):
+    with patch("postgres_mcp.server.current_access_mode", access_mode), patch("postgres_mcp.server.db_connection", mock_db_connection):  # type: ignore[arg-type]
         driver = await get_sql_driver()
         assert isinstance(driver, expected_driver_type)
 
@@ -41,9 +42,9 @@ async def test_get_sql_driver_returns_correct_driver(access_mode, expected_drive
 
 
 @pytest.mark.asyncio
-async def test_get_sql_driver_sets_timeout_in_restricted_mode(mock_db_connection):
+async def test_get_sql_driver_sets_timeout_in_restricted_mode(mock_db_connection: MagicMock) -> None:
     """Test that get_sql_driver sets the timeout in restricted mode."""
-    with patch("postgres_mcp.server.current_access_mode", AccessMode.RESTRICTED), patch("postgres_mcp.server.db_connection", mock_db_connection):
+    with patch("postgres_mcp.server.current_access_mode", AccessMode.RESTRICTED), patch("postgres_mcp.server.db_connection", mock_db_connection):  # type: ignore[arg-type]
         driver = await get_sql_driver()
         assert isinstance(driver, SafeSqlDriver)
         assert driver.timeout == 30
@@ -51,16 +52,16 @@ async def test_get_sql_driver_sets_timeout_in_restricted_mode(mock_db_connection
 
 
 @pytest.mark.asyncio
-async def test_get_sql_driver_in_unrestricted_mode_no_timeout(mock_db_connection):
+async def test_get_sql_driver_in_unrestricted_mode_no_timeout(mock_db_connection: MagicMock) -> None:
     """Test that get_sql_driver in unrestricted mode is a regular SqlDriver."""
-    with patch("postgres_mcp.server.current_access_mode", AccessMode.UNRESTRICTED), patch("postgres_mcp.server.db_connection", mock_db_connection):
+    with patch("postgres_mcp.server.current_access_mode", AccessMode.UNRESTRICTED), patch("postgres_mcp.server.db_connection", mock_db_connection):  # type: ignore[arg-type]
         driver = await get_sql_driver()
         assert isinstance(driver, SqlDriver)
         assert not hasattr(driver, "timeout")
 
 
 @pytest.mark.asyncio
-async def test_command_line_parsing():
+async def test_command_line_parsing() -> None:
     """Test that command-line arguments correctly set the access mode."""
     import sys
 
@@ -77,7 +78,7 @@ async def test_command_line_parsing():
             "postgresql://user:password@localhost/db",
             "--access-mode=restricted",
         ]
-        asyncio.run = AsyncMock()
+        asyncio.run = AsyncMock()  # type: ignore[assignment]
 
         with patch("postgres_mcp.server.current_access_mode", AccessMode.UNRESTRICTED), patch(
             "postgres_mcp.server.db_connection.pool_connect", AsyncMock()
@@ -99,4 +100,4 @@ async def test_command_line_parsing():
     finally:
         # Restore original values
         sys.argv = original_argv
-        asyncio.run = original_run
+        asyncio.run = original_run  # type: ignore[assignment]

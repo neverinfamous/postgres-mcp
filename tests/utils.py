@@ -16,7 +16,7 @@ def create_postgres_container(version: str) -> Generator[Tuple[str, str], None, 
     """Create a PostgreSQL container of specified version and return its connection string."""
     try:
         client = docker.from_env()
-        client.ping()
+        client.ping()  # type: ignore[no-untyped-call]
     except (docker_errors.DockerException, ConnectionError):
         pytest.skip("Docker is not available")
 
@@ -107,7 +107,7 @@ def create_postgres_container(version: str) -> Generator[Tuple[str, str], None, 
 
         while time.time() < deadline and not is_ready:
             try:
-                exit_code, output = container.exec_run("pg_isready")
+                exit_code, output = container.exec_run("pg_isready")  # type: ignore[misc]
                 if exit_code == 0:
                     logger.info(f"PostgreSQL in container {container_name} is ready")
                     is_ready = True

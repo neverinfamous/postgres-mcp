@@ -78,10 +78,11 @@ class PerformanceTools:
 
             plan1_data = result1[0].cells.get("QUERY PLAN")
             # Handle both string and list responses
+            plan1: Dict[str, Any]
             if isinstance(plan1_data, str):
-                plan1 = json.loads(plan1_data)[0]["Plan"]
+                plan1 = cast(Dict[str, Any], json.loads(plan1_data)[0]["Plan"])
             elif isinstance(plan1_data, list):
-                plan1 = plan1_data[0]["Plan"]
+                plan1 = cast(Dict[str, Any], plan1_data[0]["Plan"])
             else:
                 plan1 = {}
 
@@ -97,24 +98,25 @@ class PerformanceTools:
 
             plan2_data = result2[0].cells.get("QUERY PLAN")
             # Handle both string and list responses
+            plan2: Dict[str, Any]
             if isinstance(plan2_data, str):
-                plan2 = json.loads(plan2_data)[0]["Plan"]
+                plan2 = cast(Dict[str, Any], json.loads(plan2_data)[0]["Plan"])
             elif isinstance(plan2_data, list):
-                plan2 = plan2_data[0]["Plan"]
+                plan2 = cast(Dict[str, Any], plan2_data[0]["Plan"])
             else:
                 plan2 = {}
 
             # Extract key metrics
-            cost1 = plan1.get("Total Cost", 0)
-            cost2 = plan2.get("Total Cost", 0)
-            time1 = plan1.get("Actual Total Time", 0)
-            time2 = plan2.get("Actual Total Time", 0)
+            cost1 = float(plan1.get("Total Cost", 0))
+            cost2 = float(plan2.get("Total Cost", 0))
+            time1 = float(plan1.get("Actual Total Time", 0))
+            time2 = float(plan2.get("Actual Total Time", 0))
 
             # Calculate differences
             cost_diff = cost2 - cost1
-            cost_diff_pct = (cost_diff / cost1 * 100) if cost1 > 0 else 0
+            cost_diff_pct = (cost_diff / cost1 * 100) if cost1 > 0 else 0.0
             time_diff = time2 - time1
-            time_diff_pct = (time_diff / time1 * 100) if time1 > 0 else 0
+            time_diff_pct = (time_diff / time1 * 100) if time1 > 0 else 0.0
 
             return {
                 "success": True,
@@ -172,11 +174,11 @@ class PerformanceTools:
             ], iterations=10)
         """
         try:
-            baselines = []
+            baselines: List[Dict[str, Any]] = []
 
             for query in queries:
-                times = []
-                costs = []
+                times: List[float] = []
+                costs: List[float] = []
 
                 for _ in range(iterations):
                     # Run with EXPLAIN ANALYZE
@@ -187,14 +189,15 @@ class PerformanceTools:
                         plan_data = result[0].cells.get("QUERY PLAN")
                         if plan_data:
                             # Handle both string and list responses
+                            plan: Dict[str, Any]
                             if isinstance(plan_data, str):
-                                plan = json.loads(plan_data)[0]
+                                plan = cast(Dict[str, Any], json.loads(plan_data)[0])
                             elif isinstance(plan_data, list):
-                                plan = plan_data[0]
+                                plan = cast(Dict[str, Any], plan_data[0])
                             else:
                                 continue
-                            times.append(plan["Plan"].get("Actual Total Time", 0))
-                            costs.append(plan["Plan"].get("Total Cost", 0))
+                            times.append(float(plan["Plan"].get("Actual Total Time", 0)))
+                            costs.append(float(plan["Plan"].get("Total Cost", 0)))
 
                 if times:
                     avg_time = sum(times) / len(times)
@@ -301,7 +304,7 @@ class PerformanceTools:
                     "message": "No slow queries found",
                 }
 
-            slow_queries = []
+            slow_queries: List[Dict[str, Any]] = []
             for row in result:
                 cells = row.cells
                 query_data = {
@@ -318,10 +321,13 @@ class PerformanceTools:
                 }
 
                 # Generate optimization suggestions
-                suggestions = []
-                if query_data["cache_hit_ratio"] < 90:
+                suggestions: List[str] = []
+                cache_hit_ratio = query_data["cache_hit_ratio"]
+                stddev_time = query_data["stddev_time_ms"]
+                mean_time = query_data["mean_time_ms"]
+                if isinstance(cache_hit_ratio, (int, float)) and cache_hit_ratio < 90:
                     suggestions.append("Low cache hit ratio - consider adding indexes or increasing shared_buffers")
-                if query_data["stddev_time_ms"] > query_data["mean_time_ms"]:
+                if isinstance(stddev_time, (int, float)) and isinstance(mean_time, (int, float)) and stddev_time > mean_time:
                     suggestions.append("High variance in execution time - query performance is inconsistent")
                 if cells.get("temp_blks_written", 0) > 0:
                     suggestions.append("Query using temp space - consider increasing work_mem")
@@ -399,7 +405,7 @@ class PerformanceTools:
             idle_in_txn = int(row.get("idle_in_transaction", 0))
 
             # Generate recommendations
-            recommendations = []
+            recommendations: List[str] = []
 
             if utilization > 80:
                 recommended_max = int(max_conn * 1.5)
@@ -524,14 +530,14 @@ class PerformanceTools:
                     "message": "No tables need vacuum",
                 }
 
-            tables = []
+            tables: List[Dict[str, Any]] = []
             for row in result:
                 cells = row.cells
                 dead_pct = float(cells.get("dead_tuple_percent", 0))
                 priority = cells.get("priority")
 
                 # Generate recommendations
-                recommendations = []
+                recommendations: List[str] = []
                 if dead_pct > 20:
                     recommendations.append("URGENT: Run VACUUM FULL immediately")
                 elif dead_pct > 10:
@@ -620,7 +626,7 @@ class PerformanceTools:
             size_threshold = 10 * 1024 * 1024 * 1024  # 10 GB
             row_threshold = 10_000_000  # 10 million rows
 
-            recommendations = []
+            recommendations: List[str] = []
             partition_benefit = "LOW"
 
             if table_size_bytes > size_threshold or row_count > row_threshold:

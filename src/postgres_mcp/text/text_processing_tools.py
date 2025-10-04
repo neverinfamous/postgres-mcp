@@ -136,7 +136,7 @@ class TextProcessingTools:
         Args:
             table_name: Source table name
             text_columns: List of text columns to search
-            search_query: Search query (supports AND, OR, NOT operators)
+            search_query: Search query (supports AND, OR, NOT operators or & | ! syntax)
             language: Text search language configuration
             rank_normalization: Rank normalization (0-32)
             limit: Maximum results to return
@@ -152,8 +152,23 @@ class TextProcessingTools:
                 'postgresql & (json | jsonb)',
                 language='english'
             )
+            
+            # Or use SQL-style operators
+            await text_search_advanced(
+                'articles',
+                ['title', 'content'],
+                'postgresql AND (json OR jsonb)',
+                language='english'
+            )
         """
         try:
+            # Convert SQL-style operators to tsquery syntax if needed
+            # Replace whole-word operators (case-insensitive)
+            import re
+            converted_query = search_query
+            converted_query = re.sub(r'\bAND\b', '&', converted_query, flags=re.IGNORECASE)
+            converted_query = re.sub(r'\bOR\b', '|', converted_query, flags=re.IGNORECASE)
+            converted_query = re.sub(r'\bNOT\b', '!', converted_query, flags=re.IGNORECASE)
             # Build tsvector expression for multiple columns
             if len(text_columns) == 1:
                 tsvector_expr = f"to_tsvector('{language}', {text_columns[0]})"
@@ -177,7 +192,7 @@ class TextProcessingTools:
             LIMIT %s
             """
 
-            params = [search_query, rank_normalization, search_query, limit]
+            params = [converted_query, rank_normalization, converted_query, limit]
 
             result = await self.sql_driver.execute_query(cast(LiteralString, query), params)
 

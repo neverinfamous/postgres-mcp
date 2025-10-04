@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import pytest
 
@@ -9,27 +10,29 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def local_sql_driver(test_postgres_connection_string):
+def local_sql_driver(test_postgres_connection_string: Any) -> SqlDriver:
+    connection_string: str
+    version: Any
     connection_string, version = test_postgres_connection_string
     logger.info(f"Using connection string: {connection_string}")
     logger.info(f"Using version: {version}")
     return SqlDriver(engine_url=connection_string)
 
 
-async def setup_test_tables(sql_driver):
-    pool_wrapper = sql_driver.connect()
-    conn_pool = await pool_wrapper.pool_connect()
-    async with conn_pool.connection() as conn:
+async def setup_test_tables(sql_driver: SqlDriver) -> None:
+    pool_wrapper = sql_driver.connect()  # type: ignore[attr-defined]
+    conn_pool = await pool_wrapper.pool_connect()  # type: ignore[attr-defined]
+    async with conn_pool.connection() as conn:  # type: ignore[attr-defined]
         # Drop existing tables if they exist
-        await conn.execute("DROP TABLE IF EXISTS test_orders")
-        await conn.execute("DROP TABLE IF EXISTS test_customers")
-        await conn.execute("DROP SEQUENCE IF EXISTS test_seq")
+        await conn.execute("DROP TABLE IF EXISTS test_orders")  # type: ignore[attr-defined]
+        await conn.execute("DROP TABLE IF EXISTS test_customers")  # type: ignore[attr-defined]
+        await conn.execute("DROP SEQUENCE IF EXISTS test_seq")  # type: ignore[attr-defined]
 
         # Create test sequence
-        await conn.execute("CREATE SEQUENCE test_seq")
+        await conn.execute("CREATE SEQUENCE test_seq")  # type: ignore[attr-defined]
 
         # Create tables with various features to test health checks
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE TABLE test_customers (
                 id SERIAL PRIMARY KEY,
@@ -40,7 +43,7 @@ async def setup_test_tables(sql_driver):
         """
         )
 
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE TABLE test_orders (
                 id SERIAL PRIMARY KEY,
@@ -53,30 +56,30 @@ async def setup_test_tables(sql_driver):
         )
 
         # Create some indexes to test index health
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE INDEX idx_orders_customer ON test_orders(customer_id)
             """
         )
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE INDEX idx_orders_status ON test_orders(status)
             """
         )
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE INDEX idx_orders_created ON test_orders(created_at)
             """
         )
         # Create a duplicate index to test duplicate index detection
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE INDEX idx_orders_customer_dup ON test_orders(customer_id)
             """
         )
 
         # Insert some test data
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             INSERT INTO test_customers (name, email)
             SELECT
@@ -86,7 +89,7 @@ async def setup_test_tables(sql_driver):
         """
         )
 
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             INSERT INTO test_orders (customer_id, total, status)
             SELECT
@@ -102,30 +105,30 @@ async def setup_test_tables(sql_driver):
         )
 
         # Run ANALYZE to update statistics
-        await conn.execute("ANALYZE test_customers")
-        await conn.execute("ANALYZE test_orders")
+        await conn.execute("ANALYZE test_customers")  # type: ignore[attr-defined]
+        await conn.execute("ANALYZE test_orders")  # type: ignore[attr-defined]
 
 
-async def cleanup_test_tables(sql_driver):
-    pool_wrapper = sql_driver.connect()
-    conn_pool = await pool_wrapper.pool_connect()
+async def cleanup_test_tables(sql_driver: SqlDriver) -> None:
+    pool_wrapper = sql_driver.connect()  # type: ignore[attr-defined]
+    conn_pool = await pool_wrapper.pool_connect()  # type: ignore[attr-defined]
     try:
-        async with conn_pool.connection() as conn:
-            await conn.execute("DROP TABLE IF EXISTS test_orders")
-            await conn.execute("DROP TABLE IF EXISTS test_customers")
-            await conn.execute("DROP SEQUENCE IF EXISTS test_seq")
+        async with conn_pool.connection() as conn:  # type: ignore[attr-defined]
+            await conn.execute("DROP TABLE IF EXISTS test_orders")  # type: ignore[attr-defined]
+            await conn.execute("DROP TABLE IF EXISTS test_customers")  # type: ignore[attr-defined]
+            await conn.execute("DROP SEQUENCE IF EXISTS test_seq")  # type: ignore[attr-defined]
     finally:
-        await conn_pool.close()
+        await conn_pool.close()  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_database_health_all(local_sql_driver):
+async def test_database_health_all(local_sql_driver: SqlDriver) -> None:
     """Test that the database health tool runs without errors when performing all health checks.
     This test only verifies that the tool executes successfully and returns results in the expected format.
     It does not validate whether the health check results are correct."""
     await setup_test_tables(local_sql_driver)
     try:
-        local_sql_driver.connect()
+        local_sql_driver.connect()  # type: ignore[attr-defined]
         health_tool = DatabaseHealthTool(sql_driver=local_sql_driver)
 
         # Run health check with type "all"

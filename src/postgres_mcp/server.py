@@ -34,6 +34,8 @@ from .json import JsonAdvancedTools
 from .json import JsonHelperTools
 from .monitoring import MonitoringTools
 from .performance import PerformanceTools
+from .resources import register_prompts
+from .resources import register_resources
 from .sql import DbConnPool
 from .sql import SafeSqlDriver
 from .sql import SqlDriver
@@ -54,6 +56,13 @@ HYPOPG_EXTENSION = "hypopg"
 ResponseType = List[types.TextContent | types.ImageContent | types.EmbeddedResource]
 
 logger = logging.getLogger(__name__)
+
+
+# Register MCP Resources and Prompts
+# Note: These are registered at module level, but use get_sql_driver() which is defined below
+# The actual registration happens when the functions are called, so forward reference is OK
+register_resources(mcp, lambda: get_sql_driver())
+register_prompts(mcp)
 
 
 class AccessMode(str, Enum):
@@ -235,7 +244,7 @@ async def get_object_details(
                 [schema_name, object_name],
             )
 
-            constraints = {}
+            constraints: Dict[Any, Dict[str, Any]] = {}
             if con_rows:
                 for row in con_rows:
                     cname = row.cells["constraint_name"]
@@ -247,7 +256,7 @@ async def get_object_details(
                     if col:
                         constraints[cname]["columns"].append(col)
 
-            constraints_list = [{"name": name, **data} for name, data in constraints.items()]
+            constraints_list: List[Dict[str, Any]] = [{"name": name, **data} for name, data in constraints.items()]
 
             # Get indexes
             idx_rows = await SafeSqlDriver.execute_param_query(
@@ -262,7 +271,7 @@ async def get_object_details(
 
             indexes = [{"name": r.cells["indexname"], "definition": r.cells["indexdef"]} for r in idx_rows] if idx_rows else []
 
-            result = {
+            result: Dict[str, Any] = {
                 "basic": {"schema": schema_name, "name": object_name, "type": object_type},
                 "columns": columns,
                 "constraints": constraints_list,
@@ -389,7 +398,7 @@ If there is no hypothetical index, you can pass an empty list.""",
             return format_text_response(result.to_text())
         else:
             error_message = "Error processing explain plan"
-            if isinstance(result, ErrorResult):
+            if result and hasattr(result, 'to_text'):
                 error_message = result.to_text()
             return format_error_response(error_message)
     except Exception as e:
@@ -2008,7 +2017,7 @@ async def main():
         await mcp.run_sse_async()
 
 
-async def shutdown(sig=None):
+async def shutdown(sig: Optional[signal.Signals] = None) -> None:
     """Clean shutdown of the server."""
     global shutdown_in_progress
 
@@ -2030,4 +2039,4 @@ async def shutdown(sig=None):
         logger.error(f"Error closing database connections: {e}")
 
     # Exit with appropriate status code
-    sys.exit(128 + sig if sig is not None else 0)
+    sys.exit(128 + int(sig.value) if sig is not None else 0)

@@ -1,4 +1,5 @@
 import json
+from typing import Any, Dict, List
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -10,14 +11,14 @@ from postgres_mcp.server import explain_query
 
 
 @pytest_asyncio.fixture
-async def mock_safe_sql_driver():
+async def mock_safe_sql_driver() -> MagicMock:
     """Create a mock SafeSqlDriver for testing."""
     driver = MagicMock()
     return driver
 
 
 @pytest.fixture
-def mock_explain_plan_tool():
+def mock_explain_plan_tool() -> MagicMock:
     """Create a mock ExplainPlanTool."""
     tool = MagicMock()
     tool.explain = AsyncMock()
@@ -27,12 +28,12 @@ def mock_explain_plan_tool():
 
 
 class MockCell:
-    def __init__(self, data):
+    def __init__(self, data: Dict[str, Any]):
         self.cells = data
 
 
 @pytest.mark.asyncio
-async def test_explain_query_integration():
+async def test_explain_query_integration() -> None:
     """Test the entire explain_query tool end-to-end."""
     # Mock response with format_text_response
     result_text = json.dumps({"Plan": {"Node Type": "Seq Scan"}})
@@ -45,16 +46,16 @@ async def test_explain_query_integration():
         with patch("postgres_mcp.server.get_sql_driver"):
             # Patch the ExplainPlanTool
             with patch("postgres_mcp.server.ExplainPlanTool"):
-                result = await explain_query("SELECT * FROM users", hypothetical_indexes=None)
+                result: List[Any] = await explain_query("SELECT * FROM users", hypothetical_indexes=None)
 
                 # Verify result matches our expected plan data
                 assert isinstance(result, list)
                 assert len(result) == 1
-                assert result[0].text == result_text
+                assert result[0].text == result_text  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_explain_query_with_analyze_integration():
+async def test_explain_query_with_analyze_integration() -> None:
     """Test the explain_query tool with analyze=True."""
     # Mock response with format_text_response
     result_text = json.dumps({"Plan": {"Node Type": "Seq Scan"}, "Execution Time": 1.23})
@@ -67,16 +68,16 @@ async def test_explain_query_with_analyze_integration():
         with patch("postgres_mcp.server.get_sql_driver"):
             # Patch the ExplainPlanTool
             with patch("postgres_mcp.server.ExplainPlanTool"):
-                result = await explain_query("SELECT * FROM users", analyze=True, hypothetical_indexes=None)
+                result: List[Any] = await explain_query("SELECT * FROM users", analyze=True, hypothetical_indexes=None)
 
                 # Verify result matches our expected plan data
                 assert isinstance(result, list)
                 assert len(result) == 1
-                assert result[0].text == result_text
+                assert result[0].text == result_text  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_explain_query_with_hypothetical_indexes_integration():
+async def test_explain_query_with_hypothetical_indexes_integration() -> None:
     """Test the explain_query tool with hypothetical indexes."""
     # Mock response with format_text_response
     result_text = json.dumps({"Plan": {"Node Type": "Index Scan"}})
@@ -98,16 +99,16 @@ async def test_explain_query_with_hypothetical_indexes_integration():
         with patch("postgres_mcp.server.get_sql_driver", return_value=mock_safe_driver):
             # Patch the ExplainPlanTool
             with patch("postgres_mcp.server.ExplainPlanTool"):
-                result = await explain_query(test_sql, hypothetical_indexes=test_indexes)
+                result: List[Any] = await explain_query(test_sql, hypothetical_indexes=test_indexes)
 
                 # Verify result matches our expected plan data
                 assert isinstance(result, list)
                 assert len(result) == 1
-                assert result[0].text == result_text
+                assert result[0].text == result_text  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_explain_query_missing_hypopg_integration():
+async def test_explain_query_missing_hypopg_integration() -> None:
     """Test the explain_query tool when hypopg extension is missing."""
     # Mock message about missing extension
     missing_ext_message = "extension is required"
@@ -129,16 +130,16 @@ async def test_explain_query_missing_hypopg_integration():
         with patch("postgres_mcp.server.get_sql_driver", return_value=mock_safe_driver):
             # Patch the ExplainPlanTool
             with patch("postgres_mcp.server.ExplainPlanTool"):
-                result = await explain_query(test_sql, hypothetical_indexes=test_indexes)
+                result: List[Any] = await explain_query(test_sql, hypothetical_indexes=test_indexes)
 
                 # Verify result
                 assert isinstance(result, list)
                 assert len(result) == 1
-                assert missing_ext_message in result[0].text
+                assert missing_ext_message in result[0].text  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_explain_query_error_handling_integration():
+async def test_explain_query_error_handling_integration() -> None:
     """Test the explain_query tool's error handling."""
     # Mock error response
     error_message = "Error executing query"
@@ -152,9 +153,9 @@ async def test_explain_query_error_handling_integration():
             "postgres_mcp.server.get_sql_driver",
             side_effect=Exception(error_message),
         ):
-            result = await explain_query("INVALID SQL")
+            result: List[Any] = await explain_query("INVALID SQL")
 
             # Verify error is correctly formatted
             assert isinstance(result, list)
             assert len(result) == 1
-            assert error_message in result[0].text
+            assert error_message in result[0].text  # type: ignore[attr-defined]

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
+from typing import List
 
 
 @dataclass(frozen=True)
@@ -27,7 +28,7 @@ class IndexDefinition:
         # Clean column names for use in index naming
         # Replace special characters with underscores to avoid issues with
         # functional expressions
-        cleaned_columns = []
+        cleaned_columns: List[str] = []
         for col in self.columns:
             # Replace parentheses and other special characters with underscores
             # This ensures expressions like LOWER(column_name) work in

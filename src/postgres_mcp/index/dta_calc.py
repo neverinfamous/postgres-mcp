@@ -90,7 +90,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
         #   in the real DTA approach, they'd enumerate many seeds,
         #   but let's just do: [seeds, empty]
         # Because we do a small scale approach, we only do these 2 seeds
-        seeds_list = [
+        seeds_list: list[set[IndexRecommendation]] = [
             # seeds,
             set(),
         ]
@@ -103,7 +103,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
                 break
 
             self.dta_trace("Evaluating seed:")
-            current_cost = await self._evaluate_configuration_cost(query_weights, frozenset(seed))
+            current_cost = await self._evaluate_configuration_cost(query_weights, frozenset(idx.index_definition for idx in seed))
             candidate_indexes = set(
                 {
                     IndexRecommendation(
@@ -124,7 +124,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
 
     async def generate_candidates(self, workload: list[tuple[str, SelectStmt, float]], existing_defs: set[str]) -> list[IndexRecommendation]:
         """Generates index candidates from queries, with batch creation."""
-        table_columns_usage = {}  # table -> {col -> usage_count}
+        table_columns_usage: dict[str, dict[str, int]] = {}  # table -> {col -> usage_count}
         # Extract columns from all queries
         for _q, stmt, _ in workload:
             columns_per_table = self._sql_bind_params.extract_stmt_columns(stmt)
@@ -138,11 +138,11 @@ class DatabaseTuningAdvisor(IndexTuningBase):
         # e.g. skip columns that appear in fewer than self.min_column_usage queries
         table_columns: dict[str, set[str]] = {}
         for tbl, usage_map in table_columns_usage.items():
-            kept_cols = {c for c, usage in usage_map.items() if usage >= self.min_column_usage}
+            kept_cols: set[str] = {c for c, usage in usage_map.items() if usage >= self.min_column_usage}
             if kept_cols:
                 table_columns[tbl] = kept_cols
 
-        candidates = []
+        candidates: list[IndexRecommendation] = []
         for table, cols in table_columns.items():
             # TODO: Optimize by prioritizing columns from filters/joins; current approach generates all combinations
             col_list = list(cols)
@@ -151,7 +151,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
                     candidates.append(IndexRecommendation(table=table, columns=tuple(combo)))
 
         # filter out duplicates with existing indexes
-        filtered_candidates = [c for c in candidates if not self._index_exists(c, existing_defs)]
+        filtered_candidates: list[IndexRecommendation] = [c for c in candidates if not self._index_exists(c, existing_defs)]
 
         # filter out candidates with columns not used in query conditions
         condition_filtered1 = self._filter_candidates_by_query_conditions(workload, filtered_candidates)
@@ -211,7 +211,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
         self.dta_trace(f"  - Initial indexes: {len(current_indexes)}, Candidates: {len(candidate_indexes)}")
 
         # Get the tables involved in this analysis
-        tables = set()
+        tables: set[str] = set()
         for idx in candidate_indexes:
             tables.add(idx.table)
 
@@ -235,7 +235,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
             f"Objective={current_objective:.4f}"
         )
 
-        added_indexes = []  # Keep track of added indexes in order
+        added_indexes: list[IndexRecommendation] = []  # Keep track of added indexes in order
         iteration = 1
 
         while True:
@@ -349,14 +349,14 @@ class DatabaseTuningAdvisor(IndexTuningBase):
             return candidates
 
         # Extract all columns used in conditions across all queries
-        condition_columns = {}  # Dictionary of table -> set of columns
+        condition_columns: dict[str, set[str]] = {}  # Dictionary of table -> set of columns
 
         for _, stmt, _ in workload:
             try:
                 # Use our enhanced collector to extract condition columns
                 collector = ConditionColumnCollector()
                 collector(stmt)
-                query_condition_columns = collector.condition_columns
+                query_condition_columns: dict[str, set[str]] = collector.condition_columns
 
                 # Merge with overall condition columns
                 for table, cols in query_condition_columns.items():
@@ -368,7 +368,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
                 raise ValueError("Error extracting condition columns from query") from e
 
         # Filter candidates - keep only those where all columns are in condition_columns
-        filtered_candidates = []
+        filtered_candidates: list[IndexRecommendation] = []
         for candidate in candidates:
             table = candidate.table
             if table not in condition_columns:
@@ -395,7 +395,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
             return []
 
         # First, get all unique table.column combinations
-        table_columns = set()
+        table_columns: set[tuple[str, str]] = set()
         for candidate in candidates:
             for column in candidate.columns:
                 table_columns.add((candidate.table, column))
@@ -437,8 +437,8 @@ class DatabaseTuningAdvisor(IndexTuningBase):
             return []
 
         # Process results and identify problematic columns
-        problematic_columns = set()
-        potential_problematic_columns = set()
+        problematic_columns: set[tuple[str, str]] = set()
+        potential_problematic_columns: set[tuple[str, str]] = set()
 
         for row in result:
             table = row.cells["table_name"]
@@ -454,7 +454,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
                 potential_problematic_columns.add((table, column))
 
         # Filter candidates based on column information
-        filtered_candidates = []
+        filtered_candidates: list[IndexRecommendation] = []
         for candidate in candidates:
             valid = True
             for column in candidate.columns:
@@ -497,8 +497,8 @@ class DatabaseTuningAdvisor(IndexTuningBase):
 
         try:
             # Parse the candidate index
-            candidate_stmt = parser.parse_sql(index.definition)[0]
-            candidate_node = candidate_stmt.stmt
+            candidate_stmt = parser.parse_sql(index.definition)[0]  # type: ignore[misc]
+            candidate_node = candidate_stmt.stmt  # type: ignore[attr-defined]
 
             # Extract key information from candidate index
             candidate_info = self._extract_index_info(candidate_node)
@@ -515,8 +515,8 @@ class DatabaseTuningAdvisor(IndexTuningBase):
                         continue
 
                     # Parse the existing index
-                    existing_stmt = parser.parse_sql(existing_def)[0]
-                    existing_node = existing_stmt.stmt
+                    existing_stmt = parser.parse_sql(existing_def)[0]  # type: ignore[misc]
+                    existing_node = existing_stmt.stmt  # type: ignore[attr-defined]
 
                     # Extract key information
                     existing_info = self._extract_index_info(existing_node)
@@ -531,7 +531,7 @@ class DatabaseTuningAdvisor(IndexTuningBase):
         except Exception as e:
             raise ValueError("Error in robust index comparison") from e
 
-    def _extract_index_info(self, node) -> dict[str, Any] | None:
+    def _extract_index_info(self, node: Any) -> dict[str, Any] | None:
         """Extract key information from a parsed index node."""
         try:
             # Handle differences in node structure between pglast versions
@@ -548,37 +548,37 @@ class DatabaseTuningAdvisor(IndexTuningBase):
                 table_name = index_stmt.relation.RangeVar.relname
 
             # Extract columns
-            columns = []
-            for idx_elem in index_stmt.indexParams:
-                if hasattr(idx_elem, "name") and idx_elem.name:
-                    columns.append(idx_elem.name)
-                elif hasattr(idx_elem, "IndexElem") and idx_elem.IndexElem:
-                    columns.append(idx_elem.IndexElem.name)
-                elif hasattr(idx_elem, "expr") and idx_elem.expr:
+            columns: list[str] = []
+            for idx_elem in index_stmt.indexParams:  # type: ignore[attr-defined]
+                if hasattr(idx_elem, "name") and idx_elem.name:  # type: ignore[attr-defined]
+                    columns.append(idx_elem.name)  # type: ignore[attr-defined]
+                elif hasattr(idx_elem, "IndexElem") and idx_elem.IndexElem:  # type: ignore[attr-defined]
+                    columns.append(idx_elem.IndexElem.name)  # type: ignore[attr-defined]
+                elif hasattr(idx_elem, "expr") and idx_elem.expr:  # type: ignore[attr-defined]
                     # Convert the expression to a proper string representation
-                    expr_str = self._ast_expr_to_string(idx_elem.expr)
+                    expr_str = self._ast_expr_to_string(idx_elem.expr)  # type: ignore[attr-defined]
                     columns.append(expr_str)
             # Extract index type
             index_type = "btree"  # default
-            if hasattr(index_stmt, "accessMethod") and index_stmt.accessMethod:
-                index_type = index_stmt.accessMethod
+            if hasattr(index_stmt, "accessMethod") and index_stmt.accessMethod:  # type: ignore[attr-defined]
+                index_type = index_stmt.accessMethod  # type: ignore[attr-defined]
 
             # Check if unique
             is_unique = False
             if hasattr(index_stmt, "unique"):
-                is_unique = index_stmt.unique
+                is_unique = index_stmt.unique  # type: ignore[attr-defined]
 
             return {
                 "table": table_name.lower(),
-                "columns": [col.lower() for col in columns],
-                "type": index_type.lower(),
+                "columns": [str(col).lower() for col in columns],
+                "type": str(index_type).lower(),
                 "unique": is_unique,
             }
         except Exception as e:
             self.dta_trace(f"Error extracting index info: {e}")
             raise ValueError("Error extracting index info") from e
 
-    def _ast_expr_to_string(self, expr) -> str:
+    def _ast_expr_to_string(self, expr: Any) -> str:
         """Convert an AST expression (like FuncCall) to a proper string representation.
 
         For example, converts a FuncCall node representing lower(name) to "lower(name)"
@@ -591,15 +591,15 @@ class DatabaseTuningAdvisor(IndexTuningBase):
             # Check for FuncCall type directly
             if isinstance(expr, FuncCall):
                 # Extract function name
-                if hasattr(expr, "funcname") and expr.funcname:
-                    func_name = ".".join([name.sval for name in expr.funcname if hasattr(name, "sval")])
+                if hasattr(expr, "funcname") and expr.funcname:  # type: ignore[attr-defined]
+                    func_name = ".".join([name.sval for name in expr.funcname if hasattr(name, "sval")])  # type: ignore[attr-defined, union-attr]
                 else:
                     func_name = "unknown_func"
 
                 # Extract arguments
-                args = []
-                if hasattr(expr, "args") and expr.args:
-                    for arg in expr.args:
+                args: list[str] = []
+                if hasattr(expr, "args") and expr.args:  # type: ignore[attr-defined]
+                    for arg in expr.args:  # type: ignore[attr-defined]
                         args.append(self._ast_expr_to_string(arg))
 
                 # Format as function call
@@ -607,17 +607,17 @@ class DatabaseTuningAdvisor(IndexTuningBase):
 
             # Check for ColumnRef type directly
             elif isinstance(expr, ColumnRef):
-                if hasattr(expr, "fields") and expr.fields:
-                    return ".".join([field.sval for field in expr.fields if hasattr(field, "sval")])
+                if hasattr(expr, "fields") and expr.fields:  # type: ignore[attr-defined]
+                    return ".".join([field.sval for field in expr.fields if hasattr(field, "sval")])  # type: ignore[attr-defined, union-attr]
                 return "unknown_column"
 
             # Try to handle direct values
             elif hasattr(expr, "sval"):  # String value
-                return expr.sval
+                return expr.sval  # type: ignore[attr-defined, no-any-return]
             elif hasattr(expr, "ival"):  # Integer value
-                return str(expr.ival)
+                return str(expr.ival)  # type: ignore[attr-defined]
             elif hasattr(expr, "fval"):  # Float value
-                return expr.fval
+                return expr.fval  # type: ignore[attr-defined, no-any-return]
 
             # Fallback for other expression types
             return str(expr)
@@ -661,11 +661,11 @@ class ConditionColumnCollector(ColumnCollector):
 
     def __init__(self) -> None:
         super().__init__()
-        self.condition_columns = {}  # Specifically for columns in conditions
+        self.condition_columns: dict[str, set[str]] = {}  # Specifically for columns in conditions
         self.in_condition = False  # Flag to track if we're inside a condition
 
-    def __call__(self, node):
-        super().__call__(node)
+    def __call__(self, node: Node) -> dict[str, set[str]]:  # type: ignore[override, misc]
+        super().__call__(node)  # type: ignore[misc]
         return self.condition_columns
 
     def visit_SelectStmt(self, ancestors: list[Node], node: Node) -> None:  # noqa: N802
@@ -680,58 +680,58 @@ class ConditionColumnCollector(ColumnCollector):
 
             # Get table aliases first
             alias_visitor = TableAliasVisitor()
-            if hasattr(node, "fromClause") and node.fromClause:
-                for from_item in node.fromClause:
-                    alias_visitor(from_item)
+            if hasattr(node, "fromClause") and node.fromClause:  # type: ignore[attr-defined]
+                for from_item in node.fromClause:  # type: ignore[attr-defined]
+                    alias_visitor(from_item)  # type: ignore[arg-type]
             tables = alias_visitor.tables
             aliases = alias_visitor.aliases
 
             # Store the context for this query
-            self.context_stack.append((tables, aliases))
+            self.context_stack.append((tables, aliases))  # type: ignore[arg-type]
 
             # First pass: collect column aliases from targetList
-            if hasattr(node, "targetList") and node.targetList:
-                self.target_list = node.targetList
-                for target_entry in self.target_list:
-                    if hasattr(target_entry, "name") and target_entry.name:
+            if hasattr(node, "targetList") and node.targetList:  # type: ignore[attr-defined]
+                self.target_list = node.targetList  # type: ignore[attr-defined, assignment]
+                for target_entry in self.target_list:  # type: ignore[attr-defined]
+                    if hasattr(target_entry, "name") and target_entry.name:  # type: ignore[attr-defined]
                         # This is a column alias
-                        col_alias = target_entry.name
+                        col_alias = target_entry.name  # type: ignore[attr-defined]
                         # Store the expression node for this alias
-                        if hasattr(target_entry, "val"):
-                            self.column_aliases[col_alias] = {
-                                "node": target_entry.val,
+                        if hasattr(target_entry, "val"):  # type: ignore[attr-defined]
+                            self.column_aliases[col_alias] = {  # type: ignore[index]
+                                "node": target_entry.val,  # type: ignore[attr-defined]
                                 "level": query_level,
                             }
 
             # Process WHERE clause
-            if node.whereClause:
+            if node.whereClause:  # type: ignore[attr-defined]
                 in_condition_cache = self.in_condition
                 self.in_condition = True
-                self(node.whereClause)
+                self(node.whereClause)  # type: ignore[attr-defined]
                 self.in_condition = in_condition_cache
 
             # Process JOIN conditions in fromClause
-            if node.fromClause:
-                for item in node.fromClause:
-                    if isinstance(item, JoinExpr) and item.quals:
+            if node.fromClause:  # type: ignore[attr-defined]
+                for item in node.fromClause:  # type: ignore[attr-defined]
+                    if isinstance(item, JoinExpr) and item.quals:  # type: ignore[attr-defined]
                         in_condition_cache = self.in_condition
                         self.in_condition = True
-                        self(item.quals)
+                        self(item.quals)  # type: ignore[attr-defined]
                         self.in_condition = in_condition_cache
 
             # Process HAVING clause - may reference aliases
-            if node.havingClause:
+            if node.havingClause:  # type: ignore[attr-defined]
                 in_condition_cache = self.in_condition
                 self.in_condition = True
-                self._process_having_with_aliases(node.havingClause)
+                self._process_having_with_aliases(node.havingClause)  # type: ignore[attr-defined]
                 self.in_condition = in_condition_cache
 
             # Process ORDER BY clause - also important for indexes
-            if hasattr(node, "sortClause") and node.sortClause:
+            if hasattr(node, "sortClause") and node.sortClause:  # type: ignore[attr-defined]
                 in_condition_cache = self.in_condition
                 self.in_condition = True
-                for sort_item in node.sortClause:
-                    self._process_node_with_aliases(sort_item.node)
+                for sort_item in node.sortClause:  # type: ignore[attr-defined]
+                    self._process_node_with_aliases(sort_item.node)  # type: ignore[attr-defined]
                 self.in_condition = in_condition_cache
 
             # # Process GROUP BY clause - can also benefit from indexes
@@ -743,30 +743,30 @@ class ConditionColumnCollector(ColumnCollector):
             #     self.in_condition = in_condition_cache
 
             # Clean up the context stack
-            self.context_stack.pop()
+            self.context_stack.pop()  # type: ignore[attr-defined]
             self.inside_select = False
             self.current_query_level -= 1
 
-    def _process_having_with_aliases(self, having_clause):
+    def _process_having_with_aliases(self, having_clause: Any) -> None:
         """Process HAVING clause with special handling for column aliases."""
         self._process_node_with_aliases(having_clause)
 
-    def _process_node_with_aliases(self, node):
+    def _process_node_with_aliases(self, node: Any) -> None:
         """Process a node, resolving any column aliases it contains."""
         if node is None:
             return
 
         # If node is a column reference, it might be an alias
-        if isinstance(node, ColumnRef) and hasattr(node, "fields") and node.fields:
-            fields = [f.sval for f in node.fields if hasattr(f, "sval")] if node.fields else []
+        if isinstance(node, ColumnRef) and hasattr(node, "fields") and node.fields:  # type: ignore[attr-defined]
+            fields: list[str] = [f.sval for f in node.fields if hasattr(f, "sval")] if node.fields else []  # type: ignore[attr-defined, union-attr, misc]
             if len(fields) == 1:
-                col_name = fields[0]
+                col_name: str = fields[0]  # type: ignore[misc]
                 # Check if this is a known alias
-                if col_name in self.column_aliases:
+                if col_name in self.column_aliases:  # type: ignore[operator]
                     # Process the original expression instead
-                    alias_info = self.column_aliases[col_name]
-                    if alias_info["level"] == self.current_query_level:
-                        self(alias_info["node"])
+                    alias_info = self.column_aliases[col_name]  # type: ignore[index]
+                    if alias_info["level"] == self.current_query_level:  # type: ignore[index, attr-defined]
+                        self(alias_info["node"])  # type: ignore[index]
                         return
 
         # For non-alias nodes, process normally
@@ -780,49 +780,50 @@ class ConditionColumnCollector(ColumnCollector):
         if not self.in_condition:
             return  # Skip if not in a condition context
 
-        if not isinstance(node, ColumnRef) or not self.context_stack:
+        if not isinstance(node, ColumnRef) or not self.context_stack:  # type: ignore[attr-defined]
             return
 
         # Get the current query context
-        tables, aliases = self.context_stack[-1]
+        tables, aliases = self.context_stack[-1]  # type: ignore[attr-defined, misc]
 
         # Extract table and column names
-        fields = [f.sval for f in node.fields if hasattr(f, "sval")] if node.fields else []
+        fields: list[str] = [f.sval for f in node.fields if hasattr(f, "sval")] if node.fields else []  # type: ignore[attr-defined, union-attr, misc]
 
         # Check if this is a reference to a column alias
-        if len(fields) == 1 and fields[0] in self.column_aliases:
+        if len(fields) == 1 and fields[0] in self.column_aliases:  # type: ignore[operator]
             # Process the original expression node instead
-            alias_info = self.column_aliases[fields[0]]
-            if alias_info["level"] == self.current_query_level:
+            alias_info = self.column_aliases[fields[0]]  # type: ignore[index]
+            if alias_info["level"] == self.current_query_level:  # type: ignore[index, attr-defined]
                 self.in_condition = True  # Ensure we collect from the aliased expression
-                self(alias_info["node"])
+                self(alias_info["node"])  # type: ignore[index]
             return
 
         if len(fields) == 2:  # Table.column format
-            table_or_alias, column = fields
+            table_or_alias: str = fields[0]  # type: ignore[misc]
+            column: str = fields[1]  # type: ignore[misc]
             # Resolve alias to actual table
-            table = aliases.get(table_or_alias, table_or_alias)
+            table = aliases.get(table_or_alias, table_or_alias)  # type: ignore[attr-defined]
 
             # Add to condition columns
             if table not in self.condition_columns:
                 self.condition_columns[table] = set()
-            self.condition_columns[table].add(column)
+            self.condition_columns[table].add(column)  # type: ignore[arg-type]
 
         elif len(fields) == 1:  # Unqualified column
-            column = fields[0]
+            column: str = fields[0]  # type: ignore[misc, no-redef]
 
             # For unqualified columns, check all tables in context
             found_match = False
-            for table in tables:
+            for table in tables:  # type: ignore[attr-defined]
                 # Skip schema qualification if present
                 if "." in table:
-                    _, table = table.split(".", 1)
+                    _, table = table.split(".", 1)  # type: ignore[misc]
 
                 # Add column to all tables that have it
-                if self._column_exists(table, column):
+                if self._column_exists(table, column):  # type: ignore[arg-type]
                     if table not in self.condition_columns:
                         self.condition_columns[table] = set()
-                    self.condition_columns[table].add(column)
+                    self.condition_columns[table].add(column)  # type: ignore[arg-type]
                     found_match = True
 
             if not found_match:

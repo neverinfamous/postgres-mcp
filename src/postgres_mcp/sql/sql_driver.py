@@ -63,10 +63,10 @@ class DbConnPool:
     """Database connection manager using psycopg's connection pool."""
 
     def __init__(self, connection_url: Optional[str] = None):
-        self.connection_url = connection_url
+        self.connection_url: Optional[str] = connection_url
         self.pool: AsyncConnectionPool | None = None
         self._is_valid = False
-        self._last_error = None
+        self._last_error: Optional[str] = None
 
     async def pool_connect(self, connection_url: Optional[str] = None) -> AsyncConnectionPool:
         """Initialize connection pool with retry logic."""
@@ -74,7 +74,12 @@ class DbConnPool:
         if self.pool and self._is_valid:
             return self.pool
 
-        url = connection_url or self.connection_url
+        url: str | None
+        if connection_url:
+            url = connection_url
+        else:
+            url = self.connection_url
+        
         self.connection_url = url
         if not url:
             self._is_valid = False
@@ -87,7 +92,7 @@ class DbConnPool:
         try:
             # Configure connection pool with appropriate settings
             self.pool = AsyncConnectionPool(
-                conninfo=url,
+                conninfo=url,  # url is guaranteed to be str here
                 min_size=1,
                 max_size=5,
                 open=False,  # Don't connect immediately, let's do it explicitly
@@ -221,50 +226,56 @@ class SqlDriver:
 
             raise e
 
-    async def _execute_with_connection(self, connection, query, params, force_readonly) -> Optional[List[RowResult]]:
+    async def _execute_with_connection(
+        self,
+        connection: Any,
+        query: LiteralString,
+        params: list[Any] | None,
+        force_readonly: bool,
+    ) -> Optional[List[RowResult]]:
         """Execute query with the given connection."""
         transaction_started = False
         try:
-            async with connection.cursor(row_factory=dict_row) as cursor:
+            async with connection.cursor(row_factory=dict_row) as cursor:  # type: ignore[attr-defined]
                 # Start read-only transaction
                 if force_readonly:
-                    await cursor.execute("BEGIN TRANSACTION READ ONLY")
+                    await cursor.execute("BEGIN TRANSACTION READ ONLY")  # type: ignore[attr-defined]
                     transaction_started = True
 
                 if params:
-                    await cursor.execute(query, params)
+                    await cursor.execute(query, params)  # type: ignore[attr-defined]
                 else:
-                    await cursor.execute(query)
+                    await cursor.execute(query)  # type: ignore[attr-defined]
 
                 # For multiple statements, move to the last statement's results
-                while cursor.nextset():
+                while cursor.nextset():  # type: ignore[attr-defined]
                     pass
 
-                if cursor.description is None:  # No results (like DDL statements)
+                if cursor.description is None:  # type: ignore[attr-defined] # No results (like DDL statements)
                     if not force_readonly:
-                        await cursor.execute("COMMIT")
+                        await cursor.execute("COMMIT")  # type: ignore[attr-defined]
                     elif transaction_started:
-                        await cursor.execute("ROLLBACK")
+                        await cursor.execute("ROLLBACK")  # type: ignore[attr-defined]
                         transaction_started = False
                     return None
 
                 # Get results from the last statement only
-                rows = await cursor.fetchall()
+                rows: Any = await cursor.fetchall()  # type: ignore[attr-defined]
 
                 # End the transaction appropriately
                 if not force_readonly:
-                    await cursor.execute("COMMIT")
+                    await cursor.execute("COMMIT")  # type: ignore[attr-defined]
                 elif transaction_started:
-                    await cursor.execute("ROLLBACK")
+                    await cursor.execute("ROLLBACK")  # type: ignore[attr-defined]
                     transaction_started = False
 
-                return [SqlDriver.RowResult(cells=dict(row)) for row in rows]
+                return [SqlDriver.RowResult(cells=dict(row)) for row in rows]  # type: ignore[arg-type,has-type]
 
         except Exception as e:
             # Try to roll back the transaction if it's still active
             if transaction_started:
                 try:
-                    await connection.rollback()
+                    await connection.rollback()  # type: ignore[attr-defined]
                 except Exception as rollback_error:
                     logger.error(f"Error rolling back transaction: {rollback_error}")
 

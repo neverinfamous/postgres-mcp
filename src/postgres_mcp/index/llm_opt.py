@@ -2,11 +2,12 @@ import logging
 import math
 from dataclasses import dataclass
 from typing import Any
+from typing import Dict
 from typing import override
 
 import instructor
 from openai import OpenAI
-from pglast.ast import SelectStmt
+from pglast.ast import SelectStmt  # type: ignore[import-untyped]
 from pydantic import BaseModel
 
 from postgres_mcp.artifacts import ErrorResult
@@ -27,10 +28,10 @@ class Index(BaseModel):
     table_name: str
     columns: tuple[str, ...]
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.table_name, self.columns))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Index):
             return False
         return self.table_name == other.table_name and self.columns == other.columns
@@ -89,7 +90,7 @@ class LLMOptimizerTool(IndexTuningBase):
         logger.info("Extracted tables from query: %s", tables)
 
         # Get the size of the tables
-        table_sizes = {}
+        table_sizes: Dict[str, int] = {}
         for table in tables:
             table_sizes[table] = await self._get_table_size(table)
         total_table_size = sum(table_sizes.values())
@@ -300,12 +301,12 @@ class LLMOptimizerTool(IndexTuningBase):
         Returns:
             A set of tuples (table_name, index_name) representing the indexes used in the plan
         """
-        indexes_used = set()
+        indexes_used: set[tuple[str, str]] = set()
         if isinstance(explain_plan_json, dict):
-            plan_data = explain_plan_json.get("Plan")
+            plan_data: Any = explain_plan_json.get("Plan")  # type: ignore[attr-defined]
             if plan_data is not None:
 
-                def extract_indexes_from_node(node):
+                def extract_indexes_from_node(node: Any) -> None:
                     # Check if this is an index scan node
                     if node.get("Node Type") in ["Index Scan", "Index Only Scan", "Bitmap Index Scan"]:
                         if "Index Name" in node and "Relation Name" in node:
@@ -314,6 +315,7 @@ class LLMOptimizerTool(IndexTuningBase):
 
                     # Recursively process child plans
                     if "Plans" in node:
+                        child: Any
                         for child in node["Plans"]:
                             extract_indexes_from_node(child)
 
@@ -337,7 +339,7 @@ class LLMOptimizerTool(IndexTuningBase):
         index_tuples = self._extract_indexes_from_explain_plan(explain_plan_json)
 
         # Now populate the columns for each index
-        indexes_with_columns = set()
+        indexes_with_columns: set[Index] = set()
         for table_name, index_name in index_tuples:
             # Get the columns for this index
             columns = await self._get_index_columns(index_name)

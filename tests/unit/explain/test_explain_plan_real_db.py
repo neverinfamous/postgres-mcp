@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any, cast
 
 import pytest
 
@@ -12,23 +13,25 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
-def local_sql_driver(test_postgres_connection_string):
+def local_sql_driver(test_postgres_connection_string: Any) -> SqlDriver:
+    connection_string: str
+    version: Any
     connection_string, version = test_postgres_connection_string
     logger.info(f"Using connection string: {connection_string}")
     logger.info(f"Using version: {version}")
     return SqlDriver(engine_url=connection_string)
 
 
-async def setup_test_tables(sql_driver):
-    pool_wrapper = sql_driver.connect()
-    conn_pool = await pool_wrapper.pool_connect()
-    async with conn_pool.connection() as conn:
+async def setup_test_tables(sql_driver: SqlDriver) -> None:
+    pool_wrapper = sql_driver.connect()  # type: ignore[attr-defined]
+    conn_pool = await pool_wrapper.pool_connect()  # type: ignore[attr-defined]
+    async with conn_pool.connection() as conn:  # type: ignore[attr-defined]
         # Drop existing tables if they exist
-        await conn.execute("DROP TABLE IF EXISTS test_orders")
-        await conn.execute("DROP TABLE IF EXISTS test_customers")
+        await conn.execute("DROP TABLE IF EXISTS test_orders")  # type: ignore[attr-defined]
+        await conn.execute("DROP TABLE IF EXISTS test_customers")  # type: ignore[attr-defined]
 
         # Create tables with various features for testing explain plan
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE TABLE test_customers (
                 id SERIAL PRIMARY KEY,
@@ -39,7 +42,7 @@ async def setup_test_tables(sql_driver):
         """
         )
 
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE TABLE test_orders (
                 id SERIAL PRIMARY KEY,
@@ -52,19 +55,19 @@ async def setup_test_tables(sql_driver):
         )
 
         # Create some indexes to test explain plans
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE INDEX idx_orders_customer ON test_orders(customer_id)
             """
         )
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             CREATE INDEX idx_orders_status ON test_orders(status)
             """
         )
 
         # Insert some test data
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             INSERT INTO test_customers (name, email)
             SELECT
@@ -74,7 +77,7 @@ async def setup_test_tables(sql_driver):
         """
         )
 
-        await conn.execute(
+        await conn.execute(  # type: ignore[attr-defined]
             """
             INSERT INTO test_orders (customer_id, total, status)
             SELECT
@@ -90,23 +93,23 @@ async def setup_test_tables(sql_driver):
         )
 
         # Run ANALYZE to update statistics
-        await conn.execute("ANALYZE test_customers")
-        await conn.execute("ANALYZE test_orders")
+        await conn.execute("ANALYZE test_customers")  # type: ignore[attr-defined]
+        await conn.execute("ANALYZE test_orders")  # type: ignore[attr-defined]
 
 
-async def cleanup_test_tables(sql_driver):
-    pool_wrapper = sql_driver.connect()
-    conn_pool = await pool_wrapper.pool_connect()
+async def cleanup_test_tables(sql_driver: SqlDriver) -> None:
+    pool_wrapper = sql_driver.connect()  # type: ignore[attr-defined]
+    conn_pool = await pool_wrapper.pool_connect()  # type: ignore[attr-defined]
     try:
-        async with conn_pool.connection() as conn:
-            await conn.execute("DROP TABLE IF EXISTS test_orders")
-            await conn.execute("DROP TABLE IF EXISTS test_customers")
+        async with conn_pool.connection() as conn:  # type: ignore[attr-defined]
+            await conn.execute("DROP TABLE IF EXISTS test_orders")  # type: ignore[attr-defined]
+            await conn.execute("DROP TABLE IF EXISTS test_customers")  # type: ignore[attr-defined]
     finally:
-        await conn_pool.close()
+        await conn_pool.close()  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_explain_with_real_db(local_sql_driver):
+async def test_explain_with_real_db(local_sql_driver: SqlDriver) -> None:
     """Test explain with a real database connection."""
     await setup_test_tables(local_sql_driver)
     try:
@@ -126,14 +129,14 @@ async def test_explain_with_real_db(local_sql_driver):
 
         # PostgreSQL may choose different scan types depending on statistics
         # For small tables, sequential scan may be chosen over index scan
-        node_type = plan_data["Plan"]["Node Type"]
+        node_type = cast(str, plan_data["Plan"]["Node Type"])
         assert node_type in ["Index Scan", "Index Only Scan", "Seq Scan"]
     finally:
         await cleanup_test_tables(local_sql_driver)
 
 
 @pytest.mark.asyncio
-async def test_explain_analyze_with_real_db(local_sql_driver):
+async def test_explain_analyze_with_real_db(local_sql_driver: SqlDriver) -> None:
     """Test explain analyze with a real database connection."""
     await setup_test_tables(local_sql_driver)
     try:
@@ -159,7 +162,7 @@ async def test_explain_analyze_with_real_db(local_sql_driver):
 
 
 @pytest.mark.asyncio
-async def test_explain_join_query_with_real_db(local_sql_driver):
+async def test_explain_join_query_with_real_db(local_sql_driver: SqlDriver) -> None:
     """Test explain with a join query."""
     await setup_test_tables(local_sql_driver)
     try:
@@ -187,7 +190,7 @@ async def test_explain_join_query_with_real_db(local_sql_driver):
 
 
 @pytest.mark.asyncio
-async def test_explain_with_bind_variables_real_db(local_sql_driver):
+async def test_explain_with_bind_variables_real_db(local_sql_driver: SqlDriver) -> None:
     """Test explain with bind variables on a real database."""
     await setup_test_tables(local_sql_driver)
     try:
@@ -206,7 +209,7 @@ async def test_explain_with_bind_variables_real_db(local_sql_driver):
 
 
 @pytest.mark.asyncio
-async def test_explain_with_like_expressions_real_db(local_sql_driver):
+async def test_explain_with_like_expressions_real_db(local_sql_driver: SqlDriver) -> None:
     """Test explain with LIKE expressions on a real database."""
     await setup_test_tables(local_sql_driver)
     try:
@@ -228,7 +231,7 @@ async def test_explain_with_like_expressions_real_db(local_sql_driver):
 
 
 @pytest.mark.asyncio
-async def test_explain_with_like_and_bind_variables_real_db(local_sql_driver):
+async def test_explain_with_like_and_bind_variables_real_db(local_sql_driver: SqlDriver) -> None:
     """Test explain with both LIKE and bind variables on a real database."""
     await setup_test_tables(local_sql_driver)
     try:
@@ -247,7 +250,7 @@ async def test_explain_with_like_and_bind_variables_real_db(local_sql_driver):
 
 
 @pytest.mark.asyncio
-async def test_explain_invalid_query_with_real_db(local_sql_driver):
+async def test_explain_invalid_query_with_real_db(local_sql_driver: SqlDriver) -> None:
     """Test explain with an invalid query."""
     await setup_test_tables(local_sql_driver)
     try:

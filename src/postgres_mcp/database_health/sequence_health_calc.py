@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 
 from psycopg.sql import Identifier
 
@@ -90,7 +91,7 @@ class SequenceHealthCalc:
         result_list = [dict(x.cells) for x in sequences]
 
         # Process each sequence
-        sequence_metrics = []
+        sequence_metrics: List[SequenceMetrics] = []
         for seq in result_list:
             # Parse the sequence name from default value
             schema, sequence = self._parse_sequence_name(seq["default_value"])

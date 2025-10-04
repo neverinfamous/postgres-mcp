@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
+from typing import TYPE_CHECKING
 from typing import List
 
 import mcp.types as types
@@ -13,6 +14,9 @@ from .index_health_calc import IndexHealthCalc
 from .replication_calc import ReplicationCalc
 from .sequence_health_calc import SequenceHealthCalc
 from .vacuum_health_calc import VacuumHealthCalc
+
+if TYPE_CHECKING:
+    from ..sql import SqlDriver
 
 ResponseType = List[types.TextContent | types.ImageContent | types.EmbeddedResource]
 
@@ -33,7 +37,7 @@ class HealthType(str, Enum):
 class DatabaseHealthTool:
     """Tool for analyzing database health metrics."""
 
-    def __init__(self, sql_driver):
+    def __init__(self, sql_driver: SqlDriver):
         self.sql_driver = sql_driver
 
     async def health(self, health_type: str) -> str:

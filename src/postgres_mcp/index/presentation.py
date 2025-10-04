@@ -5,6 +5,7 @@ import os
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 
 import humanize
 
@@ -31,7 +32,7 @@ class TextPresentation:
         self.sql_driver = sql_driver
         self.index_tuning = index_tuning
 
-    async def analyze_workload(self, max_index_size_mb=10000):
+    async def analyze_workload(self, max_index_size_mb: int = 10000) -> Dict[str, Any]:
         """
         Analyze SQL workload and recommend indexes.
 
@@ -51,7 +52,7 @@ class TextPresentation:
             max_index_size_mb=max_index_size_mb,
         )
 
-    async def analyze_queries(self, queries, max_index_size_mb=10000):
+    async def analyze_queries(self, queries: List[str], max_index_size_mb: int = 10000) -> Dict[str, Any]:
         """
         Analyze a list of SQL queries and recommend indexes.
 
@@ -76,7 +77,7 @@ class TextPresentation:
             max_index_size_mb=max_index_size_mb,
         )
 
-    async def analyze_single_query(self, query, max_index_size_mb=10000):
+    async def analyze_single_query(self, query: str, max_index_size_mb: int = 10000) -> Dict[str, Any]:
         """
         Analyze a single SQL query and recommend indexes.
 
@@ -100,12 +101,12 @@ class TextPresentation:
 
     async def _execute_analysis(
         self,
-        query_list=None,
-        min_calls=50,
-        min_avg_time_ms=5.0,
-        limit=100,
-        max_index_size_mb=10000,
-    ):
+        query_list: Optional[List[str]] = None,
+        min_calls: int = 50,
+        min_avg_time_ms: float = 5.0,
+        limit: int = 100,
+        max_index_size_mb: int = 10000,
+    ) -> Dict[str, Any]:
         """
         Execute indexing analysis
 
@@ -170,7 +171,7 @@ class TextPresentation:
             return {"error": f"Error analyzing queries: {e}"}
 
     def _build_recommendations_list(self, session: IndexTuningResult) -> List[Dict[str, Any]]:
-        recommendations = []
+        recommendations: List[Dict[str, Any]] = []
         for index_apply_order, rec in enumerate(session.recommendations):
             rec_dict = {
                 "index_apply_order": index_apply_order + 1,
@@ -210,7 +211,7 @@ class TextPresentation:
         Returns:
             List of dictionaries with query and explain plans
         """
-        query_impact = []
+        query_impact: List[Dict[str, Any]] = []
 
         # Get workload queries from the first recommendation
         # (All recommendations have the same queries)
@@ -220,8 +221,8 @@ class TextPresentation:
         workload_queries = session.recommendations[0].queries
 
         # Remove duplicates while preserving order
-        seen = set()
-        unique_queries = []
+        seen: set[str] = set()
+        unique_queries: List[str] = []
         for q in workload_queries:
             if q not in seen:
                 seen.add(q)
@@ -231,11 +232,11 @@ class TextPresentation:
         if unique_queries and self.index_tuning:
             for query in unique_queries:
                 # Get plan with no indexes
-                before_plan = await self.index_tuning.get_explain_plan_with_indexes(query, frozenset())
+                before_plan: Dict[str, Any] = await self.index_tuning.get_explain_plan_with_indexes(query, frozenset())
 
                 # Get plan with all recommended indexes
                 index_configs = frozenset(IndexDefinition(rec.table, rec.columns, rec.using) for rec in session.recommendations)
-                after_plan = await self.index_tuning.get_explain_plan_with_indexes(query, index_configs)
+                after_plan: Dict[str, Any] = await self.index_tuning.get_explain_plan_with_indexes(query, index_configs)
 
                 # Extract costs from plans
                 base_cost = self.index_tuning.extract_cost_from_json_plan(before_plan)
@@ -246,8 +247,8 @@ class TextPresentation:
                 if new_cost > 0 and base_cost > 0:
                     improvement_multiple = f"{calculate_improvement_multiple(base_cost, new_cost):.1f}"
 
-                before_plan_text = ExplainPlanArtifact.format_plan_summary(before_plan)
-                after_plan_text = ExplainPlanArtifact.format_plan_summary(after_plan)
+                before_plan_text = ExplainPlanArtifact.format_plan_summary(before_plan)  # type: ignore[arg-type]
+                after_plan_text = ExplainPlanArtifact.format_plan_summary(after_plan)  # type: ignore[arg-type]
                 diff_text = ExplainPlanArtifact.create_plan_diff(before_plan, after_plan)
 
                 # Add to query impact with costs and improvement

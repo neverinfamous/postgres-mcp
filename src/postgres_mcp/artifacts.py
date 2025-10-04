@@ -3,6 +3,7 @@
 import difflib
 import json
 from typing import Any
+from typing import Optional
 
 from attrs import define
 from attrs import field
@@ -121,7 +122,7 @@ class ExplainPlanArtifact:
         Returns:
             str: A string representation of the execution plan with timing information.
         """
-        result = []
+        result: list[str] = []
 
         # Add timing information if available
         if self.planning_time is not None:
@@ -200,7 +201,7 @@ class ExplainPlanArtifact:
         )
 
     @staticmethod
-    def format_plan_summary(plan_data):
+    def format_plan_summary(plan_data: dict[str, Any]) -> str:
         """Extract and format key information from a raw plan data."""
         if not plan_data:
             return "No plan data available"
@@ -247,7 +248,7 @@ class ExplainPlanArtifact:
             after_lines = ExplainPlanArtifact._format_plan_node(after_tree).split("\n")
 
             # Generate a readable diff with context
-            diff_lines = []
+            diff_lines: list[str] = []
             diff_lines.append("PLAN CHANGES:")
             diff_lines.append("------------")
 
@@ -263,7 +264,7 @@ class ExplainPlanArtifact:
             diff_lines.append("Operation Changes:")
 
             # Helper function to extract node types with indentation
-            def extract_node_types(node, level=0, result=None):
+            def extract_node_types(node: PlanNode, level: int = 0, result: Optional[list[str]] = None) -> list[str]:
                 if result is None:
                     result = []
                 indent = "  " * level

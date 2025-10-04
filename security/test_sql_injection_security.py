@@ -33,9 +33,11 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import TypedDict
 
 # Fix Windows event loop compatibility with psycopg3
 if sys.platform == "win32":
@@ -96,6 +98,38 @@ class TestResult:
     error_message: Optional[str]
     execution_time: float
     mode_tested: str
+
+
+class VulnerabilitySummary(TypedDict):
+    """Summary of vulnerabilities by severity"""
+    critical: int
+    high: int
+    medium: int
+
+
+class ModeSummary(TypedDict):
+    """Summary of test results for a specific mode"""
+    total_tests: int
+    vulnerable: int
+    protected: int
+    security_score: float
+    vulnerabilities_by_severity: VulnerabilitySummary
+
+
+class Recommendation(TypedDict):
+    """Security recommendation"""
+    priority: str
+    issue: str
+    description: str
+    solution: str
+
+
+class SecurityReport(TypedDict):
+    """Complete security report structure"""
+    summary: Dict[str, ModeSummary]
+    detailed_results: Dict[str, List[TestResult]]
+    recommendations: List[Recommendation]
+    security_score: float
 
 
 class PostgresSQLInjectionTester:
@@ -459,14 +493,20 @@ class PostgresSQLInjectionTester:
                     import ast
 
                     try:
-                        result_list = ast.literal_eval(mcp_result[0].text) if isinstance(mcp_result[0], types.TextContent) else []
+                        result_list: Any = ast.literal_eval(mcp_result[0].text)
                         if isinstance(result_list, list):
                             # Convert to RowResult format for compatibility
                             class RowResult:
-                                def __init__(self, cells):
+                                def __init__(self, cells: Dict[str, Any]):
                                     self.cells = cells
 
-                            result = [RowResult(row) for row in result_list]
+                            # Filter and convert rows with proper typing
+                            # Suppress type checking for dynamic parsing result
+                            typed_rows: List[Dict[str, Any]] = []
+                            for item in result_list:  # type: ignore[has-type]
+                                if isinstance(item, dict):
+                                    typed_rows.append(cast(Dict[str, Any], item))
+                            result = [RowResult(row) for row in typed_rows]
                         else:
                             result = None
                     except Exception:
@@ -538,7 +578,7 @@ class PostgresSQLInjectionTester:
 
         return TestResult(test=test, vulnerable=vulnerable, error_message=error_message, execution_time=execution_time, mode_tested=mode)
 
-    async def run_comprehensive_test_suite(self) -> Dict[str, Any]:
+    async def run_comprehensive_test_suite(self) -> SecurityReport:
         """Run the complete SQL injection test suite"""
 
         self.logger.info("Starting Comprehensive SQL Injection Security Test Suite")
@@ -551,13 +591,13 @@ class PostgresSQLInjectionTester:
         # Test both unrestricted and restricted modes
         modes_to_test = ["unrestricted", "restricted"]
 
-        all_results = {}
+        all_results: Dict[str, List[TestResult]] = {}
 
         for mode in modes_to_test:
             self.logger.info(f"\nTesting {mode.upper()} mode...")
             self.logger.info("-" * 50)
 
-            mode_results = []
+            mode_results: List[TestResult] = []
 
             for i, test in enumerate(test_cases, 1):
                 self.logger.info(f"[{i:2d}/{len(test_cases)}] {test.name}")
@@ -583,10 +623,15 @@ class PostgresSQLInjectionTester:
 
         return report
 
-    def generate_security_report(self, results: Dict[str, List[TestResult]]) -> Dict[str, Any]:
+    def generate_security_report(self, results: Dict[str, List[TestResult]]) -> SecurityReport:
         """Generate a comprehensive security report"""
 
-        report = {"summary": {}, "detailed_results": results, "recommendations": [], "security_score": 0}
+        report: SecurityReport = {
+            "summary": {},
+            "detailed_results": results,
+            "recommendations": [],
+            "security_score": 0.0
+        }
 
         for mode, mode_results in results.items():
             total_tests = len(mode_results)
@@ -646,7 +691,7 @@ class PostgresSQLInjectionTester:
 
         return report
 
-    def print_security_report(self, report: Dict[str, Any]):
+    def print_security_report(self, report: SecurityReport):
         """Print a formatted security report"""
 
         print("\n" + "=" * 80)

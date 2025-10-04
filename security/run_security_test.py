@@ -21,8 +21,8 @@ import argparse
 import asyncio
 import os
 import sys
-from typing import Any
 from typing import Dict
+from typing import List
 
 # Fix Windows event loop compatibility with psycopg3
 if sys.platform == "win32":
@@ -33,6 +33,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # Import from the current security directory
 from test_sql_injection_security import PostgresSQLInjectionTester
+from test_sql_injection_security import SecurityReport
+from test_sql_injection_security import TestResult
 
 
 def print_banner():
@@ -54,7 +56,7 @@ def print_banner():
     print()
 
 
-async def run_quick_test(connection_url: str) -> Dict[str, Any]:
+async def run_quick_test(connection_url: str) -> SecurityReport:
     """Run a quick subset of critical security tests"""
 
     print("Running QUICK security test (critical vulnerabilities only)...")
@@ -72,11 +74,11 @@ async def run_quick_test(connection_url: str) -> Dict[str, Any]:
     print("      is correctly attempting various attack vectors. The final VULN/SAFE results")
     print("      show whether each attack succeeded or was blocked.")
 
-    results = {}
+    results: Dict[str, List[TestResult]] = {}
     for mode in ["unrestricted", "restricted"]:
         print(f"\nTesting {mode.upper()} mode...")
 
-        mode_results = []
+        mode_results: List[TestResult] = []
         for i, test in enumerate(critical_tests, 1):
             print(f"  [{i:2d}/{len(critical_tests)}] {test.name[:50]}...")
 
@@ -95,7 +97,7 @@ async def run_quick_test(connection_url: str) -> Dict[str, Any]:
     return tester.generate_security_report(results)
 
 
-async def run_full_test(connection_url: str) -> Dict[str, Any]:
+async def run_full_test(connection_url: str) -> SecurityReport:
     """Run the complete comprehensive security test suite"""
 
     print("Running COMPREHENSIVE security test suite...")
@@ -105,7 +107,7 @@ async def run_full_test(connection_url: str) -> Dict[str, Any]:
     return await tester.run_comprehensive_test_suite()
 
 
-def print_summary_report(report: Dict[str, Any], test_type: str):
+def print_summary_report(report: SecurityReport, test_type: str):
     """Print a concise summary report"""
 
     print("\n" + "=" * 80)

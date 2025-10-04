@@ -6,74 +6,74 @@ import re
 from typing import Any
 from typing import ClassVar
 
-import pglast
-from pglast.ast import A_ArrayExpr
-from pglast.ast import A_Const
-from pglast.ast import A_Expr
-from pglast.ast import A_Indices
-from pglast.ast import A_Indirection
-from pglast.ast import A_Star
-from pglast.ast import Alias
-from pglast.ast import BitString
-from pglast.ast import Boolean
-from pglast.ast import BooleanTest
-from pglast.ast import BoolExpr
-from pglast.ast import CaseExpr
-from pglast.ast import CaseWhen
-from pglast.ast import ClosePortalStmt
-from pglast.ast import CoalesceExpr
-from pglast.ast import CollateClause
-from pglast.ast import ColumnRef
-from pglast.ast import CommonTableExpr
-from pglast.ast import CreateExtensionStmt
-from pglast.ast import DeallocateStmt
-from pglast.ast import DeclareCursorStmt
-from pglast.ast import DefElem
-from pglast.ast import ExplainStmt
-from pglast.ast import FetchStmt
-from pglast.ast import Float
-from pglast.ast import FromExpr
-from pglast.ast import FuncCall
-from pglast.ast import GroupingFunc
-from pglast.ast import GroupingSet
-from pglast.ast import Integer
-from pglast.ast import JoinExpr
-from pglast.ast import MinMaxExpr
-from pglast.ast import NamedArgExpr
-from pglast.ast import Node
-from pglast.ast import NotifyStmt
-from pglast.ast import NullTest
-from pglast.ast import ParamRef
-from pglast.ast import PrepareStmt
-from pglast.ast import RangeFunction
-from pglast.ast import RangeSubselect
-from pglast.ast import RangeTableFunc
-from pglast.ast import RangeTableFuncCol
-from pglast.ast import RangeTableSample
-from pglast.ast import RangeVar
-from pglast.ast import RawStmt
-from pglast.ast import ResTarget
-from pglast.ast import RowCompareExpr
-from pglast.ast import RowExpr
-from pglast.ast import ScalarArrayOpExpr
-from pglast.ast import SelectStmt
-from pglast.ast import SortBy
-from pglast.ast import SortGroupClause
-from pglast.ast import SQLValueFunction
-from pglast.ast import String
-from pglast.ast import SubLink
-from pglast.ast import TableFunc
-from pglast.ast import TableSampleClause
-from pglast.ast import TargetEntry
-from pglast.ast import TypeCast
-from pglast.ast import TypeName
-from pglast.ast import VacuumStmt
-from pglast.ast import VariableShowStmt
-from pglast.ast import WindowClause
-from pglast.ast import WindowDef
-from pglast.ast import WindowFunc
-from pglast.ast import WithClause
-from pglast.enums import A_Expr_Kind
+import pglast  # type: ignore[import-untyped]
+from pglast.ast import A_ArrayExpr  # type: ignore[import-untyped]
+from pglast.ast import A_Const  # type: ignore[import-untyped]
+from pglast.ast import A_Expr  # type: ignore[import-untyped]
+from pglast.ast import A_Indices  # type: ignore[import-untyped]
+from pglast.ast import A_Indirection  # type: ignore[import-untyped]
+from pglast.ast import A_Star  # type: ignore[import-untyped]
+from pglast.ast import Alias  # type: ignore[import-untyped]
+from pglast.ast import BitString  # type: ignore[import-untyped]
+from pglast.ast import Boolean  # type: ignore[import-untyped]
+from pglast.ast import BooleanTest  # type: ignore[import-untyped]
+from pglast.ast import BoolExpr  # type: ignore[import-untyped]
+from pglast.ast import CaseExpr  # type: ignore[import-untyped]
+from pglast.ast import CaseWhen  # type: ignore[import-untyped]
+from pglast.ast import ClosePortalStmt  # type: ignore[import-untyped]
+from pglast.ast import CoalesceExpr  # type: ignore[import-untyped]
+from pglast.ast import CollateClause  # type: ignore[import-untyped]
+from pglast.ast import ColumnRef  # type: ignore[import-untyped]
+from pglast.ast import CommonTableExpr  # type: ignore[import-untyped]
+from pglast.ast import CreateExtensionStmt  # type: ignore[import-untyped]
+from pglast.ast import DeallocateStmt  # type: ignore[import-untyped]
+from pglast.ast import DeclareCursorStmt  # type: ignore[import-untyped]
+from pglast.ast import DefElem  # type: ignore[import-untyped]
+from pglast.ast import ExplainStmt  # type: ignore[import-untyped]
+from pglast.ast import FetchStmt  # type: ignore[import-untyped]
+from pglast.ast import Float  # type: ignore[import-untyped]
+from pglast.ast import FromExpr  # type: ignore[import-untyped]
+from pglast.ast import FuncCall  # type: ignore[import-untyped]
+from pglast.ast import GroupingFunc  # type: ignore[import-untyped]
+from pglast.ast import GroupingSet  # type: ignore[import-untyped]
+from pglast.ast import Integer  # type: ignore[import-untyped]
+from pglast.ast import JoinExpr  # type: ignore[import-untyped]
+from pglast.ast import MinMaxExpr  # type: ignore[import-untyped]
+from pglast.ast import NamedArgExpr  # type: ignore[import-untyped]
+from pglast.ast import Node  # type: ignore[import-untyped]
+from pglast.ast import NotifyStmt  # type: ignore[import-untyped]
+from pglast.ast import NullTest  # type: ignore[import-untyped]
+from pglast.ast import ParamRef  # type: ignore[import-untyped]
+from pglast.ast import PrepareStmt  # type: ignore[import-untyped]
+from pglast.ast import RangeFunction  # type: ignore[import-untyped]
+from pglast.ast import RangeSubselect  # type: ignore[import-untyped]
+from pglast.ast import RangeTableFunc  # type: ignore[import-untyped]
+from pglast.ast import RangeTableFuncCol  # type: ignore[import-untyped]
+from pglast.ast import RangeTableSample  # type: ignore[import-untyped]
+from pglast.ast import RangeVar  # type: ignore[import-untyped]
+from pglast.ast import RawStmt  # type: ignore[import-untyped]
+from pglast.ast import ResTarget  # type: ignore[import-untyped]
+from pglast.ast import RowCompareExpr  # type: ignore[import-untyped]
+from pglast.ast import RowExpr  # type: ignore[import-untyped]
+from pglast.ast import ScalarArrayOpExpr  # type: ignore[import-untyped]
+from pglast.ast import SelectStmt  # type: ignore[import-untyped]
+from pglast.ast import SortBy  # type: ignore[import-untyped]
+from pglast.ast import SortGroupClause  # type: ignore[import-untyped]
+from pglast.ast import SQLValueFunction  # type: ignore[import-untyped]
+from pglast.ast import String  # type: ignore[import-untyped]
+from pglast.ast import SubLink  # type: ignore[import-untyped]
+from pglast.ast import TableFunc  # type: ignore[import-untyped]
+from pglast.ast import TableSampleClause  # type: ignore[import-untyped]
+from pglast.ast import TargetEntry  # type: ignore[import-untyped]
+from pglast.ast import TypeCast  # type: ignore[import-untyped]
+from pglast.ast import TypeName  # type: ignore[import-untyped]
+from pglast.ast import VacuumStmt  # type: ignore[import-untyped]
+from pglast.ast import VariableShowStmt  # type: ignore[import-untyped]
+from pglast.ast import WindowClause  # type: ignore[import-untyped]
+from pglast.ast import WindowDef  # type: ignore[import-untyped]
+from pglast.ast import WindowFunc  # type: ignore[import-untyped]
+from pglast.ast import WithClause  # type: ignore[import-untyped]
+from pglast.enums import A_Expr_Kind  # type: ignore[import-untyped]
 from psycopg.sql import SQL
 from psycopg.sql import Composable
 from psycopg.sql import Literal
@@ -878,12 +878,12 @@ class SafeSqlDriver(SqlDriver):
             raise ValueError(f"Node type {type(node)} is not allowed")
 
         # Validate LIKE patterns
-        if isinstance(node, A_Expr) and node.kind in (
+        if isinstance(node, A_Expr) and node.kind in (  # type: ignore[attr-defined]
             A_Expr_Kind.AEXPR_LIKE,
             A_Expr_Kind.AEXPR_ILIKE,
         ):
             # Get the right-hand side of the LIKE expression (the pattern)
-            if isinstance(node.rexpr, A_Const) and node.rexpr.val is not None and hasattr(node.rexpr.val, "sval") and node.rexpr.val.sval is not None:
+            if isinstance(node.rexpr, A_Const) and node.rexpr.val is not None and hasattr(node.rexpr.val, "sval") and node.rexpr.val.sval is not None:  # type: ignore[attr-defined]
                 # Nothing to do for now
                 pass
             else:
@@ -891,7 +891,7 @@ class SafeSqlDriver(SqlDriver):
 
         # Validate function calls
         if isinstance(node, FuncCall):
-            func_name = ".".join([str(n.sval) for n in node.funcname]).lower() if node.funcname else ""
+            func_name = ".".join([str(n.sval) for n in node.funcname]).lower() if node.funcname else ""  # type: ignore[attr-defined]
             # Strip pg_catalog schema if present
             match = self.PG_CATALOG_PATTERN.match(func_name)
             unqualified_name = match.group(1) if match else func_name
@@ -904,14 +904,14 @@ class SafeSqlDriver(SqlDriver):
 
         # Reject EXPLAIN ANALYZE statements
         if isinstance(node, ExplainStmt):
-            for option in node.options or []:
-                if isinstance(option, DefElem) and option.defname == "analyze":
+            for option in node.options or []:  # type: ignore[attr-defined]
+                if isinstance(option, DefElem) and option.defname == "analyze":  # type: ignore[attr-defined]
                     raise ValueError("EXPLAIN ANALYZE is not supported")
 
         # Reject CREATE EXTENSION statements
         if isinstance(node, CreateExtensionStmt):
-            if node.extname not in self.ALLOWED_EXTENSIONS:
-                raise ValueError(f"CREATE EXTENSION {node.extname} is not supported")
+            if node.extname not in self.ALLOWED_EXTENSIONS:  # type: ignore[attr-defined]
+                raise ValueError(f"CREATE EXTENSION {node.extname} is not supported")  # type: ignore[attr-defined]
 
         # Recursively validate all attributes that might be nodes
         for attr_name in node.__slots__:
@@ -927,13 +927,13 @@ class SafeSqlDriver(SqlDriver):
 
             # Handle lists of nodes
             if isinstance(attr, list):
-                for item in attr:
+                for item in attr:  # type: ignore[has-type]
                     if isinstance(item, Node):
                         self._validate_node(item)
 
             # Handle tuples of nodes
             elif isinstance(attr, tuple):
-                for item in attr:
+                for item in attr:  # type: ignore[has-type]
                     if isinstance(item, Node):
                         self._validate_node(item)
 
@@ -945,7 +945,7 @@ class SafeSqlDriver(SqlDriver):
         """Validate query is safe to execute"""
         try:
             # Parse the SQL using pglast
-            parsed = pglast.parse_sql(query)
+            parsed = pglast.parse_sql(query)  # type: ignore[no-untyped-call]
             # Pretty print the parsed SQL for debugging
             # print("Parsed SQL:")
             # import pprint
@@ -953,24 +953,24 @@ class SafeSqlDriver(SqlDriver):
 
             # Validate each statement
             try:
-                for stmt in parsed:
+                for stmt in parsed:  # type: ignore[has-type]
                     if isinstance(stmt, RawStmt):
                         # Check if the inner statement type is allowed
-                        if not isinstance(stmt.stmt, tuple(self.ALLOWED_STMT_TYPES)):
+                        if not isinstance(stmt.stmt, tuple(self.ALLOWED_STMT_TYPES)):  # type: ignore[attr-defined]
                             raise ValueError(
                                 "Only SELECT, ANALYZE, VACUUM, EXPLAIN, SHOW and other read-only statements are allowed. Received raw statement: "
-                                + str(stmt.stmt)
+                                + str(stmt.stmt)  # type: ignore[attr-defined]
                             )
                     else:
                         if not isinstance(stmt, tuple(self.ALLOWED_STMT_TYPES)):
                             raise ValueError(
-                                "Only SELECT, ANALYZE, VACUUM, EXPLAIN, SHOW and other read-only statements are allowed. Received: " + str(stmt)
+                                "Only SELECT, ANALYZE, VACUUM, EXPLAIN, SHOW and other read-only statements are allowed. Received: " + str(stmt)  # type: ignore[arg-type]
                             )
-                    self._validate_node(stmt)
+                    self._validate_node(stmt)  # type: ignore[arg-type]
             except Exception as e:
                 raise ValueError(f"Error validating query: {query}") from e
 
-        except pglast.parser.ParseError as e:
+        except pglast.parser.ParseError as e:  # type: ignore[attr-defined]
             raise ValueError("Failed to parse SQL statement") from e
 
     async def execute_query(

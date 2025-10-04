@@ -6,10 +6,12 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any
+from typing import Dict
 from typing import Iterable
+from typing import List
 
-from pglast import parse_sql
-from pglast.ast import SelectStmt
+from pglast import parse_sql  # type: ignore[import-untyped]
+from pglast.ast import SelectStmt  # type: ignore[import-untyped]
 
 from ..artifacts import calculate_improvement_multiple
 from ..explain import ExplainPlanTool
@@ -169,9 +171,9 @@ class IndexTuningBase(ABC):
         # Add memoization caches
         self.cost_cache: dict[frozenset[IndexDefinition], float] = {}
         self._size_estimate_cache: dict[tuple[str, frozenset[str]], int] = {}
-        self._table_size_cache = {}
-        self._estimate_table_size_cache = {}
-        self._explain_plans_cache = {}
+        self._table_size_cache: Dict[str, int] = {}
+        self._estimate_table_size_cache: Dict[str, int] = {}
+        self._explain_plans_cache: Dict[tuple[str, frozenset[IndexDefinition]], dict[str, Any]] = {}
         self._sql_bind_params = SqlBindParams(self.sql_driver)
 
         # Add trace accumulator
@@ -268,7 +270,7 @@ class IndexTuningBase(ABC):
 
             query_weights = self._covert_workload_to_query_weights(session.workload)
 
-            if query_weights is None or len(query_weights) == 0:
+            if len(query_weights) == 0:
                 self.dta_trace("No query provided")
                 session.recommendations = []
             else:
@@ -327,7 +329,7 @@ class IndexTuningBase(ABC):
 
     async def _validate_and_parse_workload(self, workload: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Validate the workload to ensure it is analyzable."""
-        validated_workload = []
+        validated_workload: List[Dict[str, Any]] = []
         for q in workload:
             query_text = q["query"]
             if not query_text:
@@ -338,11 +340,11 @@ class IndexTuningBase(ABC):
             # Replace parameter placeholders with dummy values
             query_text = await self._sql_bind_params.replace_parameters(query_text)
 
-            parsed = parse_sql(query_text)
+            parsed: Any = parse_sql(query_text)  # type: ignore[no-untyped-call]
             if not parsed:
                 logger.debug(f"Skipping non-parseable query: {query_text[:50]}...")
                 continue
-            stmt = parsed[0].stmt
+            stmt: Any = parsed[0].stmt  # type: ignore[attr-defined]
             if not self._is_analyzable_stmt(stmt):
                 logger.debug(f"Skipping non-analyzable query: {query_text[:50]}...")
                 continue
@@ -396,7 +398,7 @@ class IndexTuningBase(ABC):
 
             # Split the file content by semicolons to get individual queries
             query_texts = [q.strip() for q in content.split(";") if q.strip()]
-            queries = []
+            queries: List[Dict[str, Any]] = []
 
             for i, text in enumerate(query_texts):
                 queries.append(

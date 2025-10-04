@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Single global PostgreSQL version cache
 # TODO: If we support multiple connections in the future, this should be connection-specific
-_POSTGRES_VERSION = None
+_postgres_version: int | None = None
 
 
 @dataclass
@@ -27,8 +27,8 @@ class ExtensionStatus:
 
 def reset_postgres_version_cache() -> None:
     """Reset the PostgreSQL version cache. Primarily used for testing."""
-    global _POSTGRES_VERSION
-    _POSTGRES_VERSION = None
+    global _postgres_version
+    _postgres_version = None
 
 
 async def get_postgres_version(sql_driver: SqlDriver) -> int:
@@ -43,9 +43,9 @@ async def get_postgres_version(sql_driver: SqlDriver) -> int:
         Returns 0 if the version cannot be determined
     """
     # Check if we have a cached version
-    global _POSTGRES_VERSION
-    if _POSTGRES_VERSION is not None:
-        return _POSTGRES_VERSION
+    global _postgres_version
+    if _postgres_version is not None:
+        return _postgres_version
 
     try:
         rows = await sql_driver.execute_query("SHOW server_version")
@@ -59,7 +59,7 @@ async def get_postgres_version(sql_driver: SqlDriver) -> int:
         version = int(major_version)
 
         # Cache the version globally
-        _POSTGRES_VERSION = version
+        _postgres_version = version
 
         return version
     except Exception as e:

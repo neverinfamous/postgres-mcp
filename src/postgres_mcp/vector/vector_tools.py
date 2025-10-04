@@ -332,7 +332,7 @@ class VectorTools:
             columns = "*" if not return_columns else ", ".join([f"{col}" for col in return_columns])
 
             # Build WHERE clause
-            where_parts = []
+            where_parts: List[str] = []
             if where_clause:
                 where_parts.append(where_clause)
             if threshold is not None:
@@ -549,7 +549,7 @@ class VectorTools:
 
             # Build recommendations
             options = index_options or {}
-            recommendations = []
+            recommendations: List[str] = []
 
             if index_type == "hnsw":
                 m = options.get("m", 16)
@@ -870,13 +870,13 @@ class VectorTools:
                 indexname,
                 indexdef
             FROM pg_indexes
-            WHERE tablename = {}
-                AND indexdef LIKE '%' || {} || '%'
+            WHERE tablename = %s
+                AND indexdef LIKE %s
             """
 
             result = await self.sql_driver.execute_query(
                 cast(LiteralString, index_query),
-                [table_name, vector_column],
+                [table_name, f'%{vector_column}%'],
             )
 
             has_index = bool(result and len(result) > 0)
@@ -895,7 +895,7 @@ class VectorTools:
             table_size = result[0].cells.get("table_size") if result else "Unknown"
 
             # Build recommendations
-            recommendations = []
+            recommendations: List[str] = []
 
             if not has_index:
                 recommendations.append("⚠️ No vector index found - queries will be slow")

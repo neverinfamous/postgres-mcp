@@ -1,4 +1,5 @@
 import json
+from typing import Any, Dict, List
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -10,12 +11,12 @@ import postgres_mcp.server as server
 
 
 class MockCell:
-    def __init__(self, data):
+    def __init__(self, data: Dict[str, Any]):
         self.cells = data
 
 
 @pytest_asyncio.fixture
-async def mock_db_connection():
+async def mock_db_connection() -> MagicMock:
     """Create a mock DB connection."""
     conn = MagicMock()
     conn.pool_connect = AsyncMock()
@@ -24,7 +25,7 @@ async def mock_db_connection():
 
 
 @pytest.mark.asyncio
-async def test_server_tools_registered():
+async def test_server_tools_registered() -> None:
     """Test that the explain tools are properly registered in the server."""
     # Check that the explain tool is registered
     assert hasattr(server, "explain_query")
@@ -34,7 +35,7 @@ async def test_server_tools_registered():
 
 
 @pytest.mark.asyncio
-async def test_explain_query_basic():
+async def test_explain_query_basic() -> None:
     """Test explain_query with basic parameters."""
     # Expected output
     expected_output = {"Plan": {"Node Type": "Seq Scan"}}
@@ -46,16 +47,16 @@ async def test_explain_query_basic():
     # Use patch to replace the actual explain_query function with our own mock
     with patch.object(server, "explain_query", return_value=[mock_response]):
         # Call the patched function
-        result = await server.explain_query("SELECT * FROM users")
+        result: List[Any] = await server.explain_query("SELECT * FROM users")
 
         # Verify we get the expected result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert json.loads(result[0].text) == expected_output
+        assert json.loads(result[0].text) == expected_output  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_explain_query_analyze():
+async def test_explain_query_analyze() -> None:
     """Test explain_query with analyze=True."""
     # Expected output with execution statistics
     expected_output = {
@@ -74,16 +75,16 @@ async def test_explain_query_analyze():
     # Use patch to replace the actual explain_query function with our own mock
     with patch.object(server, "explain_query", return_value=[mock_response]):
         # Call the patched function with analyze=True
-        result = await server.explain_query("SELECT * FROM users", analyze=True)
+        result: List[Any] = await server.explain_query("SELECT * FROM users", analyze=True)
 
         # Verify we get the expected result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert json.loads(result[0].text) == expected_output
+        assert json.loads(result[0].text) == expected_output  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_explain_query_hypothetical_indexes():
+async def test_explain_query_hypothetical_indexes() -> None:
     """Test explain_query with hypothetical indexes."""
     # Expected output with an index scan
     expected_output = {
@@ -104,16 +105,16 @@ async def test_explain_query_hypothetical_indexes():
     # Use patch to replace the actual explain_query function with our own mock
     with patch.object(server, "explain_query", return_value=[mock_response]):
         # Call the patched function with hypothetical_indexes
-        result = await server.explain_query(test_sql, hypothetical_indexes=test_indexes)
+        result: List[Any] = await server.explain_query(test_sql, hypothetical_indexes=test_indexes)
 
         # Verify we get the expected result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert json.loads(result[0].text) == expected_output
+        assert json.loads(result[0].text) == expected_output  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
-async def test_explain_query_error_handling():
+async def test_explain_query_error_handling() -> None:
     """Test explain_query error handling."""
     # Create a mock error response
     error_message = "Error executing query"
@@ -123,9 +124,9 @@ async def test_explain_query_error_handling():
     # Use patch to replace the actual function with our mock that returns an error
     with patch.object(server, "explain_query", return_value=[mock_response]):
         # Call the patched function
-        result = await server.explain_query("INVALID SQL")
+        result: List[Any] = await server.explain_query("INVALID SQL")
 
         # Verify error is formatted correctly
         assert isinstance(result, list)
         assert len(result) == 1
-        assert error_message in result[0].text
+        assert error_message in result[0].text  # type: ignore[attr-defined]

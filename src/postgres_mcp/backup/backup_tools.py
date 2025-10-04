@@ -157,7 +157,7 @@ class BackupTools:
 
             tables = await self.sql_driver.execute_query(table_query, params)
 
-            table_list = []
+            table_list: List[Dict[str, Any]] = []
             total_size = 0
             total_rows = 0
 
@@ -306,7 +306,7 @@ class BackupTools:
             )
             wal_settings = await self.sql_driver.execute_query(wal_query)
 
-            config = {}
+            config: Dict[str, Dict[str, Any]] = {}
             if wal_settings:
                 for setting in wal_settings:
                     name = setting.cells.get("name", "")
@@ -314,7 +314,7 @@ class BackupTools:
                     unit = setting.cells.get("unit", "")
                     context = setting.cells.get("context", "")
 
-                    config[name] = {
+                    config[str(name)] = {
                         "value": value,
                         "unit": unit if unit else None,
                         "context": context,
@@ -323,9 +323,9 @@ class BackupTools:
             result["configuration"]["wal_settings"] = config
 
             # Check if WAL archiving is enabled
-            recommendations = []
-            wal_level = config.get("wal_level", {}).get("value", "")
-            archive_mode = config.get("archive_mode", {}).get("value", "")
+            recommendations: List[Dict[str, Any]] = []
+            wal_level = str(config.get("wal_level", {}).get("value", ""))
+            archive_mode = str(config.get("archive_mode", {}).get("value", ""))
 
             if wal_level not in ("replica", "logical"):
                 recommendations.append(
@@ -366,7 +366,7 @@ class BackupTools:
                 )
                 slots = await self.sql_driver.execute_query(slot_query)
 
-                slot_list = []
+                slot_list: List[Dict[str, Any]] = []
                 if slots:
                     for slot in slots:
                         slot_list.append(
@@ -537,7 +537,7 @@ class BackupTools:
                 )
                 invalid_constraints = await self.sql_driver.execute_query(constraint_query)
 
-                constraint_list = []
+                constraint_list: List[Dict[str, Any]] = []
                 if invalid_constraints:
                     for constraint in invalid_constraints:
                         constraint_list.append(

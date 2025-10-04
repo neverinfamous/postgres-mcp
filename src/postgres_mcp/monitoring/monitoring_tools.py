@@ -11,6 +11,7 @@ This module provides 5 monitoring and alerting tools:
 import logging
 from typing import Any
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import cast
 
@@ -120,7 +121,7 @@ class MonitoringTools:
             )
             connections = await self.sql_driver.execute_query(conn_query)
 
-            conn_summary = []
+            conn_summary: List[Dict[str, Any]] = []
             total_connections = 0
             if connections:
                 for conn in connections:
@@ -163,7 +164,7 @@ class MonitoringTools:
                 """
                 queries = await self.sql_driver.execute_query(query_query, [limit])
 
-                query_list = []
+                query_list: List[Dict[str, Any]] = []
                 if queries:
                     for query in queries:
                         duration = safe_float(query.cells.get("duration_seconds", 0))
@@ -202,7 +203,7 @@ class MonitoringTools:
                 """
                 locks = await self.sql_driver.execute_query(lock_query, [limit])
 
-                lock_list = []
+                lock_list: List[Dict[str, Any]] = []
                 total_locks = 0
                 total_blocked = 0
                 if locks:
@@ -530,7 +531,7 @@ class MonitoringTools:
                 """
                 tables = await self.sql_driver.execute_query(table_query, [10])
 
-                table_list = []
+                table_list: List[Dict[str, Any]] = []
                 if tables:
                     for table in tables:
                         table_size = safe_int(table.cells.get("total_size", 0)) or 0
@@ -575,7 +576,7 @@ class MonitoringTools:
                 """
                 indexes = await self.sql_driver.execute_query(index_query, [10])
 
-                index_list = []
+                index_list: List[Dict[str, Any]] = []
                 if indexes:
                     for index in indexes:
                         index_size = safe_int(index.cells.get("index_size", 0)) or 0
@@ -933,7 +934,7 @@ class MonitoringTools:
                     )
                     senders = await self.sql_driver.execute_query(sender_query)
 
-                    sender_list = []
+                    sender_list: List[Dict[str, Any]] = []
                     if senders:
                         for sender in senders:
                             sender_list.append(
@@ -975,7 +976,7 @@ class MonitoringTools:
                 )
                 slots = await self.sql_driver.execute_query(slot_query)
 
-                slot_list = []
+                slot_list: List[Dict[str, Any]] = []
                 inactive_slots = 0
                 if slots:
                     for slot in slots:

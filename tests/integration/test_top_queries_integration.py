@@ -1,4 +1,6 @@
 import logging
+from typing import Any
+from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
@@ -11,8 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 @pytest_asyncio.fixture
-async def local_sql_driver(test_postgres_connection_string):
+async def local_sql_driver(test_postgres_connection_string: Any) -> AsyncGenerator[SqlDriver, None]:
     """Create a SQL driver connected to a real PostgreSQL database."""
+    connection_string: str
+    version: Any
     connection_string, version = test_postgres_connection_string
     logger.info(f"Using connection string: {connection_string}")
     logger.info(f"Using version: {version}")
@@ -24,20 +28,20 @@ async def local_sql_driver(test_postgres_connection_string):
     finally:
         # Cleanup
         if hasattr(driver, "conn") and driver.conn is not None:
-            await driver.conn.close()
+            await driver.conn.close()  # type: ignore[attr-defined]
 
 
-async def setup_test_data(sql_driver):
+async def setup_test_data(sql_driver: SqlDriver) -> None:
     """Set up test data with sample queries to analyze."""
     # Ensure pg_stat_statements extension is available
     try:
         # Check if extension exists
-        rows = await sql_driver.execute_query("SELECT 1 FROM pg_available_extensions WHERE name = 'pg_stat_statements'")
+        rows = await sql_driver.execute_query("SELECT 1 FROM pg_available_extensions WHERE name = 'pg_stat_statements'")  # type: ignore[attr-defined]
 
         if rows and len(rows) > 0:
             # Try to create extension if not already installed
             try:
-                await sql_driver.execute_query("CREATE EXTENSION IF NOT EXISTS pg_stat_statements")
+                await sql_driver.execute_query("CREATE EXTENSION IF NOT EXISTS pg_stat_statements")  # type: ignore[attr-defined]
                 logger.info("pg_stat_statements extension created or already exists")
             except Exception as e:
                 logger.warning(f"Unable to create pg_stat_statements extension: {e}")
@@ -46,7 +50,7 @@ async def setup_test_data(sql_driver):
             pytest.skip("pg_stat_statements extension not available")
 
         # Create test tables
-        await sql_driver.execute_query("""
+        await sql_driver.execute_query("""  # type: ignore[attr-defined]
             DROP TABLE IF EXISTS test_items;
             CREATE TABLE test_items (
                 id SERIAL PRIMARY KEY,
@@ -56,7 +60,7 @@ async def setup_test_data(sql_driver):
         """)
 
         # Insert test data
-        await sql_driver.execute_query("""
+        await sql_driver.execute_query("""  # type: ignore[attr-defined]
             INSERT INTO test_items (name, value)
             SELECT
                 'Item ' || i,
@@ -65,16 +69,16 @@ async def setup_test_data(sql_driver):
         """)
 
         # Reset pg_stat_statements to ensure clean data
-        await sql_driver.execute_query("SELECT pg_stat_statements_reset()")
+        await sql_driver.execute_query("SELECT pg_stat_statements_reset()")  # type: ignore[attr-defined]
 
         # Run queries several times to ensure they're captured and have significant stats
         # Query 1: Simple select (should be fast)
         for _i in range(10):
-            await sql_driver.execute_query("SELECT COUNT(*) FROM test_items")
+            await sql_driver.execute_query("SELECT COUNT(*) FROM test_items")  # type: ignore[attr-defined]
 
         # Query 2: More complex query (should be slower)
         for _i in range(5):
-            await sql_driver.execute_query("""
+            await sql_driver.execute_query("""  # type: ignore[attr-defined]
                 SELECT name, value
                 FROM test_items
                 WHERE value > 500
@@ -83,7 +87,7 @@ async def setup_test_data(sql_driver):
 
         # Query 3: Very slow query - run more times to ensure it shows up
         for _i in range(10):
-            await sql_driver.execute_query("""
+            await sql_driver.execute_query("""  # type: ignore[attr-defined]
                 SELECT t1.name, t2.name
                 FROM test_items t1
                 CROSS JOIN test_items t2
@@ -96,17 +100,17 @@ async def setup_test_data(sql_driver):
         raise
 
 
-async def cleanup_test_data(sql_driver):
+async def cleanup_test_data(sql_driver: SqlDriver) -> None:
     """Clean up test data."""
     try:
-        await sql_driver.execute_query("DROP TABLE IF EXISTS test_items")
-        await sql_driver.execute_query("SELECT pg_stat_statements_reset()")
+        await sql_driver.execute_query("DROP TABLE IF EXISTS test_items")  # type: ignore[attr-defined]
+        await sql_driver.execute_query("SELECT pg_stat_statements_reset()")  # type: ignore[attr-defined]
     except Exception as e:
         logger.warning(f"Error cleaning up test data: {e}")
 
 
 @pytest.mark.asyncio
-async def test_get_top_queries_integration(local_sql_driver):
+async def test_get_top_queries_integration(local_sql_driver: SqlDriver) -> None:
     """
     Integration test for get_top_queries with a real database.
     """
@@ -114,7 +118,7 @@ async def test_get_top_queries_integration(local_sql_driver):
         await setup_test_data(local_sql_driver)
 
         # Verify pg_stat_statements has captured our queries
-        pg_stats = await local_sql_driver.execute_query("SELECT query FROM pg_stat_statements WHERE query LIKE '%CROSS JOIN%' LIMIT 1")
+        pg_stats = await local_sql_driver.execute_query("SELECT query FROM pg_stat_statements WHERE query LIKE '%CROSS JOIN%' LIMIT 1")  # type: ignore[attr-defined]
         if not pg_stats or len(pg_stats) == 0:
             pytest.skip("pg_stat_statements did not capture the CROSS JOIN query")
 
@@ -148,7 +152,7 @@ async def test_get_top_queries_integration(local_sql_driver):
 
 
 @pytest.mark.asyncio
-async def test_extension_not_available(local_sql_driver):
+async def test_extension_not_available(local_sql_driver: SqlDriver) -> None:
     """Test behavior when pg_stat_statements extension is not available."""
     # Create the TopQueriesCalc instance
     calc = TopQueriesCalc(sql_driver=local_sql_driver)
@@ -156,11 +160,10 @@ async def test_extension_not_available(local_sql_driver):
     # Need to patch at the module level for proper mocking
     with pytest.MonkeyPatch().context() as mp:
         # Import the module we'll be monkeypatching
-        import postgres_mcp.sql.extension_utils
         from postgres_mcp.sql.extension_utils import ExtensionStatus
 
         # Define our mock function with the correct type signature
-        async def mock_check(*args, **kwargs):
+        async def mock_check(*args: Any, **kwargs: Any) -> ExtensionStatus:
             return ExtensionStatus(
                 is_installed=False,
                 is_available=True,
@@ -171,7 +174,7 @@ async def test_extension_not_available(local_sql_driver):
 
         # Replace the function with our mock
         # We need to patch the actual function imported by TopQueriesCalc
-        mp.setattr(postgres_mcp.top_queries.top_queries_calc, "check_extension", mock_check)
+        mp.setattr(postgres_mcp.top_queries.top_queries_calc, "check_extension", mock_check)  # type: ignore[arg-type]
 
         # Run the test
         result = await calc.get_top_queries_by_time()

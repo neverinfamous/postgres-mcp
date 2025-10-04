@@ -554,7 +554,7 @@ class GeospatialTools:
 
             # Build recommendations
             options = index_options or {}
-            recommendations = []
+            recommendations: List[str] = []
 
             if index_type == "gist":
                 recommendations.append(f"CREATE INDEX ON {table_name} USING GIST ({geometry_column});")

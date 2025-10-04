@@ -1,4 +1,6 @@
 from typing import Any
+from typing import Dict
+from typing import List
 
 from ..sql import SafeSqlDriver
 from ..sql import SqlDriver
@@ -21,10 +23,10 @@ class IndexHealthCalc:
 
     async def duplicate_index_check(self) -> str:
         indexes = await self._indexes()
-        dup_indexes = []
+        dup_indexes: List[Dict[str, Any]] = []
 
         # Group indexes by schema and table
-        indexes_by_table = {}
+        indexes_by_table: Dict[tuple[Any, Any], List[Dict[str, Any]]] = {}
         for idx in indexes:
             key = (idx["schema"], idx["table"])
             if key not in indexes_by_table:
@@ -33,9 +35,10 @@ class IndexHealthCalc:
 
         # Check each valid non-primary/unique index for duplicates
         for index in [i for i in indexes if i["valid"] and not i["primary"] and not i["unique"]]:
-            table_indexes = indexes_by_table[(index["schema"], index["table"])]
+            table_indexes: List[Dict[str, Any]] = indexes_by_table[(index["schema"], index["table"])]
 
             # Find covering indexes
+            covering_idx: Dict[str, Any]
             for covering_idx in table_indexes:
                 if (
                     covering_idx["valid"]
@@ -59,7 +62,7 @@ class IndexHealthCalc:
             return "No duplicate indexes found."
 
         # Sort by table and columns and format the output
-        sorted_dups = sorted(
+        sorted_dups: List[Dict[str, Any]] = sorted(
             dup_indexes,
             key=lambda x: (
                 x["unneeded_index"]["table"],
@@ -68,6 +71,7 @@ class IndexHealthCalc:
         )
 
         result = ["Duplicate indexes found:"]
+        dup: Dict[str, Any]
         for dup in sorted_dups:
             result.append(
                 f"Index '{dup['unneeded_index']['name']}' on table '{dup['unneeded_index']['table']}' "

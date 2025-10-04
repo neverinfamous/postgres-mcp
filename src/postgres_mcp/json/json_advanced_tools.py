@@ -77,7 +77,7 @@ class JsonAdvancedTools:
         """
         try:
             # Build WHERE clause
-            where_parts = []
+            where_parts: List[str] = []
 
             if filter_conditions:
                 for condition in filter_conditions:
@@ -384,7 +384,7 @@ class JsonAdvancedTools:
                 return {"success": True, "data": {}, "count": 0}
 
             # Convert to flat dictionary
-            flattened = {}
+            flattened: Dict[str, Any] = {}
             for row in result:
                 cells = row.cells
                 flattened[cells.get("path", "")] = cells.get("value")
@@ -496,7 +496,7 @@ class JsonAdvancedTools:
                                     common_paths=['$.theme', '$.language'])
         """
         try:
-            recommendations = []
+            recommendations: List[Dict[str, str]] = []
 
             # Recommend GIN index for general JSON querying
             recommendations.append(
@@ -572,23 +572,24 @@ class JsonAdvancedTools:
             if isinstance(json_data, str):
                 json_data = json.loads(json_data)
 
-            issues = []
+            issues: List[Dict[str, str]] = []
 
             # Flatten JSON for scanning
-            def flatten_values(obj, prefix=""):
+            def flatten_values(obj: Any, prefix: str = "") -> List[tuple[str, str]]:
                 """Recursively flatten JSON to get all string values."""
-                values = []
+                values: List[tuple[str, str]] = []
                 if isinstance(obj, dict):
-                    for key, value in obj.items():
-                        values.extend(flatten_values(value, f"{prefix}.{key}" if prefix else key))
+                    for key, value in obj.items():  # type: ignore[attr-defined]
+                        key_str = str(key)  # type: ignore[arg-type]
+                        values.extend(flatten_values(value, f"{prefix}.{key_str}" if prefix else key_str))
                 elif isinstance(obj, list):
-                    for i, item in enumerate(obj):
+                    for i, item in enumerate(obj):  # type: ignore[var-annotated]
                         values.extend(flatten_values(item, f"{prefix}[{i}]"))
                 elif isinstance(obj, str):
                     values.append((prefix, obj))
                 return values
 
-            flat_values = flatten_values(json_data)
+            flat_values: List[tuple[str, str]] = flatten_values(json_data)
 
             # Check for SQL injection patterns
             if check_injection:

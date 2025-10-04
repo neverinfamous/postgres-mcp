@@ -4,7 +4,7 @@ import logging
 import re
 from typing import Any
 
-from pglast import parse_sql
+from pglast import parse_sql  # type: ignore[attr-defined]
 from pglast.ast import A_Expr
 from pglast.ast import ColumnRef
 from pglast.ast import JoinExpr
@@ -32,25 +32,25 @@ class TableAliasVisitor(Visitor):
         self.aliases: dict[str, str] = {}
         self.tables: set[str] = set()
 
-    def __call__(self, node):
-        super().__call__(node)
+    def __call__(self, node: Any) -> tuple[dict[str, str], set[str]]:  # type: ignore[override]
+        super().__call__(node)  # type: ignore[misc]
         return self.aliases, self.tables
 
     def visit_RangeVar(self, ancestors: list[Node], node: Node) -> None:  # noqa: N802
         """Visit table references, including those in FROM clause."""
         if isinstance(node, RangeVar):  # Type narrowing for RangeVar
-            if node.relname is not None:
-                self.tables.add(node.relname)
-            if node.alias and node.alias.aliasname is not None:
-                self.aliases[node.alias.aliasname] = str(node.relname)
+            if node.relname is not None:  # type: ignore[attr-defined]
+                self.tables.add(node.relname)  # type: ignore[attr-defined, arg-type]
+            if node.alias and node.alias.aliasname is not None:  # type: ignore[attr-defined]
+                self.aliases[node.alias.aliasname] = str(node.relname)  # type: ignore[attr-defined, arg-type]
 
     def visit_JoinExpr(self, ancestors: list[Node], node: Node) -> None:  # noqa: N802
         """Visit both sides of JOIN expressions."""
         if isinstance(node, JoinExpr):  # Type narrowing for JoinExpr
-            if node.larg is not None:
-                self(node.larg)  # type: ignore
-            if node.rarg is not None:
-                self(node.rarg)  # type: ignore
+            if node.larg is not None:  # type: ignore[attr-defined]
+                self(node.larg)  # type: ignore[attr-defined]
+            if node.rarg is not None:  # type: ignore[attr-defined]
+                self(node.rarg)  # type: ignore[attr-defined]
 
 
 class ColumnCollector(Visitor):
@@ -61,15 +61,15 @@ class ColumnCollector(Visitor):
 
     def __init__(self) -> None:
         super().__init__()
-        self.context_stack = []  # Stack of (tables, aliases) for each scope
-        self.columns = {}  # Collected columns, keyed by table
-        self.target_list = None
+        self.context_stack: list[tuple[set[str], dict[str, str]]] = []  # Stack of (tables, aliases) for each scope
+        self.columns: dict[str, set[str]] = {}  # Collected columns, keyed by table
+        self.target_list: Any = None
         self.inside_select = False
-        self.column_aliases = {}  # Track column aliases and their definitions
+        self.column_aliases: dict[str, dict[str, Any]] = {}  # Track column aliases and their definitions
         self.current_query_level = 0  # Track nesting level for subqueries
 
-    def __call__(self, node):
-        super().__call__(node)
+    def __call__(self, node: Any) -> dict[str, set[str]]:  # type: ignore[override]
+        super().__call__(node)  # type: ignore[misc]
         return self.columns
 
     def visit_SelectStmt(self, ancestors: list[Node], node: Node) -> None:  # noqa: N802
@@ -81,9 +81,9 @@ class ColumnCollector(Visitor):
 
             # Collect tables and aliases
             alias_visitor = TableAliasVisitor()
-            if hasattr(node, "fromClause") and node.fromClause:
-                for from_item in node.fromClause:
-                    alias_visitor(from_item)
+            if hasattr(node, "fromClause") and node.fromClause:  # type: ignore[attr-defined]
+                for from_item in node.fromClause:  # type: ignore[attr-defined]
+                    alias_visitor(from_item)  # type: ignore[arg-type]
             scope_tables = alias_visitor.tables
             scope_aliases = alias_visitor.aliases
 
@@ -91,16 +91,16 @@ class ColumnCollector(Visitor):
             self.context_stack.append((scope_tables, scope_aliases))
 
             # First pass: collect column aliases from targetList
-            if hasattr(node, "targetList") and node.targetList:
-                self.target_list = node.targetList
-                for target_entry in self.target_list:
-                    if hasattr(target_entry, "name") and target_entry.name:
+            if hasattr(node, "targetList") and node.targetList:  # type: ignore[attr-defined]
+                self.target_list = node.targetList  # type: ignore[attr-defined]
+                for target_entry in self.target_list:  # type: ignore[attr-defined]
+                    if hasattr(target_entry, "name") and target_entry.name:  # type: ignore[attr-defined]
                         # This is a column alias
-                        col_alias = target_entry.name
+                        col_alias = target_entry.name  # type: ignore[attr-defined]
                         # Store the expression node for this alias
-                        if hasattr(target_entry, "val"):
+                        if hasattr(target_entry, "val"):  # type: ignore[attr-defined]
                             self.column_aliases[col_alias] = {
-                                "node": target_entry.val,
+                                "node": target_entry.val,  # type: ignore[attr-defined]
                                 "level": query_level,
                             }
 
@@ -112,55 +112,55 @@ class ColumnCollector(Visitor):
             self.inside_select = False
             self.current_query_level -= 1
 
-    def _process_query_clauses(self, node):
+    def _process_query_clauses(self, node: Any) -> None:
         """Process various query clauses for column collection."""
         # Process targetList expressions
-        if hasattr(node, "targetList") and node.targetList:
-            self.target_list = node.targetList
-            for target_entry in self.target_list:
-                if hasattr(target_entry, "val"):
-                    self(target_entry.val)
+        if hasattr(node, "targetList") and node.targetList:  # type: ignore[attr-defined]
+            self.target_list = node.targetList  # type: ignore[attr-defined]
+            for target_entry in self.target_list:  # type: ignore[attr-defined]
+                if hasattr(target_entry, "val"):  # type: ignore[attr-defined]
+                    self(target_entry.val)  # type: ignore[attr-defined]
 
         # Handle GROUP BY clause
-        if hasattr(node, "groupClause") and node.groupClause:
-            for group_item in node.groupClause:
-                if isinstance(group_item, SortGroupClause) and isinstance(group_item.tleSortGroupRef, int):
-                    ref_index = group_item.tleSortGroupRef
-                    if self.target_list and ref_index <= len(self.target_list):
-                        target_entry = self.target_list[ref_index - 1]  # 1-based index
-                        if hasattr(target_entry, "val"):
-                            self(target_entry.val)
-                        if hasattr(target_entry, "expr"):
-                            self(target_entry.expr)  # Visit the expression
+        if hasattr(node, "groupClause") and node.groupClause:  # type: ignore[attr-defined]
+            for group_item in node.groupClause:  # type: ignore[attr-defined]
+                if isinstance(group_item, SortGroupClause) and isinstance(group_item.tleSortGroupRef, int):  # type: ignore[attr-defined]
+                    ref_index = group_item.tleSortGroupRef  # type: ignore[attr-defined]
+                    if self.target_list and ref_index <= len(self.target_list):  # type: ignore[arg-type]
+                        target_entry = self.target_list[ref_index - 1]  # type: ignore[index] # 1-based index
+                        if hasattr(target_entry, "val"):  # type: ignore[attr-defined]
+                            self(target_entry.val)  # type: ignore[attr-defined]
+                        if hasattr(target_entry, "expr"):  # type: ignore[attr-defined]
+                            self(target_entry.expr)  # type: ignore[attr-defined]  # Visit the expression
 
         # Process WHERE clause (including subqueries)
-        if hasattr(node, "whereClause") and node.whereClause:
-            self(node.whereClause)
+        if hasattr(node, "whereClause") and node.whereClause:  # type: ignore[attr-defined]
+            self(node.whereClause)  # type: ignore[attr-defined]
 
         # Process FROM clause (may contain subqueries)
-        if hasattr(node, "fromClause") and node.fromClause:
-            for from_item in node.fromClause:
+        if hasattr(node, "fromClause") and node.fromClause:  # type: ignore[attr-defined]
+            for from_item in node.fromClause:  # type: ignore[attr-defined]
                 self(from_item)
 
         # Process HAVING clause
-        if hasattr(node, "havingClause") and node.havingClause:
-            self(node.havingClause)
+        if hasattr(node, "havingClause") and node.havingClause:  # type: ignore[attr-defined]
+            self(node.havingClause)  # type: ignore[attr-defined]
 
         # Handle ORDER BY clause
-        if hasattr(node, "sortClause") and node.sortClause:
-            for sort_item in node.sortClause:
+        if hasattr(node, "sortClause") and node.sortClause:  # type: ignore[attr-defined]
+            for sort_item in node.sortClause:  # type: ignore[attr-defined]
                 self._process_sort_item(sort_item)
 
-    def _process_sort_item(self, sort_item):
+    def _process_sort_item(self, sort_item: Any) -> None:
         """Process a sort item, resolving column aliases if needed."""
-        if not hasattr(sort_item, "node"):
+        if not hasattr(sort_item, "node"):  # type: ignore[attr-defined]
             return
 
         # If it's a simple column reference, it might be an alias
-        if isinstance(sort_item.node, ColumnRef) and hasattr(sort_item.node, "fields") and sort_item.node.fields:
-            fields = [f.sval for f in sort_item.node.fields if hasattr(f, "sval")]
+        if isinstance(sort_item.node, ColumnRef) and hasattr(sort_item.node, "fields") and sort_item.node.fields:  # type: ignore[attr-defined]
+            fields: list[str] = [f.sval for f in sort_item.node.fields if hasattr(f, "sval")]  # type: ignore[attr-defined, union-attr, misc]
             if len(fields) == 1:
-                col_name = fields[0]
+                col_name: str = fields[0]  # type: ignore[misc]
                 # Check if this is a known alias
                 if col_name in self.column_aliases:
                     # Process the original expression instead
@@ -170,15 +170,15 @@ class ColumnCollector(Visitor):
                         return
 
         # Regular processing for non-alias sort items
-        self(sort_item.node)
+        self(sort_item.node)  # type: ignore[attr-defined]
 
     def visit_ColumnRef(self, ancestors: list[Node], node: Node) -> None:  # noqa: N802
         """Visit a ColumnRef node and collect column names, skipping aliases."""
         if isinstance(node, ColumnRef) and self.inside_select:
-            if not hasattr(node, "fields") or not node.fields:
+            if not hasattr(node, "fields") or not node.fields:  # type: ignore[attr-defined]
                 return
 
-            fields = [f.sval if hasattr(f, "sval") else "*" for f in node.fields]
+            fields: list[str] = [f.sval if hasattr(f, "sval") else "*" for f in node.fields]  # type: ignore[attr-defined, union-attr, misc]
 
             # Skip collecting if this is a reference to a column alias
             if len(fields) == 1 and (fields[0] == "*" or fields[0] in self.column_aliases):
@@ -188,16 +188,19 @@ class ColumnCollector(Visitor):
                 return
 
             # Use current scope's tables and aliases
-            current_tables, current_aliases = self.context_stack[-1] if self.context_stack else ({}, {})
+            current_tables: set[str]
+            current_aliases: dict[str, str]
+            current_tables, current_aliases = self.context_stack[-1] if self.context_stack else (set(), {})  # type: ignore[assignment]
 
             if len(fields) == 2:  # Qualified column (e.g., u.name)
-                table_or_alias, column = fields
+                table_or_alias: str = fields[0]  # type: ignore[misc]
+                column: str = fields[1]  # type: ignore[misc]
                 table = current_aliases.get(table_or_alias, table_or_alias)
                 if table not in self.columns:
                     self.columns[table] = set()
                 self.columns[table].add(column)
             elif len(fields) == 1:  # Unqualified column
-                column = fields[0]
+                column: str = fields[0]  # type: ignore[misc, no-redef]
                 if len(current_tables) == 1:  # Only one table in scope
                     table = next(iter(current_tables))
                     if table not in self.columns:
@@ -224,34 +227,34 @@ class ColumnCollector(Visitor):
         """
         if isinstance(node, A_Expr) and self.inside_select:
             # Process left expression
-            if hasattr(node, "lexpr") and node.lexpr:
-                self(node.lexpr)
-                if isinstance(node.lexpr, SelectStmt):
+            if hasattr(node, "lexpr") and node.lexpr:  # type: ignore[attr-defined]
+                self(node.lexpr)  # type: ignore[attr-defined]
+                if isinstance(node.lexpr, SelectStmt):  # type: ignore[attr-defined]
                     alias_visitor = TableAliasVisitor()
-                    alias_visitor(node.lexpr)
+                    alias_visitor(node.lexpr)  # type: ignore[attr-defined, arg-type]
                     self.context_stack.append((alias_visitor.tables, alias_visitor.aliases))
-                    self(node.lexpr)
+                    self(node.lexpr)  # type: ignore[attr-defined]
                     self.context_stack.pop()
 
             # Process right expression
-            if hasattr(node, "rexpr") and node.rexpr:
-                if isinstance(node.rexpr, SelectStmt):
+            if hasattr(node, "rexpr") and node.rexpr:  # type: ignore[attr-defined]
+                if isinstance(node.rexpr, SelectStmt):  # type: ignore[attr-defined]
                     alias_visitor = TableAliasVisitor()
-                    alias_visitor(node.rexpr)
+                    alias_visitor(node.rexpr)  # type: ignore[attr-defined, arg-type]
                     self.context_stack.append((alias_visitor.tables, alias_visitor.aliases))
-                    self(node.rexpr)
+                    self(node.rexpr)  # type: ignore[attr-defined]
                     self.context_stack.pop()
                 else:
-                    self(node.rexpr)
+                    self(node.rexpr)  # type: ignore[attr-defined]
 
             # Special handling for IN clauses with subqueries
-            if hasattr(node, "kind") and node.kind == 0:  # 0 is the kind for IN operator
-                if hasattr(node, "rexpr") and node.rexpr and isinstance(node.rexpr, SelectStmt):
+            if hasattr(node, "kind") and node.kind == 0:  # type: ignore[attr-defined] # 0 is the kind for IN operator
+                if hasattr(node, "rexpr") and node.rexpr and isinstance(node.rexpr, SelectStmt):  # type: ignore[attr-defined]
                     # Process the subquery in the IN clause
                     alias_visitor = TableAliasVisitor()
-                    alias_visitor(node.rexpr)
+                    alias_visitor(node.rexpr)  # type: ignore[attr-defined, arg-type]
                     self.context_stack.append((alias_visitor.tables, alias_visitor.aliases))
-                    self(node.rexpr)
+                    self(node.rexpr)  # type: ignore[attr-defined]
                     self.context_stack.pop()
 
     def visit_JoinExpr(self, ancestors: list[Node], node: Node) -> None:  # noqa: N802
@@ -259,20 +262,20 @@ class ColumnCollector(Visitor):
         Visit a JoinExpr node to handle JOIN conditions.
         """
         if isinstance(node, JoinExpr) and self.inside_select:  # Type narrowing for JoinExpr
-            if hasattr(node, "larg") and node.larg:
-                self(node.larg)
-            if hasattr(node, "rarg") and node.rarg:
-                self(node.rarg)
-            if hasattr(node, "quals") and node.quals:
-                self(node.quals)
+            if hasattr(node, "larg") and node.larg:  # type: ignore[attr-defined]
+                self(node.larg)  # type: ignore[attr-defined]
+            if hasattr(node, "rarg") and node.rarg:  # type: ignore[attr-defined]
+                self(node.rarg)  # type: ignore[attr-defined]
+            if hasattr(node, "quals") and node.quals:  # type: ignore[attr-defined]
+                self(node.quals)  # type: ignore[attr-defined]
 
     def visit_SortBy(self, ancestors: list[Node], node: Node) -> None:  # noqa: N802
         """
         Visit a SortBy node (ORDER BY expression).
         """
         if isinstance(node, SortBy) and self.inside_select:  # Type narrowing for SortBy
-            if hasattr(node, "node") and node.node:
-                self(node.node)
+            if hasattr(node, "node") and node.node:  # type: ignore[attr-defined]
+                self(node.node)  # type: ignore[attr-defined]
 
 
 class SqlBindParams:
@@ -282,7 +285,7 @@ class SqlBindParams:
 
     def __init__(self, sql_driver: SqlDriver):
         self.sql_driver = sql_driver
-        self._column_stats_cache = {}
+        self._column_stats_cache: dict[str, dict[str, Any] | None] = {}
 
     async def replace_parameters(self, query: str) -> str:
         """Replace parameter placeholders with appropriate values based on column statistics.
@@ -439,7 +442,7 @@ class SqlBindParams:
                 try:
                     if isinstance(most_common, float):
                         # Small +/- adjustment around most common value
-                        adjustment = abs(most_common) * 0.05 if most_common != 0 else 1
+                        adjustment = abs(most_common) * 0.05 if most_common != 0.0 else 1.0
                         return most_common - adjustment if is_lower else most_common + adjustment
                     if isinstance(most_common, int):
                         # Small +/- adjustment around most common value
@@ -503,16 +506,16 @@ class SqlBindParams:
         """
         try:
             # Parse the query
-            parsed = parse_sql(query)
+            parsed = parse_sql(query)  # type: ignore[misc]
             if not parsed:
                 return [table_name]  # Return just the table name if parsing fails
 
             # Get the statement tree
-            stmt = parsed[0].stmt
+            stmt = parsed[0].stmt  # type: ignore[attr-defined, index]
 
             # Use TableAliasVisitor to extract aliases
             alias_visitor = TableAliasVisitor()
-            alias_visitor(stmt)
+            alias_visitor(stmt)  # type: ignore[arg-type]
 
             # Find all aliases for this table
             aliases = [table_name]  # Always include the table name itself
@@ -666,8 +669,8 @@ class SqlBindParams:
         ]:
             if histogram_bounds and is_range:
                 # For range queries, use a value in the middle
-                bounds = histogram_bounds
-                if isinstance(bounds, list) and len(bounds) > 1:
+                bounds: list[Any] = histogram_bounds  # type: ignore[assignment]
+                if isinstance(bounds, list) and len(bounds) > 1:  # type: ignore[misc, arg-type]
                     middle_idx = len(bounds) // 2
                     value = bounds[middle_idx]
                     return str(value)
@@ -676,8 +679,8 @@ class SqlBindParams:
                 return str(common_vals[0])
             elif histogram_bounds:
                 # Use a reasonable value from histogram
-                bounds = histogram_bounds
-                if isinstance(bounds, list) and len(bounds) > 0:
+                bounds: list[Any] = histogram_bounds  # type: ignore[assignment]
+                if isinstance(bounds, list) and len(bounds) > 0:  # type: ignore[misc, arg-type]
                     return str(bounds[0])
 
             # Default numeric values by type
@@ -734,17 +737,17 @@ class SqlBindParams:
             # Context-aware replacements
             modified_query = re.sub(
                 r"(\w+)\s*=\s*\$\d+",
-                lambda m: self._context_replace(m, "="),
+                lambda m: self._context_replace(m, "="),  # type: ignore[arg-type]
                 modified_query,
             )
             modified_query = re.sub(
                 r"(\w+)\s*<\s*\$\d+",
-                lambda m: self._context_replace(m, "<"),
+                lambda m: self._context_replace(m, "<"),  # type: ignore[arg-type]
                 modified_query,
             )
             modified_query = re.sub(
                 r"(\w+)\s*>\s*\$\d+",
-                lambda m: self._context_replace(m, ">"),
+                lambda m: self._context_replace(m, ">"),  # type: ignore[arg-type]
                 modified_query,
             )
 
@@ -763,9 +766,9 @@ class SqlBindParams:
             logger.error(f"Error in generic parameter replacement: {e}", exc_info=True)
             return query
 
-    def _context_replace(self, match, op: str):
+    def _context_replace(self, match: Any, op: str) -> str:
         """Replace parameters based on column name context."""
-        col_name = match.group(1).lower()
+        col_name: str = match.group(1).lower()  # type: ignore[attr-defined, misc]
 
         # ID-like columns (numeric)
         if col_name.endswith("id") or col_name.endswith("_id") or col_name == "id":
@@ -789,10 +792,10 @@ class SqlBindParams:
     def extract_columns(self, query: str) -> dict[str, set[str]]:
         """Extract columns from a query using improved visitors."""
         try:
-            parsed = parse_sql(query)
+            parsed = parse_sql(query)  # type: ignore[misc]
             if not parsed:
                 return {}
-            stmt = parsed[0].stmt
+            stmt = parsed[0].stmt  # type: ignore[attr-defined, index]
             if not isinstance(stmt, SelectStmt):
                 return {}
 

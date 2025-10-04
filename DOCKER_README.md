@@ -1,14 +1,15 @@
 # PostgreSQL MCP Server - Enhanced
 
-* Last Updated: October 4, 2025 1:22 AM EST *
+* Last Updated: October 4, 2025 *
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-![Version](https://img.shields.io/badge/version-v1.0.5-green)
+![Version](https://img.shields.io/badge/version-v1.1.0-green)
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)
+[![Type Safety](https://img.shields.io/badge/Pyright-Strict-blue.svg)](https://github.com/neverinfamous/postgres-mcp)
 [![GitHub Stars](https://img.shields.io/github/stars/neverinfamous/postgres-mcp?style=social)](https://github.com/neverinfamous/postgres-mcp)
 
-*Enterprise-grade PostgreSQL MCP server with comprehensive security and AI-native operations*
+*Enterprise-grade PostgreSQL MCP server with comprehensive security, AI-native operations, and intelligent meta-awareness*
 
 ---
 
@@ -44,13 +45,13 @@ We provide multiple tags for different use cases:
 | Tag | Description | Use Case |
 |-----|-------------|----------|
 | `latest` | Latest stable release | **Recommended for production** |
-| `v1.0.5` | Specific version | Pin to exact version |
+| `v1.1.0` | Specific version | Pin to exact version |
 | `sha-abc1234` | Commit SHA | Development/testing |
 | `master-YYYYMMDD-HHMMSS-sha` | Timestamped | Audit trail |
 
 **Pull a specific version:**
 ```bash
-docker pull writenotenow/postgres-mcp-enhanced:v1.0.5
+docker pull writenotenow/postgres-mcp-enhanced:v1.1.0
 ```
 
 ---
@@ -97,12 +98,14 @@ services:
 
 ---
 
-## 🛡️ Security Features
+## 🛡️ Security & Code Quality
 
-This image is built with security as a priority:
+This image is built with security and quality as top priorities:
 
 - ✅ **Non-root user** - Runs as user `app` (UID 1000)
 - ✅ **Zero critical vulnerabilities** - All dependencies patched
+- ✅ **Pyright strict mode** - 2,000+ type issues resolved, 100% type-safe codebase
+- ✅ **Zero linter errors** - Clean codebase with comprehensive type checking
 - ✅ **Supply chain attestation** - Full SBOM and provenance included
 - ✅ **Docker Scout verified** - Continuous security scanning
 - ✅ **SQL injection prevention** - All queries use parameter binding
@@ -117,8 +120,9 @@ docker scout cves writenotenow/postgres-mcp-enhanced:latest
 
 ## 🏢 What's Included
 
-**63 specialized MCP tools** for comprehensive PostgreSQL operations:
+**63 specialized MCP tools** + **10 intelligent resources** + **10 guided prompts** for comprehensive PostgreSQL operations:
 
+### MCP Tools (63)
 - **Core Database (9)** - Schema management, SQL execution, health monitoring
 - **JSON Operations (11)** - JSONB operations, validation, security scanning
 - **Text Processing (5)** - Full-text search, similarity matching
@@ -128,6 +132,20 @@ docker scout cves writenotenow/postgres-mcp-enhanced:latest
 - **Geospatial (7)** - PostGIS integration, spatial queries
 - **Backup & Recovery (4)** - Backup planning, restore validation
 - **Monitoring & Alerting (5)** - Real-time monitoring, capacity planning
+
+### MCP Resources (10) - NEW in v1.1.0!
+Real-time database meta-awareness that AI can access automatically:
+- Database schema, capabilities, performance metrics
+- Health status, extensions, index statistics
+- Connection pool, replication, vacuum status
+- Lock information and statistics quality
+
+### MCP Prompts (10) - NEW in v1.1.0!
+Guided workflows for complex operations:
+- Query optimization, index tuning, health checks
+- pgvector and PostGIS setup guides
+- JSONB best practices, performance baselines
+- Backup strategy and extension setup
 
 ---
 
@@ -262,6 +280,14 @@ Can't find what you're looking for? Use our AI-powered search to query both Post
 ---
 
 ## 🆕 Recent Updates
+
+### v1.1.0 (October 4, 2025) 🎉
+- ✅ **NEW: MCP Resources (10)** - Real-time database meta-awareness
+- ✅ **NEW: MCP Prompts (10)** - Guided workflows for complex operations
+- ✅ **Intelligent Assistant** - Transforms from tool collection to database expert
+- ✅ **Pyright strict mode** - 2,000+ type issues resolved, 100% type-safe codebase
+- ✅ **Zero linter errors** - Clean codebase with comprehensive type checking
+- ✅ Zero breaking changes - All existing tools work unchanged
 
 ### v1.0.5 (October 3, 2025)
 - ✅ Fixed Docker Scout tag format
