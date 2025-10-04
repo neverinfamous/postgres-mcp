@@ -79,7 +79,7 @@ class DbConnPool:
             url = connection_url
         else:
             url = self.connection_url
-        
+
         self.connection_url = url
         if not url:
             self._is_valid = False

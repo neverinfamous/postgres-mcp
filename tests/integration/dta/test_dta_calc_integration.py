@@ -1065,7 +1065,9 @@ async def test_diminishing_returns(db_connection: Any, create_dta: Any) -> None:
         dta.min_time_improvement = 0.01
 
         # Analyze with 1% threshold
-        session_with_low_threshold: IndexTuningResult = await dta.analyze_workload(query_list=[str(q["query"]) for q in queries], min_calls=1, min_avg_time_ms=0.1)  # type: ignore[attr-defined]
+        session_with_low_threshold: IndexTuningResult = await dta.analyze_workload(
+            query_list=[str(q["query"]) for q in queries], min_calls=1, min_avg_time_ms=0.1
+        )  # type: ignore[attr-defined]
 
         # With lower threshold, we should get more recommendations
         # Allow equal in case the workload doesn't generate more recommendations
@@ -1276,7 +1278,9 @@ async def test_storage_cost_tradeoff(db_connection: Any, create_dta: Any) -> Non
     # This should favor small indexes with good benefit/cost ratio
     dta.pareto_alpha = 5.0  # Very sensitive to storage costs
 
-    session_storage_sensitive: IndexTuningResult = await dta.analyze_workload(query_list=[str(q["query"]) for q in queries], min_calls=1, min_avg_time_ms=1.0)  # type: ignore[attr-defined]
+    session_storage_sensitive: IndexTuningResult = await dta.analyze_workload(
+        query_list=[str(q["query"]) for q in queries], min_calls=1, min_avg_time_ms=1.0
+    )  # type: ignore[attr-defined]
 
     # Check that we have recommendations
     assert isinstance(session_storage_sensitive, IndexTuningResult)
@@ -1293,7 +1297,9 @@ async def test_storage_cost_tradeoff(db_connection: Any, create_dta: Any) -> Non
     # This should include more indexes, even larger ones
     dta.pareto_alpha = 0.5  # Less sensitive to storage costs
 
-    session_performance_focused: IndexTuningResult = await dta.analyze_workload(query_list=[str(q["query"]) for q in queries], min_calls=1, min_avg_time_ms=1.0)  # type: ignore[attr-defined]
+    session_performance_focused: IndexTuningResult = await dta.analyze_workload(
+        query_list=[str(q["query"]) for q in queries], min_calls=1, min_avg_time_ms=1.0
+    )  # type: ignore[attr-defined]
 
     # Should include more recommendations
     assert len(session_performance_focused.recommendations) >= len(session_storage_sensitive.recommendations)

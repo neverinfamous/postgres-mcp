@@ -174,6 +174,8 @@ async def test_extension_not_available(local_sql_driver: SqlDriver) -> None:
 
         # Replace the function with our mock
         # We need to patch the actual function imported by TopQueriesCalc
+        import postgres_mcp.top_queries.top_queries_calc
+
         mp.setattr(postgres_mcp.top_queries.top_queries_calc, "check_extension", mock_check)  # type: ignore[arg-type]
 
         # Run the test

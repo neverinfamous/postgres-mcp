@@ -152,7 +152,7 @@ class TextProcessingTools:
                 'postgresql & (json | jsonb)',
                 language='english'
             )
-            
+
             # Or use SQL-style operators
             await text_search_advanced(
                 'articles',
@@ -165,10 +165,11 @@ class TextProcessingTools:
             # Convert SQL-style operators to tsquery syntax if needed
             # Replace whole-word operators (case-insensitive)
             import re
+
             converted_query = search_query
-            converted_query = re.sub(r'\bAND\b', '&', converted_query, flags=re.IGNORECASE)
-            converted_query = re.sub(r'\bOR\b', '|', converted_query, flags=re.IGNORECASE)
-            converted_query = re.sub(r'\bNOT\b', '!', converted_query, flags=re.IGNORECASE)
+            converted_query = re.sub(r"\bAND\b", "&", converted_query, flags=re.IGNORECASE)
+            converted_query = re.sub(r"\bOR\b", "|", converted_query, flags=re.IGNORECASE)
+            converted_query = re.sub(r"\bNOT\b", "!", converted_query, flags=re.IGNORECASE)
             # Build tsvector expression for multiple columns
             if len(text_columns) == 1:
                 tsvector_expr = f"to_tsvector('{language}', {text_columns[0]})"

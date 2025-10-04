@@ -4,6 +4,7 @@ Provides guided workflows through MCP Prompts.
 """
 
 import logging
+from typing import Optional
 
 import mcp.types as types
 from mcp.server.fastmcp import FastMCP
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def register_prompts(mcp: FastMCP) -> None:
     """Register all prompts with the MCP server.
-    
+
     Args:
         mcp: FastMCP server instance
     """
@@ -21,7 +22,7 @@ def register_prompts(mcp: FastMCP) -> None:
     @mcp.prompt()
     async def optimize_query(query: str, include_hypothetical: bool = True) -> types.GetPromptResult:  # pyright: ignore[reportUnusedFunction]
         """Guide user through query optimization workflow."""
-        
+
         prompt_text = f"""# Query Optimization Workflow
 
 I'll help you analyze and optimize this query:
@@ -73,13 +74,17 @@ This uses the Database Tuning Advisor to recommend optimal indexes.
 
 {"### 5. **Test Recommendations Safely (Zero Risk)**" if include_hypothetical else ""}
 
-{f'''Use the `explain_query` tool with hypothetical indexes:
+{
+            f'''Use the `explain_query` tool with hypothetical indexes:
 - sql: `{query}`
 - analyze: false
 - hypothetical_indexes: [recommended indexes from step 4]
 
 This uses the hypopg extension to test indexes WITHOUT actually creating them.
-No disk I/O, no performance impact, completely safe!''' if include_hypothetical else ""}
+No disk I/O, no performance impact, completely safe!'''
+            if include_hypothetical
+            else ""
+        }
 
 ### 6. **Compare Results**
 
@@ -105,18 +110,13 @@ Let's begin with Step 1. Use the `explain_query` tool as shown above, and I'll a
 
         return types.GetPromptResult(
             description=f"Query optimization workflow for: {query[:100]}...",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
     @mcp.prompt()
     async def index_tuning(schema_name: str = "public", focus: str = "all") -> types.GetPromptResult:  # pyright: ignore[reportUnusedFunction]
         """Comprehensive index analysis and optimization."""
-        
+
         prompt_text = f"""# Index Tuning Workflow - Schema: {schema_name}
 
 Focus Area: **{focus.title()}**
@@ -215,8 +215,8 @@ For each recommendation, I'll provide:
 
 ```sql
 -- Example: Safe index creation (doesn't block table)
-CREATE INDEX CONCURRENTLY idx_users_email 
-ON users(email) 
+CREATE INDEX CONCURRENTLY idx_users_email
+ON users(email)
 WHERE active = true;
 
 -- Example: Safe index removal (with backup plan)
@@ -269,18 +269,13 @@ Let's start with Step 1. Run the index usage query above using the `execute_sql`
 
         return types.GetPromptResult(
             description=f"Index tuning workflow for schema '{schema_name}' (focus: {focus})",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
     @mcp.prompt()
     async def database_health_check(focus: str = "all") -> types.GetPromptResult:  # pyright: ignore[reportUnusedFunction]
         """Comprehensive database health assessment."""
-        
+
         prompt_text = f"""# Database Health Check - Focus: {focus.title()}
 
 I'll run a comprehensive health assessment of your PostgreSQL database.
@@ -455,22 +450,15 @@ Let's begin with Step 1. Use the `list_objects` tool to check extension availabi
 
         return types.GetPromptResult(
             description=f"Database health check workflow (focus: {focus})",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
     @mcp.prompt()
     async def setup_pgvector(  # pyright: ignore[reportUnusedFunction]
-        content_type: str = "documents",
-        embedding_dimensions: int = 1536,
-        distance_metric: str = "cosine"
+        content_type: str = "documents", embedding_dimensions: int = 1536, distance_metric: str = "cosine"
     ) -> types.GetPromptResult:
         """Complete guide for setting up semantic search with pgvector."""
-        
+
         prompt_text = f"""# pgVector Setup Guide - {content_type.title()}
 
 I'll guide you through setting up semantic search with pgvector for {content_type}.
@@ -517,7 +505,7 @@ PostgreSQL supports three distance metrics for pgvector:
 **Cosine Distance** (most common for embeddings):
 ```sql
 -- Finds semantically similar content
-SELECT id, content, 
+SELECT id, content,
        1 - (embedding <=> query_vector) as similarity
 FROM {content_type}
 ORDER BY embedding <=> query_vector
@@ -550,7 +538,7 @@ For best performance, create an HNSW or IVFFlat index:
 
 **HNSW Index** (Hierarchical Navigable Small World - Best Quality):
 ```sql
-CREATE INDEX ON {content_type} 
+CREATE INDEX ON {content_type}
 USING hnsw (embedding vector_{distance_metric}_ops)
 WITH (m = 16, ef_construction = 64);
 ```
@@ -657,22 +645,15 @@ Begin with Step 1 - check if pgvector is available, then we'll proceed through e
 
         return types.GetPromptResult(
             description=f"pgvector setup guide for {content_type} with {embedding_dimensions}D embeddings",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
     @mcp.prompt()
     async def json_operations(  # pyright: ignore[reportUnusedFunction]
-        table_name: str,
-        json_column: str,
-        operation_type: str = "query"
+        table_name: str, json_column: str, operation_type: str = "query"
     ) -> types.GetPromptResult:
         """Guide for effective JSONB operations and optimization."""
-        
+
         prompt_text = f"""# JSONB Operations Guide - {table_name}.{json_column}
 
 Operation Focus: **{operation_type.title()}**
@@ -881,23 +862,23 @@ Let's start by analyzing your current JSONB structure. Run the sample query abov
 
         return types.GetPromptResult(
             description=f"JSONB operations guide for {table_name}.{json_column} ({operation_type})",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
     @mcp.prompt()
     async def performance_baseline(  # pyright: ignore[reportUnusedFunction]
-        baseline_duration: str = "1 week",
-        critical_queries: list[str] = []
+        baseline_duration: str = "1 week", critical_queries: Optional[list[str]] = None
     ) -> types.GetPromptResult:
         """Establish and monitor performance baselines."""
-        
-        critical_queries_list = "\n".join([f"  {i+1}. {q[:100]}..." for i, q in enumerate(critical_queries)]) if critical_queries else "  (None specified - will analyze workload)"
-        
+
+        if critical_queries is None:
+            critical_queries = []
+        critical_queries_list = (
+            "\n".join([f"  {i + 1}. {q[:100]}..." for i, q in enumerate(critical_queries)])
+            if critical_queries
+            else "  (None specified - will analyze workload)"
+        )
+
         prompt_text = f"""# Performance Baseline Establishment
 
 Baseline Duration: **{baseline_duration}**
@@ -952,7 +933,7 @@ After {baseline_duration}, capture baseline metrics:
 **Overall Database Performance:**
 ```sql
 -- Use execute_sql tool:
-SELECT 
+SELECT
     calls,
     total_exec_time,
     mean_exec_time,
@@ -1003,18 +984,18 @@ Create monitoring queries for ongoing comparison:
 ```sql
 -- Query performance degradation check
 WITH baseline AS (
-    SELECT 
+    SELECT
         query,
         mean_exec_time as baseline_time
     FROM pg_stat_statements_history  -- Your baseline snapshot
 ),
 current AS (
-    SELECT 
+    SELECT
         query,
         mean_exec_time as current_time
     FROM pg_stat_statements
 )
-SELECT 
+SELECT
     c.query,
     b.baseline_time,
     c.current_time,
@@ -1112,21 +1093,15 @@ Let's start with Step 1 - verify pg_stat_statements is installed and configured 
 
         return types.GetPromptResult(
             description=f"Performance baseline establishment workflow ({baseline_duration})",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
     @mcp.prompt()
     async def backup_strategy(  # pyright: ignore[reportUnusedFunction]
-        backup_type: str = "logical",
-        retention_period: int = 30
+        backup_type: str = "logical", retention_period: int = 30
     ) -> types.GetPromptResult:
         """Design and implement backup strategy."""
-        
+
         prompt_text = f"""# Enterprise Backup Strategy - {backup_type.title()} Backup
 
 Retention Period: **{retention_period} days**
@@ -1166,12 +1141,12 @@ First, let's gather information about your database:
 
 ```sql
 -- Database size and growth
-SELECT 
+SELECT
     pg_size_pretty(pg_database_size(current_database())) as total_size,
     pg_database_size(current_database()) as size_bytes;
 
 -- Table sizes
-SELECT 
+SELECT
     schemaname,
     tablename,
     pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as total_size,
@@ -1265,7 +1240,8 @@ backup_schedule_optimize(
 - **Point-in-Time Recovery:** Available to any second
 """
 
-        prompt_text += """
+        prompt_text += (
+            """
 
 ### 4. **Implement Backup Solution**
 
@@ -1288,7 +1264,9 @@ backup_logical(
 
 DB_NAME="your_database"
 BACKUP_DIR="/backup"
-RETENTION_DAYS=""" + str(retention_period) + """
+RETENTION_DAYS="""
+            + str(retention_period)
+            + """
 
 # Create backup
 BACKUP_FILE="${BACKUP_DIR}/db_$(date +%Y%m%d_%H%M%S).dump"
@@ -1410,21 +1388,17 @@ Let's start with Step 1 - assess your database characteristics and calculate req
 
 **Pro Tip:** The best backup is the one you've successfully restored - test your backups regularly!
 """
+        )
 
         return types.GetPromptResult(
             description=f"Backup strategy design workflow ({backup_type}, {retention_period} days retention)",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
     @mcp.prompt()
     async def setup_postgis(use_case: str = "mapping") -> types.GetPromptResult:  # pyright: ignore[reportUnusedFunction]
         """Guide for setting up and using PostGIS."""
-        
+
         prompt_text = f"""# PostGIS Setup Guide - {use_case.title()}
 
 I'll guide you through setting up PostGIS for {use_case} operations.
@@ -1509,7 +1483,7 @@ CREATE TABLE points_of_interest (
 );
 
 -- Find nearest POIs
-SELECT 
+SELECT
     name,
     ST_Distance(
         location,
@@ -1722,7 +1696,7 @@ FROM locations;
 **Nearest Neighbor Search:**
 ```sql
 -- Find 5 nearest locations to a point
-SELECT 
+SELECT
     name,
     ST_Distance(location, ST_GeographyFromText('POINT(-122.4 37.8)')) as distance
 FROM locations
@@ -1769,18 +1743,13 @@ Let's begin with Step 1 - check if PostGIS is available and install it.
 
         return types.GetPromptResult(
             description=f"PostGIS setup guide for {use_case}",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
     @mcp.prompt()
     async def explain_analyze_workflow(query: str, format: str = "text") -> types.GetPromptResult:  # pyright: ignore[reportUnusedFunction]
         """Deep dive into EXPLAIN ANALYZE output."""
-        
+
         prompt_text = f"""# EXPLAIN ANALYZE Deep Dive
 
 Query: `{query[:100]}...`
@@ -1894,7 +1863,7 @@ Based on the explain plan, I'll suggest:
    ```sql
    -- Increase work_mem for sorts/hashes
    SET work_mem = '256MB';
-   
+
    -- Enable parallel workers
    SET max_parallel_workers_per_gather = 4;
    ```
@@ -2007,7 +1976,7 @@ Use with `format: yaml` in explain_query tool
 WITH explain_data AS (
     -- Your EXPLAIN ANALYZE output
 )
-SELECT 
+SELECT
     node_type,
     estimated_rows,
     actual_rows,
@@ -2021,7 +1990,7 @@ ORDER BY percent_off DESC;
 **Buffer Analysis:**
 ```sql
 -- Calculate cache hit ratio
-SELECT 
+SELECT
     100.0 * shared_hit / (shared_hit + shared_read) as cache_hit_ratio
 FROM pg_stat_database
 WHERE datname = current_database();
@@ -2036,57 +2005,48 @@ Run the explain_query tool with analyze=true, then share the output and I'll hel
 
         return types.GetPromptResult(
             description=f"EXPLAIN ANALYZE deep dive for query ({format} format)",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
     @mcp.prompt()
     async def extension_setup(extension_name: str) -> types.GetPromptResult:  # pyright: ignore[reportUnusedFunction]
         """Guide for installing and configuring extensions."""
-        
+
         extension_info = {
             "pgvector": {
                 "purpose": "AI-native vector similarity search",
                 "use_cases": ["Semantic search", "Recommendation systems", "Image similarity"],
-                "dependencies": []
+                "dependencies": [],
             },
             "postgis": {
                 "purpose": "Geospatial operations and GIS",
                 "use_cases": ["Mapping", "Location-based services", "Spatial analysis"],
-                "dependencies": []
+                "dependencies": [],
             },
             "hypopg": {
                 "purpose": "Hypothetical index testing",
                 "use_cases": ["Index optimization", "Zero-risk testing", "Performance tuning"],
-                "dependencies": []
+                "dependencies": [],
             },
             "pg_stat_statements": {
                 "purpose": "Query performance tracking",
                 "use_cases": ["Performance monitoring", "Slow query detection", "Workload analysis"],
-                "dependencies": []
+                "dependencies": [],
             },
             "pg_trgm": {
                 "purpose": "Fuzzy text search with trigrams",
                 "use_cases": ["Fuzzy matching", "Typo tolerance", "Text similarity"],
-                "dependencies": []
+                "dependencies": [],
             },
             "fuzzystrmatch": {
                 "purpose": "Phonetic matching and edit distance",
                 "use_cases": ["Soundex matching", "Levenshtein distance", "Metaphone"],
-                "dependencies": []
-            }
+                "dependencies": [],
+            },
         }
-        
-        ext_data = extension_info.get(extension_name, {
-            "purpose": "PostgreSQL extension",
-            "use_cases": ["Database operations"],
-            "dependencies": []
-        })
-        
+
+        ext_data = extension_info.get(extension_name, {"purpose": "PostgreSQL extension", "use_cases": ["Database operations"], "dependencies": []})
+
         prompt_text = f"""# Extension Setup Guide - {extension_name}
 
 **Purpose:** {ext_data["purpose"]}
@@ -2102,7 +2062,7 @@ First, check if the extension is available:
 
 ```sql
 -- Use execute_sql tool:
-SELECT * FROM pg_available_extensions 
+SELECT * FROM pg_available_extensions
 WHERE name = '{extension_name}';
 ```
 
@@ -2126,8 +2086,8 @@ CREATE EXTENSION IF NOT EXISTS {extension_name};
 
 Verify installation:
 ```sql
-SELECT extname, extversion 
-FROM pg_extension 
+SELECT extname, extversion
+FROM pg_extension
 WHERE extname = '{extension_name}';
 ```
 
@@ -2180,13 +2140,13 @@ SELECT hypopg_reset();
             prompt_text += """
 **Create vector column:**
 ```sql
-ALTER TABLE documents 
+ALTER TABLE documents
 ADD COLUMN embedding vector(1536);
 ```
 
 **Create HNSW index:**
 ```sql
-CREATE INDEX ON documents 
+CREATE INDEX ON documents
 USING hnsw (embedding vector_cosine_ops);
 ```
 
@@ -2212,7 +2172,7 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
 **Create spatial column:**
 ```sql
-ALTER TABLE locations 
+ALTER TABLE locations
 ADD COLUMN geom GEOGRAPHY(POINT, 4326);
 ```
 
@@ -2378,13 +2338,11 @@ Let's start with Step 1 - check if {extension_name} is available in your Postgre
 
         return types.GetPromptResult(
             description=f"Extension setup guide for {extension_name}",
-            messages=[
-                types.PromptMessage(
-                    role="user",
-                    content=types.TextContent(type="text", text=prompt_text.strip())
-                )
-            ]
+            messages=[types.PromptMessage(role="user", content=types.TextContent(type="text", text=prompt_text.strip()))],
         )
 
-    logger.info("Registered 10 prompts: optimize_query, index_tuning, database_health_check, setup_pgvector, json_operations, performance_baseline, backup_strategy, setup_postgis, explain_analyze_workflow, extension_setup")
-
+    logger.info(
+        "Registered 10 prompts: optimize_query, index_tuning, database_health_check, "
+        "setup_pgvector, json_operations, performance_baseline, backup_strategy, "
+        "setup_postgis, explain_analyze_workflow, extension_setup"
+    )

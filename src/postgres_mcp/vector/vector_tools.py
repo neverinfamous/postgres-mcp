@@ -876,7 +876,7 @@ class VectorTools:
 
             result = await self.sql_driver.execute_query(
                 cast(LiteralString, index_query),
-                [table_name, f'%{vector_column}%'],
+                [table_name, f"%{vector_column}%"],
             )
 
             has_index = bool(result and len(result) > 0)

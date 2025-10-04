@@ -1,5 +1,6 @@
 # ruff: noqa: B017
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch

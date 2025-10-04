@@ -4,7 +4,6 @@ import logging
 import re
 from typing import TYPE_CHECKING
 from typing import Any
-from typing import Optional
 from typing import cast
 
 from ..artifacts import ErrorResult
@@ -96,7 +95,7 @@ class ExplainPlanTool:
         try:
             # Validate index definitions format (type is already list[dict[str, Any]] from signature)
             # Note: isinstance checks removed as they're redundant with type annotations
-            
+
             for idx in hypothetical_indexes:
                 if "table" not in idx:
                     return ErrorResult("Missing 'table' in index definition")
@@ -165,10 +164,10 @@ class ExplainPlanTool:
 
             if not isinstance(query_plan_data, list):
                 return ErrorResult(f"Expected list from EXPLAIN, got {type(query_plan_data)}")
-            
+
             # Cast to properly typed list after runtime check
             typed_plan_data: list[dict[str, Any]] = cast(list[dict[str, Any]], query_plan_data)
-            
+
             if len(typed_plan_data) == 0:
                 return ErrorResult("No results returned from EXPLAIN")
 
@@ -186,7 +185,7 @@ class ExplainPlanTool:
         query_text: str,
         indexes: frozenset[IndexDefinition],
         use_generic_plan: bool = False,
-        dta: Optional[Any] = None,
+        dta: Any | None = None,
     ) -> dict[str, Any]:
         """
         Generate an explain plan for a query with specified indexes.

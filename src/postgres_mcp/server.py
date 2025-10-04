@@ -398,7 +398,7 @@ If there is no hypothetical index, you can pass an empty list.""",
             return format_text_response(result.to_text())
         else:
             error_message = "Error processing explain plan"
-            if result and hasattr(result, 'to_text'):
+            if result and hasattr(result, "to_text"):
                 error_message = result.to_text()
             return format_error_response(error_message)
     except Exception as e:

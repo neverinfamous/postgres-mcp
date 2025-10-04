@@ -33,11 +33,11 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
-from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import TypedDict
+from typing import cast
 
 # Fix Windows event loop compatibility with psycopg3
 if sys.platform == "win32":
@@ -102,6 +102,7 @@ class TestResult:
 
 class VulnerabilitySummary(TypedDict):
     """Summary of vulnerabilities by severity"""
+
     critical: int
     high: int
     medium: int
@@ -109,6 +110,7 @@ class VulnerabilitySummary(TypedDict):
 
 class ModeSummary(TypedDict):
     """Summary of test results for a specific mode"""
+
     total_tests: int
     vulnerable: int
     protected: int
@@ -118,6 +120,7 @@ class ModeSummary(TypedDict):
 
 class Recommendation(TypedDict):
     """Security recommendation"""
+
     priority: str
     issue: str
     description: str
@@ -126,6 +129,7 @@ class Recommendation(TypedDict):
 
 class SecurityReport(TypedDict):
     """Complete security report structure"""
+
     summary: Dict[str, ModeSummary]
     detailed_results: Dict[str, List[TestResult]]
     recommendations: List[Recommendation]
@@ -626,12 +630,7 @@ class PostgresSQLInjectionTester:
     def generate_security_report(self, results: Dict[str, List[TestResult]]) -> SecurityReport:
         """Generate a comprehensive security report"""
 
-        report: SecurityReport = {
-            "summary": {},
-            "detailed_results": results,
-            "recommendations": [],
-            "security_score": 0.0
-        }
+        report: SecurityReport = {"summary": {}, "detailed_results": results, "recommendations": [], "security_score": 0.0}
 
         for mode, mode_results in results.items():
             total_tests = len(mode_results)
