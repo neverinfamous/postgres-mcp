@@ -58,7 +58,7 @@ class PlanNode:
     # Other common fields
     relation_name: str | None = field(default=None)
     filter: str | None = field(default=None)
-    children: list["PlanNode"] = field(factory=list)
+    children: "list[PlanNode]" = field(factory=list)
 
     @classmethod
     def from_json_data(cls, json_node: dict[str, Any]) -> "PlanNode":

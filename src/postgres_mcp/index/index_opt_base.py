@@ -149,9 +149,9 @@ class IndexTuningResult:
     workload: list[dict[str, Any]] | None = None
 
     # Output results
-    recommendations: list[IndexRecommendationAnalysis] = field(default_factory=list)
+    recommendations: "list[IndexRecommendationAnalysis]" = field(default_factory=list)
     error: str | None = None
-    dta_traces: list[str] = field(default_factory=list)
+    dta_traces: "list[str]" = field(default_factory=list)
 
 
 def candidate_str(indexes: Iterable[IndexDefinition] | Iterable[IndexRecommendation] | Iterable[IndexRecommendationAnalysis]) -> str:
