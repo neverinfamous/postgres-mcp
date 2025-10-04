@@ -1,0 +1,122 @@
+name: 📚 Documentation Improvement
+description: Suggest improvements or report issues with documentation
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us improve our documentation! Clear docs make postgres-mcp-server better for everyone.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: What type of documentation needs improvement?
+      options:
+        - "Wiki Page"
+        - "README.md"
+        - "Tool/API Documentation"
+        - "Installation Guide"
+        - "Configuration Guide"
+        - "Troubleshooting Guide"
+        - "Security Documentation"
+        - "Contributing Guide"
+        - "Code Comments"
+        - "Examples/Tutorials"
+        - "Other"
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation Location
+      description: Provide a link or path to the documentation that needs improvement
+      placeholder: "https://github.com/neverinfamous/postgres-mcp/wiki/..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What kind of documentation issue is this?
+      options:
+        - "Missing Information"
+        - "Incorrect/Outdated Information"
+        - "Unclear Explanation"
+        - "Broken Link"
+        - "Typo/Grammar"
+        - "Missing Example"
+        - "Technical Error"
+        - "Needs Update for New Version"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Current Problem
+      description: What's wrong with the current documentation?
+      placeholder: The current documentation states... but it should...
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Suggested Improvement
+      description: How should the documentation be improved?
+      placeholder: |
+        I suggest updating it to say...
+        Or adding a section about...
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Proposed Content (Optional)
+      description: If you'd like, provide the exact text/content you think should be used
+      placeholder: |
+        Suggested text:
+        ```
+        Your proposed content here
+        ```
+      render: markdown
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Target Audience
+      description: Who would benefit most from this improvement?
+      options:
+        - "New Users/Beginners"
+        - "Experienced Users"
+        - "Contributors/Developers"
+        - "Database Administrators"
+        - "Security Professionals"
+        - "All Users"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information that would help us improve the documentation
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have checked the [latest wiki version](https://github.com/neverinfamous/postgres-mcp/wiki)
+          required: true
+        - label: I would be willing to submit a PR to fix this documentation issue
+          required: false
+

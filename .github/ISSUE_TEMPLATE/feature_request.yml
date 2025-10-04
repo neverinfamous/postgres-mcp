@@ -1,0 +1,120 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for postgres-mcp-server
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! We appreciate your input in making postgres-mcp-server better.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm frustrated when... / It would be helpful if...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see implemented.
+      placeholder: I would like to see...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: Which category does this feature fall under?
+      options:
+        - "Core Database Operations"
+        - "JSON Operations"
+        - "Text Processing"
+        - "Statistical Analysis"
+        - "Performance Intelligence"
+        - "Vector/Semantic Search"
+        - "Geospatial Operations"
+        - "Backup & Recovery"
+        - "Monitoring & Alerting"
+        - "Security"
+        - "Documentation"
+        - "Developer Experience"
+        - "Other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - "Critical - Blocking my work"
+        - "High - Would significantly improve my workflow"
+        - "Medium - Nice to have"
+        - "Low - Minor enhancement"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered.
+      placeholder: I've considered... / Currently I work around this by...
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Usage Examples
+      description: Provide examples of how this feature would be used (code snippets, workflows, etc.).
+      placeholder: |
+        Example usage:
+        ```python
+        # Your example here
+        ```
+      render: markdown
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Benefits
+      description: Who would benefit from this feature and how?
+      placeholder: |
+        - Database administrators: ...
+        - Developers: ...
+        - Data analysts: ...
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Ideas (Optional)
+      description: If you have ideas on how this could be implemented, share them here.
+      placeholder: This could potentially be implemented using...
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or references about the feature request.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues and feature requests to avoid duplicates
+          required: true
+        - label: I have read the [documentation](https://github.com/neverinfamous/postgres-mcp/wiki) to ensure this feature doesn't already exist
+          required: true
+        - label: This feature aligns with the project's goals and PostgreSQL best practices
+          required: true
+        - label: I am willing to help test this feature once implemented
+          required: false
+

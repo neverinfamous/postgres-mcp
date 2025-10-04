@@ -1,0 +1,18 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/neverinfamous/postgres-mcp/discussions
+    about: Ask questions, share ideas, or discuss postgres-mcp-server with the community
+  - name: 📖 Documentation Wiki
+    url: https://github.com/neverinfamous/postgres-mcp/wiki
+    about: Browse comprehensive documentation, guides, and examples
+  - name: 🔒 Security Policy
+    url: https://github.com/neverinfamous/postgres-mcp/security/policy
+    about: Learn how to responsibly report security vulnerabilities
+  - name: 🐳 Docker Hub
+    url: https://hub.docker.com/r/neverinfamous/postgres-mcp
+    about: Get the official Docker images for postgres-mcp-server
+  - name: 📦 PyPI Package
+    url: https://pypi.org/project/postgres-mcp-enhanced/
+    about: Install postgres-mcp-server from the Python Package Index
+
