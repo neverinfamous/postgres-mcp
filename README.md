@@ -270,10 +270,20 @@ uv run pytest --cov=src tests/
 ## 🔗 **Links**
 
 - **[📚 Complete Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** - Full documentation
+- **[📝 GitHub Gists](https://gist.github.com/neverinfamous/7a47b6ca39857c7a8e06c4f7e6537a16)** - 7 practical examples and use cases
 - **[🛡️ Security Policy](SECURITY.md)** - Vulnerability reporting
 - **[🤝 Contributing](CONTRIBUTING.md)** - Development guidelines
 - **[🐳 Docker Hub](https://hub.docker.com/r/neverinfamous/postgres-mcp)** - Container images (coming soon)
 - **[📦 PyPI Package](https://pypi.org/project/postgres-mcp-enhanced/)** - Python package
+
+**GitHub Gists - Practical Examples:**
+- **Complete Feature Showcase** - All 63 tools with comprehensive examples
+- **Security Best Practices** - SQL injection prevention and production security
+- **Performance Intelligence** - Query optimization and index tuning strategies
+- **Vector/Semantic Search** - pgvector integration and AI-native operations
+- **Enterprise Monitoring** - Real-time monitoring and alerting workflows
+- **Geospatial Operations** - PostGIS integration and spatial queries
+- **JSON/JSONB Operations** - Advanced JSONB operations and validation
 
 ---
 

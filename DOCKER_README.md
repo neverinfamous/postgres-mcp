@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Enhanced
 
-*Last Updated October 3, 2025 7:26 PM EST*
+* Last Updated: October 4, 2025 1:22 AM EST *
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -228,10 +228,20 @@ docker run -i --rm \
 ## 🔗 Links & Resources
 
 - **[📚 Complete Documentation](https://github.com/neverinfamous/postgres-mcp/wiki)** - Comprehensive wiki
+- **[📝 GitHub Gists](https://gist.github.com/neverinfamous/7a47b6ca39857c7a8e06c4f7e6537a16)** - 7 practical examples and real-world use cases
 - **[🚀 Quick Start Guide](https://github.com/neverinfamous/postgres-mcp/wiki/Quick-Start)** - Get started in 30 seconds
 - **[🛡️ Security Policy](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)** - Vulnerability reporting
 - **[💻 GitHub Repository](https://github.com/neverinfamous/postgres-mcp)** - Source code
 - **[📦 PyPI Package](https://pypi.org/project/postgres-mcp-enhanced/)** - Python installation option
+
+**Practical Examples (GitHub Gists):**
+- Complete Feature Showcase (63 tools)
+- Security Best Practices & Implementation
+- Performance Intelligence & Query Optimization
+- Vector/Semantic Search with pgvector
+- Enterprise Monitoring & Alerting
+- Geospatial Operations with PostGIS
+- JSON/JSONB Operations Masterclass
 
 ---
 
