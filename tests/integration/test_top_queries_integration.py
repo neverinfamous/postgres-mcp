@@ -50,7 +50,8 @@ async def setup_test_data(sql_driver: SqlDriver) -> None:
             pytest.skip("pg_stat_statements extension not available")
 
         # Create test tables
-        await sql_driver.execute_query("""  # type: ignore[attr-defined]
+        # type: ignore[attr-defined]
+        await sql_driver.execute_query("""
             DROP TABLE IF EXISTS test_items;
             CREATE TABLE test_items (
                 id SERIAL PRIMARY KEY,
@@ -60,7 +61,8 @@ async def setup_test_data(sql_driver: SqlDriver) -> None:
         """)
 
         # Insert test data
-        await sql_driver.execute_query("""  # type: ignore[attr-defined]
+        # type: ignore[attr-defined]
+        await sql_driver.execute_query("""
             INSERT INTO test_items (name, value)
             SELECT
                 'Item ' || i,
@@ -78,7 +80,8 @@ async def setup_test_data(sql_driver: SqlDriver) -> None:
 
         # Query 2: More complex query (should be slower)
         for _i in range(5):
-            await sql_driver.execute_query("""  # type: ignore[attr-defined]
+            # type: ignore[attr-defined]
+            await sql_driver.execute_query("""
                 SELECT name, value
                 FROM test_items
                 WHERE value > 500
@@ -87,7 +90,8 @@ async def setup_test_data(sql_driver: SqlDriver) -> None:
 
         # Query 3: Very slow query - run more times to ensure it shows up
         for _i in range(10):
-            await sql_driver.execute_query("""  # type: ignore[attr-defined]
+            # type: ignore[attr-defined]
+            await sql_driver.execute_query("""
                 SELECT t1.name, t2.name
                 FROM test_items t1
                 CROSS JOIN test_items t2
