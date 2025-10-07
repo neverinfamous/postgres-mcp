@@ -91,10 +91,12 @@ class DbConnPool:
 
         try:
             # Configure connection pool with appropriate settings
+            # Optimized pool size: min_size=3 keeps connections warm, max_size=15 allows burst capacity
+            # while staying well under typical PostgreSQL max_connections (100-200)
             self.pool = AsyncConnectionPool(
                 conninfo=url,  # url is guaranteed to be str here
-                min_size=1,
-                max_size=5,
+                min_size=3,
+                max_size=15,
                 open=False,  # Don't connect immediately, let's do it explicitly
             )
 

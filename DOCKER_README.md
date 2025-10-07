@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Enhanced
 
-* Last Updated: October 4, 2025 *
+Last Updated October 7, 2025 2:36 PM EST<br><br>
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
