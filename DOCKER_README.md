@@ -1,10 +1,10 @@
 # PostgreSQL MCP Server - Enhanced
 
-Last Updated October 8, 2025 2:20 PM EST<br><br>
+Last Updated October 8, 2025 3:50 PM EST<br><br>
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-![Version](https://img.shields.io/badge/version-v1.1.0-green)
+![Version](https://img.shields.io/badge/version-v1.1.1-green)
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)
 [![Type Safety](https://img.shields.io/badge/Pyright-Strict-blue.svg)](https://github.com/neverinfamous/postgres-mcp)
 [![GitHub Stars](https://img.shields.io/github/stars/neverinfamous/postgres-mcp?style=social)](https://github.com/neverinfamous/postgres-mcp)
@@ -36,6 +36,11 @@ docker run -i --rm \
 2. **Database Connection String** - In the format: `postgresql://user:pass@host:5432/dbname`
 3. **MCP Client** - Claude Desktop, Cursor, or any MCP-compatible client
 
+**Platform Compatibility:**
+- ✅ **Full support**: Linux, macOS, WSL2
+- ✅ **Docker images**: Work perfectly on all platforms including Windows
+- ℹ️ **Note**: Integration tests are skipped on native Windows due to psycopg async pool compatibility with Docker containers
+
 ---
 
 ## 🐳 Docker Tags
@@ -45,13 +50,13 @@ We provide multiple tags for different use cases:
 | Tag | Description | Use Case |
 |-----|-------------|----------|
 | `latest` | Latest stable release | **Recommended for production** |
-| `v1.1.0` | Specific version | Pin to exact version |
+| `v1.1.1` | Specific version | Pin to exact version |
 | `sha-abc1234` | Commit SHA | Development/testing |
 | `master-YYYYMMDD-HHMMSS-sha` | Timestamped | Audit trail |
 
 **Pull a specific version:**
 ```bash
-docker pull writenotenow/postgres-mcp-enhanced:v1.1.0
+docker pull writenotenow/postgres-mcp-enhanced:v1.1.1
 ```
 
 ---
@@ -281,7 +286,15 @@ Can't find what you're looking for? Use our AI-powered search to query both Post
 
 ## 🆕 Recent Updates
 
-### v1.1.0 (October 4, 2025) 🎉
+### v1.1.1 (October 8, 2025) 🎉
+- ✅ **PostgreSQL 18 Support** - Full compatibility with PostgreSQL 13-18
+- ✅ **Bug Fix** - Fixed jsonb_stats SQL type casting issue (jsonb_array_length)
+- ✅ **Test Suite Enhancement** - Comprehensive testing against PostgreSQL 13 and 18
+- ✅ **Windows Compatibility** - Documented Windows test limitations with workarounds
+- ✅ **IDE Configuration** - Improved basedpyright configuration for better developer experience
+- ✅ Zero breaking changes - All existing features work unchanged
+
+### v1.1.0 (October 4, 2025)
 - ✅ **NEW: MCP Resources (10)** - Real-time database meta-awareness
 - ✅ **NEW: MCP Prompts (10)** - Guided workflows for complex operations
 - ✅ **Intelligent Assistant** - Transforms from tool collection to database expert
