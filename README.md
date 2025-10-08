@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Version 1.1.0
 
-* Last Updated October 7, 2025 2:26 PM EST *
+* Last Updated October 8, 2025 2:20 PM EST *
 
 Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive testing, AI-native database operations, intelligent meta-awareness, and guided workflows.
 
@@ -82,7 +82,7 @@ Enhanced with **pg_stat_statements**, **hypopg**, **pgvector**, and **PostGIS** 
 
 ## 📋 **Prerequisites**
 
-1. **PostgreSQL Database** (version 13-17)
+1. **PostgreSQL Database** (version 13-18)
 2. **Environment Variable**: `DATABASE_URI="postgresql://user:pass@host:5432/db"`
 3. **MCP Client**: Claude Desktop, Cursor, or compatible client
 
@@ -356,7 +356,7 @@ uv run pytest --cov=src tests/
 - ✅ SQL Injection: All vectors blocked
 - ✅ Integration: All operations validated
 - ✅ Type Safety: Pyright strict mode (2,000+ issues resolved)
-- ✅ Compatibility: PostgreSQL 13-17 supported
+- ✅ Compatibility: PostgreSQL 13-18 supported
 
 
 ---
@@ -408,7 +408,7 @@ uv run pytest --cov=src tests/
 - **100% Type Safe** - Pyright strict mode (2,000+ issues resolved)
 - **Zero Known Vulnerabilities** - Security audit passed
 - **Zero Linter Errors** - Clean codebase with comprehensive type checking
-- **PostgreSQL 13-17** - Full compatibility
+- **PostgreSQL 13-18** - Full compatibility
 - **Multi-platform** - Windows, Linux, macOS (amd64, arm64)
 - **7,500+ lines** - 14 modules, comprehensive implementation
 

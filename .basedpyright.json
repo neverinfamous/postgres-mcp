@@ -1,0 +1,11 @@
+{
+  "include": ["src"],
+  "exclude": ["tests/**", "**/__pycache__", ".venv/**", "build/**", "dist/**"],
+  "typeCheckingMode": "strict",
+  "reportMissingTypeStubs": false,
+  "reportUnknownVariableType": false,
+  "pythonVersion": "3.12",
+  "pythonPlatform": "All",
+  "extraPaths": ["src"]
+}
+

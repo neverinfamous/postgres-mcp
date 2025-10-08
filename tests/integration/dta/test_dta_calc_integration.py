@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import time
 from collections.abc import Callable
 from functools import wraps
@@ -17,6 +18,16 @@ from postgres_mcp.sql import SqlDriver
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+# Skip integration tests on Windows due to psycopg connection pool compatibility issues
+# with Docker containers. Connection pools (both async and sync) experience threading/event
+# loop issues when connecting to PostgreSQL in Docker on Windows.
+# See: https://github.com/psycopg/psycopg/issues/465
+# Workaround: Run integration tests in WSL2 or Linux environment
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Integration tests skipped on Windows - use WSL2 for full test coverage"
+)
 
 
 def retry(max_attempts: int = 3, delay: int = 1) -> Callable[[Callable[..., Any]], Callable[..., Any]]:

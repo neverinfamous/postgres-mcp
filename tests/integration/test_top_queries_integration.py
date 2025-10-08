@@ -1,4 +1,5 @@
 import logging
+import sys
 from typing import Any
 from typing import AsyncGenerator
 
@@ -11,6 +12,16 @@ from postgres_mcp.top_queries import TopQueriesCalc
 
 logger = logging.getLogger(__name__)
 
+# Skip integration tests on Windows due to psycopg connection pool compatibility issues
+# with Docker containers. Connection pools (both async and sync) experience threading/event
+# loop issues when connecting to PostgreSQL in Docker on Windows.
+# See: https://github.com/psycopg/psycopg/issues/465
+# Workaround: Run integration tests in WSL2 or Linux environment
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Integration tests skipped on Windows - use WSL2 for full test coverage"
+)
+
 
 @pytest_asyncio.fixture
 async def local_sql_driver(test_postgres_connection_string: Any) -> AsyncGenerator[SqlDriver, None]:
@@ -22,7 +33,13 @@ async def local_sql_driver(test_postgres_connection_string: Any) -> AsyncGenerat
     logger.info(f"Using version: {version}")
 
     driver = SqlDriver(engine_url=connection_string)
-    driver.connect()  # This is not an async method, no await needed
+    driver.connect()  # Creates the DbConnPool object
+    
+    # Pre-establish the connection pool to avoid lazy initialization issues
+    if hasattr(driver, "conn") and driver.conn is not None:
+        await driver.conn.pool_connect()  # type: ignore[attr-defined]
+        logger.info("Connection pool pre-established successfully")
+    
     try:
         yield driver
     finally:

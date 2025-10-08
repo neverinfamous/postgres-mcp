@@ -1,4 +1,4 @@
-ARG PG_VERSION=17
+ARG PG_VERSION=18
 FROM postgres:${PG_VERSION}
 
 # Install build dependencies

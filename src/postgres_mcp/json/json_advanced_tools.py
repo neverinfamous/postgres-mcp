@@ -681,7 +681,7 @@ class JsonAdvancedTools:
                 COUNT(*) as total_rows,
                 COUNT({json_column}) as non_null_rows,
                 COUNT(*) - COUNT({json_column}) as null_rows,
-                AVG(jsonb_array_length(jsonb_object_keys({json_column}))) as avg_keys,
+                AVG((SELECT COUNT(*) FROM jsonb_object_keys({json_column}))) as avg_keys,
                 AVG(pg_column_size({json_column})) as avg_size_bytes,
                 MAX(pg_column_size({json_column})) as max_size_bytes,
                 MIN(pg_column_size({json_column})) as min_size_bytes

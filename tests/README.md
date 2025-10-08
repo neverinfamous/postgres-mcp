@@ -37,6 +37,8 @@ uv run pytest tests/unit/test_db_conn_pool.py::test_pool_connect_success
 
 Integration tests are automatically run against:
 - **PostgreSQL 13**: Oldest supported version (minimum compatibility)
-- **PostgreSQL 17**: Latest stable version (current production recommendation)
+- **PostgreSQL 18**: Latest stable version (current production recommendation)
 
-The test fixture builds custom Docker images with the `hypopg` extension for index optimization testing. Default version for manual testing is PostgreSQL 17 (see `tests/Dockerfile.postgres-hypopg`).
+The test fixture builds custom Docker images with the `hypopg` extension for index optimization testing. Default version for manual testing is PostgreSQL 18 (see `tests/Dockerfile.postgres-hypopg`).
+
+**Note**: Integration tests are automatically skipped on Windows due to known compatibility issues between psycopg's `AsyncConnectionPool` and Windows event loops. All unit tests pass on Windows. Integration tests run successfully on Linux and macOS.

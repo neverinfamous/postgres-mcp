@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Enhanced
 
-Last Updated October 7, 2025 2:36 PM EST<br><br>
+Last Updated October 8, 2025 2:20 PM EST<br><br>
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -32,7 +32,7 @@ docker run -i --rm \
 
 ## 📋 Prerequisites
 
-1. **PostgreSQL Database** (version 13-17) - Running and accessible
+1. **PostgreSQL Database** (version 13-18) - Running and accessible
 2. **Database Connection String** - In the format: `postgresql://user:pass@host:5432/dbname`
 3. **MCP Client** - Claude Desktop, Cursor, or any MCP-compatible client
 
