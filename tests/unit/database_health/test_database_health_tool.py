@@ -14,10 +14,7 @@ logger = logging.getLogger(__name__)
 # loop issues when connecting to PostgreSQL in Docker on Windows.
 # See: https://github.com/psycopg/psycopg/issues/465
 # Workaround: Run real DB tests in WSL2 or Linux environment
-pytestmark = pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="Real DB tests skipped on Windows - use WSL2 for full test coverage"
-)
+pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="Real DB tests skipped on Windows - use WSL2 for full test coverage")
 
 
 @pytest.fixture

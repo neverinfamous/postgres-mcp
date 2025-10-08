@@ -24,10 +24,7 @@ T = TypeVar("T")
 # loop issues when connecting to PostgreSQL in Docker on Windows.
 # See: https://github.com/psycopg/psycopg/issues/465
 # Workaround: Run integration tests in WSL2 or Linux environment
-pytestmark = pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="Integration tests skipped on Windows - use WSL2 for full test coverage"
-)
+pytestmark = pytest.mark.skipif(sys.platform == "win32", reason="Integration tests skipped on Windows - use WSL2 for full test coverage")
 
 
 def retry(max_attempts: int = 3, delay: int = 1) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
