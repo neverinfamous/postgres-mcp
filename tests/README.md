@@ -28,3 +28,15 @@ uv run pytest tests/unit/test_db_conn_pool.py::test_pool_connect_success
   - `test_obfuscate_password.py`: Tests for password obfuscation functionality
   - `test_db_conn_pool.py`: Tests for database connection pool
   - `test_sql_driver.py`: Tests for SQL driver and transaction handling
+
+- **Integration Tests** (`tests/integration/`): Tests against live PostgreSQL instances
+  - Runs automatically against PostgreSQL 13 (oldest supported) and 17 (latest stable)
+  - Uses Docker containers with HypoPG extension for testing
+
+## PostgreSQL Version Testing
+
+Integration tests are automatically run against:
+- **PostgreSQL 13**: Oldest supported version (minimum compatibility)
+- **PostgreSQL 17**: Latest stable version (current production recommendation)
+
+The test fixture builds custom Docker images with the `hypopg` extension for index optimization testing. Default version for manual testing is PostgreSQL 17 (see `tests/Dockerfile.postgres-hypopg`).
