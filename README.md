@@ -1,10 +1,14 @@
-# PostgreSQL MCP Server - Version 1.1.0
+# PostgreSQL MCP Server - Version 1.1.1
 
-* Last Updated October 8, 2025 2:20 PM EST *
+*Last Updated October 9, 2025 - Production/Stable v1.1.1*
 
 Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive testing, AI-native database operations, intelligent meta-awareness, and guided workflows.
 
+[![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+![Version](https://img.shields.io/badge/version-v1.1.1-green)
+![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
+[![PyPI](https://img.shields.io/pypi/v/postgres-mcp-enhanced)](https://pypi.org/project/postgres-mcp-enhanced/)
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](SECURITY.md)
 [![CodeQL](https://img.shields.io/badge/CodeQL-Passing-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp/security/code-scanning)
 

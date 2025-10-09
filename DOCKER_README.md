@@ -1,10 +1,12 @@
 # PostgreSQL MCP Server - Enhanced
 
-Last Updated October 8, 2025 3:50 PM EST<br><br>
+*Last Updated: October 9, 2025 - Production/Stable v1.1.1*
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 ![Version](https://img.shields.io/badge/version-v1.1.1-green)
+![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
+[![PyPI](https://img.shields.io/pypi/v/postgres-mcp-enhanced)](https://pypi.org/project/postgres-mcp-enhanced/)
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)
 [![Type Safety](https://img.shields.io/badge/Pyright-Strict-blue.svg)](https://github.com/neverinfamous/postgres-mcp)
 [![GitHub Stars](https://img.shields.io/github/stars/neverinfamous/postgres-mcp?style=social)](https://github.com/neverinfamous/postgres-mcp)

@@ -1,6 +1,6 @@
 [project]
 name = "postgres-mcp-enhanced"
-version = "1.1.0"
+version = "1.1.1"
 description = "Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensive security, AI-native operations, and intelligent meta-awareness"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -17,10 +17,28 @@ dependencies = [
 ]
 license = "mit"
 license-files = ["LICENSE"]
+keywords = ["mcp", "postgresql", "database", "postgres", "model-context-protocol", "pgvector", "postgis"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 
 [[project.authors]]
 name = "Chris LeRoux"
 email = "admin@adamic.tech"
+
+[project.urls]
+Homepage = "https://github.com/neverinfamous/postgres-mcp"
+Repository = "https://github.com/neverinfamous/postgres-mcp"
+Issues = "https://github.com/neverinfamous/postgres-mcp/issues"
+Documentation = "https://github.com/neverinfamous/postgres-mcp/wiki"
 
 [build-system]
 requires = [ "hatchling",]
