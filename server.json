@@ -5,14 +5,6 @@
   "version": "1.1.1",
   "packages": [
     {
-      "registryType": "pypi",
-      "identifier": "postgres-mcp-enhanced",
-      "version": "1.1.1",
-      "transport": {
-        "type": "stdio"
-      }
-    },
-    {
       "registryType": "oci",
       "registryBaseUrl": "https://docker.io",
       "identifier": "writenotenow/postgres-mcp-enhanced",
