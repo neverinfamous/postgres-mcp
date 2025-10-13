@@ -1,6 +1,8 @@
 # PostgreSQL MCP Server - Enhanced
 
-*Last Updated: October 9, 2025 - Production/Stable v1.1.1*
+*Last Updated: October 13, 2025 - Production/Stable v1.1.1*
+
+<!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
@@ -287,6 +289,12 @@ Can't find what you're looking for? Use our AI-powered search to query both Post
 ---
 
 ## 🆕 Recent Updates
+
+### v1.1.1 (October 13, 2025) - MCP Registry Ready 🎉
+- ✅ **MCP Registry Support** - Configured for Model Context Protocol Registry
+- ✅ **Hybrid Deployment** - Available via PyPI, Docker Hub, and MCP Registry
+- ✅ **Validation Markers** - Added MCP name markers for registry validation
+- ✅ **Automated Publishing** - Integrated MCP Registry into release workflow
 
 ### v1.1.1 (October 8, 2025) 🎉
 - ✅ **PostgreSQL 18 Support** - Full compatibility with PostgreSQL 13-18
