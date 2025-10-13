@@ -1,7 +1,7 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-16/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "io.github.neverinfamous/postgres-mcp-server",
-  "description": "Enterprise PostgreSQL MCP server with 63 specialized tools, 10 intelligent resources, and 10 guided prompts for AI-native database operations, comprehensive security, and real-time analytics.",
+  "description": "Enterprise PostgreSQL MCP server with 63 tools, 10 resources, 10 prompts for AI-native operations",
   "version": "1.1.1",
   "packages": [
     {
