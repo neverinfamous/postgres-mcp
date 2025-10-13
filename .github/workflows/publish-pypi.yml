@@ -14,6 +14,7 @@ on:
 # Security: Explicit permissions following principle of least privilege
 permissions:
   contents: read
+  id-token: write  # Required for MCP Registry OIDC authentication
 
 jobs:
   build-and-publish:
@@ -67,4 +68,163 @@ jobs:
         run: |
           sleep 10  # Wait for PyPI to update
           pip index versions postgres-mcp-enhanced
+
+  publish-to-mcp-registry:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    environment:
+      name: mcp-registry
+      url: https://registry.modelcontextprotocol.io/servers/io.github.neverinfamous/postgres-mcp-server
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          elif [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+
+      - name: Verify server.json version matches
+        run: |
+          SERVER_JSON_VERSION=$(jq -r '.version' server.json)
+          if [ "$SERVER_JSON_VERSION" != "${{ steps.version.outputs.VERSION }}" ]; then
+            echo "❌ Error: Version mismatch!"
+            echo "   server.json version: $SERVER_JSON_VERSION"
+            echo "   Expected version: ${{ steps.version.outputs.VERSION }}"
+            exit 1
+          fi
+          echo "✅ Version matches: $SERVER_JSON_VERSION"
+
+      - name: Verify MCP validation markers
+        run: |
+          echo "Verifying MCP name in README.md..."
+          if grep -q "mcp-name: io.github.neverinfamous/postgres-mcp-server" README.md; then
+            echo "✅ MCP name found in README.md"
+          else
+            echo "❌ MCP name not found in README.md"
+            exit 1
+          fi
+          
+          echo "Verifying MCP label in Dockerfile..."
+          if grep -q 'io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp-server"' Dockerfile; then
+            echo "✅ MCP label found in Dockerfile"
+          else
+            echo "❌ MCP label not found in Dockerfile"
+            exit 1
+          fi
+
+      - name: Validate server.json schema
+        run: |
+          echo "Validating server.json against MCP schema..."
+          python3 << 'EOF'
+          import json
+          import sys
+          
+          try:
+              with open('server.json', 'r') as f:
+                  server_config = json.load(f)
+              
+              # Basic validation
+              required_fields = ['name', 'version', 'packages']
+              for field in required_fields:
+                  if field not in server_config:
+                      print(f"❌ Missing required field: {field}")
+                      sys.exit(1)
+              
+              # Validate packages
+              for pkg in server_config.get('packages', []):
+                  if 'registryType' not in pkg or 'identifier' not in pkg:
+                      print(f"❌ Invalid package configuration: {pkg}")
+                      sys.exit(1)
+              
+              print("✅ server.json is valid")
+          except json.JSONDecodeError as e:
+              print(f"❌ Invalid JSON: {e}")
+              sys.exit(1)
+          EOF
+
+      - name: Wait for PyPI and Docker availability
+        run: |
+          echo "Waiting for packages to be available (30 seconds)..."
+          sleep 30
+          
+          echo "Checking PyPI package..."
+          for i in {1..5}; do
+            if curl -sf "https://pypi.org/pypi/postgres-mcp-enhanced/${{ steps.version.outputs.VERSION }}/json" > /dev/null; then
+              echo "✅ PyPI package is available"
+              break
+            fi
+            echo "Attempt $i: Package not yet available, waiting..."
+            sleep 10
+          done
+
+      - name: Install MCP Publisher CLI
+        run: |
+          echo "Installing MCP Publisher CLI..."
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.0.0/mcp-publisher_1.0.0_linux_amd64.tar.gz" | tar xz
+          chmod +x mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+          mcp-publisher --version || echo "MCP Publisher installed"
+
+      - name: Publish to MCP Registry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Publishing to MCP Registry using GitHub OIDC authentication..."
+          
+          # The MCP publisher will use GitHub's OIDC token automatically
+          # when running in GitHub Actions with id-token: write permission
+          mcp-publisher publish --verbose || {
+            echo "❌ Failed to publish to MCP Registry"
+            echo "This might be due to:"
+            echo "  1. Registry authentication issues"
+            echo "  2. Package validation failures"
+            echo "  3. Version already exists"
+            exit 1
+          }
+
+      - name: Verify publication
+        run: |
+          echo "Waiting for registry to update..."
+          sleep 10
+          
+          echo "Verifying publication in MCP Registry..."
+          RESPONSE=$(curl -sf "https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp-server" || echo "{}")
+          
+          if echo "$RESPONSE" | grep -q "postgres-mcp-server"; then
+            echo "✅ Successfully published to MCP Registry!"
+            echo "$RESPONSE" | jq '.' || echo "$RESPONSE"
+          else
+            echo "⚠️ Server not found in registry yet. It may take a few minutes to appear."
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 📦 Publication Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Package Locations:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🐍 **PyPI**: https://pypi.org/project/postgres-mcp-enhanced/${{ steps.version.outputs.VERSION }}/" >> $GITHUB_STEP_SUMMARY
+          echo "- 🐳 **Docker Hub**: https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced/tags" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 **MCP Registry**: https://registry.modelcontextprotocol.io/servers/io.github.neverinfamous/postgres-mcp-server" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Installation:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "# Via pip" >> $GITHUB_STEP_SUMMARY
+          echo "pip install postgres-mcp-enhanced==${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Via Docker" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull writenotenow/postgres-mcp-enhanced:v${{ steps.version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 

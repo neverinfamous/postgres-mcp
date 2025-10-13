@@ -1,0 +1,55 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-16/server.schema.json",
+  "name": "io.github.neverinfamous/postgres-mcp-server",
+  "description": "Enterprise PostgreSQL MCP server with 63 specialized tools, 10 intelligent resources, and 10 guided prompts for AI-native database operations, comprehensive security, and real-time analytics.",
+  "version": "1.1.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "postgres-mcp-enhanced",
+      "version": "1.1.1",
+      "transport": {
+        "type": "stdio"
+      }
+    },
+    {
+      "registryType": "oci",
+      "registryBaseUrl": "https://docker.io",
+      "identifier": "writenotenow/postgres-mcp-enhanced",
+      "version": "v1.1.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "keywords": [
+    "postgresql",
+    "postgres",
+    "database",
+    "pgvector",
+    "postgis",
+    "semantic-search",
+    "geospatial",
+    "statistics",
+    "analytics",
+    "performance",
+    "monitoring",
+    "backup",
+    "mcp",
+    "model-context-protocol",
+    "ai-native",
+    "enterprise"
+  ],
+  "author": {
+    "name": "Chris LeRoux",
+    "email": "admin@adamic.tech"
+  },
+  "homepage": "https://github.com/neverinfamous/postgres-mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neverinfamous/postgres-mcp.git",
+    "source": "github"
+  },
+  "license": "MIT"
+}
+

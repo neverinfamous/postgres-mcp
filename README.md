@@ -2,6 +2,8 @@
 
 *Last Updated October 9, 2025 - Production/Stable v1.1.1*
 
+<!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
+
 Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive testing, AI-native database operations, intelligent meta-awareness, and guided workflows.
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp-enhanced)](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)
@@ -98,11 +100,11 @@ Enhanced with **pg_stat_statements**, **hypopg**, **pgvector**, and **PostGIS** 
 
 ### **Docker (Recommended)**
 ```bash
-docker pull neverinfamous/postgres-mcp:latest
+docker pull writenotenow/postgres-mcp-enhanced:latest
 
 docker run -i --rm \
   -e DATABASE_URI="postgresql://user:pass@localhost:5432/db" \
-  neverinfamous/postgres-mcp:latest \
+  writenotenow/postgres-mcp-enhanced:latest \
   --access-mode=restricted
 ```
 
@@ -302,7 +304,7 @@ CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
     "postgres-mcp": {
       "command": "docker",
       "args": ["run", "-i", "--rm", "-e", "DATABASE_URI", 
-               "neverinfamous/postgres-mcp:latest", "--access-mode=restricted"],
+               "writenotenow/postgres-mcp-enhanced:latest", "--access-mode=restricted"],
       "env": {
         "DATABASE_URI": "postgresql://user:pass@localhost:5432/db"
       }
@@ -389,7 +391,7 @@ uv run pytest --cov=src tests/
 - **[📝 GitHub Gists](https://gist.github.com/neverinfamous/7a47b6ca39857c7a8e06c4f7e6537a16)** - 7 practical examples and use cases
 - **[🛡️ Security Policy](SECURITY.md)** - Vulnerability reporting
 - **[🤝 Contributing](CONTRIBUTING.md)** - Development guidelines
-- **[🐳 Docker Hub](https://hub.docker.com/r/neverinfamous/postgres-mcp)** - Container images (coming soon)
+- **[🐳 Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp-enhanced)** - Container images
 - **[📦 PyPI Package](https://pypi.org/project/postgres-mcp-enhanced/)** - Python package
 
 **GitHub Gists - Practical Examples:**

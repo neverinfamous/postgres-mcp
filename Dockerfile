@@ -54,6 +54,7 @@ LABEL org.opencontainers.image.vendor="Chris LeRoux"
 LABEL org.opencontainers.image.url="https://github.com/neverinfamous/postgres-mcp"
 LABEL org.opencontainers.image.authors="Chris LeRoux <admin@adamic.tech>"
 LABEL org.opencontainers.image.title="postgres-mcp-enhanced"
+LABEL io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp-server"
 
 # Expose the SSE port
 EXPOSE 8000
