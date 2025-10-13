@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Version 1.1.1
 
-Last Updated October 13, 2025 5:40 AM EST - Production/Stable v1.1.1
+Last Updated October 13, 2025 6:13 AM EST - Production/Stable v1.1.1
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
@@ -11,7 +11,7 @@ Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive tes
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 ![Version](https://img.shields.io/badge/version-v1.1.1-green)
 ![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
-[![MCP Registry](https://img.shields.io/badge/MCP_Registry-Published-green)](https://registry.modelcontextprotocol.io/v0/servers/io.github.neverinfamous/postgres-mcp-server)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-Published-green)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp-server)
 [![PyPI](https://img.shields.io/pypi/v/postgres-mcp-enhanced)](https://pypi.org/project/postgres-mcp-enhanced/)
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](SECURITY.md)
 [![CodeQL](https://img.shields.io/badge/CodeQL-Passing-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp/security/code-scanning)
