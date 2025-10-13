@@ -127,13 +127,22 @@ jobs:
       - name: Publish to MCP Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTIONS_ID_TOKEN_REQUEST_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
+          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
         run: |
           echo "Publishing to MCP Registry using GitHub OIDC authentication..."
           echo "Server: io.github.neverinfamous/postgres-mcp-server"
           echo "Version: ${{ steps.version.outputs.VERSION }}"
           
-          # The MCP publisher will use GitHub's OIDC token automatically
-          # when running in GitHub Actions with id-token: write permission
+          # Attempt GitHub login first
+          echo "Authenticating with GitHub..."
+          if echo "$GITHUB_TOKEN" | mcp-publisher login github --token-stdin; then
+            echo "✅ GitHub authentication successful"
+          else
+            echo "⚠️  GitHub login failed, trying direct publish with OIDC..."
+          fi
+          
+          # Publish using the configured authentication
           if mcp-publisher publish --verbose; then
             echo "✅ Successfully published to MCP Registry!"
           else
