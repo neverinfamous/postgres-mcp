@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Enhanced
 
-Last Updated October 13, 2025 6:13 AM EST Production/Stable v1.1.1
+Last Updated October 18, 2025 8:59 PM EST Production/Stable v1.1.1
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
@@ -20,18 +20,44 @@ Last Updated October 13, 2025 6:13 AM EST Production/Stable v1.1.1
 
 ## 🚀 Quick Start
 
-Pull and run the latest version:
+**Step 1: Pull the latest image**
 
 ```bash
 docker pull writenotenow/postgres-mcp-enhanced:latest
+```
 
+**Step 2: Run with your database connection**
+
+```bash
 docker run -i --rm \
   -e DATABASE_URI="postgresql://user:pass@host:5432/dbname" \
   writenotenow/postgres-mcp-enhanced:latest \
   --access-mode=restricted
 ```
 
-**That's it!** The server is now running and ready to connect via MCP.
+The server is now running and ready to connect via MCP.
+
+---
+
+## ⚡ **Install to Cursor IDE**
+
+### **One-Click Installation**
+
+Click the button below to install directly into Cursor:
+
+[![Install to Cursor](https://img.shields.io/badge/Install%20to%20Cursor-Click%20Here-blue?style=for-the-badge)](cursor://anysphere.cursor-deeplink/mcp/install?name=PostgreSQL%20Enterprise%20MCP%20Server&config=eyJkb2NrZXIuaW8vd3JpdGVub3Rlbm93L3Bvc3RncmVzLW1jcC1lbmhhbmNlZDp2MS4xLjEiOnsidHJhbnNwb3J0Ijp7InR5cGUiOiJzdGRpbyJ9fX0=)
+
+Or copy this deep link:
+```
+cursor://anysphere.cursor-deeplink/mcp/install?name=PostgreSQL%20Enterprise%20MCP%20Server&config=eyJkb2NrZXIuaW8vd3JpdGVub3Rlbm93L3Bvc3RncmVzLW1jcC1lbmhhbmNlZDp2MS4xLjEiOnsidHJhbnNwb3J0Ijp7InR5cGUiOiJzdGRpbyJ9fX0=
+```
+
+### **Setup Requirements**
+- ✅ Docker installed and running
+- ✅ PostgreSQL database (version 13-18)
+- ✅ `DATABASE_URI` environment variable configured
+
+**📖 [See Full Installation Guide →](https://github.com/neverinfamous/postgres-mcp/wiki/Installation-and-Configuration)**
 
 ---
 
@@ -60,6 +86,7 @@ We provide multiple tags for different use cases:
 | `master-YYYYMMDD-HHMMSS-sha` | Timestamped | Audit trail |
 
 **Pull a specific version:**
+
 ```bash
 docker pull writenotenow/postgres-mcp-enhanced:v1.1.1
 ```
@@ -78,6 +105,7 @@ docker pull writenotenow/postgres-mcp-enhanced:v1.1.1
 ### Example Configurations
 
 **Production (Restricted Mode):**
+
 ```bash
 docker run -i --rm \
   -e DATABASE_URI="postgresql://readonly_user:pass@db.example.com:5432/production" \
@@ -86,6 +114,7 @@ docker run -i --rm \
 ```
 
 **Development (Unrestricted Mode):**
+
 ```bash
 docker run -i --rm \
   -e DATABASE_URI="postgresql://admin:pass@localhost:5432/dev_db" \
@@ -94,6 +123,7 @@ docker run -i --rm \
 ```
 
 **With Docker Compose:**
+
 ```yaml
 version: '3.8'
 services:
@@ -162,6 +192,9 @@ Guided workflows for complex operations:
 ## 🔌 MCP Client Configuration
 
 ### Claude Desktop
+
+Add this to your Claude Desktop configuration file:
+
 ```json
 {
   "mcpServers": {
@@ -181,6 +214,9 @@ Guided workflows for complex operations:
 ```
 
 ### Cursor IDE
+
+Add this to your Cursor IDE MCP configuration file:
+
 ```json
 {
   "mcpServers": {
@@ -206,6 +242,7 @@ Guided workflows for complex operations:
 The server works with standard PostgreSQL installations. For enhanced functionality, install these extensions:
 
 **Required for all features:**
+
 ```sql
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
@@ -213,6 +250,7 @@ CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
 ```
 
 **Optional but recommended:**
+
 ```sql
 CREATE EXTENSION IF NOT EXISTS hypopg;
 CREATE EXTENSION IF NOT EXISTS pgvector;
@@ -228,11 +266,13 @@ The server gracefully handles missing extensions - features requiring them will 
 Verify the image works correctly.
 
 **Check server version:**
+
 ```bash
 docker run --rm writenotenow/postgres-mcp-enhanced:latest --version
 ```
 
 **Test database connection:**
+
 ```bash
 docker run -i --rm \
   -e DATABASE_URI="postgresql://user:pass@localhost:5432/dbname" \

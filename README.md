@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Version 1.1.1
 
-Last Updated October 13, 2025 6:13 AM EST - Production/Stable v1.1.1
+Last Updated October 18, 2025 8:59 PM EST - Production/Stable v1.1.1
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
@@ -102,9 +102,16 @@ Enhanced with **pg_stat_statements**, **hypopg**, **pgvector**, and **PostGIS** 
 ## 🚀 **Quick Start**
 
 ### **Docker (Recommended)**
+
+**Step 1: Pull the image**
+
 ```bash
 docker pull writenotenow/postgres-mcp-enhanced:latest
+```
 
+**Step 2: Run with your database connection**
+
+```bash
 docker run -i --rm \
   -e DATABASE_URI="postgresql://user:pass@localhost:5432/db" \
   writenotenow/postgres-mcp-enhanced:latest \
@@ -112,17 +119,69 @@ docker run -i --rm \
 ```
 
 ### **Python Installation**
+
+**Step 1: Install the package**
+
 ```bash
 pip install postgres-mcp-enhanced
+```
+
+**Step 2: Run the server**
+
+```bash
 postgres-mcp --access-mode=restricted
 ```
 
 ### **From Source**
+
+**Step 1: Clone the repository**
+
 ```bash
 git clone https://github.com/neverinfamous/postgres-mcp.git
 cd postgres-mcp
+```
+
+**Step 2: Install dependencies and run tests**
+
+```bash
 uv sync
 uv run pytest -v
+```
+
+**📖 [See Full Installation Guide →](https://github.com/neverinfamous/postgres-mcp/wiki/Installation-and-Configuration)**
+
+---
+
+## ⚡ **Install to Cursor IDE**
+
+### **One-Click Installation**
+
+Click the button below to install directly into Cursor:
+
+[![Install to Cursor](https://img.shields.io/badge/Install%20to%20Cursor-Click%20Here-blue?style=for-the-badge)](cursor://anysphere.cursor-deeplink/mcp/install?name=PostgreSQL%20Enterprise%20MCP%20Server&config=eyJkb2NrZXIuaW8vd3JpdGVub3Rlbm93L3Bvc3RncmVzLW1jcC1lbmhhbmNlZDp2MS4xLjEiOnsidHJhbnNwb3J0Ijp7InR5cGUiOiJzdGRpbyJ9fX0=)
+
+Or copy this deep link:
+```
+cursor://anysphere.cursor-deeplink/mcp/install?name=PostgreSQL%20Enterprise%20MCP%20Server&config=eyJkb2NrZXIuaW8vd3JpdGVub3Rlbm93L3Bvc3RncmVzLW1jcC1lbmhhbmNlZDp2MS4xLjEiOnsidHJhbnNwb3J0Ijp7InR5cGUiOiJzdGRpbyJ9fX0=
+```
+
+### **Prerequisites**
+- ✅ Docker installed and running
+- ✅ PostgreSQL database (version 13-18)
+- ✅ `DATABASE_URI` environment variable configured
+
+### **Configuration**
+
+After installation, Cursor will use this Docker-based configuration. If you prefer manual setup, add this to your MCP client configuration:
+
+```json
+{
+  "docker.io/writenotenow/postgres-mcp-enhanced:v1.1.1": {
+    "transport": {
+      "type": "stdio"
+    }
+  }
+}
 ```
 
 **📖 [See Full Installation Guide →](https://github.com/neverinfamous/postgres-mcp/wiki/Installation-and-Configuration)**
@@ -242,6 +301,9 @@ Required extensions for full functionality:
 - **PostGIS** (optional) - Geospatial operations
 
 **Quick Setup:**
+
+Run these commands in your PostgreSQL database:
+
 ```sql
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
@@ -349,14 +411,21 @@ CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
 
 ## 🧪 **Testing**
 
+**Run all tests:**
+
 ```bash
-# Run all tests
 uv run pytest -v
+```
 
-# Security tests
+**Security tests:**
+
+```bash
 python security/run_security_test.py
+```
 
-# With coverage
+**With coverage:**
+
+```bash
 uv run pytest --cov=src tests/
 ```
 
