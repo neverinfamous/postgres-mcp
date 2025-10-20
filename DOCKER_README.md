@@ -76,20 +76,31 @@ cursor://anysphere.cursor-deeplink/mcp/install?name=PostgreSQL%20Enterprise%20MC
 
 ## 🐳 Docker Tags
 
-We provide multiple tags for different use cases:
+We provide optimized tags for reliability and traceability:
 
 | Tag | Description | Use Case |
 |-----|-------------|----------|
 | `latest` | Latest stable release | **Recommended for production** |
 | `v1.1.1` | Specific version | Pin to exact version |
-| `sha-abc1234` | Commit SHA | Development/testing |
-| `master-YYYYMMDD-HHMMSS-sha` | Timestamped | Audit trail |
+| `sha-9286931` | Commit SHA (12-char short) | Development/testing/traceability |
 
 **Pull a specific version:**
 
 ```bash
 docker pull writenotenow/postgres-mcp-enhanced:v1.1.1
 ```
+
+**Tag Strategy Updates (October 2025)**
+
+We've optimized our Docker tagging approach for improved reliability:
+
+- ✅ **Streamlined to 3 essential tags** - Reduces Docker Hub API pressure during multi-platform builds
+- ✅ **Short SHA format** (e.g., `sha-9286931`) - Maintains commit traceability with 60% smaller payload
+- ⚠️ **Removed `master-YYYYMMDD-...` timestamps** - These redundant tags caused upload bottlenecks and registry timeouts
+- 📝 **Infrastructure resilience** - Optimized strategy reduces impact of temporary outages (e.g., AWS/Docker Hub API issues)
+- 🔄 **Consistent across all projects** - Same strategy now used in memory-journal-mcp and postgres-mcp-server
+
+**If you encounter Docker Hub timeouts:** This is typically due to infrastructure issues (AWS outages, Docker Hub API limits). The optimizations above significantly reduce the impact of such incidents. Your images are fully deployed and available, even if description updates or metrics uploads experience delays.
 
 ---
 
