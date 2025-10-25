@@ -16,6 +16,8 @@ Last Updated October 18, 2025 8:59 PM EST Production/Stable v1.1.1
 
 *Enterprise-grade PostgreSQL MCP server with comprehensive security, AI-native operations, and intelligent meta-awareness*
 
+**📰 [Read the v1.0.5 Release Article](https://adamic.tech/articles/2025-10-04-postgres-mcp-server-v1-0-5)** - Learn about enterprise features, AI-native operations, and intelligent meta-awareness
+
 ---
 
 ## 🚀 Quick Start
