@@ -14,6 +14,11 @@ dependencies = [
     "instructor>=1.7.9",
     "h11>=0.16.0",
     "setuptools>=78.1.1",
+    # Security: Force updated versions to fix CVEs
+    "starlette>=0.49.1",  # CVE-2025-62727, CVE-2025-54121
+    "urllib3>=2.5.0",     # CVE-2025-50181, CVE-2025-50182
+    "requests>=2.32.4",   # CVE-2024-47081
+    "aiohttp>=3.12.14",   # CVE-2025-53643
 ]
 license = "mit"
 license-files = ["LICENSE"]

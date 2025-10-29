@@ -39,6 +39,9 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/* \
   && apt-get clean
 
+# Security: Upgrade pip to fix CVE-2025-8869
+RUN pip install --no-cache-dir --upgrade pip>=25.3
+
 COPY --from=builder --chown=app:app /app /app
 COPY --chown=app:app docker-entrypoint.sh /app/
 RUN chmod +x /app/docker-entrypoint.sh
