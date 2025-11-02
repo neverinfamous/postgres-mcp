@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Enhanced
 
-Last Updated October 27, 2025 - Production/Stable v1.1.1
+Last Updated November 02, 2025 - Production/Stable v1.1.1
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
@@ -16,7 +16,7 @@ Last Updated October 27, 2025 - Production/Stable v1.1.1
 
 *Enterprise-grade PostgreSQL MCP server with comprehensive security, AI-native operations, and intelligent meta-awareness*
 
-**📰 [Read the v1.0.5 Release Article](https://adamic.tech/articles/2025-10-04-postgres-mcp-server-v1-0-5)** - Learn about enterprise features, AI-native operations, and intelligent meta-awareness
+**📰 [Read the v1.1.1 Release Article](https://adamic.tech/articles/2025-10-04-postgres-mcp-server-v1-0-5)** - Learn about enterprise features, AI-native operations, and intelligent meta-awareness
 
 ---
 

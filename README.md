@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Version 1.1.1
 
-Last Updated October 27, 2025 - Production/Stable v1.1.1
+Last Updated November 02, 2025 - Production/Stable v1.1.1
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
@@ -43,7 +43,7 @@ For detailed documentation, examples, and guides, visit our comprehensive wiki:
 - **[Security Best Practices](https://github.com/neverinfamous/postgres-mcp/wiki/Security-and-Best-practices)** - Production security
 - **[Troubleshooting](https://github.com/neverinfamous/postgres-mcp/wiki/Troubleshooting)** - Common issues
 
-**📰 [Read the v1.0.5 Release Article](https://adamic.tech/articles/2025-10-04-postgres-mcp-server-v1-0-5)** - Learn about enterprise features, AI-native operations, and intelligent meta-awareness
+**📰 [Read the v1.1.1 Release Article](https://adamic.tech/articles/2025-10-04-postgres-mcp-server-v1-0-5)** - Learn about enterprise features, AI-native operations, and intelligent meta-awareness
 
 ---
 
