@@ -35,13 +35,16 @@ def register_resources(mcp: FastMCP, get_sql_driver_func: Callable[[], Awaitable
             sql_driver: Any = await get_sql_driver_func()
 
             # Query information_schema for tables
+            # Use pg_class directly to avoid ::regclass issues with views
             tables_query = """
                 SELECT
                     t.table_schema,
                     t.table_name,
                     t.table_type,
-                    obj_description((t.table_schema||'.'||t.table_name)::regclass) as table_comment
+                    obj_description(c.oid, 'pg_class') as table_comment
                 FROM information_schema.tables t
+                LEFT JOIN pg_namespace n ON n.nspname = t.table_schema
+                LEFT JOIN pg_class c ON c.relnamespace = n.oid AND c.relname = t.table_name
                 WHERE t.table_schema NOT IN ('pg_catalog', 'information_schema')
                 ORDER BY t.table_schema, t.table_name
             """
