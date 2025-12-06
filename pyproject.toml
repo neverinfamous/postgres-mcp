@@ -5,18 +5,18 @@ description = "Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensi
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mcp[cli]>=1.10.0",
+    "mcp[cli]>=1.23.0",
     "psycopg[binary]>=3.2.6",
-    "humanize>=4.8.0",
+    "humanize>=4.11.0",
     "pglast==7.10",
     "attrs>=25.3.0",
     "psycopg-pool>=3.2.6",
     "instructor>=1.7.9",
     "h11>=0.16.0",
     "setuptools>=78.1.1",
-    # Security: Force updated versions to fix CVEs
+    # Security: Force updated versions to fix CVEs (Dec 6, 2025 update)
     "starlette>=0.49.1",  # CVE-2025-62727, CVE-2025-54121
-    "urllib3>=2.5.0",     # CVE-2025-50181, CVE-2025-50182
+    "urllib3>=2.6.0",     # CVE-2025-66471, CVE-2025-66418 (FIXED: upgraded from 2.5.0)
     "requests>=2.32.4",   # CVE-2024-47081
     "aiohttp>=3.12.14",   # CVE-2025-53643
 ]
@@ -31,6 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Database",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -107,7 +108,7 @@ known-first-party = ["postgres-mcp"]
 
 [tool.pyright]
 typeCheckingMode = "strict"
-pythonVersion = "3.12"
+pythonVersion = "3.12"  # Minimum for type checking, runtime supports 3.12-3.14, Docker uses 3.13
 reportMissingTypeStubs = false
 # reportUnknownMemberType = true
 # reportUnknownParameterType = true

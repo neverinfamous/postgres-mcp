@@ -1,6 +1,6 @@
 # First, build the application in the `/app` directory.
 # See `Dockerfile` for details.
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS builder
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 # Disable Python downloads, because we want to use the system interpreter
@@ -22,9 +22,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --frozen --no-dev
 
 
-FROM python:3.12-slim-bookworm
+FROM python:3.13-slim-bookworm
 # It is important to use the image that matches the builder, as the path to the
-# Python executable must be the same, e.g., using `python:3.11-slim-bookworm`
+# Python executable must be the same, e.g., using `python:3.12-slim-bookworm`
 # will fail.
 
 # Security: Create non-root user

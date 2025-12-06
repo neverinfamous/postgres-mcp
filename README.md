@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Version 1.1.1
 
-Last Updated December 6, 2025 - Production/Stable v1.1.1
+Last Updated December 6, 2025 - Production/Stable v1.1.1 (Security Patch)
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
@@ -96,8 +96,9 @@ Enhanced with **pg_stat_statements**, **hypopg**, **pgvector**, and **PostGIS** 
 ## 📋 **Prerequisites**
 
 1. **PostgreSQL Database** (version 13-18)
-2. **Environment Variable**: `DATABASE_URI="postgresql://user:pass@host:5432/db"`
-3. **MCP Client**: Claude Desktop, Cursor, or compatible client
+2. **Python** (version 3.12, 3.13, or 3.14)
+3. **Environment Variable**: `DATABASE_URI="postgresql://user:pass@host:5432/db"`
+4. **MCP Client**: Claude Desktop, Cursor, or compatible client
 
 **See [Installation Guide](https://github.com/neverinfamous/postgres-mcp/wiki/Installation-and-Configuration) for detailed setup instructions.**
 
@@ -320,6 +321,20 @@ CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
 
 ## 🆕 **Recent Updates**
 
+### **Version 1.1.1 Security Patch** 🔒 (December 6, 2025)
+- **🔒 Security Fixes**: Updated critical dependencies to address vulnerabilities
+  - `urllib3` upgraded to 2.6.0 (fixes CVE-2025-66471, CVE-2025-66418)
+  - `mcp` upgraded to 1.23.1 (fixes CVE-2025-66416)
+- **🐍 Python 3.13 Upgrade**: Docker images now use Python 3.13
+  - Aligned with SQLite MCP Server for consistency
+  - Better performance and improved features
+  - Local development supports Python 3.12, 3.13, and 3.14
+- **📦 Dependency Updates**: All packages updated to latest stable versions
+  - Improved compatibility and performance
+  - Enhanced reliability and security posture
+- **✅ Tested**: All 60 security tests passing
+- **🐳 Docker**: Updated to Python 3.13 with latest security patches
+
 ### **Version 1.1.0 Release** 🎉 (October 4, 2025)
 - **🌟 NEW: MCP Resources (10)**: Real-time database meta-awareness
   - Instant access to schema, capabilities, performance, health
@@ -483,14 +498,15 @@ uv run pytest --cov=src tests/
 
 ## 📈 **Project Stats**
 
-- **Version 1.1.0** - Intelligent assistant release (October 4, 2025)
+- **Version 1.1.1** - Security patch + Python 3.14 support (December 6, 2025)
 - **63 MCP Tools** across 9 categories
 - **10 MCP Resources** - Database meta-awareness (NEW!)
 - **10 MCP Prompts** - Guided workflows (NEW!)
 - **100% Type Safe** - Pyright strict mode (2,000+ issues resolved)
-- **Zero Known Vulnerabilities** - Security audit passed
+- **Zero Known Vulnerabilities** - Security audit passed (Python deps)
 - **Zero Linter Errors** - Clean codebase with comprehensive type checking
 - **PostgreSQL 13-18** - Full compatibility
+- **Python 3.12-3.14** - Full compatibility with latest Python
 - **Multi-platform** - Windows, Linux, macOS (amd64, arm64)
 - **7,500+ lines** - 14 modules, comprehensive implementation
 
