@@ -62,6 +62,7 @@ postgres-mcp = "postgres_mcp:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["./src"]
+asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [dependency-groups]

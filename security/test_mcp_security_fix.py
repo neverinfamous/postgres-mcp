@@ -15,12 +15,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+import pytest
 from mcp import types
 
 import postgres_mcp.server as server_module
 from postgres_mcp.server import execute_sql
 
 
+@pytest.mark.asyncio
 async def test_mcp_security_fix():
     """Test that the MCP server execute_sql function blocks SQL injection"""
 
