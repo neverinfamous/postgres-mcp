@@ -4,7 +4,7 @@
   "typeCheckingMode": "strict",
   "reportMissingTypeStubs": false,
   "reportUnknownVariableType": false,
-  "pythonVersion": "3.12",
+  "pythonVersion": "3.13",
   "pythonPlatform": "All"
 }
 

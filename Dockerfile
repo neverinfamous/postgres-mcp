@@ -25,7 +25,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.13-slim-bookworm
 # It is important to use the image that matches the builder, as the path to the
 # Python executable must be the same, e.g., using `python:3.12-slim-bookworm`
-# will fail.
+# instead of `python:3.13-slim-bookworm` will fail.
 
 # Security: Create non-root user
 RUN groupadd -r app && useradd -r -g app -u 1000 app
