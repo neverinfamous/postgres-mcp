@@ -43,6 +43,8 @@ from .sql import check_hypopg_installation_status
 from .sql import obfuscate_password
 from .statistics import StatisticalTools
 from .text import TextProcessingTools
+from .tool_filtering import filter_tools_from_server
+from .tool_filtering import is_tool_enabled
 from .top_queries import TopQueriesCalc
 from .vector import VectorTools
 
@@ -1973,6 +1975,9 @@ async def main():
         mcp.add_tool(execute_sql, description="Execute any SQL query")
     else:
         mcp.add_tool(execute_sql, description="Execute a read-only SQL query")
+
+    # Apply tool filtering from POSTGRES_MCP_TOOL_FILTER environment variable
+    filter_tools_from_server(mcp)
 
     logger.info(f"Starting PostgreSQL MCP Server in {current_access_mode.upper()} mode")
 

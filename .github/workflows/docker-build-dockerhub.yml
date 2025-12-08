@@ -85,7 +85,7 @@ jobs:
           tags: |
             # Create latest tag for main branch pushes only
             type=raw,value=latest,enable={{is_default_branch}}
-            # Create version tags (v1.1.0)
+            # Create version tags (v1.2.0)
             type=raw,value=v${{ needs.prepare.outputs.version }},enable={{is_default_branch}}
             # Create short SHA tags for traceability (e.g., sha-8f8183d)
             type=sha,prefix=sha-,format=short,enable={{is_default_branch}}

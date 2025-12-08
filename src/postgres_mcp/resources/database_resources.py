@@ -142,7 +142,7 @@ def register_resources(mcp: FastMCP, get_sql_driver_func: Callable[[], Awaitable
             recommendations: list[dict[str, Any]] = []
 
             capabilities: dict[str, Any] = {
-                "server_version": "1.1.0",
+                "server_version": "1.2.0",
                 "postgresql_version": pg_version,
                 "total_tools": 63,
                 "total_resources": 10,

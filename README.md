@@ -1,6 +1,6 @@
-# PostgreSQL MCP Server - Version 1.1.1
+# PostgreSQL MCP Server - Enhanced
 
-Last Updated December 6, 2025 - Production/Stable v1.1.1 (Security Patch)
+Last Updated December 8, 2025 - Production/Stable v1.2.0
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
@@ -17,10 +17,24 @@ Enterprise-grade PostgreSQL MCP server with enhanced security, comprehensive tes
 [![CodeQL](https://img.shields.io/badge/CodeQL-Passing-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp/security/code-scanning)
 [![Type Safety](https://img.shields.io/badge/Pyright-Strict-blue.svg)](https://github.com/neverinfamous/postgres-mcp)
 
-**[GitHub](https://github.com/neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgres-mcp/wiki/Changelog)** • **[Release Article](https://adamic.tech/articles/postgres-mcp-server)**
+**[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgres-mcp/wiki/Changelog)** • **[Release Article](https://adamic.tech/articles/postgres-mcp-server)**
 
 ---
 
+### **Version 1.2.0 Tool Filtering** 🎛️ (December 2025)
+- **🎛️ NEW: Tool Filtering** - Control which tools are exposed via `POSTGRES_MCP_TOOL_FILTER` environment variable
+- **🎯 Client Compatibility** - Stay under tool limits (Windsurf: 100, Cursor: ~80 warning threshold)
+- **💰 Token Savings** - Reduce tool schema overhead by 24-86% based on configuration
+- **🔧 9 Tool Groups** - Filter by category: `core`, `json`, `text`, `stats`, `performance`, `vector`, `geo`, `backup`, `monitoring`
+- **⚡ Flexible Syntax** - `-group` disables group, `-tool` disables specific tool, `+tool` re-enables
+- **✅ Zero Breaking Changes** - All 63 tools enabled by default, backward compatible
+
+**Common filters:**
+- `POSTGRES_MCP_TOOL_FILTER="-vector,-geo,-stats,-text"` → 35 tools (44% savings)
+- `POSTGRES_MCP_TOOL_FILTER="-vector,-geo"` → 48 tools (24% savings)
+- `POSTGRES_MCP_TOOL_FILTER="-json,-text,-stats,-performance,-vector,-geo,-backup,-monitoring"` → 9 tools (86% savings)
+
+**📖 [Tool Filtering Guide →](https://github.com/neverinfamous/postgres-mcp/wiki/Tool-Filtering)**
 ## 🔍 **[AI-Powered Documentation Search →](https://search.adamic.tech)**
 
 Can't find what you're looking for? Use our **AI-powered search interface** to search both PostgreSQL and SQLite MCP Server documentation:
@@ -319,7 +333,149 @@ CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
 
 ---
 
+## 🎛️ **Tool Filtering** - NEW in v1.2.0!
+
+**Optimize tool count and token usage** for your MCP client with intelligent filtering.
+
+### Why Tool Filtering?
+
+- ✅ **Stay under client limits** - Windsurf (100 tools), Cursor (~80 warning threshold)
+- ✅ **Reduce token consumption** - 24-86% reduction in tool schema overhead
+- ✅ **Remove unused tools** - Disable tools requiring missing PostgreSQL extensions
+- ✅ **Faster AI discovery** - Smaller tool sets mean faster tool selection
+- ✅ **Zero breaking changes** - All 63 tools enabled by default
+
+### Quick Start
+
+Set the `POSTGRES_MCP_TOOL_FILTER` environment variable:
+
+```bash
+# Windsurf (100-tool limit) - reduces to ~35 tools, saves ~5,600 tokens (44% reduction)
+POSTGRES_MCP_TOOL_FILTER="-vector,-geo,-stats,-text"
+
+# No pgvector/PostGIS installed - reduces to 48 tools, saves ~3,000 tokens (24% reduction)
+POSTGRES_MCP_TOOL_FILTER="-vector,-geo"
+
+# Core database only - reduces to 9 tools, saves ~10,800 tokens (86% reduction)
+POSTGRES_MCP_TOOL_FILTER="-json,-text,-stats,-performance,-vector,-geo,-backup,-monitoring"
+```
+
+### Filter Syntax
+
+| Syntax | Description | Example |
+|--------|-------------|---------|
+| `-group` | Disable all tools in a group | `-vector` disables 8 vector tools |
+| `-tool` | Disable a specific tool | `-execute_sql` disables only execute_sql |
+| `+tool` | Re-enable a tool after group disable | `+list_schemas` re-enables list_schemas |
+
+**Rules process left-to-right** - order matters!
+
+### Available Tool Groups
+
+| Group | Tool Count | Description |
+|-------|------------|-------------|
+| `core` | 9 | Schema management, SQL execution, health monitoring |
+| `json` | 11 | JSONB operations, validation, security scanning |
+| `text` | 5 | Similarity search, full-text search, fuzzy matching |
+| `stats` | 8 | Descriptive stats, correlation, regression, time series |
+| `performance` | 6 | Query optimization, index tuning, workload analysis |
+| `vector` | 8 | Embeddings, similarity search, clustering (requires pgvector) |
+| `geo` | 7 | Distance calculation, spatial queries (requires PostGIS) |
+| `backup` | 4 | Backup planning, restore validation, scheduling |
+| `monitoring` | 5 | Real-time monitoring, capacity planning, alerting |
+
+**Total: 63 tools across 9 groups**
+
+### Token Savings Calculator
+
+| Configuration | Tools | Tokens Saved | Savings % |
+|--------------|-------|--------------|-----------|
+| No filtering | 63 | 0 | 0% |
+| `-vector,-geo,-stats,-text` | 35 | ~5,600 | **44%** |
+| `-vector,-geo` | 48 | ~3,000 | **24%** |
+| Core + JSON only | 20 | ~8,600 | **68%** |
+| Core only | 9 | ~10,800 | **86%** |
+
+*Based on ~200 tokens per tool definition (description + parameters)*
+
+### MCP Client Configuration
+
+**Cursor / Claude Desktop:**
+
+```json
+{
+  "mcpServers": {
+    "postgres-mcp": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "DATABASE_URI", "-e", "POSTGRES_MCP_TOOL_FILTER",
+               "writenotenow/postgres-mcp-enhanced:latest", "--access-mode=restricted"],
+      "env": {
+        "DATABASE_URI": "postgresql://user:pass@localhost:5432/db",
+        "POSTGRES_MCP_TOOL_FILTER": "-vector,-geo,-stats,-text"
+      }
+    }
+  }
+}
+```
+
+**Windsurf:**
+
+```json
+{
+  "mcpServers": {
+    "postgres-mcp": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "DATABASE_URI", "-e", "POSTGRES_MCP_TOOL_FILTER",
+               "writenotenow/postgres-mcp-enhanced:latest", "--access-mode=restricted"],
+      "env": {
+        "DATABASE_URI": "postgresql://user:pass@localhost:5432/db",
+        "POSTGRES_MCP_TOOL_FILTER": "-vector,-geo,-stats,-text"
+      }
+    }
+  }
+}
+```
+
+> **Tip:** Omit `POSTGRES_MCP_TOOL_FILTER` to enable all 63 tools (default behavior)
+
+### Common Use Cases
+
+```bash
+# Analytics focus - keep stats/performance, remove spatial
+POSTGRES_MCP_TOOL_FILTER="-vector,-geo,-backup"
+
+# Read-only operations - disable execute_sql
+POSTGRES_MCP_TOOL_FILTER="-execute_sql"
+
+# CI/CD pipelines - core operations only
+POSTGRES_MCP_TOOL_FILTER="-backup,-monitoring"
+
+# Development - all tools except missing extensions
+POSTGRES_MCP_TOOL_FILTER="-vector,-geo"
+```
+
+**📖 [Complete Tool Filtering Guide →](https://github.com/neverinfamous/postgres-mcp/wiki/Tool-Filtering)**
+
+---
+
 ## 🆕 **Recent Updates**
+
+### **Version 1.2.0 Tool Filtering** 🎛️ (December 2025)
+- **🎛️ NEW: Tool Filtering** - Control which tools are exposed via `POSTGRES_MCP_TOOL_FILTER` environment variable
+- **🎯 Client Compatibility** - Stay under tool limits (Windsurf: 100, Cursor: ~80 warning threshold)
+- **💰 Token Savings** - Reduce tool schema overhead by 24-86% based on configuration
+- **🔧 9 Tool Groups** - Filter by category: `core`, `json`, `text`, `stats`, `performance`, `vector`, `geo`, `backup`, `monitoring`
+- **⚡ Flexible Syntax** - `-group` disables group, `-tool` disables specific tool, `+tool` re-enables
+- **✅ Zero Breaking Changes** - All 63 tools enabled by default, backward compatible
+
+**Common filters:**
+- `POSTGRES_MCP_TOOL_FILTER="-vector,-geo,-stats,-text"` → 35 tools (44% savings)
+- `POSTGRES_MCP_TOOL_FILTER="-vector,-geo"` → 48 tools (24% savings)
+- `POSTGRES_MCP_TOOL_FILTER="-json,-text,-stats,-performance,-vector,-geo,-backup,-monitoring"` → 9 tools (86% savings)
+
+**📖 [Tool Filtering Guide →](https://github.com/neverinfamous/postgres-mcp/wiki/Tool-Filtering)**
+
+---
 
 ### **Version 1.1.1 Security Patch** 🔒 (December 6, 2025)
 - **🔒 Security Fixes**: Updated critical dependencies to address vulnerabilities
@@ -471,8 +627,6 @@ uv run pytest --cov=src tests/
 - ✅ **AI-Native** - Vector search, semantic operations, ML-ready
 - ✅ **Active Maintenance** - Regular updates and security patches
 - ✅ **Comprehensive Documentation** - 16-page wiki with examples
-
-**🌟 v1.1.0 Differentiation:** Only PostgreSQL MCP server with intelligent meta-awareness and guided workflows!
 
 ---
 

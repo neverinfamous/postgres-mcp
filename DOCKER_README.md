@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Enhanced
 
-Last Updated December 6, 2025 - Production/Stable v1.1.1
+Last Updated December 8, 2025 - Production/Stable v1.2.0
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
@@ -17,6 +17,16 @@ Last Updated December 6, 2025 - Production/Stable v1.1.1
 *Enterprise-grade PostgreSQL MCP server with comprehensive security, AI-native operations, and intelligent meta-awareness*
 
 **[GitHub](https://github.com/neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgres-mcp/wiki/Changelog)** • **[Release Article](https://adamic.tech/articles/postgres-mcp-server)**
+
+---
+
+### **Version 1.2.0 Tool Filtering** 🎛️ (December 2025)
+- **🎛️ NEW: Tool Filtering** - Control which tools are exposed via `POSTGRES_MCP_TOOL_FILTER` environment variable
+- **🎯 Client Compatibility** - Stay under tool limits (Windsurf: 100, Cursor: ~80 warning threshold)
+- **💰 Token Savings** - Reduce tool schema overhead by 24-86% based on configuration
+- **🔧 9 Tool Groups** - Filter by category: `core`, `json`, `text`, `stats`, `performance`, `vector`, `geo`, `backup`, `monitoring`
+- **⚡ Flexible Syntax** - `-group` disables group, `-tool` disables specific tool, `+tool` re-enables
+- **✅ Zero Breaking Changes** - All 63 tools enabled by default, backward compatible
 
 ---
 
@@ -83,13 +93,13 @@ We provide optimized tags for reliability and traceability:
 | Tag | Description | Use Case |
 |-----|-------------|----------|
 | `latest` | Latest stable release | **Recommended for production** |
-| `v1.1.1` | Specific version | Pin to exact version |
+| `v1.2.0` | Specific version | Pin to exact version |
 | `sha-9286931` | Commit SHA (12-char short) | Development/testing/traceability |
 
 **Pull a specific version:**
 
 ```bash
-docker pull writenotenow/postgres-mcp-enhanced:v1.1.1
+docker pull writenotenow/postgres-mcp-enhanced:v1.2.0
 ```
 
 **Tag Strategy Updates (October 2025)**
@@ -114,6 +124,37 @@ We've optimized our Docker tagging approach for improved reliability:
 |----------|----------|-------------|
 | `DATABASE_URI` | Yes | PostgreSQL connection string |
 | `--access-mode` | Recommended | `restricted` (read-only) or `unrestricted` (full access) |
+| `POSTGRES_MCP_TOOL_FILTER` | Optional | Filter tools to reduce token usage (see below) |
+
+### Tool Filtering (NEW in v1.2.0) 🎛️
+
+**Control which tools are exposed** to your MCP client using `POSTGRES_MCP_TOOL_FILTER`:
+
+```bash
+# Windsurf (100-tool limit) - reduces to ~35 tools
+docker run -i --rm \
+  -e DATABASE_URI="postgresql://user:pass@host:5432/db" \
+  -e POSTGRES_MCP_TOOL_FILTER="-vector,-geo,-stats,-text" \
+  writenotenow/postgres-mcp-enhanced:latest
+
+# No pgvector/PostGIS - reduces to 48 tools
+POSTGRES_MCP_TOOL_FILTER="-vector,-geo"
+
+# Core only (minimal) - reduces to 9 tools
+POSTGRES_MCP_TOOL_FILTER="-json,-text,-stats,-performance,-vector,-geo,-backup,-monitoring"
+```
+
+**Why use tool filtering?**
+- ✅ Stay under client tool limits (Windsurf: 100, Cursor: ~80 warning)
+- ✅ Reduce token consumption by 24-86%
+- ✅ Remove tools requiring missing PostgreSQL extensions
+- ✅ Faster tool discovery by AI
+
+**Available groups:** `core` (9), `json` (11), `text` (5), `stats` (8), `performance` (6), `vector` (8), `geo` (7), `backup` (4), `monitoring` (5)
+
+**Syntax:** `-group` disables group | `-tool` disables one tool | `+tool` re-enables | Rules process left-to-right
+
+**📖 [Complete Tool Filtering Guide →](https://github.com/neverinfamous/postgres-mcp/wiki/Tool-Filtering)**
 
 ### Example Configurations
 
@@ -214,12 +255,13 @@ Add this to your Claude Desktop configuration file:
     "postgres-mcp": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm", "-e", "DATABASE_URI",
+        "run", "-i", "--rm", "-e", "DATABASE_URI", "-e", "POSTGRES_MCP_TOOL_FILTER",
         "writenotenow/postgres-mcp-enhanced:latest",
         "--access-mode=restricted"
       ],
       "env": {
-        "DATABASE_URI": "postgresql://user:pass@localhost:5432/dbname"
+        "DATABASE_URI": "postgresql://user:pass@localhost:5432/dbname",
+        "POSTGRES_MCP_TOOL_FILTER": "-vector,-geo"
       }
     }
   }
@@ -236,17 +278,20 @@ Add this to your Cursor IDE MCP configuration file:
     "postgres-mcp": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm", "-e", "DATABASE_URI",
+        "run", "-i", "--rm", "-e", "DATABASE_URI", "-e", "POSTGRES_MCP_TOOL_FILTER",
         "writenotenow/postgres-mcp-enhanced:latest",
         "--access-mode=restricted"
       ],
       "env": {
-        "DATABASE_URI": "postgresql://user:pass@localhost:5432/dbname"
+        "DATABASE_URI": "postgresql://user:pass@localhost:5432/dbname",
+        "POSTGRES_MCP_TOOL_FILTER": "-vector,-geo"
       }
     }
   }
 }
 ```
+
+> **Tip:** Remove the `POSTGRES_MCP_TOOL_FILTER` line to enable all 63 tools, or customize the filter for your needs.
 
 ---
 
@@ -342,56 +387,9 @@ Can't find what you're looking for? Use our AI-powered search to query both Post
 
 ---
 
-## 🆕 Recent Updates
-
-### v1.1.1 (October 13, 2025) - MCP Registry Ready 🎉
-- ✅ **MCP Registry Support** - Configured for Model Context Protocol Registry
-- ✅ **Hybrid Deployment** - Available via PyPI, Docker Hub, and MCP Registry
-- ✅ **Validation Markers** - Added MCP name markers for registry validation
-- ✅ **Automated Publishing** - Integrated MCP Registry into release workflow
-
-### v1.1.1 (October 8, 2025) 🎉
-- ✅ **PostgreSQL 18 Support** - Full compatibility with PostgreSQL 13-18
-- ✅ **Bug Fix** - Fixed jsonb_stats SQL type casting issue (jsonb_array_length)
-- ✅ **Test Suite Enhancement** - Comprehensive testing against PostgreSQL 13 and 18
-- ✅ **Windows Compatibility** - Documented Windows test limitations with workarounds
-- ✅ **IDE Configuration** - Improved basedpyright configuration for better developer experience
-- ✅ Zero breaking changes - All existing features work unchanged
-
-### v1.1.0 (October 4, 2025)
-- ✅ **NEW: MCP Resources (10)** - Real-time database meta-awareness
-- ✅ **NEW: MCP Prompts (10)** - Guided workflows for complex operations
-- ✅ **Intelligent Assistant** - Transforms from tool collection to database expert
-- ✅ **Pyright strict mode** - 2,000+ type issues resolved, 100% type-safe codebase
-- ✅ **Zero linter errors** - Clean codebase with comprehensive type checking
-- ✅ Zero breaking changes - All existing tools work unchanged
-
-### v1.0.5 (October 3, 2025)
-- ✅ Fixed Docker Scout tag format
-- ✅ Docker-optimized README for Docker Hub
-- ✅ Complete workflow automation
-
-### v1.0.4 (October 3, 2025)
-- ✅ Improved Docker tagging strategy
-- ✅ Removed buildcache tag clutter
-- ✅ Automatic README sync to Docker Hub
-
-### v1.0.3 (October 3, 2025)
-- ✅ Fixed all critical/high CVEs (h11, mcp, setuptools, bind9)
-- ✅ Updated dependencies to latest secure versions
-- ✅ Zero known vulnerabilities
-
-### v1.0.2 (October 3, 2025)
-- ✅ Added non-root user (security hardening)
-- ✅ Supply chain attestation (SBOM + Provenance)
-- ✅ Docker Scout scanning integration
-
----
-
 ## 🙋 Support & Contributing
 
 - **Issues**: [GitHub Issues](https://github.com/neverinfamous/postgres-mcp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/neverinfamous/postgres-mcp/discussions)
 - **Security**: Report vulnerabilities to admin@adamic.tech
 - **Contributing**: See [Contributing Guide](https://github.com/neverinfamous/postgres-mcp/blob/main/CONTRIBUTING.md)
 
