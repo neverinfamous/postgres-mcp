@@ -44,7 +44,6 @@ from .sql import obfuscate_password
 from .statistics import StatisticalTools
 from .text import TextProcessingTools
 from .tool_filtering import filter_tools_from_server
-from .tool_filtering import is_tool_enabled
 from .top_queries import TopQueriesCalc
 from .vector import VectorTools
 

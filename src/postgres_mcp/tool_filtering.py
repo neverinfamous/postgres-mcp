@@ -206,7 +206,7 @@ def is_tool_enabled(name: str) -> bool:
     return name in included
 
 
-def filter_tools(tools: list["types.Tool"]) -> list["types.Tool"]:
+def filter_tools(tools: list[types.Tool]) -> list[types.Tool]:
     """Filter a list of tools based on environment configuration.
 
     Args:
@@ -263,8 +263,4 @@ def filter_tools_from_server(fastmcp_server: Any) -> None:
                 del tools_dict[tool_name]
                 logger.debug(f"Removed disabled tool: {tool_name}")
 
-            logger.info(
-                f"Tool filtering applied: {len(tools_dict)} tools remaining "
-                f"({len(tools_to_remove)} removed)"
-            )
-
+            logger.info(f"Tool filtering applied: {len(tools_dict)} tools remaining ({len(tools_to_remove)} removed)")

@@ -13,16 +13,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from postgres_mcp.tool_filtering import (
-    ALL_TOOLS,
-    TOOL_GROUPS,
-    clear_cache,
-    filter_tools,
-    get_all_tool_names,
-    get_available_groups,
-    get_included_tools,
-    is_tool_enabled,
-)
+from postgres_mcp.tool_filtering import ALL_TOOLS
+from postgres_mcp.tool_filtering import TOOL_GROUPS
+from postgres_mcp.tool_filtering import clear_cache
+from postgres_mcp.tool_filtering import filter_tools
+from postgres_mcp.tool_filtering import get_all_tool_names
+from postgres_mcp.tool_filtering import get_available_groups
+from postgres_mcp.tool_filtering import get_included_tools
+from postgres_mcp.tool_filtering import is_tool_enabled
 
 
 class TestToolFilteringBase:
@@ -194,9 +192,7 @@ class TestDisableGroup(TestToolFilteringBase):
         result = get_included_tools()
 
         for group in groups:
-            assert not (
-                result & TOOL_GROUPS[group]
-            ), f"{group} tools should be excluded"
+            assert not (result & TOOL_GROUPS[group]), f"{group} tools should be excluded"
 
     def test_disable_all_groups_results_in_empty_set(self) -> None:
         """Disabling all groups should result in empty set."""
@@ -478,4 +474,3 @@ class TestRealWorldScenarios(TestToolFilteringBase):
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-
