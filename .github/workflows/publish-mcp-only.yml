@@ -7,7 +7,7 @@ on:
       version:
         description: "Version to publish (must already exist on PyPI and Docker Hub)"
         required: true
-        default: "1.1.1"
+        default: "1.2.0"
 
 # Security: Explicit permissions following principle of least privilege
 permissions:
@@ -116,44 +116,39 @@ jobs:
             exit 1
           fi
 
-      - name: Install MCP Publisher CLI
+      - name: Install MCP Publisher CLI v1.2.3
         run: |
-          echo "Installing MCP Publisher CLI..."
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.0.0/mcp-publisher_1.0.0_linux_amd64.tar.gz" | tar xz
+          echo "Installing MCP Publisher CLI v1.2.3..."
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.2.3/mcp-publisher_1.2.3_linux_amd64.tar.gz" | tar xz
           chmod +x mcp-publisher
           sudo mv mcp-publisher /usr/local/bin/
-          mcp-publisher --version || echo "MCP Publisher installed successfully"
+          echo "Installed version:"
+          mcp-publisher --version
 
       - name: Publish to MCP Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ACTIONS_ID_TOKEN_REQUEST_URL: ${{ env.ACTIONS_ID_TOKEN_REQUEST_URL }}
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ env.ACTIONS_ID_TOKEN_REQUEST_TOKEN }}
         run: |
-          echo "Publishing to MCP Registry using GitHub OIDC authentication..."
+          echo "Publishing to MCP Registry..."
           echo "Server: io.github.neverinfamous/postgres-mcp-server"
           echo "Version: ${{ steps.version.outputs.VERSION }}"
           
-          # Attempt GitHub login first
-          echo "Authenticating with GitHub..."
-          if echo "$GITHUB_TOKEN" | mcp-publisher login github --token-stdin; then
-            echo "✅ GitHub authentication successful"
-          else
-            echo "⚠️  GitHub login failed, trying direct publish with OIDC..."
-          fi
-          
-          # Publish using the configured authentication
+          # MCP Publisher v1.2.3+ supports GitHub Actions OIDC automatically
+          # when running in GitHub Actions with id-token: write permission
           if mcp-publisher publish --verbose; then
             echo "✅ Successfully published to MCP Registry!"
           else
-            echo "❌ Failed to publish to MCP Registry"
             echo ""
-            echo "This might be due to:"
-            echo "  1. Registry authentication issues"
-            echo "  2. Package validation failures"
-            echo "  3. Version already exists in registry"
-            echo "  4. PyPI package description doesn't contain MCP name marker"
-            echo "  5. Docker image doesn't have MCP label"
+            echo "❌ MCP Registry publish failed."
+            echo ""
+            echo "If this is a new server registration, you may need to:"
+            echo "  1. Run 'mcp-publisher login github' locally first"
+            echo "  2. Then run 'mcp-publisher publish --verbose' locally"
+            echo ""
+            echo "Common issues:"
+            echo "  - Registry authentication (try local publish first)"
+            echo "  - Package validation failures"
+            echo "  - Version already exists in registry"
             exit 1
           fi
 

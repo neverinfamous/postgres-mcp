@@ -167,30 +167,35 @@ jobs:
             sleep 10
           done
 
-      - name: Install MCP Publisher CLI
+      - name: Install MCP Publisher CLI v1.2.3
         run: |
-          echo "Installing MCP Publisher CLI..."
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.0.0/mcp-publisher_1.0.0_linux_amd64.tar.gz" | tar xz
+          echo "Installing MCP Publisher CLI v1.2.3..."
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.2.3/mcp-publisher_1.2.3_linux_amd64.tar.gz" | tar xz
           chmod +x mcp-publisher
           sudo mv mcp-publisher /usr/local/bin/
-          mcp-publisher --version || echo "MCP Publisher installed"
+          echo "Installed version:"
+          mcp-publisher --version
 
       - name: Publish to MCP Registry
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Publishing to MCP Registry using GitHub OIDC authentication..."
+          echo "Publishing to MCP Registry..."
           
-          # The MCP publisher will use GitHub's OIDC token automatically
-          # when running in GitHub Actions with id-token: write permission
-          mcp-publisher publish --verbose || {
-            echo "❌ Failed to publish to MCP Registry"
-            echo "This might be due to:"
-            echo "  1. Registry authentication issues"
-            echo "  2. Package validation failures"
-            echo "  3. Version already exists"
-            exit 1
-          }
+          # MCP Publisher v1.2.3+ supports GitHub Actions OIDC automatically
+          if mcp-publisher publish --verbose; then
+            echo "✅ Successfully published to MCP Registry!"
+          else
+            echo ""
+            echo "⚠️ MCP Registry publish failed (non-blocking)."
+            echo "PyPI and Docker Hub publishing succeeded."
+            echo ""
+            echo "To publish to MCP Registry manually:"
+            echo "  1. Run 'mcp-publisher login github' locally"
+            echo "  2. Run 'mcp-publisher publish --verbose' locally"
+            echo ""
+            # Don't fail the workflow - PyPI publish was successful
+          fi
 
       - name: Verify publication
         run: |
