@@ -116,10 +116,10 @@ jobs:
             exit 1
           fi
 
-      - name: Install MCP Publisher CLI v1.2.3
+      - name: Install MCP Publisher CLI v1.3.10
         run: |
-          echo "Installing MCP Publisher CLI v1.2.3..."
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.2.3/mcp-publisher_1.2.3_linux_amd64.tar.gz" | tar xz
+          echo "Installing MCP Publisher CLI v1.3.10..."
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/download/v1.3.10/mcp-publisher_linux_amd64.tar.gz" | tar xz
           chmod +x mcp-publisher
           sudo mv mcp-publisher /usr/local/bin/
           echo "Installed version:"
