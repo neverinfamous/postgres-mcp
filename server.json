@@ -3,11 +3,11 @@
   "name": "io.github.neverinfamous/postgres-mcp-server",
   "title": "PostgreSQL MCP Server",
   "description": "Enterprise PostgreSQL MCP server with 63 tools, 10 resources, 10 prompts for AI-native operations",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "docker.io/writenotenow/postgres-mcp-enhanced:v1.1.1",
+      "identifier": "docker.io/writenotenow/postgres-mcp-enhanced:v1.2.0",
       "transport": {
         "type": "stdio"
       }
