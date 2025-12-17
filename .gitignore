@@ -184,3 +184,8 @@ devenv.local.nix
 .pre-commit-config.yaml
 *.sql
 .venv-linux/
+
+# Docker MCP Registry submission files
+docker-mcp-registry/
+.mcpregistry_github_token
+.mcpregistry_registry_token

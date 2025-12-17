@@ -208,4 +208,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: writenotenow/postgres-mcp-enhanced
           readme-filepath: ./DOCKER_README.md
-          short-description: "Enterprise PostgreSQL MCP Server - 63 specialized tools with comprehensive security and AI-native operations"
+          short-description: "PostgreSQL MCP Server - AI-Native Ops with 63 tools, Comprehensive Security, and Tool-Filtering."
