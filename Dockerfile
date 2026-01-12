@@ -32,10 +32,12 @@ RUN groupadd -r app && useradd -r -g app -u 1000 app
 
 # Install runtime system dependencies
 # Removed dnsutils to fix CVE-2025-40777 (bind9 vulnerability)
+# Security: Upgrade pam (CVE-2025-6020) and gnupg2 (CVE-2025-68973) to latest patched versions
 RUN apt-get update && apt-get install -y \
   libpq-dev \
   iputils-ping \
   net-tools \
+  && apt-get upgrade -y libpam-modules libpam-runtime libpam0g gnupg gpg \
   && rm -rf /var/lib/apt/lists/* \
   && apt-get clean
 
