@@ -1,6 +1,6 @@
 # PostgreSQL MCP Server - Enhanced
 
-Last Updated December 8, 2025 - Production/Stable v1.2.0
+Last Updated January 12, 2026 - Production/Stable v1.2.0
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp-server -->
 
