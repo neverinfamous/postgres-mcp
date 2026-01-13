@@ -5,21 +5,22 @@ description = "Enterprise PostgreSQL MCP Server - Enhanced fork with comprehensi
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mcp[cli]>=1.23.0",
+    "mcp[cli]>=1.25.0",
     "psycopg[binary]>=3.2.6",
-    "humanize>=4.11.0",
+    "humanize>=4.15.0",
     "pglast==7.11",
     "attrs>=25.3.0",
     "psycopg-pool>=3.2.6",
-    "instructor>=1.7.9",
+    "instructor>=1.14.1",
     "h11>=0.16.0",
     "setuptools>=78.1.1",
-    # Security: Force updated versions to fix CVEs (Dec 6, 2025 update)
-    "starlette>=0.49.1",  # CVE-2025-62727, CVE-2025-54121
+    # Security: Force updated versions to fix CVEs
+    "starlette>=0.51.0",  # CVE-2025-62727, CVE-2025-54121
     "urllib3>=2.6.3",     # CVE-2026-21441 (data amplification attack)
     "requests>=2.32.4",   # CVE-2024-47081
     "aiohttp>=3.13.3",    # CVE-2025-69223 + 7 security fixes
     "filelock>=3.20.1",   # CVE-2025-68146 (race condition fix)
+    "certifi>=2026.1.4",  # Updated SSL certificates
 ]
 license = "mit"
 license-files = ["LICENSE"]
