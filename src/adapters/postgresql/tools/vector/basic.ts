@@ -718,8 +718,8 @@ export function createVectorCreateIndexTool(
         }
       }
 
-      let withClause = "";
-      let appliedParams: Record<string, number> = {};
+      let withClause: string;
+      let appliedParams: Record<string, number>;
       if (type === "ivfflat") {
         const numLists = lists ?? 100;
         withClause = `WITH(lists = ${String(numLists)})`;

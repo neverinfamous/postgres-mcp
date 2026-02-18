@@ -418,7 +418,7 @@ Useful for monitoring and debugging scheduled jobs.`,
       }
 
       if (status !== undefined) {
-        conditions.push(`status = $${String(paramIndex++)}`);
+        conditions.push(`status = $${String(paramIndex)}`);
         queryParams.push(status);
       }
 

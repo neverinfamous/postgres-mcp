@@ -333,6 +333,7 @@ export function createJsonbInsertTool(
         ) {
           throw new Error(
             `pg_jsonb_insert is for arrays only. For objects, use pg_jsonb_set. If updating an existing array element, use pg_jsonb_set.`,
+            { cause: error },
           );
         }
         if (
@@ -341,6 +342,7 @@ export function createJsonbInsertTool(
         ) {
           throw new Error(
             `pg_jsonb_insert requires numeric index for array position. Use array format with number: ["tags", 0] not ["tags", "0"] or "tags.0"`,
+            { cause: error },
           );
         }
         throw error;
@@ -394,7 +396,7 @@ export function createJsonbDeleteTool(
       // - Numeric string: "0", "1" (treat as array index)
       // - Single key: "mykey" (use - operator, not #-)
       let pathForPostgres: string | string[];
-      let useArrayOperator = false;
+      let useArrayOperator: boolean;
 
       if (typeof parsed.path === "number") {
         // Bare number - treat as array index
@@ -761,6 +763,7 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
         ) {
           throw new Error(
             `pg_jsonb_keys requires object columns. For array columns, use pg_jsonb_normalize with mode: 'array'.`,
+            { cause: error },
           );
         }
         throw error;

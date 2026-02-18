@@ -260,10 +260,10 @@ Useful for auditing case-insensitive columns.`,
         "table_schema NOT IN ('pg_catalog', 'information_schema')",
       ];
       const queryParams: unknown[] = [];
-      let paramIndex = 1;
+      const paramIndex = 1;
 
       if (schema !== undefined) {
-        conditions.push(`table_schema = $${String(paramIndex++)}`);
+        conditions.push(`table_schema = $${String(paramIndex)}`);
         queryParams.push(schema);
       }
 

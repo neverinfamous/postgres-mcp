@@ -52,14 +52,14 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@eslint/js": "^9.28.0",
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.2.3",
     "@types/pg": "^8.11.0",
     "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^9.28.0",
+    "eslint": "^10.0.0",
     "globals": "^17.3.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.55.0",
+    "typescript-eslint": "^8.56.0",
     "vitest": "^4.0.18"
   }
 }

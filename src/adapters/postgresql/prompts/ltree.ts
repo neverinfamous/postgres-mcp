@@ -24,8 +24,8 @@ export function createSetupLtreePrompt(): PromptDefinition {
     ): Promise<string> => {
       const useCase = args["useCase"] ?? "categories";
 
-      let exampleTable = "";
-      let exampleData = "";
+      let exampleTable: string;
+      let exampleData: string;
 
       if (useCase === "categories") {
         exampleTable = `CREATE TABLE categories (

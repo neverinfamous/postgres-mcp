@@ -391,6 +391,7 @@ export function createJsonbNormalizeTool(
         ) {
           throw new Error(
             `pg_jsonb_normalize '${mode}' mode requires object columns. For array columns, use mode: 'array'.`,
+            { cause: error },
           );
         }
         // Improve error for object columns with array mode
@@ -400,6 +401,7 @@ export function createJsonbNormalizeTool(
         ) {
           throw new Error(
             `pg_jsonb_normalize 'array' mode requires array columns. For object columns, use mode: 'keys' or 'pairs'.`,
+            { cause: error },
           );
         }
         throw error;
@@ -526,6 +528,7 @@ export function createJsonbIndexSuggestTool(
         ) {
           throw new Error(
             `pg_jsonb_index_suggest requires JSONB objects (not arrays). Column '${column}' may not be JSONB type or contains arrays.`,
+            { cause: error },
           );
         }
         throw error;
@@ -655,6 +658,7 @@ export function createJsonbSecurityScanTool(
         ) {
           throw new Error(
             `pg_jsonb_security_scan requires JSONB objects. Column '${column}' may contain arrays or non-JSONB data.`,
+            { cause: error },
           );
         }
         throw error;

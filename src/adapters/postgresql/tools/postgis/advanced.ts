@@ -356,7 +356,7 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
 
       // For K-Means, validate and adjust numClusters
       let effectiveNumClusters = parsed.numClusters ?? 5;
-      let rowCount = 0;
+      let rowCount: number;
 
       if (method === "kmeans") {
         // Validate numClusters > 0

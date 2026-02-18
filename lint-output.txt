@@ -1,0 +1,43 @@
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\prompts\ltree.ts
+  27:11  error  This assigned value is not used in subsequent statements  no-useless-assignment
+  28:11  error  This assigned value is not used in subsequent statements  no-useless-assignment
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\tools\citext.ts
+  266:51  error  This assigned value is not used in subsequent statements  no-useless-assignment
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\tools\core\convenience.ts
+  505:13  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\tools\cron.ts
+  421:45  error  This assigned value is not used in subsequent statements  no-useless-assignment
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\tools\jsonb\advanced.ts
+  392:11  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+  401:11  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+  527:11  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+  656:11  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\tools\jsonb\basic.ts
+  334:11  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+  342:11  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+  397:11  error  This assigned value is not used in subsequent statements        no-useless-assignment
+  762:11  error  There is no `cause` attached to the symptom error being thrown  preserve-caught-error
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\tools\kcache.ts
+  184:47  error  This assigned value is not used in subsequent statements  no-useless-assignment
+  599:47  error  This assigned value is not used in subsequent statements  no-useless-assignment
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\tools\partman\operations.ts
+  175:11  error  This assigned value is not used in subsequent statements  no-useless-assignment
+  723:13  error  This assigned value is not used in subsequent statements  no-useless-assignment
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\tools\postgis\advanced.ts
+  359:11  error  This assigned value is not used in subsequent statements  no-useless-assignment
+
+C:\Users\chris\Desktop\postgres-mcp\src\adapters\postgresql\tools\vector\basic.ts
+  721:11  error  This assigned value is not used in subsequent statements  no-useless-assignment
+  722:11  error  This assigned value is not used in subsequent statements  no-useless-assignment
+
+Γ£û 20 problems (20 errors, 0 warnings)
+

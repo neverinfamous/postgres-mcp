@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Dependencies** — Updated `eslint` from 9.28.0 → 10.0.0, `@eslint/js` from 9.28.0 → 10.0.1, `typescript-eslint` from 8.55.0 → 8.56.0 (first `typescript-eslint` version with ESLint 10 support)
+
+### Fixed
+
+- **ESLint 10 compliance** — Resolved 20 new lint errors introduced by ESLint 10's stricter `eslint:recommended` rules:
+  - 11 `no-useless-assignment` — Removed dead initial assignments to variables that were always overwritten in subsequent control flow (e.g., `let x = 0` before try/catch that always sets `x`). Affected `ltree.ts`, `citext.ts`, `cron.ts`, `kcache.ts`, `partman/operations.ts`, `postgis/advanced.ts`, `vector/basic.ts`, `jsonb/basic.ts`
+  - 9 `preserve-caught-error` — Added `{ cause: error }` to all `throw new Error(...)` calls inside catch blocks to preserve error chain and stack traces. Affected `core/convenience.ts`, `jsonb/advanced.ts`, `jsonb/basic.ts`
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

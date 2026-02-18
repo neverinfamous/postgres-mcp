@@ -178,10 +178,10 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
       const conditions: string[] = [];
       const queryParams: unknown[] = [];
-      let paramIndex = 1;
+      const paramIndex = 1;
 
       if (minCalls !== undefined) {
-        conditions.push(`s.calls >= $${String(paramIndex++)}`);
+        conditions.push(`s.calls >= $${String(paramIndex)}`);
         queryParams.push(minCalls);
       }
 
@@ -596,7 +596,7 @@ Helps identify the root cause of performance issues - is the query computation-h
       }
 
       if (minCalls !== undefined) {
-        conditions.push(`s.calls >= $${String(paramIndex++)}`);
+        conditions.push(`s.calls >= $${String(paramIndex)}`);
         queryParams.push(minCalls);
       }
 

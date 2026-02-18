@@ -172,7 +172,7 @@ Data in default indicates partitions may be missing for certain time/value range
       // Use actual COUNT for accuracy instead of reltuples (which returns -1 before ANALYZE)
       // Limit to 1 for efficiency - we only need to know if ANY data exists
       const countSql = `SELECT COUNT(*) FROM (SELECT 1 FROM ${defaultPartitionName} LIMIT 1) t`;
-      let rowCount = 0;
+      let rowCount: number;
       try {
         const countResult = await adapter.executeQuery(countSql);
         rowCount = Number(countResult.rows?.[0]?.["count"] ?? 0);
@@ -720,7 +720,7 @@ stale maintenance, and retention configuration.`,
           continue;
         }
 
-        let partitionCount = 0;
+        let partitionCount: number;
         try {
           const partCountResult = await adapter.executeQuery(
             `
