@@ -247,11 +247,32 @@ export const CountSchemaBase = z.object({
     .array(z.unknown())
     .optional()
     .describe("Parameters for WHERE clause placeholders"),
+  condition: z.string().optional().describe("Alias for where"),
+  filter: z.string().optional().describe("Alias for where"),
   column: z
     .string()
     .optional()
     .describe("Column to count (default: * for all rows)"),
 });
+
+/**
+ * Preprocess count params:
+ * - All table params from preprocessTableParams
+ * - Alias: condition/filter → where
+ */
+function preprocessCountParams(input: unknown): unknown {
+  const result = preprocessTableParams(input);
+  if (typeof result !== "object" || result === null) return result;
+  const obj = result as Record<string, unknown>;
+
+  // Alias: condition/filter → where
+  if (obj["where"] === undefined) {
+    if (obj["condition"] !== undefined) obj["where"] = obj["condition"];
+    else if (obj["filter"] !== undefined) obj["where"] = obj["filter"];
+  }
+
+  return obj;
+}
 
 // Internal parsing schema - table optional for alias resolution
 const CountParseSchema = z.object({
@@ -269,6 +290,8 @@ const CountParseSchema = z.object({
     .array(z.unknown())
     .optional()
     .describe("Parameters for WHERE clause placeholders"),
+  condition: z.string().optional().describe("Alias for where"),
+  filter: z.string().optional().describe("Alias for where"),
   column: z
     .string()
     .optional()
@@ -277,12 +300,13 @@ const CountParseSchema = z.object({
 
 export const CountSchema = z
   .preprocess(
-    (val: unknown) => preprocessTableParams(val ?? {}),
+    (val: unknown) => preprocessCountParams(val ?? {}),
     CountParseSchema,
   )
   .transform((data) => ({
     ...data,
     table: data.table ?? data.tableName ?? "",
+    where: data.where ?? data.condition ?? data.filter,
   }))
   .refine((data) => data.table !== "", {
     message:

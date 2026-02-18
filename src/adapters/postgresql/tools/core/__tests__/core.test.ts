@@ -1452,18 +1452,21 @@ describe("Object Tools", () => {
     });
 
     it("should return sequence details when type is sequence", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({
-        rows: [
-          {
-            start_value: 1,
-            min_value: 1,
-            max_value: 9223372036854775807n,
-            increment: 1,
-            cycle: false,
-            cache: 1,
-          },
-        ],
-      });
+      // Detection query returns sequence type
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ object_type: "sequence" }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              start_value: 1,
+              min_value: 1,
+              max_value: 9223372036854775807n,
+              increment: 1,
+              cycle: false,
+              cache: 1,
+            },
+          ],
+        });
 
       const tool = tools.find((t) => t.name === "pg_object_details")!;
       const result = (await tool.handler(
@@ -1475,19 +1478,22 @@ describe("Object Tools", () => {
     });
 
     it("should return index details when type is index", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({
-        rows: [
-          {
-            index_name: "idx_users_email",
-            table_name: "users",
-            index_type: "btree",
-            definition: "CREATE INDEX ...",
-            is_unique: true,
-            is_primary: false,
-            size: "8192 bytes",
-          },
-        ],
-      });
+      // Detection query returns index type
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ object_type: "index" }] })
+        .mockResolvedValueOnce({
+          rows: [
+            {
+              index_name: "idx_users_email",
+              table_name: "users",
+              index_type: "btree",
+              definition: "CREATE INDEX ...",
+              is_unique: true,
+              is_primary: false,
+              size: "8192 bytes",
+            },
+          ],
+        });
 
       const tool = tools.find((t) => t.name === "pg_object_details")!;
       const result = (await tool.handler(

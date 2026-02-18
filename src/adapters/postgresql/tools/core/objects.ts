@@ -244,6 +244,13 @@ export function createObjectDetailsTool(
         );
       }
 
+      // If type was provided but object not found, throw clear error
+      if (type && !detectedType) {
+        throw new Error(
+          `Object '${schemaName}.${name}' not found (searched as ${type}). Use pg_list_objects to discover available objects.`,
+        );
+      }
+
       const objectType = type ?? detectedType;
 
       if (!objectType) {

@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 11 `no-useless-assignment` — Removed dead initial assignments to variables that were always overwritten in subsequent control flow (e.g., `let x = 0` before try/catch that always sets `x`). Affected `ltree.ts`, `citext.ts`, `cron.ts`, `kcache.ts`, `partman/operations.ts`, `postgis/advanced.ts`, `vector/basic.ts`, `jsonb/basic.ts`
   - 9 `preserve-caught-error` — Added `{ cause: error }` to all `throw new Error(...)` calls inside catch blocks to preserve error chain and stack traces. Affected `core/convenience.ts`, `jsonb/advanced.ts`, `jsonb/basic.ts`
 
+- **`pg_count` `condition`/`filter` aliases silently ignored** — `pg_count({ condition: "active = true" })` and `pg_count({ filter: "status = $1" })` now correctly map to the `where` clause. Previously, these aliases were accepted without error but silently dropped, unlike `pg_exists` which handled them correctly. Added `preprocessCountParams` function and updated `CountSchemaBase`/`CountParseSchema` to include alias fields
+
+- **Code Mode `pg.count()` positional WHERE clause dropped** — `pg.count("users", "active = true")` now correctly passes the second positional argument as the `where` parameter. Previously, the `POSITIONAL_PARAM_MAP` for `count` only mapped the first argument (`table`), causing the WHERE clause to be silently dropped. Updated mapping from `"table"` to `["table", "where"]`
+
+- **`pg_object_details` near-empty result for nonexistent objects** — `pg_object_details({ name: "nonexistent", type: "table" })` now throws a clear "not found" error instead of returning a near-empty object with only the type field. Previously, when a `type` was explicitly provided but the object did not exist, the detection query returned `null` but the handler proceeded using the user-provided type, producing unhelpful results
+
 ## [1.2.0] - 2026-02-10
 
 ### Added
