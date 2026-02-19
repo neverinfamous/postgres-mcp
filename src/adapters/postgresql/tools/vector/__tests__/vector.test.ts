@@ -1093,4 +1093,48 @@ describe("Object Existence Checks (P154)", () => {
       expect(result.error).toContain("Column 'bad_col' does not exist");
     });
   });
+
+  describe("pg_vector_validate non-vector column", () => {
+    it("should return structured error for non-vector column", async () => {
+      // Column exists but is not a vector type
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // column exists
+        .mockResolvedValueOnce({ rows: [{ udt_name: "text" }] }); // type check: text, not vector
+
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { table: "embeddings", column: "name" },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("not a vector column");
+      expect(result.error).toContain("text");
+      expect(result.suggestion).toContain("pg_vector_add_column");
+    });
+  });
+
+  describe("pg_vector_create_index non-vector column", () => {
+    it("should return structured error for non-vector column", async () => {
+      // Existence checks pass, but CREATE INDEX fails with operator class error
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // checkTableAndColumn: column found
+        .mockRejectedValueOnce(
+          new Error(
+            'operator class "vector_l2_ops" does not accept data type text',
+          ),
+        );
+
+      const tool = tools.find((t) => t.name === "pg_vector_create_index")!;
+      const result = (await tool.handler(
+        { table: "embeddings", column: "name", type: "hnsw" },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not a vector column");
+      expect(result.error).toContain("text");
+      expect(result.suggestion).toContain("pg_vector_add_column");
+    });
+  });
 });

@@ -747,20 +747,34 @@ export function createVectorCreateIndexTool(
           ifNotExists: ifNotExists ?? false,
         };
       } catch (error: unknown) {
-        // If ifNotExists is true and the error is "already exists", return success with alreadyExists flag
-        // (This handles race conditions where index is created between check and create)
-        if (ifNotExists === true && error instanceof Error) {
-          const msg = error.message.toLowerCase();
-          if (msg.includes("already exists") || msg.includes("duplicate")) {
+        if (error instanceof Error) {
+          // If ifNotExists is true and the error is "already exists", return success with alreadyExists flag
+          // (This handles race conditions where index is created between check and create)
+          if (ifNotExists === true) {
+            const msg = error.message.toLowerCase();
+            if (msg.includes("already exists") || msg.includes("duplicate")) {
+              return {
+                success: true,
+                index: indexNameRaw,
+                type,
+                table,
+                column,
+                ifNotExists: true,
+                alreadyExists: true,
+                message: `Index ${indexNameRaw} already exists`,
+              };
+            }
+          }
+          // Handle non-vector column errors (operator class does not accept data type)
+          const opClassMatch = /does not accept data type (\w+)/.exec(
+            error.message,
+          );
+          if (opClassMatch) {
             return {
-              success: true,
-              index: indexNameRaw,
-              type,
-              table,
-              column,
-              ifNotExists: true,
-              alreadyExists: true,
-              message: `Index ${indexNameRaw} already exists`,
+              success: false,
+              error: `Column '${column}' is not a vector column (type: ${opClassMatch[1] ?? "unknown"}). Vector indexes can only be created on vector columns.`,
+              suggestion:
+                "Use a column with vector type, or use pg_vector_add_column to create one",
             };
           }
         }
@@ -1305,6 +1319,28 @@ export function createVectorValidateTool(
           };
         }
 
+        // Check column type before calling vector_dims() to avoid raw PG errors
+        const typeCheckSql = `
+          SELECT udt_name FROM information_schema.columns
+          WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
+        `;
+        const typeResult = await adapter.executeQuery(typeCheckSql, [
+          schemaName,
+          parsed.table,
+          parsed.column,
+        ]);
+        const udtName = typeResult.rows?.[0]?.["udt_name"] as
+          | string
+          | undefined;
+        if (udtName !== "vector") {
+          return {
+            valid: false,
+            error: `Column '${parsed.column}' is not a vector column (type: ${udtName ?? "unknown"})`,
+            suggestion:
+              "Use a column with vector type, or use pg_vector_add_column to create one",
+          };
+        }
+
         // Try to get actual dimensions from a sample row
         const sampleSql = `
                     SELECT vector_dims("${parsed.column}") as dimensions
@@ -1320,24 +1356,7 @@ export function createVectorValidateTool(
               typeof dims === "string" ? parseInt(dims, 10) : Number(dims);
           }
         } catch {
-          // Table might be empty, check type definition instead
-          const typeSql = `
-                        SELECT udt_name, character_maximum_length
-                        FROM information_schema.columns 
-                        WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
-                `;
-          const typeResult = await adapter.executeQuery(typeSql, [
-            schemaName,
-            parsed.table,
-            parsed.column,
-          ]);
-          if (
-            typeResult.rows?.[0]?.["character_maximum_length"] !== undefined
-          ) {
-            columnDimensions = typeResult.rows[0][
-              "character_maximum_length"
-            ] as number;
-          }
+          // Table might be empty — columnDimensions remains undefined
         }
       }
 
