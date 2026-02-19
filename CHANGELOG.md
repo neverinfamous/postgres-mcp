@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ServerInstructions.ts` `pg_list_tables` response docs** — Added missing `totalCount`, `truncated?`, and `hint?` fields to the response structure documentation
 
+- **`pg_text_search` / `pg_text_rank` misleading tsvector error** — Targeting a `tsvector` column now throws `"Column appears to be a tsvector type, which cannot be used directly with text search tools"` instead of the misleading `"Object 'unknown' not found"`. Added a specific pattern in `parsePostgresError` for `function ... tsvector ... does not exist` errors
+
 - **`ServerInstructions.ts` `pg_object_details` response docs** — Added note that table-type objects return the full `pg_describe_table` response shape (columns, primaryKey, indexes, constraints, foreignKeys)
 
 - **`pg_create_table` misleading schema error** — Creating a table in a nonexistent schema (e.g., `schema: "fake"`) now throws `Schema 'fake' does not exist. Create it with pg_create_schema or use pg_list_schemas` instead of the misleading `Object 'fake' not found. Use ifExists: true`

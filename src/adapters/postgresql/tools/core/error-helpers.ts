@@ -167,6 +167,15 @@ export function parsePostgresError(
       );
     }
 
+    // Function not found with tsvector argument — column is already tsvector type
+    if (/function .*tsvector.* does not exist/i.test(msg)) {
+      throw new Error(
+        `Column appears to be a tsvector type, which cannot be used directly with text search tools. ` +
+          `Use a text column instead, or query the tsvector column directly with raw SQL (pg_read_query).`,
+        { cause: error },
+      );
+    }
+
     // Generic "does not exist" fallback
     const match =
       /(?:table|relation) "([^"]+)"/i.exec(msg) ??

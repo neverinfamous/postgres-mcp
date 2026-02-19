@@ -81,6 +81,22 @@ describe("parsePostgresError", () => {
     );
   });
 
+  // ── 42704 + tsvector function signature ──────────────────────────────
+  it("should throw tsvector-specific error for function signature with tsvector", () => {
+    const err = makePgError(
+      "function to_tsvector(unknown, tsvector) does not exist",
+      "42704",
+    );
+    expect(() =>
+      parsePostgresError(err, {
+        tool: "pg_text_search",
+        table: "test_articles",
+      }),
+    ).toThrow(
+      "Column appears to be a tsvector type, which cannot be used directly with text search tools.",
+    );
+  });
+
   // ── 42704 generic fallback ──────────────────────────────────────────
   it("should throw generic error for 42704 with unknown tool", () => {
     const err = makePgError('"some_object" does not exist', "42704");
