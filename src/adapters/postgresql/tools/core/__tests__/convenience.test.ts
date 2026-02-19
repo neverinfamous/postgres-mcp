@@ -375,4 +375,41 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       ).rejects.toThrow("Table 'analytics.events' not found");
     });
   });
+
+  // =========================================================================
+  // pg_batch_insert - constraint violation structured error
+  // =========================================================================
+
+  describe("pg_batch_insert - structured error handling", () => {
+    it("should throw structured error for unique constraint violation (23505)", async () => {
+      // Mock 1: schema check passes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // Mock 2: table check passes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // Mock 3: INSERT fails with unique constraint violation
+      const pgError = new Error(
+        'duplicate key value violates unique constraint "users_email_key"',
+      ) as Error & { code: string };
+      pgError.code = "23505";
+      mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_batch_insert")!;
+      await expect(
+        tool.handler(
+          {
+            table: "users",
+            rows: [
+              { name: "Alice", email: "alice@test.com" },
+              { name: "Bob", email: "alice@test.com" },
+            ],
+          },
+          mockContext,
+        ),
+      ).rejects.toThrow("Unique constraint violated");
+    });
+  });
 });

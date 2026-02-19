@@ -17,6 +17,7 @@ import type {
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "./error-helpers.js";
 import {
   WriteQueryOutputSchema,
   CountOutputSchema,
@@ -637,7 +638,16 @@ export function createBatchInsertTool(
 
       const sql = `INSERT INTO ${qualifiedTable} (${columnList}) VALUES ${rowPlaceholders.join(", ")}${returningClause}`;
 
-      const result = await adapter.executeQuery(sql, values);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, values);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_batch_insert",
+          table: parsed.table,
+          schema: schemaName,
+        });
+      }
       return {
         success: true,
         rowsAffected: result.rowsAffected ?? 0,

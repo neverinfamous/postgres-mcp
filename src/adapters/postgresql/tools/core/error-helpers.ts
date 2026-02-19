@@ -25,6 +25,9 @@ interface ErrorContext {
  * - 42P01: undefined_table (relation does not exist)
  * - 42P07: duplicate_table (relation already exists)
  * - 42704: undefined_object (index/type does not exist)
+ * - 42601: syntax_error (SQL syntax error)
+ * - 42703: undefined_column (column does not exist)
+ * - 23505: unique_violation (duplicate key value)
  * - 3F000: invalid_schema_name (schema does not exist)
  */
 export function parsePostgresError(
@@ -41,7 +44,11 @@ export function parsePostgresError(
   const msg = error.message;
 
   // 42P01 — relation does not exist (table, view, sequence)
-  if (pgCode === "42P01" || /relation ".*" does not exist/i.test(msg)) {
+  // Regex anchored: must NOT be preceded by "of " (which indicates 42703 column errors)
+  if (
+    pgCode === "42P01" ||
+    (/relation ".*" does not exist/i.test(msg) && !/of relation/i.test(msg))
+  ) {
     const match = /relation "([^"]+)"/i.exec(msg);
     const objectName = match?.[1] ?? context.table ?? "unknown";
     throw new Error(
@@ -70,6 +77,36 @@ export function parsePostgresError(
 
     throw new Error(
       `Table '${objectName}' already exists. Use ifNotExists: true to skip if it exists.`,
+      { cause: error },
+    );
+  }
+
+  // 42601 — syntax error in SQL statement
+  if (pgCode === "42601" || /syntax error/i.test(msg)) {
+    throw new Error(`SQL syntax error: ${msg}. Verify your SQL is valid.`, {
+      cause: error,
+    });
+  }
+
+  // 42703 — undefined column (checked before 42704 whose broad regex would match)
+  if (
+    pgCode === "42703" ||
+    /column ".*" (?:of relation .+)?does not exist/i.test(msg)
+  ) {
+    throw new Error(
+      `Column not found: ${msg}. Use pg_describe_table to see available columns.`,
+      { cause: error },
+    );
+  }
+
+  // 23505 — unique constraint violation (duplicate key)
+  if (
+    pgCode === "23505" ||
+    /unique constraint/i.test(msg) ||
+    /duplicate key/i.test(msg)
+  ) {
+    throw new Error(
+      `Unique constraint violated: ${msg}. Use pg_upsert for insert-or-update behavior.`,
       { cause: error },
     );
   }

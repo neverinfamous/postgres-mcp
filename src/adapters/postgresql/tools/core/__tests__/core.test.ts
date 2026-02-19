@@ -3238,3 +3238,88 @@ describe("pg_create_index - additional coverage", () => {
     expect(result.generatedName).toBe(true);
   });
 });
+
+// =============================================================================
+// Structured Error Handling (parsePostgresError)
+// =============================================================================
+
+describe("pg_write_query - structured error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getCoreTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter() as unknown as ReturnType<
+      typeof createMockPostgresAdapter
+    >;
+    tools = getCoreTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should throw structured error for nonexistent table (42P01)", async () => {
+    const pgError = new Error(
+      'relation "nonexistent_table" does not exist',
+    ) as Error & { code: string };
+    pgError.code = "42P01";
+    (
+      mockAdapter as unknown as { executeWriteQuery: ReturnType<typeof vi.fn> }
+    ).executeWriteQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_write_query")!;
+    await expect(
+      tool.handler(
+        { sql: 'INSERT INTO nonexistent_table VALUES (1, "test")' },
+        mockContext,
+      ),
+    ).rejects.toThrow("Table or view");
+  });
+
+  it("should throw structured error for undefined column (42703)", async () => {
+    const pgError = new Error(
+      'column "bad_col" of relation "users" does not exist',
+    ) as Error & { code: string };
+    pgError.code = "42703";
+    (
+      mockAdapter as unknown as { executeWriteQuery: ReturnType<typeof vi.fn> }
+    ).executeWriteQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_write_query")!;
+    await expect(
+      tool.handler(
+        { sql: "INSERT INTO users (bad_col) VALUES (1)" },
+        mockContext,
+      ),
+    ).rejects.toThrow("Column not found");
+  });
+});
+
+describe("pg_analyze_query_indexes - structured error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getCoreTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter() as unknown as ReturnType<
+      typeof createMockPostgresAdapter
+    >;
+    tools = getCoreTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should throw structured error for syntax errors (42601)", async () => {
+    const pgError = new Error('syntax error at or near "SELEC"') as Error & {
+      code: string;
+    };
+    pgError.code = "42601";
+    (
+      mockAdapter as unknown as { executeQuery: ReturnType<typeof vi.fn> }
+    ).executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_analyze_query_indexes")!;
+    await expect(
+      tool.handler({ sql: "SELEC * FROM users" }, mockContext),
+    ).rejects.toThrow("SQL syntax error");
+  });
+});

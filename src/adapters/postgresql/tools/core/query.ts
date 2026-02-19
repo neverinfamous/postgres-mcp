@@ -111,9 +111,17 @@ export function createWriteQueryTool(adapter: PostgresAdapter): ToolDefinition {
             `Invalid or expired transactionId: ${transactionId}. Use pg_transaction_begin to start a new transaction.`,
           );
         }
-        result = await adapter.executeOnConnection(client, sql, queryParams);
+        try {
+          result = await adapter.executeOnConnection(client, sql, queryParams);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, { tool: "pg_write_query", sql });
+        }
       } else {
-        result = await adapter.executeWriteQuery(sql, queryParams);
+        try {
+          result = await adapter.executeWriteQuery(sql, queryParams);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, { tool: "pg_write_query", sql });
+        }
       }
 
       return {

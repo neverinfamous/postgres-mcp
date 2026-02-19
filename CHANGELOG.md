@@ -51,6 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_analyze_query_indexes` raw PostgreSQL exceptions** — Queries referencing nonexistent tables now throw structured errors (e.g., `Table 'x' not found. Use pg_list_tables`) instead of raw PG exceptions like `relation "x" does not exist`. Uses the shared `parsePostgresError()` helper consistent with `pg_read_query` and other core tools
 
+- **`pg_write_query` raw PostgreSQL exceptions** — Write queries against nonexistent tables, invalid columns, or duplicate keys now throw structured errors instead of raw PG exceptions. Added try/catch wrapping with `parsePostgresError()` for both transaction and non-transaction execution paths
+
+- **`pg_batch_insert` raw constraint violation exceptions** — Batch inserts that violate unique constraints now throw structured errors (e.g., `Unique constraint violated: ... Use pg_upsert for insert-or-update behavior`) instead of raw PG exceptions. Added try/catch wrapping with `parsePostgresError()`
+
+- **`parsePostgresError` expanded coverage** — Added three new PG error codes: `42601` (syntax_error → `SQL syntax error: ...`), `42703` (undefined_column → `Column not found: ...`), `23505` (unique_violation → `Unique constraint violated: ...`). Fixed 42P01 regex to avoid false-matching 42703 column error messages that also contain `relation "..." does not exist`
+
 ## [1.2.0] - 2026-02-10
 
 ### Added
