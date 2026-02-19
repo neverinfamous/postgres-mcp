@@ -11,6 +11,7 @@ import { z } from "zod";
 import { readOnly, write, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../utils/identifiers.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import {
   CreateSchemaSchema,
   DropSchemaSchema,
@@ -116,7 +117,14 @@ function createCreateSchemaTool(adapter: PostgresAdapter): ToolDefinition {
         : "";
 
       const sql = `CREATE SCHEMA ${ifNotExistsClause}${schemaName}${authClause}`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_create_schema",
+          schema: name,
+        });
+      }
 
       const result: Record<string, unknown> = { success: true, schema: name };
       if (alreadyExisted !== undefined) {
@@ -150,7 +158,14 @@ function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
       const schemaName = sanitizeIdentifier(name);
 
       const sql = `DROP SCHEMA ${ifExistsClause}${schemaName}${cascadeClause}`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_drop_schema",
+          schema: name,
+        });
+      }
       return {
         success: true,
         schema: name,
@@ -254,7 +269,14 @@ function createCreateSequenceTool(adapter: PostgresAdapter): ToolDefinition {
       if (ownedBy !== undefined) parts.push(`OWNED BY ${ownedBy}`);
 
       const sql = parts.join(" ");
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_create_sequence",
+          ...(schema !== undefined && { schema }),
+        });
+      }
 
       const result: Record<string, unknown> = {
         success: true,
@@ -296,7 +318,14 @@ function createDropSequenceTool(adapter: PostgresAdapter): ToolDefinition {
       const cascadeClause = cascade === true ? " CASCADE" : "";
 
       const sql = `DROP SEQUENCE ${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_drop_sequence",
+          ...(schema !== undefined && { schema }),
+        });
+      }
       return { success: true, sequence: `${schemaName}.${name}`, existed };
     },
   };
@@ -443,7 +472,14 @@ function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
       }
 
       const sql = `CREATE ${replaceClause}${matClause}VIEW ${schemaPrefix}${viewName} AS ${query}${checkClause}`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_create_view",
+          ...(schema !== undefined && { schema }),
+        });
+      }
 
       const result: Record<string, unknown> = {
         success: true,
@@ -488,7 +524,14 @@ function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
       const cascadeClause = cascade === true ? " CASCADE" : "";
 
       const sql = `DROP ${matClause}VIEW ${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_drop_view",
+          ...(schema !== undefined && { schema }),
+        });
+      }
       return {
         success: true,
         view: `${schemaName}.${name}`,
