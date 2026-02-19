@@ -89,6 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ServerInstructions.ts` admin tool response docs** — Added missing response structures for all 10 admin tools: `vacuum`, `vacuumAnalyze`, `analyze`, `reindex`, `cluster`, `setConfig`, `reloadConf`, `resetStats`, `cancelBackend`, `terminateBackend`
 
+- **`pg_set_config` unrecognized parameter error** — `pg_set_config({ name: 'nonexistent_param' })` now throws `Unrecognized configuration parameter 'nonexistent_param'. Use pg_show_settings to see available parameters` instead of the generic `Object 'nonexistent_param' not found. Use ifExists: true`
+
+- **`pg_reindex` misleading error for nonexistent index** — `pg_reindex({ target: 'index', name: 'nonexistent' })` now throws `Index 'nonexistent' not found. Use pg_get_indexes to see available indexes` instead of the misleading `Table or view 'nonexistent' not found`. The handler now passes `target` and `index`/`table` context to `parsePostgresError()`
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

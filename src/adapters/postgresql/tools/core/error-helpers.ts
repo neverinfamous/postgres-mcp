@@ -14,6 +14,7 @@ interface ErrorContext {
   table?: string;
   index?: string;
   schema?: string;
+  target?: string;
 }
 
 /**
@@ -51,6 +52,16 @@ export function parsePostgresError(
     pgCode === "42P01" ||
     (/relation ".*" does not exist/i.test(msg) && !/of relation/i.test(msg))
   ) {
+    // pg_reindex with target=index: index-specific message
+    if (context.tool === "pg_reindex" && context.target === "index") {
+      const match = /relation "([^"]+)"/i.exec(msg);
+      const indexName = match?.[1] ?? context.index ?? "unknown";
+      throw new Error(
+        `Index '${indexName}' not found. Use pg_get_indexes to see available indexes.`,
+        { cause: error },
+      );
+    }
+
     const match = /relation "([^"]+)"/i.exec(msg);
     const objectName = match?.[1] ?? context.table ?? "unknown";
     throw new Error(
@@ -129,6 +140,18 @@ export function parsePostgresError(
       "Transaction is in an aborted state — only ROLLBACK or ROLLBACK TO SAVEPOINT commands are allowed. " +
         "A previous statement in this transaction failed, putting it into an error state. " +
         "Use pg_transaction_rollback to end it, or pg_transaction_rollback_to to recover to a savepoint.",
+      { cause: error },
+    );
+  }
+
+  // Unrecognized configuration parameter (pg_set_config)
+  // Standalone check: adapter wraps PG errors with code "QUERY_ERROR",
+  // so this won't enter the 42704 block — must match on message text.
+  if (/unrecognized configuration parameter/i.test(msg)) {
+    const paramMatch = /parameter "([^"]+)"/i.exec(msg);
+    const paramName = paramMatch?.[1] ?? "unknown";
+    throw new Error(
+      `Unrecognized configuration parameter '${paramName}'. Use pg_show_settings to see available parameters.`,
       { cause: error },
     );
   }

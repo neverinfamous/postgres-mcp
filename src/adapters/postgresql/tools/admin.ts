@@ -264,7 +264,12 @@ function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        throw parsePostgresError(error, { tool: "pg_reindex" });
+        throw parsePostgresError(error, {
+          tool: "pg_reindex",
+          target: parsed.target,
+          ...(parsed.target === "index" && { index: effectiveName }),
+          ...(parsed.target === "table" && { table: effectiveName }),
+        });
       }
 
       await sendProgress(progress, 3, 3, "REINDEX complete");

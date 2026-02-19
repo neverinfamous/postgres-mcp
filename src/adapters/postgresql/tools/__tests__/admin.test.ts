@@ -917,7 +917,9 @@ describe("Structured Error Handling (parsePostgresError)", () => {
 
     await expect(
       tool.handler({ name: "nonexistent_param", value: "test" }, mockContext),
-    ).rejects.toThrow(/does not exist|not found/i);
+    ).rejects.toThrow(
+      /unrecognized configuration parameter.*pg_show_settings/i,
+    );
   });
 
   it("should map 42P01 table-not-found for pg_cluster", async () => {
@@ -935,5 +937,19 @@ describe("Structured Error Handling (parsePostgresError)", () => {
         mockContext,
       ),
     ).rejects.toThrow(/not found.*pg_list_tables/i);
+  });
+
+  it("should map 42P01 index-not-found for pg_reindex target=index", async () => {
+    const pgError = new Error(
+      'relation "nonexistent_index" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_reindex")!;
+
+    await expect(
+      tool.handler({ target: "index", name: "nonexistent_index" }, mockContext),
+    ).rejects.toThrow(/index.*not found.*pg_get_indexes/i);
   });
 });
