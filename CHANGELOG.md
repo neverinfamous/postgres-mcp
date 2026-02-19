@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_list_functions` `exclude: ["vector"]` inconsistency** — Added `vector` to `EXTENSION_ALIASES` so passing the actual extension name (not just the alias `pgvector`) in the `exclude` array correctly filters pgvector functions
 
+- **Partitioning tools raw PostgreSQL exceptions** — `pg_create_partitioned_table`, `pg_create_partition`, and `pg_attach_partition` now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Covers duplicate table/partition names, overlapping range bounds, and already-attached partitions
+
+- **Partitioning tools undocumented response structures** — Added response structure documentation for all 6 partitioning tools and sub-partitioning primary key constraint note to `ServerInstructions.ts`
+
 - **`pg_explain` / `pg_explain_analyze` / `pg_explain_buffers` `query` alias rejected** — Direct MCP tool calls using `{ query: "SELECT ..." }` instead of `{ sql: "SELECT ..." }` now work correctly. Previously, the MCP SDK rejected the `query` alias at runtime because `ExplainSchemaBase` did not include it as a field and marked `sql` as required. Added `query` as an optional alias field, made `sql` optional in the base schema, and added handler guard clauses to validate that at least one is provided
 
 - **ESLint 10 compliance** — Resolved 20 new lint errors introduced by ESLint 10's stricter `eslint:recommended` rules:

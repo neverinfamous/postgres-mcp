@@ -8,6 +8,7 @@
 import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { readOnly, write, destructive } from "../../../utils/annotations.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import {
   sanitizeIdentifier,
@@ -352,7 +353,15 @@ function createPartitionedTableTool(adapter: PostgresAdapter): ToolDefinition {
   ${columnDefs}${tableConstraints}
 ) PARTITION BY ${partitionBy.toUpperCase()} (${partitionKey})`;
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_create_partitioned_table",
+          table: name,
+          ...(schema !== undefined && { schema }),
+        });
+      }
       return {
         success: true,
         table: `${schema ?? "public"}.${name}`,
@@ -455,7 +464,14 @@ function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         sql += ` PARTITION BY ${subpartitionBy.toUpperCase()} (${subpartitionKey})`;
       }
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_create_partition",
+          table: name,
+        });
+      }
 
       const result: Record<string, unknown> = {
         success: true,
@@ -562,7 +578,14 @@ function createAttachPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         boundsDescription = forValues;
       }
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_attach_partition",
+          table: parsedPartition.table,
+        });
+      }
 
       return {
         success: true,

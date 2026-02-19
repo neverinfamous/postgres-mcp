@@ -288,6 +288,8 @@ Response Structures:
 - \`pg_list_partitions\`: Default \`limit: 50\` (use \`0\` for all). Returns \`{partitions, count, truncated, totalCount?}\`. Uses \`bounds\` field (consistent with \`pg_partition_info\`)
 - \`pg_partition_info\`: Returns \`{tableInfo, partitions, totalSizeBytes}\`. Uses \`bounds\` field
 - Both list/info tools support \`schema.table\` format (auto-parsed) and accept \`table\`, \`parent\`, \`parentTable\`, or \`name\` aliases
+- Response structures: \`pg_create_partitioned_table\` → \`{success, table, partitionBy, partitionKey, primaryKey?}\`. \`pg_create_partition\` → \`{success, partition, parent, bounds, subpartitionBy?, subpartitionKey?}\`. \`pg_attach_partition\` → \`{success, parent, partition, bounds}\`. \`pg_detach_partition\` → \`{success, parent, partition}\`
+- ⚠️ Sub-partitioning: \`subpartitionBy\`/\`subpartitionKey\` on \`pg_create_partition\` makes a partition itself partitionable. The parent's \`primaryKey\` must include the sub-partition key column (PostgreSQL constraint)
 - 📍 Code Mode: \`pg.partitioning.create()\` = \`createPartition\`, NOT \`createPartitionedTable\`
 
 ## pg_partman Tools
