@@ -29,6 +29,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_create_index` race condition with `ifNotExists`** — `pg_create_index` with `ifNotExists: true` now performs a pre-check against `pg_indexes` before executing CREATE INDEX. If the index already exists, it returns `{ alreadyExists: true }` without attempting the CREATE. A fallback catch for "already exists" errors handles race conditions where the index is created between the check and the CREATE
 
+- **`pg_read_query` raw PostgreSQL exceptions** — Queries against nonexistent tables now throw structured errors (e.g., `Table 'x' not found. Use pg_list_tables`) instead of raw PG exceptions like `relation "x" does not exist`. Added shared `parsePostgresError()` helper in `error-helpers.ts`
+
+- **`pg_create_table` raw PostgreSQL exceptions** — Creating a duplicate table without `ifNotExists` now throws a structured error (`Table 'x' already exists. Use ifNotExists: true`) instead of the raw PG `relation already exists` exception
+
+- **`pg_drop_table` raw PostgreSQL exceptions** — Dropping a nonexistent table without `ifExists` now throws a structured error instead of the raw PG exception
+
+- **`pg_drop_index` raw PostgreSQL exceptions** — Dropping a nonexistent index without `ifExists` now throws a structured error (`Index 'x' not found. Use ifExists: true`) instead of the raw PG exception
+
+- **`pg_create_index` raw PostgreSQL exceptions** — Creating a duplicate index without `ifNotExists` now throws a structured error with actionable guidance instead of the raw PG exception
+
+- **`ServerInstructions.ts` `pg_list_tables` response docs** — Added missing `totalCount`, `truncated?`, and `hint?` fields to the response structure documentation
+
+- **`ServerInstructions.ts` `pg_object_details` response docs** — Added note that table-type objects return the full `pg_describe_table` response shape (columns, primaryKey, indexes, constraints, foreignKeys)
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

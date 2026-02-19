@@ -11,6 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "./error-helpers.js";
 import {
   ListTablesSchema,
   DescribeTableSchemaBase,
@@ -241,7 +242,15 @@ export function createCreateTableTool(
 
       const sql = `CREATE TABLE ${ifNotExistsClause}${schemaPrefix}"${name}" (\n  ${columnDefs.join(",\n  ")}\n)`;
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_create_table",
+          table: name,
+          schema: schema ?? "public",
+        });
+      }
 
       return {
         success: true,
@@ -286,7 +295,15 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
 
       const sql = `DROP TABLE ${ifExistsClause}${schemaPrefix}"${table}"${cascadeClause}`;
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_drop_table",
+          table,
+          schema: schemaName,
+        });
+      }
 
       return {
         success: true,

@@ -40,11 +40,11 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 | \`pg_exists\` | \`{exists: bool, mode, hint?}\` | \`params\` for placeholders. \`mode: 'filtered'|'any_rows'\` |
 | \`pg_get_indexes\` | \`{indexes, count, totalCount?}\` | Default \`limit: 100\` without \`table\`. Use \`schema\`/\`limit\` to filter. Index objects have \`name\`, \`type\`, \`columns\` |
 | \`pg_list_objects\` | \`{objects, count, totalCount, byType}\` | Use \`limit\` to cap results, \`type\`/\`types\` to filter |
-| \`pg_object_details\` | \`{name, schema, type, returnType?, ...}\` | Functions: \`returnType\` alias. Views/Mat. views: \`definition\` |
+| \`pg_object_details\` | \`{name, schema, type, returnType?, ...}\` | Functions: \`returnType\` alias. Views/Mat. views: \`definition\`. Tables: equivalent to \`pg_describe_table\` (columns, primaryKey, indexes, constraints, foreignKeys) |
 | \`pg_analyze_db_health\` | \`{cacheHitRatio: {ratio, heap, index, status}}\` | \`ratio\` = primary numeric %. \`bloat\` available |
 | \`pg_describe_table\` | \`{name, schema, type, owner, rowCount, columns, primaryKey, indexes, constraints, foreignKeys}\` | Columns include \`notNull\` (alias for \`!nullable\`), \`foreignKey\`. \`constraints\` includes PK, UNIQUE, CHECK, NOT NULL. ⚠️ \`rowCount: -1\` = stale/missing statistics (run ANALYZE on the table). Small tables (<~50 rows) may show -1 until first ANALYZE |
 | \`pg_analyze_query_indexes\` | \`{plan, issues, recommendations}\` | \`verbosity\`: 'summary' (default) or 'full'. Summary mode returns condensed plan |
-| \`pg_list_tables\` | \`{tables, count}\` | Use \`schema\` to filter, \`limit\` to cap results, \`exclude\` to hide extension schemas (e.g., \`['cron', 'topology', 'partman']\`) |
+| \`pg_list_tables\` | \`{tables, count, totalCount, truncated?, hint?}\` | Use \`schema\` to filter, \`limit\` to cap results, \`exclude\` to hide extension schemas (e.g., \`['cron', 'topology', 'partman']\`) |
 | List operations | \`{items, count}\` | Access via \`result.tables\`, \`result.views\`, etc. |
 | \`pg_jsonb_agg groupBy\` | \`{result: [{group_key, items}], count, grouped: true}\` | Without groupBy: \`{result: [...], count, grouped: false}\` |
 | \`pg_vector_aggregate\` | \`{average_vector, count}\` or \`{groups: [{group_key, average_vector, count}]}\` | Without/with \`groupBy\` |

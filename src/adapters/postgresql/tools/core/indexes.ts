@@ -11,6 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "./error-helpers.js";
 import {
   GetIndexesSchemaBase,
   GetIndexesSchema,
@@ -206,8 +207,13 @@ export function createCreateIndexTool(
             };
           }
         }
-        // Re-throw other errors
-        throw error;
+        // Re-throw with structured message
+        throw parsePostgresError(error, {
+          tool: "pg_create_index",
+          index: name,
+          table,
+          schema: schemaName,
+        });
       }
     },
   };
@@ -310,7 +316,15 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
 
       const sql = `DROP INDEX ${concurrentlyClause}${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_drop_index",
+          index: name,
+          schema: schemaName,
+        });
+      }
       return {
         success: true,
         index: `${schemaName}.${name}`,

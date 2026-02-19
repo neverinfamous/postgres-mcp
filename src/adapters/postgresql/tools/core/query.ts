@@ -11,6 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "./error-helpers.js";
 import {
   ReadQuerySchemaBase,
   ReadQuerySchema,
@@ -47,9 +48,17 @@ export function createReadQueryTool(adapter: PostgresAdapter): ToolDefinition {
             `Invalid or expired transactionId: ${transactionId}. Use pg_transaction_begin to start a new transaction.`,
           );
         }
-        result = await adapter.executeOnConnection(client, sql, queryParams);
+        try {
+          result = await adapter.executeOnConnection(client, sql, queryParams);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, { tool: "pg_read_query", sql });
+        }
       } else {
-        result = await adapter.executeReadQuery(sql, queryParams);
+        try {
+          result = await adapter.executeReadQuery(sql, queryParams);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, { tool: "pg_read_query", sql });
+        }
       }
 
       return {

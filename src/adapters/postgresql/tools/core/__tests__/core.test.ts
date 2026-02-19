@@ -862,6 +862,110 @@ describe("Error Handling", () => {
     // Missing required 'sql' parameter
     await expect(tool.handler({}, mockContext)).rejects.toThrow();
   });
+
+  describe("Structured PostgreSQL Error Handling (P154)", () => {
+    it("pg_read_query should wrap nonexistent table error", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      pgError.code = "42P01";
+      mockAdapter.executeReadQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_read_query")!;
+
+      await expect(
+        tool.handler({ sql: "SELECT * FROM nonexistent" }, mockContext),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
+
+    it("pg_create_table should wrap duplicate table error", async () => {
+      const pgError = new Error('relation "test" already exists') as Error & {
+        code: string;
+      };
+      pgError.code = "42P07";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_create_table")!;
+
+      await expect(
+        tool.handler(
+          {
+            table: "test",
+            columns: [{ name: "id", type: "SERIAL", primaryKey: true }],
+          },
+          mockContext,
+        ),
+      ).rejects.toThrow(/already exists.*ifNotExists/i);
+    });
+
+    it("pg_drop_table should wrap nonexistent table error", async () => {
+      const pgError = new Error(
+        'table "nonexistent" does not exist',
+      ) as Error & { code: string };
+      pgError.code = "42P01";
+
+      // First call succeeds (exists check), second call throws (DROP)
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce(createMockQueryResult([]))
+        .mockRejectedValueOnce(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_drop_table")!;
+
+      await expect(
+        tool.handler({ table: "nonexistent" }, mockContext),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
+
+    it("pg_drop_index should wrap nonexistent index error", async () => {
+      const pgError = new Error(
+        'index "nonexistent_idx" does not exist',
+      ) as Error & { code: string };
+      pgError.code = "42704";
+
+      // First call succeeds (exists check), second call throws (DROP)
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce(createMockQueryResult([]))
+        .mockRejectedValueOnce(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_drop_index")!;
+
+      await expect(
+        tool.handler({ name: "nonexistent_idx" }, mockContext),
+      ).rejects.toThrow(/not found.*ifExists/i);
+    });
+
+    it("pg_create_index should wrap duplicate index error", async () => {
+      const pgError = new Error(
+        'relation "idx_test" already exists',
+      ) as Error & { code: string };
+      pgError.code = "42P07";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_create_index")!;
+
+      await expect(
+        tool.handler(
+          {
+            table: "test",
+            columns: ["email"],
+            name: "idx_test",
+          },
+          mockContext,
+        ),
+      ).rejects.toThrow(/already exists.*ifNotExists/i);
+    });
+
+    it("should still propagate non-PG errors unchanged", async () => {
+      const connectionError = new Error("Connection refused");
+      mockAdapter.executeReadQuery.mockRejectedValue(connectionError);
+
+      const tool = tools.find((t) => t.name === "pg_read_query")!;
+
+      await expect(
+        tool.handler({ sql: "SELECT 1" }, mockContext),
+      ).rejects.toThrow("Connection refused");
+    });
+  });
 });
 
 describe("Health Analysis Tools", () => {
