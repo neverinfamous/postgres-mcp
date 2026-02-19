@@ -879,5 +879,28 @@ describe("JSONB Validation and Error Paths", () => {
         ),
       ).rejects.toThrow(/not found.*pg_list_tables/i);
     });
+
+    it("should route table-not-found errors through parsePostgresError for pg_jsonb_insert preliminary checks", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
+
+      await expect(
+        tool.handler(
+          {
+            table: "nonexistent",
+            column: "data",
+            path: [0],
+            value: "test",
+            where: "id = 1",
+          },
+          mockContext,
+        ),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
   });
 });

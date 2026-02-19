@@ -312,42 +312,65 @@ export function createJsonbInsertTool(
         );
       }
 
-      // Check for NULL columns first - jsonb_insert requires existing array context
-      const checkSql = `SELECT COUNT(*) as null_count FROM "${table}" WHERE ${parsed.where} AND "${column}" IS NULL`;
-      const checkResult = await adapter.executeQuery(checkSql);
-      const nullCount = Number(checkResult.rows?.[0]?.["null_count"] ?? 0);
-      if (nullCount > 0) {
-        throw new Error(
-          `pg_jsonb_insert cannot operate on NULL columns. Use pg_jsonb_set to initialize the column first: pg_jsonb_set({table: "${table}", column: "${column}", path: "myarray", value: [], where: "..."})`,
-        );
-      }
+      // Wrap preliminary checks in try/catch so PG errors (e.g. nonexistent table)
+      // are routed through parsePostgresError instead of leaking as raw exceptions
+      try {
+        // Check for NULL columns first - jsonb_insert requires existing array context
+        const checkSql = `SELECT COUNT(*) as null_count FROM "${table}" WHERE ${parsed.where} AND "${column}" IS NULL`;
+        const checkResult = await adapter.executeQuery(checkSql);
+        const nullCount = Number(checkResult.rows?.[0]?.["null_count"] ?? 0);
+        if (nullCount > 0) {
+          throw new Error(
+            `pg_jsonb_insert cannot operate on NULL columns. Use pg_jsonb_set to initialize the column first: pg_jsonb_set({table: "${table}", column: "${column}", path: "myarray", value: [], where: "..."})`,
+          );
+        }
 
-      // Validate target path points to an array, not an object
-      // Get the parent path (one level up from where we're inserting)
-      const parentPath = path.slice(0, -1);
-      if (parentPath.length === 0) {
-        // Inserting at root level - check column type
-        const typeCheckSql = `SELECT jsonb_typeof("${column}") as type FROM "${table}" WHERE ${parsed.where} LIMIT 1`;
-        const typeResult = await adapter.executeQuery(typeCheckSql);
-        const columnType = typeResult.rows?.[0]?.["type"] as string | undefined;
-        if (columnType && columnType !== "array") {
-          throw new Error(
-            `pg_jsonb_insert requires an array target. Column contains '${columnType}'. Use pg_jsonb_set for objects.`,
-          );
+        // Validate target path points to an array, not an object
+        // Get the parent path (one level up from where we're inserting)
+        const parentPath = path.slice(0, -1);
+        if (parentPath.length === 0) {
+          // Inserting at root level - check column type
+          const typeCheckSql = `SELECT jsonb_typeof("${column}") as type FROM "${table}" WHERE ${parsed.where} LIMIT 1`;
+          const typeResult = await adapter.executeQuery(typeCheckSql);
+          const columnType = typeResult.rows?.[0]?.["type"] as
+            | string
+            | undefined;
+          if (columnType && columnType !== "array") {
+            throw new Error(
+              `pg_jsonb_insert requires an array target. Column contains '${columnType}'. Use pg_jsonb_set for objects.`,
+            );
+          }
+        } else {
+          // Check the parent path type
+          const typeCheckSql = `SELECT jsonb_typeof("${column}" #> $1) as type FROM "${table}" WHERE ${parsed.where} LIMIT 1`;
+          const parentPathStrings = parentPath.map((p) => String(p));
+          const typeResult = await adapter.executeQuery(typeCheckSql, [
+            parentPathStrings,
+          ]);
+          const targetType = typeResult.rows?.[0]?.["type"] as
+            | string
+            | undefined;
+          if (targetType && targetType !== "array") {
+            throw new Error(
+              `pg_jsonb_insert requires an array target. Path '${parentPathStrings.join(".")}' contains '${targetType}'. Use pg_jsonb_set for objects.`,
+            );
+          }
         }
-      } else {
-        // Check the parent path type
-        const typeCheckSql = `SELECT jsonb_typeof("${column}" #> $1) as type FROM "${table}" WHERE ${parsed.where} LIMIT 1`;
-        const parentPathStrings = parentPath.map((p) => String(p));
-        const typeResult = await adapter.executeQuery(typeCheckSql, [
-          parentPathStrings,
-        ]);
-        const targetType = typeResult.rows?.[0]?.["type"] as string | undefined;
-        if (targetType && targetType !== "array") {
-          throw new Error(
-            `pg_jsonb_insert requires an array target. Path '${parentPathStrings.join(".")}' contains '${targetType}'. Use pg_jsonb_set for objects.`,
-          );
+      } catch (error) {
+        // Re-throw domain-specific errors (NULL columns, non-array targets) as-is
+        if (
+          error instanceof Error &&
+          !(
+            "code" in error &&
+            typeof (error as Record<string, unknown>)["code"] === "string"
+          )
+        ) {
+          throw error;
         }
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_insert",
+          table,
+        });
       }
 
       const sql = `UPDATE "${table}" SET "${column}" = jsonb_insert("${column}", $1, $2::jsonb, $3) WHERE ${parsed.where}`;
