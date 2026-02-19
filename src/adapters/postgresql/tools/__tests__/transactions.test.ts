@@ -545,3 +545,201 @@ describe("pg_transaction_execute", () => {
     expect(typeof result.results[0].rowsAffected).toBe("number");
   });
 });
+
+// =============================================================================
+// Structured Error Handling - Savepoint Errors
+// =============================================================================
+
+describe("Transaction savepoint error handling", () => {
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_transaction_release should throw structured error for nonexistent savepoint", async () => {
+    const mockAdapter = createMockPostgresAdapter();
+    const pgError = new Error('savepoint "my_sp" does not exist') as Error & {
+      code: string;
+    };
+    pgError.code = "3B001";
+    (
+      mockAdapter.releaseSavepoint as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(pgError);
+
+    const tools = getTransactionTools(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_release")!;
+
+    await expect(
+      tool.handler({ transactionId: "txn-123", name: "my_sp" }, mockContext),
+    ).rejects.toThrow("does not exist");
+  });
+
+  it("pg_transaction_rollback_to should throw structured error for nonexistent savepoint", async () => {
+    const mockAdapter = createMockPostgresAdapter();
+    const pgError = new Error('savepoint "bad_sp" does not exist') as Error & {
+      code: string;
+    };
+    pgError.code = "3B001";
+    (
+      mockAdapter.rollbackToSavepoint as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(pgError);
+
+    const tools = getTransactionTools(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_rollback_to")!;
+
+    await expect(
+      tool.handler({ transactionId: "txn-123", name: "bad_sp" }, mockContext),
+    ).rejects.toThrow("does not exist");
+  });
+
+  it("pg_transaction_savepoint should throw structured error for aborted transaction state", async () => {
+    const mockAdapter = createMockPostgresAdapter();
+    // The real adapter's createSavepoint wraps the PG error via parsePostgresError,
+    // so the mock should throw the structured error that the real adapter would produce.
+    const structuredError = new Error(
+      "Transaction is in an aborted state — only ROLLBACK or ROLLBACK TO SAVEPOINT commands are allowed. " +
+        "A previous statement in this transaction failed, putting it into an error state. " +
+        "Use pg_transaction_rollback to end it, or pg_transaction_rollback_to to recover to a savepoint.",
+    );
+    (
+      mockAdapter.createSavepoint as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(structuredError);
+
+    const tools = getTransactionTools(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_savepoint")!;
+
+    await expect(
+      tool.handler({ transactionId: "txn-123", name: "sp1" }, mockContext),
+    ).rejects.toThrow("aborted state");
+  });
+});
+
+// =============================================================================
+// Structured Error Handling - Commit After Abort
+// =============================================================================
+
+describe("pg_transaction_commit - aborted state detection", () => {
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockContext = createMockRequestContext();
+  });
+
+  it("should throw structured error when committing an aborted transaction", async () => {
+    const mockAdapter = createMockPostgresAdapter();
+    const txError = new Error(
+      "Transaction is in an aborted state and cannot be committed. " +
+        "PostgreSQL has discarded all changes. " +
+        "A previous statement in this transaction failed, putting it into an error state. " +
+        "The transaction has been rolled back.",
+    );
+    txError.name = "TransactionError";
+    (
+      mockAdapter.commitTransaction as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(txError);
+
+    const tools = getTransactionTools(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_commit")!;
+
+    await expect(
+      tool.handler({ transactionId: "txn-aborted" }, mockContext),
+    ).rejects.toThrow("aborted state");
+  });
+});
+
+// =============================================================================
+// Structured Error Handling - Execute Error Path
+// =============================================================================
+
+describe("pg_transaction_execute - structured error handling", () => {
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockContext = createMockRequestContext();
+  });
+
+  it("should include autoRolledBack and context in error for auto-commit mode", async () => {
+    const mockAdapterWithTxn = createMockPostgresAdapterWithTransaction();
+
+    // First statement succeeds, second fails with nonexistent table
+    const pgError = new Error(
+      'relation "nonexistent_table" does not exist',
+    ) as Error & { code: string };
+    pgError.code = "42P01";
+
+    (
+      mockAdapterWithTxn as unknown as { executeOnConnection: typeof vi.fn }
+    ).executeOnConnection = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [], rowsAffected: 1 })
+      .mockRejectedValueOnce(pgError);
+
+    const tools = getTransactionTools(
+      mockAdapterWithTxn as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_execute")!;
+
+    await expect(
+      tool.handler(
+        {
+          statements: [
+            { sql: "INSERT INTO users (name) VALUES ('Alice')" },
+            { sql: "INSERT INTO nonexistent_table VALUES (1)" },
+          ],
+        },
+        mockContext,
+      ),
+    ).rejects.toThrow("automatically rolled back");
+
+    // Should have attempted rollback
+    expect(mockAdapterWithTxn.rollbackTransaction).toHaveBeenCalled();
+  });
+
+  it("should NOT include autoRolledBack in error for join-existing mode", async () => {
+    const mockAdapterWithTxn = createMockPostgresAdapterWithTransaction();
+
+    const pgError = new Error(
+      'relation "bad_table" does not exist',
+    ) as Error & { code: string };
+    pgError.code = "42P01";
+
+    (
+      mockAdapterWithTxn as unknown as { executeOnConnection: typeof vi.fn }
+    ).executeOnConnection = vi.fn().mockRejectedValueOnce(pgError);
+
+    const tools = getTransactionTools(
+      mockAdapterWithTxn as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_execute")!;
+
+    try {
+      await tool.handler(
+        {
+          transactionId: "existing-txn",
+          statements: [{ sql: "INSERT INTO bad_table VALUES (1)" }],
+        },
+        mockContext,
+      );
+      expect.unreachable("Should have thrown");
+    } catch (error) {
+      const msg = (error as Error).message;
+      expect(msg).toContain("not found");
+      expect(msg).not.toContain("automatically rolled back");
+    }
+
+    // Should NOT have rolled back the existing transaction
+    expect(mockAdapterWithTxn.rollbackTransaction).not.toHaveBeenCalled();
+  });
+});

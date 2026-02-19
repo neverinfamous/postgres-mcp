@@ -13,6 +13,7 @@ import {
   createMockQueryResult,
   createMockRequestContext,
 } from "../../../../../__tests__/mocks/index.js";
+import { parsePostgresError } from "../error-helpers.js";
 
 describe("getCoreTools", () => {
   let adapter: PostgresAdapter;
@@ -3321,5 +3322,43 @@ describe("pg_analyze_query_indexes - structured error handling", () => {
     await expect(
       tool.handler({ sql: "SELEC * FROM users" }, mockContext),
     ).rejects.toThrow("SQL syntax error");
+  });
+});
+
+// =============================================================================
+// Structured Error Handling - parsePostgresError (3B001, 25P02)
+// =============================================================================
+
+describe("parsePostgresError - savepoint and aborted transaction codes", () => {
+  it("should produce structured error for nonexistent savepoint (3B001)", () => {
+    const pgError = new Error('savepoint "my_sp" does not exist') as Error & {
+      code: string;
+    };
+    pgError.code = "3B001";
+
+    expect(() =>
+      parsePostgresError(pgError, { tool: "pg_transaction_release" }),
+    ).toThrow("Savepoint 'my_sp' does not exist in this transaction");
+  });
+
+  it("should produce structured error for aborted transaction (25P02)", () => {
+    const pgError = new Error(
+      "current transaction is aborted, commands ignored until end of transaction block",
+    ) as Error & { code: string };
+    pgError.code = "25P02";
+
+    expect(() =>
+      parsePostgresError(pgError, { tool: "pg_transaction_savepoint" }),
+    ).toThrow("Transaction is in an aborted state");
+  });
+
+  it("should handle 25P02 via message pattern without code", () => {
+    const pgError = new Error(
+      "current transaction is aborted, commands ignored until end of transaction block",
+    );
+
+    expect(() =>
+      parsePostgresError(pgError, { tool: "pg_transaction_commit" }),
+    ).toThrow("aborted state");
   });
 });

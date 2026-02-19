@@ -409,6 +409,13 @@ Core: \`begin()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, \`rollbackTo()
   - **Join existing**: With \`transactionId\`/\`tx\`/\`txId\`—no auto-commit, caller controls via commit/rollback
 - \`statements\`: Array of \`{sql: "...", params?: [...]}\` objects. ⚠️ Each object MUST have \`sql\` key
 - \`isolationLevel\`: Optional isolation level for new transactions ('READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE')
+- Supports SELECT statements inside \`statements\`—results include \`rows\` in the response for mixed read/write workflows
+
+**Aborted Transaction State:**
+- ⚠️ If any statement in a transaction fails, PostgreSQL puts the transaction into an **aborted state**
+- In aborted state, only \`ROLLBACK\` or \`ROLLBACK TO SAVEPOINT\` commands are accepted—all other commands will error
+- Use \`pg_transaction_rollback\` to end the transaction, or \`pg_transaction_rollback_to\` to recover to a savepoint
+- \`pg_transaction_commit\` on an aborted transaction will detect the state and report it (not silently rollback)
 
 **Response Structures:**
 - \`begin\`: \`{transactionId, isolationLevel: 'READ COMMITTED', message}\`

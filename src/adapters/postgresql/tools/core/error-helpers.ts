@@ -29,6 +29,8 @@ interface ErrorContext {
  * - 42703: undefined_column (column does not exist)
  * - 23505: unique_violation (duplicate key value)
  * - 3F000: invalid_schema_name (schema does not exist)
+ * - 3B001: savepoint_exception (savepoint does not exist)
+ * - 25P02: in_failed_sql_transaction (transaction is aborted)
  */
 export function parsePostgresError(
   error: unknown,
@@ -107,6 +109,26 @@ export function parsePostgresError(
   ) {
     throw new Error(
       `Unique constraint violated: ${msg}. Use pg_upsert for insert-or-update behavior.`,
+      { cause: error },
+    );
+  }
+
+  // 3B001 — savepoint does not exist (checked before 42704 whose broad regex would match)
+  if (pgCode === "3B001" || /savepoint ".*" does not exist/i.test(msg)) {
+    const match = /savepoint "([^"]+)"/i.exec(msg);
+    const spName = match?.[1] ?? "unknown";
+    throw new Error(
+      `Savepoint '${spName}' does not exist in this transaction. Use pg_transaction_savepoint to create it first.`,
+      { cause: error },
+    );
+  }
+
+  // 25P02 — current transaction is aborted (checked before 42704 whose broad regex would match)
+  if (pgCode === "25P02" || /current transaction is aborted/i.test(msg)) {
+    throw new Error(
+      "Transaction is in an aborted state — only ROLLBACK or ROLLBACK TO SAVEPOINT commands are allowed. " +
+        "A previous statement in this transaction failed, putting it into an error state. " +
+        "Use pg_transaction_rollback to end it, or pg_transaction_rollback_to to recover to a savepoint.",
       { cause: error },
     );
   }

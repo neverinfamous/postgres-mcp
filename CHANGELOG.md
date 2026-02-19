@@ -57,6 +57,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`parsePostgresError` expanded coverage** — Added three new PG error codes: `42601` (syntax_error → `SQL syntax error: ...`), `42703` (undefined_column → `Column not found: ...`), `23505` (unique_violation → `Unique constraint violated: ...`). Fixed 42P01 regex to avoid false-matching 42703 column error messages that also contain `relation "..." does not exist`
 
+- **`parsePostgresError` transaction error codes** — Added two new PG error codes with higher precedence than the broad `42704` handler: `3B001` (savepoint_exception → `Savepoint 'X' does not exist in this transaction`) and `25P02` (in_failed_sql_transaction → `Transaction is in an aborted state — only ROLLBACK ...`)
+
+- **`PostgresAdapter` savepoint methods raw exceptions** — `createSavepoint`, `releaseSavepoint`, and `rollbackToSavepoint` now wrap errors through `parsePostgresError()` for structured messages instead of propagating raw PG exceptions
+
+- **`PostgresAdapter` commit-after-abort silent data loss** — `commitTransaction` now probes the transaction state with `SELECT 1` before issuing `COMMIT`. If the transaction is in an aborted state (25P02), it rolls back and throws a clear `TransactionError` instead of silently performing a rollback disguised as a commit
+
+- **`pg_transaction_execute` raw error propagation** — The execute handler now wraps caught errors through `parsePostgresError()` and includes `autoRolledBack: true` context when the transaction was automatically cleaned up (auto-commit mode)
+
+- **`ServerInstructions.ts` transaction docs** — Added aborted transaction state recovery guidance and documented `SELECT` query support in `pg_transaction_execute`
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

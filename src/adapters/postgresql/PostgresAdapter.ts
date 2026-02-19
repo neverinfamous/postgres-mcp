@@ -29,6 +29,7 @@ import {
 } from "../../types/index.js";
 import { logger } from "../../utils/logger.js";
 import { quoteIdentifier } from "../../utils/identifiers.js";
+import { parsePostgresError } from "./tools/core/error-helpers.js";
 
 // Import tool modules (will be created next)
 import { getCoreTools } from "./tools/core/index.js";
@@ -307,6 +308,39 @@ export class PostgresAdapter extends DatabaseAdapter {
     }
 
     try {
+      // Probe for aborted transaction state before committing.
+      // In PostgreSQL, if any statement in a transaction fails, the transaction
+      // enters an "aborted" state where only ROLLBACK is accepted. A COMMIT on
+      // an aborted transaction silently performs a ROLLBACK — this probe detects
+      // that situation and reports it clearly instead of lying with "committed".
+      try {
+        await client.query("SELECT 1");
+      } catch (probeError) {
+        const pgCode = (probeError as Record<string, unknown>)["code"] as
+          | string
+          | undefined;
+        if (
+          pgCode === "25P02" ||
+          (probeError instanceof Error &&
+            /current transaction is aborted/i.test(probeError.message))
+        ) {
+          // Transaction is aborted — rollback and report accurately.
+          // Note: client.release() and Map cleanup are handled by the outer finally block.
+          try {
+            await client.query("ROLLBACK");
+          } catch {
+            // Ignore rollback failure — cleanup happens in finally
+          }
+          throw new TransactionError(
+            "Transaction is in an aborted state and cannot be committed. " +
+              "PostgreSQL has discarded all changes. " +
+              "A previous statement in this transaction failed, putting it into an error state. " +
+              "The transaction has been rolled back.",
+          );
+        }
+        // Non-aborted probe error — let it fall through to COMMIT
+      }
+
       await client.query("COMMIT");
     } finally {
       client.release();
@@ -343,7 +377,13 @@ export class PostgresAdapter extends DatabaseAdapter {
       throw new TransactionError(`Transaction not found: ${transactionId}`);
     }
 
-    await client.query(`SAVEPOINT ${quoteIdentifier(savepointName)}`);
+    try {
+      await client.query(`SAVEPOINT ${quoteIdentifier(savepointName)}`);
+    } catch (error) {
+      throw parsePostgresError(error, {
+        tool: "pg_transaction_savepoint",
+      });
+    }
   }
 
   /**
@@ -358,7 +398,13 @@ export class PostgresAdapter extends DatabaseAdapter {
       throw new TransactionError(`Transaction not found: ${transactionId}`);
     }
 
-    await client.query(`RELEASE SAVEPOINT ${quoteIdentifier(savepointName)}`);
+    try {
+      await client.query(`RELEASE SAVEPOINT ${quoteIdentifier(savepointName)}`);
+    } catch (error) {
+      throw parsePostgresError(error, {
+        tool: "pg_transaction_release",
+      });
+    }
   }
 
   /**
@@ -373,9 +419,15 @@ export class PostgresAdapter extends DatabaseAdapter {
       throw new TransactionError(`Transaction not found: ${transactionId}`);
     }
 
-    await client.query(
-      `ROLLBACK TO SAVEPOINT ${quoteIdentifier(savepointName)}`,
-    );
+    try {
+      await client.query(
+        `ROLLBACK TO SAVEPOINT ${quoteIdentifier(savepointName)}`,
+      );
+    } catch (error) {
+      throw parsePostgresError(error, {
+        tool: "pg_transaction_rollback_to",
+      });
+    }
   }
 
   /**

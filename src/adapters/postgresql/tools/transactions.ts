@@ -9,6 +9,7 @@ import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import {
   BeginTransactionSchema,
   TransactionIdSchema,
@@ -247,9 +248,43 @@ function createTransactionExecuteTool(
         // Only auto-rollback if we created a new transaction
         // If joining an existing transaction, let the caller control cleanup
         if (!isJoiningExisting) {
-          await adapter.rollbackTransaction(txId);
+          try {
+            await adapter.rollbackTransaction(txId);
+          } catch {
+            // Best effort rollback — connection may already be broken
+          }
         }
-        throw error;
+
+        // Build structured error with partial results and rollback context
+        const structuredError = (() => {
+          try {
+            return parsePostgresError(error, {
+              tool: "pg_transaction_execute",
+            });
+          } catch (parsed) {
+            return parsed;
+          }
+        })();
+
+        const errMsg =
+          structuredError instanceof Error
+            ? structuredError.message
+            : String(structuredError);
+
+        const context: Record<string, unknown> = {
+          statementsExecuted: results.length,
+          statementsTotal: statements.length,
+          failedStatement: statements[results.length]?.sql,
+        };
+
+        if (!isJoiningExisting) {
+          context["autoRolledBack"] = true;
+        }
+
+        throw new Error(
+          `${errMsg}${!isJoiningExisting ? " Transaction was automatically rolled back." : ""}\n\nContext: ${JSON.stringify(context)}`,
+          { cause: error },
+        );
       }
     },
   };
