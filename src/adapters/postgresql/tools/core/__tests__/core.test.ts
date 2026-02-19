@@ -1197,6 +1197,23 @@ describe("Health Analysis Tools", () => {
         expect.stringContaining("work_mem"),
       );
     });
+
+    it("should wrap nonexistent table error into structured message", async () => {
+      const pgError = new Error(
+        'relation "fake_nonexistent_table" does not exist',
+      ) as Error & { code: string };
+      pgError.code = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_analyze_query_indexes")!;
+
+      await expect(
+        tool.handler(
+          { sql: "SELECT * FROM fake_nonexistent_table WHERE id = 1" },
+          mockContext,
+        ),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
   });
 
   describe("pg_analyze_db_health with options", () => {

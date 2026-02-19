@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ServerInstructions.ts` response structure docs** — Added missing response structures for `pg_create_table`, `pg_drop_table`, `pg_create_index`, `pg_drop_index`, and `pg_truncate`. Fixed `pg_batch_insert` to include `success` and `rowCount` fields
 
+- **`pg_analyze_query_indexes` raw PostgreSQL exceptions** — Queries referencing nonexistent tables now throw structured errors (e.g., `Table 'x' not found. Use pg_list_tables`) instead of raw PG exceptions like `relation "x" does not exist`. Uses the shared `parsePostgresError()` helper consistent with `pg_read_query` and other core tools
+
 ## [1.2.0] - 2026-02-10
 
 ### Added
