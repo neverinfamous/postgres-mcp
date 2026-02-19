@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_dump_table` raw PostgreSQL exceptions** — Nonexistent tables/schemas now throw structured errors (e.g., `Table 'x' not found. Use pg_list_tables`) instead of raw PG exceptions like `relation "x" does not exist`. Added try-catch with `parsePostgresError`
 
+- **`pg_stats_correlation` misleading error for nonexistent table** — `pg_stats_correlation({ table: 'nonexistent', column1: 'a', column2: 'b' })` now throws `Table "public.nonexistent" not found` instead of the misleading `Column "a" not found in table "public.nonexistent"`. Replaced inline column validation with shared `validateNumericColumn()` which checks table existence first
+
+- **`pg_stats_time_series` `totalGroupCount` excluded null groups** — When using `groupBy` on a column containing NULLs, `totalGroupCount` now includes the null group in its count, matching the `count` field which already included it. Fixed by making the `COUNT(DISTINCT)` SQL null-aware via a `CASE` expression that adds 1 when NULLs are present
+
 - **`pg_copy_export` raw PostgreSQL exceptions** — Invalid SQL and nonexistent tables now throw structured errors instead of raw PG exceptions. Added try-catch with `parsePostgresError`
 
 - **Schema tools raw PostgreSQL exceptions** — `pg_create_schema`, `pg_drop_schema`, `pg_create_sequence`, `pg_drop_sequence`, `pg_create_view`, and `pg_drop_view` now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Covers duplicate schema/sequence/view without `ifNotExists`/`orReplace`, nonexistent schema/sequence/view without `ifExists`, sequence in nonexistent schema, and view referencing nonexistent table

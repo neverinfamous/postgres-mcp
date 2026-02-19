@@ -467,6 +467,56 @@ describe("pg_stats_correlation", () => {
     expect(result.correlation).toBe(-0.75);
     expect(result.interpretation).toContain("negative");
   });
+
+  it("should throw table-not-found error for nonexistent table", async () => {
+    // Mock column type check - column not found (table doesn't exist)
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [], // No column found
+    });
+    // Mock table check - table also not found
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [], // Table doesn't exist
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_correlation")!;
+
+    await expect(
+      tool.handler(
+        {
+          table: "nonexistent_table",
+          column1: "price",
+          column2: "sales",
+        },
+        mockContext,
+      ),
+    ).rejects.toThrow('Table "public.nonexistent_table" not found');
+  });
+
+  it("should throw column-not-found error for nonexistent column", async () => {
+    // Mock first column type check - column not found
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [], // No column found
+    });
+    // Mock table check - table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "1": 1 }], // Table exists
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_correlation")!;
+
+    await expect(
+      tool.handler(
+        {
+          table: "products",
+          column1: "nonexistent_col",
+          column2: "sales",
+        },
+        mockContext,
+      ),
+    ).rejects.toThrow(
+      'Column "nonexistent_col" not found in table "public.products"',
+    );
+  });
 });
 
 describe("pg_stats_regression", () => {

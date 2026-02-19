@@ -441,8 +441,10 @@ export function createStatsTimeSeriesTool(
           groupLimit === 0 ? undefined : (groupLimit ?? DEFAULT_GROUP_LIMIT);
 
         // First get total count of distinct groups for truncation indicator
+        // COUNT(DISTINCT) excludes NULLs per SQL standard, so add 1 if any NULLs exist
         const groupCountSql = `
-          SELECT COUNT(DISTINCT "${groupBy}") as total_groups
+          SELECT COUNT(DISTINCT "${groupBy}") + 
+            CASE WHEN COUNT(*) > COUNT("${groupBy}") THEN 1 ELSE 0 END as total_groups
           FROM ${schemaPrefix}"${table}"
           ${whereClause}
         `;

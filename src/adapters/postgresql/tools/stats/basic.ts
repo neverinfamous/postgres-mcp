@@ -441,45 +441,13 @@ export function createStatsCorrelationTool(
         groupBy,
       } = parsed;
 
+      const schemaName = schema ?? "public";
       const schemaPrefix = schema ? `"${schema}".` : "";
       const whereClause = where ? `WHERE ${where}` : "";
 
-      // Validate both columns are numeric types
-      const numericTypes = [
-        "integer",
-        "bigint",
-        "smallint",
-        "numeric",
-        "decimal",
-        "real",
-        "double precision",
-        "money",
-      ];
-      for (const col of [column1, column2]) {
-        const typeCheckQuery = `
-                    SELECT data_type 
-                    FROM information_schema.columns 
-                    WHERE table_schema = '${schema ?? "public"}' 
-                    AND table_name = '${table}'
-                    AND column_name = '${col}'
-                `;
-        const typeResult = await adapter.executeQuery(typeCheckQuery);
-        const typeRow = typeResult.rows?.[0] as
-          | { data_type: string }
-          | undefined;
-
-        if (!typeRow) {
-          throw new Error(
-            `Column "${col}" not found in table "${schema ?? "public"}.${table}"`,
-          );
-        }
-
-        if (!numericTypes.includes(typeRow.data_type)) {
-          throw new Error(
-            `Column "${col}" is type "${typeRow.data_type}" but must be numeric for correlation analysis`,
-          );
-        }
-      }
+      // Validate both columns exist and are numeric (with table-first error checking)
+      await validateNumericColumn(adapter, table, column1, schemaName);
+      await validateNumericColumn(adapter, table, column2, schemaName);
 
       // Helper to interpret correlation
       const interpretCorr = (corr: number | null): string => {
