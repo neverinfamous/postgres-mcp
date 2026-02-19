@@ -43,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ServerInstructions.ts` `pg_object_details` response docs** — Added note that table-type objects return the full `pg_describe_table` response shape (columns, primaryKey, indexes, constraints, foreignKeys)
 
+- **`pg_create_table` misleading schema error** — Creating a table in a nonexistent schema (e.g., `schema: "fake"`) now throws `Schema 'fake' does not exist. Create it with pg_create_schema or use pg_list_schemas` instead of the misleading `Object 'fake' not found. Use ifExists: true`
+
+- **`pg_drop_table` generic error message** — Dropping a nonexistent table now throws a schema-qualified table-specific error (`Table 'public.X' not found. Use ifExists: true, or pg_list_tables to verify`) instead of the generic `Object 'X' not found`
+
+- **`ServerInstructions.ts` response structure docs** — Added missing response structures for `pg_create_table`, `pg_drop_table`, `pg_create_index`, `pg_drop_index`, and `pg_truncate`. Fixed `pg_batch_insert` to include `success` and `rowCount` fields
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

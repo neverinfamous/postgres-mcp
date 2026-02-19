@@ -76,6 +76,16 @@ export function parsePostgresError(
 
   // 42704 — undefined object (index, type, etc.)
   if (pgCode === "42704" || /does not exist/i.test(msg)) {
+    // Schema-specific: "schema X does not exist" (e.g., CREATE TABLE in nonexistent schema)
+    if (/schema ".*" does not exist/i.test(msg)) {
+      const schemaMatch = /schema "([^"]+)"/i.exec(msg);
+      const schemaName = schemaMatch?.[1] ?? context.schema ?? "unknown";
+      throw new Error(
+        `Schema '${schemaName}' does not exist. Create it with pg_create_schema or use pg_list_schemas to see available schemas.`,
+        { cause: error },
+      );
+    }
+
     if (
       context.tool === "pg_drop_index" ||
       /index/i.test(msg) ||
@@ -89,7 +99,16 @@ export function parsePostgresError(
       );
     }
 
-    // Generic "does not exist" fallback for tables
+    // Table-specific fallback for pg_drop_table
+    if (context.tool === "pg_drop_table") {
+      const objectName = context.table ?? "unknown";
+      throw new Error(
+        `Table '${context.schema ?? "public"}.${objectName}' not found. Use ifExists: true to avoid this error, or pg_list_tables to verify.`,
+        { cause: error },
+      );
+    }
+
+    // Generic "does not exist" fallback
     const match =
       /(?:table|relation) "([^"]+)"/i.exec(msg) ??
       /"([^"]+)" does not exist/i.exec(msg);

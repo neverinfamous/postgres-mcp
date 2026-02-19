@@ -35,7 +35,12 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 | \`pg_read_query\` | \`{rows, rowCount, fields?}\` | \`fields\` contains column metadata (name, dataTypeID) |
 | \`pg_write_query\` | \`{rowsAffected, affectedRows, rows?}\` | \`rows\` only with RETURNING clause. DDL statements return \`rowsAffected: 0\`. ⛔ Throws for SELECT |
 | \`pg_upsert\` | \`{success, operation, rowsAffected, rowCount, rows?}\` | \`operation: 'insert'|'update'\`. \`rows\` only with RETURNING clause |
-| \`pg_batch_insert\` | \`{rowsAffected, affectedRows, insertedCount, rows?}\` | Empty objects use DEFAULT VALUES. ⚠️ BIGINT > 2^53 loses precision |
+| \`pg_batch_insert\` | \`{success, rowsAffected, affectedRows, insertedCount, rowCount, rows?}\` | Empty objects use DEFAULT VALUES. ⚠️ BIGINT > 2^53 loses precision |
+| \`pg_create_table\` | \`{success, table, sql, compositePrimaryKey?}\` | \`table\` = schema-qualified name. \`compositePrimaryKey\` only when composite PK used |
+| \`pg_drop_table\` | \`{success, dropped, existed}\` | \`existed\` indicates whether table was present before drop |
+| \`pg_create_index\` | \`{success, index, indexName, table, sql, ifNotExists?, alreadyExists?, message?}\` | \`alreadyExists\`/\`message\` only with \`ifNotExists: true\` when index pre-exists |
+| \`pg_drop_index\` | \`{success, index, existed, sql}\` | \`existed\` indicates whether index was present before drop |
+| \`pg_truncate\` | \`{success, table, cascade, restartIdentity}\` | \`cascade\`/\`restartIdentity\` reflect the options used |
 | \`pg_count\` | \`{count: N}\` | Use \`params\` for placeholders: \`where: 'id=$1', params: [5]\`. DISTINCT: use \`pg_read_query\` |
 | \`pg_exists\` | \`{exists: bool, mode, hint?}\` | \`params\` for placeholders. \`mode: 'filtered'|'any_rows'\` |
 | \`pg_get_indexes\` | \`{indexes, count, totalCount?}\` | Default \`limit: 100\` without \`table\`. Use \`schema\`/\`limit\` to filter. Index objects have \`name\`, \`type\`, \`columns\` |
