@@ -127,54 +127,61 @@ export function createGeoTransformTool(
       const limitClause =
         effectiveLimit > 0 ? `LIMIT ${String(effectiveLimit)}` : "";
 
-      // Get non-geometry columns to avoid returning raw WKB
-      const colQuery = `
-        SELECT column_name FROM information_schema.columns 
-        WHERE table_schema = $1 AND table_name = $2 
-        AND udt_name NOT IN ('geometry', 'geography')
-        ORDER BY ordinal_position
-      `;
-      const colResult = await adapter.executeQuery(colQuery, [
-        schemaName,
-        parsed.table,
-      ]);
-      const nonGeomCols = (colResult.rows ?? [])
-        .map((row) => `"${String(row["column_name"])}"`)
-        .join(", ");
+      try {
+        // Get non-geometry columns to avoid returning raw WKB
+        const colQuery = `
+          SELECT column_name FROM information_schema.columns 
+          WHERE table_schema = $1 AND table_name = $2 
+          AND udt_name NOT IN ('geometry', 'geography')
+          ORDER BY ordinal_position
+        `;
+        const colResult = await adapter.executeQuery(colQuery, [
+          schemaName,
+          parsed.table,
+        ]);
+        const nonGeomCols = (colResult.rows ?? [])
+          .map((row) => `"${String(row["column_name"])}"`)
+          .join(", ");
 
-      // Select non-geometry columns + transformed geometry representations
-      const selectCols =
-        nonGeomCols.length > 0
-          ? `${nonGeomCols}, ST_AsGeoJSON(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_geojson, ST_AsText(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_wkt, ${String(parsed.toSrid)} as output_srid`
-          : `ST_AsGeoJSON(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_geojson, ST_AsText(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_wkt, ${String(parsed.toSrid)} as output_srid`;
+        // Select non-geometry columns + transformed geometry representations
+        const selectCols =
+          nonGeomCols.length > 0
+            ? `${nonGeomCols}, ST_AsGeoJSON(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_geojson, ST_AsText(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_wkt, ${String(parsed.toSrid)} as output_srid`
+            : `ST_AsGeoJSON(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_geojson, ST_AsText(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_wkt, ${String(parsed.toSrid)} as output_srid`;
 
-      const sql = `SELECT ${selectCols} FROM ${qualifiedTable} ${whereClause} ${limitClause}`;
+        const sql = `SELECT ${selectCols} FROM ${qualifiedTable} ${whereClause} ${limitClause}`;
 
-      const result = await adapter.executeQuery(sql);
+        const result = await adapter.executeQuery(sql);
 
-      // Build response with truncation indicators if default limit was applied
-      const response: Record<string, unknown> = {
-        results: result.rows,
-        count: result.rows?.length ?? 0,
-        fromSrid: fromSrid,
-        toSrid: parsed.toSrid,
-        ...(parsed.fromSrid === 0 && { autoDetectedSrid: true }),
-      };
+        // Build response with truncation indicators if default limit was applied
+        const response: Record<string, unknown> = {
+          results: result.rows,
+          count: result.rows?.length ?? 0,
+          fromSrid: fromSrid,
+          toSrid: parsed.toSrid,
+          ...(parsed.fromSrid === 0 && { autoDetectedSrid: true }),
+        };
 
-      // Check if results were truncated (works for both default and explicit limits)
-      if (effectiveLimit > 0) {
-        const countSql = `SELECT COUNT(*) as cnt FROM ${qualifiedTable} ${whereClause}`;
-        const countResult = await adapter.executeQuery(countSql);
-        const totalCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
+        // Check if results were truncated (works for both default and explicit limits)
+        if (effectiveLimit > 0) {
+          const countSql = `SELECT COUNT(*) as cnt FROM ${qualifiedTable} ${whereClause}`;
+          const countResult = await adapter.executeQuery(countSql);
+          const totalCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
 
-        if (totalCount > effectiveLimit) {
-          response["truncated"] = true;
-          response["totalCount"] = totalCount;
-          response["limit"] = effectiveLimit;
+          if (totalCount > effectiveLimit) {
+            response["truncated"] = true;
+            response["totalCount"] = totalCount;
+            response["limit"] = effectiveLimit;
+          }
         }
-      }
 
-      return response;
+        return response;
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_geo_transform",
+          table: parsed.table,
+        });
+      }
     },
   };
 }

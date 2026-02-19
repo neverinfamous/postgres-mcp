@@ -285,6 +285,14 @@ export function parsePostgresError(
     );
   }
 
+  // XX000 — invalid geometry (PostGIS WKT/GeoJSON parse failure)
+  if (/parse error - invalid geometry/i.test(msg)) {
+    throw new Error(
+      `Invalid geometry input. Use WKT format (e.g., 'POINT(-74 40)', 'POLYGON((...))') or GeoJSON format (e.g., '{"type":"Point","coordinates":[-74,40]}').`,
+      { cause: error },
+    );
+  }
+
   // Unrecognized PG error — re-throw with cause preserved
   throw error;
 }

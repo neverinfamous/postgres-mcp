@@ -542,6 +542,13 @@ export function createBoundingBoxTool(
           selectCols = (colResult.rows ?? [])
             .map((row) => sanitizeIdentifier(String(row["column_name"])))
             .join(", ");
+
+          // If no columns found, table likely doesn't exist
+          if (selectCols.length === 0) {
+            throw new Error(
+              `Table or view '${parsed.table}' not found in schema '${schemaName}'. Use pg_list_tables to see available tables.`,
+            );
+          }
         }
 
         // Auto-correct swapped bounds

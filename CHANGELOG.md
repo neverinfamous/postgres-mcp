@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **PostGIS tools raw PostgreSQL exceptions** — `pg_point_in_polygon`, `pg_distance`, `pg_buffer`, `pg_intersection`, `pg_bounding_box`, `pg_geo_cluster`, `pg_geometry_buffer`, `pg_geometry_intersection`, and `pg_geometry_transform` now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Covers nonexistent tables (`42P01`), invalid geometry inputs, and other database errors. Added 9 unit tests
 
+- **`pg_bounding_box` misleading syntax error for nonexistent table** — `pg_bounding_box({ table: 'nonexistent' })` now throws `Table or view 'nonexistent' not found in schema 'public'` instead of a raw SQL syntax error. The column lookup returned empty results for nonexistent tables, producing an empty SELECT clause. Added pre-query empty-columns check
 
+- **`pg_geo_transform` raw PostgreSQL exceptions** — Queries after SRID auto-detection (column lookup, main transform, count) are now wrapped in try-catch with `parsePostgresError()`. A nonexistent table now throws `Table or view 'X' not found` instead of raw PG exceptions
+
+- **Standalone geometry tools structured error for invalid WKT/GeoJSON** — `pg_geometry_buffer`, `pg_geometry_intersection`, and `pg_geometry_transform` now throw `Invalid geometry input. Use WKT format (e.g., 'POINT(-74 40)') or GeoJSON format (...)` instead of raw `parse error - invalid geometry` exceptions. Added XX000 geometry parse error pattern to `parsePostgresError()`
 
 - **`pg_vector_validate` output schema error for non-vector columns** — `pg_vector_validate({ table: 'embeddings', column: 'name' })` where `name` is a text column now returns `{valid: false, error: "Column 'name' is not a vector column (type: text)", suggestion: "..."}` instead of returning `null` for `columnDimensions` and `expectedDimensions`, which violated the output schema. Added a pre-check of `udt_name` before calling `vector_dims()`
 

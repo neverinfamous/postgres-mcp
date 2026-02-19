@@ -554,7 +554,48 @@ describe("Structured Error Handling (parsePostgresError)", () => {
       mockAdapter.executeQuery.mockRejectedValue(pgError);
 
       const tool = tools.find((t) => t.name === name)!;
-      await expect(tool.handler(params, mockContext)).rejects.toThrow();
+      await expect(tool.handler(params, mockContext)).rejects.toThrow(
+        /Invalid geometry input/i,
+      );
     },
   );
+
+  it("pg_bounding_box should throw when table has no columns (nonexistent table)", async () => {
+    // Column lookup returns empty rows (table doesn't exist)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_bounding_box")!;
+    await expect(
+      tool.handler(
+        {
+          table: "nonexistent_xyz",
+          column: "geom",
+          minLng: 0,
+          minLat: 0,
+          maxLng: 1,
+          maxLat: 1,
+        },
+        mockContext,
+      ),
+    ).rejects.toThrow(/not found/i);
+  });
+
+  it("pg_geo_transform should throw structured error for nonexistent table", async () => {
+    // SRID detection returns a result (simulating geometry_columns lookup success)
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ srid: 4326 }] })
+      // Column lookup succeeds but main query fails with 42P01
+      .mockResolvedValueOnce({ rows: [{ column_name: "id" }] })
+      .mockRejectedValueOnce(
+        Object.assign(new Error('relation "nonexistent_xyz" does not exist'), {
+          code: "42P01",
+        }),
+      );
+    const tool = tools.find((t) => t.name === "pg_geo_transform")!;
+    await expect(
+      tool.handler(
+        { table: "nonexistent_xyz", column: "geom", toSrid: 3857 },
+        mockContext,
+      ),
+    ).rejects.toThrow(/not found/i);
+  });
 });
