@@ -67,6 +67,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ServerInstructions.ts` transaction docs** — Added aborted transaction state recovery guidance and documented `SELECT` query support in `pg_transaction_execute`
 
+- **JSONB tools raw PostgreSQL exceptions** — All 13 database-facing JSONB tool handlers (`pg_jsonb_extract`, `pg_jsonb_set`, `pg_jsonb_delete`, `pg_jsonb_contains`, `pg_jsonb_typeof`, `pg_jsonb_path_query`, `pg_jsonb_agg`, `pg_jsonb_keys`, `pg_jsonb_insert`, `pg_jsonb_normalize`, `pg_jsonb_index_suggest`, `pg_jsonb_security_scan`, `pg_jsonb_stats`) now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Handlers with existing domain-specific catches (keys, insert, normalize, index_suggest, security_scan, stats) were augmented with `parsePostgresError()` as a fallback
+
+- **`pg_jsonb_path_query` invalid JSONPath syntax** — Invalid JSONPath expressions now throw a clear `Invalid JSONPath syntax: '...' Use $.key, $.array[*], or $.* ? (@.field > 10) syntax` error instead of the raw PG `syntax error at end of jsonpath input` exception
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

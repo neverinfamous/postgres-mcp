@@ -12,6 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "../core/error-helpers.js";
 import {
   // Base schemas (for MCP inputSchema visibility)
   JsonbExtractSchemaBase,
@@ -107,7 +108,15 @@ export function createJsonbExtractTool(
       }
 
       const sql = `SELECT ${selectExpr} FROM "${table}"${whereClause}${limitClause}`;
-      const result = await adapter.executeQuery(sql, [pathArray]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [pathArray]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_extract",
+          table,
+        });
+      }
 
       // If select columns were provided, return full row objects
       if (parsed.select !== undefined && parsed.select.length > 0) {
@@ -199,7 +208,15 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
       // Handle empty path - replace entire column value
       if (path.length === 0) {
         const sql = `UPDATE "${table}" SET "${column}" = $1::jsonb WHERE ${where}`;
-        const result = await adapter.executeQuery(sql, [toJsonString(value)]);
+        let result;
+        try {
+          result = await adapter.executeQuery(sql, [toJsonString(value)]);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, {
+            tool: "pg_jsonb_set",
+            table,
+          });
+        }
         return {
           rowsAffected: result.rowsAffected,
           hint: "Replaced entire column value (empty path)",
@@ -226,7 +243,15 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
         const fullPathStr = "{" + path.join(",") + "}";
         expr = `jsonb_set(${expr}, '${fullPathStr}'::text[], $1::jsonb, true)`;
         sql = `UPDATE "${table}" SET "${column}" = ${expr} WHERE ${where}`;
-        const result = await adapter.executeQuery(sql, [toJsonString(value)]);
+        let result;
+        try {
+          result = await adapter.executeQuery(sql, [toJsonString(value)]);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, {
+            tool: "pg_jsonb_set",
+            table,
+          });
+        }
         return {
           rowsAffected: result.rowsAffected,
           hint: "rowsAffected counts matched rows, not path creations",
@@ -234,11 +259,19 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
       } else {
         // Use COALESCE to handle NULL columns - initialize to empty object
         sql = `UPDATE "${table}" SET "${column}" = jsonb_set(COALESCE("${column}", '{}'::jsonb), $1, $2::jsonb, $3) WHERE ${where}`;
-        const result = await adapter.executeQuery(sql, [
-          path,
-          toJsonString(value),
-          createFlag,
-        ]);
+        let result;
+        try {
+          result = await adapter.executeQuery(sql, [
+            path,
+            toJsonString(value),
+            createFlag,
+          ]);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, {
+            tool: "pg_jsonb_set",
+            table,
+          });
+        }
         const hint = createFlag
           ? "NULL columns initialized to {}; createMissing creates path if absent"
           : "createMissing=false: path must exist or value won't be set";
@@ -345,7 +378,10 @@ export function createJsonbInsertTool(
             { cause: error },
           );
         }
-        throw error;
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_insert",
+          table,
+        });
       }
     },
   };
@@ -422,7 +458,15 @@ export function createJsonbDeleteTool(
 
       const pathExpr = useArrayOperator ? `#- $1` : `- $1`;
       const sql = `UPDATE "${table}" SET "${column}" = "${column}" ${pathExpr} WHERE ${parsed.where}`;
-      const result = await adapter.executeQuery(sql, [pathForPostgres]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [pathForPostgres]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_delete",
+          table,
+        });
+      }
       return {
         rowsAffected: result.rowsAffected,
         hint: "rowsAffected counts matched rows, not whether key existed",
@@ -463,7 +507,15 @@ export function createJsonbContainsTool(
       const containsClause = `"${column}" @> $1::jsonb`;
       const whereClause = where ? ` AND ${where}` : "";
       const sql = `SELECT ${selectCols} FROM "${table}" WHERE ${containsClause}${whereClause}`;
-      const result = await adapter.executeQuery(sql, [toJsonString(value)]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [toJsonString(value)]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_contains",
+          table,
+        });
+      }
       // Warn if empty object was passed (matches all rows)
       const isEmptyObject =
         typeof value === "object" &&
@@ -507,7 +559,26 @@ export function createJsonbPathQueryTool(
       const whereClause = where ? ` WHERE ${where}` : "";
       const varsJson = vars ? JSON.stringify(vars) : "{}";
       const sql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM "${table}"${whereClause}`;
-      const result = await adapter.executeQuery(sql, [path, varsJson]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [path, varsJson]);
+      } catch (error: unknown) {
+        // JSONPath-specific: invalid syntax
+        if (
+          error instanceof Error &&
+          /syntax error/i.test(error.message) &&
+          /jsonpath/i.test(error.message)
+        ) {
+          throw new Error(
+            `Invalid JSONPath syntax: '${path}'. Use $.key, $.array[*], or $.* ? (@.field > 10) syntax.`,
+            { cause: error },
+          );
+        }
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_path_query",
+          table,
+        });
+      }
       const results = result.rows?.map((r) => r["result"]);
       return { results, count: results?.length ?? 0 };
     },
@@ -593,7 +664,15 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
         // Apply ordering within each group using ORDER BY inside jsonb_agg
         const aggOrderBy = parsed.orderBy ? ` ORDER BY ${parsed.orderBy}` : "";
         const sql = `SELECT ${groupExpr} as group_key, jsonb_agg(${selectExpr}${aggOrderBy}) as items FROM "${table}" t${whereClause}${groupClause}${limitClause}`;
-        const result = await adapter.executeQuery(sql);
+        let result;
+        try {
+          result = await adapter.executeQuery(sql);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, {
+            tool: "pg_jsonb_agg",
+            table,
+          });
+        }
         // Return grouped result with group_key and items per group
         return {
           result: result.rows,
@@ -604,7 +683,15 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
         // For non-grouped, use subquery to apply limit/order before aggregation
         const innerSql = `SELECT * FROM "${table}" t${whereClause}${orderByClause}${limitClause}`;
         const sql = `SELECT jsonb_agg(${selectExpr.replace(/\bt\./g, "sub.")}) as result FROM (${innerSql}) sub`;
-        const result = await adapter.executeQuery(sql);
+        let result;
+        try {
+          result = await adapter.executeQuery(sql);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, {
+            tool: "pg_jsonb_agg",
+            table,
+          });
+        }
         const arr = result.rows?.[0]?.["result"] ?? [];
         const count = Array.isArray(arr) ? arr.length : 0;
         const response: {
@@ -766,7 +853,10 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
             { cause: error },
           );
         }
-        throw error;
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_keys",
+          table,
+        });
       }
     },
   };
@@ -849,7 +939,15 @@ export function createJsonbTypeofTool(
       // Include column IS NULL check to disambiguate NULL column vs null path result
       const sql = `SELECT jsonb_typeof("${column}"${pathExpr}) as type, ("${column}" IS NULL) as column_null FROM "${table}"${whereClause}`;
       const queryParams = pathArray ? [pathArray] : [];
-      const result = await adapter.executeQuery(sql, queryParams);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, queryParams);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_typeof",
+          table,
+        });
+      }
       const types = result.rows?.map((r) => r["type"]) as (string | null)[];
       const columnNull =
         result.rows?.some((r) => r["column_null"] === true) ?? false;

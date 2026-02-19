@@ -758,4 +758,109 @@ describe("JSONB Validation and Error Paths", () => {
       expect(result.hint).toContain("No rows");
     });
   });
+
+  // Structured Error Handling (parsePostgresError)
+  describe("Structured Error Handling (parsePostgresError)", () => {
+    it("should map 42P01 table-not-found for pg_jsonb_extract", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_extract")!;
+
+      await expect(
+        tool.handler(
+          { table: "nonexistent", column: "data", path: "$.key" },
+          mockContext,
+        ),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
+
+    it("should map 42P01 table-not-found for pg_jsonb_set", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_set")!;
+
+      await expect(
+        tool.handler(
+          {
+            table: "nonexistent",
+            column: "data",
+            path: "key",
+            value: "test",
+            where: "id = 1",
+          },
+          mockContext,
+        ),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
+
+    it("should map 42P01 table-not-found for pg_jsonb_path_query", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_path_query")!;
+
+      await expect(
+        tool.handler(
+          { table: "nonexistent", column: "data", path: "$.key" },
+          mockContext,
+        ),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
+
+    it("should provide JSONPath-specific error for invalid syntax", async () => {
+      const pgError = new Error(
+        "syntax error at end of jsonpath input",
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42601";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_path_query")!;
+
+      await expect(
+        tool.handler(
+          { table: "users", column: "data", path: "$[invalid" },
+          mockContext,
+        ),
+      ).rejects.toThrow(/Invalid JSONPath syntax/i);
+    });
+
+    it("should route non-array errors through parsePostgresError for pg_jsonb_keys", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_keys")!;
+
+      await expect(
+        tool.handler({ table: "nonexistent", column: "data" }, mockContext),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
+
+    it("should route non-jsonb errors through parsePostgresError for pg_jsonb_normalize", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_normalize")!;
+
+      await expect(
+        tool.handler({ table: "nonexistent", column: "data" }, mockContext),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
+  });
 });

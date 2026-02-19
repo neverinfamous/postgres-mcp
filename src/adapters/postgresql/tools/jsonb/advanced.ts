@@ -12,6 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -404,7 +405,10 @@ export function createJsonbNormalizeTool(
             { cause: error },
           );
         }
-        throw error;
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_normalize",
+          table,
+        });
       }
     },
   };
@@ -531,7 +535,10 @@ export function createJsonbIndexSuggestTool(
             { cause: error },
           );
         }
-        throw error;
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_index_suggest",
+          table,
+        });
       }
 
       const indexSql = `
@@ -541,10 +548,18 @@ export function createJsonbIndexSuggestTool(
                 AND indexdef LIKE '%' || $2 || '%'
             `;
 
-      const indexResult = await adapter.executeQuery(indexSql, [
-        parsed.table,
-        parsed.column,
-      ]);
+      let indexResult;
+      try {
+        indexResult = await adapter.executeQuery(indexSql, [
+          parsed.table,
+          parsed.column,
+        ]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_index_suggest",
+          table,
+        });
+      }
 
       const recommendations: string[] = [];
       // Cast frequency to number (PostgreSQL returns bigint as string)
@@ -635,7 +650,15 @@ export function createJsonbSecurityScanTool(
 
       // Count actual rows scanned (may be less than sample if table is small)
       const countSql = `SELECT COUNT(*) as count FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t`;
-      const countResult = await adapter.executeQuery(countSql);
+      let countResult;
+      try {
+        countResult = await adapter.executeQuery(countSql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_security_scan",
+          table,
+        });
+      }
       const actualRowsScanned = Number(countResult.rows?.[0]?.["count"] ?? 0);
 
       const sensitiveKeysSql = `
@@ -661,7 +684,10 @@ export function createJsonbSecurityScanTool(
             { cause: error },
           );
         }
-        throw error;
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_security_scan",
+          table,
+        });
       }
       for (const row of (sensitiveResult.rows ?? []) as {
         key: string;
@@ -760,7 +786,15 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t
             `;
 
-      const basicResult = await adapter.executeQuery(basicSql);
+      let basicResult;
+      try {
+        basicResult = await adapter.executeQuery(basicSql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_stats",
+          table,
+        });
+      }
       // Cast bigint values to numbers (PostgreSQL returns bigint as string)
       const basics = basicResult.rows?.[0];
       const basicsNormalized = basics
@@ -800,7 +834,10 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
         ) {
           // Leave topKeys empty for array columns - this is valid
         } else {
-          throw error;
+          throw parsePostgresError(error, {
+            tool: "pg_jsonb_stats",
+            table,
+          });
         }
       }
 
@@ -810,7 +847,15 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
                 GROUP BY jsonb_typeof(${columnName})
             `;
 
-      const typeResult = await adapter.executeQuery(typeSql);
+      let typeResult;
+      try {
+        typeResult = await adapter.executeQuery(typeSql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_stats",
+          table,
+        });
+      }
       // Cast count to number
       const typeDistribution = (typeResult.rows ?? []).map(
         (row: Record<string, unknown>) => ({
