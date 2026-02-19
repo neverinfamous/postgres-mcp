@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_geocode` raw Zod validation error** — `pg_geocode({ lat: 95, lng: -74 })` with out-of-bounds coordinates now throws a clean error message (e.g., `lat must be between -90 and 90 degrees`) instead of a raw Zod validation error array. Wrapped handler in try-catch with `ZodError` interception and `parsePostgresError` fallback for database errors. Added 2 unit tests
+
 - **PostGIS tools raw PostgreSQL exceptions** — `pg_point_in_polygon`, `pg_distance`, `pg_buffer`, `pg_intersection`, `pg_bounding_box`, `pg_geo_cluster`, `pg_geometry_buffer`, `pg_geometry_intersection`, and `pg_geometry_transform` now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Covers nonexistent tables (`42P01`), invalid geometry inputs, and other database errors. Added 9 unit tests
 
 - **`pg_bounding_box` misleading syntax error for nonexistent table** — `pg_bounding_box({ table: 'nonexistent' })` now throws `Table or view 'nonexistent' not found in schema 'public'` instead of a raw SQL syntax error. The column lookup returned empty results for nonexistent tables, producing an empty SELECT clause. Added pre-query empty-columns check

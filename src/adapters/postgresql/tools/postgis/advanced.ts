@@ -9,7 +9,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { parsePostgresError } from "../core/error-helpers.js";
@@ -38,30 +38,37 @@ export function createGeocodeTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Geocode"),
     icons: getToolIcons("postgis", readOnly("Geocode")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = GeocodeSchema.parse(params ?? {});
-      const srid = parsed.srid ?? 4326;
+      try {
+        const parsed = GeocodeSchema.parse(params ?? {});
+        const srid = parsed.srid ?? 4326;
 
-      const sql = `SELECT 
+        const sql = `SELECT 
                         ST_AsGeoJSON(ST_SetSRID(ST_MakePoint($1, $2), $3)) as geojson,
                         ST_AsText(ST_SetSRID(ST_MakePoint($1, $2), $3)) as wkt`;
 
-      const result = await adapter.executeQuery(sql, [
-        parsed.lng,
-        parsed.lat,
-        srid,
-      ]);
+        const result = await adapter.executeQuery(sql, [
+          parsed.lng,
+          parsed.lat,
+          srid,
+        ]);
 
-      // Add note about SRID for non-4326 cases
-      const row = result.rows?.[0];
-      if (row === undefined) {
-        return {};
+        // Add note about SRID for non-4326 cases
+        const row = result.rows?.[0];
+        if (row === undefined) {
+          return {};
+        }
+        const response: Record<string, unknown> = { ...row };
+        if (srid !== 4326) {
+          response["note"] =
+            `Coordinates are WGS84 lat/lng with SRID ${String(srid)} metadata. Use pg_geo_transform to convert to target CRS.`;
+        }
+        return response;
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          throw new Error(error.issues.map((i) => i.message).join("; "));
+        }
+        throw parsePostgresError(error, { tool: "pg_geocode" });
       }
-      const response: Record<string, unknown> = { ...row };
-      if (srid !== 4326) {
-        response["note"] =
-          `Coordinates are WGS84 lat/lng with SRID ${String(srid)} metadata. Use pg_geo_transform to convert to target CRS.`;
-      }
-      return response;
     },
   };
 }

@@ -598,4 +598,17 @@ describe("Structured Error Handling (parsePostgresError)", () => {
       ),
     ).rejects.toThrow(/not found/i);
   });
+  it("pg_geocode should throw clean error for out-of-bounds latitude", async () => {
+    const tool = tools.find((t) => t.name === "pg_geocode")!;
+    await expect(
+      tool.handler({ lat: 95, lng: -74.006 }, mockContext),
+    ).rejects.toThrow("lat must be between -90 and 90 degrees");
+  });
+
+  it("pg_geocode should throw clean error for out-of-bounds longitude", async () => {
+    const tool = tools.find((t) => t.name === "pg_geocode")!;
+    await expect(
+      tool.handler({ lat: 40, lng: 200 }, mockContext),
+    ).rejects.toThrow("lng must be between -180 and 180 degrees");
+  });
 });
