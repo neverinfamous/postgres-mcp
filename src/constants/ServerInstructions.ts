@@ -126,6 +126,11 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 
 **Top-Level Aliases**: \`pg.descriptive()\`, \`pg.percentiles()\`, \`pg.correlation()\`, \`pg.regression()\`, \`pg.timeSeries()\`, \`pg.distribution()\`, \`pg.hypothesis()\`, \`pg.sampling()\`
 
+## Text Tools
+
+- \`pg_text_search\`/\`pg_text_rank\`: Column must be \`text\` type—pre-built \`tsvector\` columns are **not** supported (wrap with \`to_tsvector()\` fails on tsvector input). Use \`pg_read_query\` with raw FTS SQL for tsvector columns
+- \`pg_create_fts_index\`: Returns \`{success, index, config, skipped}\`. \`skipped: true\` = index already existed (IF NOT EXISTS). \`ifNotExists\` defaults to \`true\`
+
 ## Performance Tools
 
 Core (20 methods): \`explain()\`, \`explainAnalyze()\`, \`explainBuffers()\`, \`indexStats()\`, \`tableStats()\`, \`statStatements()\`, \`statActivity()\`, \`locks()\`, \`bloatCheck()\`, \`cacheHitRatio()\`, \`seqScanTables()\`, \`indexRecommendations()\`, \`queryPlanCompare()\`, \`baseline()\`, \`connectionPoolOptimize()\`, \`partitionStrategySuggest()\`, \`unusedIndexes()\`, \`duplicateIndexes()\`, \`vacuumStats()\`, \`queryPlanStats()\`

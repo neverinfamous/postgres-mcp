@@ -10,6 +10,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeIdentifiers,
@@ -113,7 +114,15 @@ function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
                         WHERE to_tsvector('${cfg}', ${tsvector}) @@ plainto_tsquery('${cfg}', $1)
                         ORDER BY rank DESC${limitClause}`;
 
-      const result = await adapter.executeQuery(sql, [parsed.query]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [parsed.query]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_text_search",
+          table: resolvedTable,
+        });
+      }
       return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
@@ -195,7 +204,15 @@ function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
                         WHERE to_tsvector('${cfg}', ${tsvector}) @@ plainto_tsquery('${cfg}', $1)
                         ORDER BY rank DESC${limitClause}`;
 
-      const result = await adapter.executeQuery(sql, [parsed.query]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [parsed.query]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_text_rank",
+          table: resolvedTable,
+        });
+      }
       return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
@@ -238,7 +255,15 @@ function createTrigramSimilarityTool(adapter: PostgresAdapter): ToolDefinition {
                         WHERE similarity(${columnName}, $1) > ${String(thresh)}${additionalWhere}
                         ORDER BY similarity DESC LIMIT ${String(limitVal)}`;
 
-      const result = await adapter.executeQuery(sql, [parsed.value]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [parsed.value]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_trigram_similarity",
+          table: resolvedTable,
+        });
+      }
       return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
@@ -324,7 +349,15 @@ function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         sql = `SELECT ${selectCols}, levenshtein(${columnName}, $1) as distance FROM ${tableName} WHERE levenshtein(${columnName}, $1) <= ${String(maxDist)}${additionalWhere} ORDER BY distance LIMIT ${String(limitVal)}`;
       }
 
-      const result = await adapter.executeQuery(sql, [parsed.value]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [parsed.value]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_fuzzy_match",
+          table: resolvedTable,
+        });
+      }
       return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
@@ -363,7 +396,15 @@ function createRegexpMatchTool(adapter: PostgresAdapter): ToolDefinition {
       const limitClause = ` LIMIT ${String(limitVal)}`;
 
       const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
-      const result = await adapter.executeQuery(sql, [parsed.pattern]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [parsed.pattern]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_regexp_match",
+          table: resolvedTable,
+        });
+      }
       return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
@@ -435,7 +476,15 @@ function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
       const limitClause = ` LIMIT ${String(limitVal)}`;
 
       const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
-      const result = await adapter.executeQuery(sql, [parsed.pattern]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [parsed.pattern]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_like_search",
+          table: resolvedTable,
+        });
+      }
       return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
@@ -530,7 +579,15 @@ function createTextHeadlineTool(adapter: PostgresAdapter): ToolDefinition {
                         FROM ${tableName}
                         WHERE to_tsvector('${cfg}', ${columnName}) @@ plainto_tsquery('${cfg}', $1)${limitClause}`;
 
-      const result = await adapter.executeQuery(sql, [parsed.query]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [parsed.query]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_text_headline",
+          table: resolvedTable,
+        });
+      }
       return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
@@ -590,16 +647,24 @@ function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
 
       // Check if index exists before creation (to accurately report 'skipped')
       let existedBefore = false;
-      if (useIfNotExists) {
-        const checkResult = await adapter.executeQuery(
-          `SELECT 1 FROM pg_indexes WHERE indexname = $1 LIMIT 1`,
-          [resolvedIndexName],
-        );
-        existedBefore = (checkResult.rows?.length ?? 0) > 0;
-      }
+      try {
+        if (useIfNotExists) {
+          const checkResult = await adapter.executeQuery(
+            `SELECT 1 FROM pg_indexes WHERE indexname = $1 LIMIT 1`,
+            [resolvedIndexName],
+          );
+          existedBefore = (checkResult.rows?.length ?? 0) > 0;
+        }
 
-      const sql = `CREATE INDEX ${ifNotExists}${indexName} ON ${tableName} USING gin(to_tsvector('${cfg}', ${columnName}))`;
-      await adapter.executeQuery(sql);
+        const sql = `CREATE INDEX ${ifNotExists}${indexName} ON ${tableName} USING gin(to_tsvector('${cfg}', ${columnName}))`;
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_create_fts_index",
+          table: resolvedTable,
+          index: resolvedIndexName,
+        });
+      }
 
       return {
         success: true,

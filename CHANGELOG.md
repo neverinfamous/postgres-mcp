@@ -73,6 +73,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_jsonb_path_query` invalid JSONPath syntax** — Invalid JSONPath expressions now throw a clear `Invalid JSONPath syntax: '...' Use $.key, $.array[*], or $.* ? (@.field > 10) syntax` error instead of the raw PG `syntax error at end of jsonpath input` exception
 
+- **Text tools raw PostgreSQL exceptions** — All 8 table-based text tool handlers (`pg_text_search`, `pg_text_rank`, `pg_trigram_similarity`, `pg_fuzzy_match`, `pg_regexp_match`, `pg_like_search`, `pg_text_headline`, `pg_create_fts_index`) now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions
+
+- **`ServerInstructions.ts` text tool docs** — Added Text Tools section documenting `pg_text_search`/`pg_text_rank` text-column-only limitation (tsvector columns unsupported) and `pg_create_fts_index` response structure (`{success, index, config, skipped}`)
+
 ## [1.2.0] - 2026-02-10
 
 ### Added
