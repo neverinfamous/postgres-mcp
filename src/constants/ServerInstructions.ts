@@ -210,6 +210,15 @@ Aliases: \`tableName\`→\`table\`, \`indexName\`→\`index\`, \`param\`/\`setti
 
 **Discovery**: \`pg.admin.help()\` returns \`{methods, methodAliases, examples}\` object
 
+**Response structures**:
+- \`vacuum()\` / \`vacuumAnalyze()\`: \`{success, message, table?, schema?, hint?}\` (hint present when verbose: true)
+- \`analyze()\`: \`{success, message, table?, schema?, columns?}\`
+- \`reindex()\`: \`{success, message}\`
+- \`cluster()\`: \`{success, message, table?, index?}\` (table/index present for table-specific cluster)
+- \`setConfig()\`: \`{success, message, parameter, value}\`
+- \`reloadConf()\` / \`resetStats()\`: \`{success, message}\`
+- \`cancelBackend()\` / \`terminateBackend()\`: \`{success, message}\`
+
 ## Backup Tools
 
 Core: \`dumpTable()\`, \`dumpSchema()\`, \`copyExport()\`, \`copyImport()\`, \`createBackupPlan()\`, \`restoreCommand()\`, \`physical()\`, \`restoreValidate()\`, \`scheduleOptimize()\`

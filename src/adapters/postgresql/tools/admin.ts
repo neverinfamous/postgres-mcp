@@ -10,6 +10,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { admin, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import {
   buildProgressContext,
   sendProgress,
@@ -78,7 +79,15 @@ function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
           : "";
 
       const sql = `VACUUM ${fullClause}${verboseClause}${analyzeClause}${target}`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_vacuum",
+          ...(table !== undefined && { table }),
+          ...(schema !== undefined && { schema }),
+        });
+      }
 
       await sendProgress(progress, 2, 2, "VACUUM complete");
 
@@ -126,7 +135,15 @@ function createVacuumAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
           : "";
 
       const sql = `VACUUM ${fullClause}${verboseClause}ANALYZE ${target}`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_vacuum_analyze",
+          ...(table !== undefined && { table }),
+          ...(schema !== undefined && { schema }),
+        });
+      }
 
       await sendProgress(progress, 2, 2, "VACUUM ANALYZE complete");
 
@@ -181,7 +198,15 @@ function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
           : "";
 
       const sql = `ANALYZE ${target}${columnClause}`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_analyze",
+          ...(table !== undefined && { table }),
+          ...(schema !== undefined && { schema }),
+        });
+      }
 
       await sendProgress(progress, 2, 2, "ANALYZE complete");
 
@@ -236,7 +261,11 @@ function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
       }
 
       const sql = `REINDEX ${parsed.target.toUpperCase()} ${concurrentlyClause}"${effectiveName}"`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, { tool: "pg_reindex" });
+      }
 
       await sendProgress(progress, 3, 3, "REINDEX complete");
 
@@ -370,11 +399,16 @@ function createSetConfigTool(adapter: PostgresAdapter): ToolDefinition {
       const parsed = SetConfigSchema.parse(params);
       const local = parsed.isLocal ?? false;
       const sql = `SELECT set_config($1, $2, $3)`;
-      const result = await adapter.executeQuery(sql, [
-        parsed.name,
-        parsed.value,
-        local,
-      ]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [
+          parsed.name,
+          parsed.value,
+          local,
+        ]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, { tool: "pg_set_config" });
+      }
       const actualValue = result.rows?.[0]?.["set_config"] as string;
       return {
         success: true,
@@ -516,7 +550,11 @@ function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
 
       // Database-wide CLUSTER (all previously clustered tables)
       if (parsed.table === undefined) {
-        await adapter.executeQuery("CLUSTER");
+        try {
+          await adapter.executeQuery("CLUSTER");
+        } catch (error: unknown) {
+          throw parsePostgresError(error, { tool: "pg_cluster" });
+        }
         await sendProgress(progress, 2, 2, "CLUSTER complete");
         return {
           success: true,
@@ -534,7 +572,15 @@ function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
           ? `"${parsed.schema}"."${parsed.table}"`
           : `"${parsed.table}"`;
       const sql = `CLUSTER ${tableName} USING "${parsed.index}"`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_cluster",
+          table: parsed.table,
+          ...(parsed.schema !== undefined && { schema: parsed.schema }),
+        });
+      }
 
       await sendProgress(progress, 2, 2, "CLUSTER complete");
 

@@ -85,6 +85,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ServerInstructions.ts` text tool docs** — Added Text Tools section documenting `pg_text_search`/`pg_text_rank` text-column-only limitation (tsvector columns unsupported) and `pg_create_fts_index` response structure (`{success, index, config, skipped}`)
 
+- **Admin tools raw PostgreSQL exceptions** — `pg_vacuum`, `pg_vacuum_analyze`, `pg_analyze`, `pg_reindex`, `pg_set_config`, and `pg_cluster` now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Added try/catch wrapping with context-aware error fields (table, schema) for each handler
+
+- **`ServerInstructions.ts` admin tool response docs** — Added missing response structures for all 10 admin tools: `vacuum`, `vacuumAnalyze`, `analyze`, `reindex`, `cluster`, `setConfig`, `reloadConf`, `resetStats`, `cancelBackend`, `terminateBackend`
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

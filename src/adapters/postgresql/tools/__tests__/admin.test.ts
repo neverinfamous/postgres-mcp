@@ -833,3 +833,107 @@ describe("pg_cluster", () => {
     );
   });
 });
+
+// =============================================================================
+// Structured Error Handling (parsePostgresError)
+// =============================================================================
+
+describe("Structured Error Handling (parsePostgresError)", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getAdminTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should map 42P01 table-not-found for pg_vacuum", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_vacuum")!;
+
+    await expect(
+      tool.handler({ table: "nonexistent" }, mockContext),
+    ).rejects.toThrow(/not found.*pg_list_tables/i);
+  });
+
+  it("should map 42P01 table-not-found for pg_vacuum_analyze", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_vacuum_analyze")!;
+
+    await expect(
+      tool.handler({ table: "nonexistent" }, mockContext),
+    ).rejects.toThrow(/not found.*pg_list_tables/i);
+  });
+
+  it("should map 42P01 table-not-found for pg_analyze", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_analyze")!;
+
+    await expect(
+      tool.handler({ table: "nonexistent" }, mockContext),
+    ).rejects.toThrow(/not found.*pg_list_tables/i);
+  });
+
+  it("should map 42P01 table-not-found for pg_reindex", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_reindex")!;
+
+    await expect(
+      tool.handler({ target: "table", name: "nonexistent" }, mockContext),
+    ).rejects.toThrow(/not found.*pg_list_tables/i);
+  });
+
+  it("should map errors for pg_set_config with invalid parameter", async () => {
+    const pgError = new Error(
+      'unrecognized configuration parameter "nonexistent_param"',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42704";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_set_config")!;
+
+    await expect(
+      tool.handler({ name: "nonexistent_param", value: "test" }, mockContext),
+    ).rejects.toThrow(/does not exist|not found/i);
+  });
+
+  it("should map 42P01 table-not-found for pg_cluster", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+
+    await expect(
+      tool.handler(
+        { table: "nonexistent", index: "idx_nonexistent" },
+        mockContext,
+      ),
+    ).rejects.toThrow(/not found.*pg_list_tables/i);
+  });
+});
