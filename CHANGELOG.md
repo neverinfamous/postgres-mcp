@@ -27,6 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Partitioning tools undocumented response structures** — Added response structure documentation for all 6 partitioning tools and sub-partitioning primary key constraint note to `ServerInstructions.ts`
 
+- **`pg_create_partition` overlapping bounds raw error** — Creating a partition with bounds that overlap an existing partition now throws `Partition bounds overlap with an existing partition. Use pg_list_partitions to see current partition bounds` instead of a raw PostgreSQL exception. Added message-pattern handler in `parsePostgresError` for `would overlap partition` and `conflicting values for partition`
+
+- **`pg_attach_partition` already-attached raw error** — Attaching a table that is already a partition now throws `Table 'X' is already a partition. Use pg_list_partitions to see current partitions, or pg_detach_partition to detach it first` instead of a raw PostgreSQL exception. Added message-pattern handler in `parsePostgresError`
+
+- **`pg_create_partition` sub-partitioning PK conflict misleading error** — Creating a sub-partitioned partition where the parent's primary key doesn't include the sub-partition key column now throws `Primary key on partitioned table must include all partitioning columns...` instead of a raw PostgreSQL `42P16` error. Added message-pattern handler in `parsePostgresError`
+
+- **`pg_detach_partition` response key inconsistency** — Response now uses `partition` key instead of `detached`, matching the `ServerInstructions.ts` documentation and the `pg_attach_partition` response pattern. Updated handler, output schema, and unit tests
+
+- **`pg_detach_partition` missing error handling** — `pg_detach_partition` SQL execution is now wrapped in try-catch with `parsePostgresError`, matching the error handling pattern of `pg_create_partition` and `pg_attach_partition`. Previously, SQL failures leaked as raw PostgreSQL exceptions
+
 - **`pg_explain` / `pg_explain_analyze` / `pg_explain_buffers` `query` alias rejected** — Direct MCP tool calls using `{ query: "SELECT ..." }` instead of `{ sql: "SELECT ..." }` now work correctly. Previously, the MCP SDK rejected the `query` alias at runtime because `ExplainSchemaBase` did not include it as a field and marked `sql` as required. Added `query` as an optional alias field, made `sql` optional in the base schema, and added handler guard clauses to validate that at least one is provided
 
 - **ESLint 10 compliance** — Resolved 20 new lint errors introduced by ESLint 10's stricter `eslint:recommended` rules:

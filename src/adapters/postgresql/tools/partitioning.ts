@@ -679,12 +679,20 @@ function createDetachPartitionTool(adapter: PostgresAdapter): ToolDefinition {
       }
 
       const sql = `ALTER TABLE ${parentName} DETACH PARTITION ${partitionName}${clause}`;
-      await adapter.executeQuery(sql);
+
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_detach_partition",
+          table: parsedPartition.table,
+        });
+      }
 
       return {
         success: true,
         parent: parsedParent.table,
-        detached: parsedPartition.table,
+        partition: parsedPartition.table,
       };
     },
   };

@@ -142,6 +142,20 @@ export function parsePostgresError(
     );
   }
 
+  // Sub-partitioning PK constraint (42P16 — unique constraint must include all partitioning columns)
+  // MUST be checked before the generic 23505 unique constraint handler below,
+  // because this message also contains "unique constraint" text.
+  if (
+    /unique constraint on partitioned table must include all partitioning columns/i.test(
+      msg,
+    )
+  ) {
+    throw new Error(
+      `Primary key on partitioned table must include all partitioning columns. The sub-partition key column must be part of the parent table's primary key. Recreate the parent with a composite primary key that includes both the partition key and sub-partition key.`,
+      { cause: error },
+    );
+  }
+
   // 23505 — unique constraint violation (duplicate key)
   if (
     pgCode === "23505" ||
@@ -246,6 +260,27 @@ export function parsePostgresError(
     const schemaName = match?.[1] ?? context.schema ?? "unknown";
     throw new Error(
       `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+      { cause: error },
+    );
+  }
+
+  // Overlapping partition bounds (RANGE overlap or conflicting LIST values)
+  if (
+    /conflicting values for partition/i.test(msg) ||
+    /would overlap partition/i.test(msg)
+  ) {
+    throw new Error(
+      `Partition bounds overlap with an existing partition. Use pg_list_partitions to see current partition bounds.`,
+      { cause: error },
+    );
+  }
+
+  // Already-attached partition (attempting to attach a table that is already a partition)
+  if (/is already a partition/i.test(msg)) {
+    const match = /"([^"]+)" is already a partition/i.exec(msg);
+    const tableName = match?.[1] ?? context.table ?? "unknown";
+    throw new Error(
+      `Table '${tableName}' is already a partition. Use pg_list_partitions to see current partitions, or pg_detach_partition to detach it first.`,
       { cause: error },
     );
   }

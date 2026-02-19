@@ -625,7 +625,7 @@ export const DetachPartitionOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
   parent: z.string().optional().describe("Parent table name"),
-  detached: z.string().optional().describe("Detached partition name"),
+  partition: z.string().optional().describe("Detached partition name"),
 });
 
 /**
