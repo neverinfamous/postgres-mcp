@@ -47,6 +47,7 @@ import {
  */
 const EXTENSION_ALIASES: Record<string, string> = {
   pgvector: "vector",
+  vector: "vector",
   partman: "pg_partman",
   fuzzymatch: "fuzzystrmatch",
   fuzzy: "fuzzystrmatch",
@@ -123,6 +124,7 @@ function createCreateSchemaTool(adapter: PostgresAdapter): ToolDefinition {
         throw parsePostgresError(error, {
           tool: "pg_create_schema",
           schema: name,
+          objectType: "schema",
         });
       }
 
@@ -274,6 +276,7 @@ function createCreateSequenceTool(adapter: PostgresAdapter): ToolDefinition {
       } catch (error: unknown) {
         throw parsePostgresError(error, {
           tool: "pg_create_sequence",
+          objectType: "sequence",
           ...(schema !== undefined && { schema }),
         });
       }
@@ -477,6 +480,7 @@ function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
       } catch (error: unknown) {
         throw parsePostgresError(error, {
           tool: "pg_create_view",
+          objectType: "view",
           ...(schema !== undefined && { schema }),
         });
       }

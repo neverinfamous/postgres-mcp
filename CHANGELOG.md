@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Schema tools raw PostgreSQL exceptions** — `pg_create_schema`, `pg_drop_schema`, `pg_create_sequence`, `pg_drop_sequence`, `pg_create_view`, and `pg_drop_view` now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Covers duplicate schema/sequence/view without `ifNotExists`/`orReplace`, nonexistent schema/sequence/view without `ifExists`, sequence in nonexistent schema, and view referencing nonexistent table
 
+- **Schema create tools misleading "Table already exists" error** — `pg_create_schema`, `pg_create_sequence`, and `pg_create_view` now throw object-type-specific error messages (`Schema 'X' already exists`, `Sequence 'X' already exists`, `View 'X' already exists`) instead of the generic `Table 'X' already exists`. Added `42P06` handler for duplicate schemas and `objectType` context for sequences/views in `parsePostgresError`
+
+- **`pg_list_functions` `exclude: ["vector"]` inconsistency** — Added `vector` to `EXTENSION_ALIASES` so passing the actual extension name (not just the alias `pgvector`) in the `exclude` array correctly filters pgvector functions
+
 - **`pg_explain` / `pg_explain_analyze` / `pg_explain_buffers` `query` alias rejected** — Direct MCP tool calls using `{ query: "SELECT ..." }` instead of `{ sql: "SELECT ..." }` now work correctly. Previously, the MCP SDK rejected the `query` alias at runtime because `ExplainSchemaBase` did not include it as a field and marked `sql` as required. Added `query` as an optional alias field, made `sql` optional in the base schema, and added handler guard clauses to validate that at least one is provided
 
 - **ESLint 10 compliance** — Resolved 20 new lint errors introduced by ESLint 10's stricter `eslint:recommended` rules:

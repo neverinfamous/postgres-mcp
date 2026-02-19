@@ -15,6 +15,7 @@ interface ErrorContext {
   index?: string;
   schema?: string;
   target?: string;
+  objectType?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ interface ErrorContext {
  * Supported PG error codes:
  * - 42P01: undefined_table (relation does not exist)
  * - 42P07: duplicate_table (relation already exists)
+ * - 42P06: duplicate_schema (schema already exists)
  * - 42704: undefined_object (index/type does not exist)
  * - 42601: syntax_error (SQL syntax error)
  * - 42703: undefined_column (column does not exist)
@@ -70,7 +72,19 @@ export function parsePostgresError(
     );
   }
 
-  // 42P07 — duplicate relation (table or index already exists)
+  // 42P06 — duplicate schema (schema already exists)
+  // Note: also checks message text because the adapter wraps PG errors
+  // in QueryError (code: "QUERY_ERROR"), stripping the original PG code.
+  if (pgCode === "42P06" || /schema ".*" already exists/i.test(msg)) {
+    const match = /schema "([^"]+)"/i.exec(msg);
+    const objectName = match?.[1] ?? context.schema ?? "unknown";
+    throw new Error(
+      `Schema '${objectName}' already exists. Use ifNotExists: true to skip if it exists.`,
+      { cause: error },
+    );
+  }
+
+  // 42P07 — duplicate relation (table, index, sequence, or view already exists)
   if (pgCode === "42P07" || /already exists/i.test(msg)) {
     const match = /relation "([^"]+)"/i.exec(msg);
     const objectName =
@@ -84,6 +98,22 @@ export function parsePostgresError(
     ) {
       throw new Error(
         `Index '${objectName}' already exists. Use ifNotExists: true to skip if it exists.`,
+        { cause: error },
+      );
+    }
+
+    // Sequence-specific message
+    if (context.objectType === "sequence") {
+      throw new Error(
+        `Sequence '${objectName}' already exists. Use ifNotExists: true to skip if it exists.`,
+        { cause: error },
+      );
+    }
+
+    // View-specific message
+    if (context.objectType === "view") {
+      throw new Error(
+        `View '${objectName}' already exists. Use orReplace: true to replace it.`,
         { cause: error },
       );
     }

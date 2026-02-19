@@ -141,6 +141,44 @@ describe("parsePostgresError", () => {
     );
   });
 
+  // ── 42P06 — duplicate schema ────────────────────────────────────────
+  it("should throw schema already exists for 42P06", () => {
+    const err = makePgError('schema "test_schema" already exists', "42P06");
+    expect(() =>
+      parsePostgresError(err, {
+        tool: "pg_create_schema",
+        schema: "test_schema",
+      }),
+    ).toThrow(
+      "Schema 'test_schema' already exists. Use ifNotExists: true to skip if it exists.",
+    );
+  });
+
+  // ── 42P07 with objectType context ───────────────────────────────────
+  it("should throw sequence already exists for pg_create_sequence with objectType", () => {
+    const err = makePgError('relation "test_seq" already exists', "42P07");
+    expect(() =>
+      parsePostgresError(err, {
+        tool: "pg_create_sequence",
+        objectType: "sequence",
+      }),
+    ).toThrow(
+      "Sequence 'test_seq' already exists. Use ifNotExists: true to skip if it exists.",
+    );
+  });
+
+  it("should throw view already exists for pg_create_view with objectType", () => {
+    const err = makePgError('relation "test_view" already exists', "42P07");
+    expect(() =>
+      parsePostgresError(err, {
+        tool: "pg_create_view",
+        objectType: "view",
+      }),
+    ).toThrow(
+      "View 'test_view' already exists. Use orReplace: true to replace it.",
+    );
+  });
+
   // ── 3F000 — invalid schema name ─────────────────────────────────────
   it("should throw schema error for 3F000 with schema message", () => {
     // When PG throws 3F000 with "schema X does not exist", the 42704 regex
