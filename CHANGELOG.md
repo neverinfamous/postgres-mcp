@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_object_details` near-empty result for nonexistent objects** — `pg_object_details({ name: "nonexistent", type: "table" })` now throws a clear "not found" error instead of returning a near-empty object with only the type field. Previously, when a `type` was explicitly provided but the object did not exist, the detection query returned `null` but the handler proceeded using the user-provided type, producing unhelpful results
 
+- **`pg_get_indexes` silent empty result for nonexistent tables** — `pg_get_indexes({ table: "nonexistent" })` now throws a high-signal P154 error (`Table 'public.nonexistent' not found`) instead of silently returning an empty `indexes` array. Schema existence is also validated separately. The "list all indexes" path (no table specified) remains unaffected
+
+- **`pg_drop_index` missing `existed` field** — `pg_drop_index` now includes an `existed` boolean in its response, matching the pattern established by `pg_drop_table`. A pre-check query against `pg_indexes` determines whether the index existed before the DROP statement executes
+
+- **`pg_create_index` race condition with `ifNotExists`** — `pg_create_index` with `ifNotExists: true` now performs a pre-check against `pg_indexes` before executing CREATE INDEX. If the index already exists, it returns `{ alreadyExists: true }` without attempting the CREATE. A fallback catch for "already exists" errors handles race conditions where the index is created between the check and the CREATE
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

@@ -2720,12 +2720,14 @@ describe("pg_drop_index", () => {
     const result = (await tool.handler(
       { name: "idx_users_email" },
       mockContext,
-    )) as { success: boolean; index: string };
+    )) as { success: boolean; index: string; existed: boolean };
 
     expect(result.success).toBe(true);
     expect(result.index).toContain("idx_users_email");
+    expect(result.existed).toBe(false);
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    // mock.calls[0] is the existence check, mock.calls[1] is the DROP INDEX
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain("DROP INDEX");
   });
 
@@ -2741,7 +2743,7 @@ describe("pg_drop_index", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain("IF EXISTS");
   });
 
@@ -2757,7 +2759,7 @@ describe("pg_drop_index", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain("CASCADE");
   });
 
@@ -2773,7 +2775,7 @@ describe("pg_drop_index", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain("CONCURRENTLY");
   });
 
@@ -2783,7 +2785,7 @@ describe("pg_drop_index", () => {
     const tool = tools.find((t) => t.name === "pg_drop_index")!;
     await tool.handler({ index: "idx_alias_test" }, mockContext);
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain('"idx_alias_test"');
   });
 
@@ -2793,7 +2795,7 @@ describe("pg_drop_index", () => {
     const tool = tools.find((t) => t.name === "pg_drop_index")!;
     await tool.handler({ indexName: "idx_alias_test2" }, mockContext);
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain('"idx_alias_test2"');
   });
 
@@ -2803,7 +2805,7 @@ describe("pg_drop_index", () => {
     const tool = tools.find((t) => t.name === "pg_drop_index")!;
     await tool.handler({ name: "archive.idx_old_events" }, mockContext);
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain('"archive"."idx_old_events"');
   });
 
@@ -2821,10 +2823,40 @@ describe("pg_drop_index", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain("CONCURRENTLY");
     expect(sql).toContain("IF EXISTS");
     expect(sql).toContain("CASCADE");
+  });
+
+  it("should return existed: true when index exists before drop", async () => {
+    // First call (existence check) returns a row, second call (DROP) succeeds
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_drop_index")!;
+    const result = (await tool.handler(
+      { name: "idx_exists" },
+      mockContext,
+    )) as { success: boolean; existed: boolean };
+
+    expect(result.success).toBe(true);
+    expect(result.existed).toBe(true);
+  });
+
+  it("should return existed: false when index does not exist", async () => {
+    // First call (existence check) returns empty, second call (DROP IF EXISTS) succeeds
+    mockAdapter.executeQuery.mockResolvedValue({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_drop_index")!;
+    const result = (await tool.handler(
+      { name: "idx_nonexistent", ifExists: true },
+      mockContext,
+    )) as { success: boolean; existed: boolean };
+
+    expect(result.success).toBe(true);
+    expect(result.existed).toBe(false);
   });
 });
 
@@ -2917,6 +2949,58 @@ describe("pg_get_indexes - additional coverage", () => {
     };
 
     expect(result.count).toBe(2);
+  });
+});
+
+// =============================================================================
+// Index Tools - pg_get_indexes (P154 existence checks)
+// =============================================================================
+
+describe("pg_get_indexes - P154 existence checks", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getCoreTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getCoreTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should throw error for nonexistent schema", async () => {
+    // Schema check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_get_indexes")!;
+    await expect(
+      tool.handler({ table: "users", schema: "nonexistent" }, mockContext),
+    ).rejects.toThrow("Schema 'nonexistent' does not exist");
+  });
+
+  it("should throw error for nonexistent table", async () => {
+    // Schema check returns a row, table check returns empty
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_get_indexes")!;
+    await expect(
+      tool.handler({ table: "nonexistent" }, mockContext),
+    ).rejects.toThrow("Table 'public.nonexistent' not found");
+  });
+
+  it("should not check existence when no table specified", async () => {
+    mockAdapter.getAllIndexes.mockResolvedValue([]);
+
+    const tool = tools.find((t) => t.name === "pg_get_indexes")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      count: number;
+    };
+
+    expect(result.count).toBe(0);
+    // executeQuery should NOT have been called (no existence check needed)
+    expect(mockAdapter.executeQuery).not.toHaveBeenCalled();
   });
 });
 
