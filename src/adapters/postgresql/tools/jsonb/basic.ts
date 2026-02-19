@@ -893,7 +893,15 @@ export function createJsonbStripNullsTool(
       if (parsed.preview === true) {
         // Preview mode - show before/after without modifying
         const previewSql = `SELECT "${column}" as before, jsonb_strip_nulls("${column}") as after FROM "${table}" WHERE ${whereClause}`;
-        const result = await adapter.executeQuery(previewSql);
+        let result;
+        try {
+          result = await adapter.executeQuery(previewSql);
+        } catch (error: unknown) {
+          throw parsePostgresError(error, {
+            tool: "pg_jsonb_strip_nulls",
+            table,
+          });
+        }
         return {
           preview: true,
           rows: result.rows,
@@ -903,7 +911,15 @@ export function createJsonbStripNullsTool(
       }
 
       const sql = `UPDATE "${table}" SET "${column}" = jsonb_strip_nulls("${column}") WHERE ${whereClause}`;
-      const result = await adapter.executeQuery(sql);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_jsonb_strip_nulls",
+          table,
+        });
+      }
       return { rowsAffected: result.rowsAffected };
     },
   };

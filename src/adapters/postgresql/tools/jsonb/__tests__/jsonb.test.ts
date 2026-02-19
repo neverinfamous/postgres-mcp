@@ -862,5 +862,22 @@ describe("JSONB Validation and Error Paths", () => {
         tool.handler({ table: "nonexistent", column: "data" }, mockContext),
       ).rejects.toThrow(/not found.*pg_list_tables/i);
     });
+
+    it("should route table-not-found errors through parsePostgresError for pg_jsonb_strip_nulls", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_strip_nulls")!;
+
+      await expect(
+        tool.handler(
+          { table: "nonexistent", column: "data", where: "id = 1" },
+          mockContext,
+        ),
+      ).rejects.toThrow(/not found.*pg_list_tables/i);
+    });
   });
 });
