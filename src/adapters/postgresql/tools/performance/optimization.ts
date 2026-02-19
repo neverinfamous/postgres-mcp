@@ -10,6 +10,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "../core/error-helpers.js";
 import {
   PerformanceBaselineOutputSchema,
   ConnectionPoolOptimizeOutputSchema,
@@ -268,30 +269,31 @@ export function createPartitionStrategySuggestTool(
     annotations: readOnly("Partition Strategy Suggest"),
     icons: getToolIcons("performance", readOnly("Partition Strategy Suggest")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = PartitionStrategySchema.parse(params);
+      try {
+        const parsed = PartitionStrategySchema.parse(params);
 
-      // Parse schema from table if it contains a dot (e.g., 'public.users')
-      let schemaName = parsed.schema ?? "public";
-      let tableName = parsed.table;
-      if (tableName.includes(".")) {
-        const parts = tableName.split(".");
-        schemaName = parts[0] ?? "public";
-        tableName = parts[1] ?? tableName;
-      }
+        // Parse schema from table if it contains a dot (e.g., 'public.users')
+        let schemaName = parsed.schema ?? "public";
+        let tableName = parsed.table;
+        if (tableName.includes(".")) {
+          const parts = tableName.split(".");
+          schemaName = parts[0] ?? "public";
+          tableName = parts[1] ?? tableName;
+        }
 
-      const [tableInfo, columnInfo, tableSize] = await Promise.all([
-        adapter.executeQuery(
-          `
+        const [tableInfo, columnInfo, tableSize] = await Promise.all([
+          adapter.executeQuery(
+            `
                     SELECT 
                         relname, n_live_tup, n_dead_tup,
                         seq_scan, idx_scan
                     FROM pg_stat_user_tables
                     WHERE relname = $1 AND schemaname = $2
                 `,
-          [tableName, schemaName],
-        ),
-        adapter.executeQuery(
-          `
+            [tableName, schemaName],
+          ),
+          adapter.executeQuery(
+            `
                     SELECT 
                         a.attname as column_name,
                         t.typname as data_type,
@@ -308,106 +310,111 @@ export function createPartitionStrategySuggestTool(
                         AND a.attnum > 0 AND NOT a.attisdropped
                     ORDER BY a.attnum
                 `,
-          [tableName, schemaName],
-        ),
-        adapter.executeQuery(
-          `
+            [tableName, schemaName],
+          ),
+          adapter.executeQuery(
+            `
                     SELECT pg_size_pretty(pg_table_size($1::regclass)) as table_size,
                            pg_table_size($1::regclass) as size_bytes
                 `,
-          [`"${schemaName}"."${tableName}"`],
-        ),
-      ]);
+            [`"${schemaName}"."${tableName}"`],
+          ),
+        ]);
 
-      const table = tableInfo.rows?.[0];
-      const columns = columnInfo.rows;
-      const size = tableSize.rows?.[0];
+        const table = tableInfo.rows?.[0];
+        const columns = columnInfo.rows;
+        const size = tableSize.rows?.[0];
 
-      const suggestions: {
-        strategy: string;
-        column: string;
-        reason: string;
-      }[] = [];
+        const suggestions: {
+          strategy: string;
+          column: string;
+          reason: string;
+        }[] = [];
 
-      if (columns) {
-        for (const col of columns) {
-          const colName = col["column_name"] as string;
-          const dataType = col["data_type"] as string;
-          const nDistinct = col["n_distinct"] as number;
+        if (columns) {
+          for (const col of columns) {
+            const colName = col["column_name"] as string;
+            const dataType = col["data_type"] as string;
+            const nDistinct = col["n_distinct"] as number;
 
-          if (["date", "timestamp", "timestamptz"].includes(dataType)) {
-            suggestions.push({
-              strategy: "RANGE",
-              column: colName,
-              reason: `${dataType} column ideal for time-based range partitioning (monthly/yearly)`,
-            });
-          }
+            if (["date", "timestamp", "timestamptz"].includes(dataType)) {
+              suggestions.push({
+                strategy: "RANGE",
+                column: colName,
+                reason: `${dataType} column ideal for time-based range partitioning (monthly/yearly)`,
+              });
+            }
 
-          if (nDistinct > 0 && nDistinct < 20) {
-            suggestions.push({
-              strategy: "LIST",
-              column: colName,
-              reason: `Low cardinality (${String(nDistinct)} distinct values) - good for list partitioning`,
-            });
-          }
+            if (nDistinct > 0 && nDistinct < 20) {
+              suggestions.push({
+                strategy: "LIST",
+                column: colName,
+                reason: `Low cardinality (${String(nDistinct)} distinct values) - good for list partitioning`,
+              });
+            }
 
-          if (
-            ["int4", "int8", "integer", "bigint"].includes(dataType) &&
-            (nDistinct < 0 || nDistinct > 100)
-          ) {
-            suggestions.push({
-              strategy: "HASH",
-              column: colName,
-              reason:
-                "High cardinality integer - suitable for hash partitioning to distribute load",
-            });
+            if (
+              ["int4", "int8", "integer", "bigint"].includes(dataType) &&
+              (nDistinct < 0 || nDistinct > 100)
+            ) {
+              suggestions.push({
+                strategy: "HASH",
+                column: colName,
+                reason:
+                  "High cardinality integer - suitable for hash partitioning to distribute load",
+              });
+            }
           }
         }
+
+        const rowCount = Number(table?.["n_live_tup"] ?? 0);
+        const sizeBytes = Number(size?.["size_bytes"] ?? 0);
+
+        let partitioningRecommended = false;
+        let reason = "";
+
+        if (rowCount > 10_000_000) {
+          partitioningRecommended = true;
+          reason = `Table has ${String(rowCount)} rows - partitioning recommended for manageability`;
+        } else if (sizeBytes > 1_000_000_000) {
+          partitioningRecommended = true;
+          reason =
+            "Table is over 1GB - partitioning can improve query performance and maintenance";
+        }
+
+        // Coerce tableStats numeric fields
+        const coercedTableStats = table
+          ? {
+              ...table,
+              n_live_tup: toNum(table["n_live_tup"]),
+              n_dead_tup: toNum(table["n_dead_tup"]),
+              seq_scan: toNum(table["seq_scan"]),
+              idx_scan: toNum(table["idx_scan"]),
+            }
+          : null;
+
+        // Coerce tableSize numeric fields
+        const coercedTableSize = size
+          ? {
+              ...size,
+              size_bytes: toNum(size["size_bytes"]),
+            }
+          : null;
+
+        return {
+          table: `${schemaName}.${tableName}`,
+          tableStats: coercedTableStats,
+          tableSize: coercedTableSize,
+          partitioningRecommended,
+          reason,
+          suggestions: suggestions.slice(0, 5),
+          note: "Consider your query patterns when choosing partition key. Range partitioning on date columns is most common.",
+        };
+      } catch (error) {
+        throw parsePostgresError(error, {
+          tool: "pg_partition_strategy_suggest",
+        });
       }
-
-      const rowCount = Number(table?.["n_live_tup"] ?? 0);
-      const sizeBytes = Number(size?.["size_bytes"] ?? 0);
-
-      let partitioningRecommended = false;
-      let reason = "";
-
-      if (rowCount > 10_000_000) {
-        partitioningRecommended = true;
-        reason = `Table has ${String(rowCount)} rows - partitioning recommended for manageability`;
-      } else if (sizeBytes > 1_000_000_000) {
-        partitioningRecommended = true;
-        reason =
-          "Table is over 1GB - partitioning can improve query performance and maintenance";
-      }
-
-      // Coerce tableStats numeric fields
-      const coercedTableStats = table
-        ? {
-            ...table,
-            n_live_tup: toNum(table["n_live_tup"]),
-            n_dead_tup: toNum(table["n_dead_tup"]),
-            seq_scan: toNum(table["seq_scan"]),
-            idx_scan: toNum(table["idx_scan"]),
-          }
-        : null;
-
-      // Coerce tableSize numeric fields
-      const coercedTableSize = size
-        ? {
-            ...size,
-            size_bytes: toNum(size["size_bytes"]),
-          }
-        : null;
-
-      return {
-        table: `${schemaName}.${tableName}`,
-        tableStats: coercedTableStats,
-        tableSize: coercedTableSize,
-        partitioningRecommended,
-        reason,
-        suggestions: suggestions.slice(0, 5),
-        note: "Consider your query patterns when choosing partition key. Range partitioning on date columns is most common.",
-      };
     },
   };
 }

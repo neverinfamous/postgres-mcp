@@ -58,6 +58,15 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 | \`pg_vacuum_stats\` | \`{tables, count, truncated?, totalCount?}\` | Default 50 rows. Use \`limit: 0\` for all |
 | \`pg_stat_statements\` | \`{statements, count, truncated?, totalCount?}\` | Default 20 rows. \`orderBy\` supported |
 | \`pg_query_plan_stats\` | \`{queryPlanStats, count, truncated?, totalCount?}\` | Default 20 rows. \`truncateQuery: 0\` for full text |
+| \`pg_stat_activity\` | \`{connections, count}\` | \`includeIdle: true\` to include idle connections |
+| \`pg_locks\` | \`{locks}\` | \`showBlocked: true\` switches to blocked/blocking pid format |
+| \`pg_bloat_check\` | \`{tables, count}\` | Tables with \`live_tuples\`, \`dead_tuples\`, \`dead_pct\` |
+| \`pg_seq_scan_tables\` | \`{tables, count, minScans, hint, truncated?, totalCount?}\` | Default 50 rows. \`minScans\` default: 10 |
+| \`pg_connection_pool_optimize\` | \`{current, config, waitEvents, recommendations}\` | No params needed |
+| \`pg_performance_baseline\` | \`{name, timestamp, metrics}\` | \`metrics\`: \`cache\`, \`tables\`, \`indexes\`, \`connections\`, \`databaseSize\` |
+| \`pg_duplicate_indexes\` | \`{duplicateIndexes, count, hint, truncated?, totalCount?}\` | Default 50 rows. \`duplicate_type\`: EXACT_DUPLICATE, OVERLAPPING, SUBSET |
+| \`pg_query_plan_compare\` | \`{query1, query2, analysis, fullPlans}\` | \`analysis.costDifference\` + \`recommendation\` |
+| \`pg_unused_indexes\` | \`{unusedIndexes, count, hint, truncated?, totalCount?}\` | Default 20 rows. \`summary: true\` → \`{summary, bySchema, totalCount}\` |
 
 ## API Mapping
 

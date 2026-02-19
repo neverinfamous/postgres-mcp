@@ -61,6 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`parsePostgresError` transaction error codes** — Added two new PG error codes with higher precedence than the broad `42704` handler: `3B001` (savepoint_exception → `Savepoint 'X' does not exist in this transaction`) and `25P02` (in_failed_sql_transaction → `Transaction is in an aborted state — only ROLLBACK ...`)
 
+- **Performance tools raw PostgreSQL exceptions** — `pg_explain`, `pg_explain_analyze`, `pg_explain_buffers`, `pg_index_recommendations`, `pg_query_plan_compare`, and `pg_partition_strategy_suggest` now throw structured errors (via `parsePostgresError`) instead of raw PG exceptions when queries reference nonexistent tables, have syntax errors, etc. Added try/catch wrapping in `explain.ts`, `analysis.ts`, and `optimization.ts`
+
+- **`ServerInstructions.ts` performance tool response docs** — Added missing response structures for 9 performance tools: `pg_stat_activity`, `pg_locks`, `pg_bloat_check`, `pg_seq_scan_tables`, `pg_connection_pool_optimize`, `pg_performance_baseline`, `pg_unused_indexes`, `pg_duplicate_indexes`, `pg_query_plan_compare`
+
 - **`PostgresAdapter` savepoint methods raw exceptions** — `createSavepoint`, `releaseSavepoint`, and `rollbackToSavepoint` now wrap errors through `parsePostgresError()` for structured messages instead of propagating raw PG exceptions
 
 - **`PostgresAdapter` commit-after-abort silent data loss** — `commitTransaction` now probes the transaction state with `SELECT 1` before issuing `COMMIT`. If the transaction is in an aborted state (25P02), it rolls back and throws a clear `TransactionError` instead of silently performing a rollback disguised as a commit

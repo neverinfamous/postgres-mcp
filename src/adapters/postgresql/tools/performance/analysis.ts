@@ -10,6 +10,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "../core/error-helpers.js";
 import {
   SeqScanTablesOutputSchema,
   IndexRecommendationsOutputSchema,
@@ -207,151 +208,152 @@ export function createIndexRecommendationsTool(
     annotations: readOnly("Index Recommendations"),
     icons: getToolIcons("performance", readOnly("Index Recommendations")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = IndexRecommendationsSchema.parse(params);
-      const schemaName = parsed.schema ?? "public";
-      const queryParams = parsed.params ?? [];
+      try {
+        const parsed = IndexRecommendationsSchema.parse(params);
+        const schemaName = parsed.schema ?? "public";
+        const queryParams = parsed.params ?? [];
 
-      // If SQL query provided, perform query-specific analysis
-      if (parsed.sql !== undefined && parsed.sql.trim() !== "") {
-        const hypopgAvailable = await checkHypoPG();
+        // If SQL query provided, perform query-specific analysis
+        if (parsed.sql !== undefined && parsed.sql.trim() !== "") {
+          const hypopgAvailable = await checkHypoPG();
 
-        // Get baseline EXPLAIN plan (with parameter binding support)
-        const baselineResult = await adapter.executeQuery(
-          `EXPLAIN (FORMAT JSON) ${parsed.sql}`,
-          queryParams,
-        );
-        const baselinePlanRow = baselineResult.rows?.[0] as
-          | { "QUERY PLAN"?: unknown[] }
-          | undefined;
-        const baselinePlan = baselinePlanRow?.["QUERY PLAN"]?.[0] as
-          | { Plan?: Record<string, unknown> }
-          | undefined;
-        const baselineCost = extractCost(baselinePlan?.Plan);
+          // Get baseline EXPLAIN plan (with parameter binding support)
+          const baselineResult = await adapter.executeQuery(
+            `EXPLAIN (FORMAT JSON) ${parsed.sql}`,
+            queryParams,
+          );
+          const baselinePlanRow = baselineResult.rows?.[0] as
+            | { "QUERY PLAN"?: unknown[] }
+            | undefined;
+          const baselinePlan = baselinePlanRow?.["QUERY PLAN"]?.[0] as
+            | { Plan?: Record<string, unknown> }
+            | undefined;
+          const baselineCost = extractCost(baselinePlan?.Plan);
 
-        // Extract Seq Scan candidates
-        const candidates = extractSeqScanCandidates(baselinePlan?.Plan);
+          // Extract Seq Scan candidates
+          const candidates = extractSeqScanCandidates(baselinePlan?.Plan);
 
-        // If no candidates or no baseline cost, return basic analysis
-        if (candidates.length === 0 || baselineCost === null) {
-          return {
-            queryAnalysis: true,
-            hypopgAvailable,
-            baselineCost,
-            recommendations: [],
-            hint: "Query appears well-indexed. No sequential scans with filterable columns detected.",
-          };
-        }
-
-        // If HypoPG is available, create hypothetical indexes and measure improvement
-        if (hypopgAvailable) {
-          const recommendations: {
-            table: string;
-            column: string;
-            suggestedIndex: string;
-            baselineCost: number;
-            improvedCost: number;
-            improvement: string;
-          }[] = [];
-
-          try {
-            // Reset any existing hypothetical indexes
-            await adapter.executeQuery("SELECT hypopg_reset()");
-
-            // Test each candidate index
-            for (const candidate of candidates) {
-              try {
-                // Create hypothetical index
-                await adapter.executeQuery(
-                  `SELECT hypopg_create_index('${candidate.indexDDL.replace(/'/g, "''")}')`,
-                );
-
-                // Re-run EXPLAIN with hypothetical index (with parameter binding)
-                const improvedResult = await adapter.executeQuery(
-                  `EXPLAIN (FORMAT JSON) ${parsed.sql}`,
-                  queryParams,
-                );
-                const improvedPlanRow = improvedResult.rows?.[0] as
-                  | { "QUERY PLAN"?: unknown[] }
-                  | undefined;
-                const improvedPlan = improvedPlanRow?.["QUERY PLAN"]?.[0] as
-                  | { Plan?: Record<string, unknown> }
-                  | undefined;
-                const improvedCost = extractCost(improvedPlan?.Plan);
-
-                if (improvedCost !== null && improvedCost < baselineCost) {
-                  const improvementPct =
-                    ((baselineCost - improvedCost) / baselineCost) * 100;
-                  recommendations.push({
-                    table: candidate.table,
-                    column: candidate.column,
-                    suggestedIndex: candidate.indexDDL,
-                    baselineCost,
-                    improvedCost,
-                    improvement: `${improvementPct.toFixed(1)}% cost reduction`,
-                  });
-                }
-
-                // Reset for next candidate
-                await adapter.executeQuery("SELECT hypopg_reset()");
-              } catch {
-                // Skip this candidate if it fails
-                await adapter
-                  .executeQuery("SELECT hypopg_reset()")
-                  .catch(() => {
-                    /* ignore */
-                  });
-              }
-            }
-          } finally {
-            // Ensure cleanup
-            await adapter.executeQuery("SELECT hypopg_reset()").catch(() => {
-              /* ignore */
-            });
+          // If no candidates or no baseline cost, return basic analysis
+          if (candidates.length === 0 || baselineCost === null) {
+            return {
+              queryAnalysis: true,
+              hypopgAvailable,
+              baselineCost,
+              recommendations: [],
+              hint: "Query appears well-indexed. No sequential scans with filterable columns detected.",
+            };
           }
 
-          // Sort by improvement
-          recommendations.sort((a, b) => {
-            const aImprv = parseFloat(a.improvement);
-            const bImprv = parseFloat(b.improvement);
-            return bImprv - aImprv;
-          });
+          // If HypoPG is available, create hypothetical indexes and measure improvement
+          if (hypopgAvailable) {
+            const recommendations: {
+              table: string;
+              column: string;
+              suggestedIndex: string;
+              baselineCost: number;
+              improvedCost: number;
+              improvement: string;
+            }[] = [];
+
+            try {
+              // Reset any existing hypothetical indexes
+              await adapter.executeQuery("SELECT hypopg_reset()");
+
+              // Test each candidate index
+              for (const candidate of candidates) {
+                try {
+                  // Create hypothetical index
+                  await adapter.executeQuery(
+                    `SELECT hypopg_create_index('${candidate.indexDDL.replace(/'/g, "''")}')`,
+                  );
+
+                  // Re-run EXPLAIN with hypothetical index (with parameter binding)
+                  const improvedResult = await adapter.executeQuery(
+                    `EXPLAIN (FORMAT JSON) ${parsed.sql}`,
+                    queryParams,
+                  );
+                  const improvedPlanRow = improvedResult.rows?.[0] as
+                    | { "QUERY PLAN"?: unknown[] }
+                    | undefined;
+                  const improvedPlan = improvedPlanRow?.["QUERY PLAN"]?.[0] as
+                    | { Plan?: Record<string, unknown> }
+                    | undefined;
+                  const improvedCost = extractCost(improvedPlan?.Plan);
+
+                  if (improvedCost !== null && improvedCost < baselineCost) {
+                    const improvementPct =
+                      ((baselineCost - improvedCost) / baselineCost) * 100;
+                    recommendations.push({
+                      table: candidate.table,
+                      column: candidate.column,
+                      suggestedIndex: candidate.indexDDL,
+                      baselineCost,
+                      improvedCost,
+                      improvement: `${improvementPct.toFixed(1)}% cost reduction`,
+                    });
+                  }
+
+                  // Reset for next candidate
+                  await adapter.executeQuery("SELECT hypopg_reset()");
+                } catch {
+                  // Skip this candidate if it fails
+                  await adapter
+                    .executeQuery("SELECT hypopg_reset()")
+                    .catch(() => {
+                      /* ignore */
+                    });
+                }
+              }
+            } finally {
+              // Ensure cleanup
+              await adapter.executeQuery("SELECT hypopg_reset()").catch(() => {
+                /* ignore */
+              });
+            }
+
+            // Sort by improvement
+            recommendations.sort((a, b) => {
+              const aImprv = parseFloat(a.improvement);
+              const bImprv = parseFloat(b.improvement);
+              return bImprv - aImprv;
+            });
+
+            return {
+              queryAnalysis: true,
+              hypopgAvailable: true,
+              baselineCost,
+              recommendations,
+              hint:
+                recommendations.length > 0
+                  ? `Found ${String(recommendations.length)} index(es) that would improve query performance. Review and create indexes as needed.`
+                  : "No indexes found that would significantly improve this query.",
+            };
+          }
+
+          // HypoPG not available - return basic recommendations without cost analysis
+          const basicRecommendations = candidates.map((c) => ({
+            table: c.table,
+            column: c.column,
+            suggestedIndex: c.indexDDL,
+            recommendation:
+              "Sequential scan detected - consider adding this index",
+          }));
 
           return {
             queryAnalysis: true,
-            hypopgAvailable: true,
+            hypopgAvailable: false,
             baselineCost,
-            recommendations,
-            hint:
-              recommendations.length > 0
-                ? `Found ${String(recommendations.length)} index(es) that would improve query performance. Review and create indexes as needed.`
-                : "No indexes found that would significantly improve this query.",
+            recommendations: basicRecommendations,
+            hint: "Install HypoPG extension for precise cost improvement analysis. Basic recommendations provided based on EXPLAIN output.",
           };
         }
 
-        // HypoPG not available - return basic recommendations without cost analysis
-        const basicRecommendations = candidates.map((c) => ({
-          table: c.table,
-          column: c.column,
-          suggestedIndex: c.indexDDL,
-          recommendation:
-            "Sequential scan detected - consider adding this index",
-        }));
+        // Fall back to table statistics-based recommendations
+        const tableClause =
+          parsed.table !== undefined ? `AND relname = '${parsed.table}'` : "";
+        const schemaClause = `AND schemaname = '${schemaName}'`;
 
-        return {
-          queryAnalysis: true,
-          hypopgAvailable: false,
-          baselineCost,
-          recommendations: basicRecommendations,
-          hint: "Install HypoPG extension for precise cost improvement analysis. Basic recommendations provided based on EXPLAIN output.",
-        };
-      }
-
-      // Fall back to table statistics-based recommendations
-      const tableClause =
-        parsed.table !== undefined ? `AND relname = '${parsed.table}'` : "";
-      const schemaClause = `AND schemaname = '${schemaName}'`;
-
-      const sql = `SELECT schemaname, relname as table_name,
+        const sql = `SELECT schemaname, relname as table_name,
                         seq_scan, idx_scan,
                         n_live_tup as row_count,
                         pg_size_pretty(pg_table_size(relid)) as size,
@@ -365,21 +367,24 @@ export function createIndexRecommendationsTool(
                         ORDER BY seq_scan DESC
                         LIMIT 20`;
 
-      const result = await adapter.executeQuery(sql);
-      // Coerce numeric fields to JavaScript numbers
-      const recommendations = (result.rows ?? []).map(
-        (row: Record<string, unknown>) => ({
-          ...row,
-          seq_scan: toNum(row["seq_scan"]),
-          idx_scan: toNum(row["idx_scan"]),
-          row_count: toNum(row["row_count"]),
-        }),
-      );
-      return {
-        queryAnalysis: false,
-        recommendations,
-        hint: "Based on table statistics. Provide a SQL query for query-specific recommendations.",
-      };
+        const result = await adapter.executeQuery(sql);
+        // Coerce numeric fields to JavaScript numbers
+        const recommendations = (result.rows ?? []).map(
+          (row: Record<string, unknown>) => ({
+            ...row,
+            seq_scan: toNum(row["seq_scan"]),
+            idx_scan: toNum(row["idx_scan"]),
+            row_count: toNum(row["row_count"]),
+          }),
+        );
+        return {
+          queryAnalysis: false,
+          recommendations,
+          hint: "Based on table statistics. Provide a SQL query for query-specific recommendations.",
+        };
+      } catch (error) {
+        throw parsePostgresError(error, { tool: "pg_index_recommendations" });
+      }
     },
   };
 }
@@ -430,78 +435,82 @@ export function createQueryPlanCompareTool(
     annotations: readOnly("Query Plan Compare"),
     icons: getToolIcons("performance", readOnly("Query Plan Compare")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = QueryPlanCompareSchema.parse(params);
-      const explainType =
-        parsed.analyze === true
-          ? "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)"
-          : "EXPLAIN (FORMAT JSON)";
+      try {
+        const parsed = QueryPlanCompareSchema.parse(params);
+        const explainType =
+          parsed.analyze === true
+            ? "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)"
+            : "EXPLAIN (FORMAT JSON)";
 
-      const [result1, result2] = await Promise.all([
-        adapter.executeQuery(
-          `${explainType} ${parsed.query1}`,
-          parsed.params1 ?? [],
-        ),
-        adapter.executeQuery(
-          `${explainType} ${parsed.query2}`,
-          parsed.params2 ?? [],
-        ),
-      ]);
+        const [result1, result2] = await Promise.all([
+          adapter.executeQuery(
+            `${explainType} ${parsed.query1}`,
+            parsed.params1 ?? [],
+          ),
+          adapter.executeQuery(
+            `${explainType} ${parsed.query2}`,
+            parsed.params2 ?? [],
+          ),
+        ]);
 
-      const row1 = result1.rows?.[0];
-      const row2 = result2.rows?.[0];
-      const queryPlan1 = row1?.["QUERY PLAN"] as unknown[] | undefined;
-      const queryPlan2 = row2?.["QUERY PLAN"] as unknown[] | undefined;
-      const plan1 = queryPlan1?.[0] as Record<string, unknown> | undefined;
-      const plan2 = queryPlan2?.[0] as Record<string, unknown> | undefined;
+        const row1 = result1.rows?.[0];
+        const row2 = result2.rows?.[0];
+        const queryPlan1 = row1?.["QUERY PLAN"] as unknown[] | undefined;
+        const queryPlan2 = row2?.["QUERY PLAN"] as unknown[] | undefined;
+        const plan1 = queryPlan1?.[0] as Record<string, unknown> | undefined;
+        const plan2 = queryPlan2?.[0] as Record<string, unknown> | undefined;
 
-      const comparison = {
-        query1: {
-          planningTime: plan1?.["Planning Time"],
-          executionTime: plan1?.["Execution Time"],
-          totalCost: (plan1?.["Plan"] as Record<string, unknown> | undefined)?.[
-            "Total Cost"
-          ],
-          sharedBuffersHit: plan1?.["Shared Hit Blocks"],
-          sharedBuffersRead: plan1?.["Shared Read Blocks"],
-        },
-        query2: {
-          planningTime: plan2?.["Planning Time"],
-          executionTime: plan2?.["Execution Time"],
-          totalCost: (plan2?.["Plan"] as Record<string, unknown> | undefined)?.[
-            "Total Cost"
-          ],
-          sharedBuffersHit: plan2?.["Shared Hit Blocks"],
-          sharedBuffersRead: plan2?.["Shared Read Blocks"],
-        },
-        analysis: {
-          costDifference:
-            plan1 && plan2
-              ? Number(
-                  (plan1["Plan"] as Record<string, unknown>)?.["Total Cost"],
-                ) -
-                Number(
-                  (plan2["Plan"] as Record<string, unknown>)?.["Total Cost"],
-                )
-              : null,
-          recommendation: "",
-        },
-        fullPlans: { plan1, plan2 },
-      };
+        const comparison = {
+          query1: {
+            planningTime: plan1?.["Planning Time"],
+            executionTime: plan1?.["Execution Time"],
+            totalCost: (
+              plan1?.["Plan"] as Record<string, unknown> | undefined
+            )?.["Total Cost"],
+            sharedBuffersHit: plan1?.["Shared Hit Blocks"],
+            sharedBuffersRead: plan1?.["Shared Read Blocks"],
+          },
+          query2: {
+            planningTime: plan2?.["Planning Time"],
+            executionTime: plan2?.["Execution Time"],
+            totalCost: (
+              plan2?.["Plan"] as Record<string, unknown> | undefined
+            )?.["Total Cost"],
+            sharedBuffersHit: plan2?.["Shared Hit Blocks"],
+            sharedBuffersRead: plan2?.["Shared Read Blocks"],
+          },
+          analysis: {
+            costDifference:
+              plan1 && plan2
+                ? Number(
+                    (plan1["Plan"] as Record<string, unknown>)?.["Total Cost"],
+                  ) -
+                  Number(
+                    (plan2["Plan"] as Record<string, unknown>)?.["Total Cost"],
+                  )
+                : null,
+            recommendation: "",
+          },
+          fullPlans: { plan1, plan2 },
+        };
 
-      if (comparison.analysis.costDifference !== null) {
-        if (comparison.analysis.costDifference > 0) {
-          comparison.analysis.recommendation =
-            "Query 2 has lower estimated cost";
-        } else if (comparison.analysis.costDifference < 0) {
-          comparison.analysis.recommendation =
-            "Query 1 has lower estimated cost";
-        } else {
-          comparison.analysis.recommendation =
-            "Both queries have similar estimated cost";
+        if (comparison.analysis.costDifference !== null) {
+          if (comparison.analysis.costDifference > 0) {
+            comparison.analysis.recommendation =
+              "Query 2 has lower estimated cost";
+          } else if (comparison.analysis.costDifference < 0) {
+            comparison.analysis.recommendation =
+              "Query 1 has lower estimated cost";
+          } else {
+            comparison.analysis.recommendation =
+              "Both queries have similar estimated cost";
+          }
         }
-      }
 
-      return comparison;
+        return comparison;
+      } catch (error) {
+        throw parsePostgresError(error, { tool: "pg_query_plan_compare" });
+      }
     },
   };
 }
