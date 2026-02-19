@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_dump_table` raw PostgreSQL exceptions** — Nonexistent tables/schemas now throw structured errors (e.g., `Table 'x' not found. Use pg_list_tables`) instead of raw PG exceptions like `relation "x" does not exist`. Added try-catch with `parsePostgresError`
+
+- **`pg_copy_export` raw PostgreSQL exceptions** — Invalid SQL and nonexistent tables now throw structured errors instead of raw PG exceptions. Added try-catch with `parsePostgresError`
+
 - **`pg_explain` / `pg_explain_analyze` / `pg_explain_buffers` `query` alias rejected** — Direct MCP tool calls using `{ query: "SELECT ..." }` instead of `{ sql: "SELECT ..." }` now work correctly. Previously, the MCP SDK rejected the `query` alias at runtime because `ExplainSchemaBase` did not include it as a field and marked `sql` as required. Added `query` as an optional alias field, made `sql` optional in the base schema, and added handler guard clauses to validate that at least one is provided
 
 - **ESLint 10 compliance** — Resolved 20 new lint errors introduced by ESLint 10's stricter `eslint:recommended` rules:

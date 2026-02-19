@@ -1486,3 +1486,62 @@ describe("pg_create_backup_plan extended", () => {
     expect(result.strategy.fullBackup.retention).toContain("14");
   });
 });
+
+// =============================================================================
+// Structured Error Handling (parsePostgresError)
+// =============================================================================
+
+describe("pg_dump_table - structured error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should throw structured error for nonexistent table (42P01)", async () => {
+    const pgError = new Error(
+      'relation "nonexistent_table" does not exist',
+    ) as Error & { code: string };
+    pgError.code = "42P01";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    await expect(
+      tool.handler({ table: "nonexistent_table" }, mockContext),
+    ).rejects.toThrow(/not found.*pg_list_tables/i);
+  });
+});
+
+describe("pg_copy_export - structured error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should throw structured error for invalid SQL (42601)", async () => {
+    const pgError = new Error('syntax error at or near "SELEC"') as Error & {
+      code: string;
+    };
+    pgError.code = "42601";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_copy_export")!;
+    await expect(
+      tool.handler(
+        { table: "users", query: "SELEC * FROM users" },
+        mockContext,
+      ),
+    ).rejects.toThrow("SQL syntax error");
+  });
+});
