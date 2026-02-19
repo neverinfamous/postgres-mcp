@@ -12,6 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -162,54 +163,61 @@ export function createPointInPolygonTool(
       );
       const columnName = sanitizeIdentifier(column);
 
-      // Check geometry type and warn if not polygon
-      const typeCheckSql = `SELECT DISTINCT GeometryType(${columnName}) as geom_type FROM ${tableName} WHERE ${columnName} IS NOT NULL LIMIT 1`;
-      const typeResult = await adapter.executeQuery(typeCheckSql);
-      const geomType = typeResult.rows?.[0]?.["geom_type"] as
-        | string
-        | undefined;
-      const isPolygonType =
-        geomType?.toUpperCase()?.includes("POLYGON") ?? false;
+      try {
+        // Check geometry type and warn if not polygon
+        const typeCheckSql = `SELECT DISTINCT GeometryType(${columnName}) as geom_type FROM ${tableName} WHERE ${columnName} IS NOT NULL LIMIT 1`;
+        const typeResult = await adapter.executeQuery(typeCheckSql);
+        const geomType = typeResult.rows?.[0]?.["geom_type"] as
+          | string
+          | undefined;
+        const isPolygonType =
+          geomType?.toUpperCase()?.includes("POLYGON") ?? false;
 
-      // Get non-geometry columns to avoid returning raw WKB
-      const colQuery = `
-        SELECT column_name FROM information_schema.columns 
-        WHERE table_schema = $1 AND table_name = $2 
-        AND udt_name NOT IN ('geometry', 'geography')
-        ORDER BY ordinal_position
-      `;
-      const colResult = await adapter.executeQuery(colQuery, [
-        schemaName,
-        table,
-      ]);
-      const nonGeomCols = (colResult.rows ?? [])
-        .map((row) => sanitizeIdentifier(String(row["column_name"])))
-        .join(", ");
+        // Get non-geometry columns to avoid returning raw WKB
+        const colQuery = `
+          SELECT column_name FROM information_schema.columns 
+          WHERE table_schema = $1 AND table_name = $2 
+          AND udt_name NOT IN ('geometry', 'geography')
+          ORDER BY ordinal_position
+        `;
+        const colResult = await adapter.executeQuery(colQuery, [
+          schemaName,
+          table,
+        ]);
+        const nonGeomCols = (colResult.rows ?? [])
+          .map((row) => sanitizeIdentifier(String(row["column_name"])))
+          .join(", ");
 
-      // Select non-geometry columns + readable geometry representation
-      const selectCols =
-        nonGeomCols.length > 0
-          ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text`
-          : `ST_AsText(${columnName}) as geometry_text`;
+        // Select non-geometry columns + readable geometry representation
+        const selectCols =
+          nonGeomCols.length > 0
+            ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text`
+            : `ST_AsText(${columnName}) as geometry_text`;
 
-      const sql = `SELECT ${selectCols}
-                        FROM ${tableName}
-                        WHERE ST_Contains(${columnName}, ST_SetSRID(ST_MakePoint($1, $2), 4326))`;
+        const sql = `SELECT ${selectCols}
+                          FROM ${tableName}
+                          WHERE ST_Contains(${columnName}, ST_SetSRID(ST_MakePoint($1, $2), 4326))`;
 
-      const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
+        const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
 
-      const response: Record<string, unknown> = {
-        containingPolygons: result.rows,
-        count: result.rows?.length ?? 0,
-      };
+        const response: Record<string, unknown> = {
+          containingPolygons: result.rows,
+          count: result.rows?.length ?? 0,
+        };
 
-      // Add warning if geometry type is not polygon
-      if (!isPolygonType && geomType !== undefined) {
-        response["warning"] =
-          `Column "${column}" contains ${geomType} geometries, not polygons. ST_Contains requires polygons to produce meaningful results.`;
+        // Add warning if geometry type is not polygon
+        if (!isPolygonType && geomType !== undefined) {
+          response["warning"] =
+            `Column "${column}" contains ${geomType} geometries, not polygons. ST_Contains requires polygons to produce meaningful results.`;
+        }
+
+        return response;
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_point_in_polygon",
+          table,
+        });
       }
-
-      return response;
     },
   };
 }
@@ -246,10 +254,15 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
         AND udt_name NOT IN ('geometry', 'geography')
         ORDER BY ordinal_position
       `;
-      const colResult = await adapter.executeQuery(colQuery, [
-        schemaName,
-        table,
-      ]);
+      let colResult;
+      try {
+        colResult = await adapter.executeQuery(colQuery, [schemaName, table]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_distance",
+          table,
+        });
+      }
       const nonGeomCols = (colResult.rows ?? [])
         .map((row) => sanitizeIdentifier(String(row["column_name"])))
         .join(", ");
@@ -270,7 +283,15 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
             ORDER BY distance_meters
             LIMIT ${String(limitVal)}`;
 
-      const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [point.lng, point.lat]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_distance",
+          table,
+        });
+      }
       return { results: result.rows, count: result.rows?.length ?? 0 };
     },
   };
@@ -301,67 +322,74 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
       // Default limit of 50 to prevent large payloads, use limit: 0 for all
       const effectiveLimit = parsed.limit ?? 50;
 
-      // Get non-geometry columns to avoid returning raw WKB
-      const colQuery = `
-        SELECT column_name FROM information_schema.columns 
-        WHERE table_schema = $1 AND table_name = $2 
-        AND udt_name NOT IN ('geometry', 'geography')
-        ORDER BY ordinal_position
-      `;
-      const colResult = await adapter.executeQuery(colQuery, [
-        schemaName,
-        parsed.table,
-      ]);
-      const nonGeomCols = (colResult.rows ?? [])
-        .map((row) => sanitizeIdentifier(String(row["column_name"])))
-        .join(", ");
+      try {
+        // Get non-geometry columns to avoid returning raw WKB
+        const colQuery = `
+          SELECT column_name FROM information_schema.columns 
+          WHERE table_schema = $1 AND table_name = $2 
+          AND udt_name NOT IN ('geometry', 'geography')
+          ORDER BY ordinal_position
+        `;
+        const colResult = await adapter.executeQuery(colQuery, [
+          schemaName,
+          parsed.table,
+        ]);
+        const nonGeomCols = (colResult.rows ?? [])
+          .map((row) => sanitizeIdentifier(String(row["column_name"])))
+          .join(", ");
 
-      // Default simplify of 10m reduces polygon points for LLM-friendly payloads
-      // User can set simplify: 0 to disable or higher values for more aggressive reduction
-      const effectiveSimplify = parsed.simplify ?? 10;
+        // Default simplify of 10m reduces polygon points for LLM-friendly payloads
+        // User can set simplify: 0 to disable or higher values for more aggressive reduction
+        const effectiveSimplify = parsed.simplify ?? 10;
 
-      // Build buffer expression with simplification (applied by default)
-      let bufferExpr = `ST_Buffer(${columnName}::geography, $1)::geometry`;
-      if (effectiveSimplify > 0) {
-        // SimplifyPreserveTopology maintains valid geometries
-        bufferExpr = `ST_SimplifyPreserveTopology(${bufferExpr}, ${String(effectiveSimplify)})`;
-      }
-
-      // Select non-geometry columns + readable geometry representations
-      const selectCols =
-        nonGeomCols.length > 0
-          ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text, ST_AsGeoJSON(${bufferExpr}) as buffer_geojson`
-          : `ST_AsText(${columnName}) as geometry_text, ST_AsGeoJSON(${bufferExpr}) as buffer_geojson`;
-
-      const limitClause =
-        effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
-      const sql = `SELECT ${selectCols} FROM ${qualifiedTable}${whereClause}${limitClause}`;
-
-      const result = await adapter.executeQuery(sql, [parsed.distance]);
-
-      // Build response with truncation indicators if default limit was applied
-      const response: Record<string, unknown> = { results: result.rows };
-
-      // Check if results were truncated (works for both default and explicit limits)
-      if (effectiveLimit > 0) {
-        const countSql = `SELECT COUNT(*) as cnt FROM ${qualifiedTable}${whereClause}`;
-        const countResult = await adapter.executeQuery(countSql);
-        const totalCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
-
-        if (totalCount > effectiveLimit) {
-          response["truncated"] = true;
-          response["totalCount"] = totalCount;
-          response["limit"] = effectiveLimit;
+        // Build buffer expression with simplification (applied by default)
+        let bufferExpr = `ST_Buffer(${columnName}::geography, $1)::geometry`;
+        if (effectiveSimplify > 0) {
+          // SimplifyPreserveTopology maintains valid geometries
+          bufferExpr = `ST_SimplifyPreserveTopology(${bufferExpr}, ${String(effectiveSimplify)})`;
         }
-      }
 
-      // Add simplify indicator if simplification was applied
-      if (effectiveSimplify > 0) {
-        response["simplified"] = true;
-        response["simplifyTolerance"] = effectiveSimplify;
-      }
+        // Select non-geometry columns + readable geometry representations
+        const selectCols =
+          nonGeomCols.length > 0
+            ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text, ST_AsGeoJSON(${bufferExpr}) as buffer_geojson`
+            : `ST_AsText(${columnName}) as geometry_text, ST_AsGeoJSON(${bufferExpr}) as buffer_geojson`;
 
-      return response;
+        const limitClause =
+          effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
+        const sql = `SELECT ${selectCols} FROM ${qualifiedTable}${whereClause}${limitClause}`;
+
+        const result = await adapter.executeQuery(sql, [parsed.distance]);
+
+        // Build response with truncation indicators if default limit was applied
+        const response: Record<string, unknown> = { results: result.rows };
+
+        // Check if results were truncated (works for both default and explicit limits)
+        if (effectiveLimit > 0) {
+          const countSql = `SELECT COUNT(*) as cnt FROM ${qualifiedTable}${whereClause}`;
+          const countResult = await adapter.executeQuery(countSql);
+          const totalCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
+
+          if (totalCount > effectiveLimit) {
+            response["truncated"] = true;
+            response["totalCount"] = totalCount;
+            response["limit"] = effectiveLimit;
+          }
+        }
+
+        // Add simplify indicator if simplification was applied
+        if (effectiveSimplify > 0) {
+          response["simplified"] = true;
+          response["simplifyTolerance"] = effectiveSimplify;
+        }
+
+        return response;
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_buffer",
+          table: parsed.table,
+        });
+      }
     },
   };
 }
@@ -387,76 +415,85 @@ export function createIntersectionTool(
       );
       const columnName = sanitizeIdentifier(parsed.column);
 
-      // Build select columns - user-specified or non-geometry columns to avoid raw WKB
-      let selectCols: string;
-      if (parsed.select !== undefined && parsed.select.length > 0) {
-        selectCols = parsed.select.map((c) => sanitizeIdentifier(c)).join(", ");
-      } else {
-        // Get non-geometry columns to avoid returning raw WKB
-        const colQuery = `
-          SELECT column_name FROM information_schema.columns 
-          WHERE table_schema = $1 AND table_name = $2 
-          AND udt_name NOT IN ('geometry', 'geography')
-          ORDER BY ordinal_position
-        `;
-        const colResult = await adapter.executeQuery(colQuery, [
-          schemaName,
-          parsed.table,
-        ]);
-        const nonGeomCols = (colResult.rows ?? [])
-          .map((row) => sanitizeIdentifier(String(row["column_name"])))
-          .join(", ");
-        selectCols =
-          nonGeomCols.length > 0
-            ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text`
-            : `ST_AsText(${columnName}) as geometry_text`;
-      }
-
-      const isGeoJson = parsed.geometry.trim().startsWith("{");
-
-      // Auto-detect SRID from column if not provided and using WKT
-      let srid = parsed.srid;
-      if (!isGeoJson && srid === undefined) {
-        // Query the column's SRID from geometry_columns or geography_columns
-        const sridQuery = `
-                    SELECT srid FROM geometry_columns 
-                    WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geometry_column = $3
-                    UNION
-                    SELECT srid FROM geography_columns 
-                    WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geography_column = $3
-                    LIMIT 1
-                `;
-        const sridResult = await adapter.executeQuery(sridQuery, [
-          schemaName,
-          parsed.table,
-          parsed.column,
-        ]);
-        const sridValue = sridResult.rows?.[0]?.["srid"];
-        if (sridValue !== undefined && sridValue !== null) {
-          srid = Number(sridValue);
+      try {
+        // Build select columns - user-specified or non-geometry columns to avoid raw WKB
+        let selectCols: string;
+        if (parsed.select !== undefined && parsed.select.length > 0) {
+          selectCols = parsed.select
+            .map((c) => sanitizeIdentifier(c))
+            .join(", ");
+        } else {
+          // Get non-geometry columns to avoid returning raw WKB
+          const colQuery = `
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_schema = $1 AND table_name = $2 
+            AND udt_name NOT IN ('geometry', 'geography')
+            ORDER BY ordinal_position
+          `;
+          const colResult = await adapter.executeQuery(colQuery, [
+            schemaName,
+            parsed.table,
+          ]);
+          const nonGeomCols = (colResult.rows ?? [])
+            .map((row) => sanitizeIdentifier(String(row["column_name"])))
+            .join(", ");
+          selectCols =
+            nonGeomCols.length > 0
+              ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text`
+              : `ST_AsText(${columnName}) as geometry_text`;
         }
+
+        const isGeoJson = parsed.geometry.trim().startsWith("{");
+
+        // Auto-detect SRID from column if not provided and using WKT
+        let srid = parsed.srid;
+        if (!isGeoJson && srid === undefined) {
+          // Query the column's SRID from geometry_columns or geography_columns
+          const sridQuery = `
+                      SELECT srid FROM geometry_columns 
+                      WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geometry_column = $3
+                      UNION
+                      SELECT srid FROM geography_columns 
+                      WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geography_column = $3
+                      LIMIT 1
+                  `;
+          const sridResult = await adapter.executeQuery(sridQuery, [
+            schemaName,
+            parsed.table,
+            parsed.column,
+          ]);
+          const sridValue = sridResult.rows?.[0]?.["srid"];
+          if (sridValue !== undefined && sridValue !== null) {
+            srid = Number(sridValue);
+          }
+        }
+
+        // Build geometry expression with SRID if available
+        let geomExpr: string;
+        if (isGeoJson) {
+          geomExpr = `ST_GeomFromGeoJSON($1)`;
+        } else if (srid !== undefined) {
+          geomExpr = `ST_SetSRID(ST_GeomFromText($1), ${String(srid)})`;
+        } else {
+          geomExpr = `ST_GeomFromText($1)`;
+        }
+
+        const sql = `SELECT ${selectCols}
+                          FROM ${qualifiedTable}
+                          WHERE ST_Intersects(${columnName}, ${geomExpr})`;
+
+        const result = await adapter.executeQuery(sql, [parsed.geometry]);
+        return {
+          intersecting: result.rows,
+          count: result.rows?.length ?? 0,
+          sridUsed: srid ?? "none (explicit SRID in geometry or GeoJSON)",
+        };
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_intersection",
+          table: parsed.table,
+        });
       }
-
-      // Build geometry expression with SRID if available
-      let geomExpr: string;
-      if (isGeoJson) {
-        geomExpr = `ST_GeomFromGeoJSON($1)`;
-      } else if (srid !== undefined) {
-        geomExpr = `ST_SetSRID(ST_GeomFromText($1), ${String(srid)})`;
-      } else {
-        geomExpr = `ST_GeomFromText($1)`;
-      }
-
-      const sql = `SELECT ${selectCols}
-                        FROM ${qualifiedTable}
-                        WHERE ST_Intersects(${columnName}, ${geomExpr})`;
-
-      const result = await adapter.executeQuery(sql, [parsed.geometry]);
-      return {
-        intersecting: result.rows,
-        count: result.rows?.length ?? 0,
-        sridUsed: srid ?? "none (explicit SRID in geometry or GeoJSON)",
-      };
     },
   };
 }
@@ -483,66 +520,75 @@ export function createBoundingBoxTool(
       );
       const columnName = sanitizeIdentifier(parsed.column);
 
-      // Build select columns - user-specified or non-geometry columns to avoid raw WKB
-      let selectCols: string;
-      if (parsed.select !== undefined && parsed.select.length > 0) {
-        selectCols = parsed.select.map((c) => sanitizeIdentifier(c)).join(", ");
-      } else {
-        // Get non-geometry columns to avoid returning raw WKB
-        const colQuery = `
-          SELECT column_name FROM information_schema.columns 
-          WHERE table_schema = $1 AND table_name = $2 
-          AND udt_name NOT IN ('geometry', 'geography')
-          ORDER BY ordinal_position
-        `;
-        const colResult = await adapter.executeQuery(colQuery, [
-          schemaName,
-          parsed.table,
+      try {
+        // Build select columns - user-specified or non-geometry columns to avoid raw WKB
+        let selectCols: string;
+        if (parsed.select !== undefined && parsed.select.length > 0) {
+          selectCols = parsed.select
+            .map((c) => sanitizeIdentifier(c))
+            .join(", ");
+        } else {
+          // Get non-geometry columns to avoid returning raw WKB
+          const colQuery = `
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_schema = $1 AND table_name = $2 
+            AND udt_name NOT IN ('geometry', 'geography')
+            ORDER BY ordinal_position
+          `;
+          const colResult = await adapter.executeQuery(colQuery, [
+            schemaName,
+            parsed.table,
+          ]);
+          selectCols = (colResult.rows ?? [])
+            .map((row) => sanitizeIdentifier(String(row["column_name"])))
+            .join(", ");
+        }
+
+        // Auto-correct swapped bounds
+        const corrections: string[] = [];
+        let actualMinLng = parsed.minLng;
+        let actualMaxLng = parsed.maxLng;
+        let actualMinLat = parsed.minLat;
+        let actualMaxLat = parsed.maxLat;
+
+        if (parsed.minLng > parsed.maxLng) {
+          actualMinLng = parsed.maxLng;
+          actualMaxLng = parsed.minLng;
+          corrections.push("minLng/maxLng were swapped");
+        }
+        if (parsed.minLat > parsed.maxLat) {
+          actualMinLat = parsed.maxLat;
+          actualMaxLat = parsed.minLat;
+          corrections.push("minLat/maxLat were swapped");
+        }
+
+        const sql = `SELECT ${selectCols}, ST_AsText(${columnName}) as geometry_text
+                          FROM ${qualifiedTable}
+                          WHERE ${columnName} && ST_MakeEnvelope($1, $2, $3, $4, 4326)`;
+
+        const result = await adapter.executeQuery(sql, [
+          actualMinLng,
+          actualMinLat,
+          actualMaxLng,
+          actualMaxLat,
         ]);
-        selectCols = (colResult.rows ?? [])
-          .map((row) => sanitizeIdentifier(String(row["column_name"])))
-          .join(", ");
+
+        const response: Record<string, unknown> = {
+          results: result.rows,
+          count: result.rows?.length ?? 0,
+        };
+
+        if (corrections.length > 0) {
+          response["note"] = `Auto-corrected: ${corrections.join(", ")}`;
+        }
+
+        return response;
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_bounding_box",
+          table: parsed.table,
+        });
       }
-
-      // Auto-correct swapped bounds
-      const corrections: string[] = [];
-      let actualMinLng = parsed.minLng;
-      let actualMaxLng = parsed.maxLng;
-      let actualMinLat = parsed.minLat;
-      let actualMaxLat = parsed.maxLat;
-
-      if (parsed.minLng > parsed.maxLng) {
-        actualMinLng = parsed.maxLng;
-        actualMaxLng = parsed.minLng;
-        corrections.push("minLng/maxLng were swapped");
-      }
-      if (parsed.minLat > parsed.maxLat) {
-        actualMinLat = parsed.maxLat;
-        actualMaxLat = parsed.minLat;
-        corrections.push("minLat/maxLat were swapped");
-      }
-
-      const sql = `SELECT ${selectCols}, ST_AsText(${columnName}) as geometry_text
-                        FROM ${qualifiedTable}
-                        WHERE ${columnName} && ST_MakeEnvelope($1, $2, $3, $4, 4326)`;
-
-      const result = await adapter.executeQuery(sql, [
-        actualMinLng,
-        actualMinLat,
-        actualMaxLng,
-        actualMaxLat,
-      ]);
-
-      const response: Record<string, unknown> = {
-        results: result.rows,
-        count: result.rows?.length ?? 0,
-      };
-
-      if (corrections.length > 0) {
-        response["note"] = `Auto-corrected: ${corrections.join(", ")}`;
-      }
-
-      return response;
     },
   };
 }

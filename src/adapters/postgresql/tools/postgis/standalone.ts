@@ -12,6 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "../core/error-helpers.js";
 import {
   GeometryBufferSchemaBase,
   GeometryBufferSchema,
@@ -95,7 +96,14 @@ export function createGeometryBufferTool(
                     ${String(sridVal)} as srid
             `;
 
-      const result = await adapter.executeQuery(sql, [geometry, distance]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [geometry, distance]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_geometry_buffer",
+        });
+      }
       const row = result.rows?.[0];
       const response: Record<string, unknown> = {
         ...row,
@@ -155,7 +163,14 @@ export function createGeometryIntersectionTool(
                     ST_Area(ST_Intersection(${geom1Expr}, ${geom2Expr})::geography) as intersection_area_sqm
             `;
 
-      const result = await adapter.executeQuery(sql, [geometry1, geometry2]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [geometry1, geometry2]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_geometry_intersection",
+        });
+      }
       return {
         ...result.rows?.[0],
         geometry1Format: geom1.isGeoJson ? "GeoJSON" : "WKT",
@@ -193,7 +208,14 @@ export function createGeometryTransformTool(
                     ST_AsText(ST_Transform(ST_SetSRID(${geomExpr}, ${String(fromSrid)}), ${String(toSrid)})) as transformed_wkt
             `;
 
-      const result = await adapter.executeQuery(sql, [geometry]);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, [geometry]);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_geometry_transform",
+        });
+      }
       return {
         ...result.rows?.[0],
         fromSrid,

@@ -450,3 +450,111 @@ describe("Error Handling", () => {
     );
   });
 });
+
+// ============================================================
+// Structured Error Handling (parsePostgresError)
+// ============================================================
+
+describe("Structured Error Handling (parsePostgresError)", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPostgisTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPostgisTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  const tableTools = [
+    {
+      name: "pg_point_in_polygon",
+      params: {
+        table: "nonexistent_xyz",
+        column: "geom",
+        point: { lat: 40, lng: -74 },
+      },
+    },
+    {
+      name: "pg_distance",
+      params: {
+        table: "nonexistent_xyz",
+        column: "geom",
+        point: { lat: 40, lng: -74 },
+      },
+    },
+    {
+      name: "pg_buffer",
+      params: { table: "nonexistent_xyz", column: "geom", distance: 1000 },
+    },
+    {
+      name: "pg_bounding_box",
+      params: {
+        table: "nonexistent_xyz",
+        column: "geom",
+        minLng: -120,
+        minLat: 30,
+        maxLng: 0,
+        maxLat: 50,
+      },
+    },
+    {
+      name: "pg_intersection",
+      params: {
+        table: "nonexistent_xyz",
+        column: "geom",
+        geometry: "POINT(0 0)",
+      },
+    },
+    {
+      name: "pg_geo_cluster",
+      params: { table: "nonexistent_xyz", column: "geom" },
+    },
+  ];
+
+  it.each(tableTools)(
+    "$name should throw structured error for nonexistent table",
+    async ({ name, params }) => {
+      const pgError = new Error(
+        'relation "nonexistent_xyz" does not exist',
+      ) as Error & { code: string };
+      pgError.code = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === name)!;
+      await expect(tool.handler(params, mockContext)).rejects.toThrow(
+        /not found/i,
+      );
+    },
+  );
+
+  const standaloneTools = [
+    {
+      name: "pg_geometry_buffer",
+      params: { geometry: "INVALID_WKT", distance: 1000 },
+    },
+    {
+      name: "pg_geometry_intersection",
+      params: { geometry1: "INVALID_WKT", geometry2: "ALSO_INVALID" },
+    },
+    {
+      name: "pg_geometry_transform",
+      params: { geometry: "INVALID_WKT", fromSrid: 4326, toSrid: 3857 },
+    },
+  ];
+
+  it.each(standaloneTools)(
+    "$name should throw structured error for invalid geometry",
+    async ({ name, params }) => {
+      const pgError = new Error("parse error - invalid geometry") as Error & {
+        code: string;
+      };
+      pgError.code = "XX000";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === name)!;
+      await expect(tool.handler(params, mockContext)).rejects.toThrow();
+    },
+  );
+});

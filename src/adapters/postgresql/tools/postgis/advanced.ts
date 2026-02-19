@@ -12,6 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "../core/error-helpers.js";
 import {
   GeocodeSchemaBase,
   GeocodeSchema,
@@ -358,164 +359,171 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
       let effectiveNumClusters = parsed.numClusters ?? 5;
       let rowCount: number;
 
-      if (method === "kmeans") {
-        // Validate numClusters > 0
-        if (effectiveNumClusters <= 0) {
-          return {
-            error: `numClusters must be greater than 0 (received: ${String(effectiveNumClusters)}).`,
-            method,
-            table: parsed.table,
-            numClusters: effectiveNumClusters,
-            suggestion:
-              "Provide a positive integer for numClusters (e.g., numClusters: 3)",
-          };
-        }
+      try {
+        if (method === "kmeans") {
+          // Validate numClusters > 0
+          if (effectiveNumClusters <= 0) {
+            return {
+              error: `numClusters must be greater than 0 (received: ${String(effectiveNumClusters)}).`,
+              method,
+              table: parsed.table,
+              numClusters: effectiveNumClusters,
+              suggestion:
+                "Provide a positive integer for numClusters (e.g., numClusters: 3)",
+            };
+          }
 
-        const countResult = await adapter.executeQuery(
-          `SELECT COUNT(*) as cnt FROM ${qualifiedTable} ${whereClause}`,
-        );
-        rowCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
-
-        if (rowCount === 0) {
-          return {
-            error: `No rows found in table ${parsed.table}${whereClause !== "" ? " matching filter" : ""}. K-Means requires at least 1 row.`,
-            method,
-            table: parsed.table,
-            rowCount: 0,
-          };
-        }
-
-        // Clamp K to row count and warn if exceeded
-        if (effectiveNumClusters > rowCount) {
-          warning = `Requested ${String(parsed.numClusters)} clusters but only ${String(rowCount)} rows available. Using ${String(rowCount)} clusters instead.`;
-          effectiveNumClusters = rowCount;
-        }
-      }
-
-      let clusterFunction: string;
-      if (method === "kmeans") {
-        clusterFunction = `ST_ClusterKMeans("${parsed.column}", ${String(effectiveNumClusters)}) OVER ()`;
-      } else {
-        const eps = parsed.eps ?? 100;
-        const minPoints = parsed.minPoints ?? 3;
-        clusterFunction = `ST_ClusterDBSCAN("${parsed.column}", ${String(eps)}, ${String(minPoints)}) OVER ()`;
-      }
-
-      const sql = `
-                WITH clustered AS (
-                    SELECT 
-                        *,
-                        ${clusterFunction} as cluster_id
-                    FROM ${qualifiedTable}
-                    ${whereClause}
-                )
-                SELECT 
-                    cluster_id,
-                    COUNT(*) as point_count,
-                    ST_AsGeoJSON(ST_Centroid(ST_Collect("${parsed.column}"))) as centroid,
-                    ST_AsGeoJSON(ST_ConvexHull(ST_Collect("${parsed.column}"))) as hull
-                FROM clustered
-                WHERE cluster_id IS NOT NULL
-                GROUP BY cluster_id
-                ORDER BY point_count DESC
-                ${limitClause}
-            `;
-
-      const [clustersResult, summaryResult] = await Promise.all([
-        adapter.executeQuery(sql),
-        adapter.executeQuery(`
-                    WITH clustered AS (
-                        SELECT ${clusterFunction} as cluster_id
-                        FROM ${qualifiedTable}
-                        ${whereClause}
-                    )
-                    SELECT 
-                        COUNT(DISTINCT cluster_id) as num_clusters,
-                        COUNT(*) FILTER (WHERE cluster_id IS NULL) as noise_points,
-                        COUNT(*) as total_points
-                    FROM clustered
-                `),
-      ]);
-
-      // Normalize cluster point_count to numbers
-      const normalizedClusters = (clustersResult.rows ?? []).map((row) => ({
-        ...row,
-        point_count: Number(row["point_count"]),
-      }));
-
-      // Normalize summary values to numbers for consistency
-      const rawSummary = summaryResult.rows?.[0] ?? {};
-      const normalizedSummary = {
-        num_clusters: Number(rawSummary["num_clusters"] ?? 0),
-        noise_points: Number(rawSummary["noise_points"] ?? 0),
-        total_points: Number(rawSummary["total_points"] ?? 0),
-      };
-
-      // Build response
-      const response: Record<string, unknown> = {
-        method,
-        parameters:
-          method === "kmeans"
-            ? { numClusters: effectiveNumClusters }
-            : { eps: parsed.eps ?? 100, minPoints: parsed.minPoints ?? 3 },
-        summary: normalizedSummary,
-        clusters: normalizedClusters,
-      };
-
-      // Add warning if K was clamped
-      if (warning !== undefined) {
-        response["warning"] = warning;
-        response["requestedClusters"] = parsed.numClusters;
-        response["actualClusters"] = effectiveNumClusters;
-      }
-
-      // Add contextual hints based on method and results
-      const numClusters = normalizedSummary.num_clusters;
-      const noisePoints = normalizedSummary.noise_points;
-      const totalPoints = normalizedSummary.total_points;
-
-      if (method === "dbscan") {
-        const eps = parsed.eps ?? 100;
-        const minPoints = parsed.minPoints ?? 3;
-
-        // Provide hints about DBSCAN parameter trade-offs
-        const hints: string[] = [];
-
-        if (numClusters === 1 && totalPoints > 1) {
-          hints.push(
-            `All ${String(totalPoints)} points formed a single cluster. Consider decreasing eps (currently ${String(eps)}m) to create more distinct clusters.`,
+          const countResult = await adapter.executeQuery(
+            `SELECT COUNT(*) as cnt FROM ${qualifiedTable} ${whereClause}`,
           );
+          rowCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
+
+          if (rowCount === 0) {
+            return {
+              error: `No rows found in table ${parsed.table}${whereClause !== "" ? " matching filter" : ""}. K-Means requires at least 1 row.`,
+              method,
+              table: parsed.table,
+              rowCount: 0,
+            };
+          }
+
+          // Clamp K to row count and warn if exceeded
+          if (effectiveNumClusters > rowCount) {
+            warning = `Requested ${String(parsed.numClusters)} clusters but only ${String(rowCount)} rows available. Using ${String(rowCount)} clusters instead.`;
+            effectiveNumClusters = rowCount;
+          }
         }
 
-        if (noisePoints > 0 && noisePoints > totalPoints * 0.5) {
-          hints.push(
-            `${String(noisePoints)} of ${String(totalPoints)} points (${String(Math.round((noisePoints / totalPoints) * 100))}%) are noise. Consider increasing eps or decreasing minPoints (currently ${String(minPoints)}).`,
-          );
+        let clusterFunction: string;
+        if (method === "kmeans") {
+          clusterFunction = `ST_ClusterKMeans("${parsed.column}", ${String(effectiveNumClusters)}) OVER ()`;
+        } else {
+          const eps = parsed.eps ?? 100;
+          const minPoints = parsed.minPoints ?? 3;
+          clusterFunction = `ST_ClusterDBSCAN("${parsed.column}", ${String(eps)}, ${String(minPoints)}) OVER ()`;
         }
 
-        if (numClusters === 0 && totalPoints > 0) {
-          hints.push(
-            `No clusters formed - all points are noise. Try increasing eps (currently ${String(eps)}m) or decreasing minPoints (currently ${String(minPoints)}).`,
-          );
-        }
+        const sql = `
+                  WITH clustered AS (
+                      SELECT 
+                          *,
+                          ${clusterFunction} as cluster_id
+                      FROM ${qualifiedTable}
+                      ${whereClause}
+                  )
+                  SELECT 
+                      cluster_id,
+                      COUNT(*) as point_count,
+                      ST_AsGeoJSON(ST_Centroid(ST_Collect("${parsed.column}"))) as centroid,
+                      ST_AsGeoJSON(ST_ConvexHull(ST_Collect("${parsed.column}"))) as hull
+                  FROM clustered
+                  WHERE cluster_id IS NOT NULL
+                  GROUP BY cluster_id
+                  ORDER BY point_count DESC
+                  ${limitClause}
+              `;
 
-        response["notes"] =
-          "Noise points (cluster_id = NULL) are points not belonging to any cluster";
+        const [clustersResult, summaryResult] = await Promise.all([
+          adapter.executeQuery(sql),
+          adapter.executeQuery(`
+                      WITH clustered AS (
+                          SELECT ${clusterFunction} as cluster_id
+                          FROM ${qualifiedTable}
+                          ${whereClause}
+                      )
+                      SELECT 
+                          COUNT(DISTINCT cluster_id) as num_clusters,
+                          COUNT(*) FILTER (WHERE cluster_id IS NULL) as noise_points,
+                          COUNT(*) as total_points
+                      FROM clustered
+                  `),
+        ]);
 
-        if (hints.length > 0) {
-          response["hints"] = hints;
-        }
+        // Normalize cluster point_count to numbers
+        const normalizedClusters = (clustersResult.rows ?? []).map((row) => ({
+          ...row,
+          point_count: Number(row["point_count"]),
+        }));
 
-        response["parameterGuide"] = {
-          eps: `Distance threshold in meters. Larger values group more distant points together.`,
-          minPoints: `Minimum points required to form a cluster. Higher values create fewer, denser clusters.`,
+        // Normalize summary values to numbers for consistency
+        const rawSummary = summaryResult.rows?.[0] ?? {};
+        const normalizedSummary = {
+          num_clusters: Number(rawSummary["num_clusters"] ?? 0),
+          noise_points: Number(rawSummary["noise_points"] ?? 0),
+          total_points: Number(rawSummary["total_points"] ?? 0),
         };
-      } else {
-        response["notes"] =
-          "K-Means will always assign all points to a cluster";
-      }
 
-      return response;
+        // Build response
+        const response: Record<string, unknown> = {
+          method,
+          parameters:
+            method === "kmeans"
+              ? { numClusters: effectiveNumClusters }
+              : { eps: parsed.eps ?? 100, minPoints: parsed.minPoints ?? 3 },
+          summary: normalizedSummary,
+          clusters: normalizedClusters,
+        };
+
+        // Add warning if K was clamped
+        if (warning !== undefined) {
+          response["warning"] = warning;
+          response["requestedClusters"] = parsed.numClusters;
+          response["actualClusters"] = effectiveNumClusters;
+        }
+
+        // Add contextual hints based on method and results
+        const numClusters = normalizedSummary.num_clusters;
+        const noisePoints = normalizedSummary.noise_points;
+        const totalPoints = normalizedSummary.total_points;
+
+        if (method === "dbscan") {
+          const eps = parsed.eps ?? 100;
+          const minPoints = parsed.minPoints ?? 3;
+
+          // Provide hints about DBSCAN parameter trade-offs
+          const hints: string[] = [];
+
+          if (numClusters === 1 && totalPoints > 1) {
+            hints.push(
+              `All ${String(totalPoints)} points formed a single cluster. Consider decreasing eps (currently ${String(eps)}m) to create more distinct clusters.`,
+            );
+          }
+
+          if (noisePoints > 0 && noisePoints > totalPoints * 0.5) {
+            hints.push(
+              `${String(noisePoints)} of ${String(totalPoints)} points (${String(Math.round((noisePoints / totalPoints) * 100))}%) are noise. Consider increasing eps or decreasing minPoints (currently ${String(minPoints)}).`,
+            );
+          }
+
+          if (numClusters === 0 && totalPoints > 0) {
+            hints.push(
+              `No clusters formed - all points are noise. Try increasing eps (currently ${String(eps)}m) or decreasing minPoints (currently ${String(minPoints)}).`,
+            );
+          }
+
+          response["notes"] =
+            "Noise points (cluster_id = NULL) are points not belonging to any cluster";
+
+          if (hints.length > 0) {
+            response["hints"] = hints;
+          }
+
+          response["parameterGuide"] = {
+            eps: `Distance threshold in meters. Larger values group more distant points together.`,
+            minPoints: `Minimum points required to form a cluster. Higher values create fewer, denser clusters.`,
+          };
+        } else {
+          response["notes"] =
+            "K-Means will always assign all points to a cluster";
+        }
+
+        return response;
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_geo_cluster",
+          table: parsed.table,
+        });
+      }
     },
   };
 }

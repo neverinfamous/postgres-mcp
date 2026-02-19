@@ -13,10 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **PostGIS tools raw PostgreSQL exceptions** — `pg_point_in_polygon`, `pg_distance`, `pg_buffer`, `pg_intersection`, `pg_bounding_box`, `pg_geo_cluster`, `pg_geometry_buffer`, `pg_geometry_intersection`, and `pg_geometry_transform` now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Covers nonexistent tables (`42P01`), invalid geometry inputs, and other database errors. Added 9 unit tests
+
+
+
 - **`pg_vector_validate` output schema error for non-vector columns** — `pg_vector_validate({ table: 'embeddings', column: 'name' })` where `name` is a text column now returns `{valid: false, error: "Column 'name' is not a vector column (type: text)", suggestion: "..."}` instead of returning `null` for `columnDimensions` and `expectedDimensions`, which violated the output schema. Added a pre-check of `udt_name` before calling `vector_dims()`
 
 - **`pg_vector_create_index` raw PostgreSQL error for non-vector columns** — `pg_vector_create_index({ table: 'embeddings', column: 'name', type: 'hnsw' })` where `name` is a text column now returns `{success: false, error: "Column 'name' is not a vector column (type: text)...", suggestion: "..."}` instead of the raw PostgreSQL exception `operator class "vector_l2_ops" does not accept data type text`. Added pattern match in the catch block
-
 
 - **`pg_dump_table` raw PostgreSQL exceptions** — Nonexistent tables/schemas now throw structured errors (e.g., `Table 'x' not found. Use pg_list_tables`) instead of raw PG exceptions like `relation "x" does not exist`. Added try-catch with `parsePostgresError`
 
