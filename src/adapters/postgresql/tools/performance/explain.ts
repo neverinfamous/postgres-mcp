@@ -36,6 +36,9 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
           format,
           params: queryParams,
         } = ExplainSchema.parse(params);
+        if (!sql) {
+          throw new Error("Missing required parameter: sql (or query alias)");
+        }
         const fmt = format ?? "text";
         const explainSql = `EXPLAIN (FORMAT ${fmt.toUpperCase()}) ${sql}`;
         const result = await adapter.executeQuery(
@@ -74,6 +77,9 @@ export function createExplainAnalyzeTool(
           format,
           params: queryParams,
         } = ExplainSchema.parse(params);
+        if (!sql) {
+          throw new Error("Missing required parameter: sql (or query alias)");
+        }
         const fmt = format ?? "text";
         const explainSql = `EXPLAIN (ANALYZE, FORMAT ${fmt.toUpperCase()}) ${sql}`;
         const result = await adapter.executeQuery(
@@ -112,6 +118,9 @@ export function createExplainBuffersTool(
           format,
           params: queryParams,
         } = ExplainSchema.parse(params);
+        if (!sql) {
+          throw new Error("Missing required parameter: sql (or query alias)");
+        }
         const fmt = format ?? "json";
         const explainSql = `EXPLAIN (ANALYZE, BUFFERS, FORMAT ${fmt.toUpperCase()}) ${sql}`;
         const result = await adapter.executeQuery(

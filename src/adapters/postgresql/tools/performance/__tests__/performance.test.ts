@@ -120,6 +120,36 @@ describe("pg_explain", () => {
     );
     expect(result.plan).toBeDefined();
   });
+
+  it("should accept query alias for sql", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          "QUERY PLAN":
+            "Seq Scan on users  (cost=0.00..10.50 rows=50 width=100)",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_explain")!;
+    const result = (await tool.handler(
+      { query: "SELECT * FROM users" },
+      mockContext,
+    )) as { plan: string };
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("EXPLAIN"),
+      [],
+    );
+    expect(result.plan).toContain("Seq Scan");
+  });
+
+  it("should throw error when neither sql nor query provided", async () => {
+    const tool = tools.find((t) => t.name === "pg_explain")!;
+    await expect(tool.handler({}, mockContext)).rejects.toThrow(
+      "Missing required parameter: sql (or query alias)",
+    );
+  });
 });
 
 describe("pg_explain_analyze", () => {
@@ -160,6 +190,36 @@ describe("pg_explain_analyze", () => {
     );
     expect(result.plan).toContain("actual time");
   });
+
+  it("should accept query alias for sql", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          "QUERY PLAN":
+            "Seq Scan on users (cost=0.00..10.50 rows=50) (actual time=0.015..0.020 rows=50 loops=1)",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_explain_analyze")!;
+    const result = (await tool.handler(
+      { query: "SELECT * FROM users" },
+      mockContext,
+    )) as { plan: string };
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("EXPLAIN (ANALYZE"),
+      [],
+    );
+    expect(result.plan).toContain("actual time");
+  });
+
+  it("should throw error when neither sql nor query provided", async () => {
+    const tool = tools.find((t) => t.name === "pg_explain_analyze")!;
+    await expect(tool.handler({}, mockContext)).rejects.toThrow(
+      "Missing required parameter: sql (or query alias)",
+    );
+  });
 });
 
 describe("pg_explain_buffers", () => {
@@ -190,6 +250,27 @@ describe("pg_explain_buffers", () => {
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("BUFFERS"),
       [],
+    );
+  });
+
+  it("should accept query alias for sql", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "QUERY PLAN": [{ Plan: { "Shared Hit Blocks": 10 } }] }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_explain_buffers")!;
+    await tool.handler({ query: "SELECT * FROM users" }, mockContext);
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("BUFFERS"),
+      [],
+    );
+  });
+
+  it("should throw error when neither sql nor query provided", async () => {
+    const tool = tools.find((t) => t.name === "pg_explain_buffers")!;
+    await expect(tool.handler({}, mockContext)).rejects.toThrow(
+      "Missing required parameter: sql (or query alias)",
     );
   });
 });

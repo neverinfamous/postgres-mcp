@@ -33,10 +33,12 @@ export function preprocessExplainParams(input: unknown): unknown {
 
 /**
  * Base schema for EXPLAIN tools - used for MCP inputSchema visibility.
- * Shows sql as required so MCP clients prompt for it.
+ * Both sql and query are optional here; the preprocessor maps query → sql,
+ * and the handler validates that at least one is provided.
  */
 export const ExplainSchemaBase = z.object({
-  sql: z.string().describe("Query to explain"),
+  sql: z.string().optional().describe("Query to explain"),
+  query: z.string().optional().describe("Alias for sql"),
   params: z.array(z.unknown()).optional().describe("Query parameters"),
   analyze: z.boolean().optional().describe("Run EXPLAIN ANALYZE"),
   buffers: z.boolean().optional().describe("Include buffer usage"),
