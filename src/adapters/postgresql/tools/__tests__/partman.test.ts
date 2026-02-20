@@ -871,6 +871,25 @@ describe("pg_partman_partition_data", () => {
     expect(result.error).toContain("No pg_partman configuration found");
   });
 
+  it("should return structured error when partman schema not found", async () => {
+    // Schema detection returns 'partman' (fallback), but part_config query fails
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] }) // schema detection returns no rows → fallback to 'partman'
+      .mockRejectedValueOnce(new Error('schema "partman" does not exist'));
+
+    const tool = tools.find((t) => t.name === "pg_partman_partition_data")!;
+    const result = (await tool.handler(
+      {
+        parentTable: "public.events",
+      },
+      mockContext,
+    )) as { success: boolean; error: string; hint: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("pg_partman extension not found");
+    expect(result.hint).toContain("pg_partman_create_extension");
+  });
+
   it("should include batch size parameter when specified", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ table_schema: "partman" }] }) // schema detection
@@ -1146,6 +1165,34 @@ describe("pg_partman_undo_partition", () => {
 
     const callArg = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
     expect(callArg).toContain("p_keep_table := true");
+  });
+
+  it("should return structured error when no partman config found", async () => {
+    // Mock schema detection
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_schema: "partman" }],
+    });
+    // Mock target table exists check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // Mock CALL undo_partition_proc fails with no config
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("No entry in part_config found for given table"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_partman_undo_partition")!;
+    const result = (await tool.handler(
+      {
+        parentTable: "public.events",
+        targetTable: "public.events_archive",
+      },
+      mockContext,
+    )) as { success: boolean; error: string; hint: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("No pg_partman configuration found");
+    expect(result.hint).toContain("pg_partman_show_config");
   });
 });
 

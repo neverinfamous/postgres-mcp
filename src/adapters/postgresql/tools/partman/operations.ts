@@ -12,7 +12,6 @@ import type {
 import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { parsePostgresError } from "../core/error-helpers.js";
 import {
   PartmanCheckDefaultSchema,
   PartmanPartitionDataSchema,
@@ -236,14 +235,23 @@ Creates new partitions if needed for the data being moved.`,
       }
 
       const partmanSchema = await getPartmanSchema(adapter);
-      const configResult = await adapter.executeQuery(
-        `
+      let configResult;
+      try {
+        configResult = await adapter.executeQuery(
+          `
                 SELECT control, epoch 
                 FROM ${partmanSchema}.part_config 
                 WHERE parent_table = $1
             `,
-        [parentTable],
-      );
+          [parentTable],
+        );
+      } catch {
+        return {
+          success: false,
+          error: "pg_partman extension not found or not properly installed.",
+          hint: "Install pg_partman with pg_partman_create_extension, then configure the partition set with pg_partman_create_parent.",
+        };
+      }
 
       const config = configResult.rows?.[0];
       if (!config) {
@@ -256,9 +264,9 @@ Creates new partitions if needed for the data being moved.`,
       // Get row count in default partition before moving data
       const [partSchema, partTableName] = parentTable.includes(".")
         ? [
-          parentTable.split(".")[0] ?? "public",
-          parentTable.split(".")[1] ?? parentTable,
-        ]
+            parentTable.split(".")[0] ?? "public",
+            parentTable.split(".")[1] ?? parentTable,
+          ]
         : ["public", parentTable];
       const defaultPartitionName = `${partSchema}.${partTableName}_default`;
 
@@ -543,10 +551,17 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_partman_undo_partition",
-          table: validatedParentTable,
-        });
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        const firstLine = errorMsg.split("\n")[0] ?? errorMsg;
+        return {
+          success: false,
+          parentTable: validatedParentTable,
+          targetTable: validatedTargetTable,
+          error: firstLine.includes("No entry in part_config")
+            ? `No pg_partman configuration found for '${validatedParentTable}'.`
+            : `Failed to undo partition: ${firstLine}`,
+          hint: "Use pg_partman_show_config to verify the partition set exists and is properly configured.",
+        };
       }
 
       // Note: pg_partman's undo_partition detaches child partitions but leaves them as standalone tables
@@ -560,7 +575,7 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
         message: `Partition set removed for ${validatedParentTable}. Data consolidated to ${validatedTargetTable}.`,
         note: keepTableValue
           ? "The parent table and detached child partitions still exist. " +
-          `To clean up: DROP TABLE ${validatedParentTable} CASCADE;`
+            `To clean up: DROP TABLE ${validatedParentTable} CASCADE;`
           : `The parent table still exists. To clean up: DROP TABLE ${validatedParentTable} CASCADE;`,
       };
     },
