@@ -650,6 +650,99 @@ describe("Ltree Tools", () => {
     });
   });
 
+  // Structured Error Handling (parsePostgresError)
+  // ─────────────────────────────────────────────────────
+  describe("Structured Error Handling (parsePostgresError)", () => {
+    it("pg_ltree_query: should return structured error for nonexistent table", async () => {
+      // Mock column check returns no rows (table doesn't exist either)
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // Mock table existence check - also no rows
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+      const tool = findTool("pg_ltree_query");
+      const result = (await tool!.handler(
+        {
+          table: "nonexistent_xyz",
+          column: "path",
+          path: "electronics",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
+      expect(result.error).not.toContain("Column");
+    });
+
+    it("pg_ltree_convert_column: should return structured error for nonexistent table", async () => {
+      // Mock extension check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ installed: true }],
+      });
+      // Mock column check returns no rows
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // Mock table existence check - also no rows
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+      const tool = findTool("pg_ltree_convert_column");
+      const result = (await tool!.handler(
+        {
+          table: "nonexistent_xyz",
+          column: "path",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
+      expect(result.error).not.toContain("Column");
+    });
+
+    it("pg_ltree_match: should throw structured error for nonexistent table", async () => {
+      const pgError = new Error(
+        'relation "public.nonexistent_xyz" does not exist',
+      );
+      (pgError as unknown as Record<string, string>).code = "42P01";
+      mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+      const tool = findTool("pg_ltree_match");
+      await expect(
+        tool!.handler(
+          {
+            table: "nonexistent_xyz",
+            column: "path",
+            pattern: "*",
+          },
+          mockContext,
+        ),
+      ).rejects.toThrow(/not found/);
+    });
+
+    it("pg_ltree_create_index: should throw structured error for nonexistent table", async () => {
+      // Mock index existence check passes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ exists: false }],
+      });
+      // Mock CREATE INDEX throws PG error
+      const pgError = new Error(
+        'relation "public.nonexistent_xyz" does not exist',
+      );
+      (pgError as unknown as Record<string, string>).code = "42P01";
+      mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+      const tool = findTool("pg_ltree_create_index");
+      await expect(
+        tool!.handler(
+          {
+            table: "nonexistent_xyz",
+            column: "path",
+          },
+          mockContext,
+        ),
+      ).rejects.toThrow(/not found/);
+    });
+  });
+
   it("should export all 8 ltree tools", () => {
     expect(tools).toHaveLength(8);
     const toolNames = tools.map((t) => t.name);
