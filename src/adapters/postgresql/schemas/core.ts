@@ -769,26 +769,37 @@ export const TransactionExecuteSchema = z
 
 // Output schema for pg_transaction_begin
 export const TransactionBeginOutputSchema = z.object({
+  success: z
+    .boolean()
+    .optional()
+    .describe("False when the operation failed (omitted on success)"),
+  error: z.string().optional().describe("Error message when success is false"),
   transactionId: z
     .string()
+    .optional()
     .describe("Unique transaction ID for subsequent operations"),
-  isolationLevel: z.string().describe("Transaction isolation level"),
-  message: z.string().describe("Confirmation message"),
+  isolationLevel: z.string().optional().describe("Transaction isolation level"),
+  message: z.string().optional().describe("Confirmation message"),
 });
 
 // Output schema for pg_transaction_commit, pg_transaction_rollback
 export const TransactionResultOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),
-  transactionId: z.string().describe("Transaction ID that was operated on"),
-  message: z.string().describe("Result message"),
+  error: z.string().optional().describe("Error message when success is false"),
+  transactionId: z
+    .string()
+    .optional()
+    .describe("Transaction ID that was operated on"),
+  message: z.string().optional().describe("Result message"),
 });
 
 // Output schema for pg_transaction_savepoint, pg_transaction_release, pg_transaction_rollback_to
 export const SavepointResultOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),
-  transactionId: z.string().describe("Transaction ID"),
-  savepoint: z.string().describe("Savepoint name"),
-  message: z.string().describe("Result message"),
+  error: z.string().optional().describe("Error message when success is false"),
+  transactionId: z.string().optional().describe("Transaction ID"),
+  savepoint: z.string().optional().describe("Savepoint name"),
+  message: z.string().optional().describe("Result message"),
 });
 
 // Statement result schema for transaction execute
@@ -805,9 +816,26 @@ const StatementResultSchema = z.object({
 // Output schema for pg_transaction_execute
 export const TransactionExecuteOutputSchema = z.object({
   success: z.boolean().describe("Whether all statements executed successfully"),
-  statementsExecuted: z.number().describe("Number of statements executed"),
+  error: z.string().optional().describe("Error message when success is false"),
+  statementsExecuted: z
+    .number()
+    .optional()
+    .describe("Number of statements executed"),
+  statementsTotal: z
+    .number()
+    .optional()
+    .describe("Total number of statements attempted"),
+  failedStatement: z
+    .string()
+    .optional()
+    .describe("SQL of the statement that failed"),
+  autoRolledBack: z
+    .boolean()
+    .optional()
+    .describe("Whether the transaction was automatically rolled back"),
   results: z
     .array(StatementResultSchema)
+    .optional()
     .describe("Results from each statement"),
   transactionId: z
     .string()

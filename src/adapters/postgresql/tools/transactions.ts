@@ -26,6 +26,18 @@ import {
 } from "../schemas/index.js";
 
 /**
+ * Extract a structured error message from parsePostgresError.
+ * parsePostgresError always throws — this helper captures and returns the message string.
+ */
+function getStructuredError(error: unknown, context: { tool: string }): string {
+  try {
+    throw parsePostgresError(error, context);
+  } catch (parsed) {
+    return parsed instanceof Error ? parsed.message : String(parsed);
+  }
+}
+
+/**
  * Get all transaction tools
  */
 export function getTransactionTools(
@@ -63,7 +75,12 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
             "Transaction started. Use this ID for subsequent operations.",
         };
       } catch (error) {
-        throw parsePostgresError(error, { tool: "pg_transaction_begin" });
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_begin",
+          }),
+        };
       }
     },
   };
@@ -88,7 +105,12 @@ function createCommitTransactionTool(adapter: PostgresAdapter): ToolDefinition {
           message: "Transaction committed successfully.",
         };
       } catch (error) {
-        throw parsePostgresError(error, { tool: "pg_transaction_commit" });
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_commit",
+          }),
+        };
       }
     },
   };
@@ -115,7 +137,12 @@ function createRollbackTransactionTool(
           message: "Transaction rolled back successfully.",
         };
       } catch (error) {
-        throw parsePostgresError(error, { tool: "pg_transaction_rollback" });
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_rollback",
+          }),
+        };
       }
     },
   };
@@ -142,7 +169,12 @@ function createSavepointTool(adapter: PostgresAdapter): ToolDefinition {
           message: `Savepoint '${name}' created.`,
         };
       } catch (error) {
-        throw parsePostgresError(error, { tool: "pg_transaction_savepoint" });
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_savepoint",
+          }),
+        };
       }
     },
   };
@@ -169,7 +201,12 @@ function createReleaseSavepointTool(adapter: PostgresAdapter): ToolDefinition {
           message: `Savepoint '${name}' released.`,
         };
       } catch (error) {
-        throw parsePostgresError(error, { tool: "pg_transaction_release" });
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_release",
+          }),
+        };
       }
     },
   };
@@ -197,9 +234,12 @@ function createRollbackToSavepointTool(
           message: `Rolled back to savepoint '${name}'.`,
         };
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_transaction_rollback_to",
-        });
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_rollback_to",
+          }),
+        };
       }
     },
   };
@@ -282,36 +322,21 @@ function createTransactionExecuteTool(
           }
         }
 
-        // Build structured error with partial results and rollback context
-        const structuredError = (() => {
-          try {
-            return parsePostgresError(error, {
-              tool: "pg_transaction_execute",
-            });
-          } catch (parsed) {
-            return parsed;
-          }
-        })();
+        // Build structured error response with partial results and rollback context
+        const errMsg = getStructuredError(error, {
+          tool: "pg_transaction_execute",
+        });
 
-        const errMsg =
-          structuredError instanceof Error
-            ? structuredError.message
-            : String(structuredError);
-
-        const context: Record<string, unknown> = {
+        return {
+          success: false,
+          error: `${errMsg}${!isJoiningExisting ? " Transaction was automatically rolled back." : ""}`,
           statementsExecuted: results.length,
           statementsTotal: statements.length,
           failedStatement: statements[results.length]?.sql,
+          ...(isJoiningExisting
+            ? { transactionId: txId }
+            : { autoRolledBack: true }),
         };
-
-        if (!isJoiningExisting) {
-          context["autoRolledBack"] = true;
-        }
-
-        throw new Error(
-          `${errMsg}${!isJoiningExisting ? " Transaction was automatically rolled back." : ""}\n\nContext: ${JSON.stringify(context)}`,
-          { cause: error },
-        );
       }
     },
   };
