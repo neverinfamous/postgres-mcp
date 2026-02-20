@@ -205,11 +205,12 @@ export function createObjectDetailsTool(
     annotations: readOnly("Object Details"),
     icons: getToolIcons("core", readOnly("Object Details")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { name, schema, type } = ObjectDetailsSchema.parse(params);
-      const schemaName = schema ?? "public";
+      try {
+        const { name, schema, type } = ObjectDetailsSchema.parse(params);
+        const schemaName = schema ?? "public";
 
-      // Determine the actual object type
-      const detectSql = `
+        // Determine the actual object type
+        const detectSql = `
                 SELECT 
                     CASE 
                         WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
@@ -228,74 +229,78 @@ export function createObjectDetailsTool(
                                     WHERE p.proname = $1 AND n.nspname = $2) THEN 'function'
                     END as object_type
             `;
-      const detectResult = await adapter.executeQuery(detectSql, [
-        name,
-        schemaName,
-      ]);
-      const detectedType = (
-        detectResult.rows?.[0] as { object_type: string } | undefined
-      )?.object_type as typeof type;
+        const detectResult = await adapter.executeQuery(detectSql, [
+          name,
+          schemaName,
+        ]);
+        const detectedType = (
+          detectResult.rows?.[0] as { object_type: string } | undefined
+        )?.object_type as typeof type;
 
-      // Validate type if specified
-      if (type && detectedType && type !== detectedType) {
-        throw new Error(
-          `Object '${schemaName}.${name}' is a ${detectedType}, not a ${type}. ` +
-            `Use type: '${detectedType}' or omit type to auto-detect.`,
-        );
-      }
+        // Validate type if specified
+        if (type && detectedType && type !== detectedType) {
+          return {
+            success: false,
+            error:
+              `Object '${schemaName}.${name}' is a ${detectedType}, not a ${type}. ` +
+              `Use type: '${detectedType}' or omit type to auto-detect.`,
+          };
+        }
 
-      // If type was provided but object not found, throw clear error
-      if (type && !detectedType) {
-        throw new Error(
-          `Object '${schemaName}.${name}' not found (searched as ${type}). Use pg_list_objects to discover available objects.`,
-        );
-      }
+        // If type was provided but object not found, return clear error
+        if (type && !detectedType) {
+          return {
+            success: false,
+            error: `Object '${schemaName}.${name}' not found (searched as ${type}). Use pg_list_objects to discover available objects.`,
+          };
+        }
 
-      const objectType = type ?? detectedType;
+        const objectType = type ?? detectedType;
 
-      if (!objectType) {
-        throw new Error(
-          `Object '${schemaName}.${name}' not found. Use pg_list_objects to discover available objects.`,
-        );
-      }
+        if (!objectType) {
+          return {
+            success: false,
+            error: `Object '${schemaName}.${name}' not found. Use pg_list_objects to discover available objects.`,
+          };
+        }
 
-      let details: Record<string, unknown> = {
-        name,
-        schema: schemaName,
-        type: objectType,
-      };
+        let details: Record<string, unknown> = {
+          name,
+          schema: schemaName,
+          type: objectType,
+        };
 
-      if (
-        objectType === "table" ||
-        objectType === "partitioned_table" ||
-        objectType === "view" ||
-        objectType === "materialized_view"
-      ) {
-        const tableDetails = await adapter.describeTable(name, schemaName);
-        details = { ...details, ...tableDetails };
+        if (
+          objectType === "table" ||
+          objectType === "partitioned_table" ||
+          objectType === "view" ||
+          objectType === "materialized_view"
+        ) {
+          const tableDetails = await adapter.describeTable(name, schemaName);
+          details = { ...details, ...tableDetails };
 
-        // For views and materialized views, also get the view definition SQL
-        if (objectType === "view" || objectType === "materialized_view") {
-          const relkind = objectType === "view" ? "v" : "m";
-          const viewDefSql = `
+          // For views and materialized views, also get the view definition SQL
+          if (objectType === "view" || objectType === "materialized_view") {
+            const relkind = objectType === "view" ? "v" : "m";
+            const viewDefSql = `
                         SELECT pg_get_viewdef(c.oid, true) as definition
                         FROM pg_class c
                         JOIN pg_namespace n ON n.oid = c.relnamespace
                         WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind = '${relkind}'
                     `;
-          const viewDefResult = await adapter.executeQuery(viewDefSql, [
-            name,
-            schemaName,
-          ]);
-          if (viewDefResult.rows && viewDefResult.rows.length > 0) {
-            details["definition"] = viewDefResult.rows[0]?.[
-              "definition"
-            ] as string;
-            details["hasDefinition"] = true;
+            const viewDefResult = await adapter.executeQuery(viewDefSql, [
+              name,
+              schemaName,
+            ]);
+            if (viewDefResult.rows && viewDefResult.rows.length > 0) {
+              details["definition"] = viewDefResult.rows[0]?.[
+                "definition"
+              ] as string;
+              details["hasDefinition"] = true;
+            }
           }
-        }
-      } else if (objectType === "function") {
-        const sql = `
+        } else if (objectType === "function") {
+          const sql = `
                     SELECT 
                         p.proname as name,
                         pg_get_function_arguments(p.oid) as arguments,
@@ -309,19 +314,19 @@ export function createObjectDetailsTool(
                     JOIN pg_language l ON l.oid = p.prolang
                     WHERE p.proname = $1 AND n.nspname = $2
                 `;
-        const result = await adapter.executeQuery(sql, [name, schemaName]);
-        const funcRow = result.rows?.[0];
-        if (funcRow) {
-          details = {
-            ...details,
-            ...funcRow,
-            // Add camelCase aliases
-            returnType: funcRow["return_type"] as string,
-          };
-        }
-      } else if (objectType === "sequence") {
-        // Get sequence metadata from pg_sequence catalog
-        const metaSql = `
+          const result = await adapter.executeQuery(sql, [name, schemaName]);
+          const funcRow = result.rows?.[0];
+          if (funcRow) {
+            details = {
+              ...details,
+              ...funcRow,
+              // Add camelCase aliases
+              returnType: funcRow["return_type"] as string,
+            };
+          }
+        } else if (objectType === "sequence") {
+          // Get sequence metadata from pg_sequence catalog
+          const metaSql = `
                     SELECT 
                         s.seqstart as start_value,
                         s.seqmin as min_value,
@@ -335,35 +340,35 @@ export function createObjectDetailsTool(
                     JOIN pg_namespace n ON n.oid = c.relnamespace
                     WHERE n.nspname = $1 AND c.relname = $2
                 `;
-        const metaResult = await adapter.executeQuery(metaSql, [
-          schemaName,
-          name,
-        ]);
-        if (metaResult.rows && metaResult.rows.length > 0) {
-          details = { ...details, ...metaResult.rows[0] };
-        }
-
-        // Get current value by querying the sequence directly
-        try {
-          const valueSql = `SELECT last_value, is_called FROM "${schemaName}"."${name}"`;
-          const valueResult = await adapter.executeQuery(valueSql);
-          if (valueResult.rows && valueResult.rows.length > 0) {
-            const seqRow = valueResult.rows[0] as {
-              last_value: number;
-              is_called: boolean;
-            };
-            details["last_value"] = seqRow.last_value;
-            details["is_called"] = seqRow.is_called;
-            // Add human-readable current value explanation
-            details["current_value"] = seqRow.is_called
-              ? seqRow.last_value
-              : `${String(seqRow.last_value)} (not yet used, next call returns this value)`;
+          const metaResult = await adapter.executeQuery(metaSql, [
+            schemaName,
+            name,
+          ]);
+          if (metaResult.rows && metaResult.rows.length > 0) {
+            details = { ...details, ...metaResult.rows[0] };
           }
-        } catch {
-          // Sequence might not be accessible, skip current value
-        }
-      } else if (objectType === "index") {
-        const sql = `
+
+          // Get current value by querying the sequence directly
+          try {
+            const valueSql = `SELECT last_value, is_called FROM "${schemaName}"."${name}"`;
+            const valueResult = await adapter.executeQuery(valueSql);
+            if (valueResult.rows && valueResult.rows.length > 0) {
+              const seqRow = valueResult.rows[0] as {
+                last_value: number;
+                is_called: boolean;
+              };
+              details["last_value"] = seqRow.last_value;
+              details["is_called"] = seqRow.is_called;
+              // Add human-readable current value explanation
+              details["current_value"] = seqRow.is_called
+                ? seqRow.last_value
+                : `${String(seqRow.last_value)} (not yet used, next call returns this value)`;
+            }
+          } catch {
+            // Sequence might not be accessible, skip current value
+          }
+        } else if (objectType === "index") {
+          const sql = `
                     SELECT 
                         i.relname as index_name,
                         t.relname as table_name,
@@ -379,13 +384,17 @@ export function createObjectDetailsTool(
                     JOIN pg_namespace n ON n.oid = i.relnamespace
                     WHERE i.relname = $1 AND n.nspname = $2
                 `;
-        const result = await adapter.executeQuery(sql, [name, schemaName]);
-        if (result.rows && result.rows.length > 0) {
-          details = { ...details, ...result.rows[0] };
+          const result = await adapter.executeQuery(sql, [name, schemaName]);
+          if (result.rows && result.rows.length > 0) {
+            details = { ...details, ...result.rows[0] };
+          }
         }
-      }
 
-      return details;
+        return details;
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { success: false, error: message };
+      }
     },
   };
 }

@@ -17,7 +17,7 @@ import type {
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { parsePostgresError } from "./error-helpers.js";
+import { formatPostgresError } from "./error-helpers.js";
 import {
   WriteQueryOutputSchema,
   CountOutputSchema,
@@ -653,11 +653,14 @@ export function createBatchInsertTool(
       try {
         result = await adapter.executeQuery(sql, values);
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_batch_insert",
-          table: parsed.table,
-          schema: schemaName,
-        });
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_batch_insert",
+            table: parsed.table,
+            schema: schemaName,
+          }),
+        };
       }
       return {
         success: true,

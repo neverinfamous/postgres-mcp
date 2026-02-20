@@ -417,7 +417,7 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
   // =========================================================================
 
   describe("pg_batch_insert - structured error handling", () => {
-    it("should throw structured error for unique constraint violation (23505)", async () => {
+    it("should return structured error for unique constraint violation (23505)", async () => {
       // Mock 1: schema check passes
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
@@ -434,18 +434,19 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
 
       const tool = tools.find((t) => t.name === "pg_batch_insert")!;
-      await expect(
-        tool.handler(
-          {
-            table: "users",
-            rows: [
-              { name: "Alice", email: "alice@test.com" },
-              { name: "Bob", email: "alice@test.com" },
-            ],
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Unique constraint violated");
+      const result = (await tool.handler(
+        {
+          table: "users",
+          rows: [
+            { name: "Alice", email: "alice@test.com" },
+            { name: "Bob", email: "alice@test.com" },
+          ],
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Unique constraint violated/);
     });
   });
 });

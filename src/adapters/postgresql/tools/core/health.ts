@@ -10,7 +10,7 @@ import type {
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
-import { parsePostgresError } from "./error-helpers.js";
+import { formatPostgresError } from "./error-helpers.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
   AnalyzeDbHealthSchema,
@@ -398,10 +398,14 @@ export function createAnalyzeQueryIndexesTool(
       try {
         result = await adapter.executeQuery(explainSql, queryParams);
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_analyze_query_indexes",
+        return {
           sql,
-        });
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_analyze_query_indexes",
+            sql,
+          }),
+        };
       }
 
       if (!result.rows || result.rows.length === 0) {

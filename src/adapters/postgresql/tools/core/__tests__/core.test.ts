@@ -183,19 +183,20 @@ describe("Handler Execution", () => {
       expect(result.rows).toEqual([{ id: 1 }]);
     });
 
-    it("should throw error for invalid transactionId", async () => {
+    it("should return structured error for invalid transactionId", async () => {
       (
         mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
       ).mockReturnValue(undefined);
 
       const tool = tools.find((t) => t.name === "pg_read_query")!;
 
-      await expect(
-        tool.handler(
-          { sql: "SELECT 1", transactionId: "invalid-tx" },
-          mockContext,
-        ),
-      ).rejects.toThrow(/Invalid or expired transactionId/);
+      const result = (await tool.handler(
+        { sql: "SELECT 1", transactionId: "invalid-tx" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Invalid or expired transactionId/);
     });
 
     it("should include fields metadata when available", async () => {
@@ -237,20 +238,32 @@ describe("Handler Execution", () => {
       expect(result.command).toBe("UPDATE");
     });
 
-    it("should reject SELECT statements", async () => {
+    it("should return structured error for SELECT statements", async () => {
       const tool = tools.find((t) => t.name === "pg_write_query")!;
 
-      await expect(
-        tool.handler({ sql: "SELECT * FROM users" }, mockContext),
-      ).rejects.toThrow(/pg_write_query is for INSERT\/UPDATE\/DELETE only/);
+      const result = (await tool.handler(
+        { sql: "SELECT * FROM users" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(
+        /pg_write_query is for INSERT\/UPDATE\/DELETE only/,
+      );
     });
 
-    it("should reject SELECT with leading spaces", async () => {
+    it("should return structured error for SELECT with leading spaces", async () => {
       const tool = tools.find((t) => t.name === "pg_write_query")!;
 
-      await expect(
-        tool.handler({ sql: "   SELECT * FROM users" }, mockContext),
-      ).rejects.toThrow(/pg_write_query is for INSERT\/UPDATE\/DELETE only/);
+      const result = (await tool.handler(
+        { sql: "   SELECT * FROM users" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(
+        /pg_write_query is for INSERT\/UPDATE\/DELETE only/,
+      );
     });
 
     it("should execute query in transaction when transactionId is provided", async () => {
@@ -280,19 +293,20 @@ describe("Handler Execution", () => {
       expect(result.rowsAffected).toBe(3);
     });
 
-    it("should throw error for invalid transactionId in write", async () => {
+    it("should return structured error for invalid transactionId in write", async () => {
       (
         mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
       ).mockReturnValue(undefined);
 
       const tool = tools.find((t) => t.name === "pg_write_query")!;
 
-      await expect(
-        tool.handler(
-          { sql: "UPDATE users SET x = 1", transactionId: "bad-tx" },
-          mockContext,
-        ),
-      ).rejects.toThrow(/Invalid or expired transactionId/);
+      const result = (await tool.handler(
+        { sql: "UPDATE users SET x = 1", transactionId: "bad-tx" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Invalid or expired transactionId/);
     });
 
     it("should include RETURNING clause rows in result", async () => {
@@ -539,7 +553,7 @@ describe("Handler Execution", () => {
       expect(mockAdapter.describeTable).toHaveBeenCalledWith("orders", "sales");
     });
 
-    it("should throw error for sequences", async () => {
+    it("should return structured error for sequences", async () => {
       // Mock the type check query to return a sequence type
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ relkind: "S" }],
@@ -547,56 +561,76 @@ describe("Handler Execution", () => {
 
       const tool = tools.find((t) => t.name === "pg_describe_table")!;
 
-      await expect(
-        tool.handler({ table: "my_sequence" }, mockContext),
-      ).rejects.toThrow(/is a sequence, not a table/);
+      const result = (await tool.handler(
+        { table: "my_sequence" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/is a sequence, not a table/);
     });
 
-    it("should throw error for non-existent objects", async () => {
+    it("should return structured error for non-existent objects", async () => {
       // Mock the type check query to return no rows
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_describe_table")!;
 
-      await expect(
-        tool.handler({ table: "nonexistent" }, mockContext),
-      ).rejects.toThrow(/not found/);
+      const result = (await tool.handler(
+        { table: "nonexistent" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found/);
     });
 
-    it("should throw error for indexes", async () => {
+    it("should return structured error for indexes", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ relkind: "i" }],
       });
 
       const tool = tools.find((t) => t.name === "pg_describe_table")!;
 
-      await expect(
-        tool.handler({ table: "idx_users_email" }, mockContext),
-      ).rejects.toThrow(/is a index, not a table/);
+      const result = (await tool.handler(
+        { table: "idx_users_email" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/is a index, not a table/);
     });
 
-    it("should throw error for composite types", async () => {
+    it("should return structured error for composite types", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ relkind: "c" }],
       });
 
       const tool = tools.find((t) => t.name === "pg_describe_table")!;
 
-      await expect(
-        tool.handler({ table: "address_type" }, mockContext),
-      ).rejects.toThrow(/is a composite type, not a table/);
+      const result = (await tool.handler(
+        { table: "address_type" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/is a composite type, not a table/);
     });
 
-    it("should throw error for unknown object types", async () => {
+    it("should return structured error for unknown object types", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ relkind: "z" }], // Unknown type
       });
 
       const tool = tools.find((t) => t.name === "pg_describe_table")!;
 
-      await expect(
-        tool.handler({ table: "unknown_obj" }, mockContext),
-      ).rejects.toThrow(/unknown type \(z\)/);
+      const result = (await tool.handler(
+        { table: "unknown_obj" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/unknown type \(z\)/);
     });
   });
 
@@ -846,22 +880,32 @@ describe("Error Handling", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should propagate database errors", async () => {
+  it("should return structured error for database errors", async () => {
     const dbError = new Error("Connection refused");
     mockAdapter.executeReadQuery.mockRejectedValue(dbError);
 
     const tool = tools.find((t) => t.name === "pg_read_query")!;
 
-    await expect(
-      tool.handler({ sql: "SELECT 1" }, mockContext),
-    ).rejects.toThrow("Connection refused");
+    const result = (await tool.handler({ sql: "SELECT 1" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Connection refused/);
   });
 
   it("should validate input schema", async () => {
     const tool = tools.find((t) => t.name === "pg_read_query")!;
 
-    // Missing required 'sql' parameter
-    await expect(tool.handler({}, mockContext)).rejects.toThrow();
+    // Missing required 'sql' parameter - returns structured error from outer catch
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 
   describe("Structured PostgreSQL Error Handling (P154)", () => {
@@ -874,9 +918,13 @@ describe("Error Handling", () => {
 
       const tool = tools.find((t) => t.name === "pg_read_query")!;
 
-      await expect(
-        tool.handler({ sql: "SELECT * FROM nonexistent" }, mockContext),
-      ).rejects.toThrow(/not found.*pg_list_tables/i);
+      const result = (await tool.handler(
+        { sql: "SELECT * FROM nonexistent" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
     });
 
     it("pg_create_table should wrap duplicate table error", async () => {
@@ -888,15 +936,16 @@ describe("Error Handling", () => {
 
       const tool = tools.find((t) => t.name === "pg_create_table")!;
 
-      await expect(
-        tool.handler(
-          {
-            table: "test",
-            columns: [{ name: "id", type: "SERIAL", primaryKey: true }],
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(/already exists.*ifNotExists/i);
+      const result = (await tool.handler(
+        {
+          table: "test",
+          columns: [{ name: "id", type: "SERIAL", primaryKey: true }],
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/already exists.*ifNotExists/i);
     });
 
     it("pg_drop_table should wrap nonexistent table error", async () => {
@@ -912,9 +961,13 @@ describe("Error Handling", () => {
 
       const tool = tools.find((t) => t.name === "pg_drop_table")!;
 
-      await expect(
-        tool.handler({ table: "nonexistent" }, mockContext),
-      ).rejects.toThrow(/not found.*pg_list_tables/i);
+      const result = (await tool.handler(
+        { table: "nonexistent" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
     });
 
     it("pg_drop_index should wrap nonexistent index error", async () => {
@@ -930,9 +983,13 @@ describe("Error Handling", () => {
 
       const tool = tools.find((t) => t.name === "pg_drop_index")!;
 
-      await expect(
-        tool.handler({ name: "nonexistent_idx" }, mockContext),
-      ).rejects.toThrow(/not found.*ifExists/i);
+      const result = (await tool.handler(
+        { name: "nonexistent_idx" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*ifExists/i);
     });
 
     it("pg_create_index should wrap duplicate index error", async () => {
@@ -944,27 +1001,32 @@ describe("Error Handling", () => {
 
       const tool = tools.find((t) => t.name === "pg_create_index")!;
 
-      await expect(
-        tool.handler(
-          {
-            table: "test",
-            columns: ["email"],
-            name: "idx_test",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(/already exists.*ifNotExists/i);
+      const result = (await tool.handler(
+        {
+          table: "test",
+          columns: ["email"],
+          name: "idx_test",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/already exists.*ifNotExists/i);
     });
 
-    it("should still propagate non-PG errors unchanged", async () => {
+    it("should return structured error for non-PG errors", async () => {
       const connectionError = new Error("Connection refused");
       mockAdapter.executeReadQuery.mockRejectedValue(connectionError);
 
       const tool = tools.find((t) => t.name === "pg_read_query")!;
 
-      await expect(
-        tool.handler({ sql: "SELECT 1" }, mockContext),
-      ).rejects.toThrow("Connection refused");
+      const result = (await tool.handler({ sql: "SELECT 1" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Connection refused/);
     });
   });
 });
@@ -1208,12 +1270,13 @@ describe("Health Analysis Tools", () => {
 
       const tool = tools.find((t) => t.name === "pg_analyze_query_indexes")!;
 
-      await expect(
-        tool.handler(
-          { sql: "SELECT * FROM fake_nonexistent_table WHERE id = 1" },
-          mockContext,
-        ),
-      ).rejects.toThrow(/not found.*pg_list_tables/i);
+      const result = (await tool.handler(
+        { sql: "SELECT * FROM fake_nonexistent_table WHERE id = 1" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
     });
   });
 
@@ -1626,7 +1689,7 @@ describe("Object Tools", () => {
       expect(result.type).toBe("index");
     });
 
-    it("should return error when object not found", async () => {
+    it("should return structured error when object not found", async () => {
       // Detection query returns null for object_type
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ object_type: null }],
@@ -1634,9 +1697,13 @@ describe("Object Tools", () => {
 
       const tool = tools.find((t) => t.name === "pg_object_details")!;
 
-      await expect(
-        tool.handler({ name: "nonexistent" }, mockContext),
-      ).rejects.toThrow(/not found/);
+      const result = (await tool.handler(
+        { name: "nonexistent" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found/);
     });
 
     it("should parse schema.name format correctly", async () => {
@@ -3258,7 +3325,7 @@ describe("pg_write_query - structured error handling", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should throw structured error for nonexistent table (42P01)", async () => {
+  it("should return structured error for nonexistent table (42P01)", async () => {
     const pgError = new Error(
       'relation "nonexistent_table" does not exist',
     ) as Error & { code: string };
@@ -3268,15 +3335,16 @@ describe("pg_write_query - structured error handling", () => {
     ).executeWriteQuery.mockRejectedValueOnce(pgError);
 
     const tool = tools.find((t) => t.name === "pg_write_query")!;
-    await expect(
-      tool.handler(
-        { sql: 'INSERT INTO nonexistent_table VALUES (1, "test")' },
-        mockContext,
-      ),
-    ).rejects.toThrow("Table or view");
+    const result = (await tool.handler(
+      { sql: 'INSERT INTO nonexistent_table VALUES (1, "test")' },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Table or view/i);
   });
 
-  it("should throw structured error for undefined column (42703)", async () => {
+  it("should return structured error for undefined column (42703)", async () => {
     const pgError = new Error(
       'column "bad_col" of relation "users" does not exist',
     ) as Error & { code: string };
@@ -3286,12 +3354,13 @@ describe("pg_write_query - structured error handling", () => {
     ).executeWriteQuery.mockRejectedValueOnce(pgError);
 
     const tool = tools.find((t) => t.name === "pg_write_query")!;
-    await expect(
-      tool.handler(
-        { sql: "INSERT INTO users (bad_col) VALUES (1)" },
-        mockContext,
-      ),
-    ).rejects.toThrow("Column not found");
+    const result = (await tool.handler(
+      { sql: "INSERT INTO users (bad_col) VALUES (1)" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Column not found/i);
   });
 });
 
@@ -3309,7 +3378,7 @@ describe("pg_analyze_query_indexes - structured error handling", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should throw structured error for syntax errors (42601)", async () => {
+  it("should return structured error for syntax errors (42601)", async () => {
     const pgError = new Error('syntax error at or near "SELEC"') as Error & {
       code: string;
     };
@@ -3319,9 +3388,13 @@ describe("pg_analyze_query_indexes - structured error handling", () => {
     ).executeQuery.mockRejectedValueOnce(pgError);
 
     const tool = tools.find((t) => t.name === "pg_analyze_query_indexes")!;
-    await expect(
-      tool.handler({ sql: "SELEC * FROM users" }, mockContext),
-    ).rejects.toThrow("SQL syntax error");
+    const result = (await tool.handler(
+      { sql: "SELEC * FROM users" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/SQL syntax error/i);
   });
 });
 

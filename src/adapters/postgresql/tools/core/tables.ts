@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { parsePostgresError } from "./error-helpers.js";
+import { formatPostgresError } from "./error-helpers.js";
 import {
   ListTablesSchema,
   DescribeTableSchemaBase,
@@ -90,52 +90,60 @@ export function createDescribeTableTool(
     annotations: readOnly("Describe Table"),
     icons: getToolIcons("core", readOnly("Describe Table")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { table, schema } = DescribeTableSchema.parse(params);
-      const schemaName = schema ?? "public";
+      try {
+        const { table, schema } = DescribeTableSchema.parse(params);
+        const schemaName = schema ?? "public";
 
-      // Check object type first to give better error messages for non-tables
-      const typeCheck = await adapter.executeQuery(
-        `
+        // Check object type first to give better error messages for non-tables
+        const typeCheck = await adapter.executeQuery(
+          `
                 SELECT c.relkind
                 FROM pg_catalog.pg_class c
                 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
                 WHERE c.relname = $1 AND n.nspname = $2
             `,
-        [table, schemaName],
-      );
-
-      if (!typeCheck.rows || typeCheck.rows.length === 0) {
-        throw new Error(
-          `Object '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
+          [table, schemaName],
         );
+
+        if (!typeCheck.rows || typeCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Object '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
+          };
+        }
+
+        const relkind = typeCheck.rows[0]?.["relkind"] as string;
+
+        // Sequences have relkind 'S'
+        if (relkind === "S") {
+          return {
+            success: false,
+            error: `'${schemaName}.${table}' is a sequence, not a table. Use pg_read_query with "SELECT * FROM ${schemaName}.${table}" to see sequence state, or pg_list_objects to discover objects.`,
+          };
+        }
+
+        // Only allow tables, views, materialized views, foreign tables, partitioned tables
+        const validKinds = ["r", "v", "m", "f", "p"];
+        if (!validKinds.includes(relkind)) {
+          const kindNames: Record<string, string> = {
+            i: "index",
+            S: "sequence",
+            I: "partitioned index",
+            t: "TOAST table",
+            c: "composite type",
+          };
+          const typeName = kindNames[relkind] ?? `unknown type (${relkind})`;
+          return {
+            success: false,
+            error: `'${schemaName}.${table}' is a ${typeName}, not a table. Use pg_list_objects to discover database objects.`,
+          };
+        }
+
+        return await adapter.describeTable(table, schemaName);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { success: false, error: message };
       }
-
-      const relkind = typeCheck.rows[0]?.["relkind"] as string;
-
-      // Sequences have relkind 'S'
-      if (relkind === "S") {
-        throw new Error(
-          `'${schemaName}.${table}' is a sequence, not a table. Use pg_read_query with "SELECT * FROM ${schemaName}.${table}" to see sequence state, or pg_list_objects to discover objects.`,
-        );
-      }
-
-      // Only allow tables, views, materialized views, foreign tables, partitioned tables
-      const validKinds = ["r", "v", "m", "f", "p"];
-      if (!validKinds.includes(relkind)) {
-        const kindNames: Record<string, string> = {
-          i: "index",
-          S: "sequence",
-          I: "partitioned index",
-          t: "TOAST table",
-          c: "composite type",
-        };
-        const typeName = kindNames[relkind] ?? `unknown type (${relkind})`;
-        throw new Error(
-          `'${schemaName}.${table}' is a ${typeName}, not a table. Use pg_list_objects to discover database objects.`,
-        );
-      }
-
-      return adapter.describeTable(table, schemaName);
     },
   };
 }
@@ -245,11 +253,14 @@ export function createCreateTableTool(
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_create_table",
-          table: name,
-          schema: schema ?? "public",
-        });
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_create_table",
+            table: name,
+            schema: schema ?? "public",
+          }),
+        };
       }
 
       return {
@@ -298,11 +309,14 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_drop_table",
-          table,
-          schema: schemaName,
-        });
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_drop_table",
+            table,
+            schema: schemaName,
+          }),
+        };
       }
 
       return {

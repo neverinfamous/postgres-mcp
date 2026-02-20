@@ -349,3 +349,26 @@ export function parsePostgresError(
   // Unrecognized PG error — re-throw with cause preserved
   throw error;
 }
+
+/**
+ * Wrapper around parsePostgresError that returns the structured error message
+ * as a string instead of throwing. Use this in handler catch blocks where you
+ * want to return `{ success: false, error: formatPostgresError(...) }`.
+ *
+ * parsePostgresError always throws — this function catches the throw and
+ * extracts the message for structured error responses.
+ */
+export function formatPostgresError(
+  error: unknown,
+  context: ErrorContext,
+): string {
+  try {
+    parsePostgresError(error, context);
+    // parsePostgresError always throws, but fallback just in case
+    return error instanceof Error ? error.message : String(error);
+  } catch (structured: unknown) {
+    return structured instanceof Error
+      ? structured.message
+      : String(structured);
+  }
+}

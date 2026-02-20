@@ -261,12 +261,15 @@ const FieldSchema = z.object({
 
 // Output schema for pg_read_query
 export const ReadQueryOutputSchema = z.object({
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
   rows: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Query result rows"),
-  rowCount: z.number().describe("Number of rows returned"),
+  rowCount: z.number().optional().describe("Number of rows returned"),
   fields: z.array(FieldSchema).optional().describe("Column metadata"),
   executionTimeMs: z.number().optional().describe("Query execution time in ms"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_write_query, pg_upsert, pg_batch_insert
@@ -317,10 +320,11 @@ const ColumnInfoSchema = z.object({
 
 // Output schema for pg_describe_table
 export const TableDescribeOutputSchema = z.object({
-  name: z.string().describe("Table name"),
-  schema: z.string().describe("Schema name"),
-  type: z.string().describe("Object type"),
-  columns: z.array(ColumnInfoSchema).describe("Column definitions"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  name: z.string().optional().describe("Table name"),
+  schema: z.string().optional().describe("Schema name"),
+  type: z.string().optional().describe("Object type"),
+  columns: z.array(ColumnInfoSchema).optional().describe("Column definitions"),
   primaryKey: z
     .array(z.string())
     .nullable()
@@ -335,11 +339,12 @@ export const TableDescribeOutputSchema = z.object({
     .optional()
     .describe("Index definitions"),
   rowCount: z.number().optional().describe("Estimated row count"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_create_table, pg_drop_table
 export const TableOperationOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
   table: z.string().optional().describe("Qualified table name"),
   dropped: z.string().optional().describe("Dropped table name (drop only)"),
   existed: z.boolean().optional().describe("Whether table existed before drop"),
@@ -348,6 +353,7 @@ export const TableOperationOutputSchema = z.object({
     .array(z.string())
     .optional()
     .describe("Composite PK columns"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_truncate
@@ -386,12 +392,13 @@ export const IndexListOutputSchema = z.object({
 
 // Output schema for pg_create_index, pg_drop_index
 export const IndexOperationOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
   message: z.string().optional().describe("Result message"),
   index: z.string().optional().describe("Index name"),
   table: z.string().optional().describe("Table name"),
   sql: z.string().optional().describe("Generated SQL"),
   hint: z.string().optional().describe("Additional information"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Database object schema
@@ -413,14 +420,16 @@ export const ObjectListOutputSchema = z.object({
 
 // Output schema for pg_object_details - flexible due to different object types
 export const ObjectDetailsOutputSchema = z.object({
-  name: z.string().describe("Object name"),
-  schema: z.string().describe("Schema name"),
-  type: z.string().describe("Object type"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  name: z.string().optional().describe("Object name"),
+  schema: z.string().optional().describe("Schema name"),
+  type: z.string().optional().describe("Object type"),
   owner: z.string().optional().describe("Object owner"),
   details: z
     .record(z.string(), z.unknown())
     .optional()
     .describe("Type-specific details"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Extension info schema
