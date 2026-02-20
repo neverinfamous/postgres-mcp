@@ -295,7 +295,10 @@ or active status. Only specify the parameters you want to change.`,
       try {
         await adapter.executeQuery(sql, queryParams);
       } catch (error: unknown) {
-        throw parsePostgresError(error, { tool: "pg_cron_alter_job" });
+        throw parsePostgresError(error, {
+          tool: "pg_cron_alter_job",
+          target: String(jobId),
+        });
       }
 
       return {

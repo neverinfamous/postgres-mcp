@@ -746,10 +746,7 @@ describe("pg_cron error handling", () => {
   });
 
   it("should return structured error for pg_cron_schedule with invalid schedule", async () => {
-    const pgError = new Error(
-      'invalid input syntax for type interval: "invalid_schedule"',
-    );
-    (pgError as unknown as Record<string, unknown>)["code"] = "22007";
+    const pgError = new Error("invalid schedule: invalid cron syntax");
     mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
 
     const tool = tools.find((t) => t.name === "pg_cron_schedule")!;
@@ -759,24 +756,12 @@ describe("pg_cron error handling", () => {
         { schedule: "invalid_schedule", command: "SELECT 1" },
         mockContext,
       ),
-    ).rejects.toThrow();
-
-    // Verify the error went through parsePostgresError (not raw)
-    try {
-      await tool.handler(
-        { schedule: "invalid_schedule", command: "SELECT 1" },
-        mockContext,
-      );
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-    }
+    ).rejects.toThrow(/Invalid cron schedule/);
   });
 
   it("should return structured error for pg_cron_schedule_in_database with nonexistent database", async () => {
-    const pgError = new Error(
-      'invalid input syntax for type boolean: "nonexistent_db"',
-    );
-    (pgError as unknown as Record<string, unknown>)["code"] = "22023";
+    const pgError = new Error('database "nonexistent_db" does not exist');
+    (pgError as unknown as Record<string, unknown>)["code"] = "42704";
     mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
 
     const tool = tools.find((t) => t.name === "pg_cron_schedule_in_database")!;
@@ -791,7 +776,7 @@ describe("pg_cron error handling", () => {
         },
         mockContext,
       ),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/Database.*not found/);
   });
 
   it("should return structured error for pg_cron_alter_job with nonexistent jobId", async () => {
@@ -802,7 +787,7 @@ describe("pg_cron error handling", () => {
 
     await expect(
       tool.handler({ jobId: 99999, schedule: "0 3 * * *" }, mockContext),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/Job.*not found/);
   });
 
   it("should return structured error for pg_cron_unschedule with nonexistent jobId", async () => {
@@ -814,6 +799,8 @@ describe("pg_cron error handling", () => {
 
     const tool = tools.find((t) => t.name === "pg_cron_unschedule")!;
 
-    await expect(tool.handler({ jobId: 99999 }, mockContext)).rejects.toThrow();
+    await expect(tool.handler({ jobId: 99999 }, mockContext)).rejects.toThrow(
+      /Job.*not found/,
+    );
   });
 });

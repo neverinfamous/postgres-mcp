@@ -200,6 +200,24 @@ export function parsePostgresError(
     );
   }
 
+  // pg_cron: "could not find valid entry for job" (unschedule nonexistent job)
+  if (/could not find valid entry for job/i.test(msg)) {
+    const jobMatch = /for job\s+"?([^"]+)"?/i.exec(msg);
+    const jobIdentifier = jobMatch?.[1] ?? context.target ?? "unknown";
+    throw new Error(
+      `Job '${jobIdentifier}' not found. Use pg_cron_list_jobs to see available jobs.`,
+      { cause: error },
+    );
+  }
+
+  // pg_cron: "invalid schedule" (invalid cron syntax passed to pg_cron)
+  if (/invalid schedule:/i.test(msg)) {
+    throw new Error(
+      `Invalid cron schedule. Use standard cron syntax (e.g., "0 2 * * *") or interval syntax ("1-59 seconds").`,
+      { cause: error },
+    );
+  }
+
   // 42704 — undefined object (index, type, etc.)
   if (pgCode === "42704" || /does not exist/i.test(msg)) {
     // Schema-specific: "schema X does not exist" (e.g., CREATE TABLE in nonexistent schema)
@@ -239,6 +257,31 @@ export function parsePostgresError(
       throw new Error(
         `Column appears to be a tsvector type, which cannot be used directly with text search tools. ` +
           `Use a text column instead, or query the tsvector column directly with raw SQL (pg_read_query).`,
+        { cause: error },
+      );
+    }
+
+    // pg_cron tool context guard — provide cron-appropriate messages
+    // instead of the misleading generic "Object 'X' not found"
+    if (context.tool?.startsWith("pg_cron_")) {
+      if (context.tool === "pg_cron_alter_job") {
+        const jobId = context.target ?? "unknown";
+        throw new Error(
+          `Job ${jobId} not found. Use pg_cron_list_jobs to see available jobs.`,
+          { cause: error },
+        );
+      }
+      if (context.tool === "pg_cron_schedule_in_database") {
+        const dbMatch = /database "([^"]+)"/i.exec(msg);
+        const dbName = dbMatch?.[1] ?? context.target ?? "unknown";
+        throw new Error(
+          `Database '${dbName}' not found or not accessible for cron scheduling. Verify the database name exists.`,
+          { cause: error },
+        );
+      }
+      // Generic cron fallback
+      throw new Error(
+        `Cron operation failed: ${msg}. Use pg_cron_list_jobs to verify job state.`,
         { cause: error },
       );
     }
