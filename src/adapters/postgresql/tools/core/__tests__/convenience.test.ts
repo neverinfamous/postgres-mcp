@@ -106,6 +106,30 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain("Table 'sales.orders' not found");
     });
+
+    it("should return structured error for query execution failure", async () => {
+      // Mock 1: schema check passes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // Mock 2: table check passes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // Mock 3: COUNT query fails (e.g., invalid column expression)
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error('column "DISTINCT status" does not exist'),
+      );
+
+      const tool = tools.find((t) => t.name === "pg_count")!;
+      const result = (await tool.handler(
+        { table: "users", column: "DISTINCT status" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
   });
 
   // =========================================================================

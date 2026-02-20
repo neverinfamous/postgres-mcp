@@ -710,7 +710,19 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
           : "";
 
       const sql = `SELECT COUNT(${countExpr}) as count FROM ${qualifiedTable}${whereClause}`;
-      const result = await adapter.executeQuery(sql, parsed.params);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, parsed.params);
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_count",
+            table: parsed.table,
+            schema: schemaName,
+          }),
+        };
+      }
 
       const count = Number(result.rows?.[0]?.["count"]) || 0;
       return { count };
