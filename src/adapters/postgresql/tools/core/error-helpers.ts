@@ -192,8 +192,8 @@ export function parsePostgresError(
   if (pgCode === "25P02" || /current transaction is aborted/i.test(msg)) {
     throw new Error(
       "Transaction is in an aborted state — only ROLLBACK or ROLLBACK TO SAVEPOINT commands are allowed. " +
-      "A previous statement in this transaction failed, putting it into an error state. " +
-      "Use pg_transaction_rollback to end it, or pg_transaction_rollback_to to recover to a savepoint.",
+        "A previous statement in this transaction failed, putting it into an error state. " +
+        "Use pg_transaction_rollback to end it, or pg_transaction_rollback_to to recover to a savepoint.",
       { cause: error },
     );
   }
@@ -266,7 +266,7 @@ export function parsePostgresError(
     if (/function .*tsvector.* does not exist/i.test(msg)) {
       throw new Error(
         `Column appears to be a tsvector type, which cannot be used directly with text search tools. ` +
-        `Use a text column instead, or query the tsvector column directly with raw SQL (pg_read_query).`,
+          `Use a text column instead, or query the tsvector column directly with raw SQL (pg_read_query).`,
         { cause: error },
       );
     }

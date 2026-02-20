@@ -38,16 +38,14 @@ async function validateTableExists(
   adapter: PostgresAdapter,
   table: string,
   schema: string,
-): Promise<void> {
+): Promise<string | null> {
   // Check if the schema exists first for granular error messages
   const schemaResult = await adapter.executeQuery(
     `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
     [schema],
   );
   if (!schemaResult.rows || schemaResult.rows.length === 0) {
-    throw new Error(
-      `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
-    );
+    return `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`;
   }
 
   const result = await adapter.executeQuery(
@@ -55,10 +53,9 @@ async function validateTableExists(
     [schema, table],
   );
   if (!result.rows || result.rows.length === 0) {
-    throw new Error(
-      `Table '${schema}.${table}' not found. Use pg_list_tables to see available tables.`,
-    );
+    return `Table '${schema}.${table}' not found. Use pg_list_tables to see available tables.`;
   }
+  return null;
 }
 
 // =============================================================================
@@ -452,7 +449,14 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = UpsertSchema.parse(params);
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       const columns = Object.keys(parsed.data);
@@ -567,7 +571,14 @@ export function createBatchInsertTool(
       }
 
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       // Get all unique columns from all rows
@@ -677,7 +688,14 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = CountSchema.parse(params);
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       const countExpr =
@@ -713,7 +731,14 @@ export function createExistsTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = ExistsSchema.parse(params);
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       // Build SQL with optional WHERE clause
@@ -755,7 +780,14 @@ export function createTruncateTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = TruncateSchema.parse(params);
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       let sql = `TRUNCATE TABLE ${qualifiedTable}`;

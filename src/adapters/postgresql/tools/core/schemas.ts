@@ -273,7 +273,7 @@ export const ReadQueryOutputSchema = z.object({
 export const WriteQueryOutputSchema = z.object({
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   operation: z.string().optional().describe("Operation type (insert/update)"),
-  rowsAffected: z.number().describe("Number of rows affected"),
+  rowsAffected: z.number().optional().describe("Number of rows affected"),
   affectedRows: z.number().optional().describe("Alias for rowsAffected"),
   rowCount: z.number().optional().describe("Alias for rowsAffected"),
   insertedCount: z.number().optional().describe("Rows inserted (batch insert)"),
@@ -285,6 +285,7 @@ export const WriteQueryOutputSchema = z.object({
     .describe("Returned rows (RETURNING clause)"),
   sql: z.string().optional().describe("Generated SQL statement"),
   hint: z.string().optional().describe("Additional information"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Table info schema for list tables
@@ -352,9 +353,13 @@ export const TableOperationOutputSchema = z.object({
 // Output schema for pg_truncate
 export const TruncateOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),
-  table: z.string().describe("Truncated table"),
-  cascade: z.boolean().describe("Whether CASCADE was used"),
-  restartIdentity: z.boolean().describe("Whether identity was restarted"),
+  table: z.string().optional().describe("Truncated table"),
+  cascade: z.boolean().optional().describe("Whether CASCADE was used"),
+  restartIdentity: z
+    .boolean()
+    .optional()
+    .describe("Whether identity was restarted"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Index info schema
@@ -507,14 +512,18 @@ export const QueryIndexAnalysisOutputSchema = z.object({
 
 // Output schema for pg_count
 export const CountOutputSchema = z.object({
-  count: z.number().describe("Row count"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  count: z.number().optional().describe("Row count"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_exists
 export const ExistsOutputSchema = z.object({
-  exists: z.boolean().describe("Whether rows exist"),
-  table: z.string().describe("Table checked"),
-  mode: z.enum(["filtered", "any_rows"]).describe("Check mode"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  exists: z.boolean().optional().describe("Whether rows exist"),
+  table: z.string().optional().describe("Table checked"),
+  mode: z.enum(["filtered", "any_rows"]).optional().describe("Check mode"),
   where: z.string().optional().describe("WHERE clause used (filtered mode)"),
   hint: z.string().optional().describe("Clarifying hint (any_rows mode)"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
