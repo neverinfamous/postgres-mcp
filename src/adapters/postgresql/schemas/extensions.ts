@@ -1015,13 +1015,16 @@ export const LtreeLcaOutputSchema = z
  */
 export const LtreeMatchOutputSchema = z
   .object({
-    pattern: z.string().describe("Query pattern"),
+    success: z.boolean().optional().describe("Whether match succeeded"),
+    pattern: z.string().optional().describe("Query pattern"),
     results: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Matching results"),
-    count: z.number().describe("Number of results"),
+    count: z.number().optional().describe("Number of results"),
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Pattern match result");
 
@@ -1071,12 +1074,13 @@ export const LtreeConvertColumnOutputSchema = z
 export const LtreeCreateIndexOutputSchema = z
   .object({
     success: z.boolean().describe("Whether index was created"),
-    message: z.string().describe("Status message"),
-    indexName: z.string().describe("Index name"),
+    message: z.string().optional().describe("Status message"),
+    indexName: z.string().optional().describe("Index name"),
     alreadyExists: z.boolean().optional().describe("Index already existed"),
     table: z.string().optional().describe("Qualified table name"),
     column: z.string().optional().describe("Column name"),
     indexType: z.string().optional().describe("Index type (gist)"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Index creation result");
 

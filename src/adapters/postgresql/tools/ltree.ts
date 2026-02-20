@@ -274,6 +274,35 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
       const qualifiedTable = `"${schemaName}"."${table}"`;
       const limitClause = limit !== undefined ? `LIMIT ${String(limit)}` : "";
 
+      // Validate table exists and column is ltree type
+      const colCheck = await adapter.executeQuery(
+        `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
+        [schemaName, table, column],
+      );
+      if (!colCheck.rows || colCheck.rows.length === 0) {
+        const tableCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+          [schemaName, table],
+        );
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Table ${qualifiedTable} does not exist.`,
+          };
+        }
+        return {
+          success: false,
+          error: `Column "${column}" not found in table ${qualifiedTable}.`,
+        };
+      }
+      const udtName = colCheck.rows[0]?.["udt_name"] as string;
+      if (udtName !== "ltree") {
+        return {
+          success: false,
+          error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+        };
+      }
+
       try {
         // Get total count when limit is applied for truncation indicators
         let totalCount: number | undefined;
@@ -300,11 +329,14 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
 
         return response;
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_ltree_match",
-          table,
-          schema: schemaName,
-        });
+        return {
+          success: false,
+          error: parsePostgresError(error, {
+            tool: "pg_ltree_match",
+            table,
+            schema: schemaName,
+          }).message,
+        };
       }
     },
   };
@@ -495,6 +527,35 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
       const qualifiedTable = `"${schemaName}"."${table}"`;
       const idxName = indexName ?? `idx_${table}_${column}_ltree`;
 
+      // Validate table exists and column is ltree type
+      const colCheck = await adapter.executeQuery(
+        `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
+        [schemaName, table, column],
+      );
+      if (!colCheck.rows || colCheck.rows.length === 0) {
+        const tableCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+          [schemaName, table],
+        );
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Table ${qualifiedTable} does not exist.`,
+          };
+        }
+        return {
+          success: false,
+          error: `Column "${column}" not found in table ${qualifiedTable}.`,
+        };
+      }
+      const udtName = colCheck.rows[0]?.["udt_name"] as string;
+      if (udtName !== "ltree") {
+        return {
+          success: false,
+          error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+        };
+      }
+
       try {
         const idxCheck = await adapter.executeQuery(
           `SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE schemaname = $1 AND indexname = $2) as exists`,
@@ -522,12 +583,15 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
           indexType: "gist",
         };
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_ltree_create_index",
-          table,
-          schema: schemaName,
-          index: idxName,
-        });
+        return {
+          success: false,
+          error: parsePostgresError(error, {
+            tool: "pg_ltree_create_index",
+            table,
+            schema: schemaName,
+            index: idxName,
+          }).message,
+        };
       }
     },
   };

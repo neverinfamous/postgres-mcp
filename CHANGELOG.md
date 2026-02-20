@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **PostGIS tools Zod validation errors leaked as raw exceptions** — `pg_point_in_polygon`, `pg_buffer`, `pg_intersection`, `pg_bounding_box`, `pg_geo_transform`, `pg_geo_cluster`, `pg_geometry_buffer`, `pg_geometry_intersection`, and `pg_geometry_transform` now catch Zod validation errors (e.g., invalid coordinates, missing required params) and throw clean error messages instead of raw Zod exception arrays. Moved Zod `.parse()` calls inside existing try-catch blocks with `ZodError` interception pattern consistent with `pg_geocode` and `pg_distance`
 
-- **`pg_ltree_match` and `pg_ltree_create_index` raw PostgreSQL exceptions** — Both tools now wrap handler logic in try-catch with `parsePostgresError()`, converting raw PG errors (nonexistent table, non-ltree column) into structured messages (e.g., `Table or view 'X' not found`). Previously, calling either tool on a nonexistent table produced a raw `relation does not exist` exception. Added 2 unit tests
+- **`pg_ltree_match` and `pg_ltree_create_index` raw PostgreSQL exceptions** — Both tools now validate table existence and column ltree type via `information_schema` pre-checks before executing main queries, returning structured `{success: false, error}` responses for nonexistent tables, missing columns, and non-ltree columns. Catch blocks also converted from `throw parsePostgresError()` to `return {success: false}` for consistent structured error handling. Previously, calling either tool on a nonexistent table produced a raw `relation does not exist` exception. Added 4 unit tests, updated 8 existing test mocks
+
+- **`parsePostgresError` unnecessary regex escapes** — Removed 2 unnecessary `\"` escapes in the pg_cron job-not-found regex pattern (ESLint `no-useless-escape`)
 
 - **`pg_ltree_query` and `pg_ltree_convert_column` misleading "Column not found" for nonexistent table** — Both tools now check table existence separately when the `information_schema` column lookup returns 0 rows, returning `Table "schema"."table" does not exist` instead of the misleading `Column "X" not found`. Added 2 unit tests
 

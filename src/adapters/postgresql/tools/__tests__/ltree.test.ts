@@ -334,6 +334,10 @@ describe("Ltree Tools", () => {
 
   describe("pg_ltree_match", () => {
     it("should match paths using lquery pattern", async () => {
+      // Mock column type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [
           { id: 1, path: "root.products.electronics", depth: 3 },
@@ -359,6 +363,10 @@ describe("Ltree Tools", () => {
     });
 
     it("should accept query as alias for pattern", async () => {
+      // Mock column type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_ltree_match");
@@ -378,6 +386,10 @@ describe("Ltree Tools", () => {
     });
 
     it("should accept maxResults as alias for limit", async () => {
+      // Mock column type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_ltree_match");
@@ -398,6 +410,10 @@ describe("Ltree Tools", () => {
     });
 
     it("should accept lquery as alias for pattern", async () => {
+      // Mock column type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_ltree_match");
@@ -417,6 +433,10 @@ describe("Ltree Tools", () => {
     });
 
     it("should return truncation indicators when limit is applied", async () => {
+      // Mock column type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
       // Mock COUNT query for truncation
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ total: 20 }],
@@ -591,6 +611,10 @@ describe("Ltree Tools", () => {
 
   describe("pg_ltree_create_index", () => {
     it("should create GiST index on ltree column", async () => {
+      // Mock column type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ exists: false }] })
         .mockResolvedValueOnce({ rows: [] });
@@ -612,6 +636,10 @@ describe("Ltree Tools", () => {
     });
 
     it("should report existing index", async () => {
+      // Mock column type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ exists: true }],
       });
@@ -630,6 +658,10 @@ describe("Ltree Tools", () => {
     });
 
     it("should use custom index name when provided", async () => {
+      // Mock column type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ exists: false }] })
         .mockResolvedValueOnce({ rows: [] });
@@ -698,48 +730,86 @@ describe("Ltree Tools", () => {
       expect(result.error).not.toContain("Column");
     });
 
-    it("pg_ltree_match: should throw structured error for nonexistent table", async () => {
-      const pgError = new Error(
-        'relation "public.nonexistent_xyz" does not exist',
-      );
-      (pgError as unknown as Record<string, string>).code = "42P01";
-      mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+    it("pg_ltree_match: should return structured error for nonexistent table", async () => {
+      // Mock column check - no rows
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // Mock table check - no rows
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_ltree_match");
-      await expect(
-        tool!.handler(
-          {
-            table: "nonexistent_xyz",
-            column: "path",
-            pattern: "*",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(/not found/);
+      const result = (await tool!.handler(
+        {
+          table: "nonexistent_xyz",
+          column: "path",
+          pattern: "*",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
+      expect(result.error).not.toContain("Column");
     });
 
-    it("pg_ltree_create_index: should throw structured error for nonexistent table", async () => {
-      // Mock index existence check passes
+    it("pg_ltree_match: should return structured error for non-ltree column", async () => {
+      // Mock column check - returns varchar type
       mockAdapter.executeQuery.mockResolvedValueOnce({
-        rows: [{ exists: false }],
+        rows: [{ udt_name: "varchar" }],
       });
-      // Mock CREATE INDEX throws PG error
-      const pgError = new Error(
-        'relation "public.nonexistent_xyz" does not exist',
-      );
-      (pgError as unknown as Record<string, string>).code = "42P01";
-      mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+      const tool = findTool("pg_ltree_match");
+      const result = (await tool!.handler(
+        {
+          table: "categories",
+          column: "name",
+          pattern: "*",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not an ltree type");
+      expect(result.error).toContain("varchar");
+    });
+
+    it("pg_ltree_create_index: should return structured error for nonexistent table", async () => {
+      // Mock column check - no rows
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // Mock table check - no rows
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_ltree_create_index");
-      await expect(
-        tool!.handler(
-          {
-            table: "nonexistent_xyz",
-            column: "path",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(/not found/);
+      const result = (await tool!.handler(
+        {
+          table: "nonexistent_xyz",
+          column: "path",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
+      expect(result.error).not.toContain("Column");
+    });
+
+    it("pg_ltree_create_index: should return structured error for non-ltree column", async () => {
+      // Mock column check - returns varchar type
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "varchar" }],
+      });
+
+      const tool = findTool("pg_ltree_create_index");
+      const result = (await tool!.handler(
+        {
+          table: "categories",
+          column: "name",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not an ltree type");
+      expect(result.error).toContain("varchar");
     });
   });
 

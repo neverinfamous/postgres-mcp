@@ -182,8 +182,8 @@ export function parsePostgresError(
   if (pgCode === "25P02" || /current transaction is aborted/i.test(msg)) {
     throw new Error(
       "Transaction is in an aborted state — only ROLLBACK or ROLLBACK TO SAVEPOINT commands are allowed. " +
-      "A previous statement in this transaction failed, putting it into an error state. " +
-      "Use pg_transaction_rollback to end it, or pg_transaction_rollback_to to recover to a savepoint.",
+        "A previous statement in this transaction failed, putting it into an error state. " +
+        "Use pg_transaction_rollback to end it, or pg_transaction_rollback_to to recover to a savepoint.",
       { cause: error },
     );
   }
@@ -202,7 +202,7 @@ export function parsePostgresError(
 
   // pg_cron: "could not find valid entry for job" (unschedule nonexistent job)
   if (/could not find valid entry for job/i.test(msg)) {
-    const jobMatch = /for job\s+'?\"?([^'"]+)'?\"?/i.exec(msg);
+    const jobMatch = /for job\s+'?"?([^'"]+)'?"?/i.exec(msg);
     const jobIdentifier = jobMatch?.[1] ?? context.target ?? "unknown";
     throw new Error(
       `Job '${jobIdentifier}' not found. Use pg_cron_list_jobs to see available jobs.`,
@@ -256,7 +256,7 @@ export function parsePostgresError(
     if (/function .*tsvector.* does not exist/i.test(msg)) {
       throw new Error(
         `Column appears to be a tsvector type, which cannot be used directly with text search tools. ` +
-        `Use a text column instead, or query the tsvector column directly with raw SQL (pg_read_query).`,
+          `Use a text column instead, or query the tsvector column directly with raw SQL (pg_read_query).`,
         { cause: error },
       );
     }
