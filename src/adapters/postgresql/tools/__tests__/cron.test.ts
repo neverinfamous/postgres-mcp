@@ -732,3 +732,88 @@ describe("pg_cron string jobId coercion", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("pg_cron error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getCronTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getCronTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for pg_cron_schedule with invalid schedule", async () => {
+    const pgError = new Error(
+      'invalid input syntax for type interval: "invalid_schedule"',
+    );
+    (pgError as unknown as Record<string, unknown>)["code"] = "22007";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_cron_schedule")!;
+
+    await expect(
+      tool.handler(
+        { schedule: "invalid_schedule", command: "SELECT 1" },
+        mockContext,
+      ),
+    ).rejects.toThrow();
+
+    // Verify the error went through parsePostgresError (not raw)
+    try {
+      await tool.handler(
+        { schedule: "invalid_schedule", command: "SELECT 1" },
+        mockContext,
+      );
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+    }
+  });
+
+  it("should return structured error for pg_cron_schedule_in_database with nonexistent database", async () => {
+    const pgError = new Error(
+      'invalid input syntax for type boolean: "nonexistent_db"',
+    );
+    (pgError as unknown as Record<string, unknown>)["code"] = "22023";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_cron_schedule_in_database")!;
+
+    await expect(
+      tool.handler(
+        {
+          jobName: "test",
+          schedule: "0 * * * *",
+          command: "SELECT 1",
+          database: "nonexistent_db",
+        },
+        mockContext,
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("should return structured error for pg_cron_alter_job with nonexistent jobId", async () => {
+    const pgError = new Error('could not find valid entry for job "99999"');
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_cron_alter_job")!;
+
+    await expect(
+      tool.handler({ jobId: 99999, schedule: "0 3 * * *" }, mockContext),
+    ).rejects.toThrow();
+  });
+
+  it("should return structured error for pg_cron_unschedule with nonexistent jobId", async () => {
+    // Mock lookup query returning empty (job not found)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Mock unschedule query failing
+    const pgError = new Error('could not find valid entry for job "99999"');
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_cron_unschedule")!;
+
+    await expect(tool.handler({ jobId: 99999 }, mockContext)).rejects.toThrow();
+  });
+});

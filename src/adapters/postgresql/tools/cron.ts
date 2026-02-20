@@ -13,6 +13,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import {
   CronScheduleSchema,
   CronScheduleSchemaBase,
@@ -99,7 +100,12 @@ or interval syntax (e.g., "30 seconds"). Note: pg_cron allows duplicate job name
         queryParams = [schedule, command];
       }
 
-      const result = await adapter.executeQuery(sql, queryParams);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, queryParams);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, { tool: "pg_cron_schedule" });
+      }
       const jobId = result.rows?.[0]?.["jobid"];
 
       return {
@@ -149,7 +155,14 @@ maintenance tasks. Returns the job ID.`,
         activeVal,
       ];
 
-      const result = await adapter.executeQuery(sql, queryParams);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, queryParams);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_cron_schedule_in_database",
+        });
+      }
       const jobId = result.rows?.[0]?.["jobid"];
 
       return {
@@ -226,7 +239,12 @@ function createCronUnscheduleTool(adapter: PostgresAdapter): ToolDefinition {
         queryParams = [parsed.jobId];
       }
 
-      const result = await adapter.executeQuery(sql, queryParams);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, queryParams);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, { tool: "pg_cron_unschedule" });
+      }
       const removed = result.rows?.[0]?.["removed"] as boolean;
 
       // Return complete job info from lookup
@@ -274,7 +292,11 @@ or active status. Only specify the parameters you want to change.`,
         active ?? null,
       ];
 
-      await adapter.executeQuery(sql, queryParams);
+      try {
+        await adapter.executeQuery(sql, queryParams);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, { tool: "pg_cron_alter_job" });
+      }
 
       return {
         success: true,

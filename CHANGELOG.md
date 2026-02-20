@@ -63,6 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_detach_partition` missing error handling** — `pg_detach_partition` SQL execution is now wrapped in try-catch with `parsePostgresError`, matching the error handling pattern of `pg_create_partition` and `pg_attach_partition`. Previously, SQL failures leaked as raw PostgreSQL exceptions
 
+- **Cron tools raw PostgreSQL exceptions** — `pg_cron_schedule`, `pg_cron_schedule_in_database`, `pg_cron_unschedule`, and `pg_cron_alter_job` now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Covers invalid cron expressions, nonexistent databases, nonexistent job IDs, and nonexistent job names. Added 4 unit tests
+
 - **`pg_explain` / `pg_explain_analyze` / `pg_explain_buffers` `query` alias rejected** — Direct MCP tool calls using `{ query: "SELECT ..." }` instead of `{ sql: "SELECT ..." }` now work correctly. Previously, the MCP SDK rejected the `query` alias at runtime because `ExplainSchemaBase` did not include it as a field and marked `sql` as required. Added `query` as an optional alias field, made `sql` optional in the base schema, and added handler guard clauses to validate that at least one is provided
 
 - **ESLint 10 compliance** — Resolved 20 new lint errors introduced by ESLint 10's stricter `eslint:recommended` rules:
