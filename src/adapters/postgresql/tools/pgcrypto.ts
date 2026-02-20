@@ -8,6 +8,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import {
   PgcryptoHashSchema,
   PgcryptoHmacSchema,
@@ -133,20 +134,33 @@ function createPgcryptoEncryptTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Encrypt Data"),
     icons: getToolIcons("pgcrypto", readOnly("Encrypt Data")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Use transformed schema with alias resolution for validation
-      const { data, password, options } = PgcryptoEncryptSchema.parse(params);
-      const sql =
-        options !== undefined
-          ? `SELECT encode(pgp_sym_encrypt($1, $2, $3), 'base64') as encrypted`
-          : `SELECT encode(pgp_sym_encrypt($1, $2), 'base64') as encrypted`;
-      const queryParams =
-        options !== undefined ? [data, password, options] : [data, password];
-      const result = await adapter.executeQuery(sql, queryParams);
-      return {
-        success: true,
-        encrypted: result.rows?.[0]?.["encrypted"] as string,
-        encoding: "base64",
-      };
+      try {
+        // Use transformed schema with alias resolution for validation
+        const { data, password, options } = PgcryptoEncryptSchema.parse(params);
+        const sql =
+          options !== undefined
+            ? `SELECT encode(pgp_sym_encrypt($1, $2, $3), 'base64') as encrypted`
+            : `SELECT encode(pgp_sym_encrypt($1, $2), 'base64') as encrypted`;
+        const queryParams =
+          options !== undefined ? [data, password, options] : [data, password];
+        const result = await adapter.executeQuery(sql, queryParams);
+        return {
+          success: true,
+          encrypted: result.rows?.[0]?.["encrypted"] as string,
+          encoding: "base64",
+        };
+      } catch (error) {
+        let errorMessage =
+          error instanceof Error ? error.message : String(error);
+        try {
+          errorMessage = parsePostgresError(error, {
+            tool: "pg_pgcrypto_encrypt",
+          }).message;
+        } catch {
+          // parsePostgresError re-throws unrecognized errors; use original message
+        }
+        return { success: false, error: errorMessage };
+      }
     },
   };
 }
@@ -161,20 +175,40 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Decrypt Data"),
     icons: getToolIcons("pgcrypto", readOnly("Decrypt Data")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Use transformed schema with alias resolution for validation
-      const { encryptedData, password } = PgcryptoDecryptSchema.parse(params);
-      const result = await adapter.executeQuery(
-        `SELECT pgp_sym_decrypt(decode($1, 'base64'), $2) as decrypted`,
-        [encryptedData, password],
-      );
-      const decrypted = result.rows?.[0]?.["decrypted"];
+      try {
+        // Use transformed schema with alias resolution for validation
+        const { encryptedData, password } = PgcryptoDecryptSchema.parse(params);
+        const result = await adapter.executeQuery(
+          `SELECT pgp_sym_decrypt(decode($1, 'base64'), $2) as decrypted`,
+          [encryptedData, password],
+        );
+        const decrypted = result.rows?.[0]?.["decrypted"];
 
-      // Throw error for decryption failure (wrong password or corrupted data)
-      if (decrypted === undefined || decrypted === null) {
-        throw new Error("Decryption failed - wrong password or corrupted data");
+        // Return error for decryption failure (wrong password or corrupted data)
+        if (decrypted === undefined || decrypted === null) {
+          return {
+            success: false,
+            error: "Decryption failed — wrong password or corrupted data",
+          };
+        }
+
+        return {
+          success: true,
+          decrypted: decrypted as string,
+          verified: true,
+        };
+      } catch (error) {
+        let errorMessage =
+          error instanceof Error ? error.message : String(error);
+        try {
+          errorMessage = parsePostgresError(error, {
+            tool: "pg_pgcrypto_decrypt",
+          }).message;
+        } catch {
+          // parsePostgresError re-throws unrecognized errors; use original message
+        }
+        return { success: false, error: errorMessage };
       }
-
-      return { success: true, decrypted: decrypted as string, verified: true };
     },
   };
 }

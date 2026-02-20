@@ -1129,8 +1129,9 @@ export const PgcryptoHmacOutputSchema = z
 export const PgcryptoEncryptOutputSchema = z
   .object({
     success: z.boolean().describe("Whether encryption succeeded"),
-    encrypted: z.string().describe("Encrypted data"),
-    encoding: z.string().describe("Output encoding"),
+    encrypted: z.string().optional().describe("Encrypted data"),
+    encoding: z.string().optional().describe("Output encoding"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Encryption result");
 
@@ -1140,8 +1141,9 @@ export const PgcryptoEncryptOutputSchema = z
 export const PgcryptoDecryptOutputSchema = z
   .object({
     success: z.boolean().describe("Whether decryption succeeded"),
-    decrypted: z.string().describe("Decrypted data"),
-    verified: z.boolean().describe("Whether decryption verified"),
+    decrypted: z.string().optional().describe("Decrypted data"),
+    verified: z.boolean().optional().describe("Whether decryption verified"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Decryption result");
 
