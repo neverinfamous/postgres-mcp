@@ -320,7 +320,11 @@ export const TableDescribeOutputSchema = z.object({
   schema: z.string().describe("Schema name"),
   type: z.string().describe("Object type"),
   columns: z.array(ColumnInfoSchema).describe("Column definitions"),
-  primaryKey: z.array(z.string()).optional().describe("Primary key columns"),
+  primaryKey: z
+    .array(z.string())
+    .nullable()
+    .optional()
+    .describe("Primary key columns"),
   foreignKeys: z
     .array(z.record(z.string(), z.unknown()))
     .optional()

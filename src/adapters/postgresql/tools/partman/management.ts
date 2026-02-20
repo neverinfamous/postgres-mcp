@@ -173,6 +173,13 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
             hint: "Create the parent table first with appropriate columns, then call pg_partman_create_parent.",
           };
         }
+        if (errorMsg.includes("Unable to find given parent table")) {
+          return {
+            success: false,
+            error: `Table '${validatedParentTable}' does not exist.`,
+            hint: "Create the parent table first with PARTITION BY clause, then call pg_partman_create_parent.",
+          };
+        }
         // Check 'is not partitioned' BEFORE 'NOT NULL' - if table isn't partitioned, that's the primary issue
         if (errorMsg.includes("is not partitioned")) {
           return {

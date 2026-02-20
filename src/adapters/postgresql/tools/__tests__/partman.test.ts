@@ -1001,21 +1001,23 @@ describe("pg_partman_set_retention", () => {
     expect(result.message).toContain("detached");
   });
 
-  it("should throw when no configuration found", async () => {
+  it("should return error when no configuration found", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ table_schema: "partman" }] }) // schema detection
       .mockResolvedValueOnce({ rows: [], rowsAffected: 0 });
 
     const tool = tools.find((t) => t.name === "pg_partman_set_retention")!;
-    await expect(
-      tool.handler(
-        {
-          parentTable: "public.nonexistent",
-          retention: "30 days",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("No pg_partman configuration found");
+    const result = (await tool.handler(
+      {
+        parentTable: "public.nonexistent",
+        retention: "30 days",
+      },
+      mockContext,
+    )) as { success: boolean; error: string; hint: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("No pg_partman configuration found");
+    expect(result.hint).toContain("pg_partman_show_config");
   });
 });
 

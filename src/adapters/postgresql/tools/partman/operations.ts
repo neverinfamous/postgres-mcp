@@ -12,6 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { parsePostgresError } from "../core/error-helpers.js";
 import {
   PartmanCheckDefaultSchema,
   PartmanPartitionDataSchema,
@@ -255,9 +256,9 @@ Creates new partitions if needed for the data being moved.`,
       // Get row count in default partition before moving data
       const [partSchema, partTableName] = parentTable.includes(".")
         ? [
-            parentTable.split(".")[0] ?? "public",
-            parentTable.split(".")[1] ?? parentTable,
-          ]
+          parentTable.split(".")[0] ?? "public",
+          parentTable.split(".")[1] ?? parentTable,
+        ]
         : ["public", parentTable];
       const defaultPartitionName = `${partSchema}.${partTableName}_default`;
 
@@ -273,7 +274,19 @@ Creates new partitions if needed for the data being moved.`,
 
       // partition_data_proc is a PROCEDURE, not a function - use CALL syntax
       const sql = `CALL ${partmanSchema}.partition_data_proc(${args.join(", ")})`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (e) {
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        return {
+          success: false,
+          parentTable,
+          error: `Failed to move data from default partition: ${errorMsg.split("\n")[0] ?? errorMsg}`,
+          hint:
+            "Ensure pg_partman is properly installed and the partition set is configured correctly. " +
+            "Use pg_partman_show_config to verify configuration.",
+        };
+      }
 
       // Get row count in default partition after moving data
       let rowsAfterMove = 0;
@@ -354,9 +367,11 @@ Partitions older than the retention period will be dropped or detached during ma
         const result = await adapter.executeQuery(sql, [validatedParentTable]);
 
         if ((result.rowsAffected ?? 0) === 0) {
-          throw new Error(
-            `No pg_partman configuration found for ${validatedParentTable}. Use pg_partman_show_config to list existing partition sets.`,
-          );
+          return {
+            success: false,
+            error: `No pg_partman configuration found for ${validatedParentTable}.`,
+            hint: "Use pg_partman_show_config to list existing partition sets.",
+          };
         }
 
         return {
@@ -380,11 +395,13 @@ Partitions older than the retention period will be dropped or detached during ma
         !validIntervalPattern.test(validatedRetention) &&
         !validNumericPattern.test(validatedRetention)
       ) {
-        throw new Error(
-          `Invalid retention format '${validatedRetention}'. ` +
-            `Use PostgreSQL interval syntax (e.g., '30 days', '6 months', '1 year') ` +
-            `or integer value for integer-based partitions.`,
-        );
+        return {
+          success: false,
+          error: `Invalid retention format '${validatedRetention}'.`,
+          hint:
+            "Use PostgreSQL interval syntax (e.g., '30 days', '6 months', '1 year') " +
+            "or integer value for integer-based partitions.",
+        };
       }
 
       const updates: string[] = [`retention = '${validatedRetention}'`];
@@ -401,9 +418,11 @@ Partitions older than the retention period will be dropped or detached during ma
       const result = await adapter.executeQuery(sql, [validatedParentTable]);
 
       if ((result.rowsAffected ?? 0) === 0) {
-        throw new Error(
-          `No pg_partman configuration found for ${validatedParentTable}. Use pg_partman_show_config to list existing partition sets.`,
-        );
+        return {
+          success: false,
+          error: `No pg_partman configuration found for ${validatedParentTable}.`,
+          hint: "Use pg_partman_show_config to list existing partition sets.",
+        };
       }
 
       // Check partition type to use appropriate terminology in message
@@ -498,11 +517,13 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
       );
 
       if ((tableExistsResult.rows?.length ?? 0) === 0) {
-        throw new Error(
-          `Target table '${validatedTargetTable}' does not exist. ` +
-            `pg_partman's undo_partition requires the target table to exist before consolidating data. ` +
-            `Create the target table first with the same structure as the parent table.`,
-        );
+        return {
+          success: false,
+          error: `Target table '${validatedTargetTable}' does not exist.`,
+          hint:
+            "pg_partman's undo_partition requires the target table to exist before consolidating data. " +
+            "Create the target table first with the same structure as the parent table.",
+        };
       }
 
       const args: string[] = [
@@ -519,7 +540,14 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
 
       // undo_partition_proc is a PROCEDURE, not a function - use CALL syntax
       const sql = `CALL ${partmanSchema}.undo_partition_proc(${args.join(", ")})`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_partman_undo_partition",
+          table: validatedParentTable,
+        });
+      }
 
       // Note: pg_partman's undo_partition detaches child partitions but leaves them as standalone tables
       // This allows data recovery if needed, but users should clean up manually
@@ -532,7 +560,7 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
         message: `Partition set removed for ${validatedParentTable}. Data consolidated to ${validatedTargetTable}.`,
         note: keepTableValue
           ? "The parent table and detached child partitions still exist. " +
-            `To clean up: DROP TABLE ${validatedParentTable} CASCADE;`
+          `To clean up: DROP TABLE ${validatedParentTable} CASCADE;`
           : `The parent table still exists. To clean up: DROP TABLE ${validatedParentTable} CASCADE;`,
       };
     },
