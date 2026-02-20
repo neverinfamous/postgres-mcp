@@ -65,7 +65,9 @@ export function createGeocodeTool(adapter: PostgresAdapter): ToolDefinition {
         return response;
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "));
+          throw new Error(error.issues.map((i) => i.message).join("; "), {
+            cause: error,
+          });
         }
         throw parsePostgresError(error, { tool: "pg_geocode" });
       }
@@ -101,6 +103,18 @@ export function createGeoTransformTool(
       // Auto-detect fromSrid from column metadata if not provided
       let fromSrid = parsed.fromSrid;
       if (fromSrid === 0) {
+        // Check if table exists before attempting SRID auto-detection
+        const tableCheckSql = `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`;
+        const tableCheckResult = await adapter.executeQuery(tableCheckSql, [
+          schemaName,
+          parsed.table,
+        ]);
+        if ((tableCheckResult.rows?.length ?? 0) === 0) {
+          throw new Error(
+            `Table or view '${parsed.table}' not found. Use pg_list_tables to see available tables.`,
+          );
+        }
+
         const sridQuery = `
           SELECT srid FROM geometry_columns 
           WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geometry_column = $3

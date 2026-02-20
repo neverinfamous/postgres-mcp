@@ -309,8 +309,11 @@ describe("Handler Execution", () => {
 
   describe("pg_geo_transform truncation with explicit limit", () => {
     it("should return truncated + totalCount when explicit limit truncates results", async () => {
-      // Call sequence: 1) SRID detect, 2) column query, 3) transform query, 4) count query
+      // Call sequence: 1) table check, 2) SRID detect, 3) column query, 4) transform query, 5) count query
       mockAdapter.executeQuery
+        .mockResolvedValueOnce({
+          rows: [{ "?column?": 1 }],
+        })
         .mockResolvedValueOnce({
           rows: [{ srid: 4326 }],
         })
@@ -346,8 +349,11 @@ describe("Handler Execution", () => {
 
   describe("pg_geo_transform SRID auto-detection", () => {
     it("should auto-detect fromSrid from column metadata", async () => {
-      // Call sequence: 1) SRID detect, 2) column query, 3) transform query, 4) count query
+      // Call sequence: 1) table check, 2) SRID detect, 3) column query, 4) transform query, 5) count query
       mockAdapter.executeQuery
+        .mockResolvedValueOnce({
+          rows: [{ "?column?": 1 }],
+        })
         .mockResolvedValueOnce({
           rows: [{ srid: 4326 }],
         })
@@ -380,9 +386,14 @@ describe("Handler Execution", () => {
     });
 
     it("should return structured error when SRID cannot be detected", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({
-        rows: [],
-      });
+      // Table exists but SRID lookup returns empty
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({
+          rows: [{ "?column?": 1 }],
+        })
+        .mockResolvedValueOnce({
+          rows: [],
+        });
 
       const tool = tools.find((t) => t.name === "pg_geo_transform")!;
       const result = (await tool.handler(
@@ -580,16 +591,8 @@ describe("Structured Error Handling (parsePostgresError)", () => {
   });
 
   it("pg_geo_transform should throw structured error for nonexistent table", async () => {
-    // SRID detection returns a result (simulating geometry_columns lookup success)
-    mockAdapter.executeQuery
-      .mockResolvedValueOnce({ rows: [{ srid: 4326 }] })
-      // Column lookup succeeds but main query fails with 42P01
-      .mockResolvedValueOnce({ rows: [{ column_name: "id" }] })
-      .mockRejectedValueOnce(
-        Object.assign(new Error('relation "nonexistent_xyz" does not exist'), {
-          code: "42P01",
-        }),
-      );
+    // Table existence check returns empty rows (table doesn't exist)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = tools.find((t) => t.name === "pg_geo_transform")!;
     await expect(
       tool.handler(

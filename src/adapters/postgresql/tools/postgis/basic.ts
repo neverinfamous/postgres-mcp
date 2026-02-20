@@ -672,7 +672,14 @@ export function createSpatialIndexTool(
 
       // Always use IF NOT EXISTS to prevent unclear PostgreSQL errors
       const sql = `CREATE INDEX IF NOT EXISTS ${indexName} ON ${qualifiedTable} USING GIST (${columnName})`;
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        throw parsePostgresError(error, {
+          tool: "pg_spatial_index",
+          table,
+        });
+      }
       return { success: true, index: indexNameRaw, table, column };
     },
   };

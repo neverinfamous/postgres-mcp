@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_spatial_index` raw PostgreSQL error for nonexistent column** — `pg_spatial_index({ table: 'locations', column: 'nonexistent' })` now throws a structured error via `parsePostgresError` instead of a raw PostgreSQL exception (`column "nonexistent" does not exist`). Wrapped the `CREATE INDEX` executeQuery call in try-catch, consistent with other PostGIS tools
+
+- **`pg_geo_transform` misleading error for nonexistent table** — `pg_geo_transform({ table: 'nonexistent', column: 'geom', toSrid: 3857 })` now throws `Table or view 'nonexistent' not found` instead of the misleading `Could not auto-detect SRID`. Added a table existence check via `information_schema.tables` before SRID auto-detection. Updated 4 unit tests
+
 - **`pg_geocode` raw Zod validation error** — `pg_geocode({ lat: 95, lng: -74 })` with out-of-bounds coordinates now throws a clean error message (e.g., `lat must be between -90 and 90 degrees`) instead of a raw Zod validation error array. Wrapped handler in try-catch with `ZodError` interception and `parsePostgresError` fallback for database errors. Added 2 unit tests
 
 - **PostGIS tools raw PostgreSQL exceptions** — `pg_point_in_polygon`, `pg_distance`, `pg_buffer`, `pg_intersection`, `pg_bounding_box`, `pg_geo_cluster`, `pg_geometry_buffer`, `pg_geometry_intersection`, and `pg_geometry_transform` now route errors through `parsePostgresError()` for structured messages instead of raw PG exceptions. Covers nonexistent tables (`42P01`), invalid geometry inputs, and other database errors. Added 9 unit tests
