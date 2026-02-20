@@ -153,17 +153,17 @@ export function createPointInPolygonTool(
     annotations: readOnly("Point in Polygon"),
     icons: getToolIcons("postgis", readOnly("Point in Polygon")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { table, column, point, schema } = PointInPolygonSchema.parse(
-        params ?? {},
-      );
-      const schemaName = schema ?? "public";
-      const tableName = sanitizeTableName(
-        table,
-        schemaName !== "public" ? schemaName : undefined,
-      );
-      const columnName = sanitizeIdentifier(column);
-
       try {
+        const { table, column, point, schema } = PointInPolygonSchema.parse(
+          params ?? {},
+        );
+        const schemaName = schema ?? "public";
+        const tableName = sanitizeTableName(
+          table,
+          schemaName !== "public" ? schemaName : undefined,
+        );
+        const columnName = sanitizeIdentifier(column);
+
         // Check geometry type and warn if not polygon
         const typeCheckSql = `SELECT DISTINCT GeometryType(${columnName}) as geom_type FROM ${tableName} WHERE ${columnName} IS NOT NULL LIMIT 1`;
         const typeResult = await adapter.executeQuery(typeCheckSql);
@@ -213,9 +213,16 @@ export function createPointInPolygonTool(
 
         return response;
       } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          throw new Error(error.issues.map((i) => i.message).join("; "), {
+            cause: error,
+          });
+        }
         throw parsePostgresError(error, {
           tool: "pg_point_in_polygon",
-          table,
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
         });
       }
     },
@@ -309,21 +316,20 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Buffer Zone"),
     icons: getToolIcons("postgis", readOnly("Buffer Zone")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = BufferSchema.parse(params ?? {});
-      const whereClause =
-        parsed.where !== undefined ? ` WHERE ${parsed.where}` : "";
-
-      const schemaName = parsed.schema ?? "public";
-      const qualifiedTable = sanitizeTableName(
-        parsed.table,
-        schemaName !== "public" ? schemaName : undefined,
-      );
-      const columnName = sanitizeIdentifier(parsed.column);
-
-      // Default limit of 50 to prevent large payloads, use limit: 0 for all
-      const effectiveLimit = parsed.limit ?? 50;
-
       try {
+        const parsed = BufferSchema.parse(params ?? {});
+        const whereClause =
+          parsed.where !== undefined ? ` WHERE ${parsed.where}` : "";
+
+        const schemaName = parsed.schema ?? "public";
+        const qualifiedTable = sanitizeTableName(
+          parsed.table,
+          schemaName !== "public" ? schemaName : undefined,
+        );
+        const columnName = sanitizeIdentifier(parsed.column);
+
+        // Default limit of 50 to prevent large payloads, use limit: 0 for all
+        const effectiveLimit = parsed.limit ?? 50;
         // Get non-geometry columns to avoid returning raw WKB
         const colQuery = `
           SELECT column_name FROM information_schema.columns 
@@ -386,9 +392,16 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
 
         return response;
       } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          throw new Error(error.issues.map((i) => i.message).join("; "), {
+            cause: error,
+          });
+        }
         throw parsePostgresError(error, {
           tool: "pg_buffer",
-          table: parsed.table,
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
         });
       }
     },
@@ -408,15 +421,14 @@ export function createIntersectionTool(
     annotations: readOnly("Intersection Search"),
     icons: getToolIcons("postgis", readOnly("Intersection Search")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = IntersectionSchema.parse(params ?? {});
-      const schemaName = parsed.schema ?? "public";
-      const qualifiedTable = sanitizeTableName(
-        parsed.table,
-        schemaName !== "public" ? schemaName : undefined,
-      );
-      const columnName = sanitizeIdentifier(parsed.column);
-
       try {
+        const parsed = IntersectionSchema.parse(params ?? {});
+        const schemaName = parsed.schema ?? "public";
+        const qualifiedTable = sanitizeTableName(
+          parsed.table,
+          schemaName !== "public" ? schemaName : undefined,
+        );
+        const columnName = sanitizeIdentifier(parsed.column);
         // Build select columns - user-specified or non-geometry columns to avoid raw WKB
         let selectCols: string;
         if (parsed.select !== undefined && parsed.select.length > 0) {
@@ -490,9 +502,16 @@ export function createIntersectionTool(
           sridUsed: srid ?? "none (explicit SRID in geometry or GeoJSON)",
         };
       } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          throw new Error(error.issues.map((i) => i.message).join("; "), {
+            cause: error,
+          });
+        }
         throw parsePostgresError(error, {
           tool: "pg_intersection",
-          table: parsed.table,
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
         });
       }
     },
@@ -512,16 +531,15 @@ export function createBoundingBoxTool(
     annotations: readOnly("Bounding Box Search"),
     icons: getToolIcons("postgis", readOnly("Bounding Box Search")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = BoundingBoxSchema.parse(params ?? {});
-
-      const schemaName = parsed.schema ?? "public";
-      const qualifiedTable = sanitizeTableName(
-        parsed.table,
-        schemaName !== "public" ? schemaName : undefined,
-      );
-      const columnName = sanitizeIdentifier(parsed.column);
-
       try {
+        const parsed = BoundingBoxSchema.parse(params ?? {});
+
+        const schemaName = parsed.schema ?? "public";
+        const qualifiedTable = sanitizeTableName(
+          parsed.table,
+          schemaName !== "public" ? schemaName : undefined,
+        );
+        const columnName = sanitizeIdentifier(parsed.column);
         // Build select columns - user-specified or non-geometry columns to avoid raw WKB
         let selectCols: string;
         if (parsed.select !== undefined && parsed.select.length > 0) {
@@ -592,9 +610,16 @@ export function createBoundingBoxTool(
 
         return response;
       } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          throw new Error(error.issues.map((i) => i.message).join("; "), {
+            cause: error,
+          });
+        }
         throw parsePostgresError(error, {
           tool: "pg_bounding_box",
-          table: parsed.table,
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
         });
       }
     },

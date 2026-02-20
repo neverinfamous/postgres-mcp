@@ -91,64 +91,64 @@ export function createGeoTransformTool(
     annotations: readOnly("Transform Geometry"),
     icons: getToolIcons("postgis", readOnly("Transform Geometry")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = GeoTransformSchema.parse(params ?? {});
-
-      const schemaName = parsed.schema ?? "public";
-      const qualifiedTable =
-        schemaName !== "public"
-          ? `"${schemaName}"."${parsed.table}"`
-          : `"${parsed.table}"`;
-      const columnName = `"${parsed.column}"`;
-
-      // Auto-detect fromSrid from column metadata if not provided
-      let fromSrid = parsed.fromSrid;
-      if (fromSrid === 0) {
-        // Check if table exists before attempting SRID auto-detection
-        const tableCheckSql = `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`;
-        const tableCheckResult = await adapter.executeQuery(tableCheckSql, [
-          schemaName,
-          parsed.table,
-        ]);
-        if ((tableCheckResult.rows?.length ?? 0) === 0) {
-          throw new Error(
-            `Table or view '${parsed.table}' not found. Use pg_list_tables to see available tables.`,
-          );
-        }
-
-        const sridQuery = `
-          SELECT srid FROM geometry_columns 
-          WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geometry_column = $3
-          UNION
-          SELECT srid FROM geography_columns 
-          WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geography_column = $3
-          LIMIT 1
-        `;
-        const sridResult = await adapter.executeQuery(sridQuery, [
-          schemaName,
-          parsed.table,
-          parsed.column,
-        ]);
-        const sridValue = sridResult.rows?.[0]?.["srid"];
-        if (sridValue !== undefined && sridValue !== null) {
-          fromSrid = Number(sridValue);
-        } else {
-          return {
-            success: false,
-            error: `Could not auto-detect SRID for column "${parsed.column}" on table "${parsed.table}". Provide fromSrid (or sourceSrid) explicitly.`,
-            suggestion: `Use fromSrid: 4326 for WGS84/GPS coordinates, or fromSrid: 3857 for Web Mercator`,
-          };
-        }
-      }
-
-      const whereClause =
-        parsed.where !== undefined ? `WHERE ${parsed.where}` : "";
-
-      // Default limit of 50 to prevent large payloads, use limit: 0 for all
-      const effectiveLimit = parsed.limit ?? 50;
-      const limitClause =
-        effectiveLimit > 0 ? `LIMIT ${String(effectiveLimit)}` : "";
-
       try {
+        const parsed = GeoTransformSchema.parse(params ?? {});
+
+        const schemaName = parsed.schema ?? "public";
+        const qualifiedTable =
+          schemaName !== "public"
+            ? `"${schemaName}"."${parsed.table}"`
+            : `"${parsed.table}"`;
+        const columnName = `"${parsed.column}"`;
+
+        // Auto-detect fromSrid from column metadata if not provided
+        let fromSrid = parsed.fromSrid;
+        if (fromSrid === 0) {
+          // Check if table exists before attempting SRID auto-detection
+          const tableCheckSql = `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`;
+          const tableCheckResult = await adapter.executeQuery(tableCheckSql, [
+            schemaName,
+            parsed.table,
+          ]);
+          if ((tableCheckResult.rows?.length ?? 0) === 0) {
+            throw new Error(
+              `Table or view '${parsed.table}' not found. Use pg_list_tables to see available tables.`,
+            );
+          }
+
+          const sridQuery = `
+            SELECT srid FROM geometry_columns 
+            WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geometry_column = $3
+            UNION
+            SELECT srid FROM geography_columns 
+            WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geography_column = $3
+            LIMIT 1
+          `;
+          const sridResult = await adapter.executeQuery(sridQuery, [
+            schemaName,
+            parsed.table,
+            parsed.column,
+          ]);
+          const sridValue = sridResult.rows?.[0]?.["srid"];
+          if (sridValue !== undefined && sridValue !== null) {
+            fromSrid = Number(sridValue);
+          } else {
+            return {
+              success: false,
+              error: `Could not auto-detect SRID for column "${parsed.column}" on table "${parsed.table}". Provide fromSrid (or sourceSrid) explicitly.`,
+              suggestion: `Use fromSrid: 4326 for WGS84/GPS coordinates, or fromSrid: 3857 for Web Mercator`,
+            };
+          }
+        }
+
+        const whereClause =
+          parsed.where !== undefined ? `WHERE ${parsed.where}` : "";
+
+        // Default limit of 50 to prevent large payloads, use limit: 0 for all
+        const effectiveLimit = parsed.limit ?? 50;
+        const limitClause =
+          effectiveLimit > 0 ? `LIMIT ${String(effectiveLimit)}` : "";
+
         // Get non-geometry columns to avoid returning raw WKB
         const colQuery = `
           SELECT column_name FROM information_schema.columns 
@@ -198,9 +198,16 @@ export function createGeoTransformTool(
 
         return response;
       } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          throw new Error(error.issues.map((i) => i.message).join("; "), {
+            cause: error,
+          });
+        }
         throw parsePostgresError(error, {
           tool: "pg_geo_transform",
-          table: parsed.table,
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
         });
       }
     },
@@ -365,29 +372,28 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Geo Cluster"),
     icons: getToolIcons("postgis", readOnly("Geo Cluster")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = GeoClusterSchema.parse(params ?? {});
-
-      const method = parsed.method ?? "dbscan";
-      const schemaName = parsed.schema ?? "public";
-      const qualifiedTable =
-        schemaName !== "public"
-          ? `"${schemaName}"."${parsed.table}"`
-          : `"${parsed.table}"`;
-      const whereClause =
-        parsed.where !== undefined ? `WHERE ${parsed.where}` : "";
-      const limitClause =
-        parsed.limit !== undefined && parsed.limit > 0
-          ? `LIMIT ${String(parsed.limit)}`
-          : "";
-
-      // Track warning if K > N
-      let warning: string | undefined;
-
-      // For K-Means, validate and adjust numClusters
-      let effectiveNumClusters = parsed.numClusters ?? 5;
-      let rowCount: number;
-
       try {
+        const parsed = GeoClusterSchema.parse(params ?? {});
+
+        const method = parsed.method ?? "dbscan";
+        const schemaName = parsed.schema ?? "public";
+        const qualifiedTable =
+          schemaName !== "public"
+            ? `"${schemaName}"."${parsed.table}"`
+            : `"${parsed.table}"`;
+        const whereClause =
+          parsed.where !== undefined ? `WHERE ${parsed.where}` : "";
+        const limitClause =
+          parsed.limit !== undefined && parsed.limit > 0
+            ? `LIMIT ${String(parsed.limit)}`
+            : "";
+
+        // Track warning if K > N
+        let warning: string | undefined;
+
+        // For K-Means, validate and adjust numClusters
+        let effectiveNumClusters = parsed.numClusters ?? 5;
+        let rowCount: number;
         if (method === "kmeans") {
           // Validate numClusters > 0
           if (effectiveNumClusters <= 0) {
@@ -547,9 +553,16 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
 
         return response;
       } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          throw new Error(error.issues.map((i) => i.message).join("; "), {
+            cause: error,
+          });
+        }
         throw parsePostgresError(error, {
           tool: "pg_geo_cluster",
-          table: parsed.table,
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
         });
       }
     },
