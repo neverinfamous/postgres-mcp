@@ -308,7 +308,22 @@ export function createJsonbNormalizeTool(
           };
         }
 
-        const tableName = sanitizeTableName(table);
+        // Validate schema existence for non-public schemas
+        const schemaName = parsed.schema ?? "public";
+        if (schemaName !== "public") {
+          const schemaResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schemaName],
+          );
+          if (!schemaResult.rows || schemaResult.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            };
+          }
+        }
+
+        const tableName = sanitizeTableName(table, schemaName);
         const columnName = sanitizeIdentifier(column);
 
         // Determine row identifier column
@@ -521,7 +536,22 @@ export function createJsonbIndexSuggestTool(
         const sample = parsed.sampleSize ?? 1000;
         const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
 
-        const tableName = sanitizeTableName(table);
+        // Validate schema existence for non-public schemas
+        const schemaName = parsed.schema ?? "public";
+        if (schemaName !== "public") {
+          const schemaResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schemaName],
+          );
+          if (!schemaResult.rows || schemaResult.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            };
+          }
+        }
+
+        const tableName = sanitizeTableName(table, schemaName);
         const columnName = sanitizeIdentifier(column);
 
         const keySql = `
@@ -647,7 +677,22 @@ export function createJsonbSecurityScanTool(
 
         const issues: { type: string; key: string; count: number }[] = [];
 
-        const tableName = sanitizeTableName(table);
+        // Validate schema existence for non-public schemas
+        const schemaName = parsed.schema ?? "public";
+        if (schemaName !== "public") {
+          const schemaResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schemaName],
+          );
+          if (!schemaResult.rows || schemaResult.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            };
+          }
+        }
+
+        const tableName = sanitizeTableName(table, schemaName);
         const columnName = sanitizeIdentifier(column);
 
         // Count actual rows scanned
@@ -769,7 +814,22 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
         const sample = parsed.sampleSize ?? 1000;
         const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
 
-        const tableName = sanitizeTableName(table);
+        // Validate schema existence for non-public schemas
+        const schemaName = parsed.schema ?? "public";
+        if (schemaName !== "public") {
+          const schemaResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schemaName],
+          );
+          if (!schemaResult.rows || schemaResult.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            };
+          }
+        }
+
+        const tableName = sanitizeTableName(table, schemaName);
         const columnName = sanitizeIdentifier(column);
 
         const basicSql = `

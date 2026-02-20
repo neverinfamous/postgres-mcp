@@ -412,6 +412,7 @@ export const JsonbTypeofSchemaBase = z
       .describe("Path to check type of nested value (string or array format)"),
     where: z.string().optional().describe("WHERE clause"),
     filter: z.string().optional().describe("WHERE clause (alias for where)"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
     message: "Either 'table' or 'tableName' is required",
@@ -436,6 +437,7 @@ export const JsonbKeysSchemaBase = z
     col: z.string().optional().describe("JSONB column name (alias for column)"),
     where: z.string().optional().describe("WHERE clause"),
     filter: z.string().optional().describe("WHERE clause (alias for where)"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
     message: "Either 'table' or 'tableName' is required",
@@ -464,15 +466,13 @@ export const JsonbStripNullsSchemaBase = z
       .boolean()
       .optional()
       .describe("Preview what would be stripped without modifying data"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
     message: "Either 'table' or 'tableName' is required",
   })
   .refine((data) => data.column !== undefined || data.col !== undefined, {
     message: "Either 'column' or 'col' is required",
-  })
-  .refine((data) => data.where !== undefined || data.filter !== undefined, {
-    message: "Either 'where' or 'filter' is required",
   });
 
 // Full schema with preprocess (for handler parsing)
@@ -509,6 +509,7 @@ export const JsonbAggSchemaBase = z
       .number()
       .optional()
       .describe("Maximum number of rows to aggregate"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
     message: "Either 'table' or 'tableName' is required",
@@ -542,6 +543,7 @@ export const JsonbNormalizeSchemaBase = z
       .describe(
         'Column to use for row identification (e.g., "id"). If omitted, defaults to "id" if it exists, else uses ctid.',
       ),
+    schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
     message: "Either 'table' or 'tableName' is required",
@@ -574,6 +576,7 @@ export const JsonbStatsSchemaBase = z
       .number()
       .optional()
       .describe("Maximum number of top keys to return (default: 20)"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
     message: "Either 'table' or 'tableName' is required",
@@ -602,6 +605,7 @@ export const JsonbIndexSuggestSchemaBase = z
       .string()
       .optional()
       .describe("WHERE clause to filter rows (alias for where)"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
     message: "Either 'table' or 'tableName' is required",
@@ -630,6 +634,7 @@ export const JsonbSecurityScanSchemaBase = z
       .string()
       .optional()
       .describe("WHERE clause to filter rows (alias for where)"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
     message: "Either 'table' or 'tableName' is required",

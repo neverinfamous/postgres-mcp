@@ -934,5 +934,56 @@ describe("JSONB Validation and Error Paths", () => {
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/not found.*pg_list_tables/i);
     });
+
+    it("should return structured error for pg_jsonb_strip_nulls when WHERE is omitted", async () => {
+      const tool = tools.find((t) => t.name === "pg_jsonb_strip_nulls")!;
+
+      const result = (await tool.handler(
+        { table: "test_table", column: "data" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/WHERE clause/i);
+    });
+
+    it("should return structured error for pg_jsonb_extract with fake schema", async () => {
+      // Mock: schema check returns empty (schema doesn't exist)
+      mockAdapter.executeQuery.mockResolvedValue({ rows: [] });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_extract")!;
+
+      const result = (await tool.handler(
+        {
+          table: "test_table",
+          column: "data",
+          path: "key",
+          schema: "fake_schema",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Schema 'fake_schema' does not exist/);
+    });
+
+    it("should return structured error for pg_jsonb_normalize with fake schema", async () => {
+      // Mock: schema check returns empty (schema doesn't exist)
+      mockAdapter.executeQuery.mockResolvedValue({ rows: [] });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_normalize")!;
+
+      const result = (await tool.handler(
+        {
+          table: "test_table",
+          column: "data",
+          schema: "fake_schema",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Schema 'fake_schema' does not exist/);
+    });
   });
 });
