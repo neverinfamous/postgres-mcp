@@ -547,6 +547,72 @@ describe("pg_transaction_execute", () => {
 });
 
 // =============================================================================
+// Structured Error Handling - Transaction Not Found
+// =============================================================================
+
+describe("Transaction error handling - invalid transactionId", () => {
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_transaction_commit should throw structured error for invalid txId", async () => {
+    const mockAdapter = createMockPostgresAdapter();
+    const txError = new Error("Transaction not found: bad-txn-id");
+    txError.name = "TransactionError";
+    (
+      mockAdapter.commitTransaction as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(txError);
+
+    const tools = getTransactionTools(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_commit")!;
+
+    await expect(
+      tool.handler({ transactionId: "bad-txn-id" }, mockContext),
+    ).rejects.toThrow("Transaction not found");
+  });
+
+  it("pg_transaction_rollback should throw structured error for invalid txId", async () => {
+    const mockAdapter = createMockPostgresAdapter();
+    const txError = new Error("Transaction not found: bad-txn-id");
+    txError.name = "TransactionError";
+    (
+      mockAdapter.rollbackTransaction as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(txError);
+
+    const tools = getTransactionTools(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_rollback")!;
+
+    await expect(
+      tool.handler({ transactionId: "bad-txn-id" }, mockContext),
+    ).rejects.toThrow("Transaction not found");
+  });
+
+  it("pg_transaction_begin should propagate adapter errors through parsePostgresError", async () => {
+    const mockAdapter = createMockPostgresAdapter();
+    const adapterError = new Error("Connection pool exhausted");
+    (
+      mockAdapter.beginTransaction as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(adapterError);
+
+    const tools = getTransactionTools(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_begin")!;
+
+    await expect(tool.handler({}, mockContext)).rejects.toThrow(
+      "Connection pool exhausted",
+    );
+  });
+});
+
+// =============================================================================
 // Structured Error Handling - Savepoint Errors
 // =============================================================================
 
