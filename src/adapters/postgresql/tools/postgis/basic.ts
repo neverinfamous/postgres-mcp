@@ -9,7 +9,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { parsePostgresError } from "../core/error-helpers.js";
@@ -233,48 +233,44 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Distance Search"),
     icons: getToolIcons("postgis", readOnly("Distance Search")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { table, column, point, limit, maxDistance, schema } =
-        GeometryDistanceSchema.parse(params);
-      const schemaName = schema ?? "public";
-      const tableName = sanitizeTableName(
-        table,
-        schemaName !== "public" ? schemaName : undefined,
-      );
-      const columnName = sanitizeIdentifier(column);
-      const limitVal = limit ?? 10;
-      const distanceFilter =
-        maxDistance !== undefined && maxDistance > 0
-          ? `WHERE distance_meters <= ${String(maxDistance)}`
-          : "";
-
-      // Get non-geometry columns to avoid returning raw WKB
-      const colQuery = `
-        SELECT column_name FROM information_schema.columns 
-        WHERE table_schema = $1 AND table_name = $2 
-        AND udt_name NOT IN ('geometry', 'geography')
-        ORDER BY ordinal_position
-      `;
-      let colResult;
       try {
-        colResult = await adapter.executeQuery(colQuery, [schemaName, table]);
-      } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_distance",
+        const { table, column, point, limit, maxDistance, schema } =
+          GeometryDistanceSchema.parse(params);
+        const schemaName = schema ?? "public";
+        const tableName = sanitizeTableName(
           table,
-        });
-      }
-      const nonGeomCols = (colResult.rows ?? [])
-        .map((row) => sanitizeIdentifier(String(row["column_name"])))
-        .join(", ");
+          schemaName !== "public" ? schemaName : undefined,
+        );
+        const columnName = sanitizeIdentifier(column);
+        const limitVal = limit ?? 10;
+        const distanceFilter =
+          maxDistance !== undefined && maxDistance > 0
+            ? `WHERE distance_meters <= ${String(maxDistance)}`
+            : "";
 
-      // Select non-geometry columns + readable geometry representation + distance
-      const selectCols =
-        nonGeomCols.length > 0
-          ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text, ST_Distance(${columnName}::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) as distance_meters`
-          : `ST_AsText(${columnName}) as geometry_text, ST_Distance(${columnName}::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) as distance_meters`;
+        // Get non-geometry columns to avoid returning raw WKB
+        const colQuery = `
+          SELECT column_name FROM information_schema.columns 
+          WHERE table_schema = $1 AND table_name = $2 
+          AND udt_name NOT IN ('geometry', 'geography')
+          ORDER BY ordinal_position
+        `;
+        const colResult = await adapter.executeQuery(colQuery, [
+          schemaName,
+          table,
+        ]);
+        const nonGeomCols = (colResult.rows ?? [])
+          .map((row) => sanitizeIdentifier(String(row["column_name"])))
+          .join(", ");
 
-      // Use CTE for consistent distance calculation and filtering
-      const sql = `WITH distances AS (
+        // Select non-geometry columns + readable geometry representation + distance
+        const selectCols =
+          nonGeomCols.length > 0
+            ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text, ST_Distance(${columnName}::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) as distance_meters`
+            : `ST_AsText(${columnName}) as geometry_text, ST_Distance(${columnName}::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) as distance_meters`;
+
+        // Use CTE for consistent distance calculation and filtering
+        const sql = `WITH distances AS (
                 SELECT ${selectCols}
                 FROM ${tableName}
             )
@@ -283,16 +279,21 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
             ORDER BY distance_meters
             LIMIT ${String(limitVal)}`;
 
-      let result;
-      try {
-        result = await adapter.executeQuery(sql, [point.lng, point.lat]);
+        const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
+        return { results: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          throw new Error(error.issues.map((i) => i.message).join("; "), {
+            cause: error,
+          });
+        }
         throw parsePostgresError(error, {
           tool: "pg_distance",
-          table,
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
         });
       }
-      return { results: result.rows, count: result.rows?.length ?? 0 };
     },
   };
 }

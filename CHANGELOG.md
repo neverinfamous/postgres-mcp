@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_geo_transform` raw PostgreSQL exceptions** — Queries after SRID auto-detection (column lookup, main transform, count) are now wrapped in try-catch with `parsePostgresError()`. A nonexistent table now throws `Table or view 'X' not found` instead of raw PG exceptions
 
+- **`pg_distance` raw Zod validation error for out-of-bounds coordinates** — `pg_distance({ point: { lat: 95, lng: -74 } })` now throws a clean error message (e.g., `lat must be between -90 and 90 degrees`) instead of a raw Zod validation error. Consolidated two separate try-catch blocks into one wrapping the entire handler body with `ZodError` interception, matching the `pg_geocode` pattern. Added 2 unit tests
+
 - **Standalone geometry tools structured error for invalid WKT/GeoJSON** — `pg_geometry_buffer`, `pg_geometry_intersection`, and `pg_geometry_transform` now throw `Invalid geometry input. Use WKT format (e.g., 'POINT(-74 40)') or GeoJSON format (...)` instead of raw `parse error - invalid geometry` exceptions. Added XX000 geometry parse error pattern to `parsePostgresError()`
 
 - **`pg_vector_validate` output schema error for non-vector columns** — `pg_vector_validate({ table: 'embeddings', column: 'name' })` where `name` is a text column now returns `{valid: false, error: "Column 'name' is not a vector column (type: text)", suggestion: "..."}` instead of returning `null` for `columnDimensions` and `expectedDimensions`, which violated the output schema. Added a pre-check of `udt_name` before calling `vector_dims()`
