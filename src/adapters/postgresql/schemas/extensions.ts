@@ -915,7 +915,8 @@ export const CitextCompareOutputSchema = z
  */
 export const CitextSchemaAdvisorOutputSchema = z
   .object({
-    table: z.string().describe("Analyzed table"),
+    success: z.boolean().optional().describe("Whether analysis succeeded"),
+    table: z.string().optional().describe("Analyzed table"),
     recommendations: z
       .array(
         z.object({
@@ -929,6 +930,7 @@ export const CitextSchemaAdvisorOutputSchema = z
           reason: z.string().describe("Reason for recommendation"),
         }),
       )
+      .optional()
       .describe("Column recommendations"),
     summary: z
       .object({
@@ -937,8 +939,10 @@ export const CitextSchemaAdvisorOutputSchema = z
         highConfidence: z.number().describe("High confidence count"),
         alreadyCitext: z.number().describe("Already citext count"),
       })
+      .optional()
       .describe("Summary statistics"),
-    nextSteps: z.array(z.string()).describe("Suggested next steps"),
+    nextSteps: z.array(z.string()).optional().describe("Suggested next steps"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Schema advisor result");
 

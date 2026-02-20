@@ -14,6 +14,7 @@ import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import {
   CitextConvertColumnSchema,
@@ -89,75 +90,95 @@ Note: If views depend on this column, you must drop and recreate them manually b
     annotations: write("Convert to Citext"),
     icons: getToolIcons("citext", write("Convert to Citext")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = CitextConvertColumnSchema.parse(params ?? {});
-      const { table, column, schema: schemaOpt } = parsed;
-      const schemaName = schemaOpt ?? "public";
-      const qualifiedTable = `"${schemaName}"."${table}"`;
+      try {
+        const parsed = CitextConvertColumnSchema.parse(params ?? {});
+        const { table, column, schema: schemaOpt } = parsed;
+        const schemaName = schemaOpt ?? "public";
+        const qualifiedTable = `"${schemaName}"."${table}"`;
 
-      const extCheck = await adapter.executeQuery(`
+        const extCheck = await adapter.executeQuery(`
                 SELECT EXISTS(
                     SELECT 1 FROM pg_extension WHERE extname = 'citext'
                 ) as installed
             `);
 
-      const hasExt = (extCheck.rows?.[0]?.["installed"] as boolean) ?? false;
-      if (!hasExt) {
-        throw new Error(
-          "citext extension is not installed. Run pg_citext_create_extension first.",
-        );
-      }
+        const hasExt = (extCheck.rows?.[0]?.["installed"] as boolean) ?? false;
+        if (!hasExt) {
+          return {
+            success: false,
+            error:
+              "citext extension is not installed. Run pg_citext_create_extension first.",
+          };
+        }
 
-      const colCheck = await adapter.executeQuery(
-        `
+        // Check if table exists before checking column
+        const tableCheck = await adapter.executeQuery(
+          `
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = $1 AND table_name = $2
+            `,
+          [schemaName, table],
+        );
+
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Table ${qualifiedTable} does not exist. Verify the table name and schema.`,
+          };
+        }
+
+        const colCheck = await adapter.executeQuery(
+          `
                 SELECT data_type, udt_name
                 FROM information_schema.columns 
                 WHERE table_schema = $1 
                   AND table_name = $2 
                   AND column_name = $3
             `,
-        [schemaName, table, column],
-      );
-
-      if (!colCheck.rows || colCheck.rows.length === 0) {
-        throw new Error(
-          `Column "${column}" not found in table ${qualifiedTable}. Verify the table and column names.`,
+          [schemaName, table, column],
         );
-      }
 
-      const dataType = colCheck.rows[0]?.["data_type"] as string;
-      const udtName = colCheck.rows[0]?.["udt_name"] as string;
-      // Normalize type: use udt_name for user-defined types (like citext)
-      const currentType = dataType === "USER-DEFINED" ? udtName : dataType;
-      if (udtName === "citext") {
-        return {
-          success: true,
-          message: `Column ${column} is already citext`,
-          wasAlreadyCitext: true,
-        };
-      }
+        if (!colCheck.rows || colCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
+          };
+        }
 
-      // Validate that the column is a text-based type
-      const allowedTypes = [
-        "text",
-        "character varying",
-        "character",
-        "char",
-        "varchar",
-      ];
-      const normalizedType = dataType.toLowerCase();
-      if (!allowedTypes.includes(normalizedType)) {
-        return {
-          success: false,
-          error: `Column "${column}" is type "${currentType}", not a text-based type`,
-          currentType,
-          allowedTypes: ["text", "varchar", "character varying"],
-          suggestion: `citext conversion only works for text-based columns. Column "${column}" is "${currentType}" which cannot be converted.`,
-        };
-      }
+        const dataType = colCheck.rows[0]?.["data_type"] as string;
+        const udtName = colCheck.rows[0]?.["udt_name"] as string;
+        // Normalize type: use udt_name for user-defined types (like citext)
+        const currentType = dataType === "USER-DEFINED" ? udtName : dataType;
+        if (udtName === "citext") {
+          return {
+            success: true,
+            message: `Column ${column} is already citext`,
+            wasAlreadyCitext: true,
+          };
+        }
 
-      // Check for dependent views before attempting the conversion
-      const depCheck = await adapter.executeQuery(
-        `
+        // Validate that the column is a text-based type
+        const allowedTypes = [
+          "text",
+          "character varying",
+          "character",
+          "char",
+          "varchar",
+        ];
+        const normalizedType = dataType.toLowerCase();
+        if (!allowedTypes.includes(normalizedType)) {
+          return {
+            success: false,
+            error: `Column "${column}" is type "${currentType}", not a text-based type`,
+            currentType,
+            allowedTypes: ["text", "varchar", "character varying"],
+            suggestion: `citext conversion only works for text-based columns. Column "${column}" is "${currentType}" which cannot be converted.`,
+          };
+        }
+
+        // Check for dependent views before attempting the conversion
+        const depCheck = await adapter.executeQuery(
+          `
                 SELECT DISTINCT 
                     c.relname as dependent_view,
                     n.nspname as view_schema
@@ -173,58 +194,63 @@ Note: If views depend on this column, you must drop and recreate them manually b
                   AND t.relname = $2
                   AND a.attname = $3
             `,
-        [schemaName, table, column],
-      );
+          [schemaName, table, column],
+        );
 
-      const dependentViews = depCheck.rows ?? [];
+        const dependentViews = depCheck.rows ?? [];
 
-      if (dependentViews.length > 0) {
-        return {
-          success: false,
-          error:
-            "Column has dependent views that must be dropped before conversion",
-          dependentViews: dependentViews.map(
-            (v) =>
-              `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
-          ),
-          hint: "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
-        };
-      }
+        if (dependentViews.length > 0) {
+          return {
+            success: false,
+            error:
+              "Column has dependent views that must be dropped before conversion",
+            dependentViews: dependentViews.map(
+              (v) =>
+                `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
+            ),
+            hint: "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
+          };
+        }
 
-      try {
-        await adapter.executeQuery(`
+        try {
+          await adapter.executeQuery(`
                     ALTER TABLE ${qualifiedTable}
                     ALTER COLUMN "${column}" TYPE citext USING "${column}"::citext
                 `);
 
-        return {
-          success: true,
-          message: `Column ${column} converted from ${currentType} to citext`,
-          table: qualifiedTable,
-          previousType: currentType,
-          affectedViews:
-            dependentViews.length > 0
-              ? dependentViews.map(
-                  (v) =>
-                    `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
-                )
-              : undefined,
-        };
+          return {
+            success: true,
+            message: `Column ${column} converted from ${currentType} to citext`,
+            table: qualifiedTable,
+            previousType: currentType,
+            affectedViews:
+              dependentViews.length > 0
+                ? dependentViews.map(
+                    (v) =>
+                      `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
+                  )
+                : undefined,
+          };
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          return {
+            success: false,
+            error: `Failed to convert column: ${errorMessage}`,
+            hint: "If views depend on this column, they may need to be dropped and recreated",
+            dependentViews:
+              dependentViews.length > 0
+                ? dependentViews.map(
+                    (v) =>
+                      `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
+                  )
+                : undefined,
+          };
+        }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        return {
-          success: false,
-          error: `Failed to convert column: ${errorMessage}`,
-          hint: "If views depend on this column, they may need to be dropped and recreated",
-          dependentViews:
-            dependentViews.length > 0
-              ? dependentViews.map(
-                  (v) =>
-                    `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
-                )
-              : undefined,
-        };
+        throw parsePostgresError(error, {
+          tool: "pg_citext_convert_column",
+        });
       }
     },
   };
@@ -590,27 +616,29 @@ Requires the 'table' parameter to specify which table to analyze.`,
     annotations: readOnly("Citext Schema Advisor"),
     icons: getToolIcons("citext", readOnly("Citext Schema Advisor")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { table, schema } = CitextSchemaAdvisorSchema.parse(params);
-      const schemaName = schema ?? "public";
-      const qualifiedTable = `"${schemaName}"."${table}"`;
+      try {
+        const { table, schema } = CitextSchemaAdvisorSchema.parse(params);
+        const schemaName = schema ?? "public";
+        const qualifiedTable = `"${schemaName}"."${table}"`;
 
-      // First check if table exists
-      const tableCheck = await adapter.executeQuery(
-        `
+        // First check if table exists
+        const tableCheck = await adapter.executeQuery(
+          `
                 SELECT 1 FROM information_schema.tables
                 WHERE table_schema = $1 AND table_name = $2
             `,
-        [schemaName, table],
-      );
-
-      if (!tableCheck.rows || tableCheck.rows.length === 0) {
-        throw new Error(
-          `Table ${qualifiedTable} not found. Verify the table name and schema.`,
+          [schemaName, table],
         );
-      }
 
-      const colResult = await adapter.executeQuery(
-        `
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Table ${qualifiedTable} not found. Verify the table name and schema.`,
+          };
+        }
+
+        const colResult = await adapter.executeQuery(
+          `
                 SELECT 
                     column_name,
                     data_type,
@@ -623,113 +651,118 @@ Requires the 'table' parameter to specify which table to analyze.`,
                   AND data_type IN ('text', 'character varying', 'USER-DEFINED')
                 ORDER BY ordinal_position
             `,
-        [schemaName, table],
-      );
-
-      const columns = colResult.rows ?? [];
-      const recommendations: {
-        column: string;
-        currentType: string;
-        previousType?: string;
-        recommendation: "convert" | "keep" | "already_citext";
-        confidence: "high" | "medium" | "low";
-        reason: string;
-      }[] = [];
-
-      const highConfidencePatterns = [
-        "email",
-        "username",
-        "login",
-        "user_name",
-      ];
-      const mediumConfidencePatterns = [
-        "name",
-        "slug",
-        "handle",
-        "code",
-        "sku",
-        "identifier",
-        "nickname",
-      ];
-
-      for (const col of columns) {
-        const colName = (col["column_name"] as string).toLowerCase();
-        const dataType = col["data_type"] as string;
-        const udtName = col["udt_name"] as string;
-
-        if (udtName === "citext") {
-          recommendations.push({
-            column: col["column_name"] as string,
-            currentType: "citext",
-            previousType: "text or varchar (converted)",
-            recommendation: "already_citext",
-            confidence: "high",
-            reason: "Column is already using citext",
-          });
-          continue;
-        }
-
-        const isHighConfidence = highConfidencePatterns.some((p) =>
-          colName.includes(p),
-        );
-        const isMediumConfidence = mediumConfidencePatterns.some((p) =>
-          colName.includes(p),
+          [schemaName, table],
         );
 
-        if (isHighConfidence) {
-          recommendations.push({
-            column: col["column_name"] as string,
-            currentType: dataType,
-            recommendation: "convert",
-            confidence: "high",
-            reason: `Column name suggests case-insensitive data (${colName} matches common identifier patterns)`,
-          });
-        } else if (isMediumConfidence) {
-          recommendations.push({
-            column: col["column_name"] as string,
-            currentType: dataType,
-            recommendation: "convert",
-            confidence: "medium",
-            reason: `Column name may benefit from case-insensitivity (${colName})`,
-          });
-        } else {
-          recommendations.push({
-            column: col["column_name"] as string,
-            currentType: dataType,
-            recommendation: "keep",
-            confidence: "low",
-            reason: "No obvious case-insensitivity pattern detected",
-          });
+        const columns = colResult.rows ?? [];
+        const recommendations: {
+          column: string;
+          currentType: string;
+          previousType?: string;
+          recommendation: "convert" | "keep" | "already_citext";
+          confidence: "high" | "medium" | "low";
+          reason: string;
+        }[] = [];
+
+        const highConfidencePatterns = [
+          "email",
+          "username",
+          "login",
+          "user_name",
+        ];
+        const mediumConfidencePatterns = [
+          "name",
+          "slug",
+          "handle",
+          "code",
+          "sku",
+          "identifier",
+          "nickname",
+        ];
+
+        for (const col of columns) {
+          const colName = (col["column_name"] as string).toLowerCase();
+          const dataType = col["data_type"] as string;
+          const udtName = col["udt_name"] as string;
+
+          if (udtName === "citext") {
+            recommendations.push({
+              column: col["column_name"] as string,
+              currentType: "citext",
+              previousType: "text or varchar (converted)",
+              recommendation: "already_citext",
+              confidence: "high",
+              reason: "Column is already using citext",
+            });
+            continue;
+          }
+
+          const isHighConfidence = highConfidencePatterns.some((p) =>
+            colName.includes(p),
+          );
+          const isMediumConfidence = mediumConfidencePatterns.some((p) =>
+            colName.includes(p),
+          );
+
+          if (isHighConfidence) {
+            recommendations.push({
+              column: col["column_name"] as string,
+              currentType: dataType,
+              recommendation: "convert",
+              confidence: "high",
+              reason: `Column name suggests case-insensitive data (${colName} matches common identifier patterns)`,
+            });
+          } else if (isMediumConfidence) {
+            recommendations.push({
+              column: col["column_name"] as string,
+              currentType: dataType,
+              recommendation: "convert",
+              confidence: "medium",
+              reason: `Column name may benefit from case-insensitivity (${colName})`,
+            });
+          } else {
+            recommendations.push({
+              column: col["column_name"] as string,
+              currentType: dataType,
+              recommendation: "keep",
+              confidence: "low",
+              reason: "No obvious case-insensitivity pattern detected",
+            });
+          }
         }
+
+        const convertCount = recommendations.filter(
+          (r) => r.recommendation === "convert",
+        ).length;
+        const highCount = recommendations.filter(
+          (r) => r.recommendation === "convert" && r.confidence === "high",
+        ).length;
+
+        return {
+          table: `${schemaName}.${table}`,
+          recommendations,
+          summary: {
+            totalTextColumns: columns.length,
+            recommendConvert: convertCount,
+            highConfidence: highCount,
+            alreadyCitext: recommendations.filter(
+              (r) => r.recommendation === "already_citext",
+            ).length,
+          },
+          nextSteps:
+            convertCount > 0
+              ? [
+                  "Review recommendations above",
+                  `Use pg_citext_convert_column to convert recommended columns`,
+                  "Update application queries if they rely on case-sensitive comparisons",
+                ]
+              : ["No columns require conversion"],
+        };
+      } catch (error) {
+        throw parsePostgresError(error, {
+          tool: "pg_citext_schema_advisor",
+        });
       }
-
-      const convertCount = recommendations.filter(
-        (r) => r.recommendation === "convert",
-      ).length;
-      const highCount = recommendations.filter(
-        (r) => r.recommendation === "convert" && r.confidence === "high",
-      ).length;
-
-      return {
-        table: `${schemaName}.${table}`,
-        recommendations,
-        summary: {
-          totalTextColumns: columns.length,
-          recommendConvert: convertCount,
-          highConfidence: highCount,
-          alreadyCitext: recommendations.filter(
-            (r) => r.recommendation === "already_citext",
-          ).length,
-        },
-        nextSteps:
-          convertCount > 0
-            ? [
-                "Review recommendations above",
-                `Use pg_citext_convert_column to convert recommended columns`,
-                "Update application queries if they rely on case-sensitive comparisons",
-              ]
-            : ["No columns require conversion"],
-      };
     },
   };
 }
