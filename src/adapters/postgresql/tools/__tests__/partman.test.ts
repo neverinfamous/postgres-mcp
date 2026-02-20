@@ -823,7 +823,7 @@ describe("pg_partman_partition_data", () => {
       .mockResolvedValueOnce({ rows: [{ table_schema: "partman" }] }) // schema detection
       .mockResolvedValueOnce({ rows: [{ control: "created_at", epoch: null }] }) // config check
       .mockResolvedValueOnce({ rows: [{ count: 100 }] }) // COUNT before
-      .mockResolvedValueOnce({ rows: [] }) // CALL returns no rows
+      .mockResolvedValueOnce({ rows: [] }) // CALL partition_data_proc
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }); // COUNT after
 
     const tool = tools.find((t) => t.name === "pg_partman_partition_data")!;
@@ -1271,7 +1271,12 @@ describe("pg_partman_analyze_partition_health", () => {
       })
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists check
       .mockResolvedValueOnce({ rows: [{ count: 10 }] }) // partition count
-      .mockResolvedValueOnce({ rows: [{ rows: 5000 }] }); // default has data
+      .mockResolvedValueOnce({
+        rows: [
+          { default_partition: "events_default", default_schema: "public" },
+        ],
+      }) // default partition exists
+      .mockResolvedValueOnce({ rows: [{ count: 1 }] }); // COUNT(*) - has data
 
     const tool = tools.find(
       (t) => t.name === "pg_partman_analyze_partition_health",
@@ -1287,7 +1292,7 @@ describe("pg_partman_analyze_partition_health", () => {
 
     expect(result.partitionSets[0]?.hasDataInDefault).toBe(true);
     expect(result.partitionSets[0]?.issues).toContainEqual(
-      expect.stringContaining("5000 rows"),
+      expect.stringContaining("Data found in default partition"),
     );
     expect(result.partitionSets[0]?.recommendations).toContainEqual(
       expect.stringContaining("pg_partman_partition_data"),

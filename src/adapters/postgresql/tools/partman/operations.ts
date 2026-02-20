@@ -40,6 +40,53 @@ async function getPartmanSchema(adapter: PostgresAdapter): Promise<string> {
 }
 
 /**
+ * Ensure the 'partman' schema alias exists when pg_partman is installed in 'public'.
+ *
+ * pg_partman's partition_data_time function contains a hardcoded fully-qualified
+ * call to 'partman.check_control_type(...)'. When pg_partman is installed in
+ * the 'public' schema (the default for newer versions), this fails with
+ * 'schema "partman" does not exist'. Since the reference is fully-qualified,
+ * SET search_path cannot resolve it.
+ *
+ * This function creates the 'partman' schema if needed and adds a thin wrapper
+ * function that delegates to public.check_control_type().
+ */
+async function ensurePartmanSchemaAlias(
+  adapter: PostgresAdapter,
+): Promise<void> {
+  try {
+    await adapter.executeQuery("CREATE SCHEMA IF NOT EXISTS partman");
+    await adapter.executeQuery(`
+      CREATE OR REPLACE FUNCTION partman.check_control_type(
+        p_parent_schema text, p_parent_tablename text, p_control text
+      ) RETURNS TABLE(general_type text, exact_type text)
+      LANGUAGE sql STABLE AS $$
+        SELECT * FROM public.check_control_type(p_parent_schema, p_parent_tablename, p_control)
+      $$
+    `);
+  } catch {
+    // Schema creation may fail due to permissions — proceed anyway,
+    // the actual CALL will produce its own clear error
+  }
+}
+
+/**
+ * Execute a pg_partman PROCEDURE, ensuring schema aliases are in place.
+ */
+async function callPartmanProcedure(
+  adapter: PostgresAdapter,
+  partmanSchema: string,
+  sql: string,
+): Promise<void> {
+  // When pg_partman is installed in 'public', ensure the 'partman' schema alias
+  // exists for hardcoded partman.* references inside pg_partman's functions
+  if (partmanSchema === "public") {
+    await ensurePartmanSchemaAlias(adapter);
+  }
+  await adapter.executeQuery(sql);
+}
+
+/**
  * Check for data in default partition
  */
 export function createPartmanCheckDefaultTool(
@@ -281,9 +328,11 @@ Creates new partitions if needed for the data being moved.`,
       }
 
       // partition_data_proc is a PROCEDURE, not a function - use CALL syntax
+      // Uses callPartmanProcedure to set search_path, resolving hardcoded
+      // 'partman.*' references inside pg_partman's internal functions
       const sql = `CALL ${partmanSchema}.partition_data_proc(${args.join(", ")})`;
       try {
-        await adapter.executeQuery(sql);
+        await callPartmanProcedure(adapter, partmanSchema, sql);
       } catch (e) {
         const errorMsg = e instanceof Error ? e.message : String(e);
         return {
@@ -547,9 +596,11 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
       }
 
       // undo_partition_proc is a PROCEDURE, not a function - use CALL syntax
+      // Uses callPartmanProcedure to set search_path, resolving hardcoded
+      // 'partman.*' references inside pg_partman's internal functions
       const sql = `CALL ${partmanSchema}.undo_partition_proc(${args.join(", ")})`;
       try {
-        await adapter.executeQuery(sql);
+        await callPartmanProcedure(adapter, partmanSchema, sql);
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         const firstLine = errorMsg.split("\n")[0] ?? errorMsg;
@@ -802,9 +853,10 @@ stale maintenance, and retention configuration.`,
           );
         }
 
+        // Check if default partition exists
         const defaultCheckResult = await adapter.executeQuery(
           `
-                    SELECT c.reltuples::bigint as rows
+                    SELECT c.relname as default_partition, pn.nspname as default_schema
                     FROM pg_inherits i
                     JOIN pg_class c ON c.oid = i.inhrelid
                     JOIN pg_class p ON p.oid = i.inhparent
@@ -816,13 +868,30 @@ stale maintenance, and retention configuration.`,
         );
 
         const hasDefaultPartition = (defaultCheckResult.rows?.length ?? 0) > 0;
-        const defaultRows = Number(defaultCheckResult.rows?.[0]?.["rows"] ?? 0);
-        const hasDataInDefault = hasDefaultPartition && defaultRows > 0;
+        let hasDataInDefault = false;
+
+        // Use actual COUNT(*) instead of reltuples estimate — reltuples
+        // returns 0 or -1 for recently-inserted data before ANALYZE runs
+        if (hasDefaultPartition) {
+          const defSchema = defaultCheckResult.rows?.[0]?.[
+            "default_schema"
+          ] as string;
+          const defTable = defaultCheckResult.rows?.[0]?.[
+            "default_partition"
+          ] as string;
+          try {
+            const countResult = await adapter.executeQuery(
+              `SELECT COUNT(*) as count FROM (SELECT 1 FROM ${defSchema}.${defTable} LIMIT 1) t`,
+            );
+            hasDataInDefault =
+              Number(countResult.rows?.[0]?.["count"] ?? 0) > 0;
+          } catch {
+            // Default partition might not be accessible
+          }
+        }
 
         if (hasDataInDefault) {
-          issues.push(
-            `Approximately ${String(defaultRows)} rows in default partition`,
-          );
+          issues.push("Data found in default partition");
           recommendations.push(
             "Run pg_partman_partition_data to move data to child partitions",
           );
