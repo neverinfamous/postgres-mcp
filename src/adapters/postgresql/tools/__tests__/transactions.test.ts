@@ -856,4 +856,23 @@ describe("pg_transaction_execute - structured error handling", () => {
     // Should NOT have rolled back the existing transaction
     expect(mockAdapterWithTxn.rollbackTransaction).not.toHaveBeenCalled();
   });
+
+  it("should return structured error for empty statements array", async () => {
+    const mockAdapterWithTxn = createMockPostgresAdapterWithTransaction();
+    const tools = getTransactionTools(
+      mockAdapterWithTxn as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_execute")!;
+
+    const result = (await tool.handler({ statements: [] }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("statements");
+
+    // Should NOT have begun a transaction
+    expect(mockAdapterWithTxn.beginTransaction).not.toHaveBeenCalled();
+  });
 });

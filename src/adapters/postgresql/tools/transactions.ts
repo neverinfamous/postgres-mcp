@@ -5,6 +5,7 @@
  * 7 tools total.
  */
 
+import { z } from "zod";
 import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { write } from "../../../utils/annotations.js";
@@ -258,8 +259,24 @@ function createTransactionExecuteTool(
     annotations: write("Transaction Execute"),
     icons: getToolIcons("transactions", write("Transaction Execute")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { statements, transactionId, isolationLevel } =
-        TransactionExecuteSchema.parse(params);
+      let parsed: z.infer<typeof TransactionExecuteSchema>;
+
+      try {
+        parsed = await TransactionExecuteSchema.parseAsync(params);
+      } catch (error) {
+        const message =
+          error instanceof z.ZodError
+            ? error.issues.map((i) => i.message).join("; ")
+            : getStructuredError(error, {
+                tool: "pg_transaction_execute",
+              });
+        return {
+          success: false,
+          error: message,
+        };
+      }
+
+      const { statements, transactionId, isolationLevel } = parsed;
 
       // Check if joining an existing transaction or creating a new one
       const isJoiningExisting = transactionId !== undefined;
