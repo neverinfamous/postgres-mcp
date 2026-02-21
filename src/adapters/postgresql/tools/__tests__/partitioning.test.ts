@@ -591,22 +591,26 @@ describe("pg_create_partition", () => {
     expect(result.subpartitionKey).toBe("region");
   });
 
-  it("should require subpartitionKey when subpartitionBy is set", async () => {
+  it("should return structured error when subpartitionKey is missing", async () => {
     const tool = tools.find((t) => t.name === "pg_create_partition")!;
 
-    await expect(
-      tool.handler(
-        {
-          parent: "orders",
-          name: "orders_2024",
-          from: "2024-01-01",
-          to: "2025-01-01",
-          subpartitionBy: "list",
-          // Missing subpartitionKey
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("subpartitionKey is required");
+    const result = (await tool.handler(
+      {
+        parent: "orders",
+        name: "orders_2024",
+        from: "2024-01-01",
+        to: "2025-01-01",
+        subpartitionBy: "list",
+        // Missing subpartitionKey
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("subpartitionKey is required");
   });
 
   it("should support DEFAULT partition with sub-partitioning", async () => {
@@ -719,7 +723,7 @@ describe("pg_create_partition", () => {
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
   });
 
-  it("should throw structured error for overlapping partition bounds", async () => {
+  it("should return structured error for overlapping partition bounds", async () => {
     // First call: checkTablePartitionStatus - partitioned parent
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ relkind: "p" }],
@@ -736,19 +740,23 @@ describe("pg_create_partition", () => {
 
     const tool = tools.find((t) => t.name === "pg_create_partition")!;
 
-    await expect(
-      tool.handler(
-        {
-          parent: "events",
-          name: "events_2024_dup",
-          forValues: "FROM ('2024-01-01') TO ('2025-01-01')",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("overlap");
+    const result = (await tool.handler(
+      {
+        parent: "events",
+        name: "events_2024_dup",
+        forValues: "FROM ('2024-01-01') TO ('2025-01-01')",
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("overlap");
   });
 
-  it("should throw structured error for sub-partitioning PK conflict", async () => {
+  it("should return structured error for sub-partitioning PK conflict", async () => {
     // First call: checkTablePartitionStatus - partitioned parent
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ relkind: "p" }],
@@ -765,18 +773,22 @@ describe("pg_create_partition", () => {
 
     const tool = tools.find((t) => t.name === "pg_create_partition")!;
 
-    await expect(
-      tool.handler(
-        {
-          parent: "orders",
-          name: "orders_2024",
-          forValues: "FROM ('2024-01-01') TO ('2025-01-01')",
-          subpartitionBy: "list",
-          subpartitionKey: "region",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("must include all partitioning columns");
+    const result = (await tool.handler(
+      {
+        parent: "orders",
+        name: "orders_2024",
+        forValues: "FROM ('2024-01-01') TO ('2025-01-01')",
+        subpartitionBy: "list",
+        subpartitionKey: "region",
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("must include all partitioning columns");
   });
 });
 
@@ -876,7 +888,7 @@ describe("pg_attach_partition", () => {
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(2);
   });
 
-  it("should throw structured error for already-attached partition", async () => {
+  it("should return structured error for already-attached partition", async () => {
     // First call: checkTablePartitionStatus - partitioned parent
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ relkind: "p" }],
@@ -894,16 +906,20 @@ describe("pg_attach_partition", () => {
 
     const tool = tools.find((t) => t.name === "pg_attach_partition")!;
 
-    await expect(
-      tool.handler(
-        {
-          parent: "events",
-          partition: "legacy_events",
-          forValues: "FROM ('2020-01-01') TO ('2021-01-01')",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("already a partition");
+    const result = (await tool.handler(
+      {
+        parent: "events",
+        partition: "legacy_events",
+        forValues: "FROM ('2020-01-01') TO ('2021-01-01')",
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("already a partition");
   });
 });
 
@@ -1024,7 +1040,7 @@ describe("pg_detach_partition", () => {
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(2);
   });
 
-  it("should throw structured error on SQL failure", async () => {
+  it("should return structured error on SQL failure", async () => {
     // First call: checkTablePartitionStatus - partitioned parent
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ relkind: "p" }],
@@ -1042,15 +1058,19 @@ describe("pg_detach_partition", () => {
 
     const tool = tools.find((t) => t.name === "pg_detach_partition")!;
 
-    await expect(
-      tool.handler(
-        {
-          parent: "events",
-          partition: "events_2020",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("not found");
+    const result = (await tool.handler(
+      {
+        parent: "events",
+        partition: "events_2020",
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
   });
 });
 
