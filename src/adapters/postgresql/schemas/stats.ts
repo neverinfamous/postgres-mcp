@@ -787,8 +787,8 @@ const StatisticsObjectSchema = z.object({
  */
 export const DescriptiveOutputSchema = z
   .object({
-    table: z.string().describe("Fully qualified table name"),
-    column: z.string().describe("Column analyzed"),
+    table: z.string().optional().describe("Fully qualified table name"),
+    column: z.string().optional().describe("Column analyzed"),
     groupBy: z.string().optional().describe("Grouping column (if grouped)"),
     groups: z
       .array(
@@ -803,6 +803,8 @@ export const DescriptiveOutputSchema = z
       "Statistics (ungrouped)",
     ),
     count: z.number().optional().describe("Number of groups (if grouped)"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Descriptive statistics output");
 
@@ -811,8 +813,8 @@ export const DescriptiveOutputSchema = z
  */
 export const PercentilesOutputSchema = z
   .object({
-    table: z.string().describe("Fully qualified table name"),
-    column: z.string().describe("Column analyzed"),
+    table: z.string().optional().describe("Fully qualified table name"),
+    column: z.string().optional().describe("Column analyzed"),
     groupBy: z.string().optional().describe("Grouping column (if grouped)"),
     groups: z
       .array(
@@ -834,6 +836,8 @@ export const PercentilesOutputSchema = z
       .string()
       .optional()
       .describe("Scale warning if mixed scales detected"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Percentiles output");
 
@@ -842,8 +846,8 @@ export const PercentilesOutputSchema = z
  */
 export const CorrelationOutputSchema = z
   .object({
-    table: z.string().describe("Fully qualified table name"),
-    columns: z.array(z.string()).describe("Columns analyzed"),
+    table: z.string().optional().describe("Fully qualified table name"),
+    columns: z.array(z.string()).optional().describe("Columns analyzed"),
     groupBy: z.string().optional().describe("Grouping column (if grouped)"),
     groups: z
       .array(
@@ -887,6 +891,8 @@ export const CorrelationOutputSchema = z
       .optional()
       .describe("Sample covariance"),
     sampleSize: z.number().optional().describe("Number of data points"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Correlation analysis output");
 
@@ -908,9 +914,9 @@ const RegressionResultSchema = z.object({
  */
 export const RegressionOutputSchema = z
   .object({
-    table: z.string().describe("Fully qualified table name"),
-    xColumn: z.string().describe("Independent variable column"),
-    yColumn: z.string().describe("Dependent variable column"),
+    table: z.string().optional().describe("Fully qualified table name"),
+    xColumn: z.string().optional().describe("Independent variable column"),
+    yColumn: z.string().optional().describe("Dependent variable column"),
     groupBy: z.string().optional().describe("Grouping column (if grouped)"),
     groups: z
       .array(
@@ -926,6 +932,7 @@ export const RegressionOutputSchema = z
     ),
     count: z.number().optional().describe("Number of groups (if grouped)"),
     note: z.string().optional().describe("Additional notes"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
     error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Linear regression output");
@@ -944,11 +951,11 @@ const TimeBucketSchema = z.object({
  */
 export const TimeSeriesOutputSchema = z
   .object({
-    table: z.string().describe("Fully qualified table name"),
-    valueColumn: z.string().describe("Value column aggregated"),
-    timeColumn: z.string().describe("Time column used"),
-    interval: z.string().describe("Time bucket interval"),
-    aggregation: z.string().describe("Aggregation function used"),
+    table: z.string().optional().describe("Fully qualified table name"),
+    valueColumn: z.string().optional().describe("Value column aggregated"),
+    timeColumn: z.string().optional().describe("Time column used"),
+    interval: z.string().optional().describe("Time bucket interval"),
+    aggregation: z.string().optional().describe("Aggregation function used"),
     groupBy: z.string().optional().describe("Grouping column (if grouped)"),
     groups: z
       .array(
@@ -976,6 +983,8 @@ export const TimeSeriesOutputSchema = z
       .number()
       .optional()
       .describe("Total group count before truncation"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Time series analysis output");
 
@@ -994,8 +1003,8 @@ const HistogramBucketSchema = z.object({
  */
 export const DistributionOutputSchema = z
   .object({
-    table: z.string().describe("Fully qualified table name"),
-    column: z.string().describe("Column analyzed"),
+    table: z.string().optional().describe("Fully qualified table name"),
+    column: z.string().optional().describe("Column analyzed"),
     groupBy: z.string().optional().describe("Grouping column (if grouped)"),
     groups: z
       .array(
@@ -1046,6 +1055,7 @@ export const DistributionOutputSchema = z
       .number()
       .optional()
       .describe("Total group count before truncation"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
     error: z.string().optional().describe("Error message if no data"),
   })
   .describe("Distribution analysis output");
@@ -1101,6 +1111,7 @@ export const HypothesisOutputSchema = z
       "Test results (ungrouped)",
     ),
     count: z.number().optional().describe("Number of groups (if grouped)"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
     error: z.string().optional().describe("Error message if failed"),
     sampleSize: z.number().optional().describe("Sample size (for error case)"),
   })
@@ -1111,10 +1122,13 @@ export const HypothesisOutputSchema = z
  */
 export const SamplingOutputSchema = z
   .object({
-    table: z.string().describe("Fully qualified table name"),
-    method: z.string().describe("Sampling method used"),
-    sampleSize: z.number().describe("Number of rows returned"),
-    rows: z.array(z.record(z.string(), z.unknown())).describe("Sampled rows"),
+    table: z.string().optional().describe("Fully qualified table name"),
+    method: z.string().optional().describe("Sampling method used"),
+    sampleSize: z.number().optional().describe("Number of rows returned"),
+    rows: z
+      .array(z.record(z.string(), z.unknown()))
+      .optional()
+      .describe("Sampled rows"),
     truncated: z
       .boolean()
       .optional()
@@ -1124,5 +1138,7 @@ export const SamplingOutputSchema = z
       .optional()
       .describe("Total sampled before truncation"),
     note: z.string().optional().describe("Additional notes about sampling"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Random sampling output");
