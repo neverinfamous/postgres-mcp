@@ -236,6 +236,7 @@ function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Reindex"),
     icons: getToolIcons("admin", admin("Reindex")),
     handler: async (params: unknown, context: RequestContext) => {
+      let parsedTarget: string | undefined;
       try {
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 3, "Starting REINDEX...");
@@ -245,6 +246,7 @@ function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
           name?: string;
           concurrently?: boolean;
         };
+        parsedTarget = parsed.target;
         const concurrentlyClause =
           parsed.concurrently === true ? "CONCURRENTLY " : "";
 
@@ -280,7 +282,10 @@ function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
       } catch (error: unknown) {
         return {
           success: false,
-          error: formatPostgresError(error, { tool: "pg_reindex" }),
+          error: formatPostgresError(error, {
+            tool: "pg_reindex",
+            ...(parsedTarget !== undefined && { target: parsedTarget }),
+          }),
         };
       }
     },

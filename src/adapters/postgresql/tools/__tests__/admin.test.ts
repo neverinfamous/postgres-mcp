@@ -1018,6 +1018,6 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found/i);
+    expect(result.error).toMatch(/Index.*not found.*pg_get_indexes/i);
   });
 });
