@@ -9,6 +9,7 @@ import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly } from "../../../utils/annotations.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import {
   DatabaseSizeSchema,
@@ -435,7 +436,21 @@ function createCapacityPlanningTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Capacity Planning"),
     icons: getToolIcons("monitoring", readOnly("Capacity Planning")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = CapacityPlanningSchema.parse(params ?? {});
+      let parsed;
+      try {
+        parsed = CapacityPlanningSchema.parse(params ?? {});
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          return {
+            success: false,
+            error: err.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_capacity_planning" }),
+        };
+      }
       const projectionDays = parsed.projectionDays;
 
       const [dbSize, tableStats, connStats, statsAge] = await Promise.all([

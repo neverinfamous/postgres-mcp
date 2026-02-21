@@ -584,10 +584,15 @@ describe("pg_capacity_planning", () => {
     );
   });
 
-  it("should reject negative projection days", async () => {
+  it("should return structured error for negative projection days", async () => {
     const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
 
-    await expect(tool.handler({ days: -5 }, mockContext)).rejects.toThrow();
+    const result = (await tool.handler({ days: -5 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("non-negative");
   });
 });
 

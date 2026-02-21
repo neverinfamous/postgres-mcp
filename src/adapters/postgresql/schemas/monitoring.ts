@@ -192,38 +192,57 @@ export const RecoveryStatusOutputSchema = z.object({
 /**
  * pg_capacity_planning output
  */
-export const CapacityPlanningOutputSchema = z.object({
-  current: z.object({
-    databaseSize: z
+export const CapacityPlanningOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    current: z
       .object({
-        current_size_bytes: z.number().describe("Current size in bytes"),
-        current_size: z.string().describe("Human-readable size"),
+        databaseSize: z
+          .object({
+            current_size_bytes: z.number().describe("Current size in bytes"),
+            current_size: z.string().describe("Human-readable size"),
+          })
+          .optional(),
+        tableCount: z.number().describe("Number of tables"),
+        totalRows: z.number().describe("Total rows across tables"),
+        connections: z.string().describe("Current/max connections"),
       })
       .optional(),
-    tableCount: z.number().describe("Number of tables"),
-    totalRows: z.number().describe("Total rows across tables"),
-    connections: z.string().describe("Current/max connections"),
-  }),
-  growth: z.object({
-    totalInserts: z.number().describe("Total inserts since stats reset"),
-    totalDeletes: z.number().describe("Total deletes since stats reset"),
-    netRowGrowth: z.number().describe("Net row growth"),
-    daysOfData: z.number().describe("Days of statistics collected"),
-    statsSince: z.unknown().describe("Statistics reset timestamp"),
-    estimatedDailyRowGrowth: z.number().describe("Estimated daily row growth"),
-    estimatedDailyGrowthBytes: z
-      .number()
-      .describe("Estimated daily byte growth"),
-    estimationQuality: z.string().describe("Confidence level of estimates"),
-  }),
-  projection: z.object({
-    days: z.number().describe("Projection period in days"),
-    projectedSizeBytes: z.number().describe("Projected database size in bytes"),
-    projectedSizePretty: z.string().describe("Human-readable projected size"),
-    growthPercentage: z.number().describe("Projected growth percentage"),
-  }),
-  recommendations: z.array(z.string()).describe("Capacity recommendations"),
-});
+    growth: z
+      .object({
+        totalInserts: z.number().describe("Total inserts since stats reset"),
+        totalDeletes: z.number().describe("Total deletes since stats reset"),
+        netRowGrowth: z.number().describe("Net row growth"),
+        daysOfData: z.number().describe("Days of statistics collected"),
+        statsSince: z.unknown().describe("Statistics reset timestamp"),
+        estimatedDailyRowGrowth: z
+          .number()
+          .describe("Estimated daily row growth"),
+        estimatedDailyGrowthBytes: z
+          .number()
+          .describe("Estimated daily byte growth"),
+        estimationQuality: z.string().describe("Confidence level of estimates"),
+      })
+      .optional(),
+    projection: z
+      .object({
+        days: z.number().describe("Projection period in days"),
+        projectedSizeBytes: z
+          .number()
+          .describe("Projected database size in bytes"),
+        projectedSizePretty: z
+          .string()
+          .describe("Human-readable projected size"),
+        growthPercentage: z.number().describe("Projected growth percentage"),
+      })
+      .optional(),
+    recommendations: z
+      .array(z.string())
+      .optional()
+      .describe("Capacity recommendations"),
+  })
+  .loose();
 
 /**
  * pg_resource_usage_analyze output
