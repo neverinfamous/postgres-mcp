@@ -12,7 +12,7 @@ import type {
 import { z, ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { parsePostgresError } from "../core/error-helpers.js";
+import { formatPostgresError } from "../core/error-helpers.js";
 import {
   GeocodeSchemaBase,
   GeocodeSchema,
@@ -65,11 +65,15 @@ export function createGeocodeTool(adapter: PostgresAdapter): ToolDefinition {
         return response;
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, { tool: "pg_geocode" });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, { tool: "pg_geocode" }),
+        };
       }
     },
   };
@@ -111,9 +115,10 @@ export function createGeoTransformTool(
             parsed.table,
           ]);
           if ((tableCheckResult.rows?.length ?? 0) === 0) {
-            throw new Error(
-              `Table or view '${parsed.table}' not found. Use pg_list_tables to see available tables.`,
-            );
+            return {
+              success: false as const,
+              error: `Table or view '${parsed.table}' not found. Use pg_list_tables to see available tables.`,
+            };
           }
 
           const sridQuery = `
@@ -199,16 +204,20 @@ export function createGeoTransformTool(
         return response;
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_geo_transform",
-          table:
-            ((params as Record<string, unknown>)?.["table"] as string) ??
-            undefined,
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_geo_transform",
+            table:
+              ((params as Record<string, unknown>)?.["table"] as string) ??
+              undefined,
+          }),
+        };
       }
     },
   };
@@ -554,16 +563,20 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
         return response;
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_geo_cluster",
-          table:
-            ((params as Record<string, unknown>)?.["table"] as string) ??
-            undefined,
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_geo_cluster",
+            table:
+              ((params as Record<string, unknown>)?.["table"] as string) ??
+              undefined,
+          }),
+        };
       }
     },
   };

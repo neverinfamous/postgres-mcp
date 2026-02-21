@@ -13,7 +13,7 @@ import type {
 import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { parsePostgresError } from "../core/error-helpers.js";
+import { formatPostgresError } from "../core/error-helpers.js";
 import {
   GeometryBufferSchemaBase,
   GeometryBufferSchema,
@@ -101,9 +101,12 @@ export function createGeometryBufferTool(
         try {
           result = await adapter.executeQuery(sql, [geometry, distance]);
         } catch (error: unknown) {
-          throw parsePostgresError(error, {
-            tool: "pg_geometry_buffer",
-          });
+          return {
+            success: false as const,
+            error: formatPostgresError(error, {
+              tool: "pg_geometry_buffer",
+            }),
+          };
         }
         const row = result.rows?.[0];
         const response: Record<string, unknown> = {
@@ -129,13 +132,17 @@ export function createGeometryBufferTool(
         return response;
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_geometry_buffer",
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_geometry_buffer",
+          }),
+        };
       }
     },
   };
@@ -182,9 +189,12 @@ export function createGeometryIntersectionTool(
         try {
           result = await adapter.executeQuery(sql, [geometry1, geometry2]);
         } catch (error: unknown) {
-          throw parsePostgresError(error, {
-            tool: "pg_geometry_intersection",
-          });
+          return {
+            success: false as const,
+            error: formatPostgresError(error, {
+              tool: "pg_geometry_intersection",
+            }),
+          };
         }
         return {
           ...result.rows?.[0],
@@ -194,13 +204,17 @@ export function createGeometryIntersectionTool(
         };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_geometry_intersection",
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_geometry_intersection",
+          }),
+        };
       }
     },
   };
@@ -238,9 +252,12 @@ export function createGeometryTransformTool(
         try {
           result = await adapter.executeQuery(sql, [geometry]);
         } catch (error: unknown) {
-          throw parsePostgresError(error, {
-            tool: "pg_geometry_transform",
-          });
+          return {
+            success: false as const,
+            error: formatPostgresError(error, {
+              tool: "pg_geometry_transform",
+            }),
+          };
         }
         return {
           ...result.rows?.[0],
@@ -250,13 +267,17 @@ export function createGeometryTransformTool(
         };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_geometry_transform",
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_geometry_transform",
+          }),
+        };
       }
     },
   };

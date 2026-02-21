@@ -790,12 +790,14 @@ export const GeometryColumnOutputSchema = z
  */
 export const PointInPolygonOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     containingPolygons: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Polygons containing the point"),
     count: z.number().optional().describe("Number of containing polygons"),
     warning: z.string().optional().describe("Geometry type warning"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Point in polygon result");
 
@@ -804,11 +806,13 @@ export const PointInPolygonOutputSchema = z
  */
 export const DistanceOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     results: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Nearby geometries with distances"),
     count: z.number().optional().describe("Number of results"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Distance search result");
 
@@ -817,6 +821,7 @@ export const DistanceOutputSchema = z
  */
 export const BufferOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     results: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
@@ -829,6 +834,7 @@ export const BufferOutputSchema = z
       .number()
       .optional()
       .describe("Simplification tolerance in meters"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Buffer zone result");
 
@@ -837,6 +843,7 @@ export const BufferOutputSchema = z
  */
 export const IntersectionOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     intersecting: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
@@ -846,6 +853,7 @@ export const IntersectionOutputSchema = z
       .union([z.number(), z.string()])
       .optional()
       .describe("SRID used for comparison"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Intersection search result");
 
@@ -854,12 +862,14 @@ export const IntersectionOutputSchema = z
  */
 export const BoundingBoxOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     results: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Geometries in bounding box"),
     count: z.number().optional().describe("Number of results"),
     note: z.string().optional().describe("Auto-correction note"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Bounding box search result");
 
@@ -885,9 +895,11 @@ export const SpatialIndexOutputSchema = z
  */
 export const GeocodeOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     geojson: z.string().optional().describe("Point as GeoJSON"),
     wkt: z.string().optional().describe("Point as WKT"),
     note: z.string().optional().describe("SRID note for non-4326"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Geocode result");
 
@@ -896,6 +908,7 @@ export const GeocodeOutputSchema = z
  */
 export const GeoTransformOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     results: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
@@ -906,6 +919,7 @@ export const GeoTransformOutputSchema = z
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total available count"),
     limit: z.number().optional().describe("Applied limit"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Geo transform result");
 
@@ -987,6 +1001,7 @@ export const GeoClusterOutputSchema = z
  */
 export const GeometryBufferOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     buffer_geojson: z
       .string()
       .nullable()
@@ -1005,6 +1020,7 @@ export const GeometryBufferOutputSchema = z
       .optional()
       .describe("Simplification tolerance"),
     warning: z.string().optional().describe("Collapse warning"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Geometry buffer result");
 
@@ -1013,6 +1029,7 @@ export const GeometryBufferOutputSchema = z
  */
 export const GeometryIntersectionOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     intersects: z.boolean().optional().describe("Whether geometries intersect"),
     intersection_geojson: z
       .string()
@@ -1032,6 +1049,7 @@ export const GeometryIntersectionOutputSchema = z
     geometry1Format: z.string().optional().describe("First geometry format"),
     geometry2Format: z.string().optional().describe("Second geometry format"),
     sridUsed: z.number().optional().describe("SRID used for comparison"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Geometry intersection result");
 
@@ -1040,6 +1058,7 @@ export const GeometryIntersectionOutputSchema = z
  */
 export const GeometryTransformOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
     transformed_geojson: z
       .string()
       .optional()
@@ -1048,5 +1067,6 @@ export const GeometryTransformOutputSchema = z
     fromSrid: z.number().optional().describe("Source SRID"),
     toSrid: z.number().optional().describe("Target SRID"),
     inputFormat: z.string().optional().describe("Input format (GeoJSON/WKT)"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Geometry transform result");

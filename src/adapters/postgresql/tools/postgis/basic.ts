@@ -12,7 +12,10 @@ import type {
 import { z, ZodError } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { parsePostgresError } from "../core/error-helpers.js";
+import {
+  parsePostgresError,
+  formatPostgresError,
+} from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -214,16 +217,20 @@ export function createPointInPolygonTool(
         return response;
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_point_in_polygon",
-          table:
-            ((params as Record<string, unknown>)?.["table"] as string) ??
-            undefined,
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_point_in_polygon",
+            table:
+              ((params as Record<string, unknown>)?.["table"] as string) ??
+              undefined,
+          }),
+        };
       }
     },
   };
@@ -290,16 +297,20 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
         return { results: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_distance",
-          table:
-            ((params as Record<string, unknown>)?.["table"] as string) ??
-            undefined,
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_distance",
+            table:
+              ((params as Record<string, unknown>)?.["table"] as string) ??
+              undefined,
+          }),
+        };
       }
     },
   };
@@ -393,16 +404,20 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
         return response;
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_buffer",
-          table:
-            ((params as Record<string, unknown>)?.["table"] as string) ??
-            undefined,
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_buffer",
+            table:
+              ((params as Record<string, unknown>)?.["table"] as string) ??
+              undefined,
+          }),
+        };
       }
     },
   };
@@ -503,16 +518,20 @@ export function createIntersectionTool(
         };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_intersection",
-          table:
-            ((params as Record<string, unknown>)?.["table"] as string) ??
-            undefined,
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_intersection",
+            table:
+              ((params as Record<string, unknown>)?.["table"] as string) ??
+              undefined,
+          }),
+        };
       }
     },
   };
@@ -564,9 +583,10 @@ export function createBoundingBoxTool(
 
           // If no columns found, table likely doesn't exist
           if (selectCols.length === 0) {
-            throw new Error(
-              `Table or view '${parsed.table}' not found in schema '${schemaName}'. Use pg_list_tables to see available tables.`,
-            );
+            return {
+              success: false as const,
+              error: `Table or view '${parsed.table}' not found in schema '${schemaName}'. Use pg_list_tables to see available tables.`,
+            };
           }
         }
 
@@ -611,16 +631,20 @@ export function createBoundingBoxTool(
         return response;
       } catch (error: unknown) {
         if (error instanceof ZodError) {
-          throw new Error(error.issues.map((i) => i.message).join("; "), {
-            cause: error,
-          });
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
         }
-        throw parsePostgresError(error, {
-          tool: "pg_bounding_box",
-          table:
-            ((params as Record<string, unknown>)?.["table"] as string) ??
-            undefined,
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_bounding_box",
+            table:
+              ((params as Record<string, unknown>)?.["table"] as string) ??
+              undefined,
+          }),
+        };
       }
     },
   };

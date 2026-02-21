@@ -456,6 +456,8 @@ describe("Error Handling", () => {
 
     const tool = tools.find((t) => t.name === "pg_postgis_create_extension")!;
 
+    // pg_postgis_create_extension does not have structured error handling (no try/catch)
+    // so it still throws raw errors
     await expect(tool.handler({}, mockContext)).rejects.toThrow(
       'extension "postgis" is not available',
     );
@@ -525,7 +527,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
   ];
 
   it.each(tableTools)(
-    "$name should throw structured error for nonexistent table",
+    "$name should return structured error for nonexistent table",
     async ({ name, params }) => {
       const pgError = new Error(
         'relation "nonexistent_xyz" does not exist',
@@ -534,9 +536,12 @@ describe("Structured Error Handling (parsePostgresError)", () => {
       mockAdapter.executeQuery.mockRejectedValue(pgError);
 
       const tool = tools.find((t) => t.name === name)!;
-      await expect(tool.handler(params, mockContext)).rejects.toThrow(
-        /not found/i,
-      );
+      const result = (await tool.handler(params, mockContext)) as Record<
+        string,
+        unknown
+      >;
+      expect(result["success"]).toBe(false);
+      expect(result["error"]).toMatch(/not found/i);
     },
   );
 
@@ -556,7 +561,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
   ];
 
   it.each(standaloneTools)(
-    "$name should throw structured error for invalid geometry",
+    "$name should return structured error for invalid geometry",
     async ({ name, params }) => {
       const pgError = new Error("parse error - invalid geometry") as Error & {
         code: string;
@@ -565,73 +570,84 @@ describe("Structured Error Handling (parsePostgresError)", () => {
       mockAdapter.executeQuery.mockRejectedValue(pgError);
 
       const tool = tools.find((t) => t.name === name)!;
-      await expect(tool.handler(params, mockContext)).rejects.toThrow(
-        /Invalid geometry input/i,
-      );
+      const result = (await tool.handler(params, mockContext)) as Record<
+        string,
+        unknown
+      >;
+      expect(result["success"]).toBe(false);
+      expect(result["error"]).toMatch(/Invalid geometry input/i);
     },
   );
 
-  it("pg_bounding_box should throw when table has no columns (nonexistent table)", async () => {
+  it("pg_bounding_box should return structured error when table has no columns (nonexistent table)", async () => {
     // Column lookup returns empty rows (table doesn't exist)
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = tools.find((t) => t.name === "pg_bounding_box")!;
-    await expect(
-      tool.handler(
-        {
-          table: "nonexistent_xyz",
-          column: "geom",
-          minLng: 0,
-          minLat: 0,
-          maxLng: 1,
-          maxLat: 1,
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow(/not found/i);
+    const result = (await tool.handler(
+      {
+        table: "nonexistent_xyz",
+        column: "geom",
+        minLng: 0,
+        minLat: 0,
+        maxLng: 1,
+        maxLat: 1,
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/not found/i);
   });
 
-  it("pg_geo_transform should throw structured error for nonexistent table", async () => {
+  it("pg_geo_transform should return structured error for nonexistent table", async () => {
     // Table existence check returns empty rows (table doesn't exist)
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = tools.find((t) => t.name === "pg_geo_transform")!;
-    await expect(
-      tool.handler(
-        { table: "nonexistent_xyz", column: "geom", toSrid: 3857 },
-        mockContext,
-      ),
-    ).rejects.toThrow(/not found/i);
+    const result = (await tool.handler(
+      { table: "nonexistent_xyz", column: "geom", toSrid: 3857 },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/not found/i);
   });
-  it("pg_geocode should throw clean error for out-of-bounds latitude", async () => {
+  it("pg_geocode should return structured error for out-of-bounds latitude", async () => {
     const tool = tools.find((t) => t.name === "pg_geocode")!;
-    await expect(
-      tool.handler({ lat: 95, lng: -74.006 }, mockContext),
-    ).rejects.toThrow("lat must be between -90 and 90 degrees");
+    const result = (await tool.handler(
+      { lat: 95, lng: -74.006 },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toContain("lat must be between -90 and 90 degrees");
   });
 
-  it("pg_geocode should throw clean error for out-of-bounds longitude", async () => {
+  it("pg_geocode should return structured error for out-of-bounds longitude", async () => {
     const tool = tools.find((t) => t.name === "pg_geocode")!;
-    await expect(
-      tool.handler({ lat: 40, lng: 200 }, mockContext),
-    ).rejects.toThrow("lng must be between -180 and 180 degrees");
+    const result = (await tool.handler(
+      { lat: 40, lng: 200 },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toContain(
+      "lng must be between -180 and 180 degrees",
+    );
   });
 
-  it("pg_distance should throw clean error for out-of-bounds latitude", async () => {
+  it("pg_distance should return structured error for out-of-bounds latitude", async () => {
     const tool = tools.find((t) => t.name === "pg_distance")!;
-    await expect(
-      tool.handler(
-        { table: "locations", column: "geom", point: { lat: 95, lng: -74 } },
-        mockContext,
-      ),
-    ).rejects.toThrow(/must be between -90 and 90/);
+    const result = (await tool.handler(
+      { table: "locations", column: "geom", point: { lat: 95, lng: -74 } },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/must be between -90 and 90/);
   });
 
-  it("pg_distance should throw clean error for out-of-bounds longitude", async () => {
+  it("pg_distance should return structured error for out-of-bounds longitude", async () => {
     const tool = tools.find((t) => t.name === "pg_distance")!;
-    await expect(
-      tool.handler(
-        { table: "locations", column: "geom", point: { lat: 40, lng: 200 } },
-        mockContext,
-      ),
-    ).rejects.toThrow(/must be between -180 and 180/);
+    const result = (await tool.handler(
+      { table: "locations", column: "geom", point: { lat: 40, lng: 200 } },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/must be between -180 and 180/);
   });
 });
