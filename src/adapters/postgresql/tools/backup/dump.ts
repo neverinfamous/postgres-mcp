@@ -26,7 +26,7 @@ import {
   CopyExportOutputSchema,
   CopyImportOutputSchema,
 } from "../../schemas/index.js";
-import { parsePostgresError } from "../core/error-helpers.js";
+import { formatPostgresError } from "../core/error-helpers.js";
 
 export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
   return {
@@ -346,7 +346,10 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
 
         return result;
       } catch (error) {
-        throw parsePostgresError(error, { tool: "pg_dump_table" });
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_dump_table" }),
+        };
       }
     },
   };
@@ -592,7 +595,10 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
           'Binary format is not supported via MCP protocol. Use format: "csv" or "text" instead. For binary export, use pg_dump_schema to generate a pg_dump command.',
         );
       } catch (error) {
-        throw parsePostgresError(error, { tool: "pg_copy_export" });
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_copy_export" }),
+        };
       }
     },
   };

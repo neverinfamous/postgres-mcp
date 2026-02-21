@@ -631,9 +631,13 @@ describe("pg_copy_export", () => {
   it("should fail with clear error when called with empty params", async () => {
     const tool = tools.find((t) => t.name === "pg_copy_export")!;
 
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
-      "Either query/sql or table parameter is required",
-    );
+    const result = await tool.handler({}, mockContext);
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining(
+        "Either query/sql or table parameter is required",
+      ),
+    });
   });
 
   it("should support table parameter as shortcut", async () => {
@@ -714,21 +718,23 @@ describe("pg_copy_export", () => {
     expect(result.data).toContain("\\N"); // NULL representation in text format
   });
 
-  it("should throw error for binary format", async () => {
+  it("should return structured error for binary format", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1, name: "Test" }],
     });
 
     const tool = tools.find((t) => t.name === "pg_copy_export")!;
-    await expect(
-      tool.handler(
-        {
-          query: "SELECT * FROM test",
-          format: "binary",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("Binary format is not supported");
+    const result = await tool.handler(
+      {
+        query: "SELECT * FROM test",
+        format: "binary",
+      },
+      mockContext,
+    );
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("Binary format is not supported"),
+    });
   });
 });
 
@@ -1503,7 +1509,7 @@ describe("pg_dump_table - structured error handling", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should throw structured error for nonexistent table (42P01)", async () => {
+  it("should return structured error for nonexistent table (42P01)", async () => {
     const pgError = new Error(
       'relation "nonexistent_table" does not exist',
     ) as Error & { code: string };
@@ -1511,9 +1517,14 @@ describe("pg_dump_table - structured error handling", () => {
     mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
 
     const tool = tools.find((t) => t.name === "pg_dump_table")!;
-    await expect(
-      tool.handler({ table: "nonexistent_table" }, mockContext),
-    ).rejects.toThrow(/not found.*pg_list_tables/i);
+    const result = await tool.handler(
+      { table: "nonexistent_table" },
+      mockContext,
+    );
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringMatching(/not found.*pg_list_tables/i),
+    });
   });
 });
 
@@ -1529,7 +1540,7 @@ describe("pg_copy_export - structured error handling", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should throw structured error for invalid SQL (42601)", async () => {
+  it("should return structured error for invalid SQL (42601)", async () => {
     const pgError = new Error('syntax error at or near "SELEC"') as Error & {
       code: string;
     };
@@ -1537,11 +1548,13 @@ describe("pg_copy_export - structured error handling", () => {
     mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
 
     const tool = tools.find((t) => t.name === "pg_copy_export")!;
-    await expect(
-      tool.handler(
-        { table: "users", query: "SELEC * FROM users" },
-        mockContext,
-      ),
-    ).rejects.toThrow("SQL syntax error");
+    const result = await tool.handler(
+      { table: "users", query: "SELEC * FROM users" },
+      mockContext,
+    );
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("SQL syntax error"),
+    });
   });
 });

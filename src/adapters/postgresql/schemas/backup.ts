@@ -139,19 +139,24 @@ export const DumpSchemaSchema = z.object({
  */
 export const DumpTableOutputSchema = z
   .object({
-    ddl: z.string().describe("DDL statement (CREATE TABLE/SEQUENCE/VIEW)"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    ddl: z
+      .string()
+      .optional()
+      .describe("DDL statement (CREATE TABLE/SEQUENCE/VIEW)"),
     type: z
       .string()
       .optional()
       .describe(
         "Object type: table, sequence, view, materialized_view, partitioned_table",
       ),
-    note: z.string().describe("Usage notes"),
+    note: z.string().optional().describe("Usage notes"),
     insertStatements: z
       .string()
       .optional()
       .describe("INSERT statements when includeData=true"),
     warning: z.string().optional().describe("Warning message"),
+    error: z.string().optional().describe("Error message if operation failed"),
   })
   .loose();
 
@@ -178,8 +183,9 @@ export const DumpSchemaOutputSchema = z
  */
 export const CopyExportOutputSchema = z
   .object({
-    data: z.string().describe("Exported data (CSV or text format)"),
-    rowCount: z.number().describe("Number of rows exported"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    data: z.string().optional().describe("Exported data (CSV or text format)"),
+    rowCount: z.number().optional().describe("Number of rows exported"),
     truncated: z
       .boolean()
       .optional()
@@ -190,6 +196,7 @@ export const CopyExportOutputSchema = z
       .string()
       .optional()
       .describe("Warning about parameter conflicts"),
+    error: z.string().optional().describe("Error message if operation failed"),
   })
   .loose();
 
