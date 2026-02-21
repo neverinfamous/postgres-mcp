@@ -364,6 +364,31 @@ describe("pg_index_stats", () => {
       expect.stringContaining("relname = 'orders'"),
     );
   });
+
+  it("should include truncated: false and totalCount when not limited", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          indexrelname: "users_pkey",
+          idx_scan: 1000,
+          idx_tup_read: 5000,
+          idx_tup_fetch: 3000,
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_index_stats")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      indexes: unknown[];
+      count: number;
+      truncated: boolean;
+      totalCount: number;
+    };
+
+    expect(result.truncated).toBe(false);
+    expect(result.totalCount).toBe(1);
+    expect(result.count).toBe(1);
+  });
 });
 
 describe("pg_table_stats", () => {
@@ -434,6 +459,24 @@ describe("pg_table_stats", () => {
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("relname = 'orders'"),
     );
+  });
+
+  it("should include truncated: false and totalCount when not limited", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relname: "users", seq_scan: 50, idx_scan: 1000 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_table_stats")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      tables: unknown[];
+      count: number;
+      truncated: boolean;
+      totalCount: number;
+    };
+
+    expect(result.truncated).toBe(false);
+    expect(result.totalCount).toBe(1);
+    expect(result.count).toBe(1);
   });
 });
 
@@ -2940,5 +2983,50 @@ describe("pg_partition_strategy_suggest error handling", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
+  });
+});
+
+describe("pg_vacuum_stats", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should include truncated: false and totalCount when not limited", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schemaname: "public",
+          table_name: "users",
+          live_tuples: 100,
+          dead_tuples: 5,
+          dead_pct: 5,
+          vacuum_count: 1,
+          autovacuum_count: 2,
+          analyze_count: 1,
+          autoanalyze_count: 2,
+          xid_age: 1000,
+          wraparound_risk: "OK",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      tables: unknown[];
+      count: number;
+      truncated: boolean;
+      totalCount: number;
+    };
+
+    expect(result.truncated).toBe(false);
+    expect(result.totalCount).toBe(1);
+    expect(result.count).toBe(1);
   });
 });

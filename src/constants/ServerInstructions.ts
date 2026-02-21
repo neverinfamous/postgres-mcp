@@ -61,6 +61,7 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 | \`pg_stat_activity\` | \`{connections, count}\` | \`includeIdle: true\` to include idle connections |
 | \`pg_locks\` | \`{locks}\` | \`showBlocked: true\` switches to blocked/blocking pid format |
 | \`pg_bloat_check\` | \`{tables, count}\` | Tables with \`live_tuples\`, \`dead_tuples\`, \`dead_pct\` |
+| \`pg_cache_hit_ratio\` | \`{heap_read, heap_hit, cache_hit_ratio}\` | All fields nullable (0 tables = null). Flat response, differs from \`pg_analyze_db_health.cacheHitRatio\` |
 | \`pg_seq_scan_tables\` | \`{tables, count, minScans, hint, truncated?, totalCount?}\` | Default 50 rows. \`minScans\` default: 10 |
 | \`pg_connection_pool_optimize\` | \`{current, config, waitEvents, recommendations}\` | No params needed |
 | \`pg_performance_baseline\` | \`{name, timestamp, metrics}\` | \`metrics\`: \`cache\`, \`tables\`, \`indexes\`, \`connections\`, \`databaseSize\` |

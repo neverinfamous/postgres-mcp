@@ -89,6 +89,9 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
         const countResult = await adapter.executeQuery(countSql);
         response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
         response["truncated"] = true;
+      } else {
+        response["truncated"] = false;
+        response["totalCount"] = indexes.length;
       }
       return response;
     },
@@ -165,6 +168,9 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
         const countResult = await adapter.executeQuery(countSql);
         response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
         response["truncated"] = true;
+      } else {
+        response["truncated"] = false;
+        response["totalCount"] = tables.length;
       }
       return response;
     },
@@ -590,6 +596,9 @@ export function createVacuumStatsTool(
         const countResult = await adapter.executeQuery(countSql);
         response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
         response["truncated"] = true;
+      } else {
+        response["truncated"] = false;
+        response["totalCount"] = tables.length;
       }
       return response;
     },
