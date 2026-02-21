@@ -797,7 +797,7 @@ describe("pg_cron error handling", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Job.*not found/);
+    expect(result.error).toMatch(/Job '99999' not found/);
   });
 
   it("should return structured error for pg_cron_unschedule with nonexistent jobId", async () => {

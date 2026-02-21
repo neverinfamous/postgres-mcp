@@ -303,9 +303,11 @@ or active status. Only specify the parameters you want to change.`,
     annotations: write("Alter Cron Job"),
     icons: getToolIcons("cron", write("Alter Cron Job")),
     handler: async (params: unknown, _context: RequestContext) => {
+      let parsedJobId: number | undefined;
       try {
         const { jobId, schedule, command, database, username, active } =
           CronAlterJobSchema.parse(params);
+        parsedJobId = jobId;
 
         const sql = `SELECT cron.alter_job($1, $2, $3, $4, $5, $6)`;
         const queryParams = [
@@ -342,6 +344,9 @@ or active status. Only specify the parameters you want to change.`,
           success: false,
           error: formatPostgresError(error, {
             tool: "pg_cron_alter_job",
+            ...(parsedJobId !== undefined && {
+              target: String(parsedJobId),
+            }),
           }),
         };
       }

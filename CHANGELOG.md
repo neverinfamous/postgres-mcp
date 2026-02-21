@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_cron_alter_job` error message says "Job unknown" instead of actual jobId** — `pg_cron_alter_job` with a nonexistent `jobId` (e.g., `99999`) now returns `Job '99999' not found` instead of `Job 'unknown' not found`. Hoisted `parsedJobId` before the try block and passed it as `target` context to `formatPostgresError` in the catch block. Tightened unit test assertion to verify the actual jobId appears in the error message
+
+- **`ServerInstructions.ts` `pg_cron_alter_job` misleading "throws error" wording** — Changed `⛔ Non-existent jobId throws error` to `⛔ Non-existent jobId returns error` to accurately reflect that a structured `{success: false}` response is returned, not a raw throw
+
 - **Cron tools structured error returns** — `pg_cron_schedule`, `pg_cron_schedule_in_database`, `pg_cron_unschedule`, and `pg_cron_alter_job` now **return** structured `{success: false, error}` responses instead of throwing raw MCP errors. Each handler wrapped in top-level try-catch with `ZodError` interception for validation failures and `formatPostgresError` for PostgreSQL errors. Updated 4 output schemas (`CronScheduleOutputSchema`, `CronScheduleInDatabaseOutputSchema`, `CronUnscheduleOutputSchema`, `CronAlterJobOutputSchema`) with optional `error` field and optional success-path fields. Changed import from `parsePostgresError` to `formatPostgresError`. Converted 5 unit tests from `rejects.toThrow()` to `{success: false}` assertions
 
 - **`pg_geocode` test using `rejects.toThrow()` instead of structured assertion** — Converted postgis.test.ts `pg_geocode` missing lat/lng test from `rejects.toThrow()` to `{success: false}` structured error assertions, matching the PostGIS error handling fix applied in the prior session
