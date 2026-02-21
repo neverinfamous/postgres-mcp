@@ -1216,13 +1216,32 @@ export function createVectorBatchInsertTool(
       }
 
       const sql = `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES ${valueRows.join(", ")} `;
-      const result = await adapter.executeQuery(sql, allParams);
-
-      return {
-        success: true,
-        rowsInserted: parsed.vectors.length,
-        rowsAffected: result.rowsAffected,
-      };
+      try {
+        const result = await adapter.executeQuery(sql, allParams);
+        return {
+          success: true,
+          rowsInserted: parsed.vectors.length,
+          rowsAffected: result.rowsAffected,
+        };
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          const dimMatch = /expected (\d+) dimensions?, not (\d+)/.exec(
+            error.message,
+          );
+          if (dimMatch) {
+            const expectedDim = dimMatch[1] ?? "0";
+            const providedDim = dimMatch[2] ?? "0";
+            return {
+              success: false,
+              error: "Vector dimension mismatch",
+              expectedDimensions: parseInt(expectedDim, 10),
+              providedDimensions: parseInt(providedDim, 10),
+              suggestion: `Column expects ${expectedDim} dimensions but vectors have ${providedDim}. Resize vectors or check embedding model.`,
+            };
+          }
+        }
+        throw error;
+      }
     },
   };
 }

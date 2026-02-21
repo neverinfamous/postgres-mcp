@@ -948,6 +948,28 @@ describe("Object Existence Checks (P154)", () => {
       expect(schema.shape!.vectors).toBeDefined();
       expect(schema.shape!.schema).toBeDefined();
     });
+
+    it("should return structured error for dimension mismatch", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check
+        .mockRejectedValueOnce(new Error("expected 384 dimensions, not 3")); // INSERT fails
+
+      const tool = tools.find((t) => t.name === "pg_vector_batch_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "embeddings",
+          column: "vector",
+          vectors: [{ vector: [0.1, 0.2, 0.3] }],
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Vector dimension mismatch");
+      expect(result.expectedDimensions).toBe(384);
+      expect(result.providedDimensions).toBe(3);
+      expect(result.suggestion).toContain("384");
+    });
   });
 
   describe("pg_vector_cluster", () => {
