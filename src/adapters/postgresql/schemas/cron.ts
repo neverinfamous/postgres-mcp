@@ -304,12 +304,13 @@ export const CronCreateExtensionOutputSchema = z
 export const CronScheduleOutputSchema = z
   .object({
     success: z.boolean().describe("Whether job was scheduled"),
-    jobId: z.string().nullable().describe("Assigned job ID"),
-    jobName: z.string().nullable().describe("Job name if provided"),
-    schedule: z.string().describe("Cron schedule expression"),
-    command: z.string().describe("SQL command to execute"),
-    message: z.string().describe("Status message"),
+    jobId: z.string().nullable().optional().describe("Assigned job ID"),
+    jobName: z.string().nullable().optional().describe("Job name if provided"),
+    schedule: z.string().optional().describe("Cron schedule expression"),
+    command: z.string().optional().describe("SQL command to execute"),
+    message: z.string().optional().describe("Status message"),
     hint: z.string().optional().describe("Usage hint"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job scheduling result");
 
@@ -319,14 +320,15 @@ export const CronScheduleOutputSchema = z
 export const CronScheduleInDatabaseOutputSchema = z
   .object({
     success: z.boolean().describe("Whether job was scheduled"),
-    jobId: z.string().nullable().describe("Assigned job ID"),
-    jobName: z.string().describe("Job name"),
-    schedule: z.string().describe("Cron schedule expression"),
-    command: z.string().describe("SQL command to execute"),
-    database: z.string().describe("Target database"),
-    username: z.string().nullable().describe("Username to run as"),
-    active: z.boolean().describe("Whether job is active"),
-    message: z.string().describe("Status message"),
+    jobId: z.string().nullable().optional().describe("Assigned job ID"),
+    jobName: z.string().optional().describe("Job name"),
+    schedule: z.string().optional().describe("Cron schedule expression"),
+    command: z.string().optional().describe("SQL command to execute"),
+    database: z.string().optional().describe("Target database"),
+    username: z.string().nullable().optional().describe("Username to run as"),
+    active: z.boolean().optional().describe("Whether job is active"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cross-database cron job scheduling result");
 
@@ -336,16 +338,22 @@ export const CronScheduleInDatabaseOutputSchema = z
 export const CronUnscheduleOutputSchema = z
   .object({
     success: z.boolean().describe("Whether job was removed"),
-    jobId: z.number().nullable().describe("Job ID that was removed"),
-    jobName: z.string().nullable().describe("Job name that was removed"),
+    jobId: z.number().nullable().optional().describe("Job ID that was removed"),
+    jobName: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Job name that was removed"),
     usedIdentifier: z
       .enum(["jobId", "jobName"])
+      .optional()
       .describe("Which identifier was used"),
     warning: z
       .string()
       .optional()
       .describe("Warning if both identifiers given"),
-    message: z.string().describe("Status message"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job removal result");
 
@@ -355,7 +363,7 @@ export const CronUnscheduleOutputSchema = z
 export const CronAlterJobOutputSchema = z
   .object({
     success: z.boolean().describe("Whether job was updated"),
-    jobId: z.number().describe("Job ID that was modified"),
+    jobId: z.number().optional().describe("Job ID that was modified"),
     changes: z
       .object({
         schedule: z.string().optional().describe("New schedule if changed"),
@@ -364,8 +372,10 @@ export const CronAlterJobOutputSchema = z
         username: z.string().optional().describe("New username if changed"),
         active: z.boolean().optional().describe("New active status if changed"),
       })
+      .optional()
       .describe("Changes applied"),
-    message: z.string().describe("Status message"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job modification result");
 

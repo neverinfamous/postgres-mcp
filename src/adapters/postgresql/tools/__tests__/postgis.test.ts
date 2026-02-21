@@ -613,14 +613,20 @@ describe("PostGIS Tools", () => {
       const tool = findTool("pg_geocode");
 
       // Empty object should fail validation
-      await expect(tool!.handler({}, mockContext)).rejects.toThrow(
-        "lat (or latitude alias) is required",
-      );
+      const result1 = (await tool!.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+      expect(result1.success).toBe(false);
+      expect(result1.error).toMatch(/lat.*required/i);
 
       // Only lat without lng should fail
-      await expect(
-        tool!.handler({ lat: 40.7128 }, mockContext),
-      ).rejects.toThrow("lng (or lon/longitude alias) is required");
+      const result2 = (await tool!.handler({ lat: 40.7128 }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+      expect(result2.success).toBe(false);
+      expect(result2.error).toMatch(/lng.*required/i);
     });
   });
 

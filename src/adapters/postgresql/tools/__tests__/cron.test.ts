@@ -256,9 +256,13 @@ describe("pg_cron_unschedule", () => {
   it("should fail when no identifier provided", async () => {
     const tool = tools.find((t) => t.name === "pg_cron_unschedule")!;
 
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
-      "Either jobId or jobName must be provided",
-    );
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/jobId.*jobName/i);
   });
 });
 
@@ -751,12 +755,13 @@ describe("pg_cron error handling", () => {
 
     const tool = tools.find((t) => t.name === "pg_cron_schedule")!;
 
-    await expect(
-      tool.handler(
-        { schedule: "invalid_schedule", command: "SELECT 1" },
-        mockContext,
-      ),
-    ).rejects.toThrow(/Invalid cron schedule/);
+    const result = (await tool.handler(
+      { schedule: "invalid_schedule", command: "SELECT 1" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Invalid cron schedule/);
   });
 
   it("should return structured error for pg_cron_schedule_in_database with nonexistent database", async () => {
@@ -766,17 +771,18 @@ describe("pg_cron error handling", () => {
 
     const tool = tools.find((t) => t.name === "pg_cron_schedule_in_database")!;
 
-    await expect(
-      tool.handler(
-        {
-          jobName: "test",
-          schedule: "0 * * * *",
-          command: "SELECT 1",
-          database: "nonexistent_db",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow(/Database.*not found/);
+    const result = (await tool.handler(
+      {
+        jobName: "test",
+        schedule: "0 * * * *",
+        command: "SELECT 1",
+        database: "nonexistent_db",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Database.*not found/);
   });
 
   it("should return structured error for pg_cron_alter_job with nonexistent jobId", async () => {
@@ -785,9 +791,13 @@ describe("pg_cron error handling", () => {
 
     const tool = tools.find((t) => t.name === "pg_cron_alter_job")!;
 
-    await expect(
-      tool.handler({ jobId: 99999, schedule: "0 3 * * *" }, mockContext),
-    ).rejects.toThrow(/Job.*not found/);
+    const result = (await tool.handler(
+      { jobId: 99999, schedule: "0 3 * * *" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Job.*not found/);
   });
 
   it("should return structured error for pg_cron_unschedule with nonexistent jobId", async () => {
@@ -799,8 +809,12 @@ describe("pg_cron error handling", () => {
 
     const tool = tools.find((t) => t.name === "pg_cron_unschedule")!;
 
-    await expect(tool.handler({ jobId: 99999 }, mockContext)).rejects.toThrow(
-      /Job.*not found/,
-    );
+    const result = (await tool.handler({ jobId: 99999 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Job.*not found/);
   });
 });
