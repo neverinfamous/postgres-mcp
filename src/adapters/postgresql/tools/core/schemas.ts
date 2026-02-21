@@ -383,11 +383,13 @@ const IndexInfoSchema = z.object({
 
 // Output schema for pg_get_indexes
 export const IndexListOutputSchema = z.object({
-  indexes: z.array(IndexInfoSchema).describe("List of indexes"),
-  count: z.number().describe("Number of indexes"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  indexes: z.array(IndexInfoSchema).optional().describe("List of indexes"),
+  count: z.number().optional().describe("Number of indexes"),
   totalCount: z.number().optional().describe("Total count before truncation"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   hint: z.string().optional().describe("Additional information"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_create_index, pg_drop_index

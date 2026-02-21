@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_get_indexes` raw MCP error for nonexistent table/schema** — `pg_get_indexes({ table: 'nonexistent' })` now returns `{success: false, error: "Table 'public.nonexistent' not found..."}` instead of throwing a raw MCP error. Changed P154 existence checks from `throw new Error()` to structured `return {success: false, error}`. Updated `IndexListOutputSchema` with optional `success`/`error` fields, made `indexes`/`count` optional. Converted 2 unit tests from `rejects.toThrow()` to `{success: false}` assertions
+
 - **`pg_citext_analyze_candidates` `schema.table` format not parsed** — `pg_citext_analyze_candidates({ table: 'custom_schema.users' })` now correctly parses into `schema=custom_schema, table=users` instead of treating `custom_schema.users` as a literal table name in the `public` schema. Changed `CitextAnalyzeCandidatesSchema` preprocessor from `normalizeOptionalParams` to chain `preprocessCitextTableParams` (which splits `schema.table` format), matching the behavior of `CitextSchemaAdvisorSchema` and `CitextConvertColumnSchema`. Added 1 unit test
 
 - **`pg_citext_analyze_candidates` silent empty result for nonexistent table/schema** — `pg_citext_analyze_candidates({ table: 'nonexistent' })` now returns `{success: false, error: "Table ... does not exist"}` instead of silently returning `{candidates: [], count: 0}`. When only `schema` is specified, validates schema existence via `information_schema.schemata`. Matches the structured error pattern used by `pg_citext_schema_advisor` and `pg_citext_convert_column`. Updated `CitextAnalyzeCandidatesOutputSchema` with optional `success`/`error` fields. Added 2 unit tests, updated 1 existing test mock

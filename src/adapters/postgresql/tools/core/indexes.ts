@@ -73,9 +73,10 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
         [schemaName],
       );
       if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-        throw new Error(
-          `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
-        );
+        return {
+          success: false,
+          error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+        };
       }
 
       const tableCheck = await adapter.executeQuery(
@@ -83,9 +84,10 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
         [schemaName, table],
       );
       if (!tableCheck.rows || tableCheck.rows.length === 0) {
-        throw new Error(
-          `Table '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
-        );
+        return {
+          success: false,
+          error: `Table '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
+        };
       }
 
       const indexes = await adapter.getTableIndexes(table, schema);

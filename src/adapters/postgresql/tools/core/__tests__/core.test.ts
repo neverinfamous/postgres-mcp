@@ -3157,26 +3157,34 @@ describe("pg_get_indexes - P154 existence checks", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should throw error for nonexistent schema", async () => {
+  it("should return structured error for nonexistent schema", async () => {
     // Schema check returns empty
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_get_indexes")!;
-    await expect(
-      tool.handler({ table: "users", schema: "nonexistent" }, mockContext),
-    ).rejects.toThrow("Schema 'nonexistent' does not exist");
+    const result = (await tool.handler(
+      { table: "users", schema: "nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Schema 'nonexistent' does not exist");
   });
 
-  it("should throw error for nonexistent table", async () => {
+  it("should return structured error for nonexistent table", async () => {
     // Schema check returns a row, table check returns empty
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
       .mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_get_indexes")!;
-    await expect(
-      tool.handler({ table: "nonexistent" }, mockContext),
-    ).rejects.toThrow("Table 'public.nonexistent' not found");
+    const result = (await tool.handler(
+      { table: "nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Table 'public.nonexistent' not found");
   });
 
   it("should not check existence when no table specified", async () => {
