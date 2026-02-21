@@ -102,20 +102,22 @@ const CoercibleJobId = z
  * Accepts 'sql' or 'query' as alias for 'command'.
  * Uses base schema for MCP exposure and transform schema for validation.
  */
-export const CronScheduleSchemaBase = z
-  .object({
-    schedule: z
-      .string()
-      .describe(
-        'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
-      ),
-    command: z.string().optional().describe("SQL command to execute"),
-    sql: z.string().optional().describe("Alias for command"),
-    query: z.string().optional().describe("Alias for command"),
-    jobName: z.string().optional().describe("Optional unique name for the job"),
-    name: z.string().optional().describe("Alias for jobName"),
-  })
-  .refine(
+export const CronScheduleSchemaBase = z.object({
+  schedule: z
+    .string()
+    .describe(
+      'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
+    ),
+  command: z.string().optional().describe("SQL command to execute"),
+  sql: z.string().optional().describe("Alias for command"),
+  query: z.string().optional().describe("Alias for command"),
+  jobName: z.string().optional().describe("Optional unique name for the job"),
+  name: z.string().optional().describe("Alias for jobName"),
+});
+
+export const CronScheduleSchema = z.preprocess(
+  preprocessCronParams,
+  CronScheduleSchemaBase.refine(
     (data) =>
       data.command !== undefined ||
       data.sql !== undefined ||
@@ -124,29 +126,25 @@ export const CronScheduleSchemaBase = z
       message: "Either command, sql, or query must be provided",
     },
   )
-  .refine(
-    (data) => {
-      const error = validateIntervalSchedule(data.schedule);
-      return error === undefined;
-    },
-    {
-      message:
-        "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
-    },
-  );
-
-export const CronScheduleSchema = z.preprocess(
-  preprocessCronParams,
-  CronScheduleSchemaBase.transform((data) => {
-    // Handle alias: name -> jobName
-    // Note: command is guaranteed by refine + preprocessing (sql/query -> command)
-    const resolvedJobName = data.jobName ?? data.name;
-    return {
-      schedule: data.schedule,
-      command: data.command ?? "", // Guaranteed by refine + preprocessing
-      jobName: resolvedJobName,
-    };
-  }),
+    .refine(
+      (data) => {
+        const error = validateIntervalSchedule(data.schedule);
+        return error === undefined;
+      },
+      {
+        message:
+          "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
+      },
+    )
+    .transform((data) => {
+      // Handle alias: name -> jobName
+      const resolvedJobName = data.jobName ?? data.name;
+      return {
+        schedule: data.schedule,
+        command: data.command ?? "", // Guaranteed by refine + preprocessing
+        jobName: resolvedJobName,
+      };
+    }),
 );
 
 /**
@@ -156,27 +154,29 @@ export const CronScheduleSchema = z.preprocess(
  * Accepts 'db' as alias for 'database'.
  * Uses base schema for MCP exposure and transform schema for validation.
  */
-export const CronScheduleInDatabaseSchemaBase = z
-  .object({
-    jobName: z.string().optional().describe("Unique name for the job"),
-    name: z.string().optional().describe("Alias for jobName"),
-    schedule: z
-      .string()
-      .describe(
-        'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
-      ),
-    command: z.string().optional().describe("SQL command to execute"),
-    sql: z.string().optional().describe("Alias for command"),
-    query: z.string().optional().describe("Alias for command"),
-    database: z.string().optional().describe("Target database name"),
-    db: z.string().optional().describe("Alias for database"),
-    username: z.string().optional().describe("User to run the job as"),
-    active: z
-      .boolean()
-      .optional()
-      .describe("Whether the job is active (default: true)"),
-  })
-  .refine(
+export const CronScheduleInDatabaseSchemaBase = z.object({
+  jobName: z.string().optional().describe("Unique name for the job"),
+  name: z.string().optional().describe("Alias for jobName"),
+  schedule: z
+    .string()
+    .describe(
+      'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
+    ),
+  command: z.string().optional().describe("SQL command to execute"),
+  sql: z.string().optional().describe("Alias for command"),
+  query: z.string().optional().describe("Alias for command"),
+  database: z.string().optional().describe("Target database name"),
+  db: z.string().optional().describe("Alias for database"),
+  username: z.string().optional().describe("User to run the job as"),
+  active: z
+    .boolean()
+    .optional()
+    .describe("Whether the job is active (default: true)"),
+});
+
+export const CronScheduleInDatabaseSchema = z.preprocess(
+  preprocessCronParams,
+  CronScheduleInDatabaseSchemaBase.refine(
     (data) =>
       data.command !== undefined ||
       data.sql !== undefined ||
@@ -185,37 +185,34 @@ export const CronScheduleInDatabaseSchemaBase = z
       message: "Either command, sql, or query must be provided",
     },
   )
-  .refine((data) => data.database !== undefined || data.db !== undefined, {
-    message: "Either database or db must be provided",
-  })
-  .refine(
-    (data) => {
-      const error = validateIntervalSchedule(data.schedule);
-      return error === undefined;
-    },
-    {
-      message:
-        "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
-    },
-  );
-
-export const CronScheduleInDatabaseSchema = z.preprocess(
-  preprocessCronParams,
-  CronScheduleInDatabaseSchemaBase.transform((data) => {
-    // Handle alias: name -> jobName
-    // Note: command/database are guaranteed by refine + preprocessing
-    const resolvedJobName = data.jobName ?? data.name;
-    return {
-      jobName: resolvedJobName,
-      schedule: data.schedule,
-      command: data.command ?? "", // Guaranteed by refine + preprocessing
-      database: data.database ?? "", // Guaranteed by refine + preprocessing
-      username: data.username,
-      active: data.active,
-    };
-  }).refine((data) => data.jobName !== undefined, {
-    message: "jobName (or name alias) is required",
-  }),
+    .refine((data) => data.database !== undefined || data.db !== undefined, {
+      message: "Either database or db must be provided",
+    })
+    .refine(
+      (data) => {
+        const error = validateIntervalSchedule(data.schedule);
+        return error === undefined;
+      },
+      {
+        message:
+          "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
+      },
+    )
+    .transform((data) => {
+      // Handle alias: name -> jobName
+      const resolvedJobName = data.jobName ?? data.name;
+      return {
+        jobName: resolvedJobName,
+        schedule: data.schedule,
+        command: data.command ?? "", // Guaranteed by refine + preprocessing
+        database: data.database ?? "", // Guaranteed by refine + preprocessing
+        username: data.username,
+        active: data.active,
+      };
+    })
+    .refine((data) => data.jobName !== undefined, {
+      message: "jobName (or name alias) is required",
+    }),
 );
 
 export const CronUnscheduleSchema = z

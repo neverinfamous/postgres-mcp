@@ -607,6 +607,28 @@ describe("pg_cron parameter aliases", () => {
     );
     expect(result.success).toBe(true);
   });
+
+  it("should return structured error for pg_cron_schedule with missing command", async () => {
+    const tool = tools.find((t) => t.name === "pg_cron_schedule")!;
+    const result = (await tool.handler(
+      { schedule: "0 * * * *" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/command.*sql.*query/i);
+  });
+
+  it("should return structured error for pg_cron_schedule_in_database with missing command", async () => {
+    const tool = tools.find((t) => t.name === "pg_cron_schedule_in_database")!;
+    const result = (await tool.handler(
+      { schedule: "0 * * * *", database: "postgres", jobName: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/command.*sql.*query/i);
+  });
 });
 
 describe("pg_cron string jobId coercion", () => {
