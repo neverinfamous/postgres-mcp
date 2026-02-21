@@ -229,14 +229,28 @@ export function createVectorAddColumnTool(
       }
 
       const sql = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} vector(${String(parsed.dimensions)})`;
-      await adapter.executeQuery(sql);
-      return {
-        success: true,
-        table: parsed.table,
-        column: parsed.column,
-        dimensions: parsed.dimensions,
-        ifNotExists: parsed.ifNotExists,
-      };
+      try {
+        await adapter.executeQuery(sql);
+        return {
+          success: true,
+          table: parsed.table,
+          column: parsed.column,
+          dimensions: parsed.dimensions,
+          ifNotExists: parsed.ifNotExists,
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Duplicate column: PG code 42701
+        if (msg.includes("already exists")) {
+          return {
+            success: false,
+            error: `Column '${parsed.column}' already exists on table '${parsed.table}'`,
+            suggestion:
+              "Use ifNotExists: true to skip if column already exists",
+          };
+        }
+        throw err;
+      }
     },
   };
 }
@@ -1099,42 +1113,41 @@ export function createVectorAggregateTool(
 export function createVectorBatchInsertTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Schema with parameter smoothing
-  const BatchInsertSchema = z
-    .object({
-      table: z.string().optional().describe("Table name"),
-      tableName: z.string().optional().describe("Alias for table"),
-      column: z.string().optional().describe("Vector column"),
-      col: z.string().optional().describe("Alias for column"),
-      vectors: z
-        .array(
-          z.object({
-            vector: z.array(z.number()),
-            data: z
-              .record(z.string(), z.unknown())
-              .optional()
-              .describe("Additional column values"),
-          }),
-        )
-        .describe("Array of vectors with optional additional data"),
-      schema: z
-        .string()
-        .optional()
-        .describe("Database schema (default: public)"),
-    })
-    .transform((data) => ({
-      table: data.table ?? data.tableName ?? "",
-      column: data.column ?? data.col ?? "",
-      vectors: data.vectors,
-      schema: data.schema,
-    }));
+  // Base schema for MCP visibility (Split Schema pattern)
+  const BatchInsertSchemaBase = z.object({
+    table: z.string().optional().describe("Table name"),
+    tableName: z.string().optional().describe("Alias for table"),
+    column: z.string().optional().describe("Vector column"),
+    col: z.string().optional().describe("Alias for column"),
+    vectors: z
+      .array(
+        z.object({
+          vector: z.array(z.number()),
+          data: z
+            .record(z.string(), z.unknown())
+            .optional()
+            .describe("Additional column values"),
+        }),
+      )
+      .describe("Array of vectors with optional additional data"),
+    schema: z.string().optional().describe("Database schema (default: public)"),
+  });
+
+  // Transformed schema with alias resolution for handler
+  const BatchInsertSchema = BatchInsertSchemaBase.transform((data) => ({
+    table: data.table ?? data.tableName ?? "",
+    column: data.column ?? data.col ?? "",
+    vectors: data.vectors,
+    schema: data.schema,
+  }));
 
   return {
     name: "pg_vector_batch_insert",
     description:
       'Efficiently insert multiple vectors. vectors param expects array of {vector: [...], data?: {...}} objects, NOT raw arrays. Example: vectors: [{vector: [0.1, 0.2], data: {name: "a"}}]',
     group: "vector",
-    inputSchema: BatchInsertSchema,
+    // Use base schema for MCP visibility
+    inputSchema: BatchInsertSchemaBase,
     annotations: write("Batch Insert Vectors"),
     icons: getToolIcons("vector", write("Batch Insert Vectors")),
     handler: async (params: unknown, _context: RequestContext) => {

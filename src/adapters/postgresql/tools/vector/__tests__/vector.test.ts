@@ -914,6 +914,40 @@ describe("Object Existence Checks (P154)", () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain("Table 'nonexistent' does not exist");
     });
+
+    it("should return structured error for duplicate column without ifNotExists", async () => {
+      // Table exists, then ALTER TABLE fails with duplicate column
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // table check passes
+        .mockRejectedValueOnce(
+          new Error(
+            'column "embedding" of relation "documents" already exists',
+          ),
+        );
+
+      const tool = tools.find((t) => t.name === "pg_vector_add_column")!;
+      const result = (await tool.handler(
+        { table: "documents", column: "embedding", dimensions: 384 },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("already exists");
+      expect(result.suggestion).toContain("ifNotExists");
+    });
+  });
+
+  describe("pg_vector_batch_insert", () => {
+    it("should expose all parameters in inputSchema (Split Schema)", () => {
+      const tool = tools.find((t) => t.name === "pg_vector_batch_insert")!;
+      const schema = tool.inputSchema as { shape?: Record<string, unknown> };
+      // Base schema should have shape property (not stripped by .transform())
+      expect(schema.shape).toBeDefined();
+      expect(schema.shape!.table).toBeDefined();
+      expect(schema.shape!.column).toBeDefined();
+      expect(schema.shape!.vectors).toBeDefined();
+      expect(schema.shape!.schema).toBeDefined();
+    });
   });
 
   describe("pg_vector_cluster", () => {
