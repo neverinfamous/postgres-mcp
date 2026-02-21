@@ -370,6 +370,35 @@ Looks for common patterns like email, username, name, slug, etc.`,
         excludeSystemSchemas?: boolean;
       };
 
+      // Validate table/schema existence before querying
+      if (table !== undefined) {
+        const schemaName = schema ?? "public";
+        const qualifiedTable = `"${schemaName}"."${table}"`;
+        const tableCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.tables
+           WHERE table_schema = $1 AND table_name = $2`,
+          [schemaName, table],
+        );
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Table ${qualifiedTable} does not exist. Verify the table name and schema.`,
+          };
+        }
+      } else if (schema !== undefined) {
+        const schemaCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.schemata
+           WHERE schema_name = $1`,
+          [schema],
+        );
+        if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Schema '${schema}' does not exist. Verify the schema name.`,
+          };
+        }
+      }
+
       // Default limit of 50 to prevent large payloads and transport truncation
       const DEFAULT_LIMIT = 50;
       const effectiveLimit =

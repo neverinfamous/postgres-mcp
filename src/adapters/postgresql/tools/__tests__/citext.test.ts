@@ -379,6 +379,7 @@ describe("Citext Tools", () => {
 
     it("should not exclude system schemas when table filter is specified", async () => {
       mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
         .mockResolvedValueOnce({ rows: [{ total: 0 }] })
         .mockResolvedValueOnce({ rows: [] });
 
@@ -389,6 +390,32 @@ describe("Citext Tools", () => {
 
       // Should not have excludedSchemas when filtering by table
       expect(result.excludedSchemas).toBeUndefined();
+    });
+
+    it("should return structured error for nonexistent table", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // table does not exist
+
+      const tool = findTool("pg_citext_analyze_candidates");
+      const result = (await tool!.handler(
+        { table: "nonexistent_table" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
+    });
+
+    it("should return structured error for nonexistent schema", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // schema does not exist
+
+      const tool = findTool("pg_citext_analyze_candidates");
+      const result = (await tool!.handler(
+        { schema: "nonexistent_schema" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
     });
   });
 

@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_citext_analyze_candidates` silent empty result for nonexistent table/schema** — `pg_citext_analyze_candidates({ table: 'nonexistent' })` now returns `{success: false, error: "Table ... does not exist"}` instead of silently returning `{candidates: [], count: 0}`. When only `schema` is specified, validates schema existence via `information_schema.schemata`. Matches the structured error pattern used by `pg_citext_schema_advisor` and `pg_citext_convert_column`. Updated `CitextAnalyzeCandidatesOutputSchema` with optional `success`/`error` fields. Added 2 unit tests, updated 1 existing test mock
+
 - **Partman tools inconsistent `truncated`/`totalCount` fields** — `pg_partman_show_partitions`, `pg_partman_show_config`, and `pg_partman_analyze_partition_health` now always include `truncated: false` and `totalCount` in responses when results are not truncated, matching the convention in `partitioning.ts` and other paginated tools. Previously, these fields were only present when `truncated: true`, making it impossible to determine completeness without checking the limit
 
 - **`pg_partman_check_default` missing `success` field on happy path** — All 4 happy path return statements in `pg_partman_check_default` now include `success: true`, matching other partman tools. Previously, only error paths included the `success` field

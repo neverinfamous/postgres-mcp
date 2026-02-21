@@ -891,12 +891,14 @@ export const CitextListColumnsOutputSchema = z
  */
 export const CitextAnalyzeCandidatesOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether analysis succeeded"),
     candidates: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Candidate columns"),
-    count: z.number().describe("Number of candidates returned"),
-    totalCount: z.number().describe("Total available count"),
-    truncated: z.boolean().describe("Results were truncated"),
+    count: z.number().optional().describe("Number of candidates returned"),
+    totalCount: z.number().optional().describe("Total available count"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
     limit: z.number().optional().describe("Limit applied"),
     table: z.string().optional().describe("Table filter applied"),
     schema: z.string().optional().describe("Schema filter applied"),
@@ -905,13 +907,18 @@ export const CitextAnalyzeCandidatesOutputSchema = z
         highConfidence: z.number().describe("High confidence count"),
         mediumConfidence: z.number().describe("Medium confidence count"),
       })
+      .optional()
       .describe("Confidence summary"),
-    recommendation: z.string().describe("Recommendation"),
+    recommendation: z.string().optional().describe("Recommendation"),
     excludedSchemas: z
       .array(z.string())
       .optional()
       .describe("Excluded schemas"),
-    patternsUsed: z.array(z.string()).describe("Search patterns used"),
+    patternsUsed: z
+      .array(z.string())
+      .optional()
+      .describe("Search patterns used"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Candidate analysis result");
 
