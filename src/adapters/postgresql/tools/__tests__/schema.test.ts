@@ -1092,3 +1092,139 @@ describe("Parameter Smoothing", () => {
     expect(sql).toContain("n.nspname NOT IN ('fuzzy', 'fuzzystrmatch')");
   });
 });
+
+/**
+ * Structured Error Response Tests
+ *
+ * Verify that create/drop tools return {success: false, error: "..."}
+ * instead of throwing raw MCP errors.
+ */
+describe("Structured Error Responses", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getSchemaTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getSchemaTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_create_schema should return structured error on duplicate", async () => {
+    const pgError = new Error('schema "app" already exists');
+    (pgError as Record<string, unknown>)["code"] = "42P06";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_create_schema")!;
+    const result = (await tool.handler({ name: "app" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_drop_schema should return structured error on nonexistent schema", async () => {
+    // First call: existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Second call: DROP fails
+    const pgError = new Error('schema "nonexistent" does not exist');
+    (pgError as Record<string, unknown>)["code"] = "3F000";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_drop_schema")!;
+    const result = (await tool.handler(
+      { name: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_create_sequence should return structured error on duplicate", async () => {
+    const pgError = new Error('relation "dup_seq" already exists');
+    (pgError as Record<string, unknown>)["code"] = "42P07";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_create_sequence")!;
+    const result = (await tool.handler({ name: "dup_seq" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_drop_sequence should return structured error on nonexistent", async () => {
+    // First call: existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Second call: DROP fails
+    const pgError = new Error('sequence "public"."nonexistent" does not exist');
+    (pgError as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_drop_sequence")!;
+    const result = (await tool.handler(
+      { name: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_create_view should return structured error on duplicate without orReplace", async () => {
+    const pgError = new Error('relation "dup_view" already exists');
+    (pgError as Record<string, unknown>)["code"] = "42P07";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_create_view")!;
+    const result = (await tool.handler(
+      { name: "dup_view", query: "SELECT 1" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_drop_view should return structured error on nonexistent without ifExists", async () => {
+    // First call: existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Second call: DROP fails
+    const pgError = new Error('view "public"."nonexistent" does not exist');
+    (pgError as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_drop_view")!;
+    const result = (await tool.handler(
+      { name: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+});

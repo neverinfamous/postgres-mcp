@@ -260,7 +260,7 @@ export const ListFunctionsSchemaBase = z.object({
     .array(z.string())
     .optional()
     .describe(
-      'Array of extension names/schemas to exclude, e.g., ["postgis", "ltree", "pgcrypto"]',
+      'Array of extension names/schemas to exclude, e.g., ["postgis", "ltree", "pgcrypto", "vector"]',
     ),
   language: z
     .string()
@@ -301,11 +301,12 @@ export const ListSchemasOutputSchema = z.object({
 export const CreateSchemaOutputSchema = z
   .object({
     success: z.boolean().describe("Whether the operation succeeded"),
-    schema: z.string().describe("Schema name"),
+    schema: z.string().optional().describe("Schema name"),
     alreadyExisted: z
       .boolean()
       .optional()
       .describe("True if schema already existed"),
+    error: z.string().optional().describe("Error message if operation failed"),
   })
   .loose();
 
@@ -315,9 +316,13 @@ export const CreateSchemaOutputSchema = z
 export const DropSchemaOutputSchema = z
   .object({
     success: z.boolean().describe("Whether the operation succeeded"),
-    schema: z.string().describe("Schema name"),
-    existed: z.boolean().describe("Whether the schema existed before drop"),
+    schema: z.string().optional().describe("Schema name"),
+    existed: z
+      .boolean()
+      .optional()
+      .describe("Whether the schema existed before drop"),
     note: z.string().optional().describe("Note when schema did not exist"),
+    error: z.string().optional().describe("Error message if operation failed"),
   })
   .loose();
 
@@ -337,23 +342,33 @@ export const ListSequencesOutputSchema = z.object({
 export const CreateSequenceOutputSchema = z
   .object({
     success: z.boolean().describe("Whether the operation succeeded"),
-    sequence: z.string().describe("Sequence name (schema.name)"),
-    ifNotExists: z.boolean().describe("Whether IF NOT EXISTS was used"),
+    sequence: z.string().optional().describe("Sequence name (schema.name)"),
+    ifNotExists: z
+      .boolean()
+      .optional()
+      .describe("Whether IF NOT EXISTS was used"),
     alreadyExisted: z
       .boolean()
       .optional()
       .describe("True if sequence already existed"),
+    error: z.string().optional().describe("Error message if operation failed"),
   })
   .loose();
 
 /**
  * pg_drop_sequence output
  */
-export const DropSequenceOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
-  sequence: z.string().describe("Sequence name"),
-  existed: z.boolean().describe("Whether the sequence existed before drop"),
-});
+export const DropSequenceOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the operation succeeded"),
+    sequence: z.string().optional().describe("Sequence name"),
+    existed: z
+      .boolean()
+      .optional()
+      .describe("Whether the sequence existed before drop"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .loose();
 
 /**
  * pg_list_views output
@@ -378,24 +393,37 @@ export const ListViewsOutputSchema = z
 export const CreateViewOutputSchema = z
   .object({
     success: z.boolean().describe("Whether the operation succeeded"),
-    view: z.string().describe("View name (schema.name)"),
-    materialized: z.boolean().describe("Whether view is materialized"),
+    view: z.string().optional().describe("View name (schema.name)"),
+    materialized: z
+      .boolean()
+      .optional()
+      .describe("Whether view is materialized"),
     alreadyExisted: z
       .boolean()
       .optional()
       .describe("True if view already existed"),
+    error: z.string().optional().describe("Error message if operation failed"),
   })
   .loose();
 
 /**
  * pg_drop_view output
  */
-export const DropViewOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
-  view: z.string().describe("View name"),
-  materialized: z.boolean().describe("Whether view was materialized"),
-  existed: z.boolean().describe("Whether the view existed before drop"),
-});
+export const DropViewOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the operation succeeded"),
+    view: z.string().optional().describe("View name"),
+    materialized: z
+      .boolean()
+      .optional()
+      .describe("Whether view was materialized"),
+    existed: z
+      .boolean()
+      .optional()
+      .describe("Whether the view existed before drop"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .loose();
 
 /**
  * pg_list_functions output

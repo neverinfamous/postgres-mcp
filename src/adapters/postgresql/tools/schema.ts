@@ -11,7 +11,7 @@ import { z } from "zod";
 import { readOnly, write, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../utils/identifiers.js";
-import { parsePostgresError } from "./core/error-helpers.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import {
   CreateSchemaSchema,
   DropSchemaSchema,
@@ -99,40 +99,53 @@ function createCreateSchemaTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Create Schema"),
     icons: getToolIcons("schema", write("Create Schema")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { name, authorization, ifNotExists } =
-        CreateSchemaSchema.parse(params);
-
-      // Check if schema already exists when ifNotExists is true
-      let alreadyExisted: boolean | undefined;
-      if (ifNotExists === true) {
-        const existsResult = await adapter.executeQuery(
-          `SELECT 1 FROM pg_namespace WHERE nspname = '${name}'`,
-        );
-        alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
-      }
-
-      const ifNotExistsClause = ifNotExists ? "IF NOT EXISTS " : "";
-      const schemaName = sanitizeIdentifier(name);
-      const authClause = authorization
-        ? ` AUTHORIZATION ${sanitizeIdentifier(authorization)}`
-        : "";
-
-      const sql = `CREATE SCHEMA ${ifNotExistsClause}${schemaName}${authClause}`;
       try {
-        await adapter.executeQuery(sql);
-      } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_create_schema",
-          schema: name,
-          objectType: "schema",
-        });
-      }
+        const { name, authorization, ifNotExists } =
+          CreateSchemaSchema.parse(params);
 
-      const result: Record<string, unknown> = { success: true, schema: name };
-      if (alreadyExisted !== undefined) {
-        result["alreadyExisted"] = alreadyExisted;
+        // Check if schema already exists when ifNotExists is true
+        let alreadyExisted: boolean | undefined;
+        if (ifNotExists === true) {
+          const existsResult = await adapter.executeQuery(
+            `SELECT 1 FROM pg_namespace WHERE nspname = '${name}'`,
+          );
+          alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
+        }
+
+        const ifNotExistsClause = ifNotExists ? "IF NOT EXISTS " : "";
+        const schemaName = sanitizeIdentifier(name);
+        const authClause = authorization
+          ? ` AUTHORIZATION ${sanitizeIdentifier(authorization)}`
+          : "";
+
+        const sql = `CREATE SCHEMA ${ifNotExistsClause}${schemaName}${authClause}`;
+        try {
+          await adapter.executeQuery(sql);
+        } catch (error: unknown) {
+          return {
+            success: false,
+            error: formatPostgresError(error, {
+              tool: "pg_create_schema",
+              schema: name,
+              objectType: "schema",
+            }),
+          };
+        }
+
+        const result: Record<string, unknown> = { success: true, schema: name };
+        if (alreadyExisted !== undefined) {
+          result["alreadyExisted"] = alreadyExisted;
+        }
+        return result;
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error:
+            error instanceof z.ZodError
+              ? error.issues.map((i) => i.message).join("; ")
+              : formatPostgresError(error, { tool: "pg_create_schema" }),
+        };
       }
-      return result;
     },
   };
 }
@@ -147,35 +160,48 @@ function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: destructive("Drop Schema"),
     icons: getToolIcons("schema", destructive("Drop Schema")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { name, cascade, ifExists } = DropSchemaSchema.parse(params);
-
-      // Check if schema exists before dropping (for accurate response)
-      const existsResult = await adapter.executeQuery(
-        `SELECT 1 FROM pg_namespace WHERE nspname = '${name}'`,
-      );
-      const existed = (existsResult.rows?.length ?? 0) > 0;
-
-      const ifExistsClause = ifExists === true ? "IF EXISTS " : "";
-      const cascadeClause = cascade === true ? " CASCADE" : "";
-      const schemaName = sanitizeIdentifier(name);
-
-      const sql = `DROP SCHEMA ${ifExistsClause}${schemaName}${cascadeClause}`;
       try {
-        await adapter.executeQuery(sql);
-      } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_drop_schema",
+        const { name, cascade, ifExists } = DropSchemaSchema.parse(params);
+
+        // Check if schema exists before dropping (for accurate response)
+        const existsResult = await adapter.executeQuery(
+          `SELECT 1 FROM pg_namespace WHERE nspname = '${name}'`,
+        );
+        const existed = (existsResult.rows?.length ?? 0) > 0;
+
+        const ifExistsClause = ifExists === true ? "IF EXISTS " : "";
+        const cascadeClause = cascade === true ? " CASCADE" : "";
+        const schemaName = sanitizeIdentifier(name);
+
+        const sql = `DROP SCHEMA ${ifExistsClause}${schemaName}${cascadeClause}`;
+        try {
+          await adapter.executeQuery(sql);
+        } catch (error: unknown) {
+          return {
+            success: false,
+            error: formatPostgresError(error, {
+              tool: "pg_drop_schema",
+              schema: name,
+            }),
+          };
+        }
+        return {
+          success: true,
           schema: name,
-        });
+          existed,
+          note: existed
+            ? undefined
+            : `Schema '${name}' did not exist (ifExists: true)`,
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error:
+            error instanceof z.ZodError
+              ? error.issues.map((i) => i.message).join("; ")
+              : formatPostgresError(error, { tool: "pg_drop_schema" }),
+        };
       }
-      return {
-        success: true,
-        schema: name,
-        existed,
-        note: existed
-          ? undefined
-          : `Schema '${name}' did not exist (ifExists: true)`,
-      };
     },
   };
 }
@@ -231,65 +257,78 @@ function createCreateSequenceTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Create Sequence"),
     icons: getToolIcons("schema", write("Create Sequence")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const {
-        name,
-        schema,
-        start,
-        increment,
-        minValue,
-        maxValue,
-        cache,
-        cycle,
-        ownedBy,
-        ifNotExists,
-      } = CreateSequenceSchema.parse(params);
-
-      const schemaName = schema ?? "public";
-
-      // Check if sequence already exists when ifNotExists is true
-      let alreadyExisted: boolean | undefined;
-      if (ifNotExists === true) {
-        const existsResult = await adapter.executeQuery(
-          `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
-        );
-        alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
-      }
-
-      const schemaPrefix = schema ? `${sanitizeIdentifier(schema)}.` : "";
-      const ifNotExistsClause = ifNotExists === true ? "IF NOT EXISTS " : "";
-      const parts = [
-        `CREATE SEQUENCE ${ifNotExistsClause}${schemaPrefix}${sanitizeIdentifier(name)}`,
-      ];
-
-      if (start !== undefined) parts.push(`START WITH ${String(start)}`);
-      if (increment !== undefined)
-        parts.push(`INCREMENT BY ${String(increment)}`);
-      if (minValue !== undefined) parts.push(`MINVALUE ${String(minValue)}`);
-      if (maxValue !== undefined) parts.push(`MAXVALUE ${String(maxValue)}`);
-      if (cache !== undefined) parts.push(`CACHE ${String(cache)}`);
-      if (cycle) parts.push("CYCLE");
-      if (ownedBy !== undefined) parts.push(`OWNED BY ${ownedBy}`);
-
-      const sql = parts.join(" ");
       try {
-        await adapter.executeQuery(sql);
-      } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_create_sequence",
-          objectType: "sequence",
-          ...(schema !== undefined && { schema }),
-        });
-      }
+        const {
+          name,
+          schema,
+          start,
+          increment,
+          minValue,
+          maxValue,
+          cache,
+          cycle,
+          ownedBy,
+          ifNotExists,
+        } = CreateSequenceSchema.parse(params);
 
-      const result: Record<string, unknown> = {
-        success: true,
-        sequence: `${schemaName}.${name}`,
-        ifNotExists: ifNotExists ?? false,
-      };
-      if (alreadyExisted !== undefined) {
-        result["alreadyExisted"] = alreadyExisted;
+        const schemaName = schema ?? "public";
+
+        // Check if sequence already exists when ifNotExists is true
+        let alreadyExisted: boolean | undefined;
+        if (ifNotExists === true) {
+          const existsResult = await adapter.executeQuery(
+            `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
+          );
+          alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
+        }
+
+        const schemaPrefix = schema ? `${sanitizeIdentifier(schema)}.` : "";
+        const ifNotExistsClause = ifNotExists === true ? "IF NOT EXISTS " : "";
+        const parts = [
+          `CREATE SEQUENCE ${ifNotExistsClause}${schemaPrefix}${sanitizeIdentifier(name)}`,
+        ];
+
+        if (start !== undefined) parts.push(`START WITH ${String(start)}`);
+        if (increment !== undefined)
+          parts.push(`INCREMENT BY ${String(increment)}`);
+        if (minValue !== undefined) parts.push(`MINVALUE ${String(minValue)}`);
+        if (maxValue !== undefined) parts.push(`MAXVALUE ${String(maxValue)}`);
+        if (cache !== undefined) parts.push(`CACHE ${String(cache)}`);
+        if (cycle) parts.push("CYCLE");
+        if (ownedBy !== undefined) parts.push(`OWNED BY ${ownedBy}`);
+
+        const sql = parts.join(" ");
+        try {
+          await adapter.executeQuery(sql);
+        } catch (error: unknown) {
+          return {
+            success: false,
+            error: formatPostgresError(error, {
+              tool: "pg_create_sequence",
+              objectType: "sequence",
+              ...(schema !== undefined && { schema }),
+            }),
+          };
+        }
+
+        const result: Record<string, unknown> = {
+          success: true,
+          sequence: `${schemaName}.${name}`,
+          ifNotExists: ifNotExists ?? false,
+        };
+        if (alreadyExisted !== undefined) {
+          result["alreadyExisted"] = alreadyExisted;
+        }
+        return result;
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error:
+            error instanceof z.ZodError
+              ? error.issues.map((i) => i.message).join("; ")
+              : formatPostgresError(error, { tool: "pg_create_sequence" }),
+        };
       }
-      return result;
     },
   };
 }
@@ -306,30 +345,43 @@ function createDropSequenceTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: destructive("Drop Sequence"),
     icons: getToolIcons("schema", destructive("Drop Sequence")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { name, schema, ifExists, cascade } =
-        DropSequenceSchema.parse(params);
-
-      const schemaName = schema ?? "public";
-
-      // Check if sequence exists before dropping (for accurate response)
-      const existsResult = await adapter.executeQuery(
-        `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
-      );
-      const existed = (existsResult.rows?.length ?? 0) > 0;
-
-      const ifExistsClause = ifExists === true ? "IF EXISTS " : "";
-      const cascadeClause = cascade === true ? " CASCADE" : "";
-
-      const sql = `DROP SEQUENCE ${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
       try {
-        await adapter.executeQuery(sql);
+        const { name, schema, ifExists, cascade } =
+          DropSequenceSchema.parse(params);
+
+        const schemaName = schema ?? "public";
+
+        // Check if sequence exists before dropping (for accurate response)
+        const existsResult = await adapter.executeQuery(
+          `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
+        );
+        const existed = (existsResult.rows?.length ?? 0) > 0;
+
+        const ifExistsClause = ifExists === true ? "IF EXISTS " : "";
+        const cascadeClause = cascade === true ? " CASCADE" : "";
+
+        const sql = `DROP SEQUENCE ${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
+        try {
+          await adapter.executeQuery(sql);
+        } catch (error: unknown) {
+          return {
+            success: false,
+            error: formatPostgresError(error, {
+              tool: "pg_drop_sequence",
+              ...(schema !== undefined && { schema }),
+            }),
+          };
+        }
+        return { success: true, sequence: `${schemaName}.${name}`, existed };
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_drop_sequence",
-          ...(schema !== undefined && { schema }),
-        });
+        return {
+          success: false,
+          error:
+            error instanceof z.ZodError
+              ? error.issues.map((i) => i.message).join("; ")
+              : formatPostgresError(error, { tool: "pg_drop_sequence" }),
+        };
       }
-      return { success: true, sequence: `${schemaName}.${name}`, existed };
     },
   };
 }
@@ -448,52 +500,65 @@ function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Create View"),
     icons: getToolIcons("schema", write("Create View")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { name, schema, query, materialized, orReplace, checkOption } =
-        CreateViewSchema.parse(params);
-
-      const schemaName = schema ?? "public";
-
-      // Check if view already exists when orReplace is true (for informational response)
-      let alreadyExisted: boolean | undefined;
-      if (orReplace === true) {
-        const relkind = materialized === true ? "'m'" : "'v'";
-        const existsResult = await adapter.executeQuery(
-          `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = ${relkind} AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
-        );
-        alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
-      }
-
-      const schemaPrefix = schema ? `${sanitizeIdentifier(schema)}.` : "";
-      const replaceClause = orReplace && !materialized ? "OR REPLACE " : "";
-      const matClause = materialized ? "MATERIALIZED " : "";
-      const viewName = sanitizeIdentifier(name);
-
-      // WITH CHECK OPTION clause (not available for materialized views)
-      let checkClause = "";
-      if (checkOption && checkOption !== "none" && !materialized) {
-        checkClause = ` WITH ${checkOption.toUpperCase()} CHECK OPTION`;
-      }
-
-      const sql = `CREATE ${replaceClause}${matClause}VIEW ${schemaPrefix}${viewName} AS ${query}${checkClause}`;
       try {
-        await adapter.executeQuery(sql);
-      } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_create_view",
-          objectType: "view",
-          ...(schema !== undefined && { schema }),
-        });
-      }
+        const { name, schema, query, materialized, orReplace, checkOption } =
+          CreateViewSchema.parse(params);
 
-      const result: Record<string, unknown> = {
-        success: true,
-        view: `${schemaName}.${name}`,
-        materialized: !!materialized,
-      };
-      if (alreadyExisted !== undefined) {
-        result["alreadyExisted"] = alreadyExisted;
+        const schemaName = schema ?? "public";
+
+        // Check if view already exists when orReplace is true (for informational response)
+        let alreadyExisted: boolean | undefined;
+        if (orReplace === true) {
+          const relkind = materialized === true ? "'m'" : "'v'";
+          const existsResult = await adapter.executeQuery(
+            `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = ${relkind} AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
+          );
+          alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
+        }
+
+        const schemaPrefix = schema ? `${sanitizeIdentifier(schema)}.` : "";
+        const replaceClause = orReplace && !materialized ? "OR REPLACE " : "";
+        const matClause = materialized ? "MATERIALIZED " : "";
+        const viewName = sanitizeIdentifier(name);
+
+        // WITH CHECK OPTION clause (not available for materialized views)
+        let checkClause = "";
+        if (checkOption && checkOption !== "none" && !materialized) {
+          checkClause = ` WITH ${checkOption.toUpperCase()} CHECK OPTION`;
+        }
+
+        const sql = `CREATE ${replaceClause}${matClause}VIEW ${schemaPrefix}${viewName} AS ${query}${checkClause}`;
+        try {
+          await adapter.executeQuery(sql);
+        } catch (error: unknown) {
+          return {
+            success: false,
+            error: formatPostgresError(error, {
+              tool: "pg_create_view",
+              objectType: "view",
+              ...(schema !== undefined && { schema }),
+            }),
+          };
+        }
+
+        const result: Record<string, unknown> = {
+          success: true,
+          view: `${schemaName}.${name}`,
+          materialized: !!materialized,
+        };
+        if (alreadyExisted !== undefined) {
+          result["alreadyExisted"] = alreadyExisted;
+        }
+        return result;
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error:
+            error instanceof z.ZodError
+              ? error.issues.map((i) => i.message).join("; ")
+              : formatPostgresError(error, { tool: "pg_create_view" }),
+        };
       }
-      return result;
     },
   };
 }
@@ -511,37 +576,50 @@ function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: destructive("Drop View"),
     icons: getToolIcons("schema", destructive("Drop View")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { name, schema, materialized, ifExists, cascade } =
-        DropViewSchema.parse(params);
-
-      const schemaName = schema ?? "public";
-
-      // Check if view exists before dropping (for accurate response)
-      const relkind = materialized === true ? "'m'" : "'v'";
-      const existsResult = await adapter.executeQuery(
-        `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = ${relkind} AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
-      );
-      const existed = (existsResult.rows?.length ?? 0) > 0;
-
-      const matClause = materialized === true ? "MATERIALIZED " : "";
-      const ifExistsClause = ifExists === true ? "IF EXISTS " : "";
-      const cascadeClause = cascade === true ? " CASCADE" : "";
-
-      const sql = `DROP ${matClause}VIEW ${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
       try {
-        await adapter.executeQuery(sql);
+        const { name, schema, materialized, ifExists, cascade } =
+          DropViewSchema.parse(params);
+
+        const schemaName = schema ?? "public";
+
+        // Check if view exists before dropping (for accurate response)
+        const relkind = materialized === true ? "'m'" : "'v'";
+        const existsResult = await adapter.executeQuery(
+          `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = ${relkind} AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
+        );
+        const existed = (existsResult.rows?.length ?? 0) > 0;
+
+        const matClause = materialized === true ? "MATERIALIZED " : "";
+        const ifExistsClause = ifExists === true ? "IF EXISTS " : "";
+        const cascadeClause = cascade === true ? " CASCADE" : "";
+
+        const sql = `DROP ${matClause}VIEW ${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
+        try {
+          await adapter.executeQuery(sql);
+        } catch (error: unknown) {
+          return {
+            success: false,
+            error: formatPostgresError(error, {
+              tool: "pg_drop_view",
+              ...(schema !== undefined && { schema }),
+            }),
+          };
+        }
+        return {
+          success: true,
+          view: `${schemaName}.${name}`,
+          materialized: materialized ?? false,
+          existed,
+        };
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_drop_view",
-          ...(schema !== undefined && { schema }),
-        });
+        return {
+          success: false,
+          error:
+            error instanceof z.ZodError
+              ? error.issues.map((i) => i.message).join("; ")
+              : formatPostgresError(error, { tool: "pg_drop_view" }),
+        };
       }
-      return {
-        success: true,
-        view: `${schemaName}.${name}`,
-        materialized: materialized ?? false,
-        existed,
-      };
     },
   };
 }
