@@ -1020,4 +1020,26 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Index.*not found.*pg_get_indexes/i);
   });
+
+  it("should return cluster-appropriate error for 42704 index-not-found on pg_cluster", async () => {
+    const pgError = new Error(
+      'index "nonexistent_idx" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42704";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+
+    const result = (await tool.handler(
+      { table: "users", index: "nonexistent_idx" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Index.*not found.*pg_get_indexes/i);
+    expect(result.error).not.toContain("ifExists");
+  });
 });

@@ -191,6 +191,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_reindex` misleading error for nonexistent index** — `pg_reindex({ target: 'index', name: 'nonexistent' })` now throws `Index 'nonexistent' not found. Use pg_get_indexes to see available indexes` instead of the misleading `Table or view 'nonexistent' not found`. The handler now passes `target` and `index`/`table` context to `parsePostgresError()`
 
+- **`pg_cluster` misleading `ifExists` suggestion for nonexistent index** — `pg_cluster({ table: 'users', index: 'nonexistent' })` now throws `Index 'nonexistent' not found. Use pg_get_indexes to see available indexes` instead of suggesting `Use ifExists: true to avoid this error`, which is not a valid `pg_cluster` parameter. Added tool-context guard in `parsePostgresError` 42704 handler. Added 1 unit test
+
 ## [1.2.0] - 2026-02-10
 
 ### Added

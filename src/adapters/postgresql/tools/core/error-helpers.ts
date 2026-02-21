@@ -240,6 +240,19 @@ export function parsePostgresError(
       );
     }
 
+    // pg_cluster: index-not-found — omit ifExists (not a valid cluster param)
+    if (
+      context.tool === "pg_cluster" &&
+      (/index/i.test(msg) || context.index)
+    ) {
+      const match = /index "([^"]+)"/i.exec(msg);
+      const indexName = match?.[1] ?? context.index ?? "unknown";
+      throw new Error(
+        `Index '${indexName}' not found. Use pg_get_indexes to see available indexes.`,
+        { cause: error },
+      );
+    }
+
     if (
       context.tool === "pg_drop_index" ||
       /index/i.test(msg) ||
