@@ -361,12 +361,19 @@ describe("pg_analyze", () => {
     expect(schema.shape?.["columns"]).toBeDefined();
   });
 
-  it("should throw error when columns specified without table", async () => {
+  it("should return structured error when columns specified without table", async () => {
     const tool = tools.find((t) => t.name === "pg_analyze")!;
 
-    await expect(
-      tool.handler({ columns: ["email"] }, mockContext),
-    ).rejects.toThrow("table is required when columns is specified");
+    const result = (await tool.handler(
+      { columns: ["email"] },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("table is required when columns is specified");
   });
 });
 
@@ -817,18 +824,33 @@ describe("pg_cluster", () => {
     expect(schema.shape?.["schema"]).toBeDefined();
   });
 
-  it("should throw error when index specified without table", async () => {
+  it("should return structured error when table specified without index", async () => {
     const tool = tools.find((t) => t.name === "pg_cluster")!;
 
-    await expect(
-      tool.handler({ index: "idx_users_email" }, mockContext),
-    ).rejects.toThrow("table and index must both be specified together");
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      "table and index must both be specified together",
+    );
   });
 
-  it("should throw error when table specified without index", async () => {
+  it("should return structured error when index specified without table", async () => {
     const tool = tools.find((t) => t.name === "pg_cluster")!;
 
-    await expect(tool.handler({ table: "users" }, mockContext)).rejects.toThrow(
+    const result = (await tool.handler(
+      { index: "idx_users_email" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
       "table and index must both be specified together",
     );
   });
@@ -838,7 +860,7 @@ describe("pg_cluster", () => {
 // Structured Error Handling (parsePostgresError)
 // =============================================================================
 
-describe("Structured Error Handling (parsePostgresError)", () => {
+describe("Structured Error Handling (formatPostgresError)", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
   let tools: ReturnType<typeof getAdminTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
@@ -850,7 +872,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should map 42P01 table-not-found for pg_vacuum", async () => {
+  it("should return structured error for 42P01 table-not-found on pg_vacuum", async () => {
     const pgError = new Error(
       'relation "nonexistent" does not exist',
     ) as Error & { code: string };
@@ -859,12 +881,19 @@ describe("Structured Error Handling (parsePostgresError)", () => {
 
     const tool = tools.find((t) => t.name === "pg_vacuum")!;
 
-    await expect(
-      tool.handler({ table: "nonexistent" }, mockContext),
-    ).rejects.toThrow(/not found.*pg_list_tables/i);
+    const result = (await tool.handler(
+      { table: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
   });
 
-  it("should map 42P01 table-not-found for pg_vacuum_analyze", async () => {
+  it("should return structured error for 42P01 table-not-found on pg_vacuum_analyze", async () => {
     const pgError = new Error(
       'relation "nonexistent" does not exist',
     ) as Error & { code: string };
@@ -873,12 +902,19 @@ describe("Structured Error Handling (parsePostgresError)", () => {
 
     const tool = tools.find((t) => t.name === "pg_vacuum_analyze")!;
 
-    await expect(
-      tool.handler({ table: "nonexistent" }, mockContext),
-    ).rejects.toThrow(/not found.*pg_list_tables/i);
+    const result = (await tool.handler(
+      { table: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
   });
 
-  it("should map 42P01 table-not-found for pg_analyze", async () => {
+  it("should return structured error for 42P01 table-not-found on pg_analyze", async () => {
     const pgError = new Error(
       'relation "nonexistent" does not exist',
     ) as Error & { code: string };
@@ -887,12 +923,19 @@ describe("Structured Error Handling (parsePostgresError)", () => {
 
     const tool = tools.find((t) => t.name === "pg_analyze")!;
 
-    await expect(
-      tool.handler({ table: "nonexistent" }, mockContext),
-    ).rejects.toThrow(/not found.*pg_list_tables/i);
+    const result = (await tool.handler(
+      { table: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
   });
 
-  it("should map 42P01 table-not-found for pg_reindex", async () => {
+  it("should return structured error for 42P01 table-not-found on pg_reindex", async () => {
     const pgError = new Error(
       'relation "nonexistent" does not exist',
     ) as Error & { code: string };
@@ -901,12 +944,19 @@ describe("Structured Error Handling (parsePostgresError)", () => {
 
     const tool = tools.find((t) => t.name === "pg_reindex")!;
 
-    await expect(
-      tool.handler({ target: "table", name: "nonexistent" }, mockContext),
-    ).rejects.toThrow(/not found.*pg_list_tables/i);
+    const result = (await tool.handler(
+      { target: "table", name: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
   });
 
-  it("should map errors for pg_set_config with invalid parameter", async () => {
+  it("should return structured error for pg_set_config with invalid parameter", async () => {
     const pgError = new Error(
       'unrecognized configuration parameter "nonexistent_param"',
     ) as Error & { code: string };
@@ -915,14 +965,21 @@ describe("Structured Error Handling (parsePostgresError)", () => {
 
     const tool = tools.find((t) => t.name === "pg_set_config")!;
 
-    await expect(
-      tool.handler({ name: "nonexistent_param", value: "test" }, mockContext),
-    ).rejects.toThrow(
+    const result = (await tool.handler(
+      { name: "nonexistent_param", value: "test" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(
       /unrecognized configuration parameter.*pg_show_settings/i,
     );
   });
 
-  it("should map 42P01 table-not-found for pg_cluster", async () => {
+  it("should return structured error for 42P01 table-not-found on pg_cluster", async () => {
     const pgError = new Error(
       'relation "nonexistent" does not exist',
     ) as Error & { code: string };
@@ -931,15 +988,19 @@ describe("Structured Error Handling (parsePostgresError)", () => {
 
     const tool = tools.find((t) => t.name === "pg_cluster")!;
 
-    await expect(
-      tool.handler(
-        { table: "nonexistent", index: "idx_nonexistent" },
-        mockContext,
-      ),
-    ).rejects.toThrow(/not found.*pg_list_tables/i);
+    const result = (await tool.handler(
+      { table: "nonexistent", index: "idx_nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
   });
 
-  it("should map 42P01 index-not-found for pg_reindex target=index", async () => {
+  it("should return structured error for 42P01 index-not-found on pg_reindex target=index", async () => {
     const pgError = new Error(
       'relation "nonexistent_index" does not exist',
     ) as Error & { code: string };
@@ -948,8 +1009,15 @@ describe("Structured Error Handling (parsePostgresError)", () => {
 
     const tool = tools.find((t) => t.name === "pg_reindex")!;
 
-    await expect(
-      tool.handler({ target: "index", name: "nonexistent_index" }, mockContext),
-    ).rejects.toThrow(/index.*not found.*pg_get_indexes/i);
+    const result = (await tool.handler(
+      { target: "index", name: "nonexistent_index" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found/i);
   });
 });
