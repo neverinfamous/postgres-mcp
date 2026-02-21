@@ -144,9 +144,15 @@ describe("pg_explain", () => {
     expect(result.plan).toContain("Seq Scan");
   });
 
-  it("should throw error when neither sql nor query provided", async () => {
+  it("should return structured error when neither sql nor query provided", async () => {
     const tool = tools.find((t) => t.name === "pg_explain")!;
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
       "Missing required parameter: sql (or query alias)",
     );
   });
@@ -214,9 +220,15 @@ describe("pg_explain_analyze", () => {
     expect(result.plan).toContain("actual time");
   });
 
-  it("should throw error when neither sql nor query provided", async () => {
+  it("should return structured error when neither sql nor query provided", async () => {
     const tool = tools.find((t) => t.name === "pg_explain_analyze")!;
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
       "Missing required parameter: sql (or query alias)",
     );
   });
@@ -267,9 +279,15 @@ describe("pg_explain_buffers", () => {
     );
   });
 
-  it("should throw error when neither sql nor query provided", async () => {
+  it("should return structured error when neither sql nor query provided", async () => {
     const tool = tools.find((t) => t.name === "pg_explain_buffers")!;
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
       "Missing required parameter: sql (or query alias)",
     );
   });
@@ -2744,5 +2762,183 @@ describe("pg_query_plan_stats comprehensive", () => {
 
     expect(result.queryPlanStats[0].plan_pct).toBe(0);
     expect(result.queryPlanStats[0].cache_hit_pct).toBe(100);
+  });
+});
+
+// =============================================================================
+// Error Handling Tests - Structured {success: false, error} responses
+// =============================================================================
+
+describe("pg_explain error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for nonexistent table", async () => {
+    const pgError = new Error('relation "nonexistent" does not exist');
+    Object.assign(pgError, { code: "42P01" });
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_explain")!;
+    const result = (await tool.handler(
+      { sql: "SELECT * FROM nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe("pg_explain_analyze error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for nonexistent table", async () => {
+    const pgError = new Error('relation "nonexistent" does not exist');
+    Object.assign(pgError, { code: "42P01" });
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_explain_analyze")!;
+    const result = (await tool.handler(
+      { sql: "SELECT * FROM nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe("pg_explain_buffers error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for nonexistent table", async () => {
+    const pgError = new Error('relation "nonexistent" does not exist');
+    Object.assign(pgError, { code: "42P01" });
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_explain_buffers")!;
+    const result = (await tool.handler(
+      { sql: "SELECT * FROM nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe("pg_index_recommendations error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for SQL with nonexistent table", async () => {
+    // HypoPG check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // EXPLAIN fails
+    const pgError = new Error('relation "nonexistent" does not exist');
+    Object.assign(pgError, { code: "42P01" });
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_index_recommendations")!;
+    const result = (await tool.handler(
+      { sql: "SELECT * FROM nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe("pg_query_plan_compare error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for nonexistent table", async () => {
+    const pgError = new Error('relation "nonexistent" does not exist');
+    Object.assign(pgError, { code: "42P01" });
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_query_plan_compare")!;
+    const result = (await tool.handler(
+      {
+        query1: "SELECT * FROM nonexistent",
+        query2: "SELECT 1",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe("pg_partition_strategy_suggest error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for nonexistent table", async () => {
+    const pgError = new Error('relation "nonexistent" does not exist');
+    Object.assign(pgError, { code: "42P01" });
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_partition_strategy_suggest")!;
+    const result = (await tool.handler(
+      { table: "nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 });

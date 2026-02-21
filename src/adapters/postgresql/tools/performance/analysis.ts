@@ -10,7 +10,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { parsePostgresError } from "../core/error-helpers.js";
+import { formatPostgresError } from "../core/error-helpers.js";
 import {
   SeqScanTablesOutputSchema,
   IndexRecommendationsOutputSchema,
@@ -383,7 +383,12 @@ export function createIndexRecommendationsTool(
           hint: "Based on table statistics. Provide a SQL query for query-specific recommendations.",
         };
       } catch (error) {
-        throw parsePostgresError(error, { tool: "pg_index_recommendations" });
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_index_recommendations",
+          }),
+        };
       }
     },
   };
@@ -509,7 +514,12 @@ export function createQueryPlanCompareTool(
 
         return comparison;
       } catch (error) {
-        throw parsePostgresError(error, { tool: "pg_query_plan_compare" });
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_query_plan_compare",
+          }),
+        };
       }
     },
   };

@@ -10,7 +10,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { parsePostgresError } from "../core/error-helpers.js";
+import { formatPostgresError } from "../core/error-helpers.js";
 import {
   PerformanceBaselineOutputSchema,
   ConnectionPoolOptimizeOutputSchema,
@@ -411,9 +411,12 @@ export function createPartitionStrategySuggestTool(
           note: "Consider your query patterns when choosing partition key. Range partitioning on date columns is most common.",
         };
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_partition_strategy_suggest",
-        });
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_partition_strategy_suggest",
+          }),
+        };
       }
     },
   };

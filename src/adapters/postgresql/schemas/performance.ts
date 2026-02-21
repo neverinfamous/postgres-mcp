@@ -83,7 +83,9 @@ export const TableStatsSchema = z.preprocess(
 
 // Common schema for explain plan output
 export const ExplainOutputSchema = z.object({
-  plan: z.unknown().describe("Query execution plan"),
+  plan: z.unknown().optional().describe("Query execution plan"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // Common paginated output with array + count
@@ -167,9 +169,10 @@ export const SeqScanTablesOutputSchema = z.object({
 
 // pg_index_recommendations
 export const IndexRecommendationsOutputSchema = z.object({
-  queryAnalysis: z.boolean().describe("Whether query was analyzed"),
+  queryAnalysis: z.boolean().optional().describe("Whether query was analyzed"),
   recommendations: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Index recommendations"),
   hypopgAvailable: z
     .boolean()
@@ -181,23 +184,39 @@ export const IndexRecommendationsOutputSchema = z.object({
     .optional()
     .describe("Baseline query cost"),
   hint: z.string().optional().describe("Recommendation hint"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_query_plan_compare
 export const QueryPlanCompareOutputSchema = z.object({
-  query1: z.record(z.string(), z.unknown()).describe("Query 1 plan metrics"),
-  query2: z.record(z.string(), z.unknown()).describe("Query 2 plan metrics"),
-  analysis: z.object({
-    costDifference: z
-      .number()
-      .nullable()
-      .describe("Cost difference between plans"),
-    recommendation: z.string().describe("Comparison recommendation"),
-  }),
-  fullPlans: z.object({
-    plan1: z.unknown().optional().describe("Full plan for query 1"),
-    plan2: z.unknown().optional().describe("Full plan for query 2"),
-  }),
+  query1: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe("Query 1 plan metrics"),
+  query2: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe("Query 2 plan metrics"),
+  analysis: z
+    .object({
+      costDifference: z
+        .number()
+        .nullable()
+        .describe("Cost difference between plans"),
+      recommendation: z.string().describe("Comparison recommendation"),
+    })
+    .optional()
+    .describe("Plan comparison analysis"),
+  fullPlans: z
+    .object({
+      plan1: z.unknown().optional().describe("Full plan for query 1"),
+      plan2: z.unknown().optional().describe("Full plan for query 2"),
+    })
+    .optional()
+    .describe("Full execution plans"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_performance_baseline
@@ -246,19 +265,22 @@ export const ConnectionPoolOptimizeOutputSchema = z.object({
 
 // pg_partition_strategy_suggest
 export const PartitionStrategySuggestOutputSchema = z.object({
-  table: z.string().describe("Table analyzed"),
+  table: z.string().optional().describe("Table analyzed"),
   tableStats: z
     .record(z.string(), z.unknown())
     .nullable()
+    .optional()
     .describe("Table statistics"),
   tableSize: z
     .record(z.string(), z.unknown())
     .nullable()
+    .optional()
     .describe("Table size info"),
   partitioningRecommended: z
     .boolean()
+    .optional()
     .describe("Whether partitioning is recommended"),
-  reason: z.string().describe("Reason for recommendation"),
+  reason: z.string().optional().describe("Reason for recommendation"),
   suggestions: z
     .array(
       z.object({
@@ -267,8 +289,11 @@ export const PartitionStrategySuggestOutputSchema = z.object({
         reason: z.string().describe("Reason for suggestion"),
       }),
     )
+    .optional()
     .describe("Partition strategy suggestions"),
   note: z.string().optional().describe("Additional guidance"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_unused_indexes (supports both summary and list modes)
