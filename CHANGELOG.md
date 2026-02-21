@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_vector_cluster` null centroids for non-vector columns** — `pg_vector_cluster` with a non-vector column (e.g., `text`, `integer`) now returns `{success: false, error: "Column '...' is not a vector column (type: ...)", suggestion: "Use a column with vector type for clustering"}` instead of silently returning null centroids. Added `information_schema.columns` type check after `checkTableAndColumn`, matching the existing pattern in `pg_vector_index_optimize`. Added 1 unit test, updated 3 existing test mocks
+
 - **`pg_vector_add_column` raw MCP exception for duplicate column** — `pg_vector_add_column({ table: 'x', column: 'existing_col', dimensions: 384 })` without `ifNotExists: true` now returns `{success: false, error: "Column 'existing_col' already exists on table 'x'", suggestion: "Use ifNotExists: true to skip if column already exists"}` instead of throwing a raw PostgreSQL exception. Wrapped `ALTER TABLE` in try-catch with duplicate column pattern match. Added 1 unit test
 
 - **`pg_vector_batch_insert` MCP schema missing all parameters** — Direct MCP tool calls to `pg_vector_batch_insert` now correctly expose `table`, `tableName`, `column`, `col`, `vectors`, and `schema` parameters. Previously, the tool used a `.transform()`-ed schema as `inputSchema`, which strips parameter metadata from JSON Schema generation, making direct MCP calls fail with Zod validation errors. Applied Split Schema pattern: `BatchInsertSchemaBase` for MCP visibility, `BatchInsertSchema` with `.transform()` for handler alias resolution. Added 1 unit test

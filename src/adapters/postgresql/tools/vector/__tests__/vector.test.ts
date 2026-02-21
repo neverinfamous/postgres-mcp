@@ -670,13 +670,16 @@ describe("Bug Fixes", () => {
 
   describe("pg_vector_cluster clusters alias", () => {
     it("should accept clusters as alias for k", async () => {
-      mockAdapter.executeQuery.mockResolvedValue({
-        rows: [
-          { vec: "[0.1,0.2,0.3]" },
-          { vec: "[0.4,0.5,0.6]" },
-          { vec: "[0.7,0.8,0.9]" },
-        ],
-      });
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] }) // type check
+        .mockResolvedValueOnce({
+          rows: [
+            { vec: "[0.1,0.2,0.3]" },
+            { vec: "[0.4,0.5,0.6]" },
+            { vec: "[0.7,0.8,0.9]" },
+          ],
+        });
 
       const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
       const result = (await tool.handler(
@@ -993,6 +996,19 @@ describe("Object Existence Checks (P154)", () => {
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
       expect(result.error).toContain("Column 'bad_col' does not exist");
+    });
+
+    it("should return non-vector-column error", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // checkTableAndColumn: column found
+        .mockResolvedValueOnce({ rows: [{ udt_name: "text" }] }); // type check: not vector
+      const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
+      const result = (await tool.handler(
+        { table: "embeddings", column: "content", k: 3 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not a vector column");
     });
   });
 
