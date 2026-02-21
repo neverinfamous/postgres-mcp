@@ -7,10 +7,10 @@
 
 import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
-import { parsePostgresError } from "./core/error-helpers.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeIdentifiers,
@@ -73,57 +73,68 @@ function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Full-Text Search"),
     icons: getToolIcons("text", readOnly("Full-Text Search")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = TextSearchSchema.parse(params);
-      const cfg = sanitizeFtsConfig(parsed.config ?? "english");
+      try {
+        const parsed = TextSearchSchema.parse(params);
+        const cfg = sanitizeFtsConfig(parsed.config ?? "english");
 
-      // Handle both column (string) and columns (array) parameters
-      // The preprocessor converts column → columns, but we handle both for safety
-      let cols: string[];
-      if (parsed.columns !== undefined && parsed.columns.length > 0) {
-        cols = parsed.columns;
-      } else if (parsed.column !== undefined) {
-        cols = [parsed.column];
-      } else {
-        throw new Error(
-          "Either 'columns' (array) or 'column' (string) is required",
-        );
-      }
+        // Handle both column (string) and columns (array) parameters
+        // The preprocessor converts column → columns, but we handle both for safety
+        let cols: string[];
+        if (parsed.columns !== undefined && parsed.columns.length > 0) {
+          cols = parsed.columns;
+        } else if (parsed.column !== undefined) {
+          cols = [parsed.column];
+        } else {
+          return {
+            success: false,
+            error: "Either 'columns' (array) or 'column' (string) is required",
+          };
+        }
 
-      // Build qualified table name with schema support
-      // The preprocessor guarantees table is set (converts tableName → table)
-      const resolvedTable = parsed.table ?? parsed.tableName;
-      if (!resolvedTable) {
-        throw new Error("Either 'table' or 'tableName' is required");
-      }
-      const tableName = sanitizeTableName(resolvedTable, parsed.schema);
-      const sanitizedCols = sanitizeIdentifiers(cols);
-      const selectCols =
-        parsed.select !== undefined && parsed.select.length > 0
-          ? sanitizeIdentifiers(parsed.select).join(", ")
-          : "*";
-      const tsvector = sanitizedCols
-        .map((c) => `coalesce(${c}, '')`)
-        .join(" || ' ' || ");
-      const limitClause =
-        parsed.limit !== undefined && parsed.limit > 0
-          ? ` LIMIT ${String(parsed.limit)}`
-          : "";
+        // Build qualified table name with schema support
+        // The preprocessor guarantees table is set (converts tableName → table)
+        const resolvedTable = parsed.table ?? parsed.tableName;
+        if (!resolvedTable) {
+          return {
+            success: false,
+            error: "Either 'table' or 'tableName' is required",
+          };
+        }
+        const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const sanitizedCols = sanitizeIdentifiers(cols);
+        const selectCols =
+          parsed.select !== undefined && parsed.select.length > 0
+            ? sanitizeIdentifiers(parsed.select).join(", ")
+            : "*";
+        const tsvector = sanitizedCols
+          .map((c) => `coalesce(${c}, '')`)
+          .join(" || ' ' || ");
+        const limitClause =
+          parsed.limit !== undefined && parsed.limit > 0
+            ? ` LIMIT ${String(parsed.limit)}`
+            : "";
 
-      const sql = `SELECT ${selectCols}, ts_rank_cd(to_tsvector('${cfg}', ${tsvector}), plainto_tsquery('${cfg}', $1)) as rank
+        const sql = `SELECT ${selectCols}, ts_rank_cd(to_tsvector('${cfg}', ${tsvector}), plainto_tsquery('${cfg}', $1)) as rank
                         FROM ${tableName}
                         WHERE to_tsvector('${cfg}', ${tsvector}) @@ plainto_tsquery('${cfg}', $1)
                         ORDER BY rank DESC${limitClause}`;
 
-      let result;
-      try {
-        result = await adapter.executeQuery(sql, [parsed.query]);
+        const result = await adapter.executeQuery(sql, [parsed.query]);
+        return { rows: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_text_search",
-          table: resolvedTable,
-        });
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_text_search validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_text_search",
+          }),
+        };
       }
-      return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
 }
@@ -166,54 +177,67 @@ function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Text Rank"),
     icons: getToolIcons("text", readOnly("Text Rank")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = TextRankSchema.parse(params);
-      const cfg = sanitizeFtsConfig(parsed.config ?? "english");
-      const norm = parsed.normalization ?? 0;
+      try {
+        const parsed = TextRankSchema.parse(params);
+        const cfg = sanitizeFtsConfig(parsed.config ?? "english");
+        const norm = parsed.normalization ?? 0;
 
-      // Handle both column (string) and columns (array) parameters
-      let cols: string[];
-      if (parsed.columns !== undefined && parsed.columns.length > 0) {
-        cols = parsed.columns;
-      } else if (parsed.column !== undefined) {
-        cols = [parsed.column];
-      } else {
-        throw new Error("Either column or columns parameter is required");
-      }
+        // Handle both column (string) and columns (array) parameters
+        let cols: string[];
+        if (parsed.columns !== undefined && parsed.columns.length > 0) {
+          cols = parsed.columns;
+        } else if (parsed.column !== undefined) {
+          cols = [parsed.column];
+        } else {
+          return {
+            success: false,
+            error: "Either column or columns parameter is required",
+          };
+        }
 
-      // The preprocessor guarantees table is set (converts tableName → table)
-      const resolvedTable = parsed.table ?? parsed.tableName;
-      if (!resolvedTable) {
-        throw new Error("Either 'table' or 'tableName' is required");
-      }
-      const tableName = sanitizeTableName(resolvedTable, parsed.schema);
-      const sanitizedCols = sanitizeIdentifiers(cols);
-      const selectCols =
-        parsed.select !== undefined && parsed.select.length > 0
-          ? sanitizeIdentifiers(parsed.select).join(", ")
-          : "*";
-      const tsvector = sanitizedCols
-        .map((c) => `coalesce(${c}, '')`)
-        .join(" || ' ' || ");
-      const limitClause =
-        parsed.limit !== undefined && parsed.limit > 0
-          ? ` LIMIT ${String(parsed.limit)}`
-          : "";
+        // The preprocessor guarantees table is set (converts tableName → table)
+        const resolvedTable = parsed.table ?? parsed.tableName;
+        if (!resolvedTable) {
+          return {
+            success: false,
+            error: "Either 'table' or 'tableName' is required",
+          };
+        }
+        const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const sanitizedCols = sanitizeIdentifiers(cols);
+        const selectCols =
+          parsed.select !== undefined && parsed.select.length > 0
+            ? sanitizeIdentifiers(parsed.select).join(", ")
+            : "*";
+        const tsvector = sanitizedCols
+          .map((c) => `coalesce(${c}, '')`)
+          .join(" || ' ' || ");
+        const limitClause =
+          parsed.limit !== undefined && parsed.limit > 0
+            ? ` LIMIT ${String(parsed.limit)}`
+            : "";
 
-      const sql = `SELECT ${selectCols}, ts_rank_cd(to_tsvector('${cfg}', ${tsvector}), plainto_tsquery('${cfg}', $1), ${String(norm)}) as rank
+        const sql = `SELECT ${selectCols}, ts_rank_cd(to_tsvector('${cfg}', ${tsvector}), plainto_tsquery('${cfg}', $1), ${String(norm)}) as rank
                         FROM ${tableName}
                         WHERE to_tsvector('${cfg}', ${tsvector}) @@ plainto_tsquery('${cfg}', $1)
                         ORDER BY rank DESC${limitClause}`;
 
-      let result;
-      try {
-        result = await adapter.executeQuery(sql, [parsed.query]);
+        const result = await adapter.executeQuery(sql, [parsed.query]);
+        return { rows: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_text_rank",
-          table: resolvedTable,
-        });
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_text_rank validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_text_rank",
+          }),
+        };
       }
-      return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
 }
@@ -229,42 +253,52 @@ function createTrigramSimilarityTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Trigram Similarity"),
     icons: getToolIcons("text", readOnly("Trigram Similarity")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = TrigramSimilaritySchema.parse(params);
-      const thresh = parsed.threshold ?? 0.3;
-      // Default limit to 100 to prevent large payloads
-      const limitVal =
-        parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
+      try {
+        const parsed = TrigramSimilaritySchema.parse(params);
+        const thresh = parsed.threshold ?? 0.3;
+        // Default limit to 100 to prevent large payloads
+        const limitVal =
+          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
 
-      // The preprocessor guarantees table is set (converts tableName → table)
-      const resolvedTable = parsed.table ?? parsed.tableName;
-      if (!resolvedTable) {
-        throw new Error("Either 'table' or 'tableName' is required");
-      }
-      const tableName = sanitizeTableName(resolvedTable, parsed.schema);
-      const columnName = sanitizeIdentifier(parsed.column);
-      const selectCols =
-        parsed.select !== undefined && parsed.select.length > 0
-          ? sanitizeIdentifiers(parsed.select).join(", ")
-          : "*";
-      const additionalWhere = parsed.where
-        ? ` AND (${sanitizeWhereClause(parsed.where)})`
-        : "";
+        // The preprocessor guarantees table is set (converts tableName → table)
+        const resolvedTable = parsed.table ?? parsed.tableName;
+        if (!resolvedTable) {
+          return {
+            success: false,
+            error: "Either 'table' or 'tableName' is required",
+          };
+        }
+        const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const columnName = sanitizeIdentifier(parsed.column);
+        const selectCols =
+          parsed.select !== undefined && parsed.select.length > 0
+            ? sanitizeIdentifiers(parsed.select).join(", ")
+            : "*";
+        const additionalWhere = parsed.where
+          ? ` AND (${sanitizeWhereClause(parsed.where)})`
+          : "";
 
-      const sql = `SELECT ${selectCols}, similarity(${columnName}, $1) as similarity
+        const sql = `SELECT ${selectCols}, similarity(${columnName}, $1) as similarity
                         FROM ${tableName}
                         WHERE similarity(${columnName}, $1) > ${String(thresh)}${additionalWhere}
                         ORDER BY similarity DESC LIMIT ${String(limitVal)}`;
 
-      let result;
-      try {
-        result = await adapter.executeQuery(sql, [parsed.value]);
+        const result = await adapter.executeQuery(sql, [parsed.value]);
+        return { rows: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_trigram_similarity",
-          table: resolvedTable,
-        });
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_trigram_similarity validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_trigram_similarity",
+          }),
+        };
       }
-      return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
 }
@@ -315,50 +349,60 @@ function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Fuzzy Match"),
     icons: getToolIcons("text", readOnly("Fuzzy Match")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = FuzzyMatchSchema.parse(params);
-
-      // Method is already validated by zod enum, default to levenshtein if not provided
-      const method: FuzzyMethod = parsed.method ?? "levenshtein";
-
-      const maxDist = parsed.maxDistance ?? 3;
-      // Default limit to 100 to prevent large payloads
-      const limitVal =
-        parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
-
-      // The preprocessor guarantees table is set (converts tableName → table)
-      const resolvedTable = parsed.table ?? parsed.tableName;
-      if (!resolvedTable) {
-        throw new Error("Either 'table' or 'tableName' is required");
-      }
-      const tableName = sanitizeTableName(resolvedTable, parsed.schema);
-      const columnName = sanitizeIdentifier(parsed.column);
-      const selectCols =
-        parsed.select !== undefined && parsed.select.length > 0
-          ? sanitizeIdentifiers(parsed.select).join(", ")
-          : "*";
-      const additionalWhere = parsed.where
-        ? ` AND (${sanitizeWhereClause(parsed.where)})`
-        : "";
-
-      let sql: string;
-      if (method === "soundex") {
-        sql = `SELECT ${selectCols}, soundex(${columnName}) as code FROM ${tableName} WHERE soundex(${columnName}) = soundex($1)${additionalWhere} LIMIT ${String(limitVal)}`;
-      } else if (method === "metaphone") {
-        sql = `SELECT ${selectCols}, metaphone(${columnName}, 10) as code FROM ${tableName} WHERE metaphone(${columnName}, 10) = metaphone($1, 10)${additionalWhere} LIMIT ${String(limitVal)}`;
-      } else {
-        sql = `SELECT ${selectCols}, levenshtein(${columnName}, $1) as distance FROM ${tableName} WHERE levenshtein(${columnName}, $1) <= ${String(maxDist)}${additionalWhere} ORDER BY distance LIMIT ${String(limitVal)}`;
-      }
-
-      let result;
       try {
-        result = await adapter.executeQuery(sql, [parsed.value]);
+        const parsed = FuzzyMatchSchema.parse(params);
+
+        // Method is already validated by zod enum, default to levenshtein if not provided
+        const method: FuzzyMethod = parsed.method ?? "levenshtein";
+
+        const maxDist = parsed.maxDistance ?? 3;
+        // Default limit to 100 to prevent large payloads
+        const limitVal =
+          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
+
+        // The preprocessor guarantees table is set (converts tableName → table)
+        const resolvedTable = parsed.table ?? parsed.tableName;
+        if (!resolvedTable) {
+          return {
+            success: false,
+            error: "Either 'table' or 'tableName' is required",
+          };
+        }
+        const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const columnName = sanitizeIdentifier(parsed.column);
+        const selectCols =
+          parsed.select !== undefined && parsed.select.length > 0
+            ? sanitizeIdentifiers(parsed.select).join(", ")
+            : "*";
+        const additionalWhere = parsed.where
+          ? ` AND (${sanitizeWhereClause(parsed.where)})`
+          : "";
+
+        let sql: string;
+        if (method === "soundex") {
+          sql = `SELECT ${selectCols}, soundex(${columnName}) as code FROM ${tableName} WHERE soundex(${columnName}) = soundex($1)${additionalWhere} LIMIT ${String(limitVal)}`;
+        } else if (method === "metaphone") {
+          sql = `SELECT ${selectCols}, metaphone(${columnName}, 10) as code FROM ${tableName} WHERE metaphone(${columnName}, 10) = metaphone($1, 10)${additionalWhere} LIMIT ${String(limitVal)}`;
+        } else {
+          sql = `SELECT ${selectCols}, levenshtein(${columnName}, $1) as distance FROM ${tableName} WHERE levenshtein(${columnName}, $1) <= ${String(maxDist)}${additionalWhere} ORDER BY distance LIMIT ${String(limitVal)}`;
+        }
+
+        const result = await adapter.executeQuery(sql, [parsed.value]);
+        return { rows: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_fuzzy_match",
-          table: resolvedTable,
-        });
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_fuzzy_match validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_fuzzy_match",
+          }),
+        };
       }
-      return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
 }
@@ -373,39 +417,49 @@ function createRegexpMatchTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Regexp Match"),
     icons: getToolIcons("text", readOnly("Regexp Match")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = RegexpMatchSchema.parse(params);
-
-      // The preprocessor guarantees table is set (converts tableName → table)
-      const resolvedTable = parsed.table ?? parsed.tableName;
-      if (!resolvedTable) {
-        throw new Error("Either 'table' or 'tableName' is required");
-      }
-      const tableName = sanitizeTableName(resolvedTable, parsed.schema);
-      const columnName = sanitizeIdentifier(parsed.column);
-      const selectCols =
-        parsed.select !== undefined && parsed.select.length > 0
-          ? sanitizeIdentifiers(parsed.select).join(", ")
-          : "*";
-      const op = parsed.flags?.includes("i") ? "~*" : "~";
-      const additionalWhere = parsed.where
-        ? ` AND (${sanitizeWhereClause(parsed.where)})`
-        : "";
-      // Default limit to 100 to prevent large payloads
-      const limitVal =
-        parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
-      const limitClause = ` LIMIT ${String(limitVal)}`;
-
-      const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
-      let result;
       try {
-        result = await adapter.executeQuery(sql, [parsed.pattern]);
+        const parsed = RegexpMatchSchema.parse(params);
+
+        // The preprocessor guarantees table is set (converts tableName → table)
+        const resolvedTable = parsed.table ?? parsed.tableName;
+        if (!resolvedTable) {
+          return {
+            success: false,
+            error: "Either 'table' or 'tableName' is required",
+          };
+        }
+        const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const columnName = sanitizeIdentifier(parsed.column);
+        const selectCols =
+          parsed.select !== undefined && parsed.select.length > 0
+            ? sanitizeIdentifiers(parsed.select).join(", ")
+            : "*";
+        const op = parsed.flags?.includes("i") ? "~*" : "~";
+        const additionalWhere = parsed.where
+          ? ` AND (${sanitizeWhereClause(parsed.where)})`
+          : "";
+        // Default limit to 100 to prevent large payloads
+        const limitVal =
+          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
+        const limitClause = ` LIMIT ${String(limitVal)}`;
+
+        const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
+        const result = await adapter.executeQuery(sql, [parsed.pattern]);
+        return { rows: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_regexp_match",
-          table: resolvedTable,
-        });
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_regexp_match validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_regexp_match",
+          }),
+        };
       }
-      return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
 }
@@ -453,39 +507,49 @@ function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("LIKE Search"),
     icons: getToolIcons("text", readOnly("LIKE Search")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = LikeSearchSchema.parse(params);
-
-      // The preprocessor guarantees table is set (converts tableName → table)
-      const resolvedTable = parsed.table ?? parsed.tableName;
-      if (!resolvedTable) {
-        throw new Error("Either 'table' or 'tableName' is required");
-      }
-      const tableName = sanitizeTableName(resolvedTable, parsed.schema);
-      const columnName = sanitizeIdentifier(parsed.column);
-      const selectCols =
-        parsed.select !== undefined && parsed.select.length > 0
-          ? sanitizeIdentifiers(parsed.select).join(", ")
-          : "*";
-      const op = parsed.caseSensitive === true ? "LIKE" : "ILIKE";
-      const additionalWhere = parsed.where
-        ? ` AND (${sanitizeWhereClause(parsed.where)})`
-        : "";
-      // Default limit to 100 to prevent large payloads
-      const limitVal =
-        parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
-      const limitClause = ` LIMIT ${String(limitVal)}`;
-
-      const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
-      let result;
       try {
-        result = await adapter.executeQuery(sql, [parsed.pattern]);
+        const parsed = LikeSearchSchema.parse(params);
+
+        // The preprocessor guarantees table is set (converts tableName → table)
+        const resolvedTable = parsed.table ?? parsed.tableName;
+        if (!resolvedTable) {
+          return {
+            success: false,
+            error: "Either 'table' or 'tableName' is required",
+          };
+        }
+        const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const columnName = sanitizeIdentifier(parsed.column);
+        const selectCols =
+          parsed.select !== undefined && parsed.select.length > 0
+            ? sanitizeIdentifiers(parsed.select).join(", ")
+            : "*";
+        const op = parsed.caseSensitive === true ? "LIKE" : "ILIKE";
+        const additionalWhere = parsed.where
+          ? ` AND (${sanitizeWhereClause(parsed.where)})`
+          : "";
+        // Default limit to 100 to prevent large payloads
+        const limitVal =
+          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
+        const limitClause = ` LIMIT ${String(limitVal)}`;
+
+        const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
+        const result = await adapter.executeQuery(sql, [parsed.pattern]);
+        return { rows: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_like_search",
-          table: resolvedTable,
-        });
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_like_search validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_like_search",
+          }),
+        };
       }
-      return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
 }
@@ -542,53 +606,63 @@ function createTextHeadlineTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Text Headline"),
     icons: getToolIcons("text", readOnly("Text Headline")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = HeadlineSchema.parse(params);
-      const cfg = sanitizeFtsConfig(parsed.config ?? "english");
+      try {
+        const parsed = HeadlineSchema.parse(params);
+        const cfg = sanitizeFtsConfig(parsed.config ?? "english");
 
-      // Build options string from individual params or use provided options
-      let opts: string;
-      if (parsed.options) {
-        opts = parsed.options;
-      } else {
-        const optParts: string[] = [];
-        optParts.push(`StartSel=${parsed.startSel ?? "<b>"}`);
-        optParts.push(`StopSel=${parsed.stopSel ?? "</b>"}`);
-        optParts.push(`MaxWords=${String(parsed.maxWords ?? 35)}`);
-        optParts.push(`MinWords=${String(parsed.minWords ?? 15)}`);
-        opts = optParts.join(", ");
-      }
+        // Build options string from individual params or use provided options
+        let opts: string;
+        if (parsed.options) {
+          opts = parsed.options;
+        } else {
+          const optParts: string[] = [];
+          optParts.push(`StartSel=${parsed.startSel ?? "<b>"}`);
+          optParts.push(`StopSel=${parsed.stopSel ?? "</b>"}`);
+          optParts.push(`MaxWords=${String(parsed.maxWords ?? 35)}`);
+          optParts.push(`MinWords=${String(parsed.minWords ?? 15)}`);
+          opts = optParts.join(", ");
+        }
 
-      // The preprocessor guarantees table is set (converts tableName → table)
-      const resolvedTable = parsed.table ?? parsed.tableName;
-      if (!resolvedTable) {
-        throw new Error("Either 'table' or 'tableName' is required");
-      }
-      const tableName = sanitizeTableName(resolvedTable, parsed.schema);
-      const columnName = sanitizeIdentifier(parsed.column);
-      // Use provided select columns, or default to * (user should specify PK for stable identification)
-      const selectCols =
-        parsed.select !== undefined && parsed.select.length > 0
-          ? sanitizeIdentifiers(parsed.select).join(", ") + ", "
-          : "";
-      const limitClause =
-        parsed.limit !== undefined && parsed.limit > 0
-          ? ` LIMIT ${String(parsed.limit)}`
-          : "";
+        // The preprocessor guarantees table is set (converts tableName → table)
+        const resolvedTable = parsed.table ?? parsed.tableName;
+        if (!resolvedTable) {
+          return {
+            success: false,
+            error: "Either 'table' or 'tableName' is required",
+          };
+        }
+        const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const columnName = sanitizeIdentifier(parsed.column);
+        // Use provided select columns, or default to * (user should specify PK for stable identification)
+        const selectCols =
+          parsed.select !== undefined && parsed.select.length > 0
+            ? sanitizeIdentifiers(parsed.select).join(", ") + ", "
+            : "";
+        const limitClause =
+          parsed.limit !== undefined && parsed.limit > 0
+            ? ` LIMIT ${String(parsed.limit)}`
+            : "";
 
-      const sql = `SELECT ${selectCols}ts_headline('${cfg}', ${columnName}, plainto_tsquery('${cfg}', $1), '${opts}') as headline
+        const sql = `SELECT ${selectCols}ts_headline('${cfg}', ${columnName}, plainto_tsquery('${cfg}', $1), '${opts}') as headline
                         FROM ${tableName}
                         WHERE to_tsvector('${cfg}', ${columnName}) @@ plainto_tsquery('${cfg}', $1)${limitClause}`;
 
-      let result;
-      try {
-        result = await adapter.executeQuery(sql, [parsed.query]);
+        const result = await adapter.executeQuery(sql, [parsed.query]);
+        return { rows: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_text_headline",
-          table: resolvedTable,
-        });
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_text_headline validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_text_headline",
+          }),
+        };
       }
-      return { rows: result.rows, count: result.rows?.length ?? 0 };
     },
   };
 }
@@ -627,27 +701,30 @@ function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Create FTS Index"),
     icons: getToolIcons("text", write("Create FTS Index")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = FtsIndexSchema.parse(params);
-      const cfg = sanitizeFtsConfig(parsed.config ?? "english");
-      // The preprocessor guarantees table is set (converts tableName → table)
-      const resolvedTable = parsed.table ?? parsed.tableName;
-      if (!resolvedTable) {
-        throw new Error("Either 'table' or 'tableName' is required");
-      }
-      const defaultIndexName = `idx_${resolvedTable}_${parsed.column}_fts`;
-      const resolvedIndexName = parsed.name ?? defaultIndexName;
-      const indexName = sanitizeIdentifier(resolvedIndexName);
-      // Default to IF NOT EXISTS for safer operation (skip existing indexes)
-      const useIfNotExists = parsed.ifNotExists !== false;
-      const ifNotExists = useIfNotExists ? "IF NOT EXISTS " : "";
-
-      // Build qualified table name with schema support
-      const tableName = sanitizeTableName(resolvedTable, parsed.schema);
-      const columnName = sanitizeIdentifier(parsed.column);
-
-      // Check if index exists before creation (to accurately report 'skipped')
-      let existedBefore = false;
       try {
+        const parsed = FtsIndexSchema.parse(params);
+        const cfg = sanitizeFtsConfig(parsed.config ?? "english");
+        // The preprocessor guarantees table is set (converts tableName → table)
+        const resolvedTable = parsed.table ?? parsed.tableName;
+        if (!resolvedTable) {
+          return {
+            success: false,
+            error: "Either 'table' or 'tableName' is required",
+          };
+        }
+        const defaultIndexName = `idx_${resolvedTable}_${parsed.column}_fts`;
+        const resolvedIndexName = parsed.name ?? defaultIndexName;
+        const indexName = sanitizeIdentifier(resolvedIndexName);
+        // Default to IF NOT EXISTS for safer operation (skip existing indexes)
+        const useIfNotExists = parsed.ifNotExists !== false;
+        const ifNotExists = useIfNotExists ? "IF NOT EXISTS " : "";
+
+        // Build qualified table name with schema support
+        const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const columnName = sanitizeIdentifier(parsed.column);
+
+        // Check if index exists before creation (to accurately report 'skipped')
+        let existedBefore = false;
         if (useIfNotExists) {
           const checkResult = await adapter.executeQuery(
             `SELECT 1 FROM pg_indexes WHERE indexname = $1 LIMIT 1`,
@@ -658,20 +735,27 @@ function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
 
         const sql = `CREATE INDEX ${ifNotExists}${indexName} ON ${tableName} USING gin(to_tsvector('${cfg}', ${columnName}))`;
         await adapter.executeQuery(sql);
-      } catch (error: unknown) {
-        throw parsePostgresError(error, {
-          tool: "pg_create_fts_index",
-          table: resolvedTable,
-          index: resolvedIndexName,
-        });
-      }
 
-      return {
-        success: true,
-        index: resolvedIndexName,
-        config: cfg,
-        skipped: existedBefore,
-      };
+        return {
+          success: true,
+          index: resolvedIndexName,
+          config: cfg,
+          skipped: existedBefore,
+        };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_create_fts_index validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_create_fts_index",
+          }),
+        };
+      }
     },
   };
 }

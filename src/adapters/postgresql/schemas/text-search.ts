@@ -165,18 +165,25 @@ export const RegexpMatchSchema = z.preprocess(
 
 // Common output schema for text tools that return rows with count
 export const TextRowsOutputSchema = z.object({
-  rows: z.array(z.record(z.string(), z.unknown())).describe("Matching rows"),
-  count: z.number().describe("Number of rows returned"),
+  rows: z
+    .array(z.record(z.string(), z.unknown()))
+    .optional()
+    .describe("Matching rows"),
+  count: z.number().optional().describe("Number of rows returned"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_create_fts_index
 export const FtsIndexOutputSchema = z.object({
   success: z.boolean().describe("Whether index creation succeeded"),
-  index: z.string().describe("Index name"),
-  config: z.string().describe("Text search configuration used"),
+  index: z.string().optional().describe("Index name"),
+  config: z.string().optional().describe("Text search configuration used"),
   skipped: z
     .boolean()
+    .optional()
     .describe("Whether index already existed (IF NOT EXISTS)"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_text_normalize

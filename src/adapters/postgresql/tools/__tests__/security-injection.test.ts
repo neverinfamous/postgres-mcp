@@ -136,98 +136,98 @@ describe("WHERE Clause SQL Injection", () => {
 
     it("should reject WHERE clause with semicolon (SQL injection)", async () => {
       const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_products",
-            column: "name",
-            value: "Product",
-            where: "1=1; DROP TABLE test_products;--",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Unsafe WHERE clause");
+      const result = (await tool.handler(
+        {
+          table: "test_products",
+          column: "name",
+          value: "Product",
+          where: "1=1; DROP TABLE test_products;--",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Unsafe WHERE clause");
     });
 
     it("should reject WHERE clause with UNION (SQL injection)", async () => {
       const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_products",
-            column: "name",
-            value: "Product",
-            where: "1=1 UNION SELECT password FROM pg_shadow",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Unsafe WHERE clause");
+      const result = (await tool.handler(
+        {
+          table: "test_products",
+          column: "name",
+          value: "Product",
+          where: "1=1 UNION SELECT password FROM pg_shadow",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Unsafe WHERE clause");
     });
 
     it("should reject WHERE clause with SQL comment (SQL injection)", async () => {
       const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_products",
-            column: "name",
-            value: "Product",
-            where: "1=1--",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Unsafe WHERE clause");
+      const result = (await tool.handler(
+        {
+          table: "test_products",
+          column: "name",
+          value: "Product",
+          where: "1=1--",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Unsafe WHERE clause");
     });
   });
 
   describe("pg_like_search WHERE injection", () => {
     it("should reject WHERE clause with injection", async () => {
       const tool = textTools.find((t) => t.name === "pg_like_search")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_products",
-            column: "name",
-            pattern: "%test%",
-            where: "1=1; DELETE FROM test_products;--",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Unsafe WHERE clause");
+      const result = (await tool.handler(
+        {
+          table: "test_products",
+          column: "name",
+          pattern: "%test%",
+          where: "1=1; DELETE FROM test_products;--",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Unsafe WHERE clause");
     });
   });
 
   describe("pg_regexp_match WHERE injection", () => {
     it("should reject WHERE clause with injection", async () => {
       const tool = textTools.find((t) => t.name === "pg_regexp_match")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_products",
-            column: "name",
-            pattern: ".*",
-            where: "1=1 OR pg_sleep(10)",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Unsafe WHERE clause");
+      const result = (await tool.handler(
+        {
+          table: "test_products",
+          column: "name",
+          pattern: ".*",
+          where: "1=1 OR pg_sleep(10)",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Unsafe WHERE clause");
     });
   });
 
   describe("pg_fuzzy_match WHERE injection", () => {
     it("should reject WHERE clause with injection", async () => {
       const tool = textTools.find((t) => t.name === "pg_fuzzy_match")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_products",
-            column: "name",
-            value: "Product",
-            where: "1=1; UPDATE pg_shadow SET passwd='hacked';--",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Unsafe WHERE clause");
+      const result = (await tool.handler(
+        {
+          table: "test_products",
+          column: "name",
+          value: "Product",
+          where: "1=1; UPDATE pg_shadow SET passwd='hacked';--",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Unsafe WHERE clause");
     });
   });
 });
@@ -269,50 +269,50 @@ describe("FTS Config SQL Injection", () => {
 
     it("should reject config with quote (SQL injection)", async () => {
       const tool = textTools.find((t) => t.name === "pg_text_search")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_articles",
-            columns: ["title"],
-            query: "test",
-            config: "english'); DROP TABLE test_articles;--",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Invalid FTS configuration");
+      const result = (await tool.handler(
+        {
+          table: "test_articles",
+          columns: ["title"],
+          query: "test",
+          config: "english'); DROP TABLE test_articles;--",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Invalid FTS configuration");
     });
   });
 
   describe("pg_text_rank config injection", () => {
     it("should reject config with injection attempt", async () => {
       const tool = textTools.find((t) => t.name === "pg_text_rank")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_articles",
-            column: "body",
-            query: "test",
-            config: "german'); DELETE FROM secrets;--",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Invalid FTS configuration");
+      const result = (await tool.handler(
+        {
+          table: "test_articles",
+          column: "body",
+          query: "test",
+          config: "german'); DELETE FROM secrets;--",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Invalid FTS configuration");
     });
   });
 
   describe("pg_create_fts_index config injection", () => {
     it("should reject config with injection attempt", async () => {
       const tool = textTools.find((t) => t.name === "pg_create_fts_index")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_articles",
-            column: "title",
-            config: "english'); CREATE ROLE hacker SUPERUSER;--",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Invalid FTS configuration");
+      const result = (await tool.handler(
+        {
+          table: "test_articles",
+          column: "title",
+          config: "english'); CREATE ROLE hacker SUPERUSER;--",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Invalid FTS configuration");
     });
   });
 });
@@ -375,32 +375,32 @@ describe("Table/Schema Name Injection via Manual Quoting", () => {
   // Table names with injection are now rejected
   it("should reject table names with injection", async () => {
     const tool = textTools.find((t) => t.name === "pg_text_search")!;
-    await expect(
-      tool.handler(
-        {
-          table: 'articles"; DROP TABLE users;--',
-          columns: ["title"],
-          query: "test",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow();
+    const result = (await tool.handler(
+      {
+        table: 'articles"; DROP TABLE users;--',
+        columns: ["title"],
+        query: "test",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 
   // Schema names with injection are now rejected
   it("should reject schema names with injection", async () => {
     const tool = textTools.find((t) => t.name === "pg_text_search")!;
-    await expect(
-      tool.handler(
-        {
-          table: "articles",
-          schema: 'public"; DROP TABLE users;--',
-          columns: ["title"],
-          query: "test",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow();
+    const result = (await tool.handler(
+      {
+        table: "articles",
+        schema: 'public"; DROP TABLE users;--',
+        columns: ["title"],
+        query: "test",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 });
 
