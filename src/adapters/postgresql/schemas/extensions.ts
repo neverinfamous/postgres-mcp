@@ -716,13 +716,16 @@ export const KcacheCreateExtensionOutputSchema = z
  */
 export const KcacheQueryStatsOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether query succeeded"),
     queries: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Query statistics with CPU/IO metrics"),
-    count: z.number().describe("Number of queries returned"),
-    orderBy: z.string().describe("Order by metric"),
-    truncated: z.boolean().describe("Results were truncated"),
-    totalCount: z.number().describe("Total available count"),
+    count: z.number().optional().describe("Number of queries returned"),
+    orderBy: z.string().optional().describe("Order by metric"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
+    totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Query statistics with OS-level metrics");
 
@@ -731,13 +734,16 @@ export const KcacheQueryStatsOutputSchema = z
  */
 export const KcacheTopCpuOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether query succeeded"),
     topCpuQueries: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Top CPU-consuming queries"),
-    count: z.number().describe("Number of queries returned"),
-    description: z.string().describe("Result description"),
-    truncated: z.boolean().describe("Results were truncated"),
-    totalCount: z.number().describe("Total available count"),
+    count: z.number().optional().describe("Number of queries returned"),
+    description: z.string().optional().describe("Result description"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
+    totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Top CPU-consuming queries result");
 
@@ -746,14 +752,20 @@ export const KcacheTopCpuOutputSchema = z
  */
 export const KcacheTopIoOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether query succeeded"),
     topIoQueries: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Top I/O-consuming queries"),
-    count: z.number().describe("Number of queries returned"),
-    ioType: z.enum(["reads", "writes", "both"]).describe("I/O type ranked by"),
-    description: z.string().describe("Result description"),
-    truncated: z.boolean().describe("Results were truncated"),
-    totalCount: z.number().describe("Total available count"),
+    count: z.number().optional().describe("Number of queries returned"),
+    ioType: z
+      .enum(["reads", "writes", "both"])
+      .optional()
+      .describe("I/O type ranked by"),
+    description: z.string().optional().describe("Result description"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
+    totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Top I/O-consuming queries result");
 
@@ -762,10 +774,13 @@ export const KcacheTopIoOutputSchema = z
  */
 export const KcacheDatabaseStatsOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether query succeeded"),
     databaseStats: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Database-level statistics"),
-    count: z.number().describe("Number of databases"),
+    count: z.number().optional().describe("Number of databases"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Database-level aggregated statistics");
 
@@ -774,10 +789,12 @@ export const KcacheDatabaseStatsOutputSchema = z
  */
 export const KcacheResourceAnalysisOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether analysis succeeded"),
     queries: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Analyzed queries with resource classification"),
-    count: z.number().describe("Number of queries analyzed"),
+    count: z.number().optional().describe("Number of queries analyzed"),
     summary: z
       .object({
         cpuBound: z.number().describe("CPU-bound query count"),
@@ -785,10 +802,12 @@ export const KcacheResourceAnalysisOutputSchema = z
         balanced: z.number().describe("Balanced query count"),
         threshold: z.number().describe("Classification threshold"),
       })
+      .optional()
       .describe("Resource classification summary"),
-    recommendations: z.array(z.string()).describe("Recommendations"),
-    truncated: z.boolean().describe("Results were truncated"),
-    totalCount: z.number().describe("Total available count"),
+    recommendations: z.array(z.string()).optional().describe("Recommendations"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
+    totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Resource classification analysis result");
 
@@ -798,8 +817,9 @@ export const KcacheResourceAnalysisOutputSchema = z
 export const KcacheResetOutputSchema = z
   .object({
     success: z.boolean().describe("Whether reset succeeded"),
-    message: z.string().describe("Status message"),
-    note: z.string().describe("Additional note"),
+    message: z.string().optional().describe("Status message"),
+    note: z.string().optional().describe("Additional note"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("pg_stat_kcache reset result");
 

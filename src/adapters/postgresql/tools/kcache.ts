@@ -17,6 +17,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import {
   KcacheQueryStatsSchema,
   KcacheDatabaseStatsSchema,
@@ -154,42 +155,43 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
     annotations: readOnly("Kcache Query Stats"),
     icons: getToolIcons("kcache", readOnly("Kcache Query Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { limit, orderBy, minCalls, queryPreviewLength } =
-        KcacheQueryStatsSchema.parse(params);
-      const cols = await getKcacheColumnNames(adapter);
+      try {
+        const { limit, orderBy, minCalls, queryPreviewLength } =
+          KcacheQueryStatsSchema.parse(params);
+        const cols = await getKcacheColumnNames(adapter);
 
-      const DEFAULT_LIMIT = 20;
-      // limit: 0 means "no limit" (return all rows), undefined means use default
-      const limitVal = limit === 0 ? null : (limit ?? DEFAULT_LIMIT);
-      // Bound queryPreviewLength: 0 = full query, default 100, max 500
-      const previewLen =
-        queryPreviewLength === 0
-          ? 10000
-          : Math.min(queryPreviewLength ?? 100, 500);
+        const DEFAULT_LIMIT = 20;
+        // limit: 0 means "no limit" (return all rows), undefined means use default
+        const limitVal = limit === 0 ? null : (limit ?? DEFAULT_LIMIT);
+        // Bound queryPreviewLength: 0 = full query, default 100, max 500
+        const previewLen =
+          queryPreviewLength === 0
+            ? 10000
+            : Math.min(queryPreviewLength ?? 100, 500);
 
-      const orderColumn =
-        orderBy === "cpu_time"
-          ? `(k.${cols.userTime} + k.${cols.systemTime})`
-          : orderBy === "reads"
-            ? `k.${cols.reads}`
-            : orderBy === "writes"
-              ? `k.${cols.writes}`
-              : "s.total_exec_time";
+        const orderColumn =
+          orderBy === "cpu_time"
+            ? `(k.${cols.userTime} + k.${cols.systemTime})`
+            : orderBy === "reads"
+              ? `k.${cols.reads}`
+              : orderBy === "writes"
+                ? `k.${cols.writes}`
+                : "s.total_exec_time";
 
-      const conditions: string[] = [];
-      const queryParams: unknown[] = [];
-      const paramIndex = 1;
+        const conditions: string[] = [];
+        const queryParams: unknown[] = [];
+        const paramIndex = 1;
 
-      if (minCalls !== undefined) {
-        conditions.push(`s.calls >= $${String(paramIndex)}`);
-        queryParams.push(minCalls);
-      }
+        if (minCalls !== undefined) {
+          conditions.push(`s.calls >= $${String(paramIndex)}`);
+          queryParams.push(minCalls);
+        }
 
-      const whereClause =
-        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+        const whereClause =
+          conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-      // Get total count first for truncation indicator
-      const countSql = `
+        // Get total count first for truncation indicator
+        const countSql = `
                 SELECT COUNT(*) as total
                 FROM pg_stat_statements s
                 JOIN pg_stat_kcache() k ON s.queryid = k.queryid 
@@ -197,11 +199,11 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
                     AND s.dbid = k.dbid
                 ${whereClause}
             `;
-      const countResult = await adapter.executeQuery(countSql, queryParams);
-      const totalRaw = countResult.rows?.[0]?.["total"];
-      const totalCount = Number(totalRaw) || 0;
+        const countResult = await adapter.executeQuery(countSql, queryParams);
+        const totalRaw = countResult.rows?.[0]?.["total"];
+        const totalCount = Number(totalRaw) || 0;
 
-      const sql = `
+        const sql = `
                 SELECT 
                     s.queryid,
                     LEFT(s.query, ${String(previewLen)}) as query_preview,
@@ -226,20 +228,26 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
                 ${limitVal !== null ? `LIMIT ${String(limitVal)}` : ""}
             `;
 
-      const result = await adapter.executeQuery(sql, queryParams);
-      const rowCount = result.rows?.length ?? 0;
-      const effectiveTotalCount = Math.max(totalCount, rowCount);
-      const truncated = rowCount < effectiveTotalCount;
+        const result = await adapter.executeQuery(sql, queryParams);
+        const rowCount = result.rows?.length ?? 0;
+        const effectiveTotalCount = Math.max(totalCount, rowCount);
+        const truncated = rowCount < effectiveTotalCount;
 
-      const response: Record<string, unknown> = {
-        queries: result.rows ?? [],
-        count: rowCount,
-        orderBy: orderBy ?? "total_time",
-        truncated,
-        totalCount: effectiveTotalCount,
-      };
+        const response: Record<string, unknown> = {
+          queries: result.rows ?? [],
+          count: rowCount,
+          orderBy: orderBy ?? "total_time",
+          truncated,
+          totalCount: effectiveTotalCount,
+        };
 
-      return response;
+        return response;
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_kcache_query_stats" }),
+        };
+      }
     },
   };
 }
@@ -272,25 +280,26 @@ in user CPU (application code) vs system CPU (kernel operations).`,
     annotations: readOnly("Kcache Top CPU"),
     icons: getToolIcons("kcache", readOnly("Kcache Top CPU")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = z
-        .object({
-          limit: z.number().optional(),
-          queryPreviewLength: z.number().optional(),
-        })
-        .parse(params ?? {});
-      const DEFAULT_LIMIT = 10;
-      // limit: 0 means "no limit" (return all rows), undefined means use default
-      const limitVal =
-        parsed.limit === 0 ? null : (parsed.limit ?? DEFAULT_LIMIT);
-      // Bound queryPreviewLength: 0 = full query, default 100, max 500
-      const previewLen =
-        parsed.queryPreviewLength === 0
-          ? 10000
-          : Math.min(parsed.queryPreviewLength ?? 100, 500);
-      const cols = await getKcacheColumnNames(adapter);
+      try {
+        const parsed = z
+          .object({
+            limit: z.number().optional(),
+            queryPreviewLength: z.number().optional(),
+          })
+          .parse(params ?? {});
+        const DEFAULT_LIMIT = 10;
+        // limit: 0 means "no limit" (return all rows), undefined means use default
+        const limitVal =
+          parsed.limit === 0 ? null : (parsed.limit ?? DEFAULT_LIMIT);
+        // Bound queryPreviewLength: 0 = full query, default 100, max 500
+        const previewLen =
+          parsed.queryPreviewLength === 0
+            ? 10000
+            : Math.min(parsed.queryPreviewLength ?? 100, 500);
+        const cols = await getKcacheColumnNames(adapter);
 
-      // Get total count first for truncation indicator
-      const countSql = `
+        // Get total count first for truncation indicator
+        const countSql = `
                 SELECT COUNT(*) as total
                 FROM pg_stat_statements s
                 JOIN pg_stat_kcache() k ON s.queryid = k.queryid 
@@ -298,11 +307,11 @@ in user CPU (application code) vs system CPU (kernel operations).`,
                     AND s.dbid = k.dbid
                 WHERE (k.${cols.userTime} + k.${cols.systemTime}) > 0
             `;
-      const countResult = await adapter.executeQuery(countSql);
-      const totalRaw = countResult.rows?.[0]?.["total"];
-      const totalCount = Number(totalRaw) || 0;
+        const countResult = await adapter.executeQuery(countSql);
+        const totalRaw = countResult.rows?.[0]?.["total"];
+        const totalCount = Number(totalRaw) || 0;
 
-      const sql = `
+        const sql = `
                 SELECT 
                     s.queryid,
                     LEFT(s.query, ${String(previewLen)}) as query_preview,
@@ -330,20 +339,26 @@ in user CPU (application code) vs system CPU (kernel operations).`,
                 ${limitVal !== null ? `LIMIT ${String(limitVal)}` : ""}
             `;
 
-      const result = await adapter.executeQuery(sql);
-      const rowCount = result.rows?.length ?? 0;
-      const effectiveTotalCount = Math.max(totalCount, rowCount);
-      const truncated = rowCount < effectiveTotalCount;
+        const result = await adapter.executeQuery(sql);
+        const rowCount = result.rows?.length ?? 0;
+        const effectiveTotalCount = Math.max(totalCount, rowCount);
+        const truncated = rowCount < effectiveTotalCount;
 
-      const response: Record<string, unknown> = {
-        topCpuQueries: result.rows ?? [],
-        count: rowCount,
-        description: "Queries ranked by total CPU time (user + system)",
-        truncated,
-        totalCount: effectiveTotalCount,
-      };
+        const response: Record<string, unknown> = {
+          topCpuQueries: result.rows ?? [],
+          count: rowCount,
+          description: "Queries ranked by total CPU time (user + system)",
+          truncated,
+          totalCount: effectiveTotalCount,
+        };
 
-      return response;
+        return response;
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_kcache_top_cpu" }),
+        };
+      }
     },
   };
 }
@@ -391,50 +406,51 @@ which represent actual disk access (not just shared buffer hits).`,
     annotations: readOnly("Kcache Top IO"),
     icons: getToolIcons("kcache", readOnly("Kcache Top IO")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Apply the same preprocessing as inputSchema
-      const preprocessed = (() => {
-        const obj = (params ?? {}) as Record<string, unknown>;
-        if (obj["ioType"] !== undefined && obj["type"] === undefined) {
-          return { ...obj, type: obj["ioType"] };
-        }
-        return obj;
-      })();
-      const parsed = z
-        .object({
-          type: z.enum(["reads", "writes", "both"]).optional(),
-          limit: z.number().optional(),
-          queryPreviewLength: z.number().optional(),
-        })
-        .parse(preprocessed);
-      const ioType = parsed.type ?? "both";
-      const DEFAULT_LIMIT = 10;
-      // limit: 0 means "no limit" (return all rows), undefined means use default
-      const limitVal =
-        parsed.limit === 0 ? null : (parsed.limit ?? DEFAULT_LIMIT);
-      // Bound queryPreviewLength: 0 = full query, default 100, max 500
-      const previewLen =
-        parsed.queryPreviewLength === 0
-          ? 10000
-          : Math.min(parsed.queryPreviewLength ?? 100, 500);
-      const cols = await getKcacheColumnNames(adapter);
+      try {
+        // Apply the same preprocessing as inputSchema
+        const preprocessed = (() => {
+          const obj = (params ?? {}) as Record<string, unknown>;
+          if (obj["ioType"] !== undefined && obj["type"] === undefined) {
+            return { ...obj, type: obj["ioType"] };
+          }
+          return obj;
+        })();
+        const parsed = z
+          .object({
+            type: z.enum(["reads", "writes", "both"]).optional(),
+            limit: z.number().optional(),
+            queryPreviewLength: z.number().optional(),
+          })
+          .parse(preprocessed);
+        const ioType = parsed.type ?? "both";
+        const DEFAULT_LIMIT = 10;
+        // limit: 0 means "no limit" (return all rows), undefined means use default
+        const limitVal =
+          parsed.limit === 0 ? null : (parsed.limit ?? DEFAULT_LIMIT);
+        // Bound queryPreviewLength: 0 = full query, default 100, max 500
+        const previewLen =
+          parsed.queryPreviewLength === 0
+            ? 10000
+            : Math.min(parsed.queryPreviewLength ?? 100, 500);
+        const cols = await getKcacheColumnNames(adapter);
 
-      const orderColumn =
-        ioType === "reads"
-          ? `k.${cols.reads}`
-          : ioType === "writes"
-            ? `k.${cols.writes}`
-            : `(k.${cols.reads} + k.${cols.writes})`;
+        const orderColumn =
+          ioType === "reads"
+            ? `k.${cols.reads}`
+            : ioType === "writes"
+              ? `k.${cols.writes}`
+              : `(k.${cols.reads} + k.${cols.writes})`;
 
-      // Filter by the type-specific IO column so 'reads' excludes write-only queries
-      const ioFilter =
-        ioType === "reads"
-          ? `k.${cols.reads} > 0`
-          : ioType === "writes"
-            ? `k.${cols.writes} > 0`
-            : `(k.${cols.reads} + k.${cols.writes}) > 0`;
+        // Filter by the type-specific IO column so 'reads' excludes write-only queries
+        const ioFilter =
+          ioType === "reads"
+            ? `k.${cols.reads} > 0`
+            : ioType === "writes"
+              ? `k.${cols.writes} > 0`
+              : `(k.${cols.reads} + k.${cols.writes}) > 0`;
 
-      // Get total count first for truncation indicator
-      const countSql = `
+        // Get total count first for truncation indicator
+        const countSql = `
                 SELECT COUNT(*) as total
                 FROM pg_stat_statements s
                 JOIN pg_stat_kcache() k ON s.queryid = k.queryid 
@@ -442,11 +458,11 @@ which represent actual disk access (not just shared buffer hits).`,
                     AND s.dbid = k.dbid
                 WHERE ${ioFilter}
             `;
-      const countResult = await adapter.executeQuery(countSql);
-      const totalRaw = countResult.rows?.[0]?.["total"];
-      const totalCount = Number(totalRaw) || 0;
+        const countResult = await adapter.executeQuery(countSql);
+        const totalRaw = countResult.rows?.[0]?.["total"];
+        const totalCount = Number(totalRaw) || 0;
 
-      const sql = `
+        const sql = `
                 SELECT 
                     s.queryid,
                     LEFT(s.query, ${String(previewLen)}) as query_preview,
@@ -466,21 +482,27 @@ which represent actual disk access (not just shared buffer hits).`,
                 ${limitVal !== null ? `LIMIT ${String(limitVal)}` : ""}
             `;
 
-      const result = await adapter.executeQuery(sql);
-      const rowCount = result.rows?.length ?? 0;
-      const effectiveTotalCount = Math.max(totalCount, rowCount);
-      const truncated = rowCount < effectiveTotalCount;
+        const result = await adapter.executeQuery(sql);
+        const rowCount = result.rows?.length ?? 0;
+        const effectiveTotalCount = Math.max(totalCount, rowCount);
+        const truncated = rowCount < effectiveTotalCount;
 
-      const response: Record<string, unknown> = {
-        topIoQueries: result.rows ?? [],
-        count: rowCount,
-        ioType,
-        description: `Queries ranked by ${ioType === "both" ? "total I/O" : ioType}`,
-        truncated,
-        totalCount: effectiveTotalCount,
-      };
+        const response: Record<string, unknown> = {
+          topIoQueries: result.rows ?? [],
+          count: rowCount,
+          ioType,
+          description: `Queries ranked by ${ioType === "both" ? "total I/O" : ioType}`,
+          truncated,
+          totalCount: effectiveTotalCount,
+        };
 
-      return response;
+        return response;
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_kcache_top_io" }),
+        };
+      }
     },
   };
 }
@@ -501,14 +523,15 @@ Shows total CPU time, I/O, and page faults across all queries.`,
     annotations: readOnly("Kcache Database Stats"),
     icons: getToolIcons("kcache", readOnly("Kcache Database Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { database } = KcacheDatabaseStatsSchema.parse(params);
-      const cols = await getKcacheColumnNames(adapter);
+      try {
+        const { database } = KcacheDatabaseStatsSchema.parse(params);
+        const cols = await getKcacheColumnNames(adapter);
 
-      let sql: string;
-      const queryParams: unknown[] = [];
+        let sql: string;
+        const queryParams: unknown[] = [];
 
-      if (database !== undefined) {
-        sql = `
+        if (database !== undefined) {
+          sql = `
                     SELECT 
                         d.datname as database,
                         SUM(k.${cols.userTime}) as total_user_time,
@@ -526,9 +549,9 @@ Shows total CPU time, I/O, and page faults across all queries.`,
                     WHERE d.datname = $1
                     GROUP BY d.datname
                 `;
-        queryParams.push(database);
-      } else {
-        sql = `
+          queryParams.push(database);
+        } else {
+          sql = `
                     SELECT 
                         datname as database,
                         SUM(${cols.userTime}) as total_user_time,
@@ -545,14 +568,22 @@ Shows total CPU time, I/O, and page faults across all queries.`,
                     GROUP BY datname
                     ORDER BY SUM(${cols.userTime} + ${cols.systemTime}) DESC
                 `;
+        }
+
+        const result = await adapter.executeQuery(sql, queryParams);
+
+        return {
+          databaseStats: result.rows ?? [],
+          count: result.rows?.length ?? 0,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_kcache_database_stats",
+          }),
+        };
       }
-
-      const result = await adapter.executeQuery(sql, queryParams);
-
-      return {
-        databaseStats: result.rows ?? [],
-        count: result.rows?.length ?? 0,
-      };
     },
   };
 }
@@ -573,42 +604,43 @@ Helps identify the root cause of performance issues - is the query computation-h
     annotations: readOnly("Kcache Resource Analysis"),
     icons: getToolIcons("kcache", readOnly("Kcache Resource Analysis")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { queryId, threshold, limit, minCalls, queryPreviewLength } =
-        KcacheResourceAnalysisSchema.parse(params);
-      const thresholdVal = threshold ?? 0.5;
-      const DEFAULT_LIMIT = 20;
-      // limit: 0 means "no limit" (return all rows), undefined means use default
-      const limitVal = limit === 0 ? null : (limit ?? DEFAULT_LIMIT);
-      // Bound queryPreviewLength: 0 = full query, default 100, max 500
-      const previewLen =
-        queryPreviewLength === 0
-          ? 10000
-          : Math.min(queryPreviewLength ?? 100, 500);
-      const cols = await getKcacheColumnNames(adapter);
+      try {
+        const { queryId, threshold, limit, minCalls, queryPreviewLength } =
+          KcacheResourceAnalysisSchema.parse(params);
+        const thresholdVal = threshold ?? 0.5;
+        const DEFAULT_LIMIT = 20;
+        // limit: 0 means "no limit" (return all rows), undefined means use default
+        const limitVal = limit === 0 ? null : (limit ?? DEFAULT_LIMIT);
+        // Bound queryPreviewLength: 0 = full query, default 100, max 500
+        const previewLen =
+          queryPreviewLength === 0
+            ? 10000
+            : Math.min(queryPreviewLength ?? 100, 500);
+        const cols = await getKcacheColumnNames(adapter);
 
-      const conditions: string[] = [];
-      const queryParams: unknown[] = [];
-      let paramIndex = 1;
+        const conditions: string[] = [];
+        const queryParams: unknown[] = [];
+        let paramIndex = 1;
 
-      if (queryId !== undefined) {
-        conditions.push(`s.queryid::text = $${String(paramIndex++)}`);
-        queryParams.push(queryId);
-      }
+        if (queryId !== undefined) {
+          conditions.push(`s.queryid::text = $${String(paramIndex++)}`);
+          queryParams.push(queryId);
+        }
 
-      if (minCalls !== undefined) {
-        conditions.push(`s.calls >= $${String(paramIndex)}`);
-        queryParams.push(minCalls);
-      }
+        if (minCalls !== undefined) {
+          conditions.push(`s.calls >= $${String(paramIndex)}`);
+          queryParams.push(minCalls);
+        }
 
-      conditions.push(
-        `(k.${cols.userTime} + k.${cols.systemTime} + k.${cols.reads} + k.${cols.writes}) > 0`,
-      );
+        conditions.push(
+          `(k.${cols.userTime} + k.${cols.systemTime} + k.${cols.reads} + k.${cols.writes}) > 0`,
+        );
 
-      const whereClause =
-        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+        const whereClause =
+          conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-      // Get total count first for truncation indicator
-      const countSql = `
+        // Get total count first for truncation indicator
+        const countSql = `
                 SELECT COUNT(*) as total
                 FROM pg_stat_statements s
                 JOIN pg_stat_kcache() k ON s.queryid = k.queryid 
@@ -616,11 +648,11 @@ Helps identify the root cause of performance issues - is the query computation-h
                     AND s.dbid = k.dbid
                 ${whereClause}
             `;
-      const countResult = await adapter.executeQuery(countSql, queryParams);
-      const totalRaw = countResult.rows?.[0]?.["total"];
-      const totalCount = Number(totalRaw) || 0;
+        const countResult = await adapter.executeQuery(countSql, queryParams);
+        const totalRaw = countResult.rows?.[0]?.["total"];
+        const totalCount = Number(totalRaw) || 0;
 
-      const sql = `
+        const sql = `
                 WITH query_metrics AS (
                     SELECT 
                         s.queryid,
@@ -667,45 +699,53 @@ Helps identify the root cause of performance issues - is the query computation-h
                 ${limitVal !== null ? `LIMIT ${String(limitVal)}` : ""}
             `;
 
-      const result = await adapter.executeQuery(sql, queryParams);
-      const rows = result.rows ?? [];
-      const effectiveTotalCount = Math.max(totalCount, rows.length);
-      const truncated = rows.length < effectiveTotalCount;
+        const result = await adapter.executeQuery(sql, queryParams);
+        const rows = result.rows ?? [];
+        const effectiveTotalCount = Math.max(totalCount, rows.length);
+        const truncated = rows.length < effectiveTotalCount;
 
-      const cpuBound = rows.filter(
-        (r: Record<string, unknown>) =>
-          r["resource_classification"] === "CPU-bound",
-      ).length;
-      const ioBound = rows.filter(
-        (r: Record<string, unknown>) =>
-          r["resource_classification"] === "I/O-bound",
-      ).length;
-      const balanced = rows.filter(
-        (r: Record<string, unknown>) =>
-          r["resource_classification"] === "Balanced",
-      ).length;
+        const cpuBound = rows.filter(
+          (r: Record<string, unknown>) =>
+            r["resource_classification"] === "CPU-bound",
+        ).length;
+        const ioBound = rows.filter(
+          (r: Record<string, unknown>) =>
+            r["resource_classification"] === "I/O-bound",
+        ).length;
+        const balanced = rows.filter(
+          (r: Record<string, unknown>) =>
+            r["resource_classification"] === "Balanced",
+        ).length;
 
-      const response: Record<string, unknown> = {
-        queries: rows,
-        count: rows.length,
-        summary: {
-          cpuBound,
-          ioBound,
-          balanced,
-          threshold: thresholdVal,
-        },
-        recommendations: [
-          cpuBound > ioBound
-            ? "Most resource-intensive queries are CPU-bound. Consider query optimization or more CPU resources."
-            : ioBound > cpuBound
-              ? "Most resource-intensive queries are I/O-bound. Consider more memory, faster storage, or better indexing."
-              : "Resource usage is balanced between CPU and I/O.",
-        ],
-        truncated,
-        totalCount: effectiveTotalCount,
-      };
+        const response: Record<string, unknown> = {
+          queries: rows,
+          count: rows.length,
+          summary: {
+            cpuBound,
+            ioBound,
+            balanced,
+            threshold: thresholdVal,
+          },
+          recommendations: [
+            cpuBound > ioBound
+              ? "Most resource-intensive queries are CPU-bound. Consider query optimization or more CPU resources."
+              : ioBound > cpuBound
+                ? "Most resource-intensive queries are I/O-bound. Consider more memory, faster storage, or better indexing."
+                : "Resource usage is balanced between CPU and I/O.",
+          ],
+          truncated,
+          totalCount: effectiveTotalCount,
+        };
 
-      return response;
+        return response;
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_kcache_resource_analysis",
+          }),
+        };
+      }
     },
   };
 }
@@ -724,12 +764,19 @@ Note: This also resets pg_stat_statements statistics.`,
     annotations: destructive("Reset Kcache Stats"),
     icons: getToolIcons("kcache", destructive("Reset Kcache Stats")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      await adapter.executeQuery("SELECT pg_stat_kcache_reset()");
-      return {
-        success: true,
-        message: "pg_stat_kcache statistics reset",
-        note: "pg_stat_statements statistics were also reset",
-      };
+      try {
+        await adapter.executeQuery("SELECT pg_stat_kcache_reset()");
+        return {
+          success: true,
+          message: "pg_stat_kcache statistics reset",
+          note: "pg_stat_statements statistics were also reset",
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_kcache_reset" }),
+        };
+      }
     },
   };
 }
