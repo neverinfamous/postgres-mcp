@@ -533,8 +533,8 @@ export function createPartmanShowPartitionsTool(
         parentTable,
         partitions,
         count: partitions.length,
-        truncated: truncated ? true : undefined,
-        totalCount: truncated ? totalCount : undefined,
+        truncated,
+        totalCount,
       };
     },
   };
@@ -710,8 +710,8 @@ export function createPartmanShowConfigTool(
       return {
         configs: configsWithStatus,
         count: configsWithStatus.length,
-        truncated: truncated ? true : undefined,
-        totalCount: truncated ? totalCount : undefined,
+        truncated,
+        totalCount,
         orphanedCount: orphanedCount > 0 ? orphanedCount : undefined,
         hint:
           notFoundHint ??

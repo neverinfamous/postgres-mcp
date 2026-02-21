@@ -185,6 +185,7 @@ Data in default indicates partitions may be missing for certain time/value range
         if ((hasChildrenResult.rows?.length ?? 0) === 0) {
           if (isActuallyPartitioned) {
             return {
+              success: true,
               parentTable,
               hasDefault: false,
               isPartitioned: true,
@@ -195,6 +196,7 @@ Data in default indicates partitions may be missing for certain time/value range
             };
           }
           return {
+            success: true,
             parentTable,
             hasDefault: false,
             isPartitioned: false,
@@ -205,6 +207,7 @@ Data in default indicates partitions may be missing for certain time/value range
         }
 
         return {
+          success: true,
           parentTable,
           hasDefault: false,
           isPartitioned: true,
@@ -231,6 +234,7 @@ Data in default indicates partitions may be missing for certain time/value range
       const hasData = rowCount > 0;
 
       return {
+        success: true,
         parentTable,
         hasDefault: true,
         defaultPartition: defaultPartitionName,
@@ -932,8 +936,8 @@ stale maintenance, and retention configuration.`,
 
       return {
         partitionSets: healthChecks,
-        truncated: truncated ? true : undefined,
-        totalCount: truncated ? totalCount : undefined,
+        truncated,
+        totalCount,
         summary: {
           totalPartitionSets: truncated ? totalCount : healthChecks.length,
           totalIssues,

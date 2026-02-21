@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Partman tools inconsistent `truncated`/`totalCount` fields** — `pg_partman_show_partitions`, `pg_partman_show_config`, and `pg_partman_analyze_partition_health` now always include `truncated: false` and `totalCount` in responses when results are not truncated, matching the convention in `partitioning.ts` and other paginated tools. Previously, these fields were only present when `truncated: true`, making it impossible to determine completeness without checking the limit
+
+- **`pg_partman_check_default` missing `success` field on happy path** — All 4 happy path return statements in `pg_partman_check_default` now include `success: true`, matching other partman tools. Previously, only error paths included the `success` field
+
 - **`pg_cron_schedule` / `pg_cron_schedule_in_database` raw MCP error for missing command** — Calling either tool without `command`/`sql`/`query` now returns `{success: false, error: "Either command, sql, or query must be provided"}` instead of a raw Zod validation error. Root cause: `CronScheduleSchemaBase` and `CronScheduleInDatabaseSchemaBase` had `.refine()` calls that were evaluated at the MCP framework level before reaching the handler's `try/catch`. Moved all refinements (command check, database check, interval validation) from the Base schemas to the Transform schemas (`CronScheduleSchema`, `CronScheduleInDatabaseSchema`), which are parsed inside the handler. Added 2 unit tests
 
 - **`pg_cron_alter_job` error message says "Job unknown" instead of actual jobId** — `pg_cron_alter_job` with a nonexistent `jobId` (e.g., `99999`) now returns `Job '99999' not found` instead of `Job 'unknown' not found`. Hoisted `parsedJobId` before the try block and passed it as `target` context to `formatPostgresError` in the catch block. Tightened unit test assertion to verify the actual jobId appears in the error message
