@@ -224,7 +224,7 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
  * Preprocesses to handle empty/null params.
  */
 export const CitextAnalyzeCandidatesSchema = z.preprocess(
-  normalizeOptionalParams,
+  (input) => preprocessCitextTableParams(normalizeOptionalParams(input)),
   CitextAnalyzeCandidatesSchemaBase,
 );
 

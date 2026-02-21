@@ -417,6 +417,22 @@ describe("Citext Tools", () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain("does not exist");
     });
+
+    it("should parse schema.table format", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
+        .mockResolvedValueOnce({ rows: [{ total: 0 }] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      const tool = findTool("pg_citext_analyze_candidates");
+      await tool!.handler({ table: "custom_schema.users" }, mockContext);
+
+      // Should have parsed schema.table and checked existence with split values
+      expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+        expect.stringContaining("table_schema = $1 AND table_name = $2"),
+        ["custom_schema", "users"],
+      );
+    });
   });
 
   describe("pg_citext_compare", () => {
