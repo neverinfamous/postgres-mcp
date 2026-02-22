@@ -121,19 +121,27 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("performance", readOnly("Bloat Check")),
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = BloatCheckSchema.parse(params);
-      let whereClause = "n_dead_tup > 0";
-      if (parsed.schema !== undefined) {
-        whereClause += ` AND schemaname = '${parsed.schema}'`;
+      // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
+      let tableName = parsed.table;
+      let schemaName = parsed.schema;
+      if (tableName?.includes(".")) {
+        const parts = tableName.split(".");
+        schemaName = schemaName ?? parts[0];
+        tableName = parts[1] ?? tableName;
       }
-      if (parsed.table !== undefined) {
-        whereClause += ` AND relname = '${parsed.table}'`;
+      let whereClause = "n_dead_tup > 0";
+      if (schemaName !== undefined) {
+        whereClause += ` AND schemaname = '${schemaName}'`;
+      }
+      if (tableName !== undefined) {
+        whereClause += ` AND relname = '${tableName}'`;
       }
 
       // P154: Validate table/schema existence before querying
       const validationError = await validatePerformanceTableExists(
         adapter,
-        parsed.table,
-        parsed.schema,
+        tableName,
+        schemaName,
       );
       if (validationError !== null) {
         return { success: false, error: validationError };

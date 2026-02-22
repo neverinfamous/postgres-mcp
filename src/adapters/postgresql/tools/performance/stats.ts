@@ -93,7 +93,13 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("performance", readOnly("Index Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = IndexStatsSchemaLocal.parse(params);
-      const { table, schema } = parsed;
+      let { table, schema } = parsed;
+      // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
+      if (table?.includes(".")) {
+        const parts = table.split(".");
+        schema = schema ?? parts[0];
+        table = parts[1] ?? table;
+      }
       const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
 
       // P154: Validate table/schema existence before querying
@@ -175,7 +181,13 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("performance", readOnly("Table Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = TableStatsSchemaLocal.parse(params);
-      const { table, schema } = parsed;
+      let { table, schema } = parsed;
+      // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
+      if (table?.includes(".")) {
+        const parts = table.split(".");
+        schema = schema ?? parts[0];
+        table = parts[1] ?? table;
+      }
       const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
 
       // P154: Validate table/schema existence before querying
@@ -610,19 +622,25 @@ export function createVacuumStatsTool(
     icons: getToolIcons("performance", readOnly("Vacuum Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = VacuumStatsSchema.parse(params);
+      let table = parsed.table;
+      let schema = parsed.schema;
+      // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
+      if (table?.includes(".")) {
+        const parts = table.split(".");
+        schema = schema ?? parts[0];
+        table = parts[1] ?? table;
+      }
       const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
       let whereClause =
         "schemaname NOT IN ('pg_catalog', 'information_schema')";
-      if (parsed.schema !== undefined)
-        whereClause += ` AND schemaname = '${parsed.schema}'`;
-      if (parsed.table !== undefined)
-        whereClause += ` AND relname = '${parsed.table}'`;
+      if (schema !== undefined) whereClause += ` AND schemaname = '${schema}'`;
+      if (table !== undefined) whereClause += ` AND relname = '${table}'`;
 
       // P154: Validate table/schema existence before querying
       const validationError = await validatePerformanceTableExists(
         adapter,
-        parsed.table,
-        parsed.schema,
+        table,
+        schema,
       );
       if (validationError !== null) {
         return { success: false, error: validationError };

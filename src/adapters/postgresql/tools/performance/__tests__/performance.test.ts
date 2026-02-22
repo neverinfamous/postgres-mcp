@@ -396,6 +396,25 @@ describe("pg_index_stats", () => {
     expect(result.totalCount).toBe(1);
     expect(result.count).toBe(1);
   });
+
+  it("should split schema.table format", async () => {
+    // P154: schema check + table check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ indexrelname: "orders_pkey", idx_scan: 200 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_index_stats")!;
+    await tool.handler({ table: "sales.orders" }, mockContext);
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("schemaname = 'sales'"),
+    );
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("relname = 'orders'"),
+    );
+  });
 });
 
 describe("pg_table_stats", () => {
@@ -491,6 +510,25 @@ describe("pg_table_stats", () => {
     expect(result.truncated).toBe(false);
     expect(result.totalCount).toBe(1);
     expect(result.count).toBe(1);
+  });
+
+  it("should split schema.table format", async () => {
+    // P154: schema check + table check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relname: "orders", seq_scan: 100 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_table_stats")!;
+    await tool.handler({ table: "sales.orders" }, mockContext);
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("schemaname = 'sales'"),
+    );
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("relname = 'orders'"),
+    );
   });
 });
 
@@ -695,6 +733,65 @@ describe("pg_bloat_check", () => {
       expect.stringContaining("n_dead_tup"),
     );
     expect(result.tables).toHaveLength(1);
+  });
+
+  it("should split schema.table format", async () => {
+    // P154: schema check + table check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_name: "orders", dead_tuples: 50, dead_pct: 2.0 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_bloat_check")!;
+    await tool.handler({ table: "sales.orders" }, mockContext);
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("schemaname = 'sales'"),
+    );
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("relname = 'orders'"),
+    );
+  });
+});
+
+describe("pg_vacuum_stats - schema.table", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should split schema.table format", async () => {
+    // P154: schema check + table check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schemaname: "sales",
+          table_name: "orders",
+          n_live_tup: 100,
+          n_dead_tup: 5,
+          relfrozenxid: "123",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
+    await tool.handler({ table: "sales.orders" }, mockContext);
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("s.schemaname = 'sales'"),
+    );
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("s.relname = 'orders'"),
+    );
   });
 });
 

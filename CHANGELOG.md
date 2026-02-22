@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_index_stats`/`pg_table_stats`/`pg_vacuum_stats`/`pg_bloat_check` `schema.table` format not parsed** — `pg_index_stats({ table: 'sales.orders' })` and the other 3 tools now correctly parse dot-notation into `schema=sales, table=orders` instead of treating `sales.orders` as a literal table name in the `public` schema. Previously produced misleading P154 errors like `Table 'public.sales.orders' not found`. Added inline `schema.table` splitting logic matching the pattern used by `pg_partition_strategy_suggest`. Added 4 unit tests
+
 - **`pg_list_tables` MCP schema missing all parameters** — Direct MCP tool calls to `pg_list_tables` now correctly expose `schema`, `limit`, and `exclude` parameters. Previously, the tool used a `z.preprocess()`-wrapped schema as `inputSchema`, which strips parameter metadata from JSON Schema generation, making direct MCP calls unable to filter results. Applied Split Schema pattern: `ListTablesSchemaBase` for MCP visibility, `ListTablesSchema` with `z.preprocess()` for handler parsing
 
 - **Universal Split Schema pattern application** — Applied the Split Schema pattern to 22 remaining tools that used `z.preprocess()` directly as `inputSchema`, which strips parameter metadata from MCP JSON Schema generation. Created `Base` schemas (plain `z.object()`) for MCP client visibility while preserving preprocessed schemas for handler parsing. Affected tool groups: monitoring (3), extensions/kcache (3), extensions/ltree (1), performance (2), core/health (2), transactions (1), and 10 inline performance tool schemas across `stats.ts`, `monitoring.ts`, `optimization.ts`, and `analysis.ts`
