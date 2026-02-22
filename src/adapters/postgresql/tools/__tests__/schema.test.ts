@@ -1175,6 +1175,62 @@ describe("Parameter Smoothing", () => {
     expect(sql).toContain("e.extname IN ('fuzzy', 'fuzzystrmatch')");
     expect(sql).toContain("n.nspname NOT IN ('fuzzy', 'fuzzystrmatch')");
   });
+
+  it("pg_list_triggers should parse schema.table format", async () => {
+    // First call: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Second call: table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Third call: main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_triggers")!;
+    await tool.handler({ table: "custom_schema.orders" }, mockContext);
+
+    // Schema existence check should use parsed schema
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("nspname = 'custom_schema'"),
+    );
+    // Table existence check should use parsed table name
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("table_name = 'orders'"),
+    );
+    // Main query should filter by parsed table
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("c.relname = 'orders'"),
+    );
+  });
+
+  it("pg_list_constraints should parse schema.table format", async () => {
+    // First call: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Second call: table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Third call: main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_constraints")!;
+    await tool.handler({ table: "custom_schema.orders" }, mockContext);
+
+    // Schema existence check should use parsed schema
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("nspname = 'custom_schema'"),
+    );
+    // Table existence check should use parsed table name
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("table_name = 'orders'"),
+    );
+    // Main query should filter by parsed table
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("c.relname = 'orders'"),
+    );
+  });
 });
 
 /**

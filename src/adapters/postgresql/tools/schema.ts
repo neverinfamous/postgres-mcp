@@ -736,6 +736,20 @@ function createListTriggersTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = (params ?? {}) as { schema?: string; table?: string };
+
+        // Parse schema.table format
+        if (
+          typeof parsed.table === "string" &&
+          parsed.table.includes(".") &&
+          !parsed.schema
+        ) {
+          const parts = parsed.table.split(".");
+          if (parts.length === 2 && parts[0] && parts[1]) {
+            parsed.schema = parts[0];
+            parsed.table = parts[1];
+          }
+        }
+
         const schemaName = parsed.schema ?? "public";
 
         // Validate schema existence when filtering by schema
@@ -822,6 +836,20 @@ function createListConstraintsTool(adapter: PostgresAdapter): ToolDefinition {
           schema?: string;
           type?: string;
         };
+
+        // Parse schema.table format
+        if (
+          typeof parsed.table === "string" &&
+          parsed.table.includes(".") &&
+          !parsed.schema
+        ) {
+          const parts = parsed.table.split(".");
+          if (parts.length === 2 && parts[0] && parts[1]) {
+            parsed.schema = parts[0];
+            parsed.table = parts[1];
+          }
+        }
+
         const schemaName = parsed.schema ?? "public";
 
         // Validate schema existence when filtering by schema
