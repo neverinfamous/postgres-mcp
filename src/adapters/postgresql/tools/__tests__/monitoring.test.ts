@@ -146,7 +146,8 @@ describe("pg_database_size", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("nonexistent_db");
+    expect(result.error).toContain("does not exist");
+    expect(result.error).not.toContain("ifExists");
   });
 });
 

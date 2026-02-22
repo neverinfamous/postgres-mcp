@@ -32,6 +32,7 @@ interface ErrorContext {
  * - 42703: undefined_column (column does not exist)
  * - 23505: unique_violation (duplicate key value)
  * - 3F000: invalid_schema_name (schema does not exist)
+ * - 3D000: invalid_catalog_name (database does not exist)
  * - 3B001: savepoint_exception (savepoint does not exist)
  * - 25P02: in_failed_sql_transaction (transaction is aborted)
  */
@@ -224,6 +225,16 @@ export function parsePostgresError(
   if (/invalid schedule:/i.test(msg)) {
     throw new Error(
       `Invalid cron schedule. Use standard cron syntax (e.g., "0 2 * * *") or interval syntax ("1-59 seconds").`,
+      { cause: error },
+    );
+  }
+
+  // 3D000 — invalid catalog name (database does not exist)
+  if (pgCode === "3D000" || /database ".*" does not exist/i.test(msg)) {
+    const match = /database "([^"]+)"/i.exec(msg);
+    const dbName = match?.[1] ?? "unknown";
+    throw new Error(
+      `Database '${dbName}' does not exist. Verify the database name or omit the parameter to use the current database.`,
       { cause: error },
     );
   }

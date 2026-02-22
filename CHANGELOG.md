@@ -271,6 +271,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_cluster` misleading `ifExists` suggestion for nonexistent index** — `pg_cluster({ table: 'users', index: 'nonexistent' })` now throws `Index 'nonexistent' not found. Use pg_get_indexes to see available indexes` instead of suggesting `Use ifExists: true to avoid this error`, which is not a valid `pg_cluster` parameter. Added tool-context guard in `parsePostgresError` 42704 handler. Added 1 unit test
 
+- **`pg_database_size` misleading `ifExists` suggestion for nonexistent database** — `pg_database_size({ database: 'nonexistent_db' })` now returns `{success: false, error: "Database 'nonexistent_db' does not exist. Verify the database name or omit the parameter to use the current database."}` instead of the misleading `"Object 'nonexistent_db' not found. Use ifExists: true to avoid this error."`. Added `3D000` (invalid_catalog_name) handler to `parsePostgresError` before the generic `42704` block. Tightened 1 unit test assertion
+
 ## [1.2.0] - 2026-02-10
 
 ### Added
