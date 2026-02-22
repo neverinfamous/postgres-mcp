@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dependencies** — Updated `eslint` from 9.28.0 → 10.0.0, `@eslint/js` from 9.28.0 → 10.0.1, `typescript-eslint` from 8.55.0 → 8.56.0 (first `typescript-eslint` version with ESLint 10 support)
 
+### Documentation
+
+- **README.md / DOCKER_README.md "What Sets Us Apart" section** — Replaced the "What This Does" bullet list with a "What Sets Us Apart" feature-matrix table, matching the mysql-mcp README style. Highlights 12 differentiating features including Code Mode, 8 extension ecosystems, and MCP 2025-11-25 compliance. Removed redundant "Why Choose postgres-mcp?" section from README.md
+
 ### Fixed
 
 - **`pg_list_triggers`/`pg_list_constraints` `schema.table` format not parsed** — `pg_list_triggers({ table: 'custom_schema.orders' })` and `pg_list_constraints({ table: 'custom_schema.orders' })` now correctly parse into `schema=custom_schema, table=orders` instead of treating `custom_schema.orders` as a literal table name in the `public` schema. Previously produced misleading errors like `Table 'public.custom_schema.orders' not found`. Added inline `schema.table` splitting logic matching the pattern used by other schema tools. Added 2 unit tests
