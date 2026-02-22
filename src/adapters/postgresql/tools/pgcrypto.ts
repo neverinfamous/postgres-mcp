@@ -11,13 +11,17 @@ import { getToolIcons } from "../../../utils/icons.js";
 import { parsePostgresError } from "./core/error-helpers.js";
 import {
   PgcryptoHashSchema,
+  PgcryptoHashSchemaBase,
   PgcryptoHmacSchema,
+  PgcryptoHmacSchemaBase,
   PgcryptoEncryptSchema,
   PgcryptoEncryptSchemaBase,
   PgcryptoDecryptSchema,
   PgcryptoDecryptSchemaBase,
   PgcryptoRandomBytesSchema,
+  PgcryptoRandomBytesSchemaBase,
   PgcryptoGenSaltSchema,
+  PgcryptoGenSaltSchemaBase,
   PgcryptoCryptSchema,
   // Output schemas
   PgcryptoCreateExtensionOutputSchema,
@@ -67,28 +71,47 @@ function createPgcryptoHashTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Hash data using various algorithms (SHA-256, SHA-512, MD5, etc.).",
     group: "pgcrypto",
-    inputSchema: PgcryptoHashSchema,
+    inputSchema: PgcryptoHashSchemaBase,
     outputSchema: PgcryptoHashOutputSchema,
     annotations: readOnly("Hash Data"),
     icons: getToolIcons("pgcrypto", readOnly("Hash Data")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { data, algorithm, encoding } = PgcryptoHashSchema.parse(params);
-      const enc = encoding ?? "hex";
-      const encodeFunc =
-        enc === "base64"
-          ? "encode(digest($1, $2), 'base64')"
-          : "encode(digest($1, $2), 'hex')";
-      const result = await adapter.executeQuery(
-        `SELECT ${encodeFunc} as hash`,
-        [data, algorithm],
-      );
-      return {
-        success: true,
-        algorithm,
-        encoding: enc,
-        hash: result.rows?.[0]?.["hash"] as string,
-        inputLength: data.length,
-      };
+      try {
+        const { data, algorithm, encoding } = PgcryptoHashSchema.parse(params);
+        const enc = encoding ?? "hex";
+        const encodeFunc =
+          enc === "base64"
+            ? "encode(digest($1, $2), 'base64')"
+            : "encode(digest($1, $2), 'hex')";
+        const result = await adapter.executeQuery(
+          `SELECT ${encodeFunc} as hash`,
+          [data, algorithm],
+        );
+        return {
+          success: true,
+          algorithm,
+          encoding: enc,
+          hash: result.rows?.[0]?.["hash"] as string,
+          inputLength: data.length,
+        };
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
+        let errorMessage =
+          error instanceof Error ? error.message : String(error);
+        try {
+          errorMessage = parsePostgresError(error, {
+            tool: "pg_pgcrypto_hash",
+          }).message;
+        } catch {
+          // parsePostgresError re-throws unrecognized errors; use original message
+        }
+        return { success: false, error: errorMessage };
+      }
     },
   };
 }
@@ -98,28 +121,47 @@ function createPgcryptoHmacTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_pgcrypto_hmac",
     description: "Compute HMAC for data with a secret key.",
     group: "pgcrypto",
-    inputSchema: PgcryptoHmacSchema,
+    inputSchema: PgcryptoHmacSchemaBase,
     outputSchema: PgcryptoHmacOutputSchema,
     annotations: readOnly("HMAC"),
     icons: getToolIcons("pgcrypto", readOnly("HMAC")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { data, key, algorithm, encoding } =
-        PgcryptoHmacSchema.parse(params);
-      const enc = encoding ?? "hex";
-      const encodeFunc =
-        enc === "base64"
-          ? "encode(hmac($1, $2, $3), 'base64')"
-          : "encode(hmac($1, $2, $3), 'hex')";
-      const result = await adapter.executeQuery(
-        `SELECT ${encodeFunc} as hmac`,
-        [data, key, algorithm],
-      );
-      return {
-        success: true,
-        algorithm,
-        encoding: enc,
-        hmac: result.rows?.[0]?.["hmac"] as string,
-      };
+      try {
+        const { data, key, algorithm, encoding } =
+          PgcryptoHmacSchema.parse(params);
+        const enc = encoding ?? "hex";
+        const encodeFunc =
+          enc === "base64"
+            ? "encode(hmac($1, $2, $3), 'base64')"
+            : "encode(hmac($1, $2, $3), 'hex')";
+        const result = await adapter.executeQuery(
+          `SELECT ${encodeFunc} as hmac`,
+          [data, key, algorithm],
+        );
+        return {
+          success: true,
+          algorithm,
+          encoding: enc,
+          hmac: result.rows?.[0]?.["hmac"] as string,
+        };
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
+        let errorMessage =
+          error instanceof Error ? error.message : String(error);
+        try {
+          errorMessage = parsePostgresError(error, {
+            tool: "pg_pgcrypto_hmac",
+          }).message;
+        } catch {
+          // parsePostgresError re-throws unrecognized errors; use original message
+        }
+        return { success: false, error: errorMessage };
+      }
     },
   };
 }
@@ -150,6 +192,12 @@ function createPgcryptoEncryptTool(adapter: PostgresAdapter): ToolDefinition {
           encoding: "base64",
         };
       } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
         let errorMessage =
           error instanceof Error ? error.message : String(error);
         try {
@@ -198,6 +246,12 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
           verified: true,
         };
       } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
         let errorMessage =
           error instanceof Error ? error.message : String(error);
         try {
@@ -216,18 +270,25 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
 function createPgcryptoGenRandomUuidTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Base schema for MCP visibility (count parameter exposed to clients)
+  // Base schema for MCP visibility (count parameter exposed to clients, relaxed)
   const GenUuidSchemaBase = z.object({
     count: z
       .number()
-      .min(1)
-      .max(100)
       .optional()
       .describe("Number of UUIDs to generate (default: 1, max: 100)"),
   });
 
-  // Full schema with default for handler parsing
-  const GenUuidSchema = GenUuidSchemaBase.default({});
+  // Full schema with strict validation for handler parsing
+  const GenUuidSchema = z
+    .object({
+      count: z
+        .number()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("Number of UUIDs to generate (default: 1, max: 100)"),
+    })
+    .default({});
 
   return {
     name: "pg_pgcrypto_gen_random_uuid",
@@ -238,24 +299,43 @@ function createPgcryptoGenRandomUuidTool(
     annotations: readOnly("Generate UUID"),
     icons: getToolIcons("pgcrypto", readOnly("Generate UUID")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Parse via Zod to enforce count validation (max 100)
-      const parsed = GenUuidSchema.parse(params);
-      const generateCount = parsed.count ?? 1;
-      const result = await adapter.executeQuery(
-        `SELECT gen_random_uuid()::text as uuid FROM generate_series(1, $1)`,
-        [generateCount],
-      );
-      const uuids = (result.rows ?? []).map((r) => r["uuid"] as string);
-      // Add convenience 'uuid' property for single UUID requests
-      const response: Record<string, unknown> = {
-        success: true,
-        uuids,
-        count: uuids.length,
-      };
-      if (uuids.length === 1) {
-        response["uuid"] = uuids[0];
+      try {
+        // Parse via Zod to enforce count validation (max 100)
+        const parsed = GenUuidSchema.parse(params);
+        const generateCount = parsed.count ?? 1;
+        const result = await adapter.executeQuery(
+          `SELECT gen_random_uuid()::text as uuid FROM generate_series(1, $1)`,
+          [generateCount],
+        );
+        const uuids = (result.rows ?? []).map((r) => r["uuid"] as string);
+        // Add convenience 'uuid' property for single UUID requests
+        const response: Record<string, unknown> = {
+          success: true,
+          uuids,
+          count: uuids.length,
+        };
+        if (uuids.length === 1) {
+          response["uuid"] = uuids[0];
+        }
+        return response;
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
+        let errorMessage =
+          error instanceof Error ? error.message : String(error);
+        try {
+          errorMessage = parsePostgresError(error, {
+            tool: "pg_pgcrypto_gen_random_uuid",
+          }).message;
+        } catch {
+          // parsePostgresError re-throws unrecognized errors; use original message
+        }
+        return { success: false, error: errorMessage };
       }
-      return response;
     },
   };
 }
@@ -267,24 +347,43 @@ function createPgcryptoGenRandomBytesTool(
     name: "pg_pgcrypto_gen_random_bytes",
     description: "Generate cryptographically secure random bytes.",
     group: "pgcrypto",
-    inputSchema: PgcryptoRandomBytesSchema,
+    inputSchema: PgcryptoRandomBytesSchemaBase,
     outputSchema: PgcryptoGenRandomBytesOutputSchema,
     annotations: readOnly("Generate Random Bytes"),
     icons: getToolIcons("pgcrypto", readOnly("Generate Random Bytes")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { length, encoding } = PgcryptoRandomBytesSchema.parse(params);
-      const enc = encoding ?? "hex";
-      const encodeFormat = enc === "base64" ? "base64" : "hex";
-      const result = await adapter.executeQuery(
-        `SELECT encode(gen_random_bytes($1), $2) as random_bytes`,
-        [length, encodeFormat],
-      );
-      return {
-        success: true,
-        randomBytes: result.rows?.[0]?.["random_bytes"] as string,
-        length,
-        encoding: enc,
-      };
+      try {
+        const { length, encoding } = PgcryptoRandomBytesSchema.parse(params);
+        const enc = encoding ?? "hex";
+        const encodeFormat = enc === "base64" ? "base64" : "hex";
+        const result = await adapter.executeQuery(
+          `SELECT encode(gen_random_bytes($1), $2) as random_bytes`,
+          [length, encodeFormat],
+        );
+        return {
+          success: true,
+          randomBytes: result.rows?.[0]?.["random_bytes"] as string,
+          length,
+          encoding: enc,
+        };
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
+        let errorMessage =
+          error instanceof Error ? error.message : String(error);
+        try {
+          errorMessage = parsePostgresError(error, {
+            tool: "pg_pgcrypto_gen_random_bytes",
+          }).message;
+        } catch {
+          // parsePostgresError re-throws unrecognized errors; use original message
+        }
+        return { success: false, error: errorMessage };
+      }
     },
   };
 }
@@ -294,24 +393,43 @@ function createPgcryptoGenSaltTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_pgcrypto_gen_salt",
     description: "Generate a salt for use with crypt() password hashing.",
     group: "pgcrypto",
-    inputSchema: PgcryptoGenSaltSchema,
+    inputSchema: PgcryptoGenSaltSchemaBase,
     outputSchema: PgcryptoGenSaltOutputSchema,
     annotations: readOnly("Generate Salt"),
     icons: getToolIcons("pgcrypto", readOnly("Generate Salt")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { type, iterations } = PgcryptoGenSaltSchema.parse(params);
-      const result =
-        iterations !== undefined && (type === "bf" || type === "xdes")
-          ? await adapter.executeQuery(`SELECT gen_salt($1, $2) as salt`, [
-              type,
-              iterations,
-            ])
-          : await adapter.executeQuery(`SELECT gen_salt($1) as salt`, [type]);
-      return {
-        success: true,
-        salt: result.rows?.[0]?.["salt"] as string,
-        type,
-      };
+      try {
+        const { type, iterations } = PgcryptoGenSaltSchema.parse(params);
+        const result =
+          iterations !== undefined && (type === "bf" || type === "xdes")
+            ? await adapter.executeQuery(`SELECT gen_salt($1, $2) as salt`, [
+                type,
+                iterations,
+              ])
+            : await adapter.executeQuery(`SELECT gen_salt($1) as salt`, [type]);
+        return {
+          success: true,
+          salt: result.rows?.[0]?.["salt"] as string,
+          type,
+        };
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
+        let errorMessage =
+          error instanceof Error ? error.message : String(error);
+        try {
+          errorMessage = parsePostgresError(error, {
+            tool: "pg_pgcrypto_gen_salt",
+          }).message;
+        } catch {
+          // parsePostgresError re-throws unrecognized errors; use original message
+        }
+        return { success: false, error: errorMessage };
+      }
     },
   };
 }

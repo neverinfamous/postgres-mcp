@@ -453,7 +453,12 @@ export {
   LtreeListColumnsOutputSchema,
   LtreeConvertColumnOutputSchema,
   LtreeCreateIndexOutputSchema,
-  // pgcrypto
+  // pgcrypto — Base schemas for MCP visibility (Split Schema pattern)
+  PgcryptoHashSchemaBase,
+  PgcryptoHmacSchemaBase,
+  PgcryptoRandomBytesSchemaBase,
+  PgcryptoGenSaltSchemaBase,
+  // pgcrypto — Full schemas for handler validation
   PgcryptoHashSchema,
   PgcryptoHmacSchema,
   PgcryptoEncryptSchema,

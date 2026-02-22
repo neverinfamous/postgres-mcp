@@ -615,6 +615,16 @@ export const LtreeIndexSchema = z.preprocess(
 // =============================================================================
 
 /**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ * Valid algorithm values described in text for MCP clients.
+ */
+export const PgcryptoHashSchemaBase = z.object({
+  data: z.string().describe("Data to hash"),
+  algorithm: z.string().describe("Hash algorithm"),
+  encoding: z.string().optional().describe("Output encoding (default: hex)"),
+});
+
+/**
  * Schema for hashing data with digest().
  */
 export const PgcryptoHashSchema = z.object({
@@ -626,6 +636,16 @@ export const PgcryptoHashSchema = z.object({
     .enum(["hex", "base64"])
     .optional()
     .describe("Output encoding (default: hex)"),
+});
+
+/**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ */
+export const PgcryptoHmacSchemaBase = z.object({
+  data: z.string().describe("Data to authenticate"),
+  key: z.string().describe("Secret key for HMAC"),
+  algorithm: z.string().describe("Hash algorithm"),
+  encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 
 /**
@@ -707,6 +727,14 @@ export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
   });
 
 /**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ */
+export const PgcryptoRandomBytesSchemaBase = z.object({
+  length: z.number().describe("Number of random bytes to generate (1-1024)"),
+  encoding: z.string().optional().describe("Output encoding (default: hex)"),
+});
+
+/**
  * Schema for generating random bytes.
  */
 export const PgcryptoRandomBytesSchema = z.object({
@@ -719,6 +747,19 @@ export const PgcryptoRandomBytesSchema = z.object({
     .enum(["hex", "base64"])
     .optional()
     .describe("Output encoding (default: hex)"),
+});
+
+/**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ */
+export const PgcryptoGenSaltSchemaBase = z.object({
+  type: z
+    .string()
+    .describe("Salt type: bf (bcrypt, recommended), md5, xdes, or des"),
+  iterations: z
+    .number()
+    .optional()
+    .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
 });
 
 /**
@@ -1181,10 +1222,11 @@ export const PgcryptoCreateExtensionOutputSchema = z
 export const PgcryptoHashOutputSchema = z
   .object({
     success: z.boolean().describe("Whether hash succeeded"),
-    algorithm: z.string().describe("Hash algorithm used"),
-    encoding: z.string().describe("Output encoding"),
-    hash: z.string().describe("Hash result"),
-    inputLength: z.number().describe("Input data length"),
+    algorithm: z.string().optional().describe("Hash algorithm used"),
+    encoding: z.string().optional().describe("Output encoding"),
+    hash: z.string().optional().describe("Hash result"),
+    inputLength: z.number().optional().describe("Input data length"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Hash result");
 
@@ -1194,9 +1236,10 @@ export const PgcryptoHashOutputSchema = z
 export const PgcryptoHmacOutputSchema = z
   .object({
     success: z.boolean().describe("Whether HMAC succeeded"),
-    algorithm: z.string().describe("HMAC algorithm used"),
-    encoding: z.string().describe("Output encoding"),
-    hmac: z.string().describe("HMAC result"),
+    algorithm: z.string().optional().describe("HMAC algorithm used"),
+    encoding: z.string().optional().describe("Output encoding"),
+    hmac: z.string().optional().describe("HMAC result"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("HMAC result");
 
@@ -1230,9 +1273,10 @@ export const PgcryptoDecryptOutputSchema = z
 export const PgcryptoGenRandomUuidOutputSchema = z
   .object({
     success: z.boolean().describe("Whether generation succeeded"),
-    uuids: z.array(z.string()).describe("Generated UUIDs"),
-    count: z.number().describe("Number of UUIDs generated"),
+    uuids: z.array(z.string()).optional().describe("Generated UUIDs"),
+    count: z.number().optional().describe("Number of UUIDs generated"),
     uuid: z.string().optional().describe("First UUID (for single requests)"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("UUID generation result");
 
@@ -1242,9 +1286,10 @@ export const PgcryptoGenRandomUuidOutputSchema = z
 export const PgcryptoGenRandomBytesOutputSchema = z
   .object({
     success: z.boolean().describe("Whether generation succeeded"),
-    randomBytes: z.string().describe("Random bytes"),
-    length: z.number().describe("Number of bytes"),
-    encoding: z.string().describe("Output encoding"),
+    randomBytes: z.string().optional().describe("Random bytes"),
+    length: z.number().optional().describe("Number of bytes"),
+    encoding: z.string().optional().describe("Output encoding"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Random bytes generation result");
 
@@ -1254,8 +1299,9 @@ export const PgcryptoGenRandomBytesOutputSchema = z
 export const PgcryptoGenSaltOutputSchema = z
   .object({
     success: z.boolean().describe("Whether salt generation succeeded"),
-    salt: z.string().describe("Generated salt"),
-    type: z.string().describe("Salt type"),
+    salt: z.string().optional().describe("Generated salt"),
+    type: z.string().optional().describe("Salt type"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Salt generation result");
 
