@@ -215,14 +215,17 @@ export const CronScheduleInDatabaseSchema = z.preprocess(
     }),
 );
 
-export const CronUnscheduleSchema = z
-  .object({
-    jobId: CoercibleJobId.optional().describe("Job ID to remove"),
-    jobName: z.string().optional().describe("Job name to remove"),
-  })
-  .refine((data) => data.jobId !== undefined || data.jobName !== undefined, {
+export const CronUnscheduleSchemaBase = z.object({
+  jobId: CoercibleJobId.optional().describe("Job ID to remove"),
+  jobName: z.string().optional().describe("Job name to remove"),
+});
+
+export const CronUnscheduleSchema = CronUnscheduleSchemaBase.refine(
+  (data) => data.jobId !== undefined || data.jobName !== undefined,
+  {
     message: "Either jobId or jobName must be provided",
-  });
+  },
+);
 
 export const CronAlterJobSchema = z
   .object({
@@ -250,19 +253,19 @@ export const CronAlterJobSchema = z
     },
   );
 
-export const CronJobRunDetailsSchema = z
-  .object({
-    jobId: CoercibleJobId.optional().describe("Filter by job ID"),
-    status: z
-      .enum(["running", "succeeded", "failed"])
-      .optional()
-      .describe("Filter by status"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum records to return (default: 50)"),
-  })
-  .default({});
+export const CronJobRunDetailsSchemaBase = z.object({
+  jobId: CoercibleJobId.optional().describe("Filter by job ID"),
+  status: z
+    .string()
+    .optional()
+    .describe("Filter by status (running, succeeded, failed)"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum records to return (default: 50)"),
+});
+
+export const CronJobRunDetailsSchema = CronJobRunDetailsSchemaBase.default({});
 
 export const CronCleanupHistorySchemaBase = z.object({
   olderThanDays: z

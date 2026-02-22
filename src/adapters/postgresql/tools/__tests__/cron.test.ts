@@ -476,6 +476,18 @@ describe("pg_cron_job_run_details", () => {
       ["failed"],
     );
   });
+
+  it("should return structured error for invalid status", async () => {
+    const tool = tools.find((t) => t.name === "pg_cron_job_run_details")!;
+    const result = (await tool.handler(
+      { status: "invalid_status" },
+      mockContext,
+    )) as { runs: unknown[]; count: number; error: string };
+
+    expect(result.count).toBe(0);
+    expect(result.error).toMatch(/Invalid status.*invalid_status/);
+    expect(result.runs).toEqual([]);
+  });
 });
 
 describe("pg_cron_cleanup_history", () => {

@@ -20,7 +20,9 @@ import {
   CronScheduleInDatabaseSchema,
   CronScheduleInDatabaseSchemaBase,
   CronAlterJobSchema,
+  CronUnscheduleSchemaBase,
   CronUnscheduleSchema,
+  CronJobRunDetailsSchemaBase,
   CronJobRunDetailsSchema,
   CronCleanupHistorySchema,
   CronCleanupHistorySchemaBase,
@@ -205,7 +207,7 @@ function createCronUnscheduleTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Remove a scheduled cron job by its ID or name. If both are provided, jobName takes precedence. Job ID accepts numbers or numeric strings. Works for both active and inactive jobs.",
     group: "cron",
-    inputSchema: CronUnscheduleSchema,
+    inputSchema: CronUnscheduleSchemaBase,
     outputSchema: CronUnscheduleOutputSchema,
     annotations: destructive("Unschedule Cron Job"),
     icons: getToolIcons("cron", destructive("Unschedule Cron Job")),
@@ -463,44 +465,58 @@ function createCronJobRunDetailsTool(adapter: PostgresAdapter): ToolDefinition {
     description: `View execution history for cron jobs. Shows start/end times, status, and return messages. 
 Useful for monitoring and debugging scheduled jobs.`,
     group: "cron",
-    inputSchema: CronJobRunDetailsSchema,
+    inputSchema: CronJobRunDetailsSchemaBase,
     outputSchema: CronJobRunDetailsOutputSchema,
     annotations: readOnly("Cron Job Run Details"),
     icons: getToolIcons("cron", readOnly("Cron Job Run Details")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { jobId, status, limit } = CronJobRunDetailsSchema.parse(params);
+      try {
+        const { jobId, status, limit } = CronJobRunDetailsSchema.parse(params);
 
-      const conditions: string[] = [];
-      const queryParams: unknown[] = [];
-      let paramIndex = 1;
+        // Handler-level validation for status (relaxed from z.enum to z.string for structured errors)
+        const VALID_STATUSES = ["running", "succeeded", "failed"];
+        if (status !== undefined && !VALID_STATUSES.includes(status)) {
+          return {
+            runs: [],
+            count: 0,
+            summary: { succeeded: 0, failed: 0, running: 0 },
+            error: `Invalid status "${status}". Valid statuses: ${VALID_STATUSES.join(", ")}`,
+          };
+        }
 
-      if (jobId !== undefined) {
-        conditions.push(`jobid = $${String(paramIndex++)}`);
-        queryParams.push(jobId);
-      }
+        const conditions: string[] = [];
+        const queryParams: unknown[] = [];
+        let paramIndex = 1;
 
-      if (status !== undefined) {
-        conditions.push(`status = $${String(paramIndex)}`);
-        queryParams.push(status);
-      }
+        if (jobId !== undefined) {
+          conditions.push(`jobid = $${String(paramIndex++)}`);
+          queryParams.push(jobId);
+        }
 
-      const whereClause =
-        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+        if (status !== undefined) {
+          conditions.push(`status = $${String(paramIndex)}`);
+          queryParams.push(status);
+        }
 
-      // Handle limit: 0 as "no limit" (return all rows), consistent with other AI-optimized tools
-      const limitVal = limit === 0 ? null : (limit ?? 50);
+        const whereClause =
+          conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-      // Get total count for truncation indicator (only needed when limiting)
-      let totalCount: number | undefined;
-      if (limitVal !== null) {
-        const countSql = `SELECT COUNT(*)::int as total FROM cron.job_run_details ${whereClause}`;
-        const countResult = await adapter.executeQuery(countSql, queryParams);
-        totalCount =
-          (countResult.rows?.[0] as { total: number } | undefined)?.total ?? 0;
-      }
+        // Handle limit: 0 as "no limit" (return all rows), consistent with other AI-optimized tools
+        const limitVal = limit === 0 ? null : (limit ?? 50);
 
-      const limitClause = limitVal !== null ? `LIMIT ${String(limitVal)}` : "";
-      const sql = `
+        // Get total count for truncation indicator (only needed when limiting)
+        let totalCount: number | undefined;
+        if (limitVal !== null) {
+          const countSql = `SELECT COUNT(*)::int as total FROM cron.job_run_details ${whereClause}`;
+          const countResult = await adapter.executeQuery(countSql, queryParams);
+          totalCount =
+            (countResult.rows?.[0] as { total: number } | undefined)?.total ??
+            0;
+        }
+
+        const limitClause =
+          limitVal !== null ? `LIMIT ${String(limitVal)}` : "";
+        const sql = `
                 SELECT 
                     runid,
                     jobid,
@@ -518,46 +534,64 @@ Useful for monitoring and debugging scheduled jobs.`,
                 ${limitClause}
             `;
 
-      const result = await adapter.executeQuery(sql, queryParams);
+        const result = await adapter.executeQuery(sql, queryParams);
 
-      // Normalize runid and jobid to numbers (PostgreSQL BIGINT may return as strings)
-      const rows = (result.rows ?? []).map((r: Record<string, unknown>) => ({
-        ...r,
-        runid:
-          r["runid"] !== null && r["runid"] !== undefined
-            ? Number(r["runid"])
-            : null,
-        jobid:
-          r["jobid"] !== null && r["jobid"] !== undefined
-            ? Number(r["jobid"])
-            : null,
-      }));
-      const succeeded = rows.filter(
-        (r: Record<string, unknown>) => r["status"] === "succeeded",
-      ).length;
-      const failed = rows.filter(
-        (r: Record<string, unknown>) => r["status"] === "failed",
-      ).length;
-      const running = rows.filter(
-        (r: Record<string, unknown>) => r["status"] === "running",
-      ).length;
+        // Normalize runid and jobid to numbers (PostgreSQL BIGINT may return as strings)
+        const rows = (result.rows ?? []).map((r: Record<string, unknown>) => ({
+          ...r,
+          runid:
+            r["runid"] !== null && r["runid"] !== undefined
+              ? Number(r["runid"])
+              : null,
+          jobid:
+            r["jobid"] !== null && r["jobid"] !== undefined
+              ? Number(r["jobid"])
+              : null,
+        }));
+        const succeeded = rows.filter(
+          (r: Record<string, unknown>) => r["status"] === "succeeded",
+        ).length;
+        const failed = rows.filter(
+          (r: Record<string, unknown>) => r["status"] === "failed",
+        ).length;
+        const running = rows.filter(
+          (r: Record<string, unknown>) => r["status"] === "running",
+        ).length;
 
-      // Determine if results were truncated (only when limiting)
-      const truncated =
-        limitVal !== null &&
-        totalCount !== undefined &&
-        rows.length < totalCount;
+        // Determine if results were truncated (only when limiting)
+        const truncated =
+          limitVal !== null &&
+          totalCount !== undefined &&
+          rows.length < totalCount;
 
-      return {
-        runs: rows,
-        count: rows.length,
-        ...(truncated ? { truncated: true, totalCount } : {}),
-        summary: {
-          succeeded,
-          failed,
-          running,
-        },
-      };
+        return {
+          runs: rows,
+          count: rows.length,
+          ...(truncated ? { truncated: true, totalCount } : {}),
+          summary: {
+            succeeded,
+            failed,
+            running,
+          },
+        };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            runs: [],
+            count: 0,
+            summary: { succeeded: 0, failed: 0, running: 0 },
+            error: error.issues.map((e) => e.message).join("; "),
+          };
+        }
+        return {
+          runs: [],
+          count: 0,
+          summary: { succeeded: 0, failed: 0, running: 0 },
+          error: formatPostgresError(error, {
+            tool: "pg_cron_job_run_details",
+          }),
+        };
+      }
     },
   };
 }
