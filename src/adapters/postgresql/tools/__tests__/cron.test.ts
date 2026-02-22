@@ -788,7 +788,7 @@ describe("pg_cron error handling", () => {
 
   it("should return structured error for pg_cron_schedule_in_database with nonexistent database", async () => {
     const pgError = new Error('database "nonexistent_db" does not exist');
-    (pgError as unknown as Record<string, unknown>)["code"] = "42704";
+    (pgError as unknown as Record<string, unknown>)["code"] = "3D000";
     mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
 
     const tool = tools.find((t) => t.name === "pg_cron_schedule_in_database")!;
@@ -804,7 +804,7 @@ describe("pg_cron error handling", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Database.*not found/);
+    expect(result.error).toMatch(/Database.*does not exist/);
   });
 
   it("should return structured error for pg_cron_alter_job with nonexistent jobId", async () => {
