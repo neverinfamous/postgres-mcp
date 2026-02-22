@@ -63,6 +63,7 @@
     "vitest": "^4.0.18"
   },
   "overrides": {
-    "minimatch": ">=10.2.1"
+    "minimatch": ">=10.2.1",
+    "tar": ">=7.5.8"
   }
 }

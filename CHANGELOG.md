@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`.dockerignore` file** — Excludes `node_modules/`, `.git/`, `dist/`, tests, documentation, and editor artifacts from the Docker build context. While the multi-stage Dockerfile already avoids copying these via selective `COPY` commands, `.dockerignore` speeds up `docker build` by reducing the context tarball sent to the daemon and provides defense-in-depth against accidental `COPY . .` additions
 
+### Security
+
+- **Docker tar CVE remediation** — Bumped manual `tar` patch in Dockerfile from 7.5.7 to 7.5.8 in both builder and production stages. Added `tar` npm override (`>=7.5.8`) to `package.json` for P125 lifecycle sync
+
+### Changed
+
+- **Dockerfile devDependency pruning (P117)** — Added `npm prune --omit=dev` after `npm run build` in the builder stage before copying `node_modules` to the production stage. Prevents devDependencies (`eslint`, `typescript-eslint`, `vitest`, etc.) and their transitive dependencies from leaking into the production image, eliminating false-positive Docker Scout findings for devDep-only vulnerabilities
+- **Dockerfile version label** — Updated stale `LABEL version` from `1.0.0` to `1.3.0`
+
 ## [1.3.0] - 2026-02-22
 
 ### Performance
