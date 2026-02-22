@@ -354,6 +354,7 @@ export {
   CronScheduleInDatabaseSchemaBase,
   CronUnscheduleSchemaBase,
   CronUnscheduleSchema,
+  CronAlterJobSchemaBase,
   CronAlterJobSchema,
   CronJobRunDetailsSchemaBase,
   CronJobRunDetailsSchema,

@@ -227,6 +227,20 @@ export const CronUnscheduleSchema = CronUnscheduleSchemaBase.refine(
   },
 );
 
+export const CronAlterJobSchemaBase = z.object({
+  jobId: z.union([z.number(), z.string()]).describe("Job ID to modify"),
+  schedule: z
+    .string()
+    .optional()
+    .describe(
+      'New cron schedule (e.g., "0 10 * * *") or interval ("1-59 seconds")',
+    ),
+  command: z.string().optional().describe("New SQL command"),
+  database: z.string().optional().describe("New target database"),
+  username: z.string().optional().describe("New username"),
+  active: z.boolean().optional().describe("Enable/disable the job"),
+});
+
 export const CronAlterJobSchema = z
   .object({
     jobId: CoercibleJobId.describe("Job ID to modify"),
