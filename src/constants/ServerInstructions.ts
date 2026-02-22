@@ -277,7 +277,7 @@ Response Structures:
 
 - \`pg_create_view\`: Supports \`schema.name\` format (auto-parsed). Use \`orReplace: true\` for CREATE OR REPLACE. \`checkOption\`: 'cascaded', 'local', 'none'. ⛔ OR REPLACE can add new columns but cannot rename/remove existing ones—PostgreSQL limitation
 - \`pg_create_sequence\`: Supports \`schema.name\` format. Parameters: \`start\`, \`increment\`, \`minValue\`, \`maxValue\`, \`cache\`, \`cycle\`, \`ownedBy\`, \`ifNotExists\`
-- \`pg_list_functions\`: Default limit=500. Use \`schema: 'public'\`, \`limit: 2000\`, or \`exclude: ['postgis', 'pg_trgm', 'ltree', 'citext', 'fuzzystrmatch', 'pg_stat_statements', 'hypopg', 'unaccent', 'pg_stat_kcache', 'pgcrypto', 'partman']\` to filter. ⚠️ \`exclude\` filters by **schema name** AND extension-owned functions. The \`language\` filter does NOT exclude extension functions—use \`exclude\` alongside \`language\` for clean results. Note: Aggressive \`exclude\` may return 0 results if all functions belong to excluded extensions
+- \`pg_list_functions\`: Default limit=500. Use \`schema: 'public'\`, \`limit: 2000\`, or \`exclude: ['postgis', 'pg_trgm', 'ltree', 'citext', 'fuzzystrmatch', 'pg_stat_statements', 'hypopg', 'unaccent', 'pg_stat_kcache', 'pgcrypto', 'partman', 'vector', 'topology']\` to filter. ⚠️ \`exclude\` filters by **schema name** AND extension-owned functions. The \`language\` filter does NOT exclude extension functions—use \`exclude\` alongside \`language\` for clean results. Note: Aggressive \`exclude\` may return 0 results if all functions belong to excluded extensions
 
 **Discovery**: \`pg.schema.help()\` returns \`{methods, methodAliases, examples}\` object
 

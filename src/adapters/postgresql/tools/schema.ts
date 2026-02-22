@@ -636,63 +636,87 @@ function createListFunctionsTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("List Functions"),
     icons: getToolIcons("schema", readOnly("List Functions")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Use full schema with preprocessing for validation
-      const parsed = ListFunctionsSchema.parse(params);
-      const conditions: string[] = [
-        "n.nspname NOT IN ('pg_catalog', 'information_schema')",
-      ];
+      try {
+        // Use full schema with preprocessing for validation
+        const parsed = ListFunctionsSchema.parse(params);
 
-      if (parsed.schema !== undefined) {
-        conditions.push(`n.nspname = '${parsed.schema}'`);
+        // Validate schema existence when filtering by schema
+        if (parsed.schema !== undefined) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM pg_namespace WHERE nspname = '${parsed.schema}'`,
+          );
+          if ((schemaCheck.rows?.length ?? 0) === 0) {
+            return {
+              success: false,
+              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+            };
+          }
+        }
+
+        const conditions: string[] = [
+          "n.nspname NOT IN ('pg_catalog', 'information_schema')",
+        ];
+
+        if (parsed.schema !== undefined) {
+          conditions.push(`n.nspname = '${parsed.schema}'`);
+        }
+
+        if (parsed.exclude !== undefined && parsed.exclude.length > 0) {
+          // Expand well-known aliases (e.g. "pgvector" -> ["pgvector", "vector"])
+          const normalizedExclude = parsed.exclude.flatMap((s) => {
+            const alias = EXTENSION_ALIASES[s];
+            return alias ? [s, alias] : [s];
+          });
+          const excludeList = normalizedExclude.map((s) => `'${s}'`).join(", ");
+          // Exclude by schema name
+          conditions.push(`n.nspname NOT IN (${excludeList})`);
+          // Also exclude extension-owned functions (e.g., ltree functions in public schema)
+          conditions.push(`NOT EXISTS (
+                      SELECT 1 FROM pg_depend d
+                      JOIN pg_extension e ON d.refobjid = e.oid
+                      WHERE d.objid = p.oid
+                      AND d.deptype = 'e'
+                      AND e.extname IN (${excludeList})
+                  )`);
+        }
+
+        if (parsed.language !== undefined) {
+          conditions.push(`l.lanname = '${parsed.language}'`);
+        }
+
+        const limitVal = parsed.limit ?? 500;
+
+        const sql = `SELECT n.nspname as schema, p.proname as name,
+                          pg_get_function_arguments(p.oid) as arguments,
+                          pg_get_function_result(p.oid) as returns,
+                          l.lanname as language,
+                          p.provolatile as volatility
+                          FROM pg_proc p
+                          JOIN pg_namespace n ON n.oid = p.pronamespace
+                          JOIN pg_language l ON l.oid = p.prolang
+                          WHERE ${conditions.join(" AND ")}
+                          ORDER BY n.nspname, p.proname
+                          LIMIT ${String(limitVal)}`;
+
+        const result = await adapter.executeQuery(sql);
+        return {
+          functions: result.rows,
+          count: result.rows?.length ?? 0,
+          limit: limitVal,
+          note:
+            (result.rows?.length ?? 0) >= limitVal
+              ? `Results limited to ${String(limitVal)}. Use 'limit' param for more, or 'exclude' to filter out extension schemas.`
+              : undefined,
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error:
+            error instanceof z.ZodError
+              ? error.issues.map((i) => i.message).join("; ")
+              : formatPostgresError(error, { tool: "pg_list_functions" }),
+        };
       }
-
-      if (parsed.exclude !== undefined && parsed.exclude.length > 0) {
-        // Expand well-known aliases (e.g. "pgvector" -> ["pgvector", "vector"])
-        const normalizedExclude = parsed.exclude.flatMap((s) => {
-          const alias = EXTENSION_ALIASES[s];
-          return alias ? [s, alias] : [s];
-        });
-        const excludeList = normalizedExclude.map((s) => `'${s}'`).join(", ");
-        // Exclude by schema name
-        conditions.push(`n.nspname NOT IN (${excludeList})`);
-        // Also exclude extension-owned functions (e.g., ltree functions in public schema)
-        conditions.push(`NOT EXISTS (
-                    SELECT 1 FROM pg_depend d
-                    JOIN pg_extension e ON d.refobjid = e.oid
-                    WHERE d.objid = p.oid
-                    AND d.deptype = 'e'
-                    AND e.extname IN (${excludeList})
-                )`);
-      }
-
-      if (parsed.language !== undefined) {
-        conditions.push(`l.lanname = '${parsed.language}'`);
-      }
-
-      const limitVal = parsed.limit ?? 500;
-
-      const sql = `SELECT n.nspname as schema, p.proname as name,
-                        pg_get_function_arguments(p.oid) as arguments,
-                        pg_get_function_result(p.oid) as returns,
-                        l.lanname as language,
-                        p.provolatile as volatility
-                        FROM pg_proc p
-                        JOIN pg_namespace n ON n.oid = p.pronamespace
-                        JOIN pg_language l ON l.oid = p.prolang
-                        WHERE ${conditions.join(" AND ")}
-                        ORDER BY n.nspname, p.proname
-                        LIMIT ${String(limitVal)}`;
-
-      const result = await adapter.executeQuery(sql);
-      return {
-        functions: result.rows,
-        count: result.rows?.length ?? 0,
-        limit: limitVal,
-        note:
-          (result.rows?.length ?? 0) >= limitVal
-            ? `Results limited to ${String(limitVal)}. Use 'limit' param for more, or 'exclude' to filter out extension schemas.`
-            : undefined,
-      };
     },
   };
 }
@@ -710,31 +734,67 @@ function createListTriggersTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("List Triggers"),
     icons: getToolIcons("schema", readOnly("List Triggers")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = (params ?? {}) as { schema?: string; table?: string };
-      let whereClause = "n.nspname NOT IN ('pg_catalog', 'information_schema')";
-      if (parsed.schema) whereClause += ` AND n.nspname = '${parsed.schema}'`;
-      if (parsed.table) whereClause += ` AND c.relname = '${parsed.table}'`;
+      try {
+        const parsed = (params ?? {}) as { schema?: string; table?: string };
+        const schemaName = parsed.schema ?? "public";
 
-      const sql = `SELECT n.nspname as schema, c.relname as table_name, t.tgname as name,
-                        CASE t.tgtype::int & 2 WHEN 2 THEN 'BEFORE' ELSE 'AFTER' END as timing,
-                        array_remove(ARRAY[
-                            CASE WHEN t.tgtype::int & 4 = 4 THEN 'INSERT' END,
-                            CASE WHEN t.tgtype::int & 8 = 8 THEN 'DELETE' END,
-                            CASE WHEN t.tgtype::int & 16 = 16 THEN 'UPDATE' END,
-                            CASE WHEN t.tgtype::int & 32 = 32 THEN 'TRUNCATE' END
-                        ], NULL) as events,
-                        p.proname as function_name,
-                        t.tgenabled != 'D' as enabled
-                        FROM pg_trigger t
-                        JOIN pg_class c ON c.oid = t.tgrelid
-                        JOIN pg_namespace n ON n.oid = c.relnamespace
-                        JOIN pg_proc p ON p.oid = t.tgfoid
-                        WHERE NOT t.tgisinternal
-                        AND ${whereClause}
-                        ORDER BY n.nspname, c.relname, t.tgname`;
+        // Validate schema existence when filtering by schema
+        if (parsed.schema) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM pg_namespace WHERE nspname = '${parsed.schema}'`,
+          );
+          if ((schemaCheck.rows?.length ?? 0) === 0) {
+            return {
+              success: false,
+              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+            };
+          }
+        }
 
-      const result = await adapter.executeQuery(sql);
-      return { triggers: result.rows, count: result.rows?.length ?? 0 };
+        // Validate table existence when filtering by table
+        if (parsed.table) {
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = '${schemaName}' AND table_name = '${parsed.table}'`,
+          );
+          if ((tableCheck.rows?.length ?? 0) === 0) {
+            return {
+              success: false,
+              error: `Table '${schemaName}.${parsed.table}' not found. Use pg_list_tables to see available tables.`,
+            };
+          }
+        }
+
+        let whereClause =
+          "n.nspname NOT IN ('pg_catalog', 'information_schema')";
+        if (parsed.schema) whereClause += ` AND n.nspname = '${parsed.schema}'`;
+        if (parsed.table) whereClause += ` AND c.relname = '${parsed.table}'`;
+
+        const sql = `SELECT n.nspname as schema, c.relname as table_name, t.tgname as name,
+                          CASE t.tgtype::int & 2 WHEN 2 THEN 'BEFORE' ELSE 'AFTER' END as timing,
+                          array_remove(ARRAY[
+                              CASE WHEN t.tgtype::int & 4 = 4 THEN 'INSERT' END,
+                              CASE WHEN t.tgtype::int & 8 = 8 THEN 'DELETE' END,
+                              CASE WHEN t.tgtype::int & 16 = 16 THEN 'UPDATE' END,
+                              CASE WHEN t.tgtype::int & 32 = 32 THEN 'TRUNCATE' END
+                          ], NULL) as events,
+                          p.proname as function_name,
+                          t.tgenabled != 'D' as enabled
+                          FROM pg_trigger t
+                          JOIN pg_class c ON c.oid = t.tgrelid
+                          JOIN pg_namespace n ON n.oid = c.relnamespace
+                          JOIN pg_proc p ON p.oid = t.tgfoid
+                          WHERE NOT t.tgisinternal
+                          AND ${whereClause}
+                          ORDER BY n.nspname, c.relname, t.tgname`;
+
+        const result = await adapter.executeQuery(sql);
+        return { triggers: result.rows, count: result.rows?.length ?? 0 };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_list_triggers" }),
+        };
+      }
     },
   };
 }
@@ -756,44 +816,78 @@ function createListConstraintsTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("List Constraints"),
     icons: getToolIcons("schema", readOnly("List Constraints")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = (params ?? {}) as {
-        table?: string;
-        schema?: string;
-        type?: string;
-      };
-
-      let whereClause =
-        "n.nspname NOT IN ('pg_catalog', 'information_schema') AND con.contype != 'n'";
-      if (parsed.schema) whereClause += ` AND n.nspname = '${parsed.schema}'`;
-      if (parsed.table) whereClause += ` AND c.relname = '${parsed.table}'`;
-      if (parsed.type) {
-        const typeMap: Record<string, string> = {
-          primary_key: "p",
-          foreign_key: "f",
-          unique: "u",
-          check: "c",
+      try {
+        const parsed = (params ?? {}) as {
+          table?: string;
+          schema?: string;
+          type?: string;
         };
-        whereClause += ` AND con.contype = '${typeMap[parsed.type] ?? ""}'`;
+        const schemaName = parsed.schema ?? "public";
+
+        // Validate schema existence when filtering by schema
+        if (parsed.schema) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM pg_namespace WHERE nspname = '${parsed.schema}'`,
+          );
+          if ((schemaCheck.rows?.length ?? 0) === 0) {
+            return {
+              success: false,
+              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+            };
+          }
+        }
+
+        // Validate table existence when filtering by table
+        if (parsed.table) {
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = '${schemaName}' AND table_name = '${parsed.table}'`,
+          );
+          if ((tableCheck.rows?.length ?? 0) === 0) {
+            return {
+              success: false,
+              error: `Table '${schemaName}.${parsed.table}' not found. Use pg_list_tables to see available tables.`,
+            };
+          }
+        }
+
+        let whereClause =
+          "n.nspname NOT IN ('pg_catalog', 'information_schema') AND con.contype != 'n'";
+        if (parsed.schema) whereClause += ` AND n.nspname = '${parsed.schema}'`;
+        if (parsed.table) whereClause += ` AND c.relname = '${parsed.table}'`;
+        if (parsed.type) {
+          const typeMap: Record<string, string> = {
+            primary_key: "p",
+            foreign_key: "f",
+            unique: "u",
+            check: "c",
+          };
+          whereClause += ` AND con.contype = '${typeMap[parsed.type] ?? ""}'`;
+        }
+
+        const sql = `SELECT n.nspname as schema, c.relname as table_name, con.conname as name,
+                          CASE con.contype 
+                              WHEN 'p' THEN 'primary_key'
+                              WHEN 'f' THEN 'foreign_key'
+                              WHEN 'u' THEN 'unique'
+                              WHEN 'c' THEN 'check'
+                              WHEN 'n' THEN 'not_null'
+                              ELSE con.contype
+                          END as type,
+                          pg_get_constraintdef(con.oid) as definition
+                          FROM pg_constraint con
+                          JOIN pg_class c ON c.oid = con.conrelid
+                          JOIN pg_namespace n ON n.oid = c.relnamespace
+                          WHERE ${whereClause}
+                          ORDER BY n.nspname, c.relname, con.conname`;
+
+        const result = await adapter.executeQuery(sql);
+        return { constraints: result.rows, count: result.rows?.length ?? 0 };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_list_constraints" }),
+        };
       }
-
-      const sql = `SELECT n.nspname as schema, c.relname as table_name, con.conname as name,
-                        CASE con.contype 
-                            WHEN 'p' THEN 'primary_key'
-                            WHEN 'f' THEN 'foreign_key'
-                            WHEN 'u' THEN 'unique'
-                            WHEN 'c' THEN 'check'
-                            WHEN 'n' THEN 'not_null'
-                            ELSE con.contype
-                        END as type,
-                        pg_get_constraintdef(con.oid) as definition
-                        FROM pg_constraint con
-                        JOIN pg_class c ON c.oid = con.conrelid
-                        JOIN pg_namespace n ON n.oid = c.relnamespace
-                        WHERE ${whereClause}
-                        ORDER BY n.nspname, c.relname, con.conname`;
-
-      const result = await adapter.executeQuery(sql);
-      return { constraints: result.rows, count: result.rows?.length ?? 0 };
     },
   };
 }

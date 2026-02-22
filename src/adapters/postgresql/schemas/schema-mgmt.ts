@@ -432,27 +432,42 @@ export const ListFunctionsOutputSchema = z
   .object({
     functions: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Function list"),
-    count: z.number().describe("Number of functions"),
-    limit: z.number().describe("Limit used"),
+    count: z.number().optional().describe("Number of functions"),
+    limit: z.number().optional().describe("Limit used"),
     note: z.string().optional().describe("Note about truncation"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
   })
   .loose();
 
 /**
  * pg_list_triggers output
  */
-export const ListTriggersOutputSchema = z.object({
-  triggers: z.array(z.record(z.string(), z.unknown())).describe("Trigger list"),
-  count: z.number().describe("Number of triggers"),
-});
+export const ListTriggersOutputSchema = z
+  .object({
+    triggers: z
+      .array(z.record(z.string(), z.unknown()))
+      .optional()
+      .describe("Trigger list"),
+    count: z.number().optional().describe("Number of triggers"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .loose();
 
 /**
  * pg_list_constraints output
  */
-export const ListConstraintsOutputSchema = z.object({
-  constraints: z
-    .array(z.record(z.string(), z.unknown()))
-    .describe("Constraint list"),
-  count: z.number().describe("Number of constraints"),
-});
+export const ListConstraintsOutputSchema = z
+  .object({
+    constraints: z
+      .array(z.record(z.string(), z.unknown()))
+      .optional()
+      .describe("Constraint list"),
+    count: z.number().optional().describe("Number of constraints"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .loose();
