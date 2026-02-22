@@ -15,8 +15,8 @@
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgresql-mcp/blob/master/SECURITY.md)
 ![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Tests](https://img.shields.io/badge/Tests-2376_passed-success.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Coverage](https://img.shields.io/badge/Coverage-85.37%25-green.svg)](https://github.com/neverinfamous/postgresql-mcp)
+[![Tests](https://img.shields.io/badge/Tests-2920_passed-success.svg)](https://github.com/neverinfamous/postgresql-mcp)
+[![Coverage](https://img.shields.io/badge/Coverage-92.05%25-brightgreen.svg)](https://github.com/neverinfamous/postgresql-mcp)
 
 **[GitHub](https://github.com/neverinfamous/postgresql-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgresql-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgresql-mcp/blob/master/CHANGELOG.md)**
 
