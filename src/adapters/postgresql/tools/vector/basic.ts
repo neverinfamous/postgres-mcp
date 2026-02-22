@@ -229,14 +229,28 @@ export function createVectorAddColumnTool(
       }
 
       const sql = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} vector(${String(parsed.dimensions)})`;
-      await adapter.executeQuery(sql);
-      return {
-        success: true,
-        table: parsed.table,
-        column: parsed.column,
-        dimensions: parsed.dimensions,
-        ifNotExists: parsed.ifNotExists,
-      };
+      try {
+        await adapter.executeQuery(sql);
+        return {
+          success: true,
+          table: parsed.table,
+          column: parsed.column,
+          dimensions: parsed.dimensions,
+          ifNotExists: parsed.ifNotExists,
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Duplicate column: PG code 42701
+        if (msg.includes("already exists")) {
+          return {
+            success: false,
+            error: `Column '${parsed.column}' already exists on table '${parsed.table}'`,
+            suggestion:
+              "Use ifNotExists: true to skip if column already exists",
+          };
+        }
+        throw err;
+      }
     },
   };
 }
@@ -718,8 +732,8 @@ export function createVectorCreateIndexTool(
         }
       }
 
-      let withClause = "";
-      let appliedParams: Record<string, number> = {};
+      let withClause: string;
+      let appliedParams: Record<string, number>;
       if (type === "ivfflat") {
         const numLists = lists ?? 100;
         withClause = `WITH(lists = ${String(numLists)})`;
@@ -747,20 +761,34 @@ export function createVectorCreateIndexTool(
           ifNotExists: ifNotExists ?? false,
         };
       } catch (error: unknown) {
-        // If ifNotExists is true and the error is "already exists", return success with alreadyExists flag
-        // (This handles race conditions where index is created between check and create)
-        if (ifNotExists === true && error instanceof Error) {
-          const msg = error.message.toLowerCase();
-          if (msg.includes("already exists") || msg.includes("duplicate")) {
+        if (error instanceof Error) {
+          // If ifNotExists is true and the error is "already exists", return success with alreadyExists flag
+          // (This handles race conditions where index is created between check and create)
+          if (ifNotExists === true) {
+            const msg = error.message.toLowerCase();
+            if (msg.includes("already exists") || msg.includes("duplicate")) {
+              return {
+                success: true,
+                index: indexNameRaw,
+                type,
+                table,
+                column,
+                ifNotExists: true,
+                alreadyExists: true,
+                message: `Index ${indexNameRaw} already exists`,
+              };
+            }
+          }
+          // Handle non-vector column errors (operator class does not accept data type)
+          const opClassMatch = /does not accept data type (\w+)/.exec(
+            error.message,
+          );
+          if (opClassMatch) {
             return {
-              success: true,
-              index: indexNameRaw,
-              type,
-              table,
-              column,
-              ifNotExists: true,
-              alreadyExists: true,
-              message: `Index ${indexNameRaw} already exists`,
+              success: false,
+              error: `Column '${column}' is not a vector column (type: ${opClassMatch[1] ?? "unknown"}). Vector indexes can only be created on vector columns.`,
+              suggestion:
+                "Use a column with vector type, or use pg_vector_add_column to create one",
             };
           }
         }
@@ -1085,42 +1113,41 @@ export function createVectorAggregateTool(
 export function createVectorBatchInsertTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Schema with parameter smoothing
-  const BatchInsertSchema = z
-    .object({
-      table: z.string().optional().describe("Table name"),
-      tableName: z.string().optional().describe("Alias for table"),
-      column: z.string().optional().describe("Vector column"),
-      col: z.string().optional().describe("Alias for column"),
-      vectors: z
-        .array(
-          z.object({
-            vector: z.array(z.number()),
-            data: z
-              .record(z.string(), z.unknown())
-              .optional()
-              .describe("Additional column values"),
-          }),
-        )
-        .describe("Array of vectors with optional additional data"),
-      schema: z
-        .string()
-        .optional()
-        .describe("Database schema (default: public)"),
-    })
-    .transform((data) => ({
-      table: data.table ?? data.tableName ?? "",
-      column: data.column ?? data.col ?? "",
-      vectors: data.vectors,
-      schema: data.schema,
-    }));
+  // Base schema for MCP visibility (Split Schema pattern)
+  const BatchInsertSchemaBase = z.object({
+    table: z.string().optional().describe("Table name"),
+    tableName: z.string().optional().describe("Alias for table"),
+    column: z.string().optional().describe("Vector column"),
+    col: z.string().optional().describe("Alias for column"),
+    vectors: z
+      .array(
+        z.object({
+          vector: z.array(z.number()),
+          data: z
+            .record(z.string(), z.unknown())
+            .optional()
+            .describe("Additional column values"),
+        }),
+      )
+      .describe("Array of vectors with optional additional data"),
+    schema: z.string().optional().describe("Database schema (default: public)"),
+  });
+
+  // Transformed schema with alias resolution for handler
+  const BatchInsertSchema = BatchInsertSchemaBase.transform((data) => ({
+    table: data.table ?? data.tableName ?? "",
+    column: data.column ?? data.col ?? "",
+    vectors: data.vectors,
+    schema: data.schema,
+  }));
 
   return {
     name: "pg_vector_batch_insert",
     description:
       'Efficiently insert multiple vectors. vectors param expects array of {vector: [...], data?: {...}} objects, NOT raw arrays. Example: vectors: [{vector: [0.1, 0.2], data: {name: "a"}}]',
     group: "vector",
-    inputSchema: BatchInsertSchema,
+    // Use base schema for MCP visibility
+    inputSchema: BatchInsertSchemaBase,
     annotations: write("Batch Insert Vectors"),
     icons: getToolIcons("vector", write("Batch Insert Vectors")),
     handler: async (params: unknown, _context: RequestContext) => {
@@ -1189,13 +1216,32 @@ export function createVectorBatchInsertTool(
       }
 
       const sql = `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES ${valueRows.join(", ")} `;
-      const result = await adapter.executeQuery(sql, allParams);
-
-      return {
-        success: true,
-        rowsInserted: parsed.vectors.length,
-        rowsAffected: result.rowsAffected,
-      };
+      try {
+        const result = await adapter.executeQuery(sql, allParams);
+        return {
+          success: true,
+          rowsInserted: parsed.vectors.length,
+          rowsAffected: result.rowsAffected,
+        };
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          const dimMatch = /expected (\d+) dimensions?, not (\d+)/.exec(
+            error.message,
+          );
+          if (dimMatch) {
+            const expectedDim = dimMatch[1] ?? "0";
+            const providedDim = dimMatch[2] ?? "0";
+            return {
+              success: false,
+              error: "Vector dimension mismatch",
+              expectedDimensions: parseInt(expectedDim, 10),
+              providedDimensions: parseInt(providedDim, 10),
+              suggestion: `Column expects ${expectedDim} dimensions but vectors have ${providedDim}. Resize vectors or check embedding model.`,
+            };
+          }
+        }
+        throw error;
+      }
     },
   };
 }
@@ -1305,6 +1351,28 @@ export function createVectorValidateTool(
           };
         }
 
+        // Check column type before calling vector_dims() to avoid raw PG errors
+        const typeCheckSql = `
+          SELECT udt_name FROM information_schema.columns
+          WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
+        `;
+        const typeResult = await adapter.executeQuery(typeCheckSql, [
+          schemaName,
+          parsed.table,
+          parsed.column,
+        ]);
+        const udtName = typeResult.rows?.[0]?.["udt_name"] as
+          | string
+          | undefined;
+        if (udtName !== "vector") {
+          return {
+            valid: false,
+            error: `Column '${parsed.column}' is not a vector column (type: ${udtName ?? "unknown"})`,
+            suggestion:
+              "Use a column with vector type, or use pg_vector_add_column to create one",
+          };
+        }
+
         // Try to get actual dimensions from a sample row
         const sampleSql = `
                     SELECT vector_dims("${parsed.column}") as dimensions
@@ -1320,24 +1388,7 @@ export function createVectorValidateTool(
               typeof dims === "string" ? parseInt(dims, 10) : Number(dims);
           }
         } catch {
-          // Table might be empty, check type definition instead
-          const typeSql = `
-                        SELECT udt_name, character_maximum_length
-                        FROM information_schema.columns 
-                        WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
-                `;
-          const typeResult = await adapter.executeQuery(typeSql, [
-            schemaName,
-            parsed.table,
-            parsed.column,
-          ]);
-          if (
-            typeResult.rows?.[0]?.["character_maximum_length"] !== undefined
-          ) {
-            columnDimensions = typeResult.rows[0][
-              "character_maximum_length"
-            ] as number;
-          }
+          // Table might be empty — columnDimensions remains undefined
         }
       }
 

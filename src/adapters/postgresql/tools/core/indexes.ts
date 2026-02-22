@@ -11,6 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { formatPostgresError } from "./error-helpers.js";
 import {
   GetIndexesSchemaBase,
   GetIndexesSchema,
@@ -64,11 +65,36 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
         };
       }
 
+      const schemaName = schema ?? "public";
+
+      // P154: Validate table exists before querying indexes
+      const schemaCheck = await adapter.executeQuery(
+        `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+        [schemaName],
+      );
+      if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+        return {
+          success: false,
+          error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+        };
+      }
+
+      const tableCheck = await adapter.executeQuery(
+        `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+        [schemaName, table],
+      );
+      if (!tableCheck.rows || tableCheck.rows.length === 0) {
+        return {
+          success: false,
+          error: `Table '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
+        };
+      }
+
       const indexes = await adapter.getTableIndexes(table, schema);
       return {
         indexes,
         count: indexes.length,
-        table: `${schema ?? "public"}.${table}`,
+        table: `${schemaName}.${table}`,
       };
     },
   };
@@ -183,8 +209,16 @@ export function createCreateIndexTool(
             };
           }
         }
-        // Re-throw other errors
-        throw error;
+        // Return structured error
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_create_index",
+            index: name,
+            table,
+            schema: schemaName,
+          }),
+        };
       }
     },
   };
@@ -278,12 +312,31 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
       const cascadeClause = cascade === true ? " CASCADE" : "";
       const concurrentlyClause = concurrently === true ? "CONCURRENTLY " : "";
 
+      // Check if index exists before dropping (for existed property)
+      const existsCheck = await adapter.executeQuery(
+        `SELECT 1 FROM pg_indexes WHERE schemaname = $1 AND indexname = $2`,
+        [schemaName, name],
+      );
+      const existed = (existsCheck.rows?.length ?? 0) > 0;
+
       const sql = `DROP INDEX ${concurrentlyClause}${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_drop_index",
+            index: name,
+            schema: schemaName,
+          }),
+        };
+      }
       return {
         success: true,
         index: `${schemaName}.${name}`,
+        existed,
         sql,
       };
     },

@@ -1,0 +1,75 @@
+# Dependencies (use clean npm ci inside Docker)
+node_modules/
+
+# Build output (rebuilt inside Docker)
+dist/
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Editor directories
+.gemini/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage & results
+coverage/
+test-results.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Documentation (not needed in image)
+*.md
+!LICENSE
+docs/
+
+# CI/CD
+.github/
+
+# Lock files (keep package-lock.json)
+yarn.lock
+pnpm-lock.yaml
+
+# Test database files
+test-database/
+.mcpregistry_*
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Tests (not needed in production image)
+tests/
+__tests__/
+*.test.ts
+*.spec.ts
+vitest.config.ts
+
+# Prettier/ESLint config
+.prettierrc
+.prettierignore
+.eslintrc*
+eslint.config.*

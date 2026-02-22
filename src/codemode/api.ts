@@ -365,7 +365,7 @@ const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   describeTable: "table",
   dropTable: "table",
   listTables: "schema",
-  count: "table",
+  count: ["table", "where"],
   truncate: "table",
   dropIndex: "name",
   listObjects: "schema",

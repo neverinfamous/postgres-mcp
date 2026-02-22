@@ -13,6 +13,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { formatPostgresError } from "../core/error-helpers.js";
 import {
   ExplainSchema,
   ExplainSchemaBase,
@@ -29,15 +30,34 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Explain Query"),
     icons: getToolIcons("performance", readOnly("Explain Query")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { sql, format, params: queryParams } = ExplainSchema.parse(params);
-      const fmt = format ?? "text";
-      const explainSql = `EXPLAIN (FORMAT ${fmt.toUpperCase()}) ${sql}`;
-      const result = await adapter.executeQuery(explainSql, queryParams ?? []);
+      try {
+        const {
+          sql,
+          format,
+          params: queryParams,
+        } = ExplainSchema.parse(params);
+        if (!sql) {
+          throw new Error("Missing required parameter: sql (or query alias)");
+        }
+        const fmt = format ?? "text";
+        const explainSql = `EXPLAIN (FORMAT ${fmt.toUpperCase()}) ${sql}`;
+        const result = await adapter.executeQuery(
+          explainSql,
+          queryParams ?? [],
+        );
 
-      if (fmt === "json") {
-        return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+        if (fmt === "json") {
+          return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+        }
+        return {
+          plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_explain" }),
+        };
       }
-      return { plan: result.rows?.map((r) => Object.values(r)[0]).join("\n") };
     },
   };
 }
@@ -54,15 +74,34 @@ export function createExplainAnalyzeTool(
     annotations: readOnly("Explain Analyze"),
     icons: getToolIcons("performance", readOnly("Explain Analyze")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { sql, format, params: queryParams } = ExplainSchema.parse(params);
-      const fmt = format ?? "text";
-      const explainSql = `EXPLAIN (ANALYZE, FORMAT ${fmt.toUpperCase()}) ${sql}`;
-      const result = await adapter.executeQuery(explainSql, queryParams ?? []);
+      try {
+        const {
+          sql,
+          format,
+          params: queryParams,
+        } = ExplainSchema.parse(params);
+        if (!sql) {
+          throw new Error("Missing required parameter: sql (or query alias)");
+        }
+        const fmt = format ?? "text";
+        const explainSql = `EXPLAIN (ANALYZE, FORMAT ${fmt.toUpperCase()}) ${sql}`;
+        const result = await adapter.executeQuery(
+          explainSql,
+          queryParams ?? [],
+        );
 
-      if (fmt === "json") {
-        return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+        if (fmt === "json") {
+          return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+        }
+        return {
+          plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_explain_analyze" }),
+        };
       }
-      return { plan: result.rows?.map((r) => Object.values(r)[0]).join("\n") };
     },
   };
 }
@@ -79,15 +118,34 @@ export function createExplainBuffersTool(
     annotations: readOnly("Explain Buffers"),
     icons: getToolIcons("performance", readOnly("Explain Buffers")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { sql, format, params: queryParams } = ExplainSchema.parse(params);
-      const fmt = format ?? "json";
-      const explainSql = `EXPLAIN (ANALYZE, BUFFERS, FORMAT ${fmt.toUpperCase()}) ${sql}`;
-      const result = await adapter.executeQuery(explainSql, queryParams ?? []);
+      try {
+        const {
+          sql,
+          format,
+          params: queryParams,
+        } = ExplainSchema.parse(params);
+        if (!sql) {
+          throw new Error("Missing required parameter: sql (or query alias)");
+        }
+        const fmt = format ?? "json";
+        const explainSql = `EXPLAIN (ANALYZE, BUFFERS, FORMAT ${fmt.toUpperCase()}) ${sql}`;
+        const result = await adapter.executeQuery(
+          explainSql,
+          queryParams ?? [],
+        );
 
-      if (fmt === "json") {
-        return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+        if (fmt === "json") {
+          return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+        }
+        return {
+          plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_explain_buffers" }),
+        };
       }
-      return { plan: result.rows?.map((r) => Object.values(r)[0]).join("\n") };
     },
   };
 }

@@ -45,43 +45,65 @@ describe("Citext Tools", () => {
   });
 
   describe("pg_citext_convert_column", () => {
-    it("should throw error if extension not installed", async () => {
+    it("should return structured error if extension not installed", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ installed: false }],
       });
 
       const tool = findTool("pg_citext_convert_column");
-      await expect(
-        tool!.handler(
-          {
-            table: "users",
-            column: "email",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("citext extension is not installed");
+      const result = (await tool!.handler(
+        {
+          table: "users",
+          column: "email",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("citext extension is not installed");
     });
 
-    it("should throw error if column not found", async () => {
+    it("should return structured error if table not found", async () => {
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ installed: true }] })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValueOnce({ rows: [] }); // table not found
 
       const tool = findTool("pg_citext_convert_column");
-      await expect(
-        tool!.handler(
-          {
-            table: "users",
-            column: "nonexistent",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("not found");
+      const result = (await tool!.handler(
+        {
+          table: "nonexistent",
+          column: "email",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
+    });
+
+    it("should return structured error if column not found", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ installed: true }] })
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
+        .mockResolvedValueOnce({ rows: [] }); // column not found
+
+      const tool = findTool("pg_citext_convert_column");
+      const result = (await tool!.handler(
+        {
+          table: "users",
+          column: "nonexistent",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not found");
     });
 
     it("should report already citext column", async () => {
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ installed: true }] })
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
         .mockResolvedValueOnce({
           rows: [{ data_type: "USER-DEFINED", udt_name: "citext" }],
         });
@@ -102,6 +124,7 @@ describe("Citext Tools", () => {
     it("should convert text column to citext", async () => {
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ installed: true }] })
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
         .mockResolvedValueOnce({
           rows: [{ data_type: "text", udt_name: "text" }],
         })
@@ -356,6 +379,7 @@ describe("Citext Tools", () => {
 
     it("should not exclude system schemas when table filter is specified", async () => {
       mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
         .mockResolvedValueOnce({ rows: [{ total: 0 }] })
         .mockResolvedValueOnce({ rows: [] });
 
@@ -366,6 +390,48 @@ describe("Citext Tools", () => {
 
       // Should not have excludedSchemas when filtering by table
       expect(result.excludedSchemas).toBeUndefined();
+    });
+
+    it("should return structured error for nonexistent table", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // table does not exist
+
+      const tool = findTool("pg_citext_analyze_candidates");
+      const result = (await tool!.handler(
+        { table: "nonexistent_table" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
+    });
+
+    it("should return structured error for nonexistent schema", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // schema does not exist
+
+      const tool = findTool("pg_citext_analyze_candidates");
+      const result = (await tool!.handler(
+        { schema: "nonexistent_schema" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
+    });
+
+    it("should parse schema.table format", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
+        .mockResolvedValueOnce({ rows: [{ total: 0 }] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      const tool = findTool("pg_citext_analyze_candidates");
+      await tool!.handler({ table: "custom_schema.users" }, mockContext);
+
+      // Should have parsed schema.table and checked existence with split values
+      expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+        expect.stringContaining("table_schema = $1 AND table_name = $2"),
+        ["custom_schema", "users"],
+      );
     });
   });
 
@@ -532,18 +598,19 @@ describe("Citext Tools", () => {
       );
     });
 
-    it("should throw error for non-existent table", async () => {
+    it("should return structured error for non-existent table", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // table does not exist
 
       const tool = findTool("pg_citext_schema_advisor");
-      await expect(
-        tool!.handler(
-          {
-            table: "nonexistent",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("not found");
+      const result = (await tool!.handler(
+        {
+          table: "nonexistent",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not found");
     });
   });
 

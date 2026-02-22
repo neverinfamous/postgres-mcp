@@ -1052,4 +1052,642 @@ describe("PostgresAdapter", () => {
       ).rejects.toThrow(/Transaction not found/);
     });
   });
+
+  // =========================================================================
+  // Aborted Transaction Detection (lines 319–334)
+  // =========================================================================
+
+  describe("Aborted Transaction Commit", () => {
+    beforeEach(async () => {
+      await adapter.connect(mockConfig);
+    });
+
+    it("should detect and report aborted transaction state on commit", async () => {
+      const txId = await adapter.beginTransaction();
+
+      // Simulate transaction probe detecting 25P02 (aborted state)
+      // BEGIN succeeds, then SELECT 1 probe fails with 25P02
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockReset();
+
+      // SELECT 1 probe → aborted state error
+      const abortedError = Object.assign(
+        new Error("current transaction is aborted"),
+        { code: "25P02" },
+      );
+      queryMock.mockRejectedValueOnce(abortedError);
+
+      // ROLLBACK inside the probe handler
+      queryMock.mockResolvedValueOnce({ rows: [] });
+
+      await expect(adapter.commitTransaction(txId)).rejects.toThrow(
+        /aborted state/,
+      );
+
+      // Client should be released and transaction removed
+      expect(mockPoolClient.release).toHaveBeenCalled();
+    });
+
+    it("should detect aborted state via error message pattern when code is missing", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockReset();
+
+      // Probe fails with aborted message but no Pg code
+      queryMock.mockRejectedValueOnce(
+        new Error("current transaction is aborted, commands ignored"),
+      );
+      // ROLLBACK
+      queryMock.mockResolvedValueOnce({ rows: [] });
+
+      await expect(adapter.commitTransaction(txId)).rejects.toThrow(
+        /aborted state/,
+      );
+    });
+
+    it("should handle ROLLBACK failure in aborted state gracefully", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockReset();
+
+      // Probe detects aborted
+      queryMock.mockRejectedValueOnce(
+        Object.assign(new Error("transaction aborted"), { code: "25P02" }),
+      );
+      // ROLLBACK also fails (e.g., connection lost)
+      queryMock.mockRejectedValueOnce(new Error("connection lost"));
+
+      await expect(adapter.commitTransaction(txId)).rejects.toThrow(
+        /aborted state/,
+      );
+
+      // Client should still be released via finally block
+      expect(mockPoolClient.release).toHaveBeenCalled();
+    });
+
+    it("should proceed to COMMIT when probe succeeds", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockReset();
+
+      // SELECT 1 probe → success
+      queryMock.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+      // COMMIT → success
+      queryMock.mockResolvedValueOnce({ rows: [] });
+
+      await adapter.commitTransaction(txId);
+
+      expect(queryMock).toHaveBeenCalledWith("SELECT 1");
+      expect(queryMock).toHaveBeenCalledWith("COMMIT");
+    });
+
+    it("should fall through to COMMIT on non-aborted probe error", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockReset();
+
+      // Probe fails with non-25P02 error (e.g., syntax error)
+      queryMock.mockRejectedValueOnce(
+        Object.assign(new Error("unexpected error"), { code: "42601" }),
+      );
+      // COMMIT still proceeds
+      queryMock.mockResolvedValueOnce({ rows: [] });
+
+      await adapter.commitTransaction(txId);
+
+      expect(queryMock).toHaveBeenCalledWith("COMMIT");
+    });
+  });
+
+  // =========================================================================
+  // Savepoint Query Failures (lines 383, 404, 427)
+  // =========================================================================
+
+  describe("Savepoint Query Failures", () => {
+    beforeEach(async () => {
+      await adapter.connect(mockConfig);
+    });
+
+    it("createSavepoint should throw parsed error when query fails", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockRejectedValueOnce(new Error("SAVEPOINT execution failed"));
+
+      await expect(
+        adapter.createSavepoint(txId, "my_savepoint"),
+      ).rejects.toThrow();
+    });
+
+    it("releaseSavepoint should throw parsed error when query fails", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockResolvedValueOnce({ rows: [] }); // createSavepoint
+      await adapter.createSavepoint(txId, "sp_test");
+
+      queryMock.mockRejectedValueOnce(new Error("savepoint does not exist"));
+
+      await expect(adapter.releaseSavepoint(txId, "sp_test")).rejects.toThrow();
+    });
+
+    it("rollbackToSavepoint should throw parsed error when query fails", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockRejectedValueOnce(new Error("savepoint does not exist"));
+
+      await expect(
+        adapter.rollbackToSavepoint(txId, "nonexistent_sp"),
+      ).rejects.toThrow();
+    });
+  });
+
+  // =========================================================================
+  // Transaction Cleanup (lines 445–484)
+  // =========================================================================
+
+  describe("cleanupTransaction", () => {
+    beforeEach(async () => {
+      await adapter.connect(mockConfig);
+    });
+
+    it("should return false for non-existent transaction", async () => {
+      const result = await adapter.cleanupTransaction("nonexistent-id");
+      expect(result).toBe(false);
+    });
+
+    it("should rollback and release client for existing transaction", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+      const result = await adapter.cleanupTransaction(txId);
+      expect(result).toBe(true);
+      expect(queryMock).toHaveBeenCalledWith("ROLLBACK");
+      expect(mockPoolClient.release).toHaveBeenCalled();
+
+      // Transaction should be removed
+      expect(adapter.getTransactionConnection(txId)).toBeUndefined();
+    });
+
+    it("should handle rollback failure and force-release client", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockRejectedValueOnce(new Error("connection broken"));
+
+      const result = await adapter.cleanupTransaction(txId);
+      expect(result).toBe(false);
+
+      // Should attempt force release with error flag
+      expect(mockPoolClient.release).toHaveBeenCalledWith(true);
+
+      // Transaction should still be removed from map
+      expect(adapter.getTransactionConnection(txId)).toBeUndefined();
+    });
+
+    it("should handle both rollback failure and force-release failure", async () => {
+      const txId = await adapter.beginTransaction();
+
+      const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
+      queryMock.mockRejectedValueOnce(new Error("connection broken"));
+
+      // Force release also throws
+      (
+        mockPoolClient.release as ReturnType<typeof vi.fn>
+      ).mockImplementationOnce(() => {
+        throw new Error("already released");
+      });
+
+      const result = await adapter.cleanupTransaction(txId);
+      // Still returns false because primary rollback failed
+      expect(result).toBe(false);
+    });
+  });
+
+  // =========================================================================
+  // Active Transaction Tracking (line 444)
+  // =========================================================================
+
+  describe("getActiveTransactionIds", () => {
+    beforeEach(async () => {
+      await adapter.connect(mockConfig);
+    });
+
+    it("should return empty array when no transactions", () => {
+      expect(adapter.getActiveTransactionIds()).toEqual([]);
+    });
+
+    it("should return all active transaction IDs", async () => {
+      // Create fresh clients for each transaction
+      const client1 = createMockPoolClient();
+      const client2 = createMockPoolClient();
+      mockPoolMethods.getConnection
+        .mockResolvedValueOnce(client1 as PoolClient)
+        .mockResolvedValueOnce(client2 as PoolClient);
+
+      const tx1 = await adapter.beginTransaction();
+      const tx2 = await adapter.beginTransaction();
+
+      const ids = adapter.getActiveTransactionIds();
+      expect(ids).toContain(tx1);
+      expect(ids).toContain(tx2);
+      expect(ids).toHaveLength(2);
+    });
+  });
+
+  // =========================================================================
+  // Expression Index Parsing (lines 579–685)
+  // =========================================================================
+
+  describe("Expression Index Parsing", () => {
+    // Access private methods via type casting for testing
+    const getPrivateMethods = (adapterInstance: PostgresAdapter) =>
+      adapterInstance as unknown as {
+        parseColumnsArray(columns: unknown): string[];
+        extractIndexColumns(columns: string[], definition: string): string[];
+        extractIndexExpressionPart(definition: string): string | null;
+        parseIndexExpressions(columnList: string): string[];
+      };
+
+    describe("parseColumnsArray", () => {
+      it("should pass through native arrays", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(methods.parseColumnsArray(["col1", "col2"])).toEqual([
+          "col1",
+          "col2",
+        ]);
+      });
+
+      it("should parse PostgreSQL string format {col1,col2}", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(methods.parseColumnsArray("{col1,col2}")).toEqual([
+          "col1",
+          "col2",
+        ]);
+      });
+
+      it("should handle empty string format {}", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(methods.parseColumnsArray("{}")).toEqual([]);
+      });
+
+      it("should handle quoted column names", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(methods.parseColumnsArray('{"my column","other col"}')).toEqual([
+          "my column",
+          "other col",
+        ]);
+      });
+
+      it("should return empty array for non-string, non-array input", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(methods.parseColumnsArray(42)).toEqual([]);
+        expect(methods.parseColumnsArray(null)).toEqual([]);
+        expect(methods.parseColumnsArray(undefined)).toEqual([]);
+      });
+    });
+
+    describe("extractIndexExpressionPart", () => {
+      it("should extract expression from simple index definition", () => {
+        const methods = getPrivateMethods(adapter);
+        const result = methods.extractIndexExpressionPart(
+          "CREATE INDEX idx ON tbl USING btree (lower(name))",
+        );
+        expect(result).toBe("lower(name)");
+      });
+
+      it("should extract multiple column expressions", () => {
+        const methods = getPrivateMethods(adapter);
+        const result = methods.extractIndexExpressionPart(
+          "CREATE INDEX idx ON tbl USING btree (id, lower(name))",
+        );
+        expect(result).toBe("id, lower(name)");
+      });
+
+      it("should handle nested parentheses", () => {
+        const methods = getPrivateMethods(adapter);
+        const result = methods.extractIndexExpressionPart(
+          "CREATE INDEX idx ON tbl USING btree (upper(trim(name)))",
+        );
+        expect(result).toBe("upper(trim(name))");
+      });
+
+      it("should return null when no USING clause found", () => {
+        const methods = getPrivateMethods(adapter);
+        const result = methods.extractIndexExpressionPart(
+          "CREATE INDEX idx ON tbl (name)",
+        );
+        expect(result).toBeNull();
+      });
+
+      it("should return null for unbalanced parentheses", () => {
+        const methods = getPrivateMethods(adapter);
+        const result = methods.extractIndexExpressionPart(
+          "CREATE INDEX idx ON tbl USING btree (lower(name)",
+        );
+        expect(result).toBeNull();
+      });
+    });
+
+    describe("parseIndexExpressions", () => {
+      it("should parse simple column list", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(methods.parseIndexExpressions("id, name")).toEqual([
+          "id",
+          "name",
+        ]);
+      });
+
+      it("should handle expressions with nested parentheses", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(
+          methods.parseIndexExpressions("LOWER(name), id, UPPER(TRIM(email))"),
+        ).toEqual(["LOWER(name)", "id", "UPPER(TRIM(email))"]);
+      });
+
+      it("should handle single expression", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(methods.parseIndexExpressions("lower(name)")).toEqual([
+          "lower(name)",
+        ]);
+      });
+
+      it("should handle empty string", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(methods.parseIndexExpressions("")).toEqual([]);
+      });
+    });
+
+    describe("extractIndexColumns", () => {
+      it("should return columns as-is when no NULL values", () => {
+        const methods = getPrivateMethods(adapter);
+        expect(
+          methods.extractIndexColumns(
+            ["id", "name"],
+            "CREATE INDEX idx ON tbl USING btree (id, name)",
+          ),
+        ).toEqual(["id", "name"]);
+      });
+
+      it("should replace NULL columns with parsed expressions", () => {
+        const methods = getPrivateMethods(adapter);
+        const columns = [null as unknown as string, "id"];
+        const definition =
+          "CREATE INDEX idx ON tbl USING btree (lower(name), id)";
+        const result = methods.extractIndexColumns(columns, definition);
+        expect(result).toEqual(["lower(name)", "id"]);
+      });
+
+      it("should replace empty string columns with parsed expressions", () => {
+        const methods = getPrivateMethods(adapter);
+        const columns = ["", "id"];
+        const definition =
+          "CREATE INDEX idx ON tbl USING btree (upper(email), id)";
+        const result = methods.extractIndexColumns(columns, definition);
+        expect(result).toEqual(["upper(email)", "id"]);
+      });
+
+      it("should return original columns when definition has no USING clause", () => {
+        const methods = getPrivateMethods(adapter);
+        const columns = [null as unknown as string, "id"];
+        const result = methods.extractIndexColumns(
+          columns,
+          "CREATE INDEX idx ON tbl (name, id)",
+        );
+        expect(result).toEqual(columns);
+      });
+
+      it("should return original columns when expression count mismatches", () => {
+        const methods = getPrivateMethods(adapter);
+        const columns = [null as unknown as string, "id", "extra"];
+        const definition =
+          "CREATE INDEX idx ON tbl USING btree (lower(name), id)";
+        const result = methods.extractIndexColumns(columns, definition);
+        // Counts don't match (3 vs 2), so original is returned
+        expect(result).toEqual(columns);
+      });
+    });
+  });
+
+  // =========================================================================
+  // describeTable with FK columns and NOT NULL constraints (lines 885, 938)
+  // =========================================================================
+
+  describe("describeTable with foreign keys and NOT NULL", () => {
+    beforeEach(async () => {
+      await adapter.connect(mockConfig);
+    });
+
+    it("should include foreignKey references in column info", async () => {
+      const emptyResult: QueryResult = { rows: [] };
+      const mockColumnsResult: QueryResult = {
+        rows: [
+          {
+            name: "user_id",
+            type: "integer",
+            nullable: false,
+            primary_key: false,
+            default_value: null,
+            is_generated: false,
+            generated_expression: null,
+            comment: null,
+            foreign_key: {
+              table: "users",
+              schema: "public",
+              column: "id",
+            },
+          },
+        ],
+      };
+      const mockTableResult: QueryResult = {
+        rows: [
+          {
+            type: "table",
+            owner: "admin",
+            row_count: 10,
+            live_row_estimate: 10,
+            stats_stale: false,
+            comment: null,
+            is_partitioned: false,
+            partition_key: null,
+          },
+        ],
+      };
+      mockPoolMethods.query
+        .mockResolvedValueOnce(mockColumnsResult) // columns
+        .mockResolvedValueOnce(mockTableResult) // table info
+        .mockResolvedValueOnce(emptyResult) // indexes
+        .mockResolvedValueOnce(emptyResult) // constraints
+        .mockResolvedValueOnce(emptyResult); // foreign keys
+
+      const result = await adapter.describeTable("orders", "public");
+      const col = result.columns?.[0];
+      expect(col?.foreignKey).toBeDefined();
+      expect(col?.foreignKey?.table).toBe("users");
+      expect(col?.foreignKey?.schema).toBe("public");
+      expect(col?.foreignKey?.column).toBe("id");
+    });
+
+    it("should generate NOT NULL synthetic constraints for non-PK, non-nullable columns", async () => {
+      const emptyResult: QueryResult = { rows: [] };
+      const mockColumnsResult: QueryResult = {
+        rows: [
+          {
+            name: "id",
+            type: "integer",
+            nullable: false,
+            primary_key: true,
+            default_value: null,
+            is_generated: false,
+            generated_expression: null,
+            comment: null,
+            foreign_key: null,
+          },
+          {
+            name: "email",
+            type: "text",
+            nullable: false,
+            primary_key: false,
+            default_value: null,
+            is_generated: false,
+            generated_expression: null,
+            comment: null,
+            foreign_key: null,
+          },
+          {
+            name: "bio",
+            type: "text",
+            nullable: true,
+            primary_key: false,
+            default_value: null,
+            is_generated: false,
+            generated_expression: null,
+            comment: null,
+            foreign_key: null,
+          },
+        ],
+      };
+      const mockTableResult: QueryResult = {
+        rows: [
+          {
+            type: "table",
+            owner: "admin",
+            row_count: 5,
+            live_row_estimate: 5,
+            stats_stale: false,
+            comment: null,
+            is_partitioned: false,
+            partition_key: null,
+          },
+        ],
+      };
+      mockPoolMethods.query
+        .mockResolvedValueOnce(mockColumnsResult) // columns
+        .mockResolvedValueOnce(mockTableResult) // table info
+        .mockResolvedValueOnce(emptyResult) // indexes
+        .mockResolvedValueOnce(emptyResult) // constraints
+        .mockResolvedValueOnce(emptyResult); // foreign keys
+
+      const result = await adapter.describeTable("users", "public");
+
+      // Should have NOT NULL constraint for email (non-PK, non-nullable)
+      // but NOT for id (PK) or bio (nullable)
+      const notNullConstraints = result.constraints?.filter(
+        (c) => c.type === "not_null",
+      );
+      expect(notNullConstraints).toBeDefined();
+      expect(notNullConstraints?.length).toBe(1);
+      expect(notNullConstraints?.[0]?.columns).toEqual(["email"]);
+    });
+
+    it("should include generatedExpression for generated columns", async () => {
+      const emptyResult: QueryResult = { rows: [] };
+      const mockColumnsResult: QueryResult = {
+        rows: [
+          {
+            name: "full_name",
+            type: "text",
+            nullable: true,
+            primary_key: false,
+            default_value: null,
+            is_generated: true,
+            generated_expression: "first_name || ' ' || last_name",
+            comment: null,
+            foreign_key: null,
+          },
+          {
+            name: "first_name",
+            type: "text",
+            nullable: false,
+            primary_key: false,
+            default_value: null,
+            is_generated: false,
+            generated_expression: null,
+            comment: null,
+            foreign_key: null,
+          },
+        ],
+      };
+      const mockTableResult: QueryResult = {
+        rows: [
+          {
+            type: "table",
+            owner: "admin",
+            row_count: 0,
+            live_row_estimate: 0,
+            stats_stale: false,
+            comment: null,
+            is_partitioned: false,
+            partition_key: null,
+          },
+        ],
+      };
+      mockPoolMethods.query
+        .mockResolvedValueOnce(mockColumnsResult)
+        .mockResolvedValueOnce(mockTableResult)
+        .mockResolvedValueOnce(emptyResult)
+        .mockResolvedValueOnce(emptyResult)
+        .mockResolvedValueOnce(emptyResult);
+
+      const result = await adapter.describeTable("people", "public");
+      const generatedCol = result.columns?.find((c) => c.name === "full_name");
+      expect(generatedCol?.isGenerated).toBe(true);
+      expect(generatedCol?.generatedExpression).toBe(
+        "first_name || ' ' || last_name",
+      );
+
+      // Non-generated column should NOT have generatedExpression
+      const normalCol = result.columns?.find((c) => c.name === "first_name");
+      expect(normalCol?.isGenerated).toBe(false);
+      expect(normalCol?.generatedExpression).toBeUndefined();
+    });
+  });
+
+  // =========================================================================
+  // Disconnect with Orphaned Transaction Cleanup Error (line 169–170)
+  // =========================================================================
+
+  describe("Disconnect with orphaned transaction cleanup errors", () => {
+    it("should handle errors during orphaned transaction rollback on disconnect", async () => {
+      await adapter.connect(mockConfig);
+
+      // Start a transaction
+      await adapter.beginTransaction();
+
+      // Make rollback fail during disconnect cleanup
+      (mockPoolClient.query as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+        new Error("connection already closed"),
+      );
+
+      // Disconnect should still succeed (errors are ignored in cleanup)
+      await expect(adapter.disconnect()).resolves.not.toThrow();
+    });
+  });
 });

@@ -5,11 +5,14 @@
  * 7 tools total.
  */
 
+import { z } from "zod";
 import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import {
+  BeginTransactionSchemaBase,
   BeginTransactionSchema,
   TransactionIdSchema,
   TransactionIdSchemaBase,
@@ -23,6 +26,18 @@ import {
   SavepointResultOutputSchema,
   TransactionExecuteOutputSchema,
 } from "../schemas/index.js";
+
+/**
+ * Extract a structured error message from parsePostgresError.
+ * parsePostgresError always throws — this helper captures and returns the message string.
+ */
+function getStructuredError(error: unknown, context: { tool: string }): string {
+  try {
+    throw parsePostgresError(error, context);
+  } catch (parsed) {
+    return parsed instanceof Error ? parsed.message : String(parsed);
+  }
+}
 
 /**
  * Get all transaction tools
@@ -47,18 +62,28 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Begin a new transaction. Returns a transaction ID for subsequent operations.",
     group: "transactions",
-    inputSchema: BeginTransactionSchema,
+    inputSchema: BeginTransactionSchemaBase,
     outputSchema: TransactionBeginOutputSchema,
     annotations: write("Begin Transaction"),
     icons: getToolIcons("transactions", write("Begin Transaction")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { isolationLevel } = BeginTransactionSchema.parse(params);
-      const transactionId = await adapter.beginTransaction(isolationLevel);
-      return {
-        transactionId,
-        isolationLevel: isolationLevel ?? "READ COMMITTED",
-        message: "Transaction started. Use this ID for subsequent operations.",
-      };
+      try {
+        const { isolationLevel } = BeginTransactionSchema.parse(params);
+        const transactionId = await adapter.beginTransaction(isolationLevel);
+        return {
+          transactionId,
+          isolationLevel: isolationLevel ?? "READ COMMITTED",
+          message:
+            "Transaction started. Use this ID for subsequent operations.",
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_begin",
+          }),
+        };
+      }
     },
   };
 }
@@ -73,13 +98,22 @@ function createCommitTransactionTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Commit Transaction"),
     icons: getToolIcons("transactions", write("Commit Transaction")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { transactionId } = TransactionIdSchema.parse(params);
-      await adapter.commitTransaction(transactionId);
-      return {
-        success: true,
-        transactionId,
-        message: "Transaction committed successfully.",
-      };
+      try {
+        const { transactionId } = TransactionIdSchema.parse(params);
+        await adapter.commitTransaction(transactionId);
+        return {
+          success: true,
+          transactionId,
+          message: "Transaction committed successfully.",
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_commit",
+          }),
+        };
+      }
     },
   };
 }
@@ -96,13 +130,22 @@ function createRollbackTransactionTool(
     annotations: write("Rollback Transaction"),
     icons: getToolIcons("transactions", write("Rollback Transaction")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { transactionId } = TransactionIdSchema.parse(params);
-      await adapter.rollbackTransaction(transactionId);
-      return {
-        success: true,
-        transactionId,
-        message: "Transaction rolled back successfully.",
-      };
+      try {
+        const { transactionId } = TransactionIdSchema.parse(params);
+        await adapter.rollbackTransaction(transactionId);
+        return {
+          success: true,
+          transactionId,
+          message: "Transaction rolled back successfully.",
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_rollback",
+          }),
+        };
+      }
     },
   };
 }
@@ -118,14 +161,23 @@ function createSavepointTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Create Savepoint"),
     icons: getToolIcons("transactions", write("Create Savepoint")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { transactionId, name } = SavepointSchema.parse(params);
-      await adapter.createSavepoint(transactionId, name);
-      return {
-        success: true,
-        transactionId,
-        savepoint: name,
-        message: `Savepoint '${name}' created.`,
-      };
+      try {
+        const { transactionId, name } = SavepointSchema.parse(params);
+        await adapter.createSavepoint(transactionId, name);
+        return {
+          success: true,
+          transactionId,
+          savepoint: name,
+          message: `Savepoint '${name}' created.`,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_savepoint",
+          }),
+        };
+      }
     },
   };
 }
@@ -141,14 +193,23 @@ function createReleaseSavepointTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Release Savepoint"),
     icons: getToolIcons("transactions", write("Release Savepoint")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { transactionId, name } = SavepointSchema.parse(params);
-      await adapter.releaseSavepoint(transactionId, name);
-      return {
-        success: true,
-        transactionId,
-        savepoint: name,
-        message: `Savepoint '${name}' released.`,
-      };
+      try {
+        const { transactionId, name } = SavepointSchema.parse(params);
+        await adapter.releaseSavepoint(transactionId, name);
+        return {
+          success: true,
+          transactionId,
+          savepoint: name,
+          message: `Savepoint '${name}' released.`,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_release",
+          }),
+        };
+      }
     },
   };
 }
@@ -165,14 +226,23 @@ function createRollbackToSavepointTool(
     annotations: write("Rollback to Savepoint"),
     icons: getToolIcons("transactions", write("Rollback to Savepoint")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { transactionId, name } = SavepointSchema.parse(params);
-      await adapter.rollbackToSavepoint(transactionId, name);
-      return {
-        success: true,
-        transactionId,
-        savepoint: name,
-        message: `Rolled back to savepoint '${name}'.`,
-      };
+      try {
+        const { transactionId, name } = SavepointSchema.parse(params);
+        await adapter.rollbackToSavepoint(transactionId, name);
+        return {
+          success: true,
+          transactionId,
+          savepoint: name,
+          message: `Rolled back to savepoint '${name}'.`,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: getStructuredError(error, {
+            tool: "pg_transaction_rollback_to",
+          }),
+        };
+      }
     },
   };
 }
@@ -190,8 +260,24 @@ function createTransactionExecuteTool(
     annotations: write("Transaction Execute"),
     icons: getToolIcons("transactions", write("Transaction Execute")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { statements, transactionId, isolationLevel } =
-        TransactionExecuteSchema.parse(params);
+      let parsed: z.infer<typeof TransactionExecuteSchema>;
+
+      try {
+        parsed = await TransactionExecuteSchema.parseAsync(params);
+      } catch (error) {
+        const message =
+          error instanceof z.ZodError
+            ? error.issues.map((i) => i.message).join("; ")
+            : getStructuredError(error, {
+                tool: "pg_transaction_execute",
+              });
+        return {
+          success: false,
+          error: message,
+        };
+      }
+
+      const { statements, transactionId, isolationLevel } = parsed;
 
       // Check if joining an existing transaction or creating a new one
       const isJoiningExisting = transactionId !== undefined;
@@ -247,9 +333,28 @@ function createTransactionExecuteTool(
         // Only auto-rollback if we created a new transaction
         // If joining an existing transaction, let the caller control cleanup
         if (!isJoiningExisting) {
-          await adapter.rollbackTransaction(txId);
+          try {
+            await adapter.rollbackTransaction(txId);
+          } catch {
+            // Best effort rollback — connection may already be broken
+          }
         }
-        throw error;
+
+        // Build structured error response with partial results and rollback context
+        const errMsg = getStructuredError(error, {
+          tool: "pg_transaction_execute",
+        });
+
+        return {
+          success: false,
+          error: `${errMsg}${!isJoiningExisting ? " Transaction was automatically rolled back." : ""}`,
+          statementsExecuted: results.length,
+          statementsTotal: statements.length,
+          failedStatement: statements[results.length]?.sql,
+          ...(isJoiningExisting
+            ? { transactionId: txId }
+            : { autoRolledBack: true }),
+        };
       }
     },
   };

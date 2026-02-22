@@ -8,6 +8,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
+import { parsePostgresError } from "./core/error-helpers.js";
 import {
   LtreeQuerySchema,
   LtreeQuerySchemaBase,
@@ -16,6 +17,7 @@ import {
   LtreeLcaSchema,
   LtreeMatchSchema,
   LtreeMatchSchemaBase,
+  LtreeListColumnsSchemaBase,
   LtreeListColumnsSchema,
   LtreeConvertColumnSchema,
   LtreeConvertColumnSchemaBase,
@@ -86,6 +88,17 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
         [schemaName, table, column],
       );
       if (!colCheck.rows || colCheck.rows.length === 0) {
+        // Distinguish table-not-found from column-not-found
+        const tableCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+          [schemaName, table],
+        );
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Table ${qualifiedTable} does not exist.`,
+          };
+        }
         return {
           success: false,
           error: `Column "${column}" not found in table ${qualifiedTable}.`,
@@ -262,30 +275,70 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
       const qualifiedTable = `"${schemaName}"."${table}"`;
       const limitClause = limit !== undefined ? `LIMIT ${String(limit)}` : "";
 
-      // Get total count when limit is applied for truncation indicators
-      let totalCount: number | undefined;
-      if (limit !== undefined) {
-        const countSql = `SELECT COUNT(*)::int as total FROM ${qualifiedTable} WHERE "${column}" ~ $1::lquery`;
-        const countResult = await adapter.executeQuery(countSql, [pattern]);
-        totalCount = countResult.rows?.[0]?.["total"] as number;
+      // Validate table exists and column is ltree type
+      const colCheck = await adapter.executeQuery(
+        `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
+        [schemaName, table, column],
+      );
+      if (!colCheck.rows || colCheck.rows.length === 0) {
+        const tableCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+          [schemaName, table],
+        );
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Table ${qualifiedTable} does not exist.`,
+          };
+        }
+        return {
+          success: false,
+          error: `Column "${column}" not found in table ${qualifiedTable}.`,
+        };
+      }
+      const udtName = colCheck.rows[0]?.["udt_name"] as string;
+      if (udtName !== "ltree") {
+        return {
+          success: false,
+          error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+        };
       }
 
-      const sql = `SELECT *, nlevel("${column}") as depth FROM ${qualifiedTable} WHERE "${column}" ~ $1::lquery ORDER BY "${column}" ${limitClause}`;
-      const result = await adapter.executeQuery(sql, [pattern]);
-      const resultCount = result.rows?.length ?? 0;
-      const response: Record<string, unknown> = {
-        pattern,
-        results: result.rows ?? [],
-        count: resultCount,
-      };
+      try {
+        // Get total count when limit is applied for truncation indicators
+        let totalCount: number | undefined;
+        if (limit !== undefined) {
+          const countSql = `SELECT COUNT(*)::int as total FROM ${qualifiedTable} WHERE "${column}" ~ $1::lquery`;
+          const countResult = await adapter.executeQuery(countSql, [pattern]);
+          totalCount = countResult.rows?.[0]?.["total"] as number;
+        }
 
-      // Add truncation indicators when limit is applied
-      if (limit !== undefined && totalCount !== undefined) {
-        response["truncated"] = resultCount < totalCount;
-        response["totalCount"] = totalCount;
+        const sql = `SELECT *, nlevel("${column}") as depth FROM ${qualifiedTable} WHERE "${column}" ~ $1::lquery ORDER BY "${column}" ${limitClause}`;
+        const result = await adapter.executeQuery(sql, [pattern]);
+        const resultCount = result.rows?.length ?? 0;
+        const response: Record<string, unknown> = {
+          pattern,
+          results: result.rows ?? [],
+          count: resultCount,
+        };
+
+        // Add truncation indicators when limit is applied
+        if (limit !== undefined && totalCount !== undefined) {
+          response["truncated"] = resultCount < totalCount;
+          response["totalCount"] = totalCount;
+        }
+
+        return response;
+      } catch (error) {
+        return {
+          success: false,
+          error: parsePostgresError(error, {
+            tool: "pg_ltree_match",
+            table,
+            schema: schemaName,
+          }).message,
+        };
       }
-
-      return response;
     },
   };
 }
@@ -295,7 +348,7 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_ltree_list_columns",
     description: "List all columns using the ltree type in the database.",
     group: "ltree",
-    inputSchema: LtreeListColumnsSchema,
+    inputSchema: LtreeListColumnsSchemaBase,
     outputSchema: LtreeListColumnsOutputSchema,
     annotations: readOnly("List Ltree Columns"),
     icons: getToolIcons("ltree", readOnly("List Ltree Columns")),
@@ -354,9 +407,20 @@ function createLtreeConvertColumnTool(
         [schemaName, table, column],
       );
       if (!colCheck.rows || colCheck.rows.length === 0) {
+        // Distinguish table-not-found from column-not-found
+        const tableCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+          [schemaName, table],
+        );
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Table ${qualifiedTable} does not exist. Verify the table name.`,
+          };
+        }
         return {
           success: false,
-          error: `Column "${column}" not found in table ${qualifiedTable}. Verify the table and column names.`,
+          error: `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
         };
       }
 
@@ -463,31 +527,73 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
       const schemaName = schema ?? "public";
       const qualifiedTable = `"${schemaName}"."${table}"`;
       const idxName = indexName ?? `idx_${table}_${column}_ltree`;
-      const idxCheck = await adapter.executeQuery(
-        `SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE schemaname = $1 AND indexname = $2) as exists`,
-        [schemaName, idxName],
+
+      // Validate table exists and column is ltree type
+      const colCheck = await adapter.executeQuery(
+        `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
+        [schemaName, table, column],
       );
-      if (idxCheck.rows?.[0]?.["exists"] as boolean)
+      if (!colCheck.rows || colCheck.rows.length === 0) {
+        const tableCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+          [schemaName, table],
+        );
+        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+          return {
+            success: false,
+            error: `Table ${qualifiedTable} does not exist.`,
+          };
+        }
+        return {
+          success: false,
+          error: `Column "${column}" not found in table ${qualifiedTable}.`,
+        };
+      }
+      const udtName = colCheck.rows[0]?.["udt_name"] as string;
+      if (udtName !== "ltree") {
+        return {
+          success: false,
+          error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+        };
+      }
+
+      try {
+        const idxCheck = await adapter.executeQuery(
+          `SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE schemaname = $1 AND indexname = $2) as exists`,
+          [schemaName, idxName],
+        );
+        if (idxCheck.rows?.[0]?.["exists"] as boolean)
+          return {
+            success: true,
+            message: `Index ${idxName} already exists`,
+            indexName: idxName,
+            table: qualifiedTable,
+            column,
+            indexType: "gist",
+            alreadyExists: true,
+          };
+        await adapter.executeQuery(
+          `CREATE INDEX "${idxName}" ON ${qualifiedTable} USING GIST ("${column}")`,
+        );
         return {
           success: true,
-          message: `Index ${idxName} already exists`,
+          message: `GiST index created`,
           indexName: idxName,
           table: qualifiedTable,
           column,
           indexType: "gist",
-          alreadyExists: true,
         };
-      await adapter.executeQuery(
-        `CREATE INDEX "${idxName}" ON ${qualifiedTable} USING GIST ("${column}")`,
-      );
-      return {
-        success: true,
-        message: `GiST index created`,
-        indexName: idxName,
-        table: qualifiedTable,
-        column,
-        indexType: "gist",
-      };
+      } catch (error) {
+        return {
+          success: false,
+          error: parsePostgresError(error, {
+            tool: "pg_ltree_create_index",
+            table,
+            schema: schemaName,
+            index: idxName,
+          }).message,
+        };
+      }
     },
   };
 }

@@ -9,10 +9,14 @@ import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly } from "../../../utils/annotations.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import {
+  DatabaseSizeSchemaBase,
   DatabaseSizeSchema,
+  TableSizesSchemaBase,
   TableSizesSchema,
+  ShowSettingsSchemaBase,
   ShowSettingsSchema,
   // Output schemas
   DatabaseSizeOutputSchema,
@@ -52,7 +56,7 @@ function createDatabaseSizeTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_database_size",
     description: "Get the size of a database.",
     group: "monitoring",
-    inputSchema: DatabaseSizeSchema,
+    inputSchema: DatabaseSizeSchemaBase,
     outputSchema: DatabaseSizeOutputSchema,
     annotations: readOnly("Database Size"),
     icons: getToolIcons("monitoring", readOnly("Database Size")),
@@ -61,18 +65,25 @@ function createDatabaseSizeTool(adapter: PostgresAdapter): ToolDefinition {
       const sql = database
         ? `SELECT pg_database_size($1) as bytes, pg_size_pretty(pg_database_size($1)) as size`
         : `SELECT pg_database_size(current_database()) as bytes, pg_size_pretty(pg_database_size(current_database())) as size`;
-      const result = await adapter.executeQuery(
-        sql,
-        database ? [database] : [],
-      );
-      const row = result.rows?.[0] as
-        | { bytes: string | number; size: string }
-        | undefined;
-      if (!row) return row;
-      return {
-        ...row,
-        bytes: parseInt(String(row.bytes), 10),
-      };
+      try {
+        const result = await adapter.executeQuery(
+          sql,
+          database ? [database] : [],
+        );
+        const row = result.rows?.[0] as
+          | { bytes: string | number; size: string }
+          | undefined;
+        if (!row) return row;
+        return {
+          ...row,
+          bytes: parseInt(String(row.bytes), 10),
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_database_size" }),
+        };
+      }
     },
   };
 }
@@ -82,7 +93,7 @@ function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_table_sizes",
     description: "Get sizes of all tables with indexes and total.",
     group: "monitoring",
-    inputSchema: TableSizesSchema,
+    inputSchema: TableSizesSchemaBase,
     outputSchema: TableSizesOutputSchema,
     annotations: readOnly("Table Sizes"),
     icons: getToolIcons("monitoring", readOnly("Table Sizes")),
@@ -272,7 +283,7 @@ function createShowSettingsTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Show current PostgreSQL configuration settings. Filter by name pattern or exact setting name. Accepts: pattern, setting, or name parameter.",
     group: "monitoring",
-    inputSchema: ShowSettingsSchema,
+    inputSchema: ShowSettingsSchemaBase,
     outputSchema: ShowSettingsOutputSchema,
     annotations: readOnly("Show Settings"),
     icons: getToolIcons("monitoring", readOnly("Show Settings")),
@@ -435,7 +446,21 @@ function createCapacityPlanningTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Capacity Planning"),
     icons: getToolIcons("monitoring", readOnly("Capacity Planning")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = CapacityPlanningSchema.parse(params ?? {});
+      let parsed;
+      try {
+        parsed = CapacityPlanningSchema.parse(params ?? {});
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          return {
+            success: false,
+            error: err.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_capacity_planning" }),
+        };
+      }
       const projectionDays = parsed.projectionDays;
 
       const [dbSize, tableStats, connStats, statsAge] = await Promise.all([
@@ -815,41 +840,37 @@ function createAlertThresholdSetTool(
     group: "monitoring",
     inputSchema: z.object({
       metric: z
-        .enum([
-          "connection_usage",
-          "cache_hit_ratio",
-          "replication_lag",
-          "dead_tuples",
-          "long_running_queries",
-          "lock_wait_time",
-        ])
+        .string()
         .optional()
         .describe(
-          "Specific metric to get thresholds for, or all if not specified",
+          "Specific metric to get thresholds for, or all if not specified. Valid: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time",
         ),
     }),
     outputSchema: AlertThresholdOutputSchema,
     annotations: readOnly("Get Alert Thresholds"),
     icons: getToolIcons("monitoring", readOnly("Get Alert Thresholds")),
     handler: (params: unknown, _context: RequestContext) => {
-      // Schema with validated enum for metric
       const AlertThresholdSchema = z.object({
-        metric: z
-          .enum([
-            "connection_usage",
-            "cache_hit_ratio",
-            "replication_lag",
-            "dead_tuples",
-            "long_running_queries",
-            "lock_wait_time",
-          ])
-          .optional()
-          .describe(
-            "Specific metric to get thresholds for, or all if not specified",
-          ),
+        metric: z.string().optional(),
       });
 
       const parsed = AlertThresholdSchema.parse(params ?? {});
+
+      const validMetrics = [
+        "connection_usage",
+        "cache_hit_ratio",
+        "replication_lag",
+        "dead_tuples",
+        "long_running_queries",
+        "lock_wait_time",
+      ];
+
+      if (parsed.metric && !validMetrics.includes(parsed.metric)) {
+        return Promise.resolve({
+          success: false,
+          error: `Invalid metric "${parsed.metric}". Valid metrics: ${validMetrics.join(", ")}`,
+        });
+      }
 
       const thresholds: Record<
         string,

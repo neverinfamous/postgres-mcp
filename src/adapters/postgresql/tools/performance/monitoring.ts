@@ -20,6 +20,42 @@ import {
 const toNum = (val: unknown): number | null =>
   val === null || val === undefined ? null : Number(val);
 
+/**
+ * P154: Validate that a table exists before executing performance queries.
+ * When a specific table/schema is provided, checks existence first to return
+ * a structured error instead of silently returning empty results.
+ */
+async function validatePerformanceTableExists(
+  adapter: PostgresAdapter,
+  table?: string,
+  schema?: string,
+): Promise<string | null> {
+  if (!table && !schema) return null;
+
+  if (schema) {
+    const schemaResult = await adapter.executeQuery(
+      `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+      [schema],
+    );
+    if (!schemaResult.rows || schemaResult.rows.length === 0) {
+      return `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`;
+    }
+  }
+
+  if (table) {
+    const targetSchema = schema ?? "public";
+    const tableResult = await adapter.executeQuery(
+      `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+      [targetSchema, table],
+    );
+    if (!tableResult.rows || tableResult.rows.length === 0) {
+      return `Table '${targetSchema}.${table}' not found. Use pg_list_tables to see available tables.`;
+    }
+  }
+
+  return null;
+}
+
 export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_locks",
@@ -61,15 +97,17 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
 }
 
 export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
+  const BloatCheckSchemaBase = z.object({
+    table: z
+      .string()
+      .optional()
+      .describe("Table name to check (all tables if omitted)"),
+    schema: z.string().optional().describe("Schema name to filter"),
+  });
+
   const BloatCheckSchema = z.preprocess(
     (val) => val ?? {},
-    z.object({
-      table: z
-        .string()
-        .optional()
-        .describe("Table name to check (all tables if omitted)"),
-      schema: z.string().optional().describe("Schema name to filter"),
-    }),
+    BloatCheckSchemaBase,
   );
 
   return {
@@ -77,18 +115,36 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Check for table and index bloat. Returns tables with dead tuples.",
     group: "performance",
-    inputSchema: BloatCheckSchema,
+    inputSchema: BloatCheckSchemaBase,
     outputSchema: BloatCheckOutputSchema,
     annotations: readOnly("Bloat Check"),
     icons: getToolIcons("performance", readOnly("Bloat Check")),
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = BloatCheckSchema.parse(params);
-      let whereClause = "n_dead_tup > 0";
-      if (parsed.schema !== undefined) {
-        whereClause += ` AND schemaname = '${parsed.schema}'`;
+      // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
+      let tableName = parsed.table;
+      let schemaName = parsed.schema;
+      if (tableName?.includes(".")) {
+        const parts = tableName.split(".");
+        schemaName = schemaName ?? parts[0];
+        tableName = parts[1] ?? tableName;
       }
-      if (parsed.table !== undefined) {
-        whereClause += ` AND relname = '${parsed.table}'`;
+      let whereClause = "n_dead_tup > 0";
+      if (schemaName !== undefined) {
+        whereClause += ` AND schemaname = '${schemaName}'`;
+      }
+      if (tableName !== undefined) {
+        whereClause += ` AND relname = '${tableName}'`;
+      }
+
+      // P154: Validate table/schema existence before querying
+      const validationError = await validatePerformanceTableExists(
+        adapter,
+        tableName,
+        schemaName,
+      );
+      if (validationError !== null) {
+        return { success: false, error: validationError };
       }
 
       const sql = `SELECT schemaname, relname as table_name,

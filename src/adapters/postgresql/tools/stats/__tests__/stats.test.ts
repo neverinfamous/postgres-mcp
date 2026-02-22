@@ -207,15 +207,17 @@ describe("pg_stats_descriptive", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_descriptive")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "nonexistent_table",
-          column: "amount",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow('Table "public.nonexistent_table" not found');
+    const result = (await tool.handler(
+      {
+        table: "nonexistent_table",
+        column: "amount",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      'Table "public.nonexistent_table" not found',
+    );
   });
 
   it("should throw error when column does not exist", async () => {
@@ -230,15 +232,15 @@ describe("pg_stats_descriptive", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_descriptive")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "orders",
-          column: "nonexistent_column",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow(
+    const result = (await tool.handler(
+      {
+        table: "orders",
+        column: "nonexistent_column",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
       'Column "nonexistent_column" not found in table "public.orders"',
     );
   });
@@ -251,15 +253,15 @@ describe("pg_stats_descriptive", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_descriptive")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "orders",
-          column: "customer_name",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow(
+    const result = (await tool.handler(
+      {
+        table: "orders",
+        column: "customer_name",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
       'Column "customer_name" is type "text" but must be a numeric type',
     );
   });
@@ -346,15 +348,15 @@ describe("pg_stats_percentiles", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_percentiles")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "missing_table",
-          column: "value",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow('Table "public.missing_table" not found');
+    const result = (await tool.handler(
+      {
+        table: "missing_table",
+        column: "value",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Table "public.missing_table" not found');
   });
 
   it("should throw error for non-numeric column in percentiles", async () => {
@@ -365,15 +367,17 @@ describe("pg_stats_percentiles", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_percentiles")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "users",
-          column: "email",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow('Column "email" is type "varchar" but must be a numeric');
+    const result = (await tool.handler(
+      {
+        table: "users",
+        column: "email",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      'Column "email" is type "varchar" but must be a numeric',
+    );
   });
 });
 
@@ -466,6 +470,58 @@ describe("pg_stats_correlation", () => {
 
     expect(result.correlation).toBe(-0.75);
     expect(result.interpretation).toContain("negative");
+  });
+
+  it("should throw table-not-found error for nonexistent table", async () => {
+    // Mock column type check - column not found (table doesn't exist)
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [], // No column found
+    });
+    // Mock table check - table also not found
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [], // Table doesn't exist
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_correlation")!;
+
+    const result = (await tool.handler(
+      {
+        table: "nonexistent_table",
+        column1: "price",
+        column2: "sales",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      'Table "public.nonexistent_table" not found',
+    );
+  });
+
+  it("should throw column-not-found error for nonexistent column", async () => {
+    // Mock first column type check - column not found
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [], // No column found
+    });
+    // Mock table check - table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "1": 1 }], // Table exists
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_correlation")!;
+
+    const result = (await tool.handler(
+      {
+        table: "products",
+        column1: "nonexistent_col",
+        column2: "sales",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      'Column "nonexistent_col" not found in table "public.products"',
+    );
   });
 });
 
@@ -1315,16 +1371,16 @@ describe("pg_stats_correlation interpretation branches", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_correlation")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "test",
-          column1: "a",
-          column2: "b",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow('Column "a" not found');
+    const result = (await tool.handler(
+      {
+        table: "test",
+        column1: "a",
+        column2: "b",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Column "a" not found');
   });
 });
 
@@ -1389,16 +1445,16 @@ describe("pg_stats_regression equation branches", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_regression")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "data",
-          xColumn: "x",
-          yColumn: "y",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow('Column "x" not found');
+    const result = (await tool.handler(
+      {
+        table: "data",
+        xColumn: "x",
+        yColumn: "y",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Column "x" not found');
   });
 });
 
@@ -1498,15 +1554,15 @@ describe("pg_stats_descriptive optional params", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_descriptive")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "orders",
-          column: "amount",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow('Column "amount" not found');
+    const result = (await tool.handler(
+      {
+        table: "orders",
+        column: "amount",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Column "amount" not found');
   });
 });
 
@@ -1612,16 +1668,16 @@ describe("pg_stats_correlation optional params", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_correlation")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "test",
-          column1: "a",
-          column2: "b",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow('Column "a" not found');
+    const result = (await tool.handler(
+      {
+        table: "test",
+        column1: "a",
+        column2: "b",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Column "a" not found');
   });
 });
 
@@ -1687,16 +1743,16 @@ describe("pg_stats_regression optional params", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_regression")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "data",
-          xColumn: "x",
-          yColumn: "y",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow('Column "x" not found');
+    const result = (await tool.handler(
+      {
+        table: "data",
+        xColumn: "x",
+        yColumn: "y",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Column "x" not found');
   });
 });
 
@@ -1765,6 +1821,18 @@ describe("pg_stats_distribution error handling", () => {
       expect.stringContaining('"sales".'),
     );
   });
+
+  it("should return clean validation error for buckets: 0", async () => {
+    const tool = tools.find((t) => t.name === "pg_stats_distribution")!;
+    const result = (await tool.handler(
+      { table: "orders", column: "amount", buckets: 0 },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("buckets must be greater than 0");
+    expect(result.error).not.toContain('"code"'); // Should not contain raw JSON
+  });
 });
 
 describe("pg_stats_hypothesis error handling", () => {
@@ -1787,17 +1855,17 @@ describe("pg_stats_hypothesis error handling", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_hypothesis")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "scores",
-          column: "value",
-          testType: "t_test",
-          hypothesizedMean: 100,
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow('Column "value" not found');
+    const result = (await tool.handler(
+      {
+        table: "scores",
+        column: "value",
+        testType: "t_test",
+        hypothesizedMean: 100,
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Column "value" not found');
   });
 
   it("should return error when insufficient data (n < 2)", async () => {

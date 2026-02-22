@@ -10,6 +10,7 @@ export {
   ReadQuerySchema,
   WriteQuerySchemaBase,
   WriteQuerySchema,
+  ListTablesSchemaBase,
   ListTablesSchema,
   DescribeTableSchemaBase,
   DescribeTableSchema,
@@ -21,6 +22,7 @@ export {
   GetIndexesSchema,
   CreateIndexSchemaBase,
   CreateIndexSchema,
+  BeginTransactionSchemaBase,
   BeginTransactionSchema,
   TransactionIdSchema,
   TransactionIdSchemaBase,
@@ -123,7 +125,9 @@ export {
   ExplainSchema,
   ExplainSchemaBase,
   preprocessExplainParams,
+  IndexStatsSchemaBase,
   IndexStatsSchema,
+  TableStatsSchemaBase,
   TableStatsSchema,
   // Output schemas
   ExplainOutputSchema,
@@ -168,8 +172,11 @@ export {
 
 // Monitoring schemas
 export {
+  DatabaseSizeSchemaBase,
   DatabaseSizeSchema,
+  TableSizesSchemaBase,
   TableSizesSchema,
+  ShowSettingsSchemaBase,
   ShowSettingsSchema,
   // Output schemas
   DatabaseSizeOutputSchema,
@@ -345,8 +352,11 @@ export {
   CronScheduleSchemaBase,
   CronScheduleInDatabaseSchema,
   CronScheduleInDatabaseSchemaBase,
+  CronUnscheduleSchemaBase,
   CronUnscheduleSchema,
+  CronAlterJobSchemaBase,
   CronAlterJobSchema,
+  CronJobRunDetailsSchemaBase,
   CronJobRunDetailsSchema,
   CronCleanupHistorySchema,
   CronCleanupHistorySchemaBase,
@@ -387,9 +397,14 @@ export {
 // Extension schemas (kcache, citext, ltree, pgcrypto)
 export {
   // pg_stat_kcache
+  KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
   KcacheTopConsumersSchema,
+  KcacheTopCpuSchemaBase,
+  KcacheTopIoSchemaBase,
+  KcacheDatabaseStatsSchemaBase,
   KcacheDatabaseStatsSchema,
+  KcacheResourceAnalysisSchemaBase,
   KcacheResourceAnalysisSchema,
   // Kcache output schemas
   KcacheCreateExtensionOutputSchema,
@@ -423,6 +438,7 @@ export {
   LtreeLcaSchema,
   LtreeMatchSchema,
   LtreeMatchSchemaBase,
+  LtreeListColumnsSchemaBase,
   LtreeListColumnsSchema,
   LtreeConvertColumnSchema,
   LtreeConvertColumnSchemaBase,
@@ -437,7 +453,12 @@ export {
   LtreeListColumnsOutputSchema,
   LtreeConvertColumnOutputSchema,
   LtreeCreateIndexOutputSchema,
-  // pgcrypto
+  // pgcrypto — Base schemas for MCP visibility (Split Schema pattern)
+  PgcryptoHashSchemaBase,
+  PgcryptoHmacSchemaBase,
+  PgcryptoRandomBytesSchemaBase,
+  PgcryptoGenSaltSchemaBase,
+  // pgcrypto — Full schemas for handler validation
   PgcryptoHashSchema,
   PgcryptoHmacSchema,
   PgcryptoEncryptSchema,

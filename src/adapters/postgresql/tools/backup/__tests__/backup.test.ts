@@ -358,6 +358,390 @@ describe("pg_dump_table", () => {
 
     expect(result).toBeDefined();
   });
+
+  it("should generate sequence DDL for relkind=S", async () => {
+    // First call: relkind check → 'S' (sequence)
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "S" }],
+    });
+    // Second call: pg_sequence info
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          start_value: 1,
+          increment_by: 1,
+          min_value: 1,
+          max_value: 9223372036854775807n,
+          cycle: false,
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler(
+      { table: "user_id_seq" },
+      mockContext,
+    )) as { ddl: string; type: string; note: string };
+
+    expect(result.type).toBe("sequence");
+    expect(result.ddl).toContain("CREATE SEQUENCE");
+    expect(result.ddl).toContain("user_id_seq");
+    expect(result.ddl).toContain("START 1");
+    expect(result.note).toContain("pg_list_sequences");
+  });
+
+  it("should include includeData warning for sequences", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "S" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          start_value: 100,
+          increment_by: 10,
+          min_value: 1,
+          max_value: 1000,
+          cycle: true,
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler(
+      { table: "counter_seq", includeData: true },
+      mockContext,
+    )) as { ddl: string; warning: string };
+
+    expect(result.ddl).toContain("INCREMENT 10");
+    expect(result.ddl).toContain("CYCLE");
+    expect(result.warning).toContain("includeData is ignored");
+  });
+
+  it("should fallback sequence DDL when pg_sequence query fails", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "S" }],
+    });
+    // pg_sequence query fails
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler({ table: "my_seq" }, mockContext)) as {
+      ddl: string;
+      type: string;
+      note: string;
+    };
+
+    expect(result.type).toBe("sequence");
+    expect(result.ddl).toContain("CREATE SEQUENCE");
+    expect(result.note).toContain("Basic CREATE SEQUENCE");
+  });
+
+  it("should generate view DDL for relkind=v", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "v" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ definition: " SELECT id, name FROM users;" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler(
+      { table: "active_users" },
+      mockContext,
+    )) as { ddl: string; type: string; note: string };
+
+    expect(result.type).toBe("view");
+    expect(result.ddl).toContain("CREATE VIEW");
+    expect(result.ddl).toContain("SELECT id, name FROM users;");
+    expect(result.note).toContain("pg_list_views");
+  });
+
+  it("should generate materialized view DDL for relkind=m", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "m" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ definition: " SELECT count(*) FROM orders;" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler(
+      { table: "order_stats" },
+      mockContext,
+    )) as { ddl: string; type: string };
+
+    expect(result.type).toBe("materialized_view");
+    expect(result.ddl).toContain("CREATE MATERIALIZED VIEW");
+  });
+
+  it("should fallback view DDL when pg_views query fails", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "v" }],
+    });
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler(
+      { table: "broken_view" },
+      mockContext,
+    )) as { ddl: string; type: string; note: string };
+
+    expect(result.type).toBe("view");
+    expect(result.ddl).toContain("Unable to retrieve");
+    expect(result.note).toContain("could not be retrieved");
+  });
+
+  it("should generate partitioned table DDL with RANGE partition", async () => {
+    // relkind='p' (partitioned table)
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // Partition info query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ partstrat: "r", partition_columns: ["created_at"] }],
+    });
+    mockAdapter.describeTable.mockResolvedValueOnce({
+      name: "events",
+      schema: "public",
+      type: "table",
+      columns: [
+        { name: "id", type: "integer", nullable: false },
+        { name: "created_at", type: "timestamp", nullable: false },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler({ table: "events" }, mockContext)) as {
+      ddl: string;
+      type: string;
+      note: string;
+    };
+
+    expect(result.type).toBe("partitioned_table");
+    expect(result.ddl).toContain("PARTITION BY RANGE");
+    expect(result.ddl).toContain('"created_at"');
+    expect(result.note).toContain("pg_list_partitions");
+  });
+
+  it("should handle LIST partition strategy", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // Partition info with string array format (PostgreSQL array literal)
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ partstrat: "l", partition_columns: "{region}" }],
+    });
+    mockAdapter.describeTable.mockResolvedValueOnce({
+      name: "users",
+      schema: "public",
+      type: "table",
+      columns: [
+        { name: "id", type: "integer", nullable: false },
+        { name: "region", type: "text", nullable: false },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      ddl: string;
+    };
+
+    expect(result.ddl).toContain("PARTITION BY LIST");
+    expect(result.ddl).toContain('"region"');
+  });
+
+  it("should parse schema.table format in table parameter", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "r" }],
+    });
+    mockAdapter.describeTable.mockResolvedValueOnce({
+      name: "users",
+      schema: "myschema",
+      type: "table",
+      columns: [{ name: "id", type: "integer", nullable: false }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler(
+      { table: "myschema.users" },
+      mockContext,
+    )) as { ddl: string };
+
+    expect(result.ddl).toContain('"myschema"."users"');
+  });
+
+  it("should return validation error for empty table parameter", async () => {
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = (await tool.handler({ table: "" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table parameter is required");
+  });
+});
+
+describe("pg_copy_export — text format edge cases", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should handle empty result in text format", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_copy_export")!;
+    const result = (await tool.handler(
+      { query: "SELECT * FROM empty", format: "text" },
+      mockContext,
+    )) as { data: string; rowCount: number };
+
+    expect(result.data).toBe("");
+    expect(result.rowCount).toBe(0);
+  });
+
+  it("should handle object values in text format", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ id: 1, data: { key: "value" } }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_copy_export")!;
+    const result = (await tool.handler(
+      { query: "SELECT * FROM test", format: "text" },
+      mockContext,
+    )) as { data: string };
+
+    expect(result.data).toContain('{"key":"value"}');
+  });
+
+  it("should handle undefined first row in text format", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [undefined],
+    } as unknown as ReturnType<typeof mockAdapter.executeQuery>);
+
+    const tool = tools.find((t) => t.name === "pg_copy_export")!;
+    const result = (await tool.handler(
+      { query: "SELECT * FROM test", format: "text" },
+      mockContext,
+    )) as { data: string; rowCount: number };
+
+    expect(result.data).toBe("");
+    expect(result.rowCount).toBe(0);
+  });
+
+  it("should mark text format results as truncated when limit matches", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: Array.from({ length: 500 }, (_, i) => ({ id: i + 1 })),
+    });
+
+    const tool = tools.find((t) => t.name === "pg_copy_export")!;
+    const result = (await tool.handler(
+      { table: "big_table", format: "text" },
+      mockContext,
+    )) as { truncated?: boolean; limit?: number };
+
+    expect(result.truncated).toBe(true);
+    expect(result.limit).toBe(500);
+  });
+
+  it("should exclude header when header=false in text format", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ id: 1, name: "Test" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_copy_export")!;
+    const result = (await tool.handler(
+      { query: "SELECT * FROM test", format: "text", header: false },
+      mockContext,
+    )) as { data: string };
+
+    // Should NOT contain header row
+    expect(result.data).not.toContain("id\tname");
+    expect(result.data).toBe("1\tTest");
+  });
+});
+
+describe("pg_copy_import — format extensions and options", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should use .txt extension for text format", async () => {
+    const tool = tools.find((t) => t.name === "pg_copy_import")!;
+    const result = (await tool.handler(
+      { table: "users", format: "text" },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain("/path/to/file.txt");
+  });
+
+  it("should use .bin extension for binary format", async () => {
+    const tool = tools.find((t) => t.name === "pg_copy_import")!;
+    const result = (await tool.handler(
+      { table: "users", format: "binary" },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain("/path/to/file.bin");
+  });
+
+  it("should include header and delimiter options", async () => {
+    const tool = tools.find((t) => t.name === "pg_copy_import")!;
+    const result = (await tool.handler(
+      { table: "users", header: true, delimiter: "|" },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain("HEADER");
+    expect(result.command).toContain("DELIMITER '|'");
+  });
+
+  it("should support tableName alias", async () => {
+    const tool = tools.find((t) => t.name === "pg_copy_import")!;
+    const result = (await tool.handler(
+      { tableName: "products" },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain('"products"');
+  });
+
+  it("should return error when no table provided", async () => {
+    const tool = tools.find((t) => t.name === "pg_copy_import")!;
+
+    await expect(tool.handler({}, mockContext)).rejects.toThrow(
+      "table parameter is required",
+    );
+  });
+
+  it("should use custom filePath", async () => {
+    const tool = tools.find((t) => t.name === "pg_copy_import")!;
+    const result = (await tool.handler(
+      { table: "users", filePath: "/data/users.csv" },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain("/data/users.csv");
+  });
 });
 
 describe("pg_dump_schema", () => {
@@ -631,9 +1015,13 @@ describe("pg_copy_export", () => {
   it("should fail with clear error when called with empty params", async () => {
     const tool = tools.find((t) => t.name === "pg_copy_export")!;
 
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
-      "Either query/sql or table parameter is required",
-    );
+    const result = await tool.handler({}, mockContext);
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining(
+        "Either query/sql or table parameter is required",
+      ),
+    });
   });
 
   it("should support table parameter as shortcut", async () => {
@@ -714,21 +1102,23 @@ describe("pg_copy_export", () => {
     expect(result.data).toContain("\\N"); // NULL representation in text format
   });
 
-  it("should throw error for binary format", async () => {
+  it("should return structured error for binary format", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1, name: "Test" }],
     });
 
     const tool = tools.find((t) => t.name === "pg_copy_export")!;
-    await expect(
-      tool.handler(
-        {
-          query: "SELECT * FROM test",
-          format: "binary",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("Binary format is not supported");
+    const result = await tool.handler(
+      {
+        query: "SELECT * FROM test",
+        format: "binary",
+      },
+      mockContext,
+    );
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("Binary format is not supported"),
+    });
   });
 });
 
@@ -1484,5 +1874,71 @@ describe("pg_create_backup_plan extended", () => {
     };
 
     expect(result.strategy.fullBackup.retention).toContain("14");
+  });
+});
+
+// =============================================================================
+// Structured Error Handling (parsePostgresError)
+// =============================================================================
+
+describe("pg_dump_table - structured error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for nonexistent table (42P01)", async () => {
+    const pgError = new Error(
+      'relation "nonexistent_table" does not exist',
+    ) as Error & { code: string };
+    pgError.code = "42P01";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_dump_table")!;
+    const result = await tool.handler(
+      { table: "nonexistent_table" },
+      mockContext,
+    );
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringMatching(/not found.*pg_list_tables/i),
+    });
+  });
+});
+
+describe("pg_copy_export - structured error handling", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for invalid SQL (42601)", async () => {
+    const pgError = new Error('syntax error at or near "SELEC"') as Error & {
+      code: string;
+    };
+    pgError.code = "42601";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_copy_export")!;
+    const result = await tool.handler(
+      { table: "users", query: "SELEC * FROM users" },
+      mockContext,
+    );
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("SQL syntax error"),
+    });
   });
 });

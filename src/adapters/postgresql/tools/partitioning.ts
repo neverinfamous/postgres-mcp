@@ -8,6 +8,7 @@
 import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { readOnly, write, destructive } from "../../../utils/annotations.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import {
   sanitizeIdentifier,
@@ -230,22 +231,31 @@ function createPartitionedTableTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Create Partitioned Table"),
     icons: getToolIcons("partitioning", write("Create Partitioned Table")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = CreatePartitionedTableSchema.parse(params) as {
-        name: string;
-        schema?: string;
-        columns: {
+      let parsed;
+      try {
+        parsed = CreatePartitionedTableSchema.parse(params) as {
           name: string;
-          type: string;
-          nullable?: boolean;
-          notNull?: boolean;
-          primaryKey?: boolean;
-          unique?: boolean;
-          default?: string | number | boolean | null;
-        }[];
-        partitionBy: "range" | "list" | "hash";
-        partitionKey: string;
-        primaryKey?: string[];
-      };
+          schema?: string;
+          columns: {
+            name: string;
+            type: string;
+            nullable?: boolean;
+            notNull?: boolean;
+            primaryKey?: boolean;
+            unique?: boolean;
+            default?: string | number | boolean | null;
+          }[];
+          partitionBy: "range" | "list" | "hash";
+          partitionKey: string;
+          primaryKey?: string[];
+        };
+      } catch (zodError: unknown) {
+        return {
+          success: false,
+          error:
+            zodError instanceof Error ? zodError.message : String(zodError),
+        };
+      }
       const { name, schema, columns, partitionBy, partitionKey, primaryKey } =
         parsed;
 
@@ -265,12 +275,14 @@ function createPartitionedTableTool(adapter: PostgresAdapter): ToolDefinition {
           (col) => !primaryKey.includes(col),
         );
         if (missingColumns.length > 0) {
-          throw new Error(
-            `Primary key must include all partition key columns. ` +
+          return {
+            success: false,
+            error:
+              `Primary key must include all partition key columns. ` +
               `Missing: [${missingColumns.join(", ")}]. ` +
               `Got primaryKey: [${primaryKey.join(", ")}], partitionKey columns: [${partitionKeyColumns.join(", ")}]. ` +
               `PostgreSQL requires all partition key columns to be part of primary key constraints on partitioned tables.`,
-          );
+          };
         }
       }
 
@@ -282,12 +294,14 @@ function createPartitionedTableTool(adapter: PostgresAdapter): ToolDefinition {
           (col) => !pkColumnNames.includes(col),
         );
         if (missingCols.length > 0) {
-          throw new Error(
-            `Primary key must include all partition key columns. ` +
+          return {
+            success: false,
+            error:
+              `Primary key must include all partition key columns. ` +
               `Missing: [${missingCols.join(", ")}]. ` +
               `Columns with primaryKey: true: [${pkColumnNames.join(", ")}], partitionKey columns: [${partitionKeyColumns.join(", ")}]. ` +
               `PostgreSQL requires all partition key columns to be part of primary key constraints on partitioned tables.`,
-          );
+          };
         }
       }
 
@@ -352,7 +366,18 @@ function createPartitionedTableTool(adapter: PostgresAdapter): ToolDefinition {
   ${columnDefs}${tableConstraints}
 ) PARTITION BY ${partitionBy.toUpperCase()} (${partitionKey})`;
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_create_partitioned_table",
+            table: name,
+            ...(schema !== undefined && { schema }),
+          }),
+        };
+      }
       return {
         success: true,
         table: `${schema ?? "public"}.${name}`,
@@ -395,9 +420,10 @@ function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
 
       // Validate sub-partitioning parameters
       if (subpartitionBy !== undefined && subpartitionKey === undefined) {
-        throw new Error(
-          "subpartitionKey is required when subpartitionBy is specified",
-        );
+        return {
+          success: false,
+          error: "subpartitionKey is required when subpartitionBy is specified",
+        };
       }
 
       // Check parent table existence and partition status before SQL execution
@@ -455,7 +481,17 @@ function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         sql += ` PARTITION BY ${subpartitionBy.toUpperCase()} (${subpartitionKey})`;
       }
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_create_partition",
+            table: name,
+          }),
+        };
+      }
 
       const result: Record<string, unknown> = {
         success: true,
@@ -562,7 +598,17 @@ function createAttachPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         boundsDescription = forValues;
       }
 
-      await adapter.executeQuery(sql);
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_attach_partition",
+            table: parsedPartition.table,
+          }),
+        };
+      }
 
       return {
         success: true,
@@ -656,12 +702,23 @@ function createDetachPartitionTool(adapter: PostgresAdapter): ToolDefinition {
       }
 
       const sql = `ALTER TABLE ${parentName} DETACH PARTITION ${partitionName}${clause}`;
-      await adapter.executeQuery(sql);
+
+      try {
+        await adapter.executeQuery(sql);
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_detach_partition",
+            table: parsedPartition.table,
+          }),
+        };
+      }
 
       return {
         success: true,
         parent: parsedParent.table,
-        detached: parsedPartition.table,
+        partition: parsedPartition.table,
       };
     },
   };

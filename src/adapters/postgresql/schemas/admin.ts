@@ -71,7 +71,8 @@ export const VacuumSchema = z.preprocess(
 // Output schema for MCP 2025-11-25 structuredContent
 export const VacuumOutputSchema = z.object({
   success: z.boolean().describe("Whether the vacuum operation succeeded"),
-  message: z.string().describe("Human-readable result message"),
+  message: z.string().optional().describe("Human-readable result message"),
+  error: z.string().optional().describe("Error message if operation failed"),
   table: z.string().optional().describe("Table that was vacuumed"),
   schema: z.string().optional().describe("Schema of the table"),
   hint: z.string().optional().describe("Additional information"),
@@ -231,7 +232,8 @@ export const CancelBackendSchema = z.preprocess(
 // Output schema for ANALYZE operations
 export const AnalyzeOutputSchema = z.object({
   success: z.boolean().describe("Whether the analyze operation succeeded"),
-  message: z.string().describe("Human-readable result message"),
+  message: z.string().optional().describe("Human-readable result message"),
+  error: z.string().optional().describe("Error message if operation failed"),
   table: z.string().optional().describe("Table that was analyzed"),
   schema: z.string().optional().describe("Schema of the table"),
   hint: z.string().optional().describe("Additional information"),
@@ -240,7 +242,8 @@ export const AnalyzeOutputSchema = z.object({
 // Output schema for REINDEX operations
 export const ReindexOutputSchema = z.object({
   success: z.boolean().describe("Whether the reindex operation succeeded"),
-  message: z.string().describe("Human-readable result message"),
+  message: z.string().optional().describe("Human-readable result message"),
+  error: z.string().optional().describe("Error message if operation failed"),
   target: z
     .string()
     .optional()
@@ -256,7 +259,8 @@ export const ReindexOutputSchema = z.object({
 // Output schema for CLUSTER operations
 export const ClusterOutputSchema = z.object({
   success: z.boolean().describe("Whether the cluster operation succeeded"),
-  message: z.string().describe("Human-readable result message"),
+  message: z.string().optional().describe("Human-readable result message"),
+  error: z.string().optional().describe("Error message if operation failed"),
   table: z.string().optional().describe("Table that was clustered"),
   index: z.string().optional().describe("Index used for clustering"),
   hint: z.string().optional().describe("Additional information"),
@@ -273,7 +277,8 @@ export const BackendOutputSchema = z.object({
 // Output schema for configuration operations (reload_conf, set_config, reset_stats)
 export const ConfigOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),
-  message: z.string().describe("Human-readable result message"),
+  message: z.string().optional().describe("Human-readable result message"),
+  error: z.string().optional().describe("Error message if operation failed"),
   parameter: z
     .string()
     .optional()

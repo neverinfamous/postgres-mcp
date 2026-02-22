@@ -360,6 +360,26 @@ describe("pg_fuzzy_match", () => {
       ["Smith"],
     );
   });
+
+  it("should return structured error for invalid method", async () => {
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    const result = (await tool.handler(
+      {
+        table: "users",
+        column: "name",
+        value: "Smith",
+        method: "invalid_method",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Invalid method "invalid_method"');
+    expect(result.error).toContain("levenshtein");
+    expect(result.error).toContain("soundex");
+    expect(result.error).toContain("metaphone");
+    expect(mockAdapter.executeQuery).not.toHaveBeenCalled();
+  });
 });
 
 describe("pg_regexp_match", () => {
@@ -1097,5 +1117,174 @@ describe("pg_text_search_config", () => {
 
     expect(result.configs).toEqual([]);
     expect(result.count).toBe(0);
+  });
+});
+
+// =============================================================================
+// Structured Error Handling (parsePostgresError)
+// =============================================================================
+
+describe("Structured Error Handling (parsePostgresError)", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getTextTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getTextTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for 42P01 table-not-found in pg_text_search", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_text_search")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "body", query: "hello" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found in pg_trigram_similarity", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "name", value: "hello" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found in pg_create_fts_index", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_create_fts_index")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "body" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found in pg_fuzzy_match", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "name", value: "hello" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found in pg_like_search", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_like_search")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "name", pattern: "%hello%" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found in pg_text_headline", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_text_headline")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "body", query: "hello" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found in pg_regexp_match", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_regexp_match")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "name", pattern: "^hello" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found in pg_text_rank", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_text_rank")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "body", query: "hello" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured validation error for pg_fuzzy_match with invalid method", async () => {
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    const result = (await tool.handler(
+      {
+        table: "test_table",
+        column: "name",
+        value: "hello",
+        method: "invalidmethod",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Invalid method/i);
   });
 });

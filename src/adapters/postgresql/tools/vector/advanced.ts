@@ -107,6 +107,25 @@ export function createVectorClusterTool(
         return { success: false, ...existenceCheck };
       }
 
+      // Validate column is actually a vector type
+      const typeCheckSql = `
+        SELECT udt_name FROM information_schema.columns
+        WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
+      `;
+      const typeResult = await adapter.executeQuery(typeCheckSql, [
+        schemaName,
+        parsed.table,
+        parsed.column,
+      ]);
+      const udtName = typeResult.rows?.[0]?.["udt_name"] as string | undefined;
+      if (udtName !== "vector") {
+        return {
+          success: false,
+          error: `Column '${parsed.column}' is not a vector column (type: ${udtName ?? "unknown"})`,
+          suggestion: "Use a column with vector type for clustering",
+        };
+      }
+
       const sampleSql = `
                 SELECT ${columnName} as vec 
                 FROM ${tableName} 

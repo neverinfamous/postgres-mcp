@@ -17,6 +17,7 @@ import type {
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { formatPostgresError } from "./error-helpers.js";
 import {
   WriteQueryOutputSchema,
   CountOutputSchema,
@@ -37,16 +38,14 @@ async function validateTableExists(
   adapter: PostgresAdapter,
   table: string,
   schema: string,
-): Promise<void> {
+): Promise<string | null> {
   // Check if the schema exists first for granular error messages
   const schemaResult = await adapter.executeQuery(
     `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
     [schema],
   );
   if (!schemaResult.rows || schemaResult.rows.length === 0) {
-    throw new Error(
-      `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
-    );
+    return `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`;
   }
 
   const result = await adapter.executeQuery(
@@ -54,10 +53,9 @@ async function validateTableExists(
     [schema, table],
   );
   if (!result.rows || result.rows.length === 0) {
-    throw new Error(
-      `Table '${schema}.${table}' not found. Use pg_list_tables to see available tables.`,
-    );
+    return `Table '${schema}.${table}' not found. Use pg_list_tables to see available tables.`;
   }
+  return null;
 }
 
 // =============================================================================
@@ -247,11 +245,32 @@ export const CountSchemaBase = z.object({
     .array(z.unknown())
     .optional()
     .describe("Parameters for WHERE clause placeholders"),
+  condition: z.string().optional().describe("Alias for where"),
+  filter: z.string().optional().describe("Alias for where"),
   column: z
     .string()
     .optional()
     .describe("Column to count (default: * for all rows)"),
 });
+
+/**
+ * Preprocess count params:
+ * - All table params from preprocessTableParams
+ * - Alias: condition/filter → where
+ */
+function preprocessCountParams(input: unknown): unknown {
+  const result = preprocessTableParams(input);
+  if (typeof result !== "object" || result === null) return result;
+  const obj = result as Record<string, unknown>;
+
+  // Alias: condition/filter → where
+  if (obj["where"] === undefined) {
+    if (obj["condition"] !== undefined) obj["where"] = obj["condition"];
+    else if (obj["filter"] !== undefined) obj["where"] = obj["filter"];
+  }
+
+  return obj;
+}
 
 // Internal parsing schema - table optional for alias resolution
 const CountParseSchema = z.object({
@@ -269,6 +288,8 @@ const CountParseSchema = z.object({
     .array(z.unknown())
     .optional()
     .describe("Parameters for WHERE clause placeholders"),
+  condition: z.string().optional().describe("Alias for where"),
+  filter: z.string().optional().describe("Alias for where"),
   column: z
     .string()
     .optional()
@@ -277,12 +298,13 @@ const CountParseSchema = z.object({
 
 export const CountSchema = z
   .preprocess(
-    (val: unknown) => preprocessTableParams(val ?? {}),
+    (val: unknown) => preprocessCountParams(val ?? {}),
     CountParseSchema,
   )
   .transform((data) => ({
     ...data,
     table: data.table ?? data.tableName ?? "",
+    where: data.where ?? data.condition ?? data.filter,
   }))
   .refine((data) => data.table !== "", {
     message:
@@ -427,7 +449,14 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = UpsertSchema.parse(params);
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       const columns = Object.keys(parsed.data);
@@ -505,6 +534,7 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
             throw new Error(
               `conflictColumns [${parsed.conflictColumns.join(", ")}] must reference columns with a UNIQUE constraint or PRIMARY KEY. ` +
                 `Create a unique constraint first: ALTER TABLE ${qualifiedTable} ADD CONSTRAINT unique_name UNIQUE (${conflictCols})`,
+              { cause: error },
             );
           }
         }
@@ -541,7 +571,14 @@ export function createBatchInsertTool(
       }
 
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       // Get all unique columns from all rows
@@ -612,7 +649,19 @@ export function createBatchInsertTool(
 
       const sql = `INSERT INTO ${qualifiedTable} (${columnList}) VALUES ${rowPlaceholders.join(", ")}${returningClause}`;
 
-      const result = await adapter.executeQuery(sql, values);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, values);
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_batch_insert",
+            table: parsed.table,
+            schema: schemaName,
+          }),
+        };
+      }
       return {
         success: true,
         rowsAffected: result.rowsAffected ?? 0,
@@ -642,7 +691,14 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = CountSchema.parse(params);
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       const countExpr =
@@ -654,7 +710,19 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
           : "";
 
       const sql = `SELECT COUNT(${countExpr}) as count FROM ${qualifiedTable}${whereClause}`;
-      const result = await adapter.executeQuery(sql, parsed.params);
+      let result;
+      try {
+        result = await adapter.executeQuery(sql, parsed.params);
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_count",
+            table: parsed.table,
+            schema: schemaName,
+          }),
+        };
+      }
 
       const count = Number(result.rows?.[0]?.["count"]) || 0;
       return { count };
@@ -678,7 +746,14 @@ export function createExistsTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = ExistsSchema.parse(params);
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       // Build SQL with optional WHERE clause
@@ -720,7 +795,14 @@ export function createTruncateTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = TruncateSchema.parse(params);
       const schemaName = parsed.schema ?? "public";
-      await validateTableExists(adapter, parsed.table, schemaName);
+      const validationError = await validateTableExists(
+        adapter,
+        parsed.table,
+        schemaName,
+      );
+      if (validationError) {
+        return { success: false, error: validationError };
+      }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
       let sql = `TRUNCATE TABLE ${qualifiedTable}`;

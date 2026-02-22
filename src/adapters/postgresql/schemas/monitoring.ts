@@ -9,54 +9,57 @@ import { z } from "zod";
 // Helper to handle undefined params (allows tools to be called without {})
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
 
+// Base schemas for MCP visibility (Split Schema pattern)
+export const DatabaseSizeSchemaBase = z.object({
+  database: z
+    .string()
+    .optional()
+    .describe("Database name (current if omitted)"),
+});
+
 export const DatabaseSizeSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    database: z
-      .string()
-      .optional()
-      .describe("Database name (current if omitted)"),
-  }),
+  DatabaseSizeSchemaBase,
 );
+
+export const TableSizesSchemaBase = z.object({
+  schema: z.string().optional().describe("Schema name"),
+  limit: z.number().optional().describe("Max tables to return"),
+});
 
 export const TableSizesSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    schema: z.string().optional().describe("Schema name"),
-    limit: z.number().optional().describe("Max tables to return"),
-  }),
+  TableSizesSchemaBase,
 );
+
+export const ShowSettingsSchemaBase = z.object({
+  pattern: z
+    .string()
+    .optional()
+    .describe("Setting name pattern (LIKE syntax with %)"),
+  setting: z
+    .string()
+    .optional()
+    .describe("Alias for pattern - setting name or pattern"),
+  name: z
+    .string()
+    .optional()
+    .describe("Alias for pattern - setting name or pattern"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Max settings to return (default: 50 when no pattern specified)"),
+});
 
 export const ShowSettingsSchema = z.preprocess(
   defaultToEmpty,
-  z
-    .object({
-      pattern: z
-        .string()
-        .optional()
-        .describe("Setting name pattern (LIKE syntax with %)"),
-      setting: z
-        .string()
-        .optional()
-        .describe("Alias for pattern - setting name or pattern"),
-      name: z
-        .string()
-        .optional()
-        .describe("Alias for pattern - setting name or pattern"),
-      limit: z
-        .number()
-        .optional()
-        .describe(
-          "Max settings to return (default: 50 when no pattern specified)",
-        ),
-    })
-    .transform((data) => {
-      // Resolve alias: setting or name → pattern
-      const pattern = data.pattern ?? data.setting ?? data.name;
-      // Default limit to 50 only when NO filter is specified (to avoid 415+ results)
-      const limit = data.limit ?? (pattern === undefined ? 50 : undefined);
-      return { pattern, limit };
-    }),
+  ShowSettingsSchemaBase.transform((data) => {
+    // Resolve alias: setting or name → pattern
+    const pattern = data.pattern ?? data.setting ?? data.name;
+    // Default limit to 50 only when NO filter is specified (to avoid 415+ results)
+    const limit = data.limit ?? (pattern === undefined ? 50 : undefined);
+    return { pattern, limit };
+  }),
 );
 
 // ============================================================================
@@ -66,10 +69,14 @@ export const ShowSettingsSchema = z.preprocess(
 /**
  * pg_database_size output
  */
-export const DatabaseSizeOutputSchema = z.object({
-  bytes: z.number().describe("Database size in bytes"),
-  size: z.string().describe("Human-readable size"),
-});
+export const DatabaseSizeOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    bytes: z.number().optional().describe("Database size in bytes"),
+    size: z.string().optional().describe("Human-readable size"),
+  })
+  .loose();
 
 /**
  * pg_table_sizes output
@@ -192,38 +199,57 @@ export const RecoveryStatusOutputSchema = z.object({
 /**
  * pg_capacity_planning output
  */
-export const CapacityPlanningOutputSchema = z.object({
-  current: z.object({
-    databaseSize: z
+export const CapacityPlanningOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    current: z
       .object({
-        current_size_bytes: z.number().describe("Current size in bytes"),
-        current_size: z.string().describe("Human-readable size"),
+        databaseSize: z
+          .object({
+            current_size_bytes: z.number().describe("Current size in bytes"),
+            current_size: z.string().describe("Human-readable size"),
+          })
+          .optional(),
+        tableCount: z.number().describe("Number of tables"),
+        totalRows: z.number().describe("Total rows across tables"),
+        connections: z.string().describe("Current/max connections"),
       })
       .optional(),
-    tableCount: z.number().describe("Number of tables"),
-    totalRows: z.number().describe("Total rows across tables"),
-    connections: z.string().describe("Current/max connections"),
-  }),
-  growth: z.object({
-    totalInserts: z.number().describe("Total inserts since stats reset"),
-    totalDeletes: z.number().describe("Total deletes since stats reset"),
-    netRowGrowth: z.number().describe("Net row growth"),
-    daysOfData: z.number().describe("Days of statistics collected"),
-    statsSince: z.unknown().describe("Statistics reset timestamp"),
-    estimatedDailyRowGrowth: z.number().describe("Estimated daily row growth"),
-    estimatedDailyGrowthBytes: z
-      .number()
-      .describe("Estimated daily byte growth"),
-    estimationQuality: z.string().describe("Confidence level of estimates"),
-  }),
-  projection: z.object({
-    days: z.number().describe("Projection period in days"),
-    projectedSizeBytes: z.number().describe("Projected database size in bytes"),
-    projectedSizePretty: z.string().describe("Human-readable projected size"),
-    growthPercentage: z.number().describe("Projected growth percentage"),
-  }),
-  recommendations: z.array(z.string()).describe("Capacity recommendations"),
-});
+    growth: z
+      .object({
+        totalInserts: z.number().describe("Total inserts since stats reset"),
+        totalDeletes: z.number().describe("Total deletes since stats reset"),
+        netRowGrowth: z.number().describe("Net row growth"),
+        daysOfData: z.number().describe("Days of statistics collected"),
+        statsSince: z.unknown().describe("Statistics reset timestamp"),
+        estimatedDailyRowGrowth: z
+          .number()
+          .describe("Estimated daily row growth"),
+        estimatedDailyGrowthBytes: z
+          .number()
+          .describe("Estimated daily byte growth"),
+        estimationQuality: z.string().describe("Confidence level of estimates"),
+      })
+      .optional(),
+    projection: z
+      .object({
+        days: z.number().describe("Projection period in days"),
+        projectedSizeBytes: z
+          .number()
+          .describe("Projected database size in bytes"),
+        projectedSizePretty: z
+          .string()
+          .describe("Human-readable projected size"),
+        growthPercentage: z.number().describe("Projected growth percentage"),
+      })
+      .optional(),
+    recommendations: z
+      .array(z.string())
+      .optional()
+      .describe("Capacity recommendations"),
+  })
+  .loose();
 
 /**
  * pg_resource_usage_analyze output

@@ -10,8 +10,10 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
+import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { formatPostgresError } from "../core/error-helpers.js";
 import {
   GeometryBufferSchemaBase,
   GeometryBufferSchema,
@@ -72,22 +74,22 @@ export function createGeometryBufferTool(
     annotations: readOnly("Geometry Buffer"),
     icons: getToolIcons("postgis", readOnly("Geometry Buffer")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { geometry, distance, srid, simplify } = GeometryBufferSchema.parse(
-        params ?? {},
-      );
-      const sridVal = srid ?? 4326;
-      const { sql: geomExpr, isGeoJson } = parseGeometry(geometry);
+      try {
+        const { geometry, distance, srid, simplify } =
+          GeometryBufferSchema.parse(params ?? {});
+        const sridVal = srid ?? 4326;
+        const { sql: geomExpr, isGeoJson } = parseGeometry(geometry);
 
-      // Build buffer expression
-      const bufferExpr = `ST_Buffer(ST_SetSRID(${geomExpr}, ${String(sridVal)})::geography, $2)::geometry`;
+        // Build buffer expression
+        const bufferExpr = `ST_Buffer(ST_SetSRID(${geomExpr}, ${String(sridVal)})::geography, $2)::geometry`;
 
-      // Apply optional simplification
-      const outputExpr =
-        simplify !== undefined && simplify > 0
-          ? `ST_Simplify(${bufferExpr}, ${String(simplify / 111000)})` // Convert meters to degrees approx
-          : bufferExpr;
+        // Apply optional simplification
+        const outputExpr =
+          simplify !== undefined && simplify > 0
+            ? `ST_Simplify(${bufferExpr}, ${String(simplify / 111000)})` // Convert meters to degrees approx
+            : bufferExpr;
 
-      const sql = `
+        const sql = `
                 SELECT 
                     ST_AsGeoJSON(${outputExpr}) as buffer_geojson,
                     ST_AsText(${outputExpr}) as buffer_wkt,
@@ -95,26 +97,53 @@ export function createGeometryBufferTool(
                     ${String(sridVal)} as srid
             `;
 
-      const result = await adapter.executeQuery(sql, [geometry, distance]);
-      const row = result.rows?.[0];
-      const response: Record<string, unknown> = {
-        ...row,
-        inputFormat: isGeoJson ? "GeoJSON" : "WKT",
-      };
-
-      // Include simplification info if applied
-      if (simplify !== undefined && simplify > 0) {
-        response["simplified"] = true;
-        response["simplifyTolerance"] = simplify;
-
-        // Check if simplification caused geometry to collapse to null
-        if (row?.["buffer_geojson"] === null || row?.["buffer_wkt"] === null) {
-          response["warning"] =
-            `Simplification tolerance (${String(simplify)}m) is too high relative to buffer distance (${String(distance)}m). The geometry collapsed to null. Reduce simplify value or set simplify: 0 to disable.`;
+        let result;
+        try {
+          result = await adapter.executeQuery(sql, [geometry, distance]);
+        } catch (error: unknown) {
+          return {
+            success: false as const,
+            error: formatPostgresError(error, {
+              tool: "pg_geometry_buffer",
+            }),
+          };
         }
-      }
+        const row = result.rows?.[0];
+        const response: Record<string, unknown> = {
+          ...row,
+          inputFormat: isGeoJson ? "GeoJSON" : "WKT",
+        };
 
-      return response;
+        // Include simplification info if applied
+        if (simplify !== undefined && simplify > 0) {
+          response["simplified"] = true;
+          response["simplifyTolerance"] = simplify;
+
+          // Check if simplification caused geometry to collapse to null
+          if (
+            row?.["buffer_geojson"] === null ||
+            row?.["buffer_wkt"] === null
+          ) {
+            response["warning"] =
+              `Simplification tolerance (${String(simplify)}m) is too high relative to buffer distance (${String(distance)}m). The geometry collapsed to null. Reduce simplify value or set simplify: 0 to disable.`;
+          }
+        }
+
+        return response;
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_geometry_buffer",
+          }),
+        };
+      }
     },
   };
 }
@@ -135,19 +164,20 @@ export function createGeometryIntersectionTool(
     annotations: readOnly("Geometry Intersection"),
     icons: getToolIcons("postgis", readOnly("Geometry Intersection")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { geometry1, geometry2 } = GeometryIntersectionSchema.parse(
-        params ?? {},
-      );
-      // Use SRID-normalized parsing to prevent mixed SRID errors when combining
-      // GeoJSON (implicit SRID 4326) with WKT (no SRID)
-      const geom1 = parseGeometryWithSrid(geometry1);
-      const geom2 = parseGeometryWithSrid(geometry2);
+      try {
+        const { geometry1, geometry2 } = GeometryIntersectionSchema.parse(
+          params ?? {},
+        );
+        // Use SRID-normalized parsing to prevent mixed SRID errors when combining
+        // GeoJSON (implicit SRID 4326) with WKT (no SRID)
+        const geom1 = parseGeometryWithSrid(geometry1);
+        const geom2 = parseGeometryWithSrid(geometry2);
 
-      // geom1 uses $1 (first parameter), geom2 uses $2 (second parameter)
-      const geom1Expr = geom1.sql;
-      const geom2Expr = geom2.sql.replace("$1", "$2");
+        // geom1 uses $1 (first parameter), geom2 uses $2 (second parameter)
+        const geom1Expr = geom1.sql;
+        const geom2Expr = geom2.sql.replace("$1", "$2");
 
-      const sql = `
+        const sql = `
                 SELECT 
                     ST_Intersects(${geom1Expr}, ${geom2Expr}) as intersects,
                     ST_AsGeoJSON(ST_Intersection(${geom1Expr}, ${geom2Expr})) as intersection_geojson,
@@ -155,13 +185,37 @@ export function createGeometryIntersectionTool(
                     ST_Area(ST_Intersection(${geom1Expr}, ${geom2Expr})::geography) as intersection_area_sqm
             `;
 
-      const result = await adapter.executeQuery(sql, [geometry1, geometry2]);
-      return {
-        ...result.rows?.[0],
-        geometry1Format: geom1.isGeoJson ? "GeoJSON" : "WKT",
-        geometry2Format: geom2.isGeoJson ? "GeoJSON" : "WKT",
-        sridUsed: 4326,
-      };
+        let result;
+        try {
+          result = await adapter.executeQuery(sql, [geometry1, geometry2]);
+        } catch (error: unknown) {
+          return {
+            success: false as const,
+            error: formatPostgresError(error, {
+              tool: "pg_geometry_intersection",
+            }),
+          };
+        }
+        return {
+          ...result.rows?.[0],
+          geometry1Format: geom1.isGeoJson ? "GeoJSON" : "WKT",
+          geometry2Format: geom2.isGeoJson ? "GeoJSON" : "WKT",
+          sridUsed: 4326,
+        };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_geometry_intersection",
+          }),
+        };
+      }
     },
   };
 }
@@ -182,24 +236,49 @@ export function createGeometryTransformTool(
     annotations: readOnly("Geometry Transform"),
     icons: getToolIcons("postgis", readOnly("Geometry Transform")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { geometry, fromSrid, toSrid } = GeometryTransformSchema.parse(
-        params ?? {},
-      );
-      const { sql: geomExpr, isGeoJson } = parseGeometry(geometry);
+      try {
+        const { geometry, fromSrid, toSrid } = GeometryTransformSchema.parse(
+          params ?? {},
+        );
+        const { sql: geomExpr, isGeoJson } = parseGeometry(geometry);
 
-      const sql = `
+        const sql = `
                 SELECT 
                     ST_AsGeoJSON(ST_Transform(ST_SetSRID(${geomExpr}, ${String(fromSrid)}), ${String(toSrid)})) as transformed_geojson,
                     ST_AsText(ST_Transform(ST_SetSRID(${geomExpr}, ${String(fromSrid)}), ${String(toSrid)})) as transformed_wkt
             `;
 
-      const result = await adapter.executeQuery(sql, [geometry]);
-      return {
-        ...result.rows?.[0],
-        fromSrid,
-        toSrid,
-        inputFormat: isGeoJson ? "GeoJSON" : "WKT",
-      };
+        let result;
+        try {
+          result = await adapter.executeQuery(sql, [geometry]);
+        } catch (error: unknown) {
+          return {
+            success: false as const,
+            error: formatPostgresError(error, {
+              tool: "pg_geometry_transform",
+            }),
+          };
+        }
+        return {
+          ...result.rows?.[0],
+          fromSrid,
+          toSrid,
+          inputFormat: isGeoJson ? "GeoJSON" : "WKT",
+        };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_geometry_transform",
+          }),
+        };
+      }
     },
   };
 }

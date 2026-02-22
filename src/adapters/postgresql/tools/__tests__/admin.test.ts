@@ -361,12 +361,19 @@ describe("pg_analyze", () => {
     expect(schema.shape?.["columns"]).toBeDefined();
   });
 
-  it("should throw error when columns specified without table", async () => {
+  it("should return structured error when columns specified without table", async () => {
     const tool = tools.find((t) => t.name === "pg_analyze")!;
 
-    await expect(
-      tool.handler({ columns: ["email"] }, mockContext),
-    ).rejects.toThrow("table is required when columns is specified");
+    const result = (await tool.handler(
+      { columns: ["email"] },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("table is required when columns is specified");
   });
 });
 
@@ -817,19 +824,222 @@ describe("pg_cluster", () => {
     expect(schema.shape?.["schema"]).toBeDefined();
   });
 
-  it("should throw error when index specified without table", async () => {
+  it("should return structured error when table specified without index", async () => {
     const tool = tools.find((t) => t.name === "pg_cluster")!;
 
-    await expect(
-      tool.handler({ index: "idx_users_email" }, mockContext),
-    ).rejects.toThrow("table and index must both be specified together");
-  });
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
-  it("should throw error when table specified without index", async () => {
-    const tool = tools.find((t) => t.name === "pg_cluster")!;
-
-    await expect(tool.handler({ table: "users" }, mockContext)).rejects.toThrow(
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
       "table and index must both be specified together",
     );
+  });
+
+  it("should return structured error when index specified without table", async () => {
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+
+    const result = (await tool.handler(
+      { index: "idx_users_email" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      "table and index must both be specified together",
+    );
+  });
+});
+
+// =============================================================================
+// Structured Error Handling (parsePostgresError)
+// =============================================================================
+
+describe("Structured Error Handling (formatPostgresError)", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getAdminTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error for 42P01 table-not-found on pg_vacuum", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_vacuum")!;
+
+    const result = (await tool.handler(
+      { table: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found on pg_vacuum_analyze", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_vacuum_analyze")!;
+
+    const result = (await tool.handler(
+      { table: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found on pg_analyze", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_analyze")!;
+
+    const result = (await tool.handler(
+      { table: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 table-not-found on pg_reindex", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_reindex")!;
+
+    const result = (await tool.handler(
+      { target: "table", name: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for pg_set_config with invalid parameter", async () => {
+    const pgError = new Error(
+      'unrecognized configuration parameter "nonexistent_param"',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42704";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_set_config")!;
+
+    const result = (await tool.handler(
+      { name: "nonexistent_param", value: "test" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(
+      /unrecognized configuration parameter.*pg_show_settings/i,
+    );
+  });
+
+  it("should return structured error for 42P01 table-not-found on pg_cluster", async () => {
+    const pgError = new Error(
+      'relation "nonexistent" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+
+    const result = (await tool.handler(
+      { table: "nonexistent", index: "idx_nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+  });
+
+  it("should return structured error for 42P01 index-not-found on pg_reindex target=index", async () => {
+    const pgError = new Error(
+      'relation "nonexistent_index" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_reindex")!;
+
+    const result = (await tool.handler(
+      { target: "index", name: "nonexistent_index" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Index.*not found.*pg_get_indexes/i);
+  });
+
+  it("should return cluster-appropriate error for 42704 index-not-found on pg_cluster", async () => {
+    const pgError = new Error(
+      'index "nonexistent_idx" does not exist',
+    ) as Error & { code: string };
+    (pgError as unknown as Record<string, unknown>)["code"] = "42704";
+    mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+
+    const result = (await tool.handler(
+      { table: "users", index: "nonexistent_idx" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Index.*not found.*pg_get_indexes/i);
+    expect(result.error).not.toContain("ifExists");
   });
 });

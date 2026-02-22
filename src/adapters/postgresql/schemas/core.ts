@@ -131,24 +131,28 @@ function preprocessTableParams(input: unknown): unknown {
   return result;
 }
 
+// Base schema for MCP visibility - exported for inputSchema (Split Schema pattern)
+export const ListTablesSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema name (default: all user schemas)"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of tables to return (default: 100)"),
+  exclude: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Schema/extension names to exclude (e.g., ['cron', 'topology', 'partman']). Filters by schema name.",
+    ),
+});
+
+// Full schema with preprocess for handler parsing (handles undefined params)
 export const ListTablesSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    schema: z
-      .string()
-      .optional()
-      .describe("Schema name (default: all user schemas)"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum number of tables to return (default: 100)"),
-    exclude: z
-      .array(z.string())
-      .optional()
-      .describe(
-        "Schema/extension names to exclude (e.g., ['cron', 'topology', 'partman']). Filters by schema name.",
-      ),
-  }),
+  ListTablesSchemaBase,
 );
 
 // MCP visibility schema - table OR tableName/name required (all optional in schema, refine enforces)
@@ -638,19 +642,21 @@ function preprocessBeginParams(input: unknown): unknown {
   return normalized;
 }
 
+export const BeginTransactionSchemaBase = z.object({
+  isolationLevel: z
+    .enum([
+      "READ UNCOMMITTED",
+      "READ COMMITTED",
+      "REPEATABLE READ",
+      "SERIALIZABLE",
+    ])
+    .optional()
+    .describe("Transaction isolation level"),
+});
+
 export const BeginTransactionSchema = z.preprocess(
   preprocessBeginParams,
-  z.object({
-    isolationLevel: z
-      .enum([
-        "READ UNCOMMITTED",
-        "READ COMMITTED",
-        "REPEATABLE READ",
-        "SERIALIZABLE",
-      ])
-      .optional()
-      .describe("Transaction isolation level"),
-  }),
+  BeginTransactionSchemaBase,
 );
 
 // Base schema for MCP visibility (shows transactionId and aliases)
@@ -726,7 +732,8 @@ export const TransactionExecuteSchemaBase = z.object({
   statements: z
     .array(
       z.object({
-        sql: z.string().describe("SQL statement to execute"),
+        sql: z.string().optional().describe("SQL statement to execute"),
+        query: z.string().optional().describe("Alias for sql"),
         params: z.array(z.unknown()).optional().describe("Query parameters"),
       }),
     )
@@ -743,24 +750,37 @@ export const TransactionExecuteSchemaBase = z.object({
   txId: z.string().optional().describe("Alias for transactionId"),
   tx: z.string().optional().describe("Alias for transactionId"),
   isolationLevel: z
-    .string()
+    .enum([
+      "READ UNCOMMITTED",
+      "READ COMMITTED",
+      "REPEATABLE READ",
+      "SERIALIZABLE",
+    ])
     .optional()
-    .describe(
-      "Transaction isolation level (only used when creating new transaction)",
-    ),
+    .describe("Transaction isolation level"),
 });
 
 // Schema with undefined handling for pg_transaction_execute
 export const TransactionExecuteSchema = z
-  .preprocess(defaultToEmpty, TransactionExecuteSchemaBase)
+  .preprocess(
+    (val: unknown) => preprocessBeginParams(defaultToEmpty(val)),
+    TransactionExecuteSchemaBase,
+  )
   .transform((data) => ({
-    statements: data.statements ?? [],
+    statements: (data.statements ?? []).map((stmt) => ({
+      sql: stmt.sql ?? stmt.query ?? "",
+      params: stmt.params,
+    })),
     transactionId: data.transactionId ?? data.txId ?? data.tx,
     isolationLevel: data.isolationLevel,
   }))
   .refine((data) => data.statements.length > 0, {
     message:
       'statements is required. Format: {statements: [{sql: "INSERT INTO..."}, {sql: "UPDATE..."}]}. Each statement must be an object with "sql" property, not a raw string.',
+  })
+  .refine((data) => data.statements.every((s) => s.sql !== ""), {
+    message:
+      'Each statement must have "sql" (or "query" alias). Format: {statements: [{sql: "INSERT INTO..."}]}',
   });
 
 // =============================================================================
@@ -769,26 +789,37 @@ export const TransactionExecuteSchema = z
 
 // Output schema for pg_transaction_begin
 export const TransactionBeginOutputSchema = z.object({
+  success: z
+    .boolean()
+    .optional()
+    .describe("False when the operation failed (omitted on success)"),
+  error: z.string().optional().describe("Error message when success is false"),
   transactionId: z
     .string()
+    .optional()
     .describe("Unique transaction ID for subsequent operations"),
-  isolationLevel: z.string().describe("Transaction isolation level"),
-  message: z.string().describe("Confirmation message"),
+  isolationLevel: z.string().optional().describe("Transaction isolation level"),
+  message: z.string().optional().describe("Confirmation message"),
 });
 
 // Output schema for pg_transaction_commit, pg_transaction_rollback
 export const TransactionResultOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),
-  transactionId: z.string().describe("Transaction ID that was operated on"),
-  message: z.string().describe("Result message"),
+  error: z.string().optional().describe("Error message when success is false"),
+  transactionId: z
+    .string()
+    .optional()
+    .describe("Transaction ID that was operated on"),
+  message: z.string().optional().describe("Result message"),
 });
 
 // Output schema for pg_transaction_savepoint, pg_transaction_release, pg_transaction_rollback_to
 export const SavepointResultOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),
-  transactionId: z.string().describe("Transaction ID"),
-  savepoint: z.string().describe("Savepoint name"),
-  message: z.string().describe("Result message"),
+  error: z.string().optional().describe("Error message when success is false"),
+  transactionId: z.string().optional().describe("Transaction ID"),
+  savepoint: z.string().optional().describe("Savepoint name"),
+  message: z.string().optional().describe("Result message"),
 });
 
 // Statement result schema for transaction execute
@@ -805,9 +836,26 @@ const StatementResultSchema = z.object({
 // Output schema for pg_transaction_execute
 export const TransactionExecuteOutputSchema = z.object({
   success: z.boolean().describe("Whether all statements executed successfully"),
-  statementsExecuted: z.number().describe("Number of statements executed"),
+  error: z.string().optional().describe("Error message when success is false"),
+  statementsExecuted: z
+    .number()
+    .optional()
+    .describe("Number of statements executed"),
+  statementsTotal: z
+    .number()
+    .optional()
+    .describe("Total number of statements attempted"),
+  failedStatement: z
+    .string()
+    .optional()
+    .describe("SQL of the statement that failed"),
+  autoRolledBack: z
+    .boolean()
+    .optional()
+    .describe("Whether the transaction was automatically rolled back"),
   results: z
     .array(StatementResultSchema)
+    .optional()
     .describe("Results from each statement"),
   transactionId: z
     .string()

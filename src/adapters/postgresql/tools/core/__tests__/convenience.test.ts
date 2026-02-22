@@ -30,7 +30,7 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
   // =========================================================================
 
   describe("pg_count", () => {
-    it("should throw high-signal error for nonexistent table", async () => {
+    it("should return structured error for nonexistent table", async () => {
       // Mock 1: schema check passes
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
@@ -39,21 +39,29 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_count")!;
-      await expect(
-        tool.handler({ table: "nonexistent" }, mockContext),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        { table: "nonexistent" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Table 'public.nonexistent' not found. Use pg_list_tables to see available tables.",
       );
     });
 
-    it("should throw schema-specific error for nonexistent schema", async () => {
+    it("should return structured error for nonexistent schema", async () => {
       // Mock 1: schema check returns empty (schema not found)
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_count")!;
-      await expect(
-        tool.handler({ table: "orders", schema: "fake_schema" }, mockContext),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        { table: "orders", schema: "fake_schema" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Schema 'fake_schema' does not exist. Use pg_list_objects with type 'table' to see available schemas.",
       );
     });
@@ -90,9 +98,37 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_count")!;
-      await expect(
-        tool.handler({ table: "orders", schema: "sales" }, mockContext),
-      ).rejects.toThrow("Table 'sales.orders' not found");
+      const result = (await tool.handler(
+        { table: "orders", schema: "sales" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Table 'sales.orders' not found");
+    });
+
+    it("should return structured error for query execution failure", async () => {
+      // Mock 1: schema check passes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // Mock 2: table check passes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // Mock 3: COUNT query fails (e.g., invalid column expression)
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error('column "DISTINCT status" does not exist'),
+      );
+
+      const tool = tools.find((t) => t.name === "pg_count")!;
+      const result = (await tool.handler(
+        { table: "users", column: "DISTINCT status" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 
@@ -101,7 +137,7 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
   // =========================================================================
 
   describe("pg_exists", () => {
-    it("should throw high-signal error for nonexistent table", async () => {
+    it("should return structured error for nonexistent table", async () => {
       // Mock 1: schema check passes
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
@@ -110,20 +146,28 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_exists")!;
-      await expect(
-        tool.handler({ table: "nonexistent" }, mockContext),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        { table: "nonexistent" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Table 'public.nonexistent' not found. Use pg_list_tables to see available tables.",
       );
     });
 
-    it("should throw schema-specific error for nonexistent schema", async () => {
+    it("should return structured error for nonexistent schema", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_exists")!;
-      await expect(
-        tool.handler({ table: "users", schema: "fake_schema" }, mockContext),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        { table: "users", schema: "fake_schema" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Schema 'fake_schema' does not exist. Use pg_list_objects with type 'table' to see available schemas.",
       );
     });
@@ -158,7 +202,7 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
   // =========================================================================
 
   describe("pg_upsert", () => {
-    it("should throw high-signal error for nonexistent table", async () => {
+    it("should return structured error for nonexistent table", async () => {
       // Mock 1: schema check passes
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
@@ -167,35 +211,37 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_upsert")!;
-      await expect(
-        tool.handler(
-          {
-            table: "nonexistent",
-            data: { name: "test" },
-            conflictColumns: ["id"],
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        {
+          table: "nonexistent",
+          data: { name: "test" },
+          conflictColumns: ["id"],
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Table 'public.nonexistent' not found. Use pg_list_tables to see available tables.",
       );
     });
 
-    it("should throw schema-specific error for nonexistent schema", async () => {
+    it("should return structured error for nonexistent schema", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_upsert")!;
-      await expect(
-        tool.handler(
-          {
-            table: "users",
-            schema: "fake_schema",
-            data: { name: "test" },
-            conflictColumns: ["id"],
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        {
+          table: "users",
+          schema: "fake_schema",
+          data: { name: "test" },
+          conflictColumns: ["id"],
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Schema 'fake_schema' does not exist. Use pg_list_objects with type 'table' to see available schemas.",
       );
     });
@@ -235,7 +281,7 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
   // =========================================================================
 
   describe("pg_batch_insert", () => {
-    it("should throw high-signal error for nonexistent table", async () => {
+    it("should return structured error for nonexistent table", async () => {
       // Mock 1: schema check passes
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
@@ -244,33 +290,35 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_batch_insert")!;
-      await expect(
-        tool.handler(
-          {
-            table: "nonexistent",
-            rows: [{ name: "test" }],
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        {
+          table: "nonexistent",
+          rows: [{ name: "test" }],
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Table 'public.nonexistent' not found. Use pg_list_tables to see available tables.",
       );
     });
 
-    it("should throw schema-specific error for nonexistent schema", async () => {
+    it("should return structured error for nonexistent schema", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_batch_insert")!;
-      await expect(
-        tool.handler(
-          {
-            table: "users",
-            schema: "fake_schema",
-            rows: [{ name: "test" }],
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        {
+          table: "users",
+          schema: "fake_schema",
+          rows: [{ name: "test" }],
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Schema 'fake_schema' does not exist. Use pg_list_objects with type 'table' to see available schemas.",
       );
     });
@@ -309,7 +357,7 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
   // =========================================================================
 
   describe("pg_truncate", () => {
-    it("should throw high-signal error for nonexistent table", async () => {
+    it("should return structured error for nonexistent table", async () => {
       // Mock 1: schema check passes
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
@@ -318,20 +366,28 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_truncate")!;
-      await expect(
-        tool.handler({ table: "nonexistent" }, mockContext),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        { table: "nonexistent" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Table 'public.nonexistent' not found. Use pg_list_tables to see available tables.",
       );
     });
 
-    it("should throw schema-specific error for nonexistent schema", async () => {
+    it("should return structured error for nonexistent schema", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_truncate")!;
-      await expect(
-        tool.handler({ table: "events", schema: "fake_schema" }, mockContext),
-      ).rejects.toThrow(
+      const result = (await tool.handler(
+        { table: "events", schema: "fake_schema" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
         "Schema 'fake_schema' does not exist. Use pg_list_objects with type 'table' to see available schemas.",
       );
     });
@@ -370,9 +426,51 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_truncate")!;
-      await expect(
-        tool.handler({ table: "events", schema: "analytics" }, mockContext),
-      ).rejects.toThrow("Table 'analytics.events' not found");
+      const result = (await tool.handler(
+        { table: "events", schema: "analytics" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Table 'analytics.events' not found");
+    });
+  });
+
+  // =========================================================================
+  // pg_batch_insert - constraint violation structured error
+  // =========================================================================
+
+  describe("pg_batch_insert - structured error handling", () => {
+    it("should return structured error for unique constraint violation (23505)", async () => {
+      // Mock 1: schema check passes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // Mock 2: table check passes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // Mock 3: INSERT fails with unique constraint violation
+      const pgError = new Error(
+        'duplicate key value violates unique constraint "users_email_key"',
+      ) as Error & { code: string };
+      pgError.code = "23505";
+      mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_batch_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "users",
+          rows: [
+            { name: "Alice", email: "alice@test.com" },
+            { name: "Bob", email: "alice@test.com" },
+          ],
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Unique constraint violated/);
     });
   });
 });

@@ -33,10 +33,12 @@ export function preprocessExplainParams(input: unknown): unknown {
 
 /**
  * Base schema for EXPLAIN tools - used for MCP inputSchema visibility.
- * Shows sql as required so MCP clients prompt for it.
+ * Both sql and query are optional here; the preprocessor maps query → sql,
+ * and the handler validates that at least one is provided.
  */
 export const ExplainSchemaBase = z.object({
-  sql: z.string().describe("Query to explain"),
+  sql: z.string().optional().describe("Query to explain"),
+  query: z.string().optional().describe("Alias for sql"),
   params: z.array(z.unknown()).optional().describe("Query parameters"),
   analyze: z.boolean().optional().describe("Run EXPLAIN ANALYZE"),
   buffers: z.boolean().optional().describe("Include buffer usage"),
@@ -59,20 +61,24 @@ export const ExplainSchema = z.preprocess(
   ExplainSchemaBase,
 );
 
+export const IndexStatsSchemaBase = z.object({
+  table: z.string().optional().describe("Table name (all tables if omitted)"),
+  schema: z.string().optional().describe("Schema name"),
+});
+
 export const IndexStatsSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    table: z.string().optional().describe("Table name (all tables if omitted)"),
-    schema: z.string().optional().describe("Schema name"),
-  }),
+  IndexStatsSchemaBase,
 );
+
+export const TableStatsSchemaBase = z.object({
+  table: z.string().optional().describe("Table name (all tables if omitted)"),
+  schema: z.string().optional().describe("Schema name"),
+});
 
 export const TableStatsSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    table: z.string().optional().describe("Table name (all tables if omitted)"),
-    schema: z.string().optional().describe("Schema name"),
-  }),
+  TableStatsSchemaBase,
 );
 
 // =============================================================================
@@ -81,7 +87,9 @@ export const TableStatsSchema = z.preprocess(
 
 // Common schema for explain plan output
 export const ExplainOutputSchema = z.object({
-  plan: z.unknown().describe("Query execution plan"),
+  plan: z.unknown().optional().describe("Query execution plan"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // Common paginated output with array + count
@@ -98,16 +106,32 @@ const PaginatedBase = {
 export const IndexStatsOutputSchema = z.object({
   indexes: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Index statistics"),
-  ...PaginatedBase,
+  count: z.number().optional().describe("Number of items returned"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total count if results truncated"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_table_stats
 export const TableStatsOutputSchema = z.object({
   tables: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Table statistics"),
-  ...PaginatedBase,
+  count: z.number().optional().describe("Number of items returned"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total count if results truncated"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_stat_statements
@@ -124,6 +148,10 @@ export const StatActivityOutputSchema = z.object({
     .array(z.record(z.string(), z.unknown()))
     .describe("Active connections"),
   count: z.number().describe("Number of connections"),
+  backgroundWorkers: z
+    .number()
+    .optional()
+    .describe("Number of filtered background worker processes"),
 });
 
 // pg_locks
@@ -137,8 +165,11 @@ export const LocksOutputSchema = z.object({
 export const BloatCheckOutputSchema = z.object({
   tables: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Tables with bloat"),
-  count: z.number().describe("Number of tables with bloat"),
+  count: z.number().optional().describe("Number of tables with bloat"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_cache_hit_ratio
@@ -152,22 +183,26 @@ export const CacheHitRatioOutputSchema = z.object({
 export const SeqScanTablesOutputSchema = z.object({
   tables: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Tables with sequential scans"),
-  count: z.number().describe("Number of tables"),
-  minScans: z.number().describe("Minimum scan threshold used"),
+  count: z.number().optional().describe("Number of tables"),
+  minScans: z.number().optional().describe("Minimum scan threshold used"),
   hint: z.string().optional().describe("Recommendation hint"),
   totalCount: z
     .number()
     .optional()
     .describe("Total count if results truncated"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_index_recommendations
 export const IndexRecommendationsOutputSchema = z.object({
-  queryAnalysis: z.boolean().describe("Whether query was analyzed"),
+  queryAnalysis: z.boolean().optional().describe("Whether query was analyzed"),
   recommendations: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Index recommendations"),
   hypopgAvailable: z
     .boolean()
@@ -179,23 +214,39 @@ export const IndexRecommendationsOutputSchema = z.object({
     .optional()
     .describe("Baseline query cost"),
   hint: z.string().optional().describe("Recommendation hint"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_query_plan_compare
 export const QueryPlanCompareOutputSchema = z.object({
-  query1: z.record(z.string(), z.unknown()).describe("Query 1 plan metrics"),
-  query2: z.record(z.string(), z.unknown()).describe("Query 2 plan metrics"),
-  analysis: z.object({
-    costDifference: z
-      .number()
-      .nullable()
-      .describe("Cost difference between plans"),
-    recommendation: z.string().describe("Comparison recommendation"),
-  }),
-  fullPlans: z.object({
-    plan1: z.unknown().optional().describe("Full plan for query 1"),
-    plan2: z.unknown().optional().describe("Full plan for query 2"),
-  }),
+  query1: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe("Query 1 plan metrics"),
+  query2: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe("Query 2 plan metrics"),
+  analysis: z
+    .object({
+      costDifference: z
+        .number()
+        .nullable()
+        .describe("Cost difference between plans"),
+      recommendation: z.string().describe("Comparison recommendation"),
+    })
+    .optional()
+    .describe("Plan comparison analysis"),
+  fullPlans: z
+    .object({
+      plan1: z.unknown().optional().describe("Full plan for query 1"),
+      plan2: z.unknown().optional().describe("Full plan for query 2"),
+    })
+    .optional()
+    .describe("Full execution plans"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_performance_baseline
@@ -244,19 +295,22 @@ export const ConnectionPoolOptimizeOutputSchema = z.object({
 
 // pg_partition_strategy_suggest
 export const PartitionStrategySuggestOutputSchema = z.object({
-  table: z.string().describe("Table analyzed"),
+  table: z.string().optional().describe("Table analyzed"),
   tableStats: z
     .record(z.string(), z.unknown())
     .nullable()
+    .optional()
     .describe("Table statistics"),
   tableSize: z
     .record(z.string(), z.unknown())
     .nullable()
+    .optional()
     .describe("Table size info"),
   partitioningRecommended: z
     .boolean()
+    .optional()
     .describe("Whether partitioning is recommended"),
-  reason: z.string().describe("Reason for recommendation"),
+  reason: z.string().optional().describe("Reason for recommendation"),
   suggestions: z
     .array(
       z.object({
@@ -265,8 +319,11 @@ export const PartitionStrategySuggestOutputSchema = z.object({
         reason: z.string().describe("Reason for suggestion"),
       }),
     )
+    .optional()
     .describe("Partition strategy suggestions"),
   note: z.string().optional().describe("Additional guidance"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_unused_indexes (supports both summary and list modes)
@@ -302,8 +359,16 @@ export const DuplicateIndexesOutputSchema = z.object({
 export const VacuumStatsOutputSchema = z.object({
   tables: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Vacuum statistics per table"),
-  ...PaginatedBase,
+  count: z.number().optional().describe("Number of items returned"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total count if results truncated"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_query_plan_stats

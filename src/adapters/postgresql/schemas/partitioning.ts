@@ -582,9 +582,10 @@ export const ListPartitionsOutputSchema = z
 export const CreatePartitionedTableOutputSchema = z
   .object({
     success: z.boolean().describe("Whether the operation succeeded"),
-    table: z.string().describe("Table name (schema.name)"),
-    partitionBy: z.string().describe("Partition strategy used"),
-    partitionKey: z.string().describe("Partition key column(s)"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    table: z.string().optional().describe("Table name (schema.name)"),
+    partitionBy: z.string().optional().describe("Partition strategy used"),
+    partitionKey: z.string().optional().describe("Partition key column(s)"),
     primaryKey: z
       .array(z.string())
       .optional()
@@ -625,7 +626,7 @@ export const DetachPartitionOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
   parent: z.string().optional().describe("Parent table name"),
-  detached: z.string().optional().describe("Detached partition name"),
+  partition: z.string().optional().describe("Detached partition name"),
 });
 
 /**

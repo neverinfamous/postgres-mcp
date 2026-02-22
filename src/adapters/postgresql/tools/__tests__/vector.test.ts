@@ -373,6 +373,7 @@ describe("Vector Tools", () => {
 
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] }) // type check
         .mockResolvedValueOnce({ rows: mockVectors })
         .mockResolvedValueOnce({
           rows: [
@@ -406,6 +407,7 @@ describe("Vector Tools", () => {
     it("should return error for insufficient vectors", async () => {
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] }) // type check
         .mockResolvedValueOnce({
           rows: [{ vec: "[0.1,0.2]" }],
         });

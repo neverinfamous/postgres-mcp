@@ -102,20 +102,22 @@ const CoercibleJobId = z
  * Accepts 'sql' or 'query' as alias for 'command'.
  * Uses base schema for MCP exposure and transform schema for validation.
  */
-export const CronScheduleSchemaBase = z
-  .object({
-    schedule: z
-      .string()
-      .describe(
-        'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
-      ),
-    command: z.string().optional().describe("SQL command to execute"),
-    sql: z.string().optional().describe("Alias for command"),
-    query: z.string().optional().describe("Alias for command"),
-    jobName: z.string().optional().describe("Optional unique name for the job"),
-    name: z.string().optional().describe("Alias for jobName"),
-  })
-  .refine(
+export const CronScheduleSchemaBase = z.object({
+  schedule: z
+    .string()
+    .describe(
+      'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
+    ),
+  command: z.string().optional().describe("SQL command to execute"),
+  sql: z.string().optional().describe("Alias for command"),
+  query: z.string().optional().describe("Alias for command"),
+  jobName: z.string().optional().describe("Optional unique name for the job"),
+  name: z.string().optional().describe("Alias for jobName"),
+});
+
+export const CronScheduleSchema = z.preprocess(
+  preprocessCronParams,
+  CronScheduleSchemaBase.refine(
     (data) =>
       data.command !== undefined ||
       data.sql !== undefined ||
@@ -124,29 +126,25 @@ export const CronScheduleSchemaBase = z
       message: "Either command, sql, or query must be provided",
     },
   )
-  .refine(
-    (data) => {
-      const error = validateIntervalSchedule(data.schedule);
-      return error === undefined;
-    },
-    {
-      message:
-        "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
-    },
-  );
-
-export const CronScheduleSchema = z.preprocess(
-  preprocessCronParams,
-  CronScheduleSchemaBase.transform((data) => {
-    // Handle alias: name -> jobName
-    // Note: command is guaranteed by refine + preprocessing (sql/query -> command)
-    const resolvedJobName = data.jobName ?? data.name;
-    return {
-      schedule: data.schedule,
-      command: data.command ?? "", // Guaranteed by refine + preprocessing
-      jobName: resolvedJobName,
-    };
-  }),
+    .refine(
+      (data) => {
+        const error = validateIntervalSchedule(data.schedule);
+        return error === undefined;
+      },
+      {
+        message:
+          "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
+      },
+    )
+    .transform((data) => {
+      // Handle alias: name -> jobName
+      const resolvedJobName = data.jobName ?? data.name;
+      return {
+        schedule: data.schedule,
+        command: data.command ?? "", // Guaranteed by refine + preprocessing
+        jobName: resolvedJobName,
+      };
+    }),
 );
 
 /**
@@ -156,27 +154,29 @@ export const CronScheduleSchema = z.preprocess(
  * Accepts 'db' as alias for 'database'.
  * Uses base schema for MCP exposure and transform schema for validation.
  */
-export const CronScheduleInDatabaseSchemaBase = z
-  .object({
-    jobName: z.string().optional().describe("Unique name for the job"),
-    name: z.string().optional().describe("Alias for jobName"),
-    schedule: z
-      .string()
-      .describe(
-        'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
-      ),
-    command: z.string().optional().describe("SQL command to execute"),
-    sql: z.string().optional().describe("Alias for command"),
-    query: z.string().optional().describe("Alias for command"),
-    database: z.string().optional().describe("Target database name"),
-    db: z.string().optional().describe("Alias for database"),
-    username: z.string().optional().describe("User to run the job as"),
-    active: z
-      .boolean()
-      .optional()
-      .describe("Whether the job is active (default: true)"),
-  })
-  .refine(
+export const CronScheduleInDatabaseSchemaBase = z.object({
+  jobName: z.string().optional().describe("Unique name for the job"),
+  name: z.string().optional().describe("Alias for jobName"),
+  schedule: z
+    .string()
+    .describe(
+      'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
+    ),
+  command: z.string().optional().describe("SQL command to execute"),
+  sql: z.string().optional().describe("Alias for command"),
+  query: z.string().optional().describe("Alias for command"),
+  database: z.string().optional().describe("Target database name"),
+  db: z.string().optional().describe("Alias for database"),
+  username: z.string().optional().describe("User to run the job as"),
+  active: z
+    .boolean()
+    .optional()
+    .describe("Whether the job is active (default: true)"),
+});
+
+export const CronScheduleInDatabaseSchema = z.preprocess(
+  preprocessCronParams,
+  CronScheduleInDatabaseSchemaBase.refine(
     (data) =>
       data.command !== undefined ||
       data.sql !== undefined ||
@@ -185,47 +185,61 @@ export const CronScheduleInDatabaseSchemaBase = z
       message: "Either command, sql, or query must be provided",
     },
   )
-  .refine((data) => data.database !== undefined || data.db !== undefined, {
-    message: "Either database or db must be provided",
-  })
-  .refine(
-    (data) => {
-      const error = validateIntervalSchedule(data.schedule);
-      return error === undefined;
-    },
-    {
-      message:
-        "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
-    },
-  );
-
-export const CronScheduleInDatabaseSchema = z.preprocess(
-  preprocessCronParams,
-  CronScheduleInDatabaseSchemaBase.transform((data) => {
-    // Handle alias: name -> jobName
-    // Note: command/database are guaranteed by refine + preprocessing
-    const resolvedJobName = data.jobName ?? data.name;
-    return {
-      jobName: resolvedJobName,
-      schedule: data.schedule,
-      command: data.command ?? "", // Guaranteed by refine + preprocessing
-      database: data.database ?? "", // Guaranteed by refine + preprocessing
-      username: data.username,
-      active: data.active,
-    };
-  }).refine((data) => data.jobName !== undefined, {
-    message: "jobName (or name alias) is required",
-  }),
+    .refine((data) => data.database !== undefined || data.db !== undefined, {
+      message: "Either database or db must be provided",
+    })
+    .refine(
+      (data) => {
+        const error = validateIntervalSchedule(data.schedule);
+        return error === undefined;
+      },
+      {
+        message:
+          "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
+      },
+    )
+    .transform((data) => {
+      // Handle alias: name -> jobName
+      const resolvedJobName = data.jobName ?? data.name;
+      return {
+        jobName: resolvedJobName,
+        schedule: data.schedule,
+        command: data.command ?? "", // Guaranteed by refine + preprocessing
+        database: data.database ?? "", // Guaranteed by refine + preprocessing
+        username: data.username,
+        active: data.active,
+      };
+    })
+    .refine((data) => data.jobName !== undefined, {
+      message: "jobName (or name alias) is required",
+    }),
 );
 
-export const CronUnscheduleSchema = z
-  .object({
-    jobId: CoercibleJobId.optional().describe("Job ID to remove"),
-    jobName: z.string().optional().describe("Job name to remove"),
-  })
-  .refine((data) => data.jobId !== undefined || data.jobName !== undefined, {
+export const CronUnscheduleSchemaBase = z.object({
+  jobId: CoercibleJobId.optional().describe("Job ID to remove"),
+  jobName: z.string().optional().describe("Job name to remove"),
+});
+
+export const CronUnscheduleSchema = CronUnscheduleSchemaBase.refine(
+  (data) => data.jobId !== undefined || data.jobName !== undefined,
+  {
     message: "Either jobId or jobName must be provided",
-  });
+  },
+);
+
+export const CronAlterJobSchemaBase = z.object({
+  jobId: z.union([z.number(), z.string()]).describe("Job ID to modify"),
+  schedule: z
+    .string()
+    .optional()
+    .describe(
+      'New cron schedule (e.g., "0 10 * * *") or interval ("1-59 seconds")',
+    ),
+  command: z.string().optional().describe("New SQL command"),
+  database: z.string().optional().describe("New target database"),
+  username: z.string().optional().describe("New username"),
+  active: z.boolean().optional().describe("Enable/disable the job"),
+});
 
 export const CronAlterJobSchema = z
   .object({
@@ -253,19 +267,19 @@ export const CronAlterJobSchema = z
     },
   );
 
-export const CronJobRunDetailsSchema = z
-  .object({
-    jobId: CoercibleJobId.optional().describe("Filter by job ID"),
-    status: z
-      .enum(["running", "succeeded", "failed"])
-      .optional()
-      .describe("Filter by status"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum records to return (default: 50)"),
-  })
-  .default({});
+export const CronJobRunDetailsSchemaBase = z.object({
+  jobId: CoercibleJobId.optional().describe("Filter by job ID"),
+  status: z
+    .string()
+    .optional()
+    .describe("Filter by status (running, succeeded, failed)"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum records to return (default: 50)"),
+});
+
+export const CronJobRunDetailsSchema = CronJobRunDetailsSchemaBase.default({});
 
 export const CronCleanupHistorySchemaBase = z.object({
   olderThanDays: z
@@ -304,12 +318,13 @@ export const CronCreateExtensionOutputSchema = z
 export const CronScheduleOutputSchema = z
   .object({
     success: z.boolean().describe("Whether job was scheduled"),
-    jobId: z.string().nullable().describe("Assigned job ID"),
-    jobName: z.string().nullable().describe("Job name if provided"),
-    schedule: z.string().describe("Cron schedule expression"),
-    command: z.string().describe("SQL command to execute"),
-    message: z.string().describe("Status message"),
+    jobId: z.string().nullable().optional().describe("Assigned job ID"),
+    jobName: z.string().nullable().optional().describe("Job name if provided"),
+    schedule: z.string().optional().describe("Cron schedule expression"),
+    command: z.string().optional().describe("SQL command to execute"),
+    message: z.string().optional().describe("Status message"),
     hint: z.string().optional().describe("Usage hint"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job scheduling result");
 
@@ -319,14 +334,15 @@ export const CronScheduleOutputSchema = z
 export const CronScheduleInDatabaseOutputSchema = z
   .object({
     success: z.boolean().describe("Whether job was scheduled"),
-    jobId: z.string().nullable().describe("Assigned job ID"),
-    jobName: z.string().describe("Job name"),
-    schedule: z.string().describe("Cron schedule expression"),
-    command: z.string().describe("SQL command to execute"),
-    database: z.string().describe("Target database"),
-    username: z.string().nullable().describe("Username to run as"),
-    active: z.boolean().describe("Whether job is active"),
-    message: z.string().describe("Status message"),
+    jobId: z.string().nullable().optional().describe("Assigned job ID"),
+    jobName: z.string().optional().describe("Job name"),
+    schedule: z.string().optional().describe("Cron schedule expression"),
+    command: z.string().optional().describe("SQL command to execute"),
+    database: z.string().optional().describe("Target database"),
+    username: z.string().nullable().optional().describe("Username to run as"),
+    active: z.boolean().optional().describe("Whether job is active"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cross-database cron job scheduling result");
 
@@ -336,16 +352,22 @@ export const CronScheduleInDatabaseOutputSchema = z
 export const CronUnscheduleOutputSchema = z
   .object({
     success: z.boolean().describe("Whether job was removed"),
-    jobId: z.number().nullable().describe("Job ID that was removed"),
-    jobName: z.string().nullable().describe("Job name that was removed"),
+    jobId: z.number().nullable().optional().describe("Job ID that was removed"),
+    jobName: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Job name that was removed"),
     usedIdentifier: z
       .enum(["jobId", "jobName"])
+      .optional()
       .describe("Which identifier was used"),
     warning: z
       .string()
       .optional()
       .describe("Warning if both identifiers given"),
-    message: z.string().describe("Status message"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job removal result");
 
@@ -355,7 +377,7 @@ export const CronUnscheduleOutputSchema = z
 export const CronAlterJobOutputSchema = z
   .object({
     success: z.boolean().describe("Whether job was updated"),
-    jobId: z.number().describe("Job ID that was modified"),
+    jobId: z.number().optional().describe("Job ID that was modified"),
     changes: z
       .object({
         schedule: z.string().optional().describe("New schedule if changed"),
@@ -364,8 +386,10 @@ export const CronAlterJobOutputSchema = z
         username: z.string().optional().describe("New username if changed"),
         active: z.boolean().optional().describe("New active status if changed"),
       })
+      .optional()
       .describe("Changes applied"),
-    message: z.string().describe("Status message"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job modification result");
 
@@ -401,6 +425,7 @@ export const CronListJobsOutputSchema = z
  */
 export const CronJobRunDetailsOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether the query succeeded"),
     runs: z
       .array(
         z.object({
@@ -417,8 +442,9 @@ export const CronJobRunDetailsOutputSchema = z
           end_time: z.coerce.string().nullable().describe("End time"),
         }),
       )
+      .optional()
       .describe("Job execution history"),
-    count: z.number().describe("Number of records returned"),
+    count: z.number().optional().describe("Number of records returned"),
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total available count"),
     summary: z
@@ -427,7 +453,9 @@ export const CronJobRunDetailsOutputSchema = z
         failed: z.number().describe("Failed runs"),
         running: z.number().describe("Currently running"),
       })
+      .optional()
       .describe("Execution summary"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job execution history result");
 

@@ -823,7 +823,7 @@ describe("pg_partman_partition_data", () => {
       .mockResolvedValueOnce({ rows: [{ table_schema: "partman" }] }) // schema detection
       .mockResolvedValueOnce({ rows: [{ control: "created_at", epoch: null }] }) // config check
       .mockResolvedValueOnce({ rows: [{ count: 100 }] }) // COUNT before
-      .mockResolvedValueOnce({ rows: [] }) // CALL returns no rows
+      .mockResolvedValueOnce({ rows: [] }) // CALL partition_data_proc
       .mockResolvedValueOnce({ rows: [{ count: 0 }] }); // COUNT after
 
     const tool = tools.find((t) => t.name === "pg_partman_partition_data")!;
@@ -869,6 +869,25 @@ describe("pg_partman_partition_data", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("No pg_partman configuration found");
+  });
+
+  it("should return structured error when partman schema not found", async () => {
+    // Schema detection returns 'partman' (fallback), but part_config query fails
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] }) // schema detection returns no rows → fallback to 'partman'
+      .mockRejectedValueOnce(new Error('schema "partman" does not exist'));
+
+    const tool = tools.find((t) => t.name === "pg_partman_partition_data")!;
+    const result = (await tool.handler(
+      {
+        parentTable: "public.events",
+      },
+      mockContext,
+    )) as { success: boolean; error: string; hint: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("pg_partman extension not found");
+    expect(result.hint).toContain("pg_partman_create_extension");
   });
 
   it("should include batch size parameter when specified", async () => {
@@ -1001,21 +1020,23 @@ describe("pg_partman_set_retention", () => {
     expect(result.message).toContain("detached");
   });
 
-  it("should throw when no configuration found", async () => {
+  it("should return error when no configuration found", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ table_schema: "partman" }] }) // schema detection
       .mockResolvedValueOnce({ rows: [], rowsAffected: 0 });
 
     const tool = tools.find((t) => t.name === "pg_partman_set_retention")!;
-    await expect(
-      tool.handler(
-        {
-          parentTable: "public.nonexistent",
-          retention: "30 days",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("No pg_partman configuration found");
+    const result = (await tool.handler(
+      {
+        parentTable: "public.nonexistent",
+        retention: "30 days",
+      },
+      mockContext,
+    )) as { success: boolean; error: string; hint: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("No pg_partman configuration found");
+    expect(result.hint).toContain("pg_partman_show_config");
   });
 });
 
@@ -1145,6 +1166,34 @@ describe("pg_partman_undo_partition", () => {
     const callArg = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
     expect(callArg).toContain("p_keep_table := true");
   });
+
+  it("should return structured error when no partman config found", async () => {
+    // Mock schema detection
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_schema: "partman" }],
+    });
+    // Mock target table exists check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // Mock CALL undo_partition_proc fails with no config
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("No entry in part_config found for given table"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_partman_undo_partition")!;
+    const result = (await tool.handler(
+      {
+        parentTable: "public.events",
+        targetTable: "public.events_archive",
+      },
+      mockContext,
+    )) as { success: boolean; error: string; hint: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("No pg_partman configuration found");
+    expect(result.hint).toContain("pg_partman_show_config");
+  });
 });
 
 describe("pg_partman_analyze_partition_health", () => {
@@ -1222,7 +1271,12 @@ describe("pg_partman_analyze_partition_health", () => {
       })
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists check
       .mockResolvedValueOnce({ rows: [{ count: 10 }] }) // partition count
-      .mockResolvedValueOnce({ rows: [{ rows: 5000 }] }); // default has data
+      .mockResolvedValueOnce({
+        rows: [
+          { default_partition: "events_default", default_schema: "public" },
+        ],
+      }) // default partition exists
+      .mockResolvedValueOnce({ rows: [{ count: 1 }] }); // COUNT(*) - has data
 
     const tool = tools.find(
       (t) => t.name === "pg_partman_analyze_partition_health",
@@ -1238,7 +1292,7 @@ describe("pg_partman_analyze_partition_health", () => {
 
     expect(result.partitionSets[0]?.hasDataInDefault).toBe(true);
     expect(result.partitionSets[0]?.issues).toContainEqual(
-      expect.stringContaining("5000 rows"),
+      expect.stringContaining("Data found in default partition"),
     );
     expect(result.partitionSets[0]?.recommendations).toContainEqual(
       expect.stringContaining("pg_partman_partition_data"),

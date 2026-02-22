@@ -35,16 +35,21 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 | \`pg_read_query\` | \`{rows, rowCount, fields?}\` | \`fields\` contains column metadata (name, dataTypeID) |
 | \`pg_write_query\` | \`{rowsAffected, affectedRows, rows?}\` | \`rows\` only with RETURNING clause. DDL statements return \`rowsAffected: 0\`. ⛔ Throws for SELECT |
 | \`pg_upsert\` | \`{success, operation, rowsAffected, rowCount, rows?}\` | \`operation: 'insert'|'update'\`. \`rows\` only with RETURNING clause |
-| \`pg_batch_insert\` | \`{rowsAffected, affectedRows, insertedCount, rows?}\` | Empty objects use DEFAULT VALUES. ⚠️ BIGINT > 2^53 loses precision |
+| \`pg_batch_insert\` | \`{success, rowsAffected, affectedRows, insertedCount, rowCount, rows?}\` | Empty objects use DEFAULT VALUES. ⚠️ BIGINT > 2^53 loses precision |
+| \`pg_create_table\` | \`{success, table, sql, compositePrimaryKey?}\` | \`table\` = schema-qualified name. \`compositePrimaryKey\` only when composite PK used |
+| \`pg_drop_table\` | \`{success, dropped, existed}\` | \`existed\` indicates whether table was present before drop |
+| \`pg_create_index\` | \`{success, index, indexName, table, sql, ifNotExists?, alreadyExists?, message?}\` | \`alreadyExists\`/\`message\` only with \`ifNotExists: true\` when index pre-exists |
+| \`pg_drop_index\` | \`{success, index, existed, sql}\` | \`existed\` indicates whether index was present before drop |
+| \`pg_truncate\` | \`{success, table, cascade, restartIdentity}\` | \`cascade\`/\`restartIdentity\` reflect the options used |
 | \`pg_count\` | \`{count: N}\` | Use \`params\` for placeholders: \`where: 'id=$1', params: [5]\`. DISTINCT: use \`pg_read_query\` |
 | \`pg_exists\` | \`{exists: bool, mode, hint?}\` | \`params\` for placeholders. \`mode: 'filtered'|'any_rows'\` |
 | \`pg_get_indexes\` | \`{indexes, count, totalCount?}\` | Default \`limit: 100\` without \`table\`. Use \`schema\`/\`limit\` to filter. Index objects have \`name\`, \`type\`, \`columns\` |
 | \`pg_list_objects\` | \`{objects, count, totalCount, byType}\` | Use \`limit\` to cap results, \`type\`/\`types\` to filter |
-| \`pg_object_details\` | \`{name, schema, type, returnType?, ...}\` | Functions: \`returnType\` alias. Views/Mat. views: \`definition\` |
-| \`pg_analyze_db_health\` | \`{cacheHitRatio: {ratio, heap, index, status}}\` | \`ratio\` = primary numeric %. \`bloat\` available |
+| \`pg_object_details\` | \`{name, schema, type, returnType?, ...}\` | Functions: \`returnType\` alias. Views/Mat. views: \`definition\`. Tables: equivalent to \`pg_describe_table\` (columns, primaryKey, indexes, constraints, foreignKeys) |
+| \`pg_analyze_db_health\` | \`{cacheHitRatio, databaseSize, tableStats, unusedIndexes, tablesNeedingVacuum, connections, bloat, isReplica, overallScore, overallStatus}\` | \`cacheHitRatio\`: \`{ratio, heap, index, status}\`. \`overallStatus\`: \`healthy|needs_attention|critical\`. Optional sections via \`includeIndexes\`, \`includeVacuum\`, \`includeConnections\` |
 | \`pg_describe_table\` | \`{name, schema, type, owner, rowCount, columns, primaryKey, indexes, constraints, foreignKeys}\` | Columns include \`notNull\` (alias for \`!nullable\`), \`foreignKey\`. \`constraints\` includes PK, UNIQUE, CHECK, NOT NULL. ⚠️ \`rowCount: -1\` = stale/missing statistics (run ANALYZE on the table). Small tables (<~50 rows) may show -1 until first ANALYZE |
 | \`pg_analyze_query_indexes\` | \`{plan, issues, recommendations}\` | \`verbosity\`: 'summary' (default) or 'full'. Summary mode returns condensed plan |
-| \`pg_list_tables\` | \`{tables, count}\` | Use \`schema\` to filter, \`limit\` to cap results, \`exclude\` to hide extension schemas (e.g., \`['cron', 'topology', 'partman']\`) |
+| \`pg_list_tables\` | \`{tables, count, totalCount, truncated?, hint?}\` | Use \`schema\` to filter, \`limit\` to cap results, \`exclude\` to hide extension schemas (e.g., \`['cron', 'topology', 'partman']\`) |
 | List operations | \`{items, count}\` | Access via \`result.tables\`, \`result.views\`, etc. |
 | \`pg_jsonb_agg groupBy\` | \`{result: [{group_key, items}], count, grouped: true}\` | Without groupBy: \`{result: [...], count, grouped: false}\` |
 | \`pg_vector_aggregate\` | \`{average_vector, count}\` or \`{groups: [{group_key, average_vector, count}]}\` | Without/with \`groupBy\` |
@@ -53,6 +58,16 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 | \`pg_vacuum_stats\` | \`{tables, count, truncated?, totalCount?}\` | Default 50 rows. Use \`limit: 0\` for all |
 | \`pg_stat_statements\` | \`{statements, count, truncated?, totalCount?}\` | Default 20 rows. \`orderBy\` supported |
 | \`pg_query_plan_stats\` | \`{queryPlanStats, count, truncated?, totalCount?}\` | Default 20 rows. \`truncateQuery: 0\` for full text |
+| \`pg_stat_activity\` | \`{connections, count}\` | \`includeIdle: true\` to include idle connections |
+| \`pg_locks\` | \`{locks}\` | \`showBlocked: true\` switches to blocked/blocking pid format |
+| \`pg_bloat_check\` | \`{tables, count}\` | Tables with \`live_tuples\`, \`dead_tuples\`, \`dead_pct\` |
+| \`pg_cache_hit_ratio\` | \`{heap_read, heap_hit, cache_hit_ratio}\` | All fields nullable (0 tables = null). Flat response, differs from \`pg_analyze_db_health.cacheHitRatio\` |
+| \`pg_seq_scan_tables\` | \`{tables, count, minScans, hint, truncated?, totalCount?}\` | Default 50 rows. \`minScans\` default: 10 |
+| \`pg_connection_pool_optimize\` | \`{current, config, waitEvents, recommendations}\` | No params needed |
+| \`pg_performance_baseline\` | \`{name, timestamp, metrics}\` | \`metrics\`: \`cache\`, \`tables\`, \`indexes\`, \`connections\`, \`databaseSize\` |
+| \`pg_duplicate_indexes\` | \`{duplicateIndexes, count, hint, truncated?, totalCount?}\` | Default 50 rows. \`duplicate_type\`: EXACT_DUPLICATE, OVERLAPPING, SUBSET |
+| \`pg_query_plan_compare\` | \`{query1, query2, analysis, fullPlans}\` | \`analysis.costDifference\` + \`recommendation\` |
+| \`pg_unused_indexes\` | \`{unusedIndexes, count, hint, truncated?, totalCount?}\` | Default 20 rows. \`summary: true\` → \`{summary, bySchema, totalCount}\` |
 
 ## API Mapping
 
@@ -121,6 +136,11 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 
 **Top-Level Aliases**: \`pg.descriptive()\`, \`pg.percentiles()\`, \`pg.correlation()\`, \`pg.regression()\`, \`pg.timeSeries()\`, \`pg.distribution()\`, \`pg.hypothesis()\`, \`pg.sampling()\`
 
+## Text Tools
+
+- \`pg_text_search\`/\`pg_text_rank\`: Column must be \`text\` type—pre-built \`tsvector\` columns are **not** supported (wrap with \`to_tsvector()\` fails on tsvector input). Use \`pg_read_query\` with raw FTS SQL for tsvector columns
+- \`pg_create_fts_index\`: Returns \`{success, index, config, skipped}\`. \`skipped: true\` = index already existed (IF NOT EXISTS). \`ifNotExists\` defaults to \`true\`
+
 ## Performance Tools
 
 Core (20 methods): \`explain()\`, \`explainAnalyze()\`, \`explainBuffers()\`, \`indexStats()\`, \`tableStats()\`, \`statStatements()\`, \`statActivity()\`, \`locks()\`, \`bloatCheck()\`, \`cacheHitRatio()\`, \`seqScanTables()\`, \`indexRecommendations()\`, \`queryPlanCompare()\`, \`baseline()\`, \`connectionPoolOptimize()\`, \`partitionStrategySuggest()\`, \`unusedIndexes()\`, \`duplicateIndexes()\`, \`vacuumStats()\`, \`queryPlanStats()\`
@@ -163,7 +183,7 @@ Core: \`databaseSize()\`, \`tableSizes()\`, \`connectionStats()\`, \`showSetting
 - \`recoveryStatus()\`: Returns \`{in_recovery: boolean, last_replay_timestamp: string|null}\`
 - \`replicationStatus()\`: Returns \`{role: 'primary'|'replica', replicas: [...]}\` for primary, or \`{role: 'replica', replay_lag, ...}\` for replica
 - \`resourceUsageAnalyze()\`: Returns \`{backgroundWriter, checkpoints, connectionDistribution, bufferUsage, activity, analysis}\` with all counts as numbers
-- \`alertThresholdSet({metric?: 'connection_usage'})\`: Returns recommended thresholds. ⛔ Invalid metric throws validation error. Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
+- \`alertThresholdSet({metric?: 'connection_usage'})\`: Returns recommended thresholds. Invalid metric returns \`{success: false, error: "..."}\`. Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
 
 📦 **AI-Optimized Payloads**: Tools return limited results by default to reduce context size:
 - \`tableSizes({ limit? })\`: Default 50 rows. Returns \`truncated: true\` + \`totalCount\` when limited. Use \`limit: 0\` for all
@@ -190,6 +210,15 @@ Aliases: \`tableName\`→\`table\`, \`indexName\`→\`index\`, \`param\`/\`setti
 **Top-Level Aliases**: \`pg.vacuum()\`, \`pg.vacuumAnalyze()\`, \`pg.analyze()\`, \`pg.reindex()\`, \`pg.cluster()\`, \`pg.setConfig()\`, \`pg.reloadConf()\`, \`pg.resetStats()\`, \`pg.cancelBackend()\`, \`pg.terminateBackend()\`
 
 **Discovery**: \`pg.admin.help()\` returns \`{methods, methodAliases, examples}\` object
+
+**Response structures**:
+- \`vacuum()\` / \`vacuumAnalyze()\`: \`{success, message, table?, schema?, hint?}\` (hint present when verbose: true)
+- \`analyze()\`: \`{success, message, table?, schema?, columns?}\`
+- \`reindex()\`: \`{success, message}\`
+- \`cluster()\`: \`{success, message, table?, index?}\` (table/index present for table-specific cluster)
+- \`setConfig()\`: \`{success, message, parameter, value}\`
+- \`reloadConf()\` / \`resetStats()\`: \`{success, message}\`
+- \`cancelBackend()\` / \`terminateBackend()\`: \`{success, message}\`
 
 ## Backup Tools
 
@@ -248,7 +277,7 @@ Response Structures:
 
 - \`pg_create_view\`: Supports \`schema.name\` format (auto-parsed). Use \`orReplace: true\` for CREATE OR REPLACE. \`checkOption\`: 'cascaded', 'local', 'none'. ⛔ OR REPLACE can add new columns but cannot rename/remove existing ones—PostgreSQL limitation
 - \`pg_create_sequence\`: Supports \`schema.name\` format. Parameters: \`start\`, \`increment\`, \`minValue\`, \`maxValue\`, \`cache\`, \`cycle\`, \`ownedBy\`, \`ifNotExists\`
-- \`pg_list_functions\`: Default limit=500. Use \`schema: 'public'\`, \`limit: 2000\`, or \`exclude: ['postgis', 'pg_trgm', 'ltree', 'citext', 'fuzzystrmatch', 'pg_stat_statements', 'hypopg', 'unaccent', 'pg_stat_kcache', 'pgcrypto', 'partman']\` to filter. ⚠️ \`exclude\` filters by **schema name** AND extension-owned functions. The \`language\` filter does NOT exclude extension functions—use \`exclude\` alongside \`language\` for clean results. Note: Aggressive \`exclude\` may return 0 results if all functions belong to excluded extensions
+- \`pg_list_functions\`: Default limit=500. Use \`schema: 'public'\`, \`limit: 2000\`, or \`exclude: ['postgis', 'pg_trgm', 'ltree', 'citext', 'fuzzystrmatch', 'pg_stat_statements', 'hypopg', 'unaccent', 'pg_stat_kcache', 'pgcrypto', 'partman', 'vector', 'topology']\` to filter. ⚠️ \`exclude\` filters by **schema name** AND extension-owned functions. The \`language\` filter does NOT exclude extension functions—use \`exclude\` alongside \`language\` for clean results. Note: Aggressive \`exclude\` may return 0 results if all functions belong to excluded extensions
 
 **Discovery**: \`pg.schema.help()\` returns \`{methods, methodAliases, examples}\` object
 
@@ -260,6 +289,8 @@ Response Structures:
 - \`pg_list_partitions\`: Default \`limit: 50\` (use \`0\` for all). Returns \`{partitions, count, truncated, totalCount?}\`. Uses \`bounds\` field (consistent with \`pg_partition_info\`)
 - \`pg_partition_info\`: Returns \`{tableInfo, partitions, totalSizeBytes}\`. Uses \`bounds\` field
 - Both list/info tools support \`schema.table\` format (auto-parsed) and accept \`table\`, \`parent\`, \`parentTable\`, or \`name\` aliases
+- Response structures: \`pg_create_partitioned_table\` → \`{success, table, partitionBy, partitionKey, primaryKey?}\`. \`pg_create_partition\` → \`{success, partition, parent, bounds, subpartitionBy?, subpartitionKey?}\`. \`pg_attach_partition\` → \`{success, parent, partition, bounds}\`. \`pg_detach_partition\` → \`{success, parent, partition}\`
+- ⚠️ Sub-partitioning: \`subpartitionBy\`/\`subpartitionKey\` on \`pg_create_partition\` makes a partition itself partitionable. The parent's \`primaryKey\` must include the sub-partition key column (PostgreSQL constraint)
 - 📍 Code Mode: \`pg.partitioning.create()\` = \`createPartition\`, NOT \`createPartitionedTable\`
 
 ## pg_partman Tools
@@ -350,7 +381,7 @@ Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unsched
 - \`pg_cron_schedule\`: Schedule a cron job. \`schedule\` supports standard cron (\`0 5 * * *\`) or interval (\`1 second\` to \`59 seconds\`). ⚠️ Interval syntax only works for 1-59 seconds—for 60+ seconds, use cron syntax (e.g., \`* * * * *\` for every minute). Use \`name\`/\`jobName\` for identification. \`command\`/\`sql\`/\`query\` aliases supported. Note: pg_cron allows duplicate job names; use unique names to avoid confusion when unscheduling
 - \`pg_cron_schedule_in_database\`: Schedule job in specific database. \`database\`/\`db\` aliases. Optional \`username\`, \`active\` params
 - \`pg_cron_unschedule\`: Remove job by \`jobId\` or \`jobName\`. If both provided, \`jobName\` takes precedence (with warning)
-- \`pg_cron_alter_job\`: Modify existing job. Can change \`schedule\`, \`command\`, \`database\`, \`username\`, \`active\`. ⛔ Non-existent jobId throws error
+- \`pg_cron_alter_job\`: Modify existing job. Can change \`schedule\`, \`command\`, \`database\`, \`username\`, \`active\`. ⛔ Non-existent jobId returns error
 - \`pg_cron_list_jobs\`: List all jobs. Default \`limit: 50\` (use \`0\` for all). Optional \`active\` boolean filter. Returns \`truncated\` + \`totalCount\` when limited. Returns \`hint\` when jobs have no name
 - \`pg_cron_job_run_details\`: View execution history. Default \`limit: 50\`. Optional \`jobId\`, \`status\` ('running'|'succeeded'|'failed') filters. Returns \`truncated\` + \`totalCount\` when limited. Returns \`summary\` with counts
 - \`pg_cron_cleanup_history\`: Delete old run records. \`olderThanDays\`/\`days\` param (default: 7). Optional \`jobId\` to target specific job
@@ -404,6 +435,13 @@ Core: \`begin()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, \`rollbackTo()
   - **Join existing**: With \`transactionId\`/\`tx\`/\`txId\`—no auto-commit, caller controls via commit/rollback
 - \`statements\`: Array of \`{sql: "...", params?: [...]}\` objects. ⚠️ Each object MUST have \`sql\` key
 - \`isolationLevel\`: Optional isolation level for new transactions ('READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE')
+- Supports SELECT statements inside \`statements\`—results include \`rows\` in the response for mixed read/write workflows
+
+**Aborted Transaction State:**
+- ⚠️ If any statement in a transaction fails, PostgreSQL puts the transaction into an **aborted state**
+- In aborted state, only \`ROLLBACK\` or \`ROLLBACK TO SAVEPOINT\` commands are accepted—all other commands will error
+- Use \`pg_transaction_rollback\` to end the transaction, or \`pg_transaction_rollback_to\` to recover to a savepoint
+- \`pg_transaction_commit\` on an aborted transaction will detect the state and report it (not silently rollback)
 
 **Response Structures:**
 - \`begin\`: \`{transactionId, isolationLevel: 'READ COMMITTED', message}\`

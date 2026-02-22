@@ -1,8 +1,8 @@
 # postgres-mcp
 
-**Last Updated February 10, 2026**
+**Last Updated February 22, 2026**
 
-**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, Code Mode, tool filtering, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
+**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, Code Mode, tool filtering, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
 **206 specialized tools** · **20 resources** · **19 AI-powered prompts**
 
@@ -15,21 +15,28 @@
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgresql-mcp/blob/master/SECURITY.md)
 ![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Tests](https://img.shields.io/badge/Tests-2108_passed-success.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Coverage](https://img.shields.io/badge/Coverage-84.5%25-green.svg)](https://github.com/neverinfamous/postgresql-mcp)
+[![Tests](https://img.shields.io/badge/Tests-2920_passed-success.svg)](https://github.com/neverinfamous/postgresql-mcp)
+[![Coverage](https://img.shields.io/badge/Coverage-92.05%25-brightgreen.svg)](https://github.com/neverinfamous/postgresql-mcp)
 
-**[GitHub](https://github.com/neverinfamous/postgresql-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgresql-mcp/wiki)**
+**[GitHub](https://github.com/neverinfamous/postgresql-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgresql-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgresql-mcp/blob/master/CHANGELOG.md)**
 
-## 🎯 What This Does
+### 🎯 What Sets Us Apart
 
-### Key Benefits
-
-- 🔧 **206 specialized tools** — Comprehensive PostgreSQL coverage
-- 📊 **20 resources** — Instant database state snapshots
-- 🤖 **19 AI-powered prompts** — Guided workflows for complex tasks
-- ⚡ **Code Mode** — 70-90% token reduction for multi-step operations
-- 🔐 **OAuth 2.1** — RFC-compliant authentication for HTTP/SSE transport
-- 🎛️ **Tool Filtering** — Stay within AI IDE tool limits
+| Feature                          | Description                                                                                                                                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **206 Specialized Tools**        | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, and 8 extension ecosystems                                   |
+| **20 Observability Resources**   | Real-time schema, performance metrics, connection pool status, replication lag, vacuum stats, lock contention, and extension diagnostics                                                      |
+| **19 AI-Powered Prompts**        | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                   |
+| **Code Mode**                    | Sandboxed JavaScript execution with 70-90% token reduction for multi-step operations                                                                                                          |
+| **OAuth 2.1 + Access Control**   | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                    |
+| **Smart Tool Filtering**         | 20 tool groups + 15 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                             |
+| **HTTP Streaming Transport**     | SSE-based streaming with `/mcp`, and `/health` endpoints for remote deployments                                                                                                               |
+| **High-Performance Pooling**     | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                      |
+| **8 Extension Ecosystems**       | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                   |
+| **Deterministic Error Handling** | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes |
+| **Production-Ready Security**    | SQL injection protection, parameterized queries, input validation, and sandboxed code execution                                                                                               |
+| **Strict TypeScript**            | 100% type-safe codebase with 2376 tests and 85.37% coverage                                                                                                                                   |
+| **MCP 2025-11-25 Compliant**     | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                 |
 
 ### Deployment Options
 
@@ -139,7 +146,11 @@ Restart Cursor or your MCP client and start querying PostgreSQL!
 
 > **Note for Docker**: Use `host.docker.internal` to connect to PostgreSQL running on your host machine.
 
-> **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage, manually provide the contents of [`src/constants/ServerInstructions.ts`](https://github.com/neverinfamous/postgresql-mcp/blob/master/src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
+---
+
+## Code Mode: Maximum Efficiency
+
+Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets.
 
 > [!TIP]
 > **Maximize Token Savings:** For the best results, instruct your AI agent to prefer Code Mode over individual tool calls. Add a rule like this to your agent's prompt or system configuration:
@@ -147,6 +158,9 @@ Restart Cursor or your MCP client and start querying PostgreSQL!
 > _"When using postgres-mcp, prefer `pg_execute_code` (Code Mode) for multi-step database operations to minimize token usage."_
 >
 > This ensures the agent batches operations into single calls instead of making many individual tool calls. See the [Code Mode wiki](https://github.com/neverinfamous/postgresql-mcp/wiki/Code-Mode) for full API documentation.
+
+> [!NOTE]
+> **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage, manually provide the contents of [`src/constants/ServerInstructions.ts`](https://github.com/neverinfamous/postgresql-mcp/blob/master/src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
 
 ---
 
@@ -341,7 +355,7 @@ docker pull writenotenow/postgres-mcp@sha256:<manifest-digest>
 
 **Available Tags:**
 
-- `1.1.0` - Specific version (recommended for production)
+- `1.3.0` - Specific version (recommended for production)
 - `latest` - Always the newest version
 - `sha256-<digest>` - SHA-pinned for maximum security
 

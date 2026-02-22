@@ -128,6 +128,27 @@ describe("pg_database_size", () => {
     );
     expect(result.size).toBe("2 GB");
   });
+
+  it("should return structured error for nonexistent database", async () => {
+    const pgError = new Error(
+      'database "nonexistent_db" does not exist',
+    ) as Error & { code: string };
+    pgError.code = "3D000";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_database_size")!;
+    const result = (await tool.handler(
+      { database: "nonexistent_db" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+    expect(result.error).not.toContain("ifExists");
+  });
 });
 
 describe("pg_table_sizes", () => {
@@ -584,10 +605,15 @@ describe("pg_capacity_planning", () => {
     );
   });
 
-  it("should reject negative projection days", async () => {
+  it("should return structured error for negative projection days", async () => {
     const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
 
-    await expect(tool.handler({ days: -5 }, mockContext)).rejects.toThrow();
+    const result = (await tool.handler({ days: -5 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("non-negative");
   });
 });
 
@@ -826,5 +852,20 @@ describe("pg_alert_threshold_set", () => {
     expect(result.metric).toBe("connection_usage");
     expect(result.threshold.warning).toBe("70%");
     expect(result.threshold.critical).toBe("90%");
+  });
+
+  it("should return structured error for invalid metric", async () => {
+    const tool = tools.find((t) => t.name === "pg_alert_threshold_set")!;
+    const result = (await tool.handler(
+      { metric: "invalid_metric_xyz" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid metric");
+    expect(result.error).toContain("connection_usage");
   });
 });

@@ -18,25 +18,29 @@ import { z } from "zod";
  * Schema for querying enhanced statistics with kcache data.
  * Joins pg_stat_statements with pg_stat_kcache for full picture.
  */
+export const KcacheQueryStatsSchemaBase = z.object({
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of queries to return (default: 20)"),
+  orderBy: z
+    .string()
+    .optional()
+    .describe(
+      "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
+    ),
+  minCalls: z.number().optional().describe("Minimum call count to include"),
+  queryPreviewLength: z
+    .number()
+    .optional()
+    .describe(
+      "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+});
+
 export const KcacheQueryStatsSchema = z.preprocess(
   normalizeOptionalParams,
-  z.object({
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum number of queries to return (default: 20)"),
-    orderBy: z
-      .enum(["total_time", "cpu_time", "reads", "writes"])
-      .optional()
-      .describe("Order results by metric (default: total_time)"),
-    minCalls: z.number().optional().describe("Minimum call count to include"),
-    queryPreviewLength: z
-      .number()
-      .optional()
-      .describe(
-        "Characters for query preview (default: 100, max: 500, 0 for full)",
-      ),
-  }),
+  KcacheQueryStatsSchemaBase,
 );
 
 /**
@@ -53,44 +57,88 @@ export const KcacheTopConsumersSchema = z.object({
 });
 
 /**
+ * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
+ */
+export const KcacheTopCpuSchemaBase = z.object({
+  limit: z
+    .number()
+    .optional()
+    .describe("Number of top queries to return (default: 10)"),
+  queryPreviewLength: z
+    .number()
+    .optional()
+    .describe(
+      "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+});
+
+/**
+ * Base schema for MCP visibility - pg_kcache_top_io parameters.
+ */
+export const KcacheTopIoSchemaBase = z.object({
+  type: z
+    .enum(["reads", "writes", "both"])
+    .optional()
+    .describe("I/O type to rank by (default: both)"),
+  ioType: z
+    .enum(["reads", "writes", "both"])
+    .optional()
+    .describe("Alias for type"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Number of top queries to return (default: 10)"),
+  queryPreviewLength: z
+    .number()
+    .optional()
+    .describe(
+      "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+});
+
+/**
  * Schema for database-level aggregation.
  */
+export const KcacheDatabaseStatsSchemaBase = z.object({
+  database: z
+    .string()
+    .optional()
+    .describe("Database name (current database if omitted)"),
+});
+
 export const KcacheDatabaseStatsSchema = z.preprocess(
   normalizeOptionalParams,
-  z.object({
-    database: z
-      .string()
-      .optional()
-      .describe("Database name (current database if omitted)"),
-  }),
+  KcacheDatabaseStatsSchemaBase,
 );
 
 /**
  * Schema for identifying resource-bound queries.
  */
+export const KcacheResourceAnalysisSchemaBase = z.object({
+  queryId: z
+    .string()
+    .optional()
+    .describe("Specific query ID to analyze (all if omitted)"),
+  threshold: z
+    .number()
+    .optional()
+    .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of queries to return (default: 20)"),
+  minCalls: z.number().optional().describe("Minimum call count to include"),
+  queryPreviewLength: z
+    .number()
+    .optional()
+    .describe(
+      "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+});
+
 export const KcacheResourceAnalysisSchema = z.preprocess(
   normalizeOptionalParams,
-  z.object({
-    queryId: z
-      .string()
-      .optional()
-      .describe("Specific query ID to analyze (all if omitted)"),
-    threshold: z
-      .number()
-      .optional()
-      .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum number of queries to return (default: 20)"),
-    minCalls: z.number().optional().describe("Minimum call count to include"),
-    queryPreviewLength: z
-      .number()
-      .optional()
-      .describe(
-        "Characters for query preview (default: 100, max: 500, 0 for full)",
-      ),
-  }),
+  KcacheResourceAnalysisSchemaBase,
 );
 
 // =============================================================================
@@ -224,7 +272,7 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
  * Preprocesses to handle empty/null params.
  */
 export const CitextAnalyzeCandidatesSchema = z.preprocess(
-  normalizeOptionalParams,
+  (input) => preprocessCitextTableParams(normalizeOptionalParams(input)),
   CitextAnalyzeCandidatesSchemaBase,
 );
 
@@ -520,14 +568,16 @@ export const LtreeMatchSchema = z.preprocess(
 /**
  * Schema for listing ltree columns in the database.
  */
+export const LtreeListColumnsSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema name to filter (all schemas if omitted)"),
+});
+
 export const LtreeListColumnsSchema = z.preprocess(
   normalizeOptionalParams,
-  z.object({
-    schema: z
-      .string()
-      .optional()
-      .describe("Schema name to filter (all schemas if omitted)"),
-  }),
+  LtreeListColumnsSchemaBase,
 );
 
 /**
@@ -565,6 +615,16 @@ export const LtreeIndexSchema = z.preprocess(
 // =============================================================================
 
 /**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ * Valid algorithm values described in text for MCP clients.
+ */
+export const PgcryptoHashSchemaBase = z.object({
+  data: z.string().describe("Data to hash"),
+  algorithm: z.string().describe("Hash algorithm"),
+  encoding: z.string().optional().describe("Output encoding (default: hex)"),
+});
+
+/**
  * Schema for hashing data with digest().
  */
 export const PgcryptoHashSchema = z.object({
@@ -576,6 +636,16 @@ export const PgcryptoHashSchema = z.object({
     .enum(["hex", "base64"])
     .optional()
     .describe("Output encoding (default: hex)"),
+});
+
+/**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ */
+export const PgcryptoHmacSchemaBase = z.object({
+  data: z.string().describe("Data to authenticate"),
+  key: z.string().describe("Secret key for HMAC"),
+  algorithm: z.string().describe("Hash algorithm"),
+  encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 
 /**
@@ -657,6 +727,14 @@ export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
   });
 
 /**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ */
+export const PgcryptoRandomBytesSchemaBase = z.object({
+  length: z.number().describe("Number of random bytes to generate (1-1024)"),
+  encoding: z.string().optional().describe("Output encoding (default: hex)"),
+});
+
+/**
  * Schema for generating random bytes.
  */
 export const PgcryptoRandomBytesSchema = z.object({
@@ -669,6 +747,19 @@ export const PgcryptoRandomBytesSchema = z.object({
     .enum(["hex", "base64"])
     .optional()
     .describe("Output encoding (default: hex)"),
+});
+
+/**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ */
+export const PgcryptoGenSaltSchemaBase = z.object({
+  type: z
+    .string()
+    .describe("Salt type: bf (bcrypt, recommended), md5, xdes, or des"),
+  iterations: z
+    .number()
+    .optional()
+    .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
 });
 
 /**
@@ -716,13 +807,16 @@ export const KcacheCreateExtensionOutputSchema = z
  */
 export const KcacheQueryStatsOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether query succeeded"),
     queries: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Query statistics with CPU/IO metrics"),
-    count: z.number().describe("Number of queries returned"),
-    orderBy: z.string().describe("Order by metric"),
-    truncated: z.boolean().describe("Results were truncated"),
-    totalCount: z.number().describe("Total available count"),
+    count: z.number().optional().describe("Number of queries returned"),
+    orderBy: z.string().optional().describe("Order by metric"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
+    totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Query statistics with OS-level metrics");
 
@@ -731,13 +825,16 @@ export const KcacheQueryStatsOutputSchema = z
  */
 export const KcacheTopCpuOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether query succeeded"),
     topCpuQueries: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Top CPU-consuming queries"),
-    count: z.number().describe("Number of queries returned"),
-    description: z.string().describe("Result description"),
-    truncated: z.boolean().describe("Results were truncated"),
-    totalCount: z.number().describe("Total available count"),
+    count: z.number().optional().describe("Number of queries returned"),
+    description: z.string().optional().describe("Result description"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
+    totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Top CPU-consuming queries result");
 
@@ -746,14 +843,20 @@ export const KcacheTopCpuOutputSchema = z
  */
 export const KcacheTopIoOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether query succeeded"),
     topIoQueries: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Top I/O-consuming queries"),
-    count: z.number().describe("Number of queries returned"),
-    ioType: z.enum(["reads", "writes", "both"]).describe("I/O type ranked by"),
-    description: z.string().describe("Result description"),
-    truncated: z.boolean().describe("Results were truncated"),
-    totalCount: z.number().describe("Total available count"),
+    count: z.number().optional().describe("Number of queries returned"),
+    ioType: z
+      .enum(["reads", "writes", "both"])
+      .optional()
+      .describe("I/O type ranked by"),
+    description: z.string().optional().describe("Result description"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
+    totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Top I/O-consuming queries result");
 
@@ -762,10 +865,13 @@ export const KcacheTopIoOutputSchema = z
  */
 export const KcacheDatabaseStatsOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether query succeeded"),
     databaseStats: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Database-level statistics"),
-    count: z.number().describe("Number of databases"),
+    count: z.number().optional().describe("Number of databases"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Database-level aggregated statistics");
 
@@ -774,10 +880,12 @@ export const KcacheDatabaseStatsOutputSchema = z
  */
 export const KcacheResourceAnalysisOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether analysis succeeded"),
     queries: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Analyzed queries with resource classification"),
-    count: z.number().describe("Number of queries analyzed"),
+    count: z.number().optional().describe("Number of queries analyzed"),
     summary: z
       .object({
         cpuBound: z.number().describe("CPU-bound query count"),
@@ -785,10 +893,12 @@ export const KcacheResourceAnalysisOutputSchema = z
         balanced: z.number().describe("Balanced query count"),
         threshold: z.number().describe("Classification threshold"),
       })
+      .optional()
       .describe("Resource classification summary"),
-    recommendations: z.array(z.string()).describe("Recommendations"),
-    truncated: z.boolean().describe("Results were truncated"),
-    totalCount: z.number().describe("Total available count"),
+    recommendations: z.array(z.string()).optional().describe("Recommendations"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
+    totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Resource classification analysis result");
 
@@ -798,8 +908,9 @@ export const KcacheResourceAnalysisOutputSchema = z
 export const KcacheResetOutputSchema = z
   .object({
     success: z.boolean().describe("Whether reset succeeded"),
-    message: z.string().describe("Status message"),
-    note: z.string().describe("Additional note"),
+    message: z.string().optional().describe("Status message"),
+    note: z.string().optional().describe("Additional note"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("pg_stat_kcache reset result");
 
@@ -871,12 +982,14 @@ export const CitextListColumnsOutputSchema = z
  */
 export const CitextAnalyzeCandidatesOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether analysis succeeded"),
     candidates: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Candidate columns"),
-    count: z.number().describe("Number of candidates returned"),
-    totalCount: z.number().describe("Total available count"),
-    truncated: z.boolean().describe("Results were truncated"),
+    count: z.number().optional().describe("Number of candidates returned"),
+    totalCount: z.number().optional().describe("Total available count"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
     limit: z.number().optional().describe("Limit applied"),
     table: z.string().optional().describe("Table filter applied"),
     schema: z.string().optional().describe("Schema filter applied"),
@@ -885,13 +998,18 @@ export const CitextAnalyzeCandidatesOutputSchema = z
         highConfidence: z.number().describe("High confidence count"),
         mediumConfidence: z.number().describe("Medium confidence count"),
       })
+      .optional()
       .describe("Confidence summary"),
-    recommendation: z.string().describe("Recommendation"),
+    recommendation: z.string().optional().describe("Recommendation"),
     excludedSchemas: z
       .array(z.string())
       .optional()
       .describe("Excluded schemas"),
-    patternsUsed: z.array(z.string()).describe("Search patterns used"),
+    patternsUsed: z
+      .array(z.string())
+      .optional()
+      .describe("Search patterns used"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Candidate analysis result");
 
@@ -915,7 +1033,8 @@ export const CitextCompareOutputSchema = z
  */
 export const CitextSchemaAdvisorOutputSchema = z
   .object({
-    table: z.string().describe("Analyzed table"),
+    success: z.boolean().optional().describe("Whether analysis succeeded"),
+    table: z.string().optional().describe("Analyzed table"),
     recommendations: z
       .array(
         z.object({
@@ -929,6 +1048,7 @@ export const CitextSchemaAdvisorOutputSchema = z
           reason: z.string().describe("Reason for recommendation"),
         }),
       )
+      .optional()
       .describe("Column recommendations"),
     summary: z
       .object({
@@ -937,8 +1057,10 @@ export const CitextSchemaAdvisorOutputSchema = z
         highConfidence: z.number().describe("High confidence count"),
         alreadyCitext: z.number().describe("Already citext count"),
       })
+      .optional()
       .describe("Summary statistics"),
-    nextSteps: z.array(z.string()).describe("Suggested next steps"),
+    nextSteps: z.array(z.string()).optional().describe("Suggested next steps"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Schema advisor result");
 
@@ -1011,13 +1133,16 @@ export const LtreeLcaOutputSchema = z
  */
 export const LtreeMatchOutputSchema = z
   .object({
-    pattern: z.string().describe("Query pattern"),
+    success: z.boolean().optional().describe("Whether match succeeded"),
+    pattern: z.string().optional().describe("Query pattern"),
     results: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Matching results"),
-    count: z.number().describe("Number of results"),
+    count: z.number().optional().describe("Number of results"),
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total available count"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Pattern match result");
 
@@ -1067,12 +1192,13 @@ export const LtreeConvertColumnOutputSchema = z
 export const LtreeCreateIndexOutputSchema = z
   .object({
     success: z.boolean().describe("Whether index was created"),
-    message: z.string().describe("Status message"),
-    indexName: z.string().describe("Index name"),
+    message: z.string().optional().describe("Status message"),
+    indexName: z.string().optional().describe("Index name"),
     alreadyExists: z.boolean().optional().describe("Index already existed"),
     table: z.string().optional().describe("Qualified table name"),
     column: z.string().optional().describe("Column name"),
     indexType: z.string().optional().describe("Index type (gist)"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Index creation result");
 
@@ -1096,10 +1222,11 @@ export const PgcryptoCreateExtensionOutputSchema = z
 export const PgcryptoHashOutputSchema = z
   .object({
     success: z.boolean().describe("Whether hash succeeded"),
-    algorithm: z.string().describe("Hash algorithm used"),
-    encoding: z.string().describe("Output encoding"),
-    hash: z.string().describe("Hash result"),
-    inputLength: z.number().describe("Input data length"),
+    algorithm: z.string().optional().describe("Hash algorithm used"),
+    encoding: z.string().optional().describe("Output encoding"),
+    hash: z.string().optional().describe("Hash result"),
+    inputLength: z.number().optional().describe("Input data length"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Hash result");
 
@@ -1109,9 +1236,10 @@ export const PgcryptoHashOutputSchema = z
 export const PgcryptoHmacOutputSchema = z
   .object({
     success: z.boolean().describe("Whether HMAC succeeded"),
-    algorithm: z.string().describe("HMAC algorithm used"),
-    encoding: z.string().describe("Output encoding"),
-    hmac: z.string().describe("HMAC result"),
+    algorithm: z.string().optional().describe("HMAC algorithm used"),
+    encoding: z.string().optional().describe("Output encoding"),
+    hmac: z.string().optional().describe("HMAC result"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("HMAC result");
 
@@ -1121,8 +1249,9 @@ export const PgcryptoHmacOutputSchema = z
 export const PgcryptoEncryptOutputSchema = z
   .object({
     success: z.boolean().describe("Whether encryption succeeded"),
-    encrypted: z.string().describe("Encrypted data"),
-    encoding: z.string().describe("Output encoding"),
+    encrypted: z.string().optional().describe("Encrypted data"),
+    encoding: z.string().optional().describe("Output encoding"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Encryption result");
 
@@ -1132,8 +1261,9 @@ export const PgcryptoEncryptOutputSchema = z
 export const PgcryptoDecryptOutputSchema = z
   .object({
     success: z.boolean().describe("Whether decryption succeeded"),
-    decrypted: z.string().describe("Decrypted data"),
-    verified: z.boolean().describe("Whether decryption verified"),
+    decrypted: z.string().optional().describe("Decrypted data"),
+    verified: z.boolean().optional().describe("Whether decryption verified"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Decryption result");
 
@@ -1143,9 +1273,10 @@ export const PgcryptoDecryptOutputSchema = z
 export const PgcryptoGenRandomUuidOutputSchema = z
   .object({
     success: z.boolean().describe("Whether generation succeeded"),
-    uuids: z.array(z.string()).describe("Generated UUIDs"),
-    count: z.number().describe("Number of UUIDs generated"),
+    uuids: z.array(z.string()).optional().describe("Generated UUIDs"),
+    count: z.number().optional().describe("Number of UUIDs generated"),
     uuid: z.string().optional().describe("First UUID (for single requests)"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("UUID generation result");
 
@@ -1155,9 +1286,10 @@ export const PgcryptoGenRandomUuidOutputSchema = z
 export const PgcryptoGenRandomBytesOutputSchema = z
   .object({
     success: z.boolean().describe("Whether generation succeeded"),
-    randomBytes: z.string().describe("Random bytes"),
-    length: z.number().describe("Number of bytes"),
-    encoding: z.string().describe("Output encoding"),
+    randomBytes: z.string().optional().describe("Random bytes"),
+    length: z.number().optional().describe("Number of bytes"),
+    encoding: z.string().optional().describe("Output encoding"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Random bytes generation result");
 
@@ -1167,8 +1299,9 @@ export const PgcryptoGenRandomBytesOutputSchema = z
 export const PgcryptoGenSaltOutputSchema = z
   .object({
     success: z.boolean().describe("Whether salt generation succeeded"),
-    salt: z.string().describe("Generated salt"),
-    type: z.string().describe("Salt type"),
+    salt: z.string().optional().describe("Generated salt"),
+    type: z.string().optional().describe("Salt type"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Salt generation result");
 

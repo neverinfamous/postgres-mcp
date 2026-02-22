@@ -670,13 +670,16 @@ describe("Bug Fixes", () => {
 
   describe("pg_vector_cluster clusters alias", () => {
     it("should accept clusters as alias for k", async () => {
-      mockAdapter.executeQuery.mockResolvedValue({
-        rows: [
-          { vec: "[0.1,0.2,0.3]" },
-          { vec: "[0.4,0.5,0.6]" },
-          { vec: "[0.7,0.8,0.9]" },
-        ],
-      });
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] }) // type check
+        .mockResolvedValueOnce({
+          rows: [
+            { vec: "[0.1,0.2,0.3]" },
+            { vec: "[0.4,0.5,0.6]" },
+            { vec: "[0.7,0.8,0.9]" },
+          ],
+        });
 
       const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
       const result = (await tool.handler(
@@ -914,6 +917,62 @@ describe("Object Existence Checks (P154)", () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain("Table 'nonexistent' does not exist");
     });
+
+    it("should return structured error for duplicate column without ifNotExists", async () => {
+      // Table exists, then ALTER TABLE fails with duplicate column
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // table check passes
+        .mockRejectedValueOnce(
+          new Error(
+            'column "embedding" of relation "documents" already exists',
+          ),
+        );
+
+      const tool = tools.find((t) => t.name === "pg_vector_add_column")!;
+      const result = (await tool.handler(
+        { table: "documents", column: "embedding", dimensions: 384 },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("already exists");
+      expect(result.suggestion).toContain("ifNotExists");
+    });
+  });
+
+  describe("pg_vector_batch_insert", () => {
+    it("should expose all parameters in inputSchema (Split Schema)", () => {
+      const tool = tools.find((t) => t.name === "pg_vector_batch_insert")!;
+      const schema = tool.inputSchema as { shape?: Record<string, unknown> };
+      // Base schema should have shape property (not stripped by .transform())
+      expect(schema.shape).toBeDefined();
+      expect(schema.shape!.table).toBeDefined();
+      expect(schema.shape!.column).toBeDefined();
+      expect(schema.shape!.vectors).toBeDefined();
+      expect(schema.shape!.schema).toBeDefined();
+    });
+
+    it("should return structured error for dimension mismatch", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check
+        .mockRejectedValueOnce(new Error("expected 384 dimensions, not 3")); // INSERT fails
+
+      const tool = tools.find((t) => t.name === "pg_vector_batch_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "embeddings",
+          column: "vector",
+          vectors: [{ vector: [0.1, 0.2, 0.3] }],
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Vector dimension mismatch");
+      expect(result.expectedDimensions).toBe(384);
+      expect(result.providedDimensions).toBe(3);
+      expect(result.suggestion).toContain("384");
+    });
   });
 
   describe("pg_vector_cluster", () => {
@@ -937,6 +996,19 @@ describe("Object Existence Checks (P154)", () => {
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
       expect(result.error).toContain("Column 'bad_col' does not exist");
+    });
+
+    it("should return non-vector-column error", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // checkTableAndColumn: column found
+        .mockResolvedValueOnce({ rows: [{ udt_name: "text" }] }); // type check: not vector
+      const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
+      const result = (await tool.handler(
+        { table: "embeddings", column: "content", k: 3 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not a vector column");
     });
   });
 
@@ -1091,6 +1163,50 @@ describe("Object Existence Checks (P154)", () => {
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
       expect(result.error).toContain("Column 'bad_col' does not exist");
+    });
+  });
+
+  describe("pg_vector_validate non-vector column", () => {
+    it("should return structured error for non-vector column", async () => {
+      // Column exists but is not a vector type
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // column exists
+        .mockResolvedValueOnce({ rows: [{ udt_name: "text" }] }); // type check: text, not vector
+
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { table: "embeddings", column: "name" },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("not a vector column");
+      expect(result.error).toContain("text");
+      expect(result.suggestion).toContain("pg_vector_add_column");
+    });
+  });
+
+  describe("pg_vector_create_index non-vector column", () => {
+    it("should return structured error for non-vector column", async () => {
+      // Existence checks pass, but CREATE INDEX fails with operator class error
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // checkTableAndColumn: column found
+        .mockRejectedValueOnce(
+          new Error(
+            'operator class "vector_l2_ops" does not accept data type text',
+          ),
+        );
+
+      const tool = tools.find((t) => t.name === "pg_vector_create_index")!;
+      const result = (await tool.handler(
+        { table: "embeddings", column: "name", type: "hnsw" },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not a vector column");
+      expect(result.error).toContain("text");
+      expect(result.suggestion).toContain("pg_vector_add_column");
     });
   });
 });

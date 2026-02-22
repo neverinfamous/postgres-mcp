@@ -154,6 +154,22 @@ describe("Kcache Tools", () => {
         [],
       );
     });
+
+    it("should return structured error for invalid orderBy value", async () => {
+      const tool = findTool("pg_kcache_query_stats");
+      const result = (await tool!.handler(
+        { orderBy: "calls" },
+        mockContext,
+      )) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid orderBy value "calls"');
+      expect(result.error).toContain("total_time");
+      expect(mockAdapter.executeQuery).not.toHaveBeenCalled();
+    });
   });
 
   describe("pg_kcache_top_cpu", () => {
@@ -493,6 +509,93 @@ describe("Kcache Tools", () => {
       expect(result.summary.balanced).toBe(3);
       // When balanced is dominant, recommendation should be about balance
       expect(result.recommendations.length).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe("Error Handling", () => {
+    it("pg_kcache_query_stats should return structured error on query failure", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("LIMIT must not be negative"),
+      );
+
+      const tool = findTool("pg_kcache_query_stats");
+      const result = (await tool!.handler({ limit: -1 }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("LIMIT must not be negative");
+    });
+
+    it("pg_kcache_top_cpu should return structured error on query failure", async () => {
+      // First call: column detection
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // Second call: COUNT query fails
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection terminated"),
+      );
+
+      const tool = findTool("pg_kcache_top_cpu");
+      const result = (await tool!.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("connection terminated");
+    });
+
+    it("pg_kcache_top_io should return structured error on query failure", async () => {
+      // First call: column detection
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // Second call: COUNT query fails
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("permission denied"),
+      );
+
+      const tool = findTool("pg_kcache_top_io");
+      const result = (await tool!.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("permission denied");
+    });
+
+    it("pg_kcache_database_stats should return structured error on query failure", async () => {
+      // All calls fail
+      mockAdapter.executeQuery.mockRejectedValue(
+        new Error("relation does not exist"),
+      );
+
+      const tool = findTool("pg_kcache_database_stats");
+      const result = (await tool!.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(typeof result.error).toBe("string");
+    });
+
+    it("pg_kcache_resource_analysis should return structured error on query failure", async () => {
+      // First call: column detection
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // Second call: COUNT query fails
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("LIMIT must not be negative"),
+      );
+
+      const tool = findTool("pg_kcache_resource_analysis");
+      const result = (await tool!.handler({ limit: -1 }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("LIMIT must not be negative");
     });
   });
 

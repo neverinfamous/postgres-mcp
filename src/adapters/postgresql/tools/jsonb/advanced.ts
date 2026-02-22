@@ -12,6 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { formatPostgresError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -239,27 +240,33 @@ export function createJsonbMergeTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("JSONB Merge"),
     icons: getToolIcons("jsonb", readOnly("JSONB Merge")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = parseMergeParams(params);
-      const useDeep = parsed.deep !== false;
-      const useMergeArrays = parsed.mergeArrays === true;
+      try {
+        const parsed = parseMergeParams(params);
+        const useDeep = parsed.deep !== false;
+        const useMergeArrays = parsed.mergeArrays === true;
 
-      if (useDeep) {
-        // Perform recursive deep merge in TypeScript
-        const merged = deepMergeObjects(
-          parsed.base,
-          parsed.overlay,
-          useMergeArrays,
-        );
-        // Return the merged result directly (no PostgreSQL round-trip needed)
-        return { merged, deep: true, mergeArrays: useMergeArrays };
-      } else {
-        // Shallow merge using PostgreSQL || operator
-        const sql = `SELECT $1::jsonb || $2::jsonb as result`;
-        const result = await adapter.executeQuery(sql, [
-          toJsonString(parsed.base),
-          toJsonString(parsed.overlay),
-        ]);
-        return { merged: result.rows?.[0]?.["result"], deep: false };
+        if (useDeep) {
+          const merged = deepMergeObjects(
+            parsed.base,
+            parsed.overlay,
+            useMergeArrays,
+          );
+          return { merged, deep: true, mergeArrays: useMergeArrays };
+        } else {
+          const sql = `SELECT $1::jsonb || $2::jsonb as result`;
+          const result = await adapter.executeQuery(sql, [
+            toJsonString(parsed.base),
+            toJsonString(parsed.overlay),
+          ]);
+          return { merged: result.rows?.[0]?.["result"], deep: false };
+        }
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_jsonb_merge",
+          }),
+        };
       }
     },
   };
@@ -281,65 +288,78 @@ export function createJsonbNormalizeTool(
     annotations: readOnly("JSONB Normalize"),
     icons: getToolIcons("jsonb", readOnly("JSONB Normalize")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
-      const parsed = JsonbNormalizeSchema.parse(params);
-      const table = parsed.table;
-      const column = parsed.column;
-      if (!table || !column) {
-        throw new Error("table and column are required");
-      }
-      const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
-      const mode = parsed.mode ?? "keys";
+      try {
+        // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
+        const parsed = JsonbNormalizeSchema.parse(params);
+        const table = parsed.table;
+        const column = parsed.column;
+        if (!table || !column) {
+          return { success: false, error: "table and column are required" };
+        }
+        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+        const mode = parsed.mode ?? "keys";
 
-      // Validate mode parameter
-      const validModes = ["keys", "array", "pairs", "flatten"];
-      if (!validModes.includes(mode)) {
-        throw new Error(
-          `pg_jsonb_normalize: Invalid mode '${mode}'. Valid modes: ${validModes.join(", ")}`,
-        );
-      }
+        // Validate mode parameter
+        const validModes = ["keys", "array", "pairs", "flatten"];
+        if (!validModes.includes(mode)) {
+          return {
+            success: false,
+            error: `pg_jsonb_normalize: Invalid mode '${mode}'. Valid modes: ${validModes.join(", ")}`,
+          };
+        }
 
-      const tableName = sanitizeTableName(table);
-      const columnName = sanitizeIdentifier(column);
+        // Validate schema existence for non-public schemas
+        const schemaName = parsed.schema ?? "public";
+        if (schemaName !== "public") {
+          const schemaResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schemaName],
+          );
+          if (!schemaResult.rows || schemaResult.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            };
+          }
+        }
 
-      // Determine row identifier column
-      let rowIdExpr: string;
-      let rowIdAlias = "source_id";
-      if (parsed.idColumn) {
-        // User specified - use it directly
-        rowIdExpr = sanitizeIdentifier(parsed.idColumn);
-      } else {
-        // Try to detect 'id' column, fall back to ctid
-        try {
-          const checkSql = `SELECT column_name FROM information_schema.columns WHERE table_name = $1 AND column_name = 'id' LIMIT 1`;
-          const checkResult = await adapter.executeQuery(checkSql, [
-            parsed.table,
-          ]);
-          if (checkResult.rows && checkResult.rows.length > 0) {
-            rowIdExpr = '"id"';
-          } else {
+        const tableName = sanitizeTableName(table, schemaName);
+        const columnName = sanitizeIdentifier(column);
+
+        // Determine row identifier column
+        let rowIdExpr: string;
+        let rowIdAlias = "source_id";
+        if (parsed.idColumn) {
+          rowIdExpr = sanitizeIdentifier(parsed.idColumn);
+        } else {
+          try {
+            const checkSql = `SELECT column_name FROM information_schema.columns WHERE table_name = $1 AND column_name = 'id' LIMIT 1`;
+            const checkResult = await adapter.executeQuery(checkSql, [
+              parsed.table,
+            ]);
+            if (checkResult.rows && checkResult.rows.length > 0) {
+              rowIdExpr = '"id"';
+            } else {
+              rowIdExpr = "ctid::text";
+              rowIdAlias = "source_ctid";
+            }
+          } catch {
             rowIdExpr = "ctid::text";
             rowIdAlias = "source_ctid";
           }
-        } catch {
-          rowIdExpr = "ctid::text";
-          rowIdAlias = "source_ctid";
         }
-      }
 
-      let sql: string;
-      if (mode === "array") {
-        sql = `SELECT ${rowIdExpr} as ${rowIdAlias}, jsonb_array_elements(${columnName}) as element FROM ${tableName}${whereClause}`;
-      } else if (mode === "flatten") {
-        // Recursive CTE to flatten nested objects to dot-notation keys
-        sql = `
+        let sql: string;
+        if (mode === "array") {
+          sql = `SELECT ${rowIdExpr} as ${rowIdAlias}, jsonb_array_elements(${columnName}) as element FROM ${tableName}${whereClause}`;
+        } else if (mode === "flatten") {
+          sql = `
                     WITH RECURSIVE 
                     source_rows AS (
                         SELECT ${rowIdExpr} as ${rowIdAlias}, ${columnName} as doc
                         FROM ${tableName}${whereClause}
                     ),
                     flattened AS (
-                        -- Base case: start with top-level keys
                         SELECT 
                             sr.${rowIdAlias},
                             kv.key as path,
@@ -349,7 +369,6 @@ export function createJsonbNormalizeTool(
                         
                         UNION ALL
                         
-                        -- Recursive case: expand nested objects
                         SELECT 
                             f.${rowIdAlias},
                             f.path || '.' || kv.key,
@@ -362,24 +381,22 @@ export function createJsonbNormalizeTool(
                     WHERE value_type != 'object' OR value = '{}'::jsonb
                     ORDER BY ${rowIdAlias}, path
                 `;
-      } else if (mode === "pairs") {
-        sql = `SELECT ${rowIdExpr} as ${rowIdAlias}, key, value FROM ${tableName}, jsonb_each(${columnName}) ${whereClause}`;
-      } else {
-        // Default 'keys' mode
-        sql = `SELECT ${rowIdExpr} as ${rowIdAlias}, key, value FROM ${tableName}, jsonb_each_text(${columnName}) ${whereClause}`;
-      }
+        } else if (mode === "pairs") {
+          sql = `SELECT ${rowIdExpr} as ${rowIdAlias}, key, value FROM ${tableName}, jsonb_each(${columnName}) ${whereClause}`;
+        } else {
+          sql = `SELECT ${rowIdExpr} as ${rowIdAlias}, key, value FROM ${tableName}, jsonb_each_text(${columnName}) ${whereClause}`;
+        }
 
-      try {
         const result = await adapter.executeQuery(sql);
         // Check for empty flatten results on array columns
         if (mode === "flatten" && (result.rows?.length ?? 0) === 0) {
-          // Verify if this is because column contains arrays
           const typeCheckSql = `SELECT jsonb_typeof(${columnName}) as type FROM ${tableName}${whereClause} LIMIT 1`;
           const typeResult = await adapter.executeQuery(typeCheckSql);
           if (typeResult.rows?.[0]?.["type"] === "array") {
-            throw new Error(
-              `pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.`,
-            );
+            return {
+              success: false,
+              error: `pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.`,
+            };
           }
         }
         return { rows: result.rows, count: result.rows?.length ?? 0, mode };
@@ -389,20 +406,26 @@ export function createJsonbNormalizeTool(
           error instanceof Error &&
           error.message.includes("cannot call jsonb_each")
         ) {
-          throw new Error(
-            `pg_jsonb_normalize '${mode}' mode requires object columns. For array columns, use mode: 'array'.`,
-          );
+          return {
+            success: false,
+            error: `pg_jsonb_normalize requires object columns for this mode. For array columns, use mode: 'array'.`,
+          };
         }
-        // Improve error for object columns with array mode
         if (
           error instanceof Error &&
           error.message.includes("cannot extract elements from an object")
         ) {
-          throw new Error(
-            `pg_jsonb_normalize 'array' mode requires array columns. For object columns, use mode: 'keys' or 'pairs'.`,
-          );
+          return {
+            success: false,
+            error: `pg_jsonb_normalize 'array' mode requires array columns. For object columns, use mode: 'keys' or 'pairs'.`,
+          };
         }
-        throw error;
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_jsonb_normalize",
+          }),
+        };
       }
     },
   };
@@ -433,17 +456,19 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("JSONB Diff"),
     icons: getToolIcons("jsonb", readOnly("JSONB Diff")),
     handler: async (params: unknown, _context: RequestContext) => {
-      let parsed;
       try {
-        parsed = JsonbDiffSchema.parse(params);
-      } catch {
-        // Provide friendly error for array/non-object inputs
-        throw new Error(
-          "pg_jsonb_diff requires two JSONB objects. Arrays and primitive values are not supported. Use {} format for both doc1 and doc2.",
-        );
-      }
+        let parsed;
+        try {
+          parsed = JsonbDiffSchema.parse(params);
+        } catch {
+          return {
+            success: false,
+            error:
+              "pg_jsonb_diff requires two JSONB objects. Arrays and primitive values are not supported. Use {} format for both doc1 and doc2.",
+          };
+        }
 
-      const sql = `
+        const sql = `
                 WITH 
                     j1 AS (SELECT key, value FROM jsonb_each($1::jsonb)),
                     j2 AS (SELECT key, value FROM jsonb_each($2::jsonb))
@@ -461,17 +486,25 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
                 WHERE j1.value IS DISTINCT FROM j2.value
             `;
 
-      const result = await adapter.executeQuery(sql, [
-        toJsonString(parsed.doc1),
-        toJsonString(parsed.doc2),
-      ]);
+        const result = await adapter.executeQuery(sql, [
+          toJsonString(parsed.doc1),
+          toJsonString(parsed.doc2),
+        ]);
 
-      return {
-        differences: result.rows,
-        hasDifferences: (result.rows?.length ?? 0) > 0,
-        comparison: "shallow",
-        hint: "Compares top-level keys only. Nested object changes show as modified.",
-      };
+        return {
+          differences: result.rows,
+          hasDifferences: (result.rows?.length ?? 0) > 0,
+          comparison: "shallow",
+          hint: "Compares top-level keys only. Nested object changes show as modified.",
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_jsonb_diff",
+          }),
+        };
+      }
     },
   };
 }
@@ -492,20 +525,36 @@ export function createJsonbIndexSuggestTool(
     annotations: readOnly("JSONB Index Suggest"),
     icons: getToolIcons("jsonb", readOnly("JSONB Index Suggest")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
-      const parsed = JsonbIndexSuggestSchema.parse(params);
-      const table = parsed.table;
-      const column = parsed.column;
-      if (!table || !column) {
-        throw new Error("table and column are required");
-      }
-      const sample = parsed.sampleSize ?? 1000;
-      const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+      try {
+        // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
+        const parsed = JsonbIndexSuggestSchema.parse(params);
+        const table = parsed.table;
+        const column = parsed.column;
+        if (!table || !column) {
+          return { success: false, error: "table and column are required" };
+        }
+        const sample = parsed.sampleSize ?? 1000;
+        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
 
-      const tableName = sanitizeTableName(table);
-      const columnName = sanitizeIdentifier(column);
+        // Validate schema existence for non-public schemas
+        const schemaName = parsed.schema ?? "public";
+        if (schemaName !== "public") {
+          const schemaResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schemaName],
+          );
+          if (!schemaResult.rows || schemaResult.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            };
+          }
+        }
 
-      const keySql = `
+        const tableName = sanitizeTableName(table, schemaName);
+        const columnName = sanitizeIdentifier(column);
+
+        const keySql = `
                 SELECT key, COUNT(*) as frequency, 
                        jsonb_typeof(value) as value_type
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,
@@ -515,86 +564,86 @@ export function createJsonbIndexSuggestTool(
                 LIMIT 20
             `;
 
-      let keyResult;
-      try {
-        keyResult = await adapter.executeQuery(keySql);
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          (error.message.includes("function jsonb_each") ||
-            error.message.includes("cannot call jsonb_each"))
-        ) {
-          throw new Error(
-            `pg_jsonb_index_suggest requires JSONB objects (not arrays). Column '${column}' may not be JSONB type or contains arrays.`,
-          );
-        }
-        throw error;
-      }
+        const keyResult = await adapter.executeQuery(keySql);
 
-      const indexSql = `
+        const indexSql = `
                 SELECT indexname, indexdef
                 FROM pg_indexes
                 WHERE tablename = $1
                 AND indexdef LIKE '%' || $2 || '%'
             `;
 
-      const indexResult = await adapter.executeQuery(indexSql, [
-        parsed.table,
-        parsed.column,
-      ]);
+        const indexResult = await adapter.executeQuery(indexSql, [
+          parsed.table,
+          parsed.column,
+        ]);
 
-      const recommendations: string[] = [];
-      // Cast frequency to number (PostgreSQL returns bigint as string)
-      const keys = (keyResult.rows ?? []).map(
-        (row: Record<string, unknown>) => ({
-          key: row["key"] as string,
-          frequency: Number(row["frequency"]),
-          value_type: row["value_type"] as string,
-        }),
-      );
-
-      // Only recommend GIN index if there's data to analyze
-      if ((indexResult.rows?.length ?? 0) === 0 && keys.length > 0) {
-        recommendations.push(
-          `CREATE INDEX ON ${tableName} USING GIN (${columnName})`,
+        const recommendations: string[] = [];
+        const keys = (keyResult.rows ?? []).map(
+          (row: Record<string, unknown>) => ({
+            key: row["key"] as string,
+            frequency: Number(row["frequency"]),
+            value_type: row["value_type"] as string,
+          }),
         );
-      }
 
-      for (const keyInfo of keys.slice(0, 5)) {
-        if (keyInfo.frequency > sample * 0.5) {
+        if ((indexResult.rows?.length ?? 0) === 0 && keys.length > 0) {
           recommendations.push(
-            `CREATE INDEX ON ${tableName} ((${columnName} ->> '${keyInfo.key.replace(/'/g, "''")}'))`,
+            `CREATE INDEX ON ${tableName} USING GIN (${columnName})`,
           );
         }
-      }
 
-      // Build response with helpful hints
-      const response: {
-        keyDistribution: typeof keys;
-        existingIndexes: unknown;
-        recommendations: string[];
-        hint?: string;
-      } = {
-        keyDistribution: keys,
-        existingIndexes: indexResult.rows,
-        recommendations,
-      };
-
-      // Add explanation when no recommendations
-      if (recommendations.length === 0) {
-        if ((indexResult.rows?.length ?? 0) > 0) {
-          response.hint =
-            "No new recommendations - existing indexes already cover this column";
-        } else if (keys.length === 0) {
-          response.hint =
-            "No recommendations - table is empty or column has no keys to analyze";
-        } else {
-          response.hint =
-            "No recommendations - no keys appeared in >50% of sampled rows";
+        for (const keyInfo of keys.slice(0, 5)) {
+          if (keyInfo.frequency > sample * 0.5) {
+            recommendations.push(
+              `CREATE INDEX ON ${tableName} ((${columnName} ->> '${keyInfo.key.replace(/'/g, "''")}'))`,
+            );
+          }
         }
-      }
 
-      return response;
+        const response: {
+          keyDistribution: typeof keys;
+          existingIndexes: unknown;
+          recommendations: string[];
+          hint?: string;
+        } = {
+          keyDistribution: keys,
+          existingIndexes: indexResult.rows,
+          recommendations,
+        };
+
+        if (recommendations.length === 0) {
+          if ((indexResult.rows?.length ?? 0) > 0) {
+            response.hint =
+              "No new recommendations - existing indexes already cover this column";
+          } else if (keys.length === 0) {
+            response.hint =
+              "No recommendations - table is empty or column has no keys to analyze";
+          } else {
+            response.hint =
+              "No recommendations - no keys appeared in >50% of sampled rows";
+          }
+        }
+
+        return response;
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.message.includes("function jsonb_each") ||
+            error.message.includes("cannot call jsonb_each"))
+        ) {
+          return {
+            success: false,
+            error: `pg_jsonb_index_suggest requires JSONB objects (not arrays). Column may not be JSONB type or contains arrays.`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_jsonb_index_suggest",
+          }),
+        };
+      }
     },
   };
 }
@@ -615,27 +664,43 @@ export function createJsonbSecurityScanTool(
     annotations: readOnly("JSONB Security Scan"),
     icons: getToolIcons("jsonb", readOnly("JSONB Security Scan")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
-      const parsed = JsonbSecurityScanSchema.parse(params);
-      const table = parsed.table;
-      const column = parsed.column;
-      if (!table || !column) {
-        throw new Error("table and column are required");
-      }
-      const sample = parsed.sampleSize ?? 100;
-      const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+      try {
+        // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
+        const parsed = JsonbSecurityScanSchema.parse(params);
+        const table = parsed.table;
+        const column = parsed.column;
+        if (!table || !column) {
+          return { success: false, error: "table and column are required" };
+        }
+        const sample = parsed.sampleSize ?? 100;
+        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
 
-      const issues: { type: string; key: string; count: number }[] = [];
+        const issues: { type: string; key: string; count: number }[] = [];
 
-      const tableName = sanitizeTableName(table);
-      const columnName = sanitizeIdentifier(column);
+        // Validate schema existence for non-public schemas
+        const schemaName = parsed.schema ?? "public";
+        if (schemaName !== "public") {
+          const schemaResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schemaName],
+          );
+          if (!schemaResult.rows || schemaResult.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            };
+          }
+        }
 
-      // Count actual rows scanned (may be less than sample if table is small)
-      const countSql = `SELECT COUNT(*) as count FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t`;
-      const countResult = await adapter.executeQuery(countSql);
-      const actualRowsScanned = Number(countResult.rows?.[0]?.["count"] ?? 0);
+        const tableName = sanitizeTableName(table, schemaName);
+        const columnName = sanitizeIdentifier(column);
 
-      const sensitiveKeysSql = `
+        // Count actual rows scanned
+        const countSql = `SELECT COUNT(*) as count FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t`;
+        const countResult = await adapter.executeQuery(countSql);
+        const actualRowsScanned = Number(countResult.rows?.[0]?.["count"] ?? 0);
+
+        const sensitiveKeysSql = `
                 SELECT key, COUNT(*) as count
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,
                      jsonb_each_text(${columnName})
@@ -644,32 +709,18 @@ export function createJsonbSecurityScanTool(
                 GROUP BY key
             `;
 
-      let sensitiveResult;
-      try {
-        sensitiveResult = await adapter.executeQuery(sensitiveKeysSql);
-      } catch (error) {
-        if (
-          error instanceof Error &&
-          (error.message.includes("function jsonb_each") ||
-            error.message.includes("cannot call jsonb_each"))
-        ) {
-          throw new Error(
-            `pg_jsonb_security_scan requires JSONB objects. Column '${column}' may contain arrays or non-JSONB data.`,
-          );
+        const sensitiveResult = await adapter.executeQuery(sensitiveKeysSql);
+        for (const row of (sensitiveResult.rows ?? []) as {
+          key: string;
+          count: string | number;
+        }[]) {
+          issues.push({
+            type: "sensitive_key",
+            key: row.key,
+            count: Number(row.count),
+          });
         }
-        throw error;
-      }
-      for (const row of (sensitiveResult.rows ?? []) as {
-        key: string;
-        count: string | number;
-      }[]) {
-        issues.push({
-          type: "sensitive_key",
-          key: row.key,
-          count: Number(row.count),
-        });
-      }
-      const injectionSql = `
+        const injectionSql = `
                 SELECT key, COUNT(*) as count
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,
                      jsonb_each_text(${columnName})
@@ -677,20 +728,20 @@ export function createJsonbSecurityScanTool(
                 GROUP BY key
             `;
 
-      const injectionResult = await adapter.executeQuery(injectionSql);
-      for (const row of (injectionResult.rows ?? []) as {
-        key: string;
-        count: string | number;
-      }[]) {
-        issues.push({
-          type: "sql_injection_pattern",
-          key: row.key,
-          count: Number(row.count),
-        });
-      }
+        const injectionResult = await adapter.executeQuery(injectionSql);
+        for (const row of (injectionResult.rows ?? []) as {
+          key: string;
+          count: string | number;
+        }[]) {
+          issues.push({
+            type: "sql_injection_pattern",
+            key: row.key,
+            count: Number(row.count),
+          });
+        }
 
-      // XSS pattern detection
-      const xssSql = `
+        // XSS pattern detection
+        const xssSql = `
                 SELECT key, COUNT(*) as count
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,
                      jsonb_each_text(${columnName})
@@ -698,24 +749,42 @@ export function createJsonbSecurityScanTool(
                 GROUP BY key
             `;
 
-      const xssResult = await adapter.executeQuery(xssSql);
-      for (const row of (xssResult.rows ?? []) as {
-        key: string;
-        count: string | number;
-      }[]) {
-        issues.push({
-          type: "xss_pattern",
-          key: row.key,
-          count: Number(row.count),
-        });
-      }
+        const xssResult = await adapter.executeQuery(xssSql);
+        for (const row of (xssResult.rows ?? []) as {
+          key: string;
+          count: string | number;
+        }[]) {
+          issues.push({
+            type: "xss_pattern",
+            key: row.key,
+            count: Number(row.count),
+          });
+        }
 
-      return {
-        scannedRows: actualRowsScanned,
-        issues,
-        riskLevel:
-          issues.length === 0 ? "low" : issues.length < 3 ? "medium" : "high",
-      };
+        return {
+          scannedRows: actualRowsScanned,
+          issues,
+          riskLevel:
+            issues.length === 0 ? "low" : issues.length < 3 ? "medium" : "high",
+        };
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.message.includes("function jsonb_each") ||
+            error.message.includes("cannot call jsonb_each"))
+        ) {
+          return {
+            success: false,
+            error: `pg_jsonb_security_scan requires JSONB objects. Column may contain arrays or non-JSONB data.`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_jsonb_security_scan",
+          }),
+        };
+      }
     },
   };
 }
@@ -734,20 +803,36 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("JSONB Stats"),
     icons: getToolIcons("jsonb", readOnly("JSONB Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
-      const parsed = JsonbStatsSchema.parse(params);
-      const table = parsed.table;
-      const column = parsed.column;
-      if (!table || !column) {
-        throw new Error("table and column are required");
-      }
-      const sample = parsed.sampleSize ?? 1000;
-      const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+      try {
+        // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
+        const parsed = JsonbStatsSchema.parse(params);
+        const table = parsed.table;
+        const column = parsed.column;
+        if (!table || !column) {
+          return { success: false, error: "table and column are required" };
+        }
+        const sample = parsed.sampleSize ?? 1000;
+        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
 
-      const tableName = sanitizeTableName(table);
-      const columnName = sanitizeIdentifier(column);
+        // Validate schema existence for non-public schemas
+        const schemaName = parsed.schema ?? "public";
+        if (schemaName !== "public") {
+          const schemaResult = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schemaName],
+          );
+          if (!schemaResult.rows || schemaResult.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            };
+          }
+        }
 
-      const basicSql = `
+        const tableName = sanitizeTableName(table, schemaName);
+        const columnName = sanitizeIdentifier(column);
+
+        const basicSql = `
                 SELECT 
                     COUNT(*) as total_rows,
                     COUNT(${columnName}) as non_null_count,
@@ -756,20 +841,19 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t
             `;
 
-      const basicResult = await adapter.executeQuery(basicSql);
-      // Cast bigint values to numbers (PostgreSQL returns bigint as string)
-      const basics = basicResult.rows?.[0];
-      const basicsNormalized = basics
-        ? {
-            total_rows: Number(basics["total_rows"]),
-            non_null_count: Number(basics["non_null_count"]),
-            avg_size_bytes: Number(basics["avg_size_bytes"]),
-            max_size_bytes: Number(basics["max_size_bytes"]),
-          }
-        : undefined;
+        const basicResult = await adapter.executeQuery(basicSql);
+        const basics = basicResult.rows?.[0];
+        const basicsNormalized = basics
+          ? {
+              total_rows: Number(basics["total_rows"]),
+              non_null_count: Number(basics["non_null_count"]),
+              avg_size_bytes: Number(basics["avg_size_bytes"]),
+              max_size_bytes: Number(basics["max_size_bytes"]),
+            }
+          : undefined;
 
-      const keyLimit = parsed.topKeysLimit ?? 20;
-      const keySql = `
+        const keyLimit = parsed.topKeysLimit ?? 20;
+        const keySql = `
                 SELECT key, COUNT(*) as frequency
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,
                      jsonb_object_keys(${columnName}) key
@@ -778,66 +862,70 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
                 LIMIT ${String(keyLimit)}
             `;
 
-      let topKeys: { key: string; frequency: number }[] = [];
-      try {
-        const keyResult = await adapter.executeQuery(keySql);
-        // Cast frequency to number
-        topKeys = (keyResult.rows ?? []).map(
-          (row: Record<string, unknown>) => ({
-            key: row["key"] as string,
-            frequency: Number(row["frequency"]),
-          }),
-        );
-      } catch (error) {
-        // Gracefully handle array columns (jsonb_object_keys fails on arrays)
-        if (
-          error instanceof Error &&
-          error.message.includes("cannot call jsonb_object_keys")
-        ) {
-          // Leave topKeys empty for array columns - this is valid
-        } else {
-          throw error;
+        let topKeys: { key: string; frequency: number }[] = [];
+        try {
+          const keyResult = await adapter.executeQuery(keySql);
+          topKeys = (keyResult.rows ?? []).map(
+            (row: Record<string, unknown>) => ({
+              key: row["key"] as string,
+              frequency: Number(row["frequency"]),
+            }),
+          );
+        } catch (error) {
+          // Gracefully handle array columns (jsonb_object_keys fails on arrays)
+          if (
+            error instanceof Error &&
+            error.message.includes("cannot call jsonb_object_keys")
+          ) {
+            // Leave topKeys empty for array columns - this is valid
+          } else {
+            throw error; // Re-throw to be caught by outer catch
+          }
         }
-      }
 
-      const typeSql = `
+        const typeSql = `
                 SELECT jsonb_typeof(${columnName}) as type, COUNT(*) as count
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t
                 GROUP BY jsonb_typeof(${columnName})
             `;
 
-      const typeResult = await adapter.executeQuery(typeSql);
-      // Cast count to number
-      const typeDistribution = (typeResult.rows ?? []).map(
-        (row: Record<string, unknown>) => ({
-          type: row["type"] as string | null,
-          count: Number(row["count"]),
-        }),
-      );
+        const typeResult = await adapter.executeQuery(typeSql);
+        const typeDistribution = (typeResult.rows ?? []).map(
+          (row: Record<string, unknown>) => ({
+            type: row["type"] as string | null,
+            count: Number(row["count"]),
+          }),
+        );
 
-      // Calculate SQL NULL count for disambiguation
-      const sqlNullCount =
-        typeDistribution.find((t) => t.type === null)?.count ?? 0;
-      const hasNullColumns = sqlNullCount > 0;
-      const isArrayColumn = typeDistribution.some((t) => t.type === "array");
+        const sqlNullCount =
+          typeDistribution.find((t) => t.type === null)?.count ?? 0;
+        const hasNullColumns = sqlNullCount > 0;
+        const isArrayColumn = typeDistribution.some((t) => t.type === "array");
 
-      // Determine appropriate hint
-      let hint: string | undefined;
-      if (hasNullColumns) {
-        hint =
-          "typeDistribution null type represents SQL NULL columns, not JSON null values";
-      } else if (topKeys.length === 0 && isArrayColumn) {
-        hint =
-          'topKeys empty for array columns - use pg_jsonb_normalize mode: "array" to analyze elements';
+        let hint: string | undefined;
+        if (hasNullColumns) {
+          hint =
+            "typeDistribution null type represents SQL NULL columns, not JSON null values";
+        } else if (topKeys.length === 0 && isArrayColumn) {
+          hint =
+            'topKeys empty for array columns - use pg_jsonb_normalize mode: "array" to analyze elements';
+        }
+
+        return {
+          basics: basicsNormalized,
+          topKeys,
+          typeDistribution,
+          sqlNullCount,
+          hint,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_jsonb_stats",
+          }),
+        };
       }
-
-      return {
-        basics: basicsNormalized,
-        topKeys,
-        typeDistribution,
-        sqlNullCount,
-        hint,
-      };
     },
   };
 }

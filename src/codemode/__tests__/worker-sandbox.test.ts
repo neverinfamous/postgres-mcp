@@ -230,6 +230,54 @@ describe("WorkerSandboxPool", () => {
       pool.dispose();
     });
   });
+
+  describe("execute with active slot tracking", () => {
+    it("should increment and decrement active count during execution", async () => {
+      const pool = new WorkerSandboxPool({ maxInstances: 2 });
+      pool.initialize();
+
+      const stats1 = pool.getStats();
+      expect(stats1.inUse).toBe(0);
+      expect(stats1.available).toBe(2);
+
+      // Execute will create a real worker sandbox (which will fail because
+      // worker-script.js path may not exist in test context), but the slot
+      // tracking should still work correctly via the finally block
+      const result = await pool.execute("return 1 + 1", {});
+      // Either succeeds or fails depending on worker availability, but
+      // active count should return to 0 after execution completes
+      const stats2 = pool.getStats();
+      expect(stats2.inUse).toBe(0);
+      expect(typeof result.success).toBe("boolean");
+      expect(result.metrics).toBeDefined();
+
+      pool.dispose();
+    });
+
+    it("should return error metrics with zero values on pool disposed", async () => {
+      const pool = new WorkerSandboxPool({ maxInstances: 1 });
+      pool.dispose();
+
+      const result = await pool.execute("return 42", {});
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("disposed");
+      expect(result.metrics.wallTimeMs).toBe(0);
+      expect(result.metrics.cpuTimeMs).toBe(0);
+      expect(result.metrics.memoryUsedMb).toBe(0);
+    });
+
+    it("should enforce max instances limit", async () => {
+      const pool = new WorkerSandboxPool({ maxInstances: 0 });
+      pool.initialize();
+
+      const result = await pool.execute("return 1", {});
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("exhausted");
+      expect(result.metrics.wallTimeMs).toBe(0);
+
+      pool.dispose();
+    });
+  });
 });
 
 describe("WorkerSandbox serializeBindings", () => {

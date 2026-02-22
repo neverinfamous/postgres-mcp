@@ -7,9 +7,10 @@
 
 import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { admin, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import {
   buildProgressContext,
   sendProgress,
@@ -62,41 +63,48 @@ function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Vacuum"),
     icons: getToolIcons("admin", admin("Vacuum")),
     handler: async (params: unknown, context: RequestContext) => {
-      const progress = buildProgressContext(context);
-      await sendProgress(progress, 1, 2, "Starting VACUUM...");
+      try {
+        const progress = buildProgressContext(context);
+        await sendProgress(progress, 1, 2, "Starting VACUUM...");
 
-      const { table, schema, full, verbose, analyze } =
-        VacuumSchema.parse(params);
-      const fullClause = full === true ? "FULL " : "";
-      const verboseClause = verbose === true ? "VERBOSE " : "";
-      const analyzeClause = analyze === true ? "ANALYZE " : "";
-      const target =
-        table !== undefined
-          ? schema !== undefined
-            ? `"${schema}"."${table}"`
-            : `"${table}"`
-          : "";
+        const { table, schema, full, verbose, analyze } =
+          VacuumSchema.parse(params);
+        const fullClause = full === true ? "FULL " : "";
+        const verboseClause = verbose === true ? "VERBOSE " : "";
+        const analyzeClause = analyze === true ? "ANALYZE " : "";
+        const target =
+          table !== undefined
+            ? schema !== undefined
+              ? `"${schema}"."${table}"`
+              : `"${table}"`
+            : "";
 
-      const sql = `VACUUM ${fullClause}${verboseClause}${analyzeClause}${target}`;
-      await adapter.executeQuery(sql);
+        const sql = `VACUUM ${fullClause}${verboseClause}${analyzeClause}${target}`;
+        await adapter.executeQuery(sql);
 
-      await sendProgress(progress, 2, 2, "VACUUM complete");
+        await sendProgress(progress, 2, 2, "VACUUM complete");
 
-      // Build accurate message reflecting all options used
-      const parts: string[] = ["VACUUM"];
-      if (full === true) parts.push("FULL");
-      if (analyze === true) parts.push("ANALYZE");
-      const message = `${parts.join(" ")} completed`;
+        // Build accurate message reflecting all options used
+        const parts: string[] = ["VACUUM"];
+        if (full === true) parts.push("FULL");
+        if (analyze === true) parts.push("ANALYZE");
+        const message = `${parts.join(" ")} completed`;
 
-      return {
-        success: true,
-        message,
-        ...(table !== undefined && { table }),
-        ...(schema !== undefined && { schema }),
-        ...(verbose === true && {
-          hint: "Verbose output written to PostgreSQL server logs",
-        }),
-      };
+        return {
+          success: true,
+          message,
+          ...(table !== undefined && { table }),
+          ...(schema !== undefined && { schema }),
+          ...(verbose === true && {
+            hint: "Verbose output written to PostgreSQL server logs",
+          }),
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_vacuum" }),
+        };
+      }
     },
   };
 }
@@ -112,39 +120,46 @@ function createVacuumAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Vacuum Analyze"),
     icons: getToolIcons("admin", admin("Vacuum Analyze")),
     handler: async (params: unknown, context: RequestContext) => {
-      const progress = buildProgressContext(context);
-      await sendProgress(progress, 1, 2, "Starting VACUUM ANALYZE...");
+      try {
+        const progress = buildProgressContext(context);
+        await sendProgress(progress, 1, 2, "Starting VACUUM ANALYZE...");
 
-      const { table, schema, verbose, full } = VacuumSchema.parse(params);
-      const fullClause = full === true ? "FULL " : "";
-      const verboseClause = verbose === true ? "VERBOSE " : "";
-      const target =
-        table !== undefined
-          ? schema !== undefined
-            ? `"${schema}"."${table}"`
-            : `"${table}"`
-          : "";
+        const { table, schema, verbose, full } = VacuumSchema.parse(params);
+        const fullClause = full === true ? "FULL " : "";
+        const verboseClause = verbose === true ? "VERBOSE " : "";
+        const target =
+          table !== undefined
+            ? schema !== undefined
+              ? `"${schema}"."${table}"`
+              : `"${table}"`
+            : "";
 
-      const sql = `VACUUM ${fullClause}${verboseClause}ANALYZE ${target}`;
-      await adapter.executeQuery(sql);
+        const sql = `VACUUM ${fullClause}${verboseClause}ANALYZE ${target}`;
+        await adapter.executeQuery(sql);
 
-      await sendProgress(progress, 2, 2, "VACUUM ANALYZE complete");
+        await sendProgress(progress, 2, 2, "VACUUM ANALYZE complete");
 
-      // Build accurate message
-      const message =
-        full === true
-          ? "VACUUM FULL ANALYZE completed"
-          : "VACUUM ANALYZE completed";
+        // Build accurate message
+        const message =
+          full === true
+            ? "VACUUM FULL ANALYZE completed"
+            : "VACUUM ANALYZE completed";
 
-      return {
-        success: true,
-        message,
-        ...(table !== undefined && { table }),
-        ...(schema !== undefined && { schema }),
-        ...(verbose === true && {
-          hint: "Verbose output written to PostgreSQL server logs",
-        }),
-      };
+        return {
+          success: true,
+          message,
+          ...(table !== undefined && { table }),
+          ...(schema !== undefined && { schema }),
+          ...(verbose === true && {
+            hint: "Verbose output written to PostgreSQL server logs",
+          }),
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_vacuum_analyze" }),
+        };
+      }
     },
   };
 }
@@ -159,39 +174,53 @@ function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Analyze"),
     icons: getToolIcons("admin", admin("Analyze")),
     handler: async (params: unknown, context: RequestContext) => {
-      const progress = buildProgressContext(context);
-      await sendProgress(progress, 1, 2, "Starting ANALYZE...");
+      try {
+        const progress = buildProgressContext(context);
+        await sendProgress(progress, 1, 2, "Starting ANALYZE...");
 
-      const { table, schema, columns } = AnalyzeSchema.parse(params);
+        const { table, schema, columns } = AnalyzeSchema.parse(params);
 
-      // Validate: columns requires table
-      if (columns !== undefined && columns.length > 0 && table === undefined) {
-        throw new Error("table is required when columns is specified");
+        // Validate: columns requires table
+        if (
+          columns !== undefined &&
+          columns.length > 0 &&
+          table === undefined
+        ) {
+          return {
+            success: false,
+            error: "table is required when columns is specified",
+          };
+        }
+
+        const target =
+          table !== undefined
+            ? schema !== undefined
+              ? `"${schema}"."${table}"`
+              : `"${table}"`
+            : "";
+        const columnClause =
+          columns !== undefined && columns.length > 0
+            ? `(${columns.map((c) => `"${c}"`).join(", ")})`
+            : "";
+
+        const sql = `ANALYZE ${target}${columnClause}`;
+        await adapter.executeQuery(sql);
+
+        await sendProgress(progress, 2, 2, "ANALYZE complete");
+
+        return {
+          success: true,
+          message: "ANALYZE completed",
+          ...(table !== undefined && { table }),
+          ...(schema !== undefined && { schema }),
+          ...(columns !== undefined && columns.length > 0 && { columns }),
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_analyze" }),
+        };
       }
-
-      const target =
-        table !== undefined
-          ? schema !== undefined
-            ? `"${schema}"."${table}"`
-            : `"${table}"`
-          : "";
-      const columnClause =
-        columns !== undefined && columns.length > 0
-          ? `(${columns.map((c) => `"${c}"`).join(", ")})`
-          : "";
-
-      const sql = `ANALYZE ${target}${columnClause}`;
-      await adapter.executeQuery(sql);
-
-      await sendProgress(progress, 2, 2, "ANALYZE complete");
-
-      return {
-        success: true,
-        message: "ANALYZE completed",
-        ...(table !== undefined && { table }),
-        ...(schema !== undefined && { schema }),
-        ...(columns !== undefined && columns.length > 0 && { columns }),
-      };
     },
   };
 }
@@ -207,43 +236,58 @@ function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Reindex"),
     icons: getToolIcons("admin", admin("Reindex")),
     handler: async (params: unknown, context: RequestContext) => {
-      const progress = buildProgressContext(context);
-      await sendProgress(progress, 1, 3, "Starting REINDEX...");
+      let parsedTarget: string | undefined;
+      try {
+        const progress = buildProgressContext(context);
+        await sendProgress(progress, 1, 3, "Starting REINDEX...");
 
-      const parsed = ReindexSchema.parse(params) as {
-        target: string;
-        name?: string;
-        concurrently?: boolean;
-      };
-      const concurrentlyClause =
-        parsed.concurrently === true ? "CONCURRENTLY " : "";
+        const parsed = ReindexSchema.parse(params) as {
+          target: string;
+          name?: string;
+          concurrently?: boolean;
+        };
+        parsedTarget = parsed.target;
+        const concurrentlyClause =
+          parsed.concurrently === true ? "CONCURRENTLY " : "";
 
-      // Auto-default to current database when target is 'database' and name is not provided
-      let effectiveName = parsed.name;
-      if (parsed.target === "database" && effectiveName === undefined) {
-        const dbResult = await adapter.executeQuery(
-          "SELECT current_database()",
-        );
-        const dbName = dbResult.rows?.[0]?.["current_database"];
-        effectiveName = typeof dbName === "string" ? dbName : "";
+        // Auto-default to current database when target is 'database' and name is not provided
+        let effectiveName = parsed.name;
+        if (parsed.target === "database" && effectiveName === undefined) {
+          const dbResult = await adapter.executeQuery(
+            "SELECT current_database()",
+          );
+          const dbName = dbResult.rows?.[0]?.["current_database"];
+          effectiveName = typeof dbName === "string" ? dbName : "";
+        }
+
+        await sendProgress(progress, 2, 3, `Reindexing ${parsed.target}...`);
+
+        // name should always be defined at this point (refine ensures it for non-database targets)
+        if (effectiveName === undefined) {
+          return {
+            success: false,
+            error: "name is required",
+          };
+        }
+
+        const sql = `REINDEX ${parsed.target.toUpperCase()} ${concurrentlyClause}"${effectiveName}"`;
+        await adapter.executeQuery(sql);
+
+        await sendProgress(progress, 3, 3, "REINDEX complete");
+
+        return {
+          success: true,
+          message: `Reindexed ${parsed.target}: ${effectiveName}`,
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_reindex",
+            ...(parsedTarget !== undefined && { target: parsedTarget }),
+          }),
+        };
       }
-
-      await sendProgress(progress, 2, 3, `Reindexing ${parsed.target}...`);
-
-      // name should always be defined at this point (refine ensures it for non-database targets)
-      if (effectiveName === undefined) {
-        throw new Error("name is required");
-      }
-
-      const sql = `REINDEX ${parsed.target.toUpperCase()} ${concurrentlyClause}"${effectiveName}"`;
-      await adapter.executeQuery(sql);
-
-      await sendProgress(progress, 3, 3, "REINDEX complete");
-
-      return {
-        success: true,
-        message: `Reindexed ${parsed.target}: ${effectiveName}`,
-      };
     },
   };
 }
@@ -367,21 +411,28 @@ function createSetConfigTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Set Configuration"),
     icons: getToolIcons("admin", admin("Set Configuration")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = SetConfigSchema.parse(params);
-      const local = parsed.isLocal ?? false;
-      const sql = `SELECT set_config($1, $2, $3)`;
-      const result = await adapter.executeQuery(sql, [
-        parsed.name,
-        parsed.value,
-        local,
-      ]);
-      const actualValue = result.rows?.[0]?.["set_config"] as string;
-      return {
-        success: true,
-        message: `Set ${parsed.name} = ${actualValue}`,
-        parameter: parsed.name,
-        value: actualValue,
-      };
+      try {
+        const parsed = SetConfigSchema.parse(params);
+        const local = parsed.isLocal ?? false;
+        const sql = `SELECT set_config($1, $2, $3)`;
+        const result = await adapter.executeQuery(sql, [
+          parsed.name,
+          parsed.value,
+          local,
+        ]);
+        const actualValue = result.rows?.[0]?.["set_config"] as string;
+        return {
+          success: true,
+          message: `Set ${parsed.name} = ${actualValue}`,
+          parameter: parsed.name,
+          value: actualValue,
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_set_config" }),
+        };
+      }
     },
   };
 }
@@ -505,45 +556,62 @@ function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Cluster Table"),
     icons: getToolIcons("admin", admin("Cluster Table")),
     handler: async (params: unknown, context: RequestContext) => {
-      const progress = buildProgressContext(context);
-      await sendProgress(progress, 1, 2, "Starting CLUSTER...");
+      try {
+        const progress = buildProgressContext(context);
+        await sendProgress(progress, 1, 2, "Starting CLUSTER...");
 
-      const parsed = ClusterSchema.parse(params) as {
-        table?: string;
-        index?: string;
-        schema?: string;
-      };
+        const parsed = ClusterSchema.parse(params) as {
+          table?: string;
+          index?: string;
+          schema?: string;
+        };
 
-      // Database-wide CLUSTER (all previously clustered tables)
-      if (parsed.table === undefined) {
-        await adapter.executeQuery("CLUSTER");
+        // Database-wide CLUSTER (all previously clustered tables)
+        if (parsed.table === undefined) {
+          await adapter.executeQuery("CLUSTER");
+          await sendProgress(progress, 2, 2, "CLUSTER complete");
+          return {
+            success: true,
+            message: "Re-clustered all previously-clustered tables",
+          };
+        }
+
+        // Table-specific CLUSTER
+        // index is guaranteed by schema refine when table is specified
+        if (parsed.index === undefined) {
+          return {
+            success: false,
+            error:
+              "table and index must both be specified together, or both omitted for database-wide re-cluster",
+          };
+        }
+        const tableName =
+          parsed.schema !== undefined
+            ? `"${parsed.schema}"."${parsed.table}"`
+            : `"${parsed.table}"`;
+        const sql = `CLUSTER ${tableName} USING "${parsed.index}"`;
+        await adapter.executeQuery(sql);
+
         await sendProgress(progress, 2, 2, "CLUSTER complete");
+
         return {
           success: true,
-          message: "Re-clustered all previously-clustered tables",
+          message: `Clustered ${parsed.table} using index ${parsed.index}`,
+          table: parsed.table,
+          index: parsed.index,
+        };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_cluster" }),
         };
       }
-
-      // Table-specific CLUSTER
-      // index is guaranteed by schema refine when table is specified
-      if (parsed.index === undefined) {
-        throw new Error("table and index must both be specified together");
-      }
-      const tableName =
-        parsed.schema !== undefined
-          ? `"${parsed.schema}"."${parsed.table}"`
-          : `"${parsed.table}"`;
-      const sql = `CLUSTER ${tableName} USING "${parsed.index}"`;
-      await adapter.executeQuery(sql);
-
-      await sendProgress(progress, 2, 2, "CLUSTER complete");
-
-      return {
-        success: true,
-        message: `Clustered ${parsed.table} using index ${parsed.index}`,
-        table: parsed.table,
-        index: parsed.index,
-      };
     },
   };
 }

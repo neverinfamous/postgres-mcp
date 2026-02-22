@@ -182,6 +182,48 @@ describe("CodeModeSecurityManager", () => {
       const result = security.sanitizeResult(largeString);
       expect(result).toBeDefined();
     });
+
+    it("should truncate results exceeding maxResultSize", () => {
+      const smallSecurity = new CodeModeSecurityManager({
+        maxResultSize: 50,
+      });
+      const largeObj = { data: "x".repeat(200) };
+      const result = smallSecurity.sanitizeResult(largeObj) as {
+        _truncated: boolean;
+        _originalSize: number;
+        preview: string;
+      };
+      expect(result._truncated).toBe(true);
+      expect(result._originalSize).toBeGreaterThan(50);
+      expect(result.preview).toContain("...");
+    });
+
+    it("should handle unserializable results (circular ref)", () => {
+      const circular: Record<string, unknown> = {};
+      circular["self"] = circular;
+      const result = security.sanitizeResult(circular) as {
+        _error: string;
+        _type: string;
+      };
+      expect(result._error).toBe("Result could not be serialized");
+      expect(result._type).toBe("object");
+    });
+  });
+
+  describe("cleanupRateLimits() - expired entry removal", () => {
+    it("should delete entries whose resetTime has passed", () => {
+      security.checkRateLimit("expired-client");
+      // Fast-forward time past the 60s window
+      const originalDateNow = Date.now;
+      Date.now = () => originalDateNow() + 120_000;
+      try {
+        security.cleanupRateLimits();
+        // After cleanup, remaining should be full (entry deleted)
+        expect(security.getRateLimitRemaining("expired-client")).toBe(60);
+      } finally {
+        Date.now = originalDateNow;
+      }
+    });
   });
 
   describe("createExecutionRecord()", () => {

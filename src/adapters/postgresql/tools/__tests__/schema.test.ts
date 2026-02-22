@@ -297,7 +297,8 @@ describe("pg_list_sequences", () => {
     await tool.handler({ schema: "app" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("n.nspname = 'app'"),
+      expect.stringContaining("n.nspname = $1"),
+      ["app"],
     );
   });
 });
@@ -469,7 +470,8 @@ describe("pg_list_views", () => {
     await tool.handler({ schema: "reports" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("n.nspname = 'reports'"),
+      expect.stringContaining("n.nspname = $1"),
+      ["reports"],
     );
   });
 
@@ -514,7 +516,7 @@ describe("pg_list_views", () => {
     expect(result.hasMatViews).toBe(false);
   });
 
-  it("should truncate long view definitions by default (1000 chars)", async () => {
+  it("should truncate long view definitions by default (500 chars)", async () => {
     const longDef = "SELECT " + "a".repeat(1500);
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [
@@ -528,7 +530,7 @@ describe("pg_list_views", () => {
       truncatedDefinitions: number;
     };
 
-    expect(result.views[0].definition.length).toBeLessThanOrEqual(1003); // 1000 + "..."
+    expect(result.views[0].definition.length).toBeLessThanOrEqual(503); // 500 + "..."
     expect(result.views[0].definition.endsWith("...")).toBe(true);
     expect(result.views[0].definitionTruncated).toBe(true);
     expect(result.truncatedDefinitions).toBe(1);
@@ -755,14 +757,33 @@ describe("pg_list_functions", () => {
   });
 
   it("should filter functions by schema", async () => {
+    // First call: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Second call: main query
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_list_functions")!;
     await tool.handler({ schema: "utils" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("n.nspname = 'utils'"),
+      expect.stringContaining("n.nspname = $"),
+      expect.arrayContaining(["utils"]),
     );
+  });
+
+  it("should return structured error for nonexistent schema", async () => {
+    // Schema existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_functions")!;
+    const result = (await tool.handler(
+      { schema: "nonexistent_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema");
+    expect(result.error).toContain("does not exist");
   });
 });
 
@@ -805,14 +826,48 @@ describe("pg_list_triggers", () => {
   });
 
   it("should filter triggers by table", async () => {
+    // First call: table existence check (parameterized)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Second call: main query
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_list_triggers")!;
     await tool.handler({ table: "orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("c.relname = 'orders'"),
+      expect.stringContaining("c.relname = $"),
+      expect.arrayContaining(["orders"]),
     );
+  });
+
+  it("should return structured error for nonexistent table", async () => {
+    // Table existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_triggers")!;
+    const result = (await tool.handler(
+      { table: "nonexistent_table" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_table");
+    expect(result.error).toContain("not found");
+  });
+
+  it("should return structured error for nonexistent schema", async () => {
+    // Schema existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_triggers")!;
+    const result = (await tool.handler(
+      { schema: "nonexistent_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema");
+    expect(result.error).toContain("does not exist");
   });
 });
 
@@ -860,14 +915,48 @@ describe("pg_list_constraints", () => {
   });
 
   it("should filter constraints by table", async () => {
+    // First call: table existence check (parameterized)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Second call: main query
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_list_constraints")!;
     await tool.handler({ table: "orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("c.relname = 'orders'"),
+      expect.stringContaining("c.relname = $"),
+      expect.arrayContaining(["orders"]),
     );
+  });
+
+  it("should return structured error for nonexistent table", async () => {
+    // Table existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_constraints")!;
+    const result = (await tool.handler(
+      { table: "nonexistent_table" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_table");
+    expect(result.error).toContain("not found");
+  });
+
+  it("should return structured error for nonexistent schema", async () => {
+    // Schema existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_constraints")!;
+    const result = (await tool.handler(
+      { schema: "nonexistent_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should filter constraints by type", async () => {
@@ -877,7 +966,8 @@ describe("pg_list_constraints", () => {
     await tool.handler({ type: "foreign_key" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("con.contype = 'f'"),
+      expect.stringContaining("con.contype = $1"),
+      ["f"],
     );
   });
 });
@@ -1021,9 +1111,11 @@ describe("Parameter Smoothing", () => {
     await tool.handler({ exclude: ["ltree"] }, mockContext);
 
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const params = mockAdapter.executeQuery.mock.calls[0]?.[1] as unknown[];
     expect(sql).toContain("pg_depend");
     expect(sql).toContain("pg_extension");
-    expect(sql).toContain("e.extname IN ('ltree')");
+    expect(sql).toContain("e.extname IN ($1)");
+    expect(params).toContain("ltree");
   });
 
   it("pg_list_functions should expand well-known extension aliases in exclude", async () => {
@@ -1033,9 +1125,12 @@ describe("Parameter Smoothing", () => {
     await tool.handler({ exclude: ["pgvector"] }, mockContext);
 
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const params = mockAdapter.executeQuery.mock.calls[0]?.[1] as unknown[];
     // "pgvector" should be expanded to include the actual extension name "vector"
-    expect(sql).toContain("e.extname IN ('pgvector', 'vector')");
-    expect(sql).toContain("n.nspname NOT IN ('pgvector', 'vector')");
+    expect(sql).toContain("e.extname IN ($1, $2)");
+    expect(sql).toContain("n.nspname NOT IN ($1, $2)");
+    expect(params).toContain("pgvector");
+    expect(params).toContain("vector");
   });
 
   it("pg_list_functions should expand partman alias in exclude", async () => {
@@ -1045,8 +1140,11 @@ describe("Parameter Smoothing", () => {
     await tool.handler({ exclude: ["partman"] }, mockContext);
 
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
-    expect(sql).toContain("e.extname IN ('partman', 'pg_partman')");
-    expect(sql).toContain("n.nspname NOT IN ('partman', 'pg_partman')");
+    const params = mockAdapter.executeQuery.mock.calls[0]?.[1] as unknown[];
+    expect(sql).toContain("e.extname IN ($1, $2)");
+    expect(sql).toContain("n.nspname NOT IN ($1, $2)");
+    expect(params).toContain("partman");
+    expect(params).toContain("pg_partman");
   });
 
   it("pg_create_view should accept definition as alias for query", async () => {
@@ -1077,8 +1175,11 @@ describe("Parameter Smoothing", () => {
     await tool.handler({ exclude: ["fuzzymatch"] }, mockContext);
 
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
-    expect(sql).toContain("e.extname IN ('fuzzymatch', 'fuzzystrmatch')");
-    expect(sql).toContain("n.nspname NOT IN ('fuzzymatch', 'fuzzystrmatch')");
+    const params = mockAdapter.executeQuery.mock.calls[0]?.[1] as unknown[];
+    expect(sql).toContain("e.extname IN ($1, $2)");
+    expect(sql).toContain("n.nspname NOT IN ($1, $2)");
+    expect(params).toContain("fuzzymatch");
+    expect(params).toContain("fuzzystrmatch");
   });
 
   it("pg_list_functions should expand fuzzy alias in exclude", async () => {
@@ -1088,7 +1189,208 @@ describe("Parameter Smoothing", () => {
     await tool.handler({ exclude: ["fuzzy"] }, mockContext);
 
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
-    expect(sql).toContain("e.extname IN ('fuzzy', 'fuzzystrmatch')");
-    expect(sql).toContain("n.nspname NOT IN ('fuzzy', 'fuzzystrmatch')");
+    const params = mockAdapter.executeQuery.mock.calls[0]?.[1] as unknown[];
+    expect(sql).toContain("e.extname IN ($1, $2)");
+    expect(sql).toContain("n.nspname NOT IN ($1, $2)");
+    expect(params).toContain("fuzzy");
+    expect(params).toContain("fuzzystrmatch");
+  });
+
+  it("pg_list_triggers should parse schema.table format", async () => {
+    // First call: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Second call: table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Third call: main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_triggers")!;
+    await tool.handler({ table: "custom_schema.orders" }, mockContext);
+
+    // Schema existence check should use parsed schema (parameterized)
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("nspname = $1"),
+      ["custom_schema"],
+    );
+    // Table existence check should use parsed table name (parameterized)
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("table_name = $2"),
+      ["custom_schema", "orders"],
+    );
+    // Main query should filter by parsed table (parameterized)
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("c.relname = $"),
+      expect.arrayContaining(["orders"]),
+    );
+  });
+
+  it("pg_list_constraints should parse schema.table format", async () => {
+    // First call: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Second call: table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: 1 }] });
+    // Third call: main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_constraints")!;
+    await tool.handler({ table: "custom_schema.orders" }, mockContext);
+
+    // Schema existence check should use parsed schema (parameterized)
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("nspname = $1"),
+      ["custom_schema"],
+    );
+    // Table existence check should use parsed table name (parameterized)
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("table_name = $2"),
+      ["custom_schema", "orders"],
+    );
+    // Main query should filter by parsed table (parameterized)
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("c.relname = $"),
+      expect.arrayContaining(["orders"]),
+    );
+  });
+});
+
+/**
+ * Structured Error Response Tests
+ *
+ * Verify that create/drop tools return {success: false, error: "..."}
+ * instead of throwing raw MCP errors.
+ */
+describe("Structured Error Responses", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getSchemaTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getSchemaTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_create_schema should return structured error on duplicate", async () => {
+    const pgError = new Error('schema "app" already exists');
+    (pgError as Record<string, unknown>)["code"] = "42P06";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_create_schema")!;
+    const result = (await tool.handler({ name: "app" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_drop_schema should return structured error on nonexistent schema", async () => {
+    // First call: existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Second call: DROP fails
+    const pgError = new Error('schema "nonexistent" does not exist');
+    (pgError as Record<string, unknown>)["code"] = "3F000";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_drop_schema")!;
+    const result = (await tool.handler(
+      { name: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_create_sequence should return structured error on duplicate", async () => {
+    const pgError = new Error('relation "dup_seq" already exists');
+    (pgError as Record<string, unknown>)["code"] = "42P07";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_create_sequence")!;
+    const result = (await tool.handler({ name: "dup_seq" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_drop_sequence should return structured error on nonexistent", async () => {
+    // First call: existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Second call: DROP fails
+    const pgError = new Error('sequence "public"."nonexistent" does not exist');
+    (pgError as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_drop_sequence")!;
+    const result = (await tool.handler(
+      { name: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_create_view should return structured error on duplicate without orReplace", async () => {
+    const pgError = new Error('relation "dup_view" already exists');
+    (pgError as Record<string, unknown>)["code"] = "42P07";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_create_view")!;
+    const result = (await tool.handler(
+      { name: "dup_view", query: "SELECT 1" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
+  });
+
+  it("pg_drop_view should return structured error on nonexistent without ifExists", async () => {
+    // First call: existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Second call: DROP fails
+    const pgError = new Error('view "public"."nonexistent" does not exist');
+    (pgError as Record<string, unknown>)["code"] = "42P01";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_drop_view")!;
+    const result = (await tool.handler(
+      { name: "nonexistent" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe("string");
   });
 });

@@ -309,8 +309,11 @@ describe("Handler Execution", () => {
 
   describe("pg_geo_transform truncation with explicit limit", () => {
     it("should return truncated + totalCount when explicit limit truncates results", async () => {
-      // Call sequence: 1) SRID detect, 2) column query, 3) transform query, 4) count query
+      // Call sequence: 1) table check, 2) SRID detect, 3) column query, 4) transform query, 5) count query
       mockAdapter.executeQuery
+        .mockResolvedValueOnce({
+          rows: [{ "?column?": 1 }],
+        })
         .mockResolvedValueOnce({
           rows: [{ srid: 4326 }],
         })
@@ -346,8 +349,11 @@ describe("Handler Execution", () => {
 
   describe("pg_geo_transform SRID auto-detection", () => {
     it("should auto-detect fromSrid from column metadata", async () => {
-      // Call sequence: 1) SRID detect, 2) column query, 3) transform query, 4) count query
+      // Call sequence: 1) table check, 2) SRID detect, 3) column query, 4) transform query, 5) count query
       mockAdapter.executeQuery
+        .mockResolvedValueOnce({
+          rows: [{ "?column?": 1 }],
+        })
         .mockResolvedValueOnce({
           rows: [{ srid: 4326 }],
         })
@@ -380,9 +386,14 @@ describe("Handler Execution", () => {
     });
 
     it("should return structured error when SRID cannot be detected", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({
-        rows: [],
-      });
+      // Table exists but SRID lookup returns empty
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({
+          rows: [{ "?column?": 1 }],
+        })
+        .mockResolvedValueOnce({
+          rows: [],
+        });
 
       const tool = tools.find((t) => t.name === "pg_geo_transform")!;
       const result = (await tool.handler(
@@ -445,8 +456,198 @@ describe("Error Handling", () => {
 
     const tool = tools.find((t) => t.name === "pg_postgis_create_extension")!;
 
+    // pg_postgis_create_extension does not have structured error handling (no try/catch)
+    // so it still throws raw errors
     await expect(tool.handler({}, mockContext)).rejects.toThrow(
       'extension "postgis" is not available',
     );
+  });
+});
+
+// ============================================================
+// Structured Error Handling (parsePostgresError)
+// ============================================================
+
+describe("Structured Error Handling (parsePostgresError)", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPostgisTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPostgisTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  const tableTools = [
+    {
+      name: "pg_point_in_polygon",
+      params: {
+        table: "nonexistent_xyz",
+        column: "geom",
+        point: { lat: 40, lng: -74 },
+      },
+    },
+    {
+      name: "pg_distance",
+      params: {
+        table: "nonexistent_xyz",
+        column: "geom",
+        point: { lat: 40, lng: -74 },
+      },
+    },
+    {
+      name: "pg_buffer",
+      params: { table: "nonexistent_xyz", column: "geom", distance: 1000 },
+    },
+    {
+      name: "pg_bounding_box",
+      params: {
+        table: "nonexistent_xyz",
+        column: "geom",
+        minLng: -120,
+        minLat: 30,
+        maxLng: 0,
+        maxLat: 50,
+      },
+    },
+    {
+      name: "pg_intersection",
+      params: {
+        table: "nonexistent_xyz",
+        column: "geom",
+        geometry: "POINT(0 0)",
+      },
+    },
+    {
+      name: "pg_geo_cluster",
+      params: { table: "nonexistent_xyz", column: "geom" },
+    },
+  ];
+
+  it.each(tableTools)(
+    "$name should return structured error for nonexistent table",
+    async ({ name, params }) => {
+      const pgError = new Error(
+        'relation "nonexistent_xyz" does not exist',
+      ) as Error & { code: string };
+      pgError.code = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === name)!;
+      const result = (await tool.handler(params, mockContext)) as Record<
+        string,
+        unknown
+      >;
+      expect(result["success"]).toBe(false);
+      expect(result["error"]).toMatch(/not found/i);
+    },
+  );
+
+  const standaloneTools = [
+    {
+      name: "pg_geometry_buffer",
+      params: { geometry: "INVALID_WKT", distance: 1000 },
+    },
+    {
+      name: "pg_geometry_intersection",
+      params: { geometry1: "INVALID_WKT", geometry2: "ALSO_INVALID" },
+    },
+    {
+      name: "pg_geometry_transform",
+      params: { geometry: "INVALID_WKT", fromSrid: 4326, toSrid: 3857 },
+    },
+  ];
+
+  it.each(standaloneTools)(
+    "$name should return structured error for invalid geometry",
+    async ({ name, params }) => {
+      const pgError = new Error("parse error - invalid geometry") as Error & {
+        code: string;
+      };
+      pgError.code = "XX000";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === name)!;
+      const result = (await tool.handler(params, mockContext)) as Record<
+        string,
+        unknown
+      >;
+      expect(result["success"]).toBe(false);
+      expect(result["error"]).toMatch(/Invalid geometry input/i);
+    },
+  );
+
+  it("pg_bounding_box should return structured error when table has no columns (nonexistent table)", async () => {
+    // Column lookup returns empty rows (table doesn't exist)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_bounding_box")!;
+    const result = (await tool.handler(
+      {
+        table: "nonexistent_xyz",
+        column: "geom",
+        minLng: 0,
+        minLat: 0,
+        maxLng: 1,
+        maxLat: 1,
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/not found/i);
+  });
+
+  it("pg_geo_transform should return structured error for nonexistent table", async () => {
+    // Table existence check returns empty rows (table doesn't exist)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_geo_transform")!;
+    const result = (await tool.handler(
+      { table: "nonexistent_xyz", column: "geom", toSrid: 3857 },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/not found/i);
+  });
+  it("pg_geocode should return structured error for out-of-bounds latitude", async () => {
+    const tool = tools.find((t) => t.name === "pg_geocode")!;
+    const result = (await tool.handler(
+      { lat: 95, lng: -74.006 },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toContain("lat must be between -90 and 90 degrees");
+  });
+
+  it("pg_geocode should return structured error for out-of-bounds longitude", async () => {
+    const tool = tools.find((t) => t.name === "pg_geocode")!;
+    const result = (await tool.handler(
+      { lat: 40, lng: 200 },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toContain(
+      "lng must be between -180 and 180 degrees",
+    );
+  });
+
+  it("pg_distance should return structured error for out-of-bounds latitude", async () => {
+    const tool = tools.find((t) => t.name === "pg_distance")!;
+    const result = (await tool.handler(
+      { table: "locations", column: "geom", point: { lat: 95, lng: -74 } },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/must be between -90 and 90/);
+  });
+
+  it("pg_distance should return structured error for out-of-bounds longitude", async () => {
+    const tool = tools.find((t) => t.name === "pg_distance")!;
+    const result = (await tool.handler(
+      { table: "locations", column: "geom", point: { lat: 40, lng: 200 } },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/must be between -180 and 180/);
   });
 });

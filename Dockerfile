@@ -28,13 +28,13 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.7
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.8
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.7 && \
+    npm pack tar@7.5.8 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.7.tgz && \
+    tar -xzf tar-7.5.8.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.7.tgz
+    rm tar-7.5.8.tgz
 
 # Copy package files first for better layer caching
 COPY package*.json ./
@@ -48,6 +48,9 @@ COPY src/ ./src/
 
 # Build TypeScript
 RUN npm run build
+
+# Prune devDependencies before production copy (P117)
+RUN npm prune --omit=dev && npm cache clean --force
 
 # Production stage
 FROM node:24-alpine
@@ -77,13 +80,13 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.7
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.8
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.7 && \
+    npm pack tar@7.5.8 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.7.tgz && \
+    tar -xzf tar-7.5.8.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.7.tgz
+    rm tar-7.5.8.tgz
 
 # Copy built artifacts and production dependencies
 COPY --from=builder /app/dist ./dist
@@ -116,6 +119,6 @@ CMD ["node", "dist/cli.js"]
 # Labels for Docker Hub
 LABEL maintainer="Adamic.tech"
 LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 203 tools, 20 resources, 19 prompts"
-LABEL version="1.0.0"
+LABEL version="1.3.0"
 LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgres-mcp"
 LABEL io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp"

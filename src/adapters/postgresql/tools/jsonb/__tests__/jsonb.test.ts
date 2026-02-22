@@ -428,23 +428,29 @@ describe("Error Handling", () => {
 
     const tool = tools.find((t) => t.name === "pg_jsonb_extract")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "users",
-          column: "nonexistent",
-          path: "$.key",
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow("JSONB column not found");
+    const result = (await tool.handler(
+      {
+        table: "users",
+        column: "nonexistent",
+        path: "$.key",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/JSONB column not found/);
   });
 
   it("should validate required parameters", async () => {
     const tool = tools.find((t) => t.name === "pg_jsonb_extract")!;
 
     // Missing required parameters
-    await expect(tool.handler({}, mockContext)).rejects.toThrow();
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 });
 
@@ -464,29 +470,31 @@ describe("JSONB Validation and Error Paths", () => {
     it("should reject empty WHERE clause", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_set")!;
 
-      await expect(
-        tool.handler(
-          {
-            table: "users",
-            column: "metadata",
-            path: "name",
-            value: "test",
-            where: "",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(/WHERE clause/);
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "metadata",
+          path: "name",
+          value: "test",
+          where: "",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/WHERE clause/);
     });
 
     it("should reject when value is undefined", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_set")!;
 
-      await expect(
-        tool.handler(
-          { table: "users", column: "metadata", path: "name", where: "id = 1" },
-          mockContext,
-        ),
-      ).rejects.toThrow(/value parameter/);
+      const result = (await tool.handler(
+        { table: "users", column: "metadata", path: "name", where: "id = 1" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/value parameter/);
     });
 
     it("should handle empty path - replace entire column", async () => {
@@ -531,34 +539,37 @@ describe("JSONB Validation and Error Paths", () => {
     it("should reject empty WHERE clause", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_delete")!;
 
-      await expect(
-        tool.handler(
-          { table: "users", column: "metadata", path: "key", where: "" },
-          mockContext,
-        ),
-      ).rejects.toThrow(/WHERE clause/);
+      const result = (await tool.handler(
+        { table: "users", column: "metadata", path: "key", where: "" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/WHERE clause/);
     });
 
     it("should reject empty path", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_delete")!;
 
-      await expect(
-        tool.handler(
-          { table: "users", column: "metadata", path: "", where: "id = 1" },
-          mockContext,
-        ),
-      ).rejects.toThrow(/non-empty path/);
+      const result = (await tool.handler(
+        { table: "users", column: "metadata", path: "", where: "id = 1" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/non-empty path/);
     });
 
     it("should reject empty array path", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_delete")!;
 
-      await expect(
-        tool.handler(
-          { table: "users", column: "metadata", path: [], where: "id = 1" },
-          mockContext,
-        ),
-      ).rejects.toThrow(/non-empty path/);
+      const result = (await tool.handler(
+        { table: "users", column: "metadata", path: [], where: "id = 1" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/non-empty path/);
     });
 
     it("should handle numeric path (array index)", async () => {
@@ -590,18 +601,19 @@ describe("JSONB Validation and Error Paths", () => {
     it("should reject empty WHERE clause", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
 
-      await expect(
-        tool.handler(
-          {
-            table: "users",
-            column: "tags",
-            path: ["tags", 0],
-            value: "new",
-            where: "",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(/WHERE clause/);
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "tags",
+          path: ["tags", 0],
+          value: "new",
+          where: "",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/WHERE clause/);
     });
 
     it("should reject NULL columns", async () => {
@@ -611,18 +623,19 @@ describe("JSONB Validation and Error Paths", () => {
 
       const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
 
-      await expect(
-        tool.handler(
-          {
-            table: "users",
-            column: "tags",
-            path: [0],
-            value: "new",
-            where: "id = 1",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow(/NULL columns/);
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "tags",
+          path: [0],
+          value: "new",
+          where: "id = 1",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/NULL columns/);
     });
   });
 
@@ -630,12 +643,13 @@ describe("JSONB Validation and Error Paths", () => {
     it("should reject empty WHERE clause", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_strip_nulls")!;
 
-      await expect(
-        tool.handler(
-          { table: "users", column: "metadata", where: "" },
-          mockContext,
-        ),
-      ).rejects.toThrow(/WHERE clause/);
+      const result = (await tool.handler(
+        { table: "users", column: "metadata", where: "" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/WHERE clause/);
     });
 
     it("should handle preview mode", async () => {
@@ -662,9 +676,13 @@ describe("JSONB Validation and Error Paths", () => {
 
       const tool = tools.find((t) => t.name === "pg_jsonb_keys")!;
 
-      await expect(
-        tool.handler({ table: "users", column: "tags" }, mockContext),
-      ).rejects.toThrow(/array columns/);
+      const result = (await tool.handler(
+        { table: "users", column: "tags" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/array columns/);
     });
   });
 
@@ -756,6 +774,216 @@ describe("JSONB Validation and Error Paths", () => {
 
       expect(result.grouped).toBe(false);
       expect(result.hint).toContain("No rows");
+    });
+  });
+
+  // Structured Error Handling (parsePostgresError)
+  describe("Structured Error Handling (parsePostgresError)", () => {
+    it("should map 42P01 table-not-found for pg_jsonb_extract", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_extract")!;
+
+      const result = (await tool.handler(
+        { table: "nonexistent", column: "data", path: "$.key" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    });
+
+    it("should map 42P01 table-not-found for pg_jsonb_set", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_set")!;
+
+      const result = (await tool.handler(
+        {
+          table: "nonexistent",
+          column: "data",
+          path: "key",
+          value: "test",
+          where: "id = 1",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    });
+
+    it("should map 42P01 table-not-found for pg_jsonb_path_query", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_path_query")!;
+
+      const result = (await tool.handler(
+        { table: "nonexistent", column: "data", path: "$.key" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    });
+
+    it("should provide JSONPath-specific error for invalid syntax", async () => {
+      const pgError = new Error(
+        "syntax error at end of jsonpath input",
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42601";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_path_query")!;
+
+      const result = (await tool.handler(
+        { table: "users", column: "data", path: "$[invalid" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Invalid JSONPath syntax/i);
+    });
+
+    it("should route non-array errors through parsePostgresError for pg_jsonb_keys", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_keys")!;
+
+      const result = (await tool.handler(
+        { table: "nonexistent", column: "data" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    });
+
+    it("should route non-jsonb errors through parsePostgresError for pg_jsonb_normalize", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_normalize")!;
+
+      const result = (await tool.handler(
+        { table: "nonexistent", column: "data" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    });
+
+    it("should route table-not-found errors through parsePostgresError for pg_jsonb_strip_nulls", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_strip_nulls")!;
+
+      const result = (await tool.handler(
+        { table: "nonexistent", column: "data", where: "id = 1" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    });
+
+    it("should route table-not-found errors through parsePostgresError for pg_jsonb_insert preliminary checks", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValue(pgError);
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
+
+      const result = (await tool.handler(
+        {
+          table: "nonexistent",
+          column: "data",
+          path: [0],
+          value: "test",
+          where: "id = 1",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    });
+
+    it("should return structured error for pg_jsonb_strip_nulls when WHERE is omitted", async () => {
+      const tool = tools.find((t) => t.name === "pg_jsonb_strip_nulls")!;
+
+      const result = (await tool.handler(
+        { table: "test_table", column: "data" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/WHERE clause/i);
+    });
+
+    it("should return structured error for pg_jsonb_extract with fake schema", async () => {
+      // Mock: schema check returns empty (schema doesn't exist)
+      mockAdapter.executeQuery.mockResolvedValue({ rows: [] });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_extract")!;
+
+      const result = (await tool.handler(
+        {
+          table: "test_table",
+          column: "data",
+          path: "key",
+          schema: "fake_schema",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Schema 'fake_schema' does not exist/);
+    });
+
+    it("should return structured error for pg_jsonb_normalize with fake schema", async () => {
+      // Mock: schema check returns empty (schema doesn't exist)
+      mockAdapter.executeQuery.mockResolvedValue({ rows: [] });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_normalize")!;
+
+      const result = (await tool.handler(
+        {
+          table: "test_table",
+          column: "data",
+          schema: "fake_schema",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Schema 'fake_schema' does not exist/);
     });
   });
 });

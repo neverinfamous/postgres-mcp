@@ -110,6 +110,35 @@ describe("Pgcrypto Tools", () => {
 
       expect(result.encoding).toBe("hex");
     });
+
+    it("should return structured error for invalid algorithm", async () => {
+      const tool = findTool("pg_pgcrypto_hash");
+      const result = (await tool!.handler(
+        {
+          data: "test",
+          algorithm: "invalid_algo",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("should return structured error for invalid encoding", async () => {
+      const tool = findTool("pg_pgcrypto_hash");
+      const result = (await tool!.handler(
+        {
+          data: "test",
+          algorithm: "sha256",
+          encoding: "invalid_enc",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
   });
 
   describe("pg_pgcrypto_hmac", () => {
@@ -157,6 +186,21 @@ describe("Pgcrypto Tools", () => {
         expect.anything(),
       );
     });
+
+    it("should return structured error for invalid algorithm", async () => {
+      const tool = findTool("pg_pgcrypto_hmac");
+      const result = (await tool!.handler(
+        {
+          data: "msg",
+          key: "key",
+          algorithm: "invalid_algo",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
   });
 
   describe("pg_pgcrypto_encrypt", () => {
@@ -203,6 +247,25 @@ describe("Pgcrypto Tools", () => {
         ["message", "pass", "compress-algo=1"],
       );
     });
+
+    it("should return structured error for unsupported cipher algorithm", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("Unsupported cipher algorithm"),
+      );
+
+      const tool = findTool("pg_pgcrypto_encrypt");
+      const result = (await tool!.handler(
+        {
+          data: "secret",
+          password: "pass",
+          options: "cipher-algo=invalid",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
   });
 
   describe("pg_pgcrypto_decrypt", () => {
@@ -224,19 +287,40 @@ describe("Pgcrypto Tools", () => {
       expect(result.decrypted).toBe("original message");
     });
 
-    it("should handle decryption failure", async () => {
-      mockAdapter.executeQuery.mockRejectedValueOnce(new Error("Wrong key"));
+    it("should return structured error for wrong key", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("Wrong key or corrupt data"),
+      );
 
       const tool = findTool("pg_pgcrypto_decrypt");
-      await expect(
-        tool!.handler(
-          {
-            encryptedData: "invalid_data",
-            password: "wrong_password",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow();
+      const result = (await tool!.handler(
+        {
+          encryptedData: "invalid_data",
+          password: "wrong_password",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("should return structured error for corrupt base64 data", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error('invalid symbol "-" found while decoding base64 sequence'),
+      );
+
+      const tool = findTool("pg_pgcrypto_decrypt");
+      const result = (await tool!.handler(
+        {
+          encryptedData: "not-valid-base64!!!",
+          password: "password",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 
@@ -294,6 +378,28 @@ describe("Pgcrypto Tools", () => {
         [3],
       );
     });
+
+    it("should return structured error for count 0", async () => {
+      const tool = findTool("pg_pgcrypto_gen_random_uuid");
+      const result = (await tool!.handler({ count: 0 }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("should return structured error for count 101", async () => {
+      const tool = findTool("pg_pgcrypto_gen_random_uuid");
+      const result = (await tool!.handler({ count: 101 }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
   });
 
   describe("pg_pgcrypto_gen_random_bytes", () => {
@@ -333,6 +439,32 @@ describe("Pgcrypto Tools", () => {
       )) as { encoding: string };
 
       expect(result.encoding).toBe("base64");
+    });
+
+    it("should return structured error for length 0", async () => {
+      const tool = findTool("pg_pgcrypto_gen_random_bytes");
+      const result = (await tool!.handler(
+        {
+          length: 0,
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("should return structured error for length 1025", async () => {
+      const tool = findTool("pg_pgcrypto_gen_random_bytes");
+      const result = (await tool!.handler(
+        {
+          length: 1025,
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 
@@ -393,6 +525,19 @@ describe("Pgcrypto Tools", () => {
         expect.stringContaining("gen_salt($1)"),
         ["md5"],
       );
+    });
+
+    it("should return structured error for invalid type", async () => {
+      const tool = findTool("pg_pgcrypto_gen_salt");
+      const result = (await tool!.handler(
+        {
+          type: "invalid_type",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 
