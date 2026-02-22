@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`.dockerignore` file** — Excludes `node_modules/`, `.git/`, `dist/`, tests, documentation, and editor artifacts from the Docker build context. While the multi-stage Dockerfile already avoids copying these via selective `COPY` commands, `.dockerignore` speeds up `docker build` by reducing the context tarball sent to the daemon and provides defense-in-depth against accidental `COPY . .` additions
+
 ## [1.3.0] - 2026-02-22
 
 ### Performance
