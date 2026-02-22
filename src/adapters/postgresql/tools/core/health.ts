@@ -13,7 +13,9 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { formatPostgresError } from "./error-helpers.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
+  AnalyzeDbHealthSchemaBase,
   AnalyzeDbHealthSchema,
+  AnalyzeWorkloadIndexesSchemaBase,
   AnalyzeWorkloadIndexesSchema,
   AnalyzeQueryIndexesSchema,
   AnalyzeQueryIndexesSchemaBase,
@@ -33,7 +35,7 @@ export function createAnalyzeDbHealthTool(
     description:
       "Comprehensive database health analysis including cache hit ratio, bloat, replication, and connection stats.",
     group: "core",
-    inputSchema: AnalyzeDbHealthSchema,
+    inputSchema: AnalyzeDbHealthSchemaBase,
     outputSchema: HealthAnalysisOutputSchema,
     annotations: readOnly("Analyze Database Health"),
     icons: getToolIcons("core", readOnly("Analyze Database Health")),
@@ -239,7 +241,7 @@ export function createAnalyzeWorkloadIndexesTool(
     description:
       "Analyze database workload using pg_stat_statements to recommend missing indexes.",
     group: "core",
-    inputSchema: AnalyzeWorkloadIndexesSchema,
+    inputSchema: AnalyzeWorkloadIndexesSchemaBase,
     outputSchema: IndexRecommendationsOutputSchema,
     annotations: readOnly("Analyze Workload Indexes"),
     icons: getToolIcons("core", readOnly("Analyze Workload Indexes")),

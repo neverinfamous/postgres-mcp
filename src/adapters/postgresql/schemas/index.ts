@@ -22,6 +22,7 @@ export {
   GetIndexesSchema,
   CreateIndexSchemaBase,
   CreateIndexSchema,
+  BeginTransactionSchemaBase,
   BeginTransactionSchema,
   TransactionIdSchema,
   TransactionIdSchemaBase,
@@ -124,7 +125,9 @@ export {
   ExplainSchema,
   ExplainSchemaBase,
   preprocessExplainParams,
+  IndexStatsSchemaBase,
   IndexStatsSchema,
+  TableStatsSchemaBase,
   TableStatsSchema,
   // Output schemas
   ExplainOutputSchema,
@@ -169,8 +172,11 @@ export {
 
 // Monitoring schemas
 export {
+  DatabaseSizeSchemaBase,
   DatabaseSizeSchema,
+  TableSizesSchemaBase,
   TableSizesSchema,
+  ShowSettingsSchemaBase,
   ShowSettingsSchema,
   // Output schemas
   DatabaseSizeOutputSchema,
@@ -388,9 +394,12 @@ export {
 // Extension schemas (kcache, citext, ltree, pgcrypto)
 export {
   // pg_stat_kcache
+  KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
   KcacheTopConsumersSchema,
+  KcacheDatabaseStatsSchemaBase,
   KcacheDatabaseStatsSchema,
+  KcacheResourceAnalysisSchemaBase,
   KcacheResourceAnalysisSchema,
   // Kcache output schemas
   KcacheCreateExtensionOutputSchema,
@@ -424,6 +433,7 @@ export {
   LtreeLcaSchema,
   LtreeMatchSchema,
   LtreeMatchSchemaBase,
+  LtreeListColumnsSchemaBase,
   LtreeListColumnsSchema,
   LtreeConvertColumnSchema,
   LtreeConvertColumnSchemaBase,

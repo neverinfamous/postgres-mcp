@@ -61,20 +61,24 @@ export const ExplainSchema = z.preprocess(
   ExplainSchemaBase,
 );
 
+export const IndexStatsSchemaBase = z.object({
+  table: z.string().optional().describe("Table name (all tables if omitted)"),
+  schema: z.string().optional().describe("Schema name"),
+});
+
 export const IndexStatsSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    table: z.string().optional().describe("Table name (all tables if omitted)"),
-    schema: z.string().optional().describe("Schema name"),
-  }),
+  IndexStatsSchemaBase,
 );
+
+export const TableStatsSchemaBase = z.object({
+  table: z.string().optional().describe("Table name (all tables if omitted)"),
+  schema: z.string().optional().describe("Schema name"),
+});
 
 export const TableStatsSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    table: z.string().optional().describe("Table name (all tables if omitted)"),
-    schema: z.string().optional().describe("Schema name"),
-  }),
+  TableStatsSchemaBase,
 );
 
 // =============================================================================

@@ -18,25 +18,27 @@ import { z } from "zod";
  * Schema for querying enhanced statistics with kcache data.
  * Joins pg_stat_statements with pg_stat_kcache for full picture.
  */
+export const KcacheQueryStatsSchemaBase = z.object({
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of queries to return (default: 20)"),
+  orderBy: z
+    .enum(["total_time", "cpu_time", "reads", "writes"])
+    .optional()
+    .describe("Order results by metric (default: total_time)"),
+  minCalls: z.number().optional().describe("Minimum call count to include"),
+  queryPreviewLength: z
+    .number()
+    .optional()
+    .describe(
+      "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+});
+
 export const KcacheQueryStatsSchema = z.preprocess(
   normalizeOptionalParams,
-  z.object({
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum number of queries to return (default: 20)"),
-    orderBy: z
-      .enum(["total_time", "cpu_time", "reads", "writes"])
-      .optional()
-      .describe("Order results by metric (default: total_time)"),
-    minCalls: z.number().optional().describe("Minimum call count to include"),
-    queryPreviewLength: z
-      .number()
-      .optional()
-      .describe(
-        "Characters for query preview (default: 100, max: 500, 0 for full)",
-      ),
-  }),
+  KcacheQueryStatsSchemaBase,
 );
 
 /**
@@ -55,42 +57,46 @@ export const KcacheTopConsumersSchema = z.object({
 /**
  * Schema for database-level aggregation.
  */
+export const KcacheDatabaseStatsSchemaBase = z.object({
+  database: z
+    .string()
+    .optional()
+    .describe("Database name (current database if omitted)"),
+});
+
 export const KcacheDatabaseStatsSchema = z.preprocess(
   normalizeOptionalParams,
-  z.object({
-    database: z
-      .string()
-      .optional()
-      .describe("Database name (current database if omitted)"),
-  }),
+  KcacheDatabaseStatsSchemaBase,
 );
 
 /**
  * Schema for identifying resource-bound queries.
  */
+export const KcacheResourceAnalysisSchemaBase = z.object({
+  queryId: z
+    .string()
+    .optional()
+    .describe("Specific query ID to analyze (all if omitted)"),
+  threshold: z
+    .number()
+    .optional()
+    .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of queries to return (default: 20)"),
+  minCalls: z.number().optional().describe("Minimum call count to include"),
+  queryPreviewLength: z
+    .number()
+    .optional()
+    .describe(
+      "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+});
+
 export const KcacheResourceAnalysisSchema = z.preprocess(
   normalizeOptionalParams,
-  z.object({
-    queryId: z
-      .string()
-      .optional()
-      .describe("Specific query ID to analyze (all if omitted)"),
-    threshold: z
-      .number()
-      .optional()
-      .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum number of queries to return (default: 20)"),
-    minCalls: z.number().optional().describe("Minimum call count to include"),
-    queryPreviewLength: z
-      .number()
-      .optional()
-      .describe(
-        "Characters for query preview (default: 100, max: 500, 0 for full)",
-      ),
-  }),
+  KcacheResourceAnalysisSchemaBase,
 );
 
 // =============================================================================
@@ -520,14 +526,16 @@ export const LtreeMatchSchema = z.preprocess(
 /**
  * Schema for listing ltree columns in the database.
  */
+export const LtreeListColumnsSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema name to filter (all schemas if omitted)"),
+});
+
 export const LtreeListColumnsSchema = z.preprocess(
   normalizeOptionalParams,
-  z.object({
-    schema: z
-      .string()
-      .optional()
-      .describe("Schema name to filter (all schemas if omitted)"),
-  }),
+  LtreeListColumnsSchemaBase,
 );
 
 /**

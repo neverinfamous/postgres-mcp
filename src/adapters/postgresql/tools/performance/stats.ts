@@ -30,23 +30,25 @@ const toNum = (val: unknown): number | null =>
 
 export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
   // Define schema locally with limit parameter
+  const IndexStatsSchemaLocalBase = z.object({
+    table: z.string().optional().describe("Table name to filter indexes"),
+    schema: z.string().optional().describe("Schema name to filter indexes"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max rows to return (default: 50, use 0 for all)"),
+  });
+
   const IndexStatsSchemaLocal = z.preprocess(
     defaultToEmpty,
-    z.object({
-      table: z.string().optional().describe("Table name to filter indexes"),
-      schema: z.string().optional().describe("Schema name to filter indexes"),
-      limit: z
-        .number()
-        .optional()
-        .describe("Max rows to return (default: 50, use 0 for all)"),
-    }),
+    IndexStatsSchemaLocalBase,
   );
 
   return {
     name: "pg_index_stats",
     description: "Get index usage statistics.",
     group: "performance",
-    inputSchema: IndexStatsSchemaLocal,
+    inputSchema: IndexStatsSchemaLocalBase,
     outputSchema: IndexStatsOutputSchema,
     annotations: readOnly("Index Stats"),
     icons: getToolIcons("performance", readOnly("Index Stats")),
@@ -99,26 +101,25 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
 }
 
 export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
+  const TableStatsSchemaLocalBase = z.object({
+    table: z.string().optional().describe("Table name (all tables if omitted)"),
+    schema: z.string().optional().describe("Schema name"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max rows to return (default: 50, use 0 for all)"),
+  });
+
   const TableStatsSchemaLocal = z.preprocess(
     defaultToEmpty,
-    z.object({
-      table: z
-        .string()
-        .optional()
-        .describe("Table name (all tables if omitted)"),
-      schema: z.string().optional().describe("Schema name"),
-      limit: z
-        .number()
-        .optional()
-        .describe("Max rows to return (default: 50, use 0 for all)"),
-    }),
+    TableStatsSchemaLocalBase,
   );
 
   return {
     name: "pg_table_stats",
     description: "Get table access statistics.",
     group: "performance",
-    inputSchema: TableStatsSchemaLocal,
+    inputSchema: TableStatsSchemaLocalBase,
     outputSchema: TableStatsOutputSchema,
     annotations: readOnly("Table Stats"),
     icons: getToolIcons("performance", readOnly("Table Stats")),
@@ -180,18 +181,20 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
 export function createStatStatementsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const StatStatementsSchemaBase = z.object({
+    limit: z
+      .number()
+      .optional()
+      .describe("Max statements to return (default: 20, use 0 for all)"),
+    orderBy: z
+      .enum(["total_time", "calls", "mean_time", "rows"])
+      .optional()
+      .describe("Sort order (default: total_time)"),
+  });
+
   const StatStatementsSchema = z.preprocess(
     defaultToEmpty,
-    z.object({
-      limit: z
-        .number()
-        .optional()
-        .describe("Max statements to return (default: 20, use 0 for all)"),
-      orderBy: z
-        .enum(["total_time", "calls", "mean_time", "rows"])
-        .optional()
-        .describe("Sort order (default: total_time)"),
-    }),
+    StatStatementsSchemaBase,
   );
 
   return {
@@ -199,7 +202,7 @@ export function createStatStatementsTool(
     description:
       "Get query statistics from pg_stat_statements (requires extension).",
     group: "performance",
-    inputSchema: StatStatementsSchema,
+    inputSchema: StatStatementsSchemaBase,
     outputSchema: StatStatementsOutputSchema,
     annotations: readOnly("Query Statistics"),
     icons: getToolIcons("performance", readOnly("Query Statistics")),
@@ -247,18 +250,20 @@ export function createStatStatementsTool(
 export function createStatActivityTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const StatActivitySchemaBase = z.object({
+    includeIdle: z.boolean().optional(),
+  });
+
   const StatActivitySchema = z.preprocess(
     defaultToEmpty,
-    z.object({
-      includeIdle: z.boolean().optional(),
-    }),
+    StatActivitySchemaBase,
   );
 
   return {
     name: "pg_stat_activity",
     description: "Get currently running queries and connections.",
     group: "performance",
-    inputSchema: StatActivitySchema,
+    inputSchema: StatActivitySchemaBase,
     outputSchema: StatActivityOutputSchema,
     annotations: readOnly("Activity Stats"),
     icons: getToolIcons("performance", readOnly("Activity Stats")),
@@ -284,26 +289,28 @@ export function createStatActivityTool(
 export function createUnusedIndexesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const UnusedIndexesSchemaBase = z.object({
+    schema: z
+      .string()
+      .optional()
+      .describe("Schema to filter (default: all user schemas)"),
+    minSize: z
+      .string()
+      .optional()
+      .describe('Minimum index size to include (e.g., "1 MB")'),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max indexes to return (default: 20, use 0 for all)"),
+    summary: z
+      .boolean()
+      .optional()
+      .describe("Return aggregated summary instead of full list"),
+  });
+
   const UnusedIndexesSchema = z.preprocess(
     defaultToEmpty,
-    z.object({
-      schema: z
-        .string()
-        .optional()
-        .describe("Schema to filter (default: all user schemas)"),
-      minSize: z
-        .string()
-        .optional()
-        .describe('Minimum index size to include (e.g., "1 MB")'),
-      limit: z
-        .number()
-        .optional()
-        .describe("Max indexes to return (default: 20, use 0 for all)"),
-      summary: z
-        .boolean()
-        .optional()
-        .describe("Return aggregated summary instead of full list"),
-    }),
+    UnusedIndexesSchemaBase,
   );
 
   return {
@@ -311,7 +318,7 @@ export function createUnusedIndexesTool(
     description:
       "Find indexes that have never been used (idx_scan = 0). Candidates for removal.",
     group: "performance",
-    inputSchema: UnusedIndexesSchema,
+    inputSchema: UnusedIndexesSchemaBase,
     outputSchema: UnusedIndexesOutputSchema,
     annotations: readOnly("Unused Indexes"),
     icons: getToolIcons("performance", readOnly("Unused Indexes")),
@@ -403,18 +410,20 @@ export function createUnusedIndexesTool(
 export function createDuplicateIndexesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const DuplicateIndexesSchemaBase = z.object({
+    schema: z
+      .string()
+      .optional()
+      .describe("Schema to filter (default: all user schemas)"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max rows to return (default: 50, use 0 for all)"),
+  });
+
   const DuplicateIndexesSchema = z.preprocess(
     defaultToEmpty,
-    z.object({
-      schema: z
-        .string()
-        .optional()
-        .describe("Schema to filter (default: all user schemas)"),
-      limit: z
-        .number()
-        .optional()
-        .describe("Max rows to return (default: 50, use 0 for all)"),
-    }),
+    DuplicateIndexesSchemaBase,
   );
 
   return {
@@ -422,7 +431,7 @@ export function createDuplicateIndexesTool(
     description:
       "Find duplicate or overlapping indexes (same leading columns). Candidates for consolidation.",
     group: "performance",
-    inputSchema: DuplicateIndexesSchema,
+    inputSchema: DuplicateIndexesSchemaBase,
     outputSchema: DuplicateIndexesOutputSchema,
     annotations: readOnly("Duplicate Indexes"),
     icons: getToolIcons("performance", readOnly("Duplicate Indexes")),
@@ -518,24 +527,23 @@ export function createDuplicateIndexesTool(
 export function createVacuumStatsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const VacuumStatsSchema = z.preprocess(
-    defaultToEmpty,
-    z.object({
-      schema: z.string().optional().describe("Schema to filter"),
-      table: z.string().optional().describe("Table name to filter"),
-      limit: z
-        .number()
-        .optional()
-        .describe("Max rows to return (default: 50, use 0 for all)"),
-    }),
-  );
+  const VacuumStatsSchemaBase = z.object({
+    schema: z.string().optional().describe("Schema to filter"),
+    table: z.string().optional().describe("Table name to filter"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max rows to return (default: 50, use 0 for all)"),
+  });
+
+  const VacuumStatsSchema = z.preprocess(defaultToEmpty, VacuumStatsSchemaBase);
 
   return {
     name: "pg_vacuum_stats",
     description:
       "Get detailed vacuum statistics including dead tuples, last vacuum times, and wraparound risk.",
     group: "performance",
-    inputSchema: VacuumStatsSchema,
+    inputSchema: VacuumStatsSchemaBase,
     outputSchema: VacuumStatsOutputSchema,
     annotations: readOnly("Vacuum Stats"),
     icons: getToolIcons("performance", readOnly("Vacuum Stats")),
@@ -608,20 +616,22 @@ export function createVacuumStatsTool(
 export function createQueryPlanStatsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const QueryPlanStatsSchemaBase = z.object({
+    limit: z
+      .number()
+      .optional()
+      .describe("Number of queries to return (default: 20, use 0 for all)"),
+    truncateQuery: z
+      .number()
+      .optional()
+      .describe(
+        "Max query length in chars (default: 100, use 0 for full text)",
+      ),
+  });
+
   const QueryPlanStatsSchema = z.preprocess(
     defaultToEmpty,
-    z.object({
-      limit: z
-        .number()
-        .optional()
-        .describe("Number of queries to return (default: 20, use 0 for all)"),
-      truncateQuery: z
-        .number()
-        .optional()
-        .describe(
-          "Max query length in chars (default: 100, use 0 for full text)",
-        ),
-    }),
+    QueryPlanStatsSchemaBase,
   );
 
   return {
@@ -629,7 +639,7 @@ export function createQueryPlanStatsTool(
     description:
       "Get query plan statistics showing planning time vs execution time (requires pg_stat_statements).",
     group: "performance",
-    inputSchema: QueryPlanStatsSchema,
+    inputSchema: QueryPlanStatsSchemaBase,
     outputSchema: QueryPlanStatsOutputSchema,
     annotations: readOnly("Query Plan Stats"),
     icons: getToolIcons("performance", readOnly("Query Plan Stats")),

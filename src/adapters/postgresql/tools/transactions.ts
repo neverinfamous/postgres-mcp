@@ -12,6 +12,7 @@ import { write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { parsePostgresError } from "./core/error-helpers.js";
 import {
+  BeginTransactionSchemaBase,
   BeginTransactionSchema,
   TransactionIdSchema,
   TransactionIdSchemaBase,
@@ -61,7 +62,7 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Begin a new transaction. Returns a transaction ID for subsequent operations.",
     group: "transactions",
-    inputSchema: BeginTransactionSchema,
+    inputSchema: BeginTransactionSchemaBase,
     outputSchema: TransactionBeginOutputSchema,
     annotations: write("Begin Transaction"),
     icons: getToolIcons("transactions", write("Begin Transaction")),

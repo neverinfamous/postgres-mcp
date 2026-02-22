@@ -642,19 +642,21 @@ function preprocessBeginParams(input: unknown): unknown {
   return normalized;
 }
 
+export const BeginTransactionSchemaBase = z.object({
+  isolationLevel: z
+    .enum([
+      "READ UNCOMMITTED",
+      "READ COMMITTED",
+      "REPEATABLE READ",
+      "SERIALIZABLE",
+    ])
+    .optional()
+    .describe("Transaction isolation level"),
+});
+
 export const BeginTransactionSchema = z.preprocess(
   preprocessBeginParams,
-  z.object({
-    isolationLevel: z
-      .enum([
-        "READ UNCOMMITTED",
-        "READ COMMITTED",
-        "REPEATABLE READ",
-        "SERIALIZABLE",
-      ])
-      .optional()
-      .describe("Transaction isolation level"),
-  }),
+  BeginTransactionSchemaBase,
 );
 
 // Base schema for MCP visibility (shows transactionId and aliases)

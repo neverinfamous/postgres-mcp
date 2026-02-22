@@ -190,39 +190,43 @@ export const ObjectDetailsSchema = z
     message: "name (or object/objectName/table alias) is required",
   });
 
+export const AnalyzeDbHealthSchemaBase = z.object({
+  includeIndexes: z
+    .boolean()
+    .optional()
+    .describe("Include unused indexes analysis (default: true)"),
+  includeVacuum: z
+    .boolean()
+    .optional()
+    .describe("Include tables needing vacuum analysis (default: true)"),
+  includeConnections: z
+    .boolean()
+    .optional()
+    .describe("Include connection stats (default: true)"),
+});
+
 export const AnalyzeDbHealthSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    includeIndexes: z
-      .boolean()
-      .optional()
-      .describe("Include unused indexes analysis (default: true)"),
-    includeVacuum: z
-      .boolean()
-      .optional()
-      .describe("Include tables needing vacuum analysis (default: true)"),
-    includeConnections: z
-      .boolean()
-      .optional()
-      .describe("Include connection stats (default: true)"),
-  }),
+  AnalyzeDbHealthSchemaBase,
 );
+
+export const AnalyzeWorkloadIndexesSchemaBase = z.object({
+  topQueries: z
+    .number()
+    .optional()
+    .describe("Number of top queries to analyze (default: 20)"),
+  minCalls: z.number().optional().describe("Minimum call count threshold"),
+  queryPreviewLength: z
+    .number()
+    .optional()
+    .describe(
+      "Maximum characters for query preview (default: 200). Truncated queries end with '…'",
+    ),
+});
 
 export const AnalyzeWorkloadIndexesSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    topQueries: z
-      .number()
-      .optional()
-      .describe("Number of top queries to analyze (default: 20)"),
-    minCalls: z.number().optional().describe("Minimum call count threshold"),
-    queryPreviewLength: z
-      .number()
-      .optional()
-      .describe(
-        "Maximum characters for query preview (default: 200). Truncated queries end with '…'",
-      ),
-  }),
+  AnalyzeWorkloadIndexesSchemaBase,
 );
 
 // Base schema for MCP visibility - exported so tool can use it for inputSchema

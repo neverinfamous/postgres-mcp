@@ -19,8 +19,11 @@ import { readOnly, write, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { formatPostgresError } from "./core/error-helpers.js";
 import {
+  KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
+  KcacheDatabaseStatsSchemaBase,
   KcacheDatabaseStatsSchema,
+  KcacheResourceAnalysisSchemaBase,
   KcacheResourceAnalysisSchema,
   // Output schemas
   KcacheCreateExtensionOutputSchema,
@@ -150,7 +153,7 @@ Joins pg_stat_statements with pg_stat_kcache to show what SQL did AND what syste
 
 orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minCalls parameter to filter by call count.`,
     group: "kcache",
-    inputSchema: KcacheQueryStatsSchema,
+    inputSchema: KcacheQueryStatsSchemaBase,
     outputSchema: KcacheQueryStatsOutputSchema,
     annotations: readOnly("Kcache Query Stats"),
     icons: getToolIcons("kcache", readOnly("Kcache Query Stats")),
@@ -518,7 +521,7 @@ function createKcacheDatabaseStatsTool(
     description: `Get aggregated OS-level statistics for a database. 
 Shows total CPU time, I/O, and page faults across all queries.`,
     group: "kcache",
-    inputSchema: KcacheDatabaseStatsSchema,
+    inputSchema: KcacheDatabaseStatsSchemaBase,
     outputSchema: KcacheDatabaseStatsOutputSchema,
     annotations: readOnly("Kcache Database Stats"),
     icons: getToolIcons("kcache", readOnly("Kcache Database Stats")),
@@ -599,7 +602,7 @@ function createKcacheResourceAnalysisTool(
     description: `Analyze queries to classify them as CPU-bound, I/O-bound, or balanced.
 Helps identify the root cause of performance issues - is the query computation-heavy or disk-heavy?`,
     group: "kcache",
-    inputSchema: KcacheResourceAnalysisSchema,
+    inputSchema: KcacheResourceAnalysisSchemaBase,
     outputSchema: KcacheResourceAnalysisOutputSchema,
     annotations: readOnly("Kcache Resource Analysis"),
     icons: getToolIcons("kcache", readOnly("Kcache Resource Analysis")),

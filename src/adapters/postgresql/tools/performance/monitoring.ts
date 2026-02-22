@@ -61,15 +61,17 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
 }
 
 export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
+  const BloatCheckSchemaBase = z.object({
+    table: z
+      .string()
+      .optional()
+      .describe("Table name to check (all tables if omitted)"),
+    schema: z.string().optional().describe("Schema name to filter"),
+  });
+
   const BloatCheckSchema = z.preprocess(
     (val) => val ?? {},
-    z.object({
-      table: z
-        .string()
-        .optional()
-        .describe("Table name to check (all tables if omitted)"),
-      schema: z.string().optional().describe("Schema name to filter"),
-    }),
+    BloatCheckSchemaBase,
   );
 
   return {
@@ -77,7 +79,7 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Check for table and index bloat. Returns tables with dead tuples.",
     group: "performance",
-    inputSchema: BloatCheckSchema,
+    inputSchema: BloatCheckSchemaBase,
     outputSchema: BloatCheckOutputSchema,
     annotations: readOnly("Bloat Check"),
     icons: getToolIcons("performance", readOnly("Bloat Check")),

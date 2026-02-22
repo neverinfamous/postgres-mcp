@@ -12,8 +12,11 @@ import { readOnly } from "../../../utils/annotations.js";
 import { formatPostgresError } from "./core/error-helpers.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import {
+  DatabaseSizeSchemaBase,
   DatabaseSizeSchema,
+  TableSizesSchemaBase,
   TableSizesSchema,
+  ShowSettingsSchemaBase,
   ShowSettingsSchema,
   // Output schemas
   DatabaseSizeOutputSchema,
@@ -53,7 +56,7 @@ function createDatabaseSizeTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_database_size",
     description: "Get the size of a database.",
     group: "monitoring",
-    inputSchema: DatabaseSizeSchema,
+    inputSchema: DatabaseSizeSchemaBase,
     outputSchema: DatabaseSizeOutputSchema,
     annotations: readOnly("Database Size"),
     icons: getToolIcons("monitoring", readOnly("Database Size")),
@@ -83,7 +86,7 @@ function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_table_sizes",
     description: "Get sizes of all tables with indexes and total.",
     group: "monitoring",
-    inputSchema: TableSizesSchema,
+    inputSchema: TableSizesSchemaBase,
     outputSchema: TableSizesOutputSchema,
     annotations: readOnly("Table Sizes"),
     icons: getToolIcons("monitoring", readOnly("Table Sizes")),
@@ -273,7 +276,7 @@ function createShowSettingsTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Show current PostgreSQL configuration settings. Filter by name pattern or exact setting name. Accepts: pattern, setting, or name parameter.",
     group: "monitoring",
-    inputSchema: ShowSettingsSchema,
+    inputSchema: ShowSettingsSchemaBase,
     outputSchema: ShowSettingsOutputSchema,
     annotations: readOnly("Show Settings"),
     icons: getToolIcons("monitoring", readOnly("Show Settings")),

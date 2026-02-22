@@ -24,19 +24,21 @@ const toNum = (val: unknown): number | null =>
 export function createSeqScanTablesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const SeqScanTablesSchemaBase = z.object({
+    minScans: z
+      .number()
+      .optional()
+      .describe("Minimum seq scans to include (default: 10)"),
+    schema: z.string().optional().describe("Schema to filter"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Max rows to return (default: 50, use 0 for all)"),
+  });
+
   const SeqScanTablesSchema = z.preprocess(
     (input) => input ?? {},
-    z.object({
-      minScans: z
-        .number()
-        .optional()
-        .describe("Minimum seq scans to include (default: 10)"),
-      schema: z.string().optional().describe("Schema to filter"),
-      limit: z
-        .number()
-        .optional()
-        .describe("Max rows to return (default: 50, use 0 for all)"),
-    }),
+    SeqScanTablesSchemaBase,
   );
 
   return {
@@ -44,7 +46,7 @@ export function createSeqScanTablesTool(
     description:
       "Find tables with high sequential scan counts (potential missing indexes). Default minScans=10; use higher values (e.g., 100+) for production databases.",
     group: "performance",
-    inputSchema: SeqScanTablesSchema,
+    inputSchema: SeqScanTablesSchemaBase,
     outputSchema: SeqScanTablesOutputSchema,
     annotations: readOnly("Sequential Scan Tables"),
     icons: getToolIcons("performance", readOnly("Sequential Scan Tables")),
