@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_database_size` raw MCP error for nonexistent database** — `pg_database_size({ database: "nonexistent_db" })` now returns `{success: false, error: "..."}` instead of throwing a raw MCP error. Wrapped `executeQuery` in try-catch with `formatPostgresError`. Updated `DatabaseSizeOutputSchema` with optional `success`/`error` fields and made `bytes`/`size` optional. Added 1 unit test
+
 - **`pg_index_stats`/`pg_table_stats`/`pg_vacuum_stats`/`pg_bloat_check` `schema.table` format not parsed** — `pg_index_stats({ table: 'sales.orders' })` and the other 3 tools now correctly parse dot-notation into `schema=sales, table=orders` instead of treating `sales.orders` as a literal table name in the `public` schema. Previously produced misleading P154 errors like `Table 'public.sales.orders' not found`. Added inline `schema.table` splitting logic matching the pattern used by `pg_partition_strategy_suggest`. Added 4 unit tests
 
 - **`pg_list_tables` MCP schema missing all parameters** — Direct MCP tool calls to `pg_list_tables` now correctly expose `schema`, `limit`, and `exclude` parameters. Previously, the tool used a `z.preprocess()`-wrapped schema as `inputSchema`, which strips parameter metadata from JSON Schema generation, making direct MCP calls unable to filter results. Applied Split Schema pattern: `ListTablesSchemaBase` for MCP visibility, `ListTablesSchema` with `z.preprocess()` for handler parsing

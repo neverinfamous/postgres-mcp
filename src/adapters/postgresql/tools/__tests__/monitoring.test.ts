@@ -128,6 +128,26 @@ describe("pg_database_size", () => {
     );
     expect(result.size).toBe("2 GB");
   });
+
+  it("should return structured error for nonexistent database", async () => {
+    const pgError = new Error(
+      'database "nonexistent_db" does not exist',
+    ) as Error & { code: string };
+    pgError.code = "3D000";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_database_size")!;
+    const result = (await tool.handler(
+      { database: "nonexistent_db" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_db");
+  });
 });
 
 describe("pg_table_sizes", () => {

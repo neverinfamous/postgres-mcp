@@ -65,18 +65,25 @@ function createDatabaseSizeTool(adapter: PostgresAdapter): ToolDefinition {
       const sql = database
         ? `SELECT pg_database_size($1) as bytes, pg_size_pretty(pg_database_size($1)) as size`
         : `SELECT pg_database_size(current_database()) as bytes, pg_size_pretty(pg_database_size(current_database())) as size`;
-      const result = await adapter.executeQuery(
-        sql,
-        database ? [database] : [],
-      );
-      const row = result.rows?.[0] as
-        | { bytes: string | number; size: string }
-        | undefined;
-      if (!row) return row;
-      return {
-        ...row,
-        bytes: parseInt(String(row.bytes), 10),
-      };
+      try {
+        const result = await adapter.executeQuery(
+          sql,
+          database ? [database] : [],
+        );
+        const row = result.rows?.[0] as
+          | { bytes: string | number; size: string }
+          | undefined;
+        if (!row) return row;
+        return {
+          ...row,
+          bytes: parseInt(String(row.bytes), 10),
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_database_size" }),
+        };
+      }
     },
   };
 }

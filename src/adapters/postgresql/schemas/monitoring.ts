@@ -69,10 +69,14 @@ export const ShowSettingsSchema = z.preprocess(
 /**
  * pg_database_size output
  */
-export const DatabaseSizeOutputSchema = z.object({
-  bytes: z.number().describe("Database size in bytes"),
-  size: z.string().describe("Human-readable size"),
-});
+export const DatabaseSizeOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    bytes: z.number().optional().describe("Database size in bytes"),
+    size: z.string().optional().describe("Human-readable size"),
+  })
+  .loose();
 
 /**
  * pg_table_sizes output
