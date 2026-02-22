@@ -840,41 +840,37 @@ function createAlertThresholdSetTool(
     group: "monitoring",
     inputSchema: z.object({
       metric: z
-        .enum([
-          "connection_usage",
-          "cache_hit_ratio",
-          "replication_lag",
-          "dead_tuples",
-          "long_running_queries",
-          "lock_wait_time",
-        ])
+        .string()
         .optional()
         .describe(
-          "Specific metric to get thresholds for, or all if not specified",
+          "Specific metric to get thresholds for, or all if not specified. Valid: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time",
         ),
     }),
     outputSchema: AlertThresholdOutputSchema,
     annotations: readOnly("Get Alert Thresholds"),
     icons: getToolIcons("monitoring", readOnly("Get Alert Thresholds")),
     handler: (params: unknown, _context: RequestContext) => {
-      // Schema with validated enum for metric
       const AlertThresholdSchema = z.object({
-        metric: z
-          .enum([
-            "connection_usage",
-            "cache_hit_ratio",
-            "replication_lag",
-            "dead_tuples",
-            "long_running_queries",
-            "lock_wait_time",
-          ])
-          .optional()
-          .describe(
-            "Specific metric to get thresholds for, or all if not specified",
-          ),
+        metric: z.string().optional(),
       });
 
       const parsed = AlertThresholdSchema.parse(params ?? {});
+
+      const validMetrics = [
+        "connection_usage",
+        "cache_hit_ratio",
+        "replication_lag",
+        "dead_tuples",
+        "long_running_queries",
+        "lock_wait_time",
+      ];
+
+      if (parsed.metric && !validMetrics.includes(parsed.metric)) {
+        return Promise.resolve({
+          success: false,
+          error: `Invalid metric "${parsed.metric}". Valid metrics: ${validMetrics.join(", ")}`,
+        });
+      }
 
       const thresholds: Record<
         string,

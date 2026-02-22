@@ -183,7 +183,7 @@ Core: \`databaseSize()\`, \`tableSizes()\`, \`connectionStats()\`, \`showSetting
 - \`recoveryStatus()\`: Returns \`{in_recovery: boolean, last_replay_timestamp: string|null}\`
 - \`replicationStatus()\`: Returns \`{role: 'primary'|'replica', replicas: [...]}\` for primary, or \`{role: 'replica', replay_lag, ...}\` for replica
 - \`resourceUsageAnalyze()\`: Returns \`{backgroundWriter, checkpoints, connectionDistribution, bufferUsage, activity, analysis}\` with all counts as numbers
-- \`alertThresholdSet({metric?: 'connection_usage'})\`: Returns recommended thresholds. ⛔ Invalid metric throws validation error. Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
+- \`alertThresholdSet({metric?: 'connection_usage'})\`: Returns recommended thresholds. Invalid metric returns \`{success: false, error: "..."}\`. Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
 
 📦 **AI-Optimized Payloads**: Tools return limited results by default to reduce context size:
 - \`tableSizes({ limit? })\`: Default 50 rows. Returns \`truncated: true\` + \`totalCount\` when limited. Use \`limit: 0\` for all

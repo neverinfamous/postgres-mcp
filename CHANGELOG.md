@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`pg_alert_threshold_set` raw MCP validation error for invalid metric** — `pg_alert_threshold_set({ metric: "invalid_xyz" })` now returns `{success: false, error: "Invalid metric \"invalid_xyz\". Valid metrics: connection_usage, ..."}` instead of a raw MCP Zod validation error (`-32602`). Changed `inputSchema` from `z.enum()` to `z.string().optional()` with valid values in `.describe()`, and added handler-level validation. Previously, the MCP SDK rejected invalid enum values at the schema level before the handler could execute. Updated `ServerInstructions.ts` docs. Added 1 unit test
+
 ### Performance
 
 - **`pg_stat_activity` background worker noise** — `pg_stat_activity` now filters out background workers (checkpointer, bgwriter, walwriter, autovacuum launcher, logical replication launcher, etc.) by adding `backend_type = 'client backend'` to the query filter. These workers had all-null fields (`usename`, `datname`, `state`, `query_start`, `duration` all null) inflating the payload with no actionable insight. The response now includes `backgroundWorkers: N` count so consumers know workers exist without the noise

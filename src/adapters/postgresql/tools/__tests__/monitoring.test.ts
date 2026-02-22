@@ -853,4 +853,19 @@ describe("pg_alert_threshold_set", () => {
     expect(result.threshold.warning).toBe("70%");
     expect(result.threshold.critical).toBe("90%");
   });
+
+  it("should return structured error for invalid metric", async () => {
+    const tool = tools.find((t) => t.name === "pg_alert_threshold_set")!;
+    const result = (await tool.handler(
+      { metric: "invalid_metric_xyz" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid metric");
+    expect(result.error).toContain("connection_usage");
+  });
 });
