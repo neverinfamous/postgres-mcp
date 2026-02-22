@@ -743,16 +743,22 @@ export const TransactionExecuteSchemaBase = z.object({
   txId: z.string().optional().describe("Alias for transactionId"),
   tx: z.string().optional().describe("Alias for transactionId"),
   isolationLevel: z
-    .string()
+    .enum([
+      "READ UNCOMMITTED",
+      "READ COMMITTED",
+      "REPEATABLE READ",
+      "SERIALIZABLE",
+    ])
     .optional()
-    .describe(
-      "Transaction isolation level (only used when creating new transaction)",
-    ),
+    .describe("Transaction isolation level"),
 });
 
 // Schema with undefined handling for pg_transaction_execute
 export const TransactionExecuteSchema = z
-  .preprocess(defaultToEmpty, TransactionExecuteSchemaBase)
+  .preprocess(
+    (val: unknown) => preprocessBeginParams(defaultToEmpty(val)),
+    TransactionExecuteSchemaBase,
+  )
   .transform((data) => ({
     statements: data.statements ?? [],
     transactionId: data.transactionId ?? data.txId ?? data.tx,

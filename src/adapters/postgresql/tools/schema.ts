@@ -303,7 +303,20 @@ function createCreateSequenceTool(adapter: PostgresAdapter): ToolDefinition {
         if (maxValue !== undefined) parts.push(`MAXVALUE ${String(maxValue)}`);
         if (cache !== undefined) parts.push(`CACHE ${String(cache)}`);
         if (cycle) parts.push("CYCLE");
-        if (ownedBy !== undefined) parts.push(`OWNED BY ${ownedBy}`);
+        if (ownedBy !== undefined) {
+          // Validate and sanitize ownedBy: table.column or schema.table.column
+          const ownedByParts = ownedBy.split(".");
+          if (ownedByParts.length < 2 || ownedByParts.length > 3) {
+            return {
+              success: false,
+              error: `Invalid ownedBy format: '${ownedBy}'. Expected 'table.column' or 'schema.table.column'.`,
+            };
+          }
+          const sanitizedOwnedBy = ownedByParts
+            .map((p) => sanitizeIdentifier(p))
+            .join(".");
+          parts.push(`OWNED BY ${sanitizedOwnedBy}`);
+        }
 
         const sql = parts.join(" ");
         try {

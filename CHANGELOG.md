@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **README.md / DOCKER_README.md deterministic error handling** — Added "Deterministic Error Handling" row to the "What Sets Us Apart" table and added "deterministic error handling" to the introduction blurb. Highlights that every tool returns structured `{success, error}` responses with no raw exceptions, silent failures, or misleading messages
 
+### Security
+
+- **`pg_transaction_execute` `isolationLevel` missing enum constraint** — `TransactionExecuteSchemaBase.isolationLevel` now uses `z.enum(["READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"])` instead of `z.string()`, matching the existing validation in `BeginTransactionSchema`. Previously, arbitrary strings could reach the `BEGIN ISOLATION LEVEL ${isolationLevel}` SQL interpolation in `PostgresAdapter.beginTransaction()`. Also chained `preprocessBeginParams` normalizer for shorthand support (`RC`, `RR`, `S`, case-insensitive forms)
+
+- **`pg_create_sequence` `ownedBy` parameter unsanitized** — The `ownedBy` parameter is now validated for format (`table.column` or `schema.table.column`) and each component is sanitized through `sanitizeIdentifier()` before SQL interpolation. Previously, `ownedBy` was interpolated directly into DDL (`OWNED BY ${ownedBy}`) without any identifier-level validation
+
 ### Fixed
 
 - **`pg_list_triggers`/`pg_list_constraints` `schema.table` format not parsed** — `pg_list_triggers({ table: 'custom_schema.orders' })` and `pg_list_constraints({ table: 'custom_schema.orders' })` now correctly parse into `schema=custom_schema, table=orders` instead of treating `custom_schema.orders` as a literal table name in the `public` schema. Previously produced misleading errors like `Table 'public.custom_schema.orders' not found`. Added inline `schema.table` splitting logic matching the pattern used by other schema tools. Added 2 unit tests
