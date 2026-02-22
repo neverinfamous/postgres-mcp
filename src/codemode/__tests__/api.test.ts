@@ -289,8 +289,6 @@ describe("normalizeParams", () => {
   });
 });
 
-
-
 describe("Error handling in method proxies", () => {
   it("should propagate handler errors", async () => {
     const errorHandler = vi.fn(async () => {
@@ -617,9 +615,7 @@ describe("Performance group wrappers", () => {
         group: "performance" as ToolGroup,
         inputSchema: {},
         handler: vi.fn(async () => ({
-          connections: [
-            { duration: "00:00:02.000", query: "short" },
-          ],
+          connections: [{ duration: "00:00:02.000", query: "short" }],
           count: 1,
         })),
       },
@@ -1267,7 +1263,6 @@ describe("Text group metaphone wrapper execution", () => {
   });
 });
 
-
 // =============================================================================
 // Full sandbox bindings coverage — all 19 tool groups
 // =============================================================================
@@ -1464,17 +1459,15 @@ describe("createSandboxBindings — full group coverage", () => {
         handler,
       },
       // Vector group — hybridSearch for top-level alias
-      ...[
-        "pg_vector_search",
-        "pg_vector_create_index",
-        "pg_hybrid_search",
-      ].map((name) => ({
-        name,
-        description: name,
-        group: "vector" as ToolGroup,
-        inputSchema: {},
-        handler,
-      })),
+      ...["pg_vector_search", "pg_vector_create_index", "pg_hybrid_search"].map(
+        (name) => ({
+          name,
+          description: name,
+          group: "vector" as ToolGroup,
+          inputSchema: {},
+          handler,
+        }),
+      ),
       // PostGIS group — all methods for top-level postgisXxx aliases
       ...[
         "pg_postgis_create_extension",

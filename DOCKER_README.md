@@ -355,7 +355,7 @@ docker pull writenotenow/postgres-mcp@sha256:<manifest-digest>
 
 **Available Tags:**
 
-- `1.2.0` - Specific version (recommended for production)
+- `1.3.0` - Specific version (recommended for production)
 - `latest` - Always the newest version
 - `sha256-<digest>` - SHA-pinned for maximum security
 

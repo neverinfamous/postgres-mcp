@@ -1153,9 +1153,7 @@ describe("CreateTableSchema", () => {
   it("should auto-quote string default values", () => {
     const result = CreateTableSchema.parse({
       name: "test",
-      columns: [
-        { name: "status", type: "text", default: "active" },
-      ],
+      columns: [{ name: "status", type: "text", default: "active" }],
     });
     expect(result.columns[0]?.default).toBe("'active'");
   });
@@ -1163,9 +1161,7 @@ describe("CreateTableSchema", () => {
   it("should not quote SQL keyword defaults", () => {
     const result = CreateTableSchema.parse({
       name: "test",
-      columns: [
-        { name: "id", type: "integer", default: "NULL" },
-      ],
+      columns: [{ name: "id", type: "integer", default: "NULL" }],
     });
     expect(result.columns[0]?.default).toBe("NULL");
   });
@@ -1173,9 +1169,7 @@ describe("CreateTableSchema", () => {
   it("should convert now() to CURRENT_TIMESTAMP", () => {
     const result = CreateTableSchema.parse({
       name: "test",
-      columns: [
-        { name: "created", type: "timestamp", default: "now()" },
-      ],
+      columns: [{ name: "created", type: "timestamp", default: "now()" }],
     });
     expect(result.columns[0]?.default).toBe("CURRENT_TIMESTAMP");
   });
@@ -1183,9 +1177,7 @@ describe("CreateTableSchema", () => {
   it("should coerce number default to string", () => {
     const result = CreateTableSchema.parse({
       name: "test",
-      columns: [
-        { name: "priority", type: "integer", default: 0 },
-      ],
+      columns: [{ name: "priority", type: "integer", default: 0 }],
     });
     expect(result.columns[0]?.default).toBe("0");
   });
@@ -1193,9 +1185,7 @@ describe("CreateTableSchema", () => {
   it("should coerce boolean default to string", () => {
     const result = CreateTableSchema.parse({
       name: "test",
-      columns: [
-        { name: "active", type: "boolean", default: true },
-      ],
+      columns: [{ name: "active", type: "boolean", default: true }],
     });
     expect(result.columns[0]?.default).toBe("true");
   });
@@ -1219,9 +1209,7 @@ describe("CreateTableSchema", () => {
     expect(() =>
       CreateTableSchema.parse({
         name: "test",
-        columns: [
-          { name: "fk", type: "integer", references: "invalid" },
-        ],
+        columns: [{ name: "fk", type: "integer", references: "invalid" }],
       }),
     ).toThrow("Invalid references format");
   });
@@ -1229,9 +1217,7 @@ describe("CreateTableSchema", () => {
   it("should handle notNull alias for nullable", () => {
     const result = CreateTableSchema.parse({
       name: "test",
-      columns: [
-        { name: "email", type: "text", notNull: true },
-      ],
+      columns: [{ name: "email", type: "text", notNull: true }],
     });
     expect(result.columns[0]?.nullable).toBe(false);
   });
@@ -1372,15 +1358,13 @@ describe("TransactionExecuteSchema", () => {
     const result = TransactionExecuteSchema.parse({
       statements: [{ query: "INSERT INTO t DEFAULT VALUES" }],
     });
-    expect(result.statements[0]?.sql).toBe(
-      "INSERT INTO t DEFAULT VALUES",
-    );
+    expect(result.statements[0]?.sql).toBe("INSERT INTO t DEFAULT VALUES");
   });
 
   it("should reject empty statements", () => {
-    expect(() =>
-      TransactionExecuteSchema.parse({ statements: [] }),
-    ).toThrow("statements is required");
+    expect(() => TransactionExecuteSchema.parse({ statements: [] })).toThrow(
+      "statements is required",
+    );
   });
 
   it("should reject statements without sql", () => {
@@ -1502,9 +1486,9 @@ describe("ReindexSchema", () => {
   });
 
   it("should reject table target without name", () => {
-    expect(() =>
-      ReindexSchema.parse({ target: "table" }),
-    ).toThrow("name is required when target is table");
+    expect(() => ReindexSchema.parse({ target: "table" })).toThrow(
+      "name is required when target is table",
+    );
   });
 });
 
@@ -1908,9 +1892,9 @@ describe("CitextConvertColumnSchema", () => {
   });
 
   it("should reject when no column provided", () => {
-    expect(() =>
-      CitextConvertColumnSchema.parse({ table: "users" }),
-    ).toThrow("column (or col alias) is required");
+    expect(() => CitextConvertColumnSchema.parse({ table: "users" })).toThrow(
+      "column (or col alias) is required",
+    );
   });
 });
 
@@ -2085,9 +2069,9 @@ describe("PgcryptoEncryptSchema", () => {
   });
 
   it("should reject when no password/key provided", () => {
-    expect(() =>
-      PgcryptoEncryptSchema.parse({ data: "secret" }),
-    ).toThrow("password (or key alias) is required");
+    expect(() => PgcryptoEncryptSchema.parse({ data: "secret" })).toThrow(
+      "password (or key alias) is required",
+    );
   });
 });
 
@@ -2109,9 +2093,9 @@ describe("PgcryptoDecryptSchema", () => {
   });
 
   it("should reject when no encryptedData/data provided", () => {
-    expect(() =>
-      PgcryptoDecryptSchema.parse({ password: "my-pass" }),
-    ).toThrow("encryptedData (or data alias) is required");
+    expect(() => PgcryptoDecryptSchema.parse({ password: "my-pass" })).toThrow(
+      "encryptedData (or data alias) is required",
+    );
   });
 
   it("should reject when no password/key provided", () => {
@@ -2394,9 +2378,7 @@ describe("AttachPartitionSchema", () => {
         parent: "events",
         forValues: "FROM ('2024-01-01') TO ('2025-01-01')",
       }),
-    ).toThrow(
-      "One of partition, partitionTable, or partitionName is required",
-    );
+    ).toThrow("One of partition, partitionTable, or partitionName is required");
   });
 });
 
@@ -2416,9 +2398,7 @@ describe("DetachPartitionSchema", () => {
   });
 
   it("should reject when no partition provided", () => {
-    expect(() =>
-      DetachPartitionSchema.parse({ parent: "events" }),
-    ).toThrow(
+    expect(() => DetachPartitionSchema.parse({ parent: "events" })).toThrow(
       "One of partition, partitionTable, or partitionName is required",
     );
   });
@@ -2902,29 +2882,29 @@ describe("GeocodeSchema", () => {
   });
 
   it("should reject out-of-range lat", () => {
-    expect(() =>
-      GeocodeSchema.parse({ lat: 91, lng: 0 }),
-    ).toThrow("lat must be between -90 and 90");
+    expect(() => GeocodeSchema.parse({ lat: 91, lng: 0 })).toThrow(
+      "lat must be between -90 and 90",
+    );
   });
 
   it("should reject out-of-range lng", () => {
-    expect(() =>
-      GeocodeSchema.parse({ lat: 0, lng: 181 }),
-    ).toThrow("lng must be between -180 and 180");
+    expect(() => GeocodeSchema.parse({ lat: 0, lng: 181 })).toThrow(
+      "lng must be between -180 and 180",
+    );
   });
 });
 
 describe("GeometryColumnSchema", () => {
   it("should reject missing table", () => {
-    expect(() =>
-      GeometryColumnSchema.parse({ column: "geom" }),
-    ).toThrow("table (or tableName alias) is required");
+    expect(() => GeometryColumnSchema.parse({ column: "geom" })).toThrow(
+      "table (or tableName alias) is required",
+    );
   });
 
   it("should reject missing column", () => {
-    expect(() =>
-      GeometryColumnSchema.parse({ table: "locations" }),
-    ).toThrow("column (or geom/geometryColumn alias) is required");
+    expect(() => GeometryColumnSchema.parse({ table: "locations" })).toThrow(
+      "column (or geom/geometryColumn alias) is required",
+    );
   });
 
   it("should resolve geom alias to column", () => {
@@ -3054,9 +3034,9 @@ describe("GeometryBufferSchema (standalone)", () => {
   });
 
   it("should reject missing geometry", () => {
-    expect(() =>
-      GeometryBufferSchema.parse({ distance: 500 }),
-    ).toThrow("geometry (or wkt/geojson alias) is required");
+    expect(() => GeometryBufferSchema.parse({ distance: 500 })).toThrow(
+      "geometry (or wkt/geojson alias) is required",
+    );
   });
 
   it("should reject zero distance", () => {
@@ -3108,9 +3088,9 @@ describe("CronScheduleSchema (preprocessCronParams)", () => {
   });
 
   it("should reject when no command/sql/query provided", () => {
-    expect(() =>
-      CronScheduleSchema.parse({ schedule: "0 10 * * *" }),
-    ).toThrow("Either command, sql, or query must be provided");
+    expect(() => CronScheduleSchema.parse({ schedule: "0 10 * * *" })).toThrow(
+      "Either command, sql, or query must be provided",
+    );
   });
 
   it("should accept valid interval schedule (30 seconds)", () => {
@@ -3817,15 +3797,15 @@ describe("CreateViewSchema", () => {
   });
 
   it("should reject missing name", () => {
-    expect(() =>
-      CreateViewSchema.parse({ query: "SELECT 1" }),
-    ).toThrow("name (or viewName alias) is required");
+    expect(() => CreateViewSchema.parse({ query: "SELECT 1" })).toThrow(
+      "name (or viewName alias) is required",
+    );
   });
 
   it("should reject missing query", () => {
-    expect(() =>
-      CreateViewSchema.parse({ name: "test_view" }),
-    ).toThrow("query (or sql/definition alias) is required");
+    expect(() => CreateViewSchema.parse({ name: "test_view" })).toThrow(
+      "query (or sql/definition alias) is required",
+    );
   });
 });
 

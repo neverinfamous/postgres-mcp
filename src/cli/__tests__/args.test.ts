@@ -211,12 +211,7 @@ describe("parseArgs", () => {
     });
 
     it("should parse --password", () => {
-      const result = parseArgs([
-        "--host",
-        "localhost",
-        "--password",
-        "s3cret",
-      ]);
+      const result = parseArgs(["--host", "localhost", "--password", "s3cret"]);
       expect(result.database?.password).toBe("s3cret");
     });
 
@@ -236,22 +231,12 @@ describe("parseArgs", () => {
     });
 
     it("should parse --pool-max with individual params", () => {
-      const result = parseArgs([
-        "--host",
-        "localhost",
-        "--pool-max",
-        "20",
-      ]);
+      const result = parseArgs(["--host", "localhost", "--pool-max", "20"]);
       expect(result.database?.pool?.max).toBe(20);
     });
 
     it("should not set pool when pool-max is 0", () => {
-      const result = parseArgs([
-        "--host",
-        "localhost",
-        "--pool-max",
-        "0",
-      ]);
+      const result = parseArgs(["--host", "localhost", "--pool-max", "0"]);
       expect(result.database?.pool).toBeUndefined();
     });
 
@@ -471,11 +456,7 @@ describe("parseArgs", () => {
     });
 
     it("should parse --oauth-audience", () => {
-      const result = parseArgs([
-        "-o",
-        "--oauth-audience",
-        "my-api",
-      ]);
+      const result = parseArgs(["-o", "--oauth-audience", "my-api"]);
       expect(result.oauth?.audience).toBe("my-api");
     });
 
@@ -491,11 +472,7 @@ describe("parseArgs", () => {
     });
 
     it("should parse --oauth-clock-tolerance", () => {
-      const result = parseArgs([
-        "-o",
-        "--oauth-clock-tolerance",
-        "30",
-      ]);
+      const result = parseArgs(["-o", "--oauth-clock-tolerance", "30"]);
       expect(result.oauth?.clockTolerance).toBe(30);
     });
 
@@ -523,9 +500,7 @@ describe("parseArgs", () => {
       process.env["OAUTH_ENABLED"] = "true";
       process.env["OAUTH_JWKS_URI"] = "https://env-auth.example.com/jwks";
       const result = parseArgs([]);
-      expect(result.oauth?.jwksUri).toBe(
-        "https://env-auth.example.com/jwks",
-      );
+      expect(result.oauth?.jwksUri).toBe("https://env-auth.example.com/jwks");
     });
 
     it("should fall back to OAUTH_CLOCK_TOLERANCE env var", () => {
@@ -569,35 +544,35 @@ describe("parseArgs", () => {
 
   describe("--help and --version", () => {
     it("should set shouldExit for --version", () => {
-      const spy = vi.spyOn(console, "error").mockImplementation(() => { });
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       const result = parseArgs(["--version"]);
       expect(result.shouldExit).toBe(true);
       spy.mockRestore();
     });
 
     it("should set shouldExit for -v", () => {
-      const spy = vi.spyOn(console, "error").mockImplementation(() => { });
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       const result = parseArgs(["-v"]);
       expect(result.shouldExit).toBe(true);
       spy.mockRestore();
     });
 
     it("should set shouldExit for --help", () => {
-      const spy = vi.spyOn(console, "error").mockImplementation(() => { });
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       const result = parseArgs(["--help"]);
       expect(result.shouldExit).toBe(true);
       spy.mockRestore();
     });
 
     it("should set shouldExit for -h", () => {
-      const spy = vi.spyOn(console, "error").mockImplementation(() => { });
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       const result = parseArgs(["-h"]);
       expect(result.shouldExit).toBe(true);
       spy.mockRestore();
     });
 
     it("--version should return early without processing other flags", () => {
-      const spy = vi.spyOn(console, "error").mockImplementation(() => { });
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       const result = parseArgs(["--version", "--port", "9999"]);
       expect(result.shouldExit).toBe(true);
       // Port should not be set since --version causes early return
@@ -614,7 +589,7 @@ describe("parseArgs", () => {
     it("should exit on unknown options starting with dash", () => {
       const consoleSpy = vi
         .spyOn(console, "error")
-        .mockImplementation(() => { });
+        .mockImplementation(() => {});
       const exitSpy = vi
         .spyOn(process, "exit")
         .mockImplementation(() => undefined as never);
@@ -633,7 +608,7 @@ describe("parseArgs", () => {
 
   describe("printHelp", () => {
     it("should output help text to stderr", () => {
-      const spy = vi.spyOn(console, "error").mockImplementation(() => { });
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
       printHelp();
       expect(spy).toHaveBeenCalled();
       const output = spy.mock.calls[0]?.[0] as string;

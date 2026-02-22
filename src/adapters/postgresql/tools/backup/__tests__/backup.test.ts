@@ -427,10 +427,11 @@ describe("pg_dump_table", () => {
     );
 
     const tool = tools.find((t) => t.name === "pg_dump_table")!;
-    const result = (await tool.handler(
-      { table: "my_seq" },
-      mockContext,
-    )) as { ddl: string; type: string; note: string };
+    const result = (await tool.handler({ table: "my_seq" }, mockContext)) as {
+      ddl: string;
+      type: string;
+      note: string;
+    };
 
     expect(result.type).toBe("sequence");
     expect(result.ddl).toContain("CREATE SEQUENCE");
@@ -514,10 +515,11 @@ describe("pg_dump_table", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_dump_table")!;
-    const result = (await tool.handler(
-      { table: "events" },
-      mockContext,
-    )) as { ddl: string; type: string; note: string };
+    const result = (await tool.handler({ table: "events" }, mockContext)) as {
+      ddl: string;
+      type: string;
+      note: string;
+    };
 
     expect(result.type).toBe("partitioned_table");
     expect(result.ddl).toContain("PARTITION BY RANGE");
@@ -544,10 +546,9 @@ describe("pg_dump_table", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_dump_table")!;
-    const result = (await tool.handler(
-      { table: "users" },
-      mockContext,
-    )) as { ddl: string };
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      ddl: string;
+    };
 
     expect(result.ddl).toContain("PARTITION BY LIST");
     expect(result.ddl).toContain('"region"');
@@ -742,7 +743,6 @@ describe("pg_copy_import — format extensions and options", () => {
     expect(result.command).toContain("/data/users.csv");
   });
 });
-
 
 describe("pg_dump_schema", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;

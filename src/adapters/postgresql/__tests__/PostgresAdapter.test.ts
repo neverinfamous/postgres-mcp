@@ -1176,9 +1176,7 @@ describe("PostgresAdapter", () => {
       const txId = await adapter.beginTransaction();
 
       const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
-      queryMock.mockRejectedValueOnce(
-        new Error("SAVEPOINT execution failed"),
-      );
+      queryMock.mockRejectedValueOnce(new Error("SAVEPOINT execution failed"));
 
       await expect(
         adapter.createSavepoint(txId, "my_savepoint"),
@@ -1192,22 +1190,16 @@ describe("PostgresAdapter", () => {
       queryMock.mockResolvedValueOnce({ rows: [] }); // createSavepoint
       await adapter.createSavepoint(txId, "sp_test");
 
-      queryMock.mockRejectedValueOnce(
-        new Error("savepoint does not exist"),
-      );
+      queryMock.mockRejectedValueOnce(new Error("savepoint does not exist"));
 
-      await expect(
-        adapter.releaseSavepoint(txId, "sp_test"),
-      ).rejects.toThrow();
+      await expect(adapter.releaseSavepoint(txId, "sp_test")).rejects.toThrow();
     });
 
     it("rollbackToSavepoint should throw parsed error when query fails", async () => {
       const txId = await adapter.beginTransaction();
 
       const queryMock = mockPoolClient.query as ReturnType<typeof vi.fn>;
-      queryMock.mockRejectedValueOnce(
-        new Error("savepoint does not exist"),
-      );
+      queryMock.mockRejectedValueOnce(new Error("savepoint does not exist"));
 
       await expect(
         adapter.rollbackToSavepoint(txId, "nonexistent_sp"),
@@ -1267,7 +1259,9 @@ describe("PostgresAdapter", () => {
       queryMock.mockRejectedValueOnce(new Error("connection broken"));
 
       // Force release also throws
-      (mockPoolClient.release as ReturnType<typeof vi.fn>).mockImplementationOnce(() => {
+      (
+        mockPoolClient.release as ReturnType<typeof vi.fn>
+      ).mockImplementationOnce(() => {
         throw new Error("already released");
       });
 
@@ -1346,9 +1340,10 @@ describe("PostgresAdapter", () => {
 
       it("should handle quoted column names", () => {
         const methods = getPrivateMethods(adapter);
-        expect(
-          methods.parseColumnsArray('{"my column","other col"}'),
-        ).toEqual(["my column", "other col"]);
+        expect(methods.parseColumnsArray('{"my column","other col"}')).toEqual([
+          "my column",
+          "other col",
+        ]);
       });
 
       it("should return empty array for non-string, non-array input", () => {
@@ -1413,9 +1408,7 @@ describe("PostgresAdapter", () => {
       it("should handle expressions with nested parentheses", () => {
         const methods = getPrivateMethods(adapter);
         expect(
-          methods.parseIndexExpressions(
-            "LOWER(name), id, UPPER(TRIM(email))",
-          ),
+          methods.parseIndexExpressions("LOWER(name), id, UPPER(TRIM(email))"),
         ).toEqual(["LOWER(name)", "id", "UPPER(TRIM(email))"]);
       });
 
@@ -1452,7 +1445,7 @@ describe("PostgresAdapter", () => {
         expect(result).toEqual(["lower(name)", "id"]);
       });
 
-      it('should replace empty string columns with parsed expressions', () => {
+      it("should replace empty string columns with parsed expressions", () => {
         const methods = getPrivateMethods(adapter);
         const columns = ["", "id"];
         const definition =
@@ -1625,8 +1618,7 @@ describe("PostgresAdapter", () => {
             primary_key: false,
             default_value: null,
             is_generated: true,
-            generated_expression:
-              "first_name || ' ' || last_name",
+            generated_expression: "first_name || ' ' || last_name",
             comment: null,
             foreign_key: null,
           },
@@ -1665,18 +1657,14 @@ describe("PostgresAdapter", () => {
         .mockResolvedValueOnce(emptyResult);
 
       const result = await adapter.describeTable("people", "public");
-      const generatedCol = result.columns?.find(
-        (c) => c.name === "full_name",
-      );
+      const generatedCol = result.columns?.find((c) => c.name === "full_name");
       expect(generatedCol?.isGenerated).toBe(true);
       expect(generatedCol?.generatedExpression).toBe(
         "first_name || ' ' || last_name",
       );
 
       // Non-generated column should NOT have generatedExpression
-      const normalCol = result.columns?.find(
-        (c) => c.name === "first_name",
-      );
+      const normalCol = result.columns?.find((c) => c.name === "first_name");
       expect(normalCol?.isGenerated).toBe(false);
       expect(normalCol?.generatedExpression).toBeUndefined();
     });

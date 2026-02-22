@@ -281,7 +281,6 @@ describe("WorkerSandboxPool", () => {
 });
 
 describe("WorkerSandbox serializeBindings", () => {
-
   it("should extract method names from binding objects", () => {
     const sandbox = WorkerSandbox.create();
 
@@ -296,13 +295,13 @@ describe("WorkerSandbox serializeBindings", () => {
 
     const bindings = {
       core: {
-        query: () => { },
-        listTables: () => { },
-        describeTable: () => { },
+        query: () => {},
+        listTables: () => {},
+        describeTable: () => {},
       },
       jsonb: {
-        get: () => { },
-        set: () => { },
+        get: () => {},
+        set: () => {},
       },
     };
 
@@ -347,7 +346,7 @@ describe("WorkerSandbox serializeBindings", () => {
     ).serializeBindings.bind(sandbox);
 
     const bindings = {
-      valid: { method1: () => { }, method2: () => { } },
+      valid: { method1: () => {}, method2: () => {} },
       primitive: "not an object",
       nullValue: null,
       number: 42,

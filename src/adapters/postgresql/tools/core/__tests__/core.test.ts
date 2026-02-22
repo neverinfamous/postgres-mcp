@@ -3570,10 +3570,10 @@ describe("pg_describe_table", () => {
     );
 
     const tool = tools.find((t) => t.name === "pg_describe_table")!;
-    const result = (await tool.handler(
-      { table: "users" },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("connection refused");
@@ -3610,7 +3610,11 @@ describe("pg_create_table", () => {
         ],
         constraints: [
           { type: "check", expression: "amount > 0", name: "chk_amount" },
-          { type: "unique", columns: ["region", "amount"], name: "uq_region_amount" },
+          {
+            type: "unique",
+            columns: ["region", "amount"],
+            name: "uq_region_amount",
+          },
         ],
       },
       mockContext,
@@ -3618,7 +3622,9 @@ describe("pg_create_table", () => {
 
     expect(result.success).toBe(true);
     expect(result.sql).toContain('CONSTRAINT "chk_amount" CHECK (amount > 0)');
-    expect(result.sql).toContain('CONSTRAINT "uq_region_amount" UNIQUE ("region", "amount")');
+    expect(result.sql).toContain(
+      'CONSTRAINT "uq_region_amount" UNIQUE ("region", "amount")',
+    );
   });
 
   it("should generate column with references, onDelete, and onUpdate", async () => {
@@ -3780,7 +3786,17 @@ describe("pg_object_details", () => {
     });
     // Sequence metadata
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ start_value: 1, min_value: 1, max_value: 1000, increment: 1, cycle: false, cache: 1, owner: "test" }],
+      rows: [
+        {
+          start_value: 1,
+          min_value: 1,
+          max_value: 1000,
+          increment: 1,
+          cycle: false,
+          cache: 1,
+          owner: "test",
+        },
+      ],
     });
     // Current value
     mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -3805,15 +3821,18 @@ describe("pg_object_details", () => {
     });
     // Index metadata
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{
-        index_name: "idx_users_email",
-        table_name: "users",
-        index_type: "btree",
-        definition: "CREATE INDEX idx_users_email ON users USING btree (email)",
-        is_unique: false,
-        is_primary: false,
-        size: "16 kB",
-      }],
+      rows: [
+        {
+          index_name: "idx_users_email",
+          table_name: "users",
+          index_type: "btree",
+          definition:
+            "CREATE INDEX idx_users_email ON users USING btree (email)",
+          is_unique: false,
+          is_primary: false,
+          size: "16 kB",
+        },
+      ],
     });
 
     const tool = tools.find((t) => t.name === "pg_object_details")!;
