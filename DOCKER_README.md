@@ -35,7 +35,7 @@
 | **8 Extension Ecosystems**       | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                   |
 | **Deterministic Error Handling** | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes |
 | **Production-Ready Security**    | SQL injection protection, parameterized queries, input validation, and sandboxed code execution                                                                                               |
-| **Strict TypeScript**            | 100% type-safe codebase with 2108 tests and 84.5% coverage                                                                                                                                    |
+| **Strict TypeScript**            | 100% type-safe codebase with 2376 tests and 85.37% coverage                                                                                                                                   |
 | **MCP 2025-11-25 Compliant**     | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                 |
 
 ### Deployment Options
