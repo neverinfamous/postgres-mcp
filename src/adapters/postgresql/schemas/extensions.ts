@@ -24,9 +24,11 @@ export const KcacheQueryStatsSchemaBase = z.object({
     .optional()
     .describe("Maximum number of queries to return (default: 20)"),
   orderBy: z
-    .enum(["total_time", "cpu_time", "reads", "writes"])
+    .string()
     .optional()
-    .describe("Order results by metric (default: total_time)"),
+    .describe(
+      "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
+    ),
   minCalls: z.number().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
     .number()
@@ -52,6 +54,46 @@ export const KcacheTopConsumersSchema = z.object({
     .number()
     .optional()
     .describe("Number of top queries to return (default: 10)"),
+});
+
+/**
+ * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
+ */
+export const KcacheTopCpuSchemaBase = z.object({
+  limit: z
+    .number()
+    .optional()
+    .describe("Number of top queries to return (default: 10)"),
+  queryPreviewLength: z
+    .number()
+    .optional()
+    .describe(
+      "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+});
+
+/**
+ * Base schema for MCP visibility - pg_kcache_top_io parameters.
+ */
+export const KcacheTopIoSchemaBase = z.object({
+  type: z
+    .enum(["reads", "writes", "both"])
+    .optional()
+    .describe("I/O type to rank by (default: both)"),
+  ioType: z
+    .enum(["reads", "writes", "both"])
+    .optional()
+    .describe("Alias for type"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Number of top queries to return (default: 10)"),
+  queryPreviewLength: z
+    .number()
+    .optional()
+    .describe(
+      "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
 });
 
 /**

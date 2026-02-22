@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_kcache_query_stats` raw MCP validation error for invalid `orderBy`** — `pg_kcache_query_stats({ orderBy: "calls" })` now returns `{success: false, error: "Invalid orderBy value \"calls\". Valid options: total_time, cpu_time, reads, writes"}` instead of a raw MCP Zod validation error (`-32602`). Changed `orderBy` from `z.enum()` to `z.string()` in `KcacheQueryStatsSchemaBase` with handler-level validation. Added 1 unit test
+
+- **`pg_kcache_top_cpu` / `pg_kcache_top_io` Split Schema violation** — Both tools now use proper `KcacheTopCpuSchemaBase` and `KcacheTopIoSchemaBase` schemas as `inputSchema` instead of inline `z.preprocess(...)`. Ensures all parameters (`limit`, `queryPreviewLength`, `type`/`ioType`) are correctly exposed to MCP clients via JSON Schema generation. Removed unused `defaultToEmpty` helper
+
 - **`pg_alert_threshold_set` raw MCP validation error for invalid metric** — `pg_alert_threshold_set({ metric: "invalid_xyz" })` now returns `{success: false, error: "Invalid metric \"invalid_xyz\". Valid metrics: connection_usage, ..."}` instead of a raw MCP Zod validation error (`-32602`). Changed `inputSchema` from `z.enum()` to `z.string().optional()` with valid values in `.describe()`, and added handler-level validation. Previously, the MCP SDK rejected invalid enum values at the schema level before the handler could execute. Updated `ServerInstructions.ts` docs. Added 1 unit test
 
 ### Performance

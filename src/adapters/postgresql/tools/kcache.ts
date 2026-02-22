@@ -21,6 +21,8 @@ import { formatPostgresError } from "./core/error-helpers.js";
 import {
   KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
+  KcacheTopCpuSchemaBase,
+  KcacheTopIoSchemaBase,
   KcacheDatabaseStatsSchemaBase,
   KcacheDatabaseStatsSchema,
   KcacheResourceAnalysisSchemaBase,
@@ -34,9 +36,6 @@ import {
   KcacheResourceAnalysisOutputSchema,
   KcacheResetOutputSchema,
 } from "../schemas/index.js";
-
-// Helper to handle undefined params (allows tools to be called without {})
-const defaultToEmpty = (val: unknown): unknown => val ?? {};
 
 /**
  * Column naming in pg_stat_kcache changed in version 2.2:
@@ -161,6 +160,24 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
       try {
         const { limit, orderBy, minCalls, queryPreviewLength } =
           KcacheQueryStatsSchema.parse(params);
+
+        // Validate orderBy inside handler for structured error response
+        const VALID_ORDER_BY = [
+          "total_time",
+          "cpu_time",
+          "reads",
+          "writes",
+        ] as const;
+        if (
+          orderBy !== undefined &&
+          !VALID_ORDER_BY.includes(orderBy as (typeof VALID_ORDER_BY)[number])
+        ) {
+          return {
+            success: false,
+            error: `Invalid orderBy value "${orderBy}". Valid options: ${VALID_ORDER_BY.join(", ")}`,
+          };
+        }
+
         const cols = await getKcacheColumnNames(adapter);
 
         const DEFAULT_LIMIT = 20;
@@ -264,21 +281,7 @@ function createKcacheTopCpuTool(adapter: PostgresAdapter): ToolDefinition {
     description: `Get top CPU-consuming queries. Shows which queries spend the most time 
 in user CPU (application code) vs system CPU (kernel operations).`,
     group: "kcache",
-    inputSchema: z.preprocess(
-      defaultToEmpty,
-      z.object({
-        limit: z
-          .number()
-          .optional()
-          .describe("Number of top queries to return (default: 10)"),
-        queryPreviewLength: z
-          .number()
-          .optional()
-          .describe(
-            "Characters for query preview (default: 100, max: 500, 0 for full)",
-          ),
-      }),
-    ),
+    inputSchema: KcacheTopCpuSchemaBase,
     outputSchema: KcacheTopCpuOutputSchema,
     annotations: readOnly("Kcache Top CPU"),
     icons: getToolIcons("kcache", readOnly("Kcache Top CPU")),
@@ -375,36 +378,7 @@ function createKcacheTopIoTool(adapter: PostgresAdapter): ToolDefinition {
     description: `Get top I/O-consuming queries. Shows filesystem-level reads and writes, 
 which represent actual disk access (not just shared buffer hits).`,
     group: "kcache",
-    inputSchema: z.preprocess(
-      (input) => {
-        const obj = defaultToEmpty(input) as Record<string, unknown>;
-        // Alias: ioType -> type
-        if (obj["ioType"] !== undefined && obj["type"] === undefined) {
-          obj["type"] = obj["ioType"];
-        }
-        return obj;
-      },
-      z.object({
-        type: z
-          .enum(["reads", "writes", "both"])
-          .optional()
-          .describe("I/O type to rank by (default: both)"),
-        ioType: z
-          .enum(["reads", "writes", "both"])
-          .optional()
-          .describe("Alias for type"),
-        limit: z
-          .number()
-          .optional()
-          .describe("Number of top queries to return (default: 10)"),
-        queryPreviewLength: z
-          .number()
-          .optional()
-          .describe(
-            "Characters for query preview (default: 100, max: 500, 0 for full)",
-          ),
-      }),
-    ),
+    inputSchema: KcacheTopIoSchemaBase,
     outputSchema: KcacheTopIoOutputSchema,
     annotations: readOnly("Kcache Top IO"),
     icons: getToolIcons("kcache", readOnly("Kcache Top IO")),

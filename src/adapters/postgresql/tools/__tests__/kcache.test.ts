@@ -154,6 +154,22 @@ describe("Kcache Tools", () => {
         [],
       );
     });
+
+    it("should return structured error for invalid orderBy value", async () => {
+      const tool = findTool("pg_kcache_query_stats");
+      const result = (await tool!.handler(
+        { orderBy: "calls" },
+        mockContext,
+      )) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid orderBy value "calls"');
+      expect(result.error).toContain("total_time");
+      expect(mockAdapter.executeQuery).not.toHaveBeenCalled();
+    });
   });
 
   describe("pg_kcache_top_cpu", () => {

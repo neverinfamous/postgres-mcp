@@ -397,6 +397,8 @@ export {
   KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
   KcacheTopConsumersSchema,
+  KcacheTopCpuSchemaBase,
+  KcacheTopIoSchemaBase,
   KcacheDatabaseStatsSchemaBase,
   KcacheDatabaseStatsSchema,
   KcacheResourceAnalysisSchemaBase,
