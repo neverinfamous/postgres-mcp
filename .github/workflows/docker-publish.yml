@@ -266,7 +266,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: ${{ env.IMAGE_NAME }}
           readme-filepath: ./DOCKER_README.md
-          short-description: "MCP Server with 206 tools, Connection Pooling, HTTP/SSE, OAuth 2.1, Code Mode & Smart Tool Filtering"
+          short-description: "MCP Server with 206 tools, Code Mode & Tool Filtering, Connection Pooling, HTTP/SSE, & OAuth 2.1"
 
       - name: Deployment Summary
         if: github.ref == 'refs/heads/master'
