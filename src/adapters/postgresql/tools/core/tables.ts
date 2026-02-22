@@ -13,6 +13,7 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "./error-helpers.js";
 import {
+  ListTablesSchemaBase,
   ListTablesSchema,
   DescribeTableSchemaBase,
   DescribeTableSchema,
@@ -36,7 +37,7 @@ export function createListTablesTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "List all tables, views, and materialized views with metadata. Use limit to restrict results.",
     group: "core",
-    inputSchema: ListTablesSchema,
+    inputSchema: ListTablesSchemaBase,
     outputSchema: TableListOutputSchema,
     annotations: readOnly("List Tables"),
     icons: getToolIcons("core", readOnly("List Tables")),

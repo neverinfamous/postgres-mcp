@@ -131,24 +131,28 @@ function preprocessTableParams(input: unknown): unknown {
   return result;
 }
 
+// Base schema for MCP visibility - exported for inputSchema (Split Schema pattern)
+export const ListTablesSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema name (default: all user schemas)"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of tables to return (default: 100)"),
+  exclude: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Schema/extension names to exclude (e.g., ['cron', 'topology', 'partman']). Filters by schema name.",
+    ),
+});
+
+// Full schema with preprocess for handler parsing (handles undefined params)
 export const ListTablesSchema = z.preprocess(
   defaultToEmpty,
-  z.object({
-    schema: z
-      .string()
-      .optional()
-      .describe("Schema name (default: all user schemas)"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum number of tables to return (default: 100)"),
-    exclude: z
-      .array(z.string())
-      .optional()
-      .describe(
-        "Schema/extension names to exclude (e.g., ['cron', 'topology', 'partman']). Filters by schema name.",
-      ),
-  }),
+  ListTablesSchemaBase,
 );
 
 // MCP visibility schema - table OR tableName/name required (all optional in schema, refine enforces)

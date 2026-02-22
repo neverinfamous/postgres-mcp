@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_list_tables` MCP schema missing all parameters** — Direct MCP tool calls to `pg_list_tables` now correctly expose `schema`, `limit`, and `exclude` parameters. Previously, the tool used a `z.preprocess()`-wrapped schema as `inputSchema`, which strips parameter metadata from JSON Schema generation, making direct MCP calls unable to filter results. Applied Split Schema pattern: `ListTablesSchemaBase` for MCP visibility, `ListTablesSchema` with `z.preprocess()` for handler parsing
+
 - **`pg_list_triggers`/`pg_list_constraints` `schema.table` format not parsed** — `pg_list_triggers({ table: 'custom_schema.orders' })` and `pg_list_constraints({ table: 'custom_schema.orders' })` now correctly parse into `schema=custom_schema, table=orders` instead of treating `custom_schema.orders` as a literal table name in the `public` schema. Previously produced misleading errors like `Table 'public.custom_schema.orders' not found`. Added inline `schema.table` splitting logic matching the pattern used by other schema tools. Added 2 unit tests
 
 - **`ServerInstructions.ts` `pg_analyze_db_health` incomplete response docs** — Updated response structure documentation from `{cacheHitRatio: {ratio, heap, index, status}}` to include all 10 top-level fields: `cacheHitRatio`, `databaseSize`, `tableStats`, `unusedIndexes`, `tablesNeedingVacuum`, `connections`, `bloat`, `isReplica`, `overallScore`, `overallStatus`. Previously only documented `cacheHitRatio` and mentioned `bloat` in passing

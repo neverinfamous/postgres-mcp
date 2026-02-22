@@ -10,6 +10,7 @@ export {
   ReadQuerySchema,
   WriteQuerySchemaBase,
   WriteQuerySchema,
+  ListTablesSchemaBase,
   ListTablesSchema,
   DescribeTableSchemaBase,
   DescribeTableSchema,
