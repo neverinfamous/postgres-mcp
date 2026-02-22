@@ -386,6 +386,32 @@ export function formatPostgresError(
   error: unknown,
   context: ErrorContext,
 ): string {
+  // Handle Zod validation errors: extract clean messages from issues array
+  // ZodError instances have an .issues array — detect via duck-typing to
+  // avoid importing zod in this shared module.
+  if (
+    error instanceof Error &&
+    "issues" in error &&
+    Array.isArray((error as Record<string, unknown>)["issues"])
+  ) {
+    const issues = (error as Record<string, unknown>)["issues"] as {
+      message?: string;
+      path?: unknown[];
+    }[];
+    return issues
+      .map((issue) => {
+        const pathStr =
+          Array.isArray(issue.path) && issue.path.length > 0
+            ? issue.path.join(".")
+            : "";
+        const msg = issue.message ?? "Unknown validation error";
+        return pathStr !== ""
+          ? `Validation error: ${msg} (${pathStr})`
+          : `Validation error: ${msg}`;
+      })
+      .join("; ");
+  }
+
   try {
     parsePostgresError(error, context);
     // parsePostgresError always throws, but fallback just in case

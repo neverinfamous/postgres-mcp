@@ -13,7 +13,7 @@ import {
   createMockQueryResult,
   createMockRequestContext,
 } from "../../../../../__tests__/mocks/index.js";
-import { parsePostgresError } from "../error-helpers.js";
+import { parsePostgresError, formatPostgresError } from "../error-helpers.js";
 
 describe("getCoreTools", () => {
   let adapter: PostgresAdapter;
@@ -3441,5 +3441,77 @@ describe("parsePostgresError - savepoint and aborted transaction codes", () => {
     expect(() =>
       parsePostgresError(pgError, { tool: "pg_transaction_commit" }),
     ).toThrow("aborted state");
+  });
+});
+
+// =============================================================================
+// formatPostgresError - Zod Validation Error Handling
+// =============================================================================
+
+describe("formatPostgresError - Zod validation errors", () => {
+  it("should extract clean message from ZodError with path", () => {
+    // Simulate ZodError structure (duck-typed via .issues array)
+    const zodError = new Error("Validation failed") as Error & {
+      issues: Array<{ message: string; path: string[]; code: string }>;
+    };
+    zodError.issues = [
+      {
+        code: "custom",
+        path: ["buckets"],
+        message: "buckets must be greater than 0",
+      },
+    ];
+
+    const result = formatPostgresError(zodError, {
+      tool: "pg_stats_distribution",
+    });
+
+    expect(result).toBe(
+      "Validation error: buckets must be greater than 0 (buckets)",
+    );
+    expect(result).not.toContain('"code"'); // No raw JSON
+  });
+
+  it("should handle ZodError with multiple issues", () => {
+    const zodError = new Error("Validation failed") as Error & {
+      issues: Array<{ message: string; path: string[]; code: string }>;
+    };
+    zodError.issues = [
+      {
+        code: "custom",
+        path: ["sampleSize"],
+        message: "sampleSize must be greater than 0",
+      },
+      {
+        code: "custom",
+        path: ["percentage"],
+        message: "percentage must be between 0 and 100",
+      },
+    ];
+
+    const result = formatPostgresError(zodError, {
+      tool: "pg_stats_sampling",
+    });
+
+    expect(result).toContain("sampleSize must be greater than 0");
+    expect(result).toContain("percentage must be between 0 and 100");
+    expect(result).toContain("; "); // Multiple issues joined
+  });
+
+  it("should handle ZodError without path", () => {
+    const zodError = new Error("Validation failed") as Error & {
+      issues: Array<{ message: string; path: string[]; code: string }>;
+    };
+    zodError.issues = [
+      {
+        code: "custom",
+        path: [],
+        message: "Invalid input",
+      },
+    ];
+
+    const result = formatPostgresError(zodError, { tool: "pg_some_tool" });
+
+    expect(result).toBe("Validation error: Invalid input");
   });
 });

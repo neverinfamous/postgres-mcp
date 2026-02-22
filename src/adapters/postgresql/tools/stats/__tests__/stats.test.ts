@@ -1821,6 +1821,18 @@ describe("pg_stats_distribution error handling", () => {
       expect.stringContaining('"sales".'),
     );
   });
+
+  it("should return clean validation error for buckets: 0", async () => {
+    const tool = tools.find((t) => t.name === "pg_stats_distribution")!;
+    const result = (await tool.handler(
+      { table: "orders", column: "amount", buckets: 0 },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("buckets must be greater than 0");
+    expect(result.error).not.toContain('"code"'); // Should not contain raw JSON
+  });
 });
 
 describe("pg_stats_hypothesis error handling", () => {

@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`formatPostgresError` raw Zod validation JSON leak** — `formatPostgresError` now detects ZodErrors (via duck-typed `.issues` array) and extracts clean human-readable messages (e.g., `Validation error: buckets must be greater than 0 (buckets)`) instead of returning a raw JSON-stringified Zod validation array. This is a centralized fix benefiting all tool handlers that use `formatPostgresError` for error formatting. Added 3 unit tests for ZodError handling in `core.test.ts` and 1 integration test for `pg_stats_distribution` with `buckets: 0` in `stats.test.ts`
+
 - **`pg_fuzzy_match` raw MCP error for invalid method** — `pg_fuzzy_match({ method: "invalid" })` now returns `{success: false, error: "Invalid method \"invalid\". Valid methods: levenshtein, soundex, metaphone"}` instead of a raw MCP Zod validation error (`-32602`). Changed `inputSchema` `method` from `z.enum()` to `z.string().optional()` with handler-level validation. Added 1 unit test
 
 - **`pg_transaction_execute` raw MCP error for `{query: ...}` in statements** — `pg_transaction_execute({ statements: [{ query: "SELECT 1" }] })` now correctly resolves the `query` alias to `sql`, matching the alias pattern used by `pg_read_query` and `pg_write_query`. Previously, the MCP framework rejected statement objects with `query` instead of `sql` at the schema validation level (raw `-32602` error) before the handler could run. Made `sql` optional in `TransactionExecuteSchemaBase`, added `query` alias field, and added per-statement alias resolution in `TransactionExecuteSchema` transform with a refine ensuring every statement has `sql` or `query`. Added 2 unit tests
-
 
 - **`pg_kcache_top_cpu` / `pg_kcache_top_io` Split Schema violation** — Both tools now use proper `KcacheTopCpuSchemaBase` and `KcacheTopIoSchemaBase` schemas as `inputSchema` instead of inline `z.preprocess(...)`. Ensures all parameters (`limit`, `queryPreviewLength`, `type`/`ioType`) are correctly exposed to MCP clients via JSON Schema generation. Removed unused `defaultToEmpty` helper
 
