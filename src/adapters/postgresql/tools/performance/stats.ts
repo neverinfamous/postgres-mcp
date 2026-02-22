@@ -350,11 +350,25 @@ export function createStatActivityTool(
                         now() - query_start as duration,
                         query
                         FROM pg_stat_activity
-                        WHERE pid != pg_backend_pid() ${idleClause}
+                        WHERE pid != pg_backend_pid()
+                          AND backend_type = 'client backend'
+                          ${idleClause}
                         ORDER BY query_start`;
 
       const result = await adapter.executeQuery(sql);
-      return { connections: result.rows, count: result.rows?.length ?? 0 };
+
+      // Count background workers for metadata
+      const bgResult = await adapter.executeQuery(
+        `SELECT COUNT(*)::int as count FROM pg_stat_activity
+         WHERE pid != pg_backend_pid() AND backend_type != 'client backend'`,
+      );
+      const bgCount = (bgResult.rows?.[0]?.["count"] as number) ?? 0;
+
+      return {
+        connections: result.rows,
+        count: result.rows?.length ?? 0,
+        backgroundWorkers: bgCount,
+      };
     },
   };
 }

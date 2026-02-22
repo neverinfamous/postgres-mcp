@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Performance
+
+- **`pg_stat_activity` background worker noise** — `pg_stat_activity` now filters out background workers (checkpointer, bgwriter, walwriter, autovacuum launcher, logical replication launcher, etc.) by adding `backend_type = 'client backend'` to the query filter. These workers had all-null fields (`usename`, `datname`, `state`, `query_start`, `duration` all null) inflating the payload with no actionable insight. The response now includes `backgroundWorkers: N` count so consumers know workers exist without the noise
+
+- **`pg_query_plan_compare` verbose `fullPlans` payload** — `fullPlans` output now strips zero-value block statistics (`Shared Hit Blocks: 0`, `Shared Read Blocks: 0`, etc.), empty `Triggers: []` arrays, and empty `Planning: {}` objects from EXPLAIN plan JSON. Non-zero values are preserved. Reduces `fullPlans` payload size significantly when `analyze: true` is used
+
 ### Changed
 
 - **Dependencies** — Updated `eslint` from 9.28.0 → 10.0.0, `@eslint/js` from 9.28.0 → 10.0.1, `typescript-eslint` from 8.55.0 → 8.56.0 (first `typescript-eslint` version with ESLint 10 support)

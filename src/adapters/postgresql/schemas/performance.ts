@@ -148,6 +148,10 @@ export const StatActivityOutputSchema = z.object({
     .array(z.record(z.string(), z.unknown()))
     .describe("Active connections"),
   count: z.number().describe("Number of connections"),
+  backgroundWorkers: z
+    .number()
+    .optional()
+    .describe("Number of filtered background worker processes"),
 });
 
 // pg_locks

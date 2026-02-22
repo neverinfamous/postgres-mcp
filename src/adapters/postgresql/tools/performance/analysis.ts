@@ -462,6 +462,45 @@ export function createIndexRecommendationsTool(
   };
 }
 
+/**
+ * Recursively strip zero-value block stats, empty Triggers arrays,
+ * and empty Planning objects from EXPLAIN plan output to reduce payload noise.
+ */
+function stripZeroValuePlanFields(obj: unknown): unknown {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    const filtered = obj
+      .map(stripZeroValuePlanFields)
+      .filter((v) => v !== undefined);
+    return filtered.length > 0 ? filtered : undefined;
+  }
+  if (typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      // Strip zero-value block stats
+      if (typeof value === "number" && value === 0 && key.includes("Blocks"))
+        continue;
+      // Strip empty Triggers arrays
+      if (key === "Triggers" && Array.isArray(value) && value.length === 0)
+        continue;
+      // Strip empty Planning objects
+      if (
+        key === "Planning" &&
+        typeof value === "object" &&
+        value !== null &&
+        Object.keys(value).length === 0
+      )
+        continue;
+      const cleaned = stripZeroValuePlanFields(value);
+      if (cleaned !== undefined) {
+        result[key] = cleaned;
+      }
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+  return obj;
+}
+
 export function createQueryPlanCompareTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -564,7 +603,10 @@ export function createQueryPlanCompareTool(
                 : null,
             recommendation: "",
           },
-          fullPlans: { plan1, plan2 },
+          fullPlans: {
+            plan1: stripZeroValuePlanFields(plan1),
+            plan2: stripZeroValuePlanFields(plan2),
+          },
         };
 
         if (comparison.analysis.costDifference !== null) {
