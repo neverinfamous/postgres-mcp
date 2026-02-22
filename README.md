@@ -60,6 +60,49 @@ node dist/cli.js --transport stdio --postgres postgres://user:password@localhost
 
 ---
 
+## Code Mode: Maximum Efficiency
+
+Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets.
+
+> [!TIP]
+> **Maximize Token Savings:** For the best results, instruct your AI agent to prefer Code Mode over individual tool calls. Add a rule like this to your agent's prompt or system configuration:
+>
+> _"When using postgres-mcp, prefer `pg_execute_code` (Code Mode) for multi-step database operations to minimize token usage."_
+>
+> This ensures the agent batches operations into single calls instead of making many individual tool calls. See the [Code Mode wiki](https://github.com/neverinfamous/postgresql-mcp/wiki/Code-Mode) for full API documentation.
+
+> [!NOTE]
+> **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage in AntiGravity, manually provide the contents of [`src/constants/ServerInstructions.ts`](src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
+
+#### Disabling Code Mode (Non-Admin Users)
+
+If you don't have admin access or prefer individual tool calls, exclude codemode:
+
+```json
+{
+  "args": ["--tool-filter", "starter,-codemode"]
+}
+```
+
+### Isolation Modes
+
+| Mode     | Isolation          | When to Use                  |
+| -------- | ------------------ | ---------------------------- |
+| `vm`     | Same process       | **Default, recommended**     |
+| `worker` | Separate V8 thread | Not recommended (incomplete) |
+
+The `vm` mode is fully functional and is the default. No configuration needed.
+
+### Security
+
+- Requires `admin` OAuth scope
+- Blocked: `require()`, `process`, `eval()`, filesystem
+- Rate limited: 60 executions/minute
+
+📖 **Full documentation:** [docs/CODE_MODE.md](docs/CODE_MODE.md)
+
+---
+
 ## Development
 
 **Clone and install:**
@@ -156,49 +199,6 @@ node dist/cli.js list-tools
 | Azure PostgreSQL   | `your-server.postgres.database.azure.com`        |
 | Supabase           | `db.xxxx.supabase.co`                            |
 | Neon               | `ep-xxx.us-east-1.aws.neon.tech`                 |
-
----
-
-## Code Mode: Maximum Efficiency
-
-Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets.
-
-> [!TIP]
-> **Maximize Token Savings:** For the best results, instruct your AI agent to prefer Code Mode over individual tool calls. Add a rule like this to your agent's prompt or system configuration:
->
-> _"When using postgres-mcp, prefer `pg_execute_code` (Code Mode) for multi-step database operations to minimize token usage."_
->
-> This ensures the agent batches operations into single calls instead of making many individual tool calls. See the [Code Mode wiki](https://github.com/neverinfamous/postgresql-mcp/wiki/Code-Mode) for full API documentation.
-
-> [!NOTE]
-> **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage in AntiGravity, manually provide the contents of [`src/constants/ServerInstructions.ts`](src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
-
-#### Disabling Code Mode (Non-Admin Users)
-
-If you don't have admin access or prefer individual tool calls, exclude codemode:
-
-```json
-{
-  "args": ["--tool-filter", "starter,-codemode"]
-}
-```
-
-### Isolation Modes
-
-| Mode     | Isolation          | When to Use                  |
-| -------- | ------------------ | ---------------------------- |
-| `vm`     | Same process       | **Default, recommended**     |
-| `worker` | Separate V8 thread | Not recommended (incomplete) |
-
-The `vm` mode is fully functional and is the default. No configuration needed.
-
-### Security
-
-- Requires `admin` OAuth scope
-- Blocked: `require()`, `process`, `eval()`, filesystem
-- Rate limited: 60 executions/minute
-
-📖 **Full documentation:** [docs/CODE_MODE.md](docs/CODE_MODE.md)
 
 ---
 
