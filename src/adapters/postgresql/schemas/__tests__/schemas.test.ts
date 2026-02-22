@@ -2500,7 +2500,6 @@ import {
   PartmanRunMaintenanceSchema,
   PartmanUndoPartitionSchema,
   PartmanRetentionSchema,
-  PartmanUpdateConfigSchema,
 } from "../partman.js";
 
 describe("PartmanCreateParentSchema (preprocessPartmanParams)", () => {

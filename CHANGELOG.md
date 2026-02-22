@@ -7,20 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-02-22
+
 ### Added
 
 - **`.dockerignore` file** — Excludes `node_modules/`, `.git/`, `dist/`, tests, documentation, and editor artifacts from the Docker build context. While the multi-stage Dockerfile already avoids copying these via selective `COPY` commands, `.dockerignore` speeds up `docker build` by reducing the context tarball sent to the daemon and provides defense-in-depth against accidental `COPY . .` additions
-
-### Security
-
-- **Docker tar CVE remediation** — Bumped manual `tar` patch in Dockerfile from 7.5.7 to 7.5.8 in both builder and production stages. Added `tar` npm override (`>=7.5.8`) to `package.json` for P125 lifecycle sync
-
-### Changed
-
-- **Dockerfile devDependency pruning (P117)** — Added `npm prune --omit=dev` after `npm run build` in the builder stage before copying `node_modules` to the production stage. Prevents devDependencies (`eslint`, `typescript-eslint`, `vitest`, etc.) and their transitive dependencies from leaking into the production image, eliminating false-positive Docker Scout findings for devDep-only vulnerabilities
-- **Dockerfile version label** — Updated stale `LABEL version` from `1.0.0` to `1.3.0`
-
-## [1.3.0] - 2026-02-22
 
 ### Performance
 
@@ -38,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Dockerfile devDependency pruning (P117)** — Added `npm prune --omit=dev` after `npm run build` in the builder stage before copying `node_modules` to the production stage. Prevents devDependencies (`eslint`, `typescript-eslint`, `vitest`, etc.) and their transitive dependencies from leaking into the production image, eliminating false-positive Docker Scout findings for devDep-only vulnerabilities
+- **Dockerfile version label** — Updated stale `LABEL version` from `1.0.0` to `1.3.0`
+
 - **Vitest dual-reporter configuration** — Added `json` reporter alongside `default` in `vitest.config.ts`, outputting structured test results to `test-results.json`. Enables reliable agent consumption of full test failure details (diffs, stack traces) via file reads instead of truncated terminal output. Added `test-results.json` to `.gitignore`
 
 - **Schema tools SQL parameterization** — Converted all SQL string interpolation in schema tool existence checks and dynamic WHERE clauses to parameterized queries (`$1`, `$2`, etc.) with `queryParams` arrays. Affected handlers: `pg_create_schema`, `pg_drop_schema`, `pg_list_sequences`, `pg_create_sequence`, `pg_drop_sequence`, `pg_list_views`, `pg_create_view`, `pg_drop_view`, `pg_list_functions`, `pg_list_triggers`, `pg_list_constraints`. Improves consistency with parameterized query patterns used across all other tool groups. Updated 13 test assertions to verify parameterized SQL patterns
@@ -49,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **README.md / DOCKER_README.md deterministic error handling** — Added "Deterministic Error Handling" row to the "What Sets Us Apart" table and added "deterministic error handling" to the introduction blurb. Highlights that every tool returns structured `{success, error}` responses with no raw exceptions, silent failures, or misleading messages
 
 ### Security
+
+- **Docker tar CVE remediation** — Bumped manual `tar` patch in Dockerfile from 7.5.7 to 7.5.8 in both builder and production stages. Added `tar` npm override (`>=7.5.8`) to `package.json` for P125 lifecycle sync
 
 - **`pg_transaction_execute` `isolationLevel` missing enum constraint** — `TransactionExecuteSchemaBase.isolationLevel` now uses `z.enum(["READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"])` instead of `z.string()`, matching the existing validation in `BeginTransactionSchema`. Previously, arbitrary strings could reach the `BEGIN ISOLATION LEVEL ${isolationLevel}` SQL interpolation in `PostgresAdapter.beginTransaction()`. Also chained `preprocessBeginParams` normalizer for shorthand support (`RC`, `RR`, `S`, case-insensitive forms)
 
