@@ -360,6 +360,26 @@ describe("pg_fuzzy_match", () => {
       ["Smith"],
     );
   });
+
+  it("should return structured error for invalid method", async () => {
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    const result = (await tool.handler(
+      {
+        table: "users",
+        column: "name",
+        value: "Smith",
+        method: "invalid_method",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Invalid method "invalid_method"');
+    expect(result.error).toContain("levenshtein");
+    expect(result.error).toContain("soundex");
+    expect(result.error).toContain("metaphone");
+    expect(mockAdapter.executeQuery).not.toHaveBeenCalled();
+  });
 });
 
 describe("pg_regexp_match", () => {
@@ -1265,6 +1285,6 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/validation/i);
+    expect(result.error).toMatch(/Invalid method/i);
   });
 });

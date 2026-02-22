@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_fuzzy_match` raw MCP error for invalid method** — `pg_fuzzy_match({ method: "invalid" })` now returns `{success: false, error: "Invalid method \"invalid\". Valid methods: levenshtein, soundex, metaphone"}` instead of a raw MCP Zod validation error (`-32602`). Changed `inputSchema` `method` from `z.enum()` to `z.string().optional()` with handler-level validation. Added 1 unit test
+
 - **`pg_transaction_execute` raw MCP error for `{query: ...}` in statements** — `pg_transaction_execute({ statements: [{ query: "SELECT 1" }] })` now correctly resolves the `query` alias to `sql`, matching the alias pattern used by `pg_read_query` and `pg_write_query`. Previously, the MCP framework rejected statement objects with `query` instead of `sql` at the schema validation level (raw `-32602` error) before the handler could run. Made `sql` optional in `TransactionExecuteSchemaBase`, added `query` alias field, and added per-statement alias resolution in `TransactionExecuteSchema` transform with a refine ensuring every statement has `sql` or `query`. Added 2 unit tests
 
 

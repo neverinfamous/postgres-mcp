@@ -311,7 +311,12 @@ function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
       tableName: z.string().optional().describe("Table name (alias for table)"),
       column: z.string(),
       value: z.string(),
-      method: z.enum(["soundex", "levenshtein", "metaphone"]).optional(),
+      method: z
+        .string()
+        .optional()
+        .describe(
+          "Fuzzy match method (default: levenshtein). Valid: soundex, levenshtein, metaphone",
+        ),
       maxDistance: z
         .number()
         .optional()
@@ -352,8 +357,20 @@ function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = FuzzyMatchSchema.parse(params);
 
-        // Method is already validated by zod enum, default to levenshtein if not provided
-        const method: FuzzyMethod = parsed.method ?? "levenshtein";
+        // Validate method (moved from z.enum to handler for structured error)
+        const VALID_METHODS: FuzzyMethod[] = [
+          "levenshtein",
+          "soundex",
+          "metaphone",
+        ];
+        const rawMethod = parsed.method ?? "levenshtein";
+        if (!VALID_METHODS.includes(rawMethod as FuzzyMethod)) {
+          return {
+            success: false,
+            error: `Invalid method "${rawMethod}". Valid methods: ${VALID_METHODS.join(", ")}`,
+          };
+        }
+        const method: FuzzyMethod = rawMethod as FuzzyMethod;
 
         const maxDist = parsed.maxDistance ?? 3;
         // Default limit to 100 to prevent large payloads
