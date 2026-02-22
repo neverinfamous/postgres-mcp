@@ -26,8 +26,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Test coverage
+# Test coverage & results
 coverage/
+test-results.json
 
 # Database files
 *.db

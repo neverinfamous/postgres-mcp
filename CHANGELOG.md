@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Vitest dual-reporter configuration** — Added `json` reporter alongside `default` in `vitest.config.ts`, outputting structured test results to `test-results.json`. Enables reliable agent consumption of full test failure details (diffs, stack traces) via file reads instead of truncated terminal output. Added `test-results.json` to `.gitignore`
+
 ## [1.3.0] - 2026-02-22
 
 ### Fixed
