@@ -33,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_query_plan_compare` verbose `fullPlans` payload** — `fullPlans` output now strips zero-value block statistics (`Shared Hit Blocks: 0`, `Shared Read Blocks: 0`, etc.), empty `Triggers: []` arrays, and empty `Planning: {}` objects from EXPLAIN plan JSON. Non-zero values are preserved. Reduces `fullPlans` payload size significantly when `analyze: true` is used
 
+### Dependencies
+
+- Bump `@types/node` from 25.2.3 to 25.3.0
+- Bump `eslint` from 10.0.0 to 10.0.1
+- **Security audit fixes** — `npm audit fix` upgraded transitive dependencies `ajv` (→8.18.0/6.14.0, ReDoS via `$data`), `hono` (→4.12.1, timing comparison hardening), `qs` (→6.15.0, arrayLimit bypass DoS). Added `minimatch` npm override (≥10.2.1) to resolve ReDoS CVE (GHSA-3ppc-4f35-3m26) in `@typescript-eslint/typescript-estree` dependency tree without downgrading `typescript-eslint`
+
 ### Changed
 
 - **Dependencies** — Updated `eslint` from 9.28.0 → 10.0.0, `@eslint/js` from 9.28.0 → 10.0.1, `typescript-eslint` from 8.55.0 → 8.56.0 (first `typescript-eslint` version with ESLint 10 support)
