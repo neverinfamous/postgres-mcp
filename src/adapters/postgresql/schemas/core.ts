@@ -732,7 +732,8 @@ export const TransactionExecuteSchemaBase = z.object({
   statements: z
     .array(
       z.object({
-        sql: z.string().describe("SQL statement to execute"),
+        sql: z.string().optional().describe("SQL statement to execute"),
+        query: z.string().optional().describe("Alias for sql"),
         params: z.array(z.unknown()).optional().describe("Query parameters"),
       }),
     )
@@ -766,13 +767,20 @@ export const TransactionExecuteSchema = z
     TransactionExecuteSchemaBase,
   )
   .transform((data) => ({
-    statements: data.statements ?? [],
+    statements: (data.statements ?? []).map((stmt) => ({
+      sql: stmt.sql ?? stmt.query ?? "",
+      params: stmt.params,
+    })),
     transactionId: data.transactionId ?? data.txId ?? data.tx,
     isolationLevel: data.isolationLevel,
   }))
   .refine((data) => data.statements.length > 0, {
     message:
       'statements is required. Format: {statements: [{sql: "INSERT INTO..."}, {sql: "UPDATE..."}]}. Each statement must be an object with "sql" property, not a raw string.',
+  })
+  .refine((data) => data.statements.every((s) => s.sql !== ""), {
+    message:
+      'Each statement must have "sql" (or "query" alias). Format: {statements: [{sql: "INSERT INTO..."}]}',
   });
 
 // =============================================================================

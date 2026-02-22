@@ -875,4 +875,61 @@ describe("pg_transaction_execute - structured error handling", () => {
     // Should NOT have begun a transaction
     expect(mockAdapterWithTxn.beginTransaction).not.toHaveBeenCalled();
   });
+
+  it("should accept query as alias for sql in statement objects", async () => {
+    const mockAdapterWithTxn = createMockPostgresAdapterWithTransaction();
+    (
+      mockAdapterWithTxn as unknown as { executeOnConnection: typeof vi.fn }
+    ).executeOnConnection = vi
+      .fn()
+      .mockResolvedValue({ rows: [{ n: 1 }], rowsAffected: 1 });
+
+    const tools = getTransactionTools(
+      mockAdapterWithTxn as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_execute")!;
+
+    const result = (await tool.handler(
+      {
+        statements: [{ query: "SELECT 1 as n" }],
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      statementsExecuted: number;
+      results: { sql: string; rows: { n: number }[] }[];
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.statementsExecuted).toBe(1);
+    // The resolved sql should be the query value
+    expect(
+      (mockAdapterWithTxn as unknown as { executeOnConnection: typeof vi.fn })
+        .executeOnConnection,
+    ).toHaveBeenCalledWith(expect.anything(), "SELECT 1 as n", undefined);
+  });
+
+  it("should return structured error for statements missing both sql and query", async () => {
+    const mockAdapterWithTxn = createMockPostgresAdapterWithTransaction();
+    const tools = getTransactionTools(
+      mockAdapterWithTxn as unknown as PostgresAdapter,
+    );
+    const tool = tools.find((t) => t.name === "pg_transaction_execute")!;
+
+    const result = (await tool.handler(
+      {
+        statements: [{ params: [1] }],
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("sql");
+
+    // Should NOT have begun a transaction
+    expect(mockAdapterWithTxn.beginTransaction).not.toHaveBeenCalled();
+  });
 });
