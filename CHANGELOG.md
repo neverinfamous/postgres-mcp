@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- **README.md / DOCKER_README.md "What Sets Us Apart" section** — Replaced the "What This Does" bullet list with a "What Sets Us Apart" feature-matrix table, matching the mysql-mcp README style. Highlights 12 differentiating features including Code Mode, 8 extension ecosystems, and MCP 2025-11-25 compliance. Removed redundant "Why Choose postgres-mcp?" section from README.md
+- **README.md / DOCKER_README.md "What Sets Us Apart" section** — Replaced the "What This Does" bullet list with a "What Sets Us Apart" feature-matrix table, matching the mysql-mcp README style. Highlights 13 differentiating features including Code Mode, 8 extension ecosystems, deterministic error handling, and MCP 2025-11-25 compliance. Removed redundant "Why Choose postgres-mcp?" section from README.md
+
+- **README.md / DOCKER_README.md deterministic error handling** — Added "Deterministic Error Handling" row to the "What Sets Us Apart" table and added "deterministic error handling" to the introduction blurb. Highlights that every tool returns structured `{success, error}` responses with no raw exceptions, silent failures, or misleading messages
 
 ### Fixed
 
