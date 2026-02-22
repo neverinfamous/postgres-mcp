@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dependencies** — Updated `eslint` from 9.28.0 → 10.0.0, `@eslint/js` from 9.28.0 → 10.0.1, `typescript-eslint` from 8.55.0 → 8.56.0 (first `typescript-eslint` version with ESLint 10 support)
 
+- **Schema tools SQL parameterization** — Converted all SQL string interpolation in schema tool existence checks and dynamic WHERE clauses to parameterized queries (`$1`, `$2`, etc.) with `queryParams` arrays. Affected handlers: `pg_create_schema`, `pg_drop_schema`, `pg_list_sequences`, `pg_create_sequence`, `pg_drop_sequence`, `pg_list_views`, `pg_create_view`, `pg_drop_view`, `pg_list_functions`, `pg_list_triggers`, `pg_list_constraints`. Improves consistency with parameterized query patterns used across all other tool groups. Updated 13 test assertions to verify parameterized SQL patterns
+
 ### Documentation
 
 - **README.md / DOCKER_README.md "What Sets Us Apart" section** — Replaced the "What This Does" bullet list with a "What Sets Us Apart" feature-matrix table, matching the mysql-mcp README style. Highlights 13 differentiating features including Code Mode, 8 extension ecosystems, deterministic error handling, and MCP 2025-11-25 compliance. Removed redundant "Why Choose postgres-mcp?" section from README.md

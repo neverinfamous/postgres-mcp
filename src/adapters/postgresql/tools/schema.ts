@@ -107,7 +107,8 @@ function createCreateSchemaTool(adapter: PostgresAdapter): ToolDefinition {
         let alreadyExisted: boolean | undefined;
         if (ifNotExists === true) {
           const existsResult = await adapter.executeQuery(
-            `SELECT 1 FROM pg_namespace WHERE nspname = '${name}'`,
+            `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+            [name],
           );
           alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
         }
@@ -165,7 +166,8 @@ function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Check if schema exists before dropping (for accurate response)
         const existsResult = await adapter.executeQuery(
-          `SELECT 1 FROM pg_namespace WHERE nspname = '${name}'`,
+          `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+          [name],
         );
         const existed = (existsResult.rows?.length ?? 0) > 0;
 
@@ -221,8 +223,10 @@ function createListSequencesTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("schema", readOnly("List Sequences")),
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = (params ?? {}) as { schema?: string };
+      const queryParams: unknown[] = [];
       const schemaClause = parsed.schema
-        ? `AND n.nspname = '${parsed.schema}'`
+        ? (queryParams.push(parsed.schema),
+          `AND n.nspname = $${String(queryParams.length)}`)
         : "";
 
       // Use subquery for owned_by to avoid duplicate rows from JOINs
@@ -240,7 +244,10 @@ function createListSequencesTool(adapter: PostgresAdapter): ToolDefinition {
                         ${schemaClause}
                         ORDER BY n.nspname, c.relname`;
 
-      const result = await adapter.executeQuery(sql);
+      const result =
+        queryParams.length > 0
+          ? await adapter.executeQuery(sql, queryParams)
+          : await adapter.executeQuery(sql);
       return { sequences: result.rows, count: result.rows?.length ?? 0 };
     },
   };
@@ -277,7 +284,8 @@ function createCreateSequenceTool(adapter: PostgresAdapter): ToolDefinition {
         let alreadyExisted: boolean | undefined;
         if (ifNotExists === true) {
           const existsResult = await adapter.executeQuery(
-            `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
+            `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = $1 AND c.relname = $2`,
+            [schemaName, name],
           );
           alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
         }
@@ -353,7 +361,8 @@ function createDropSequenceTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Check if sequence exists before dropping (for accurate response)
         const existsResult = await adapter.executeQuery(
-          `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
+          `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = $1 AND c.relname = $2`,
+          [schemaName, name],
         );
         const existed = (existsResult.rows?.length ?? 0) > 0;
 
@@ -417,8 +426,10 @@ function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
         truncateDefinition?: number;
         limit?: number;
       };
+      const queryParams: unknown[] = [];
       const schemaClause = parsed.schema
-        ? `AND n.nspname = '${parsed.schema}'`
+        ? (queryParams.push(parsed.schema),
+          `AND n.nspname = $${String(queryParams.length)}`)
         : "";
       const kindClause =
         parsed.includeMaterialized !== false ? "IN ('v', 'm')" : "= 'v'";
@@ -441,7 +452,10 @@ function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
                         ORDER BY n.nspname, c.relname
                         ${limitClause}`;
 
-      const result = await adapter.executeQuery(sql);
+      const result =
+        queryParams.length > 0
+          ? await adapter.executeQuery(sql, queryParams)
+          : await adapter.executeQuery(sql);
       let views = result.rows ?? [];
 
       // Check if there are more results than the limit
@@ -509,9 +523,10 @@ function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
         // Check if view already exists when orReplace is true (for informational response)
         let alreadyExisted: boolean | undefined;
         if (orReplace === true) {
-          const relkind = materialized === true ? "'m'" : "'v'";
+          const relkind = materialized === true ? "m" : "v";
           const existsResult = await adapter.executeQuery(
-            `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = ${relkind} AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
+            `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = $1 AND n.nspname = $2 AND c.relname = $3`,
+            [relkind, schemaName, name],
           );
           alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
         }
@@ -583,9 +598,10 @@ function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
         const schemaName = schema ?? "public";
 
         // Check if view exists before dropping (for accurate response)
-        const relkind = materialized === true ? "'m'" : "'v'";
+        const relkind = materialized === true ? "m" : "v";
         const existsResult = await adapter.executeQuery(
-          `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = ${relkind} AND n.nspname = '${schemaName}' AND c.relname = '${name}'`,
+          `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = $1 AND n.nspname = $2 AND c.relname = $3`,
+          [relkind, schemaName, name],
         );
         const existed = (existsResult.rows?.length ?? 0) > 0;
 
@@ -639,11 +655,13 @@ function createListFunctionsTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         // Use full schema with preprocessing for validation
         const parsed = ListFunctionsSchema.parse(params);
+        const queryParams: unknown[] = [];
 
         // Validate schema existence when filtering by schema
         if (parsed.schema !== undefined) {
           const schemaCheck = await adapter.executeQuery(
-            `SELECT 1 FROM pg_namespace WHERE nspname = '${parsed.schema}'`,
+            `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+            [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
             return {
@@ -658,7 +676,8 @@ function createListFunctionsTool(adapter: PostgresAdapter): ToolDefinition {
         ];
 
         if (parsed.schema !== undefined) {
-          conditions.push(`n.nspname = '${parsed.schema}'`);
+          queryParams.push(parsed.schema);
+          conditions.push(`n.nspname = $${String(queryParams.length)}`);
         }
 
         if (parsed.exclude !== undefined && parsed.exclude.length > 0) {
@@ -667,7 +686,11 @@ function createListFunctionsTool(adapter: PostgresAdapter): ToolDefinition {
             const alias = EXTENSION_ALIASES[s];
             return alias ? [s, alias] : [s];
           });
-          const excludeList = normalizedExclude.map((s) => `'${s}'`).join(", ");
+          const excludePlaceholders = normalizedExclude.map((s) => {
+            queryParams.push(s);
+            return `$${String(queryParams.length)}`;
+          });
+          const excludeList = excludePlaceholders.join(", ");
           // Exclude by schema name
           conditions.push(`n.nspname NOT IN (${excludeList})`);
           // Also exclude extension-owned functions (e.g., ltree functions in public schema)
@@ -681,7 +704,8 @@ function createListFunctionsTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         if (parsed.language !== undefined) {
-          conditions.push(`l.lanname = '${parsed.language}'`);
+          queryParams.push(parsed.language);
+          conditions.push(`l.lanname = $${String(queryParams.length)}`);
         }
 
         const limitVal = parsed.limit ?? 500;
@@ -698,7 +722,10 @@ function createListFunctionsTool(adapter: PostgresAdapter): ToolDefinition {
                           ORDER BY n.nspname, p.proname
                           LIMIT ${String(limitVal)}`;
 
-        const result = await adapter.executeQuery(sql);
+        const result =
+          queryParams.length > 0
+            ? await adapter.executeQuery(sql, queryParams)
+            : await adapter.executeQuery(sql);
         return {
           functions: result.rows,
           count: result.rows?.length ?? 0,
@@ -755,7 +782,8 @@ function createListTriggersTool(adapter: PostgresAdapter): ToolDefinition {
         // Validate schema existence when filtering by schema
         if (parsed.schema) {
           const schemaCheck = await adapter.executeQuery(
-            `SELECT 1 FROM pg_namespace WHERE nspname = '${parsed.schema}'`,
+            `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+            [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
             return {
@@ -768,7 +796,8 @@ function createListTriggersTool(adapter: PostgresAdapter): ToolDefinition {
         // Validate table existence when filtering by table
         if (parsed.table) {
           const tableCheck = await adapter.executeQuery(
-            `SELECT 1 FROM information_schema.tables WHERE table_schema = '${schemaName}' AND table_name = '${parsed.table}'`,
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+            [schemaName, parsed.table],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
             return {
@@ -778,10 +807,17 @@ function createListTriggersTool(adapter: PostgresAdapter): ToolDefinition {
           }
         }
 
+        const queryParams: unknown[] = [];
         let whereClause =
           "n.nspname NOT IN ('pg_catalog', 'information_schema')";
-        if (parsed.schema) whereClause += ` AND n.nspname = '${parsed.schema}'`;
-        if (parsed.table) whereClause += ` AND c.relname = '${parsed.table}'`;
+        if (parsed.schema) {
+          queryParams.push(parsed.schema);
+          whereClause += ` AND n.nspname = $${String(queryParams.length)}`;
+        }
+        if (parsed.table) {
+          queryParams.push(parsed.table);
+          whereClause += ` AND c.relname = $${String(queryParams.length)}`;
+        }
 
         const sql = `SELECT n.nspname as schema, c.relname as table_name, t.tgname as name,
                           CASE t.tgtype::int & 2 WHEN 2 THEN 'BEFORE' ELSE 'AFTER' END as timing,
@@ -801,7 +837,10 @@ function createListTriggersTool(adapter: PostgresAdapter): ToolDefinition {
                           AND ${whereClause}
                           ORDER BY n.nspname, c.relname, t.tgname`;
 
-        const result = await adapter.executeQuery(sql);
+        const result =
+          queryParams.length > 0
+            ? await adapter.executeQuery(sql, queryParams)
+            : await adapter.executeQuery(sql);
         return { triggers: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
         return {
@@ -855,7 +894,8 @@ function createListConstraintsTool(adapter: PostgresAdapter): ToolDefinition {
         // Validate schema existence when filtering by schema
         if (parsed.schema) {
           const schemaCheck = await adapter.executeQuery(
-            `SELECT 1 FROM pg_namespace WHERE nspname = '${parsed.schema}'`,
+            `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+            [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
             return {
@@ -868,7 +908,8 @@ function createListConstraintsTool(adapter: PostgresAdapter): ToolDefinition {
         // Validate table existence when filtering by table
         if (parsed.table) {
           const tableCheck = await adapter.executeQuery(
-            `SELECT 1 FROM information_schema.tables WHERE table_schema = '${schemaName}' AND table_name = '${parsed.table}'`,
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+            [schemaName, parsed.table],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
             return {
@@ -878,10 +919,17 @@ function createListConstraintsTool(adapter: PostgresAdapter): ToolDefinition {
           }
         }
 
+        const queryParams: unknown[] = [];
         let whereClause =
           "n.nspname NOT IN ('pg_catalog', 'information_schema') AND con.contype != 'n'";
-        if (parsed.schema) whereClause += ` AND n.nspname = '${parsed.schema}'`;
-        if (parsed.table) whereClause += ` AND c.relname = '${parsed.table}'`;
+        if (parsed.schema) {
+          queryParams.push(parsed.schema);
+          whereClause += ` AND n.nspname = $${String(queryParams.length)}`;
+        }
+        if (parsed.table) {
+          queryParams.push(parsed.table);
+          whereClause += ` AND c.relname = $${String(queryParams.length)}`;
+        }
         if (parsed.type) {
           const typeMap: Record<string, string> = {
             primary_key: "p",
@@ -889,7 +937,8 @@ function createListConstraintsTool(adapter: PostgresAdapter): ToolDefinition {
             unique: "u",
             check: "c",
           };
-          whereClause += ` AND con.contype = '${typeMap[parsed.type] ?? ""}'`;
+          queryParams.push(typeMap[parsed.type] ?? "");
+          whereClause += ` AND con.contype = $${String(queryParams.length)}`;
         }
 
         const sql = `SELECT n.nspname as schema, c.relname as table_name, con.conname as name,
@@ -908,7 +957,10 @@ function createListConstraintsTool(adapter: PostgresAdapter): ToolDefinition {
                           WHERE ${whereClause}
                           ORDER BY n.nspname, c.relname, con.conname`;
 
-        const result = await adapter.executeQuery(sql);
+        const result =
+          queryParams.length > 0
+            ? await adapter.executeQuery(sql, queryParams)
+            : await adapter.executeQuery(sql);
         return { constraints: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
         return {
