@@ -425,6 +425,7 @@ export const CronListJobsOutputSchema = z
  */
 export const CronJobRunDetailsOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether the query succeeded"),
     runs: z
       .array(
         z.object({
@@ -441,8 +442,9 @@ export const CronJobRunDetailsOutputSchema = z
           end_time: z.coerce.string().nullable().describe("End time"),
         }),
       )
+      .optional()
       .describe("Job execution history"),
-    count: z.number().describe("Number of records returned"),
+    count: z.number().optional().describe("Number of records returned"),
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total available count"),
     summary: z
@@ -451,7 +453,9 @@ export const CronJobRunDetailsOutputSchema = z
         failed: z.number().describe("Failed runs"),
         running: z.number().describe("Currently running"),
       })
+      .optional()
       .describe("Execution summary"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job execution history result");
 

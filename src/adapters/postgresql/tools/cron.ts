@@ -478,9 +478,7 @@ Useful for monitoring and debugging scheduled jobs.`,
         const VALID_STATUSES = ["running", "succeeded", "failed"];
         if (status !== undefined && !VALID_STATUSES.includes(status)) {
           return {
-            runs: [],
-            count: 0,
-            summary: { succeeded: 0, failed: 0, running: 0 },
+            success: false,
             error: `Invalid status "${status}". Valid statuses: ${VALID_STATUSES.join(", ")}`,
           };
         }
