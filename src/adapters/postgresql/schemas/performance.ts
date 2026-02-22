@@ -106,16 +106,32 @@ const PaginatedBase = {
 export const IndexStatsOutputSchema = z.object({
   indexes: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Index statistics"),
-  ...PaginatedBase,
+  count: z.number().optional().describe("Number of items returned"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total count if results truncated"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_table_stats
 export const TableStatsOutputSchema = z.object({
   tables: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Table statistics"),
-  ...PaginatedBase,
+  count: z.number().optional().describe("Number of items returned"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total count if results truncated"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_stat_statements
@@ -145,8 +161,11 @@ export const LocksOutputSchema = z.object({
 export const BloatCheckOutputSchema = z.object({
   tables: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Tables with bloat"),
-  count: z.number().describe("Number of tables with bloat"),
+  count: z.number().optional().describe("Number of tables with bloat"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_cache_hit_ratio
@@ -160,15 +179,18 @@ export const CacheHitRatioOutputSchema = z.object({
 export const SeqScanTablesOutputSchema = z.object({
   tables: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Tables with sequential scans"),
-  count: z.number().describe("Number of tables"),
-  minScans: z.number().describe("Minimum scan threshold used"),
+  count: z.number().optional().describe("Number of tables"),
+  minScans: z.number().optional().describe("Minimum scan threshold used"),
   hint: z.string().optional().describe("Recommendation hint"),
   totalCount: z
     .number()
     .optional()
     .describe("Total count if results truncated"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_index_recommendations
@@ -333,8 +355,16 @@ export const DuplicateIndexesOutputSchema = z.object({
 export const VacuumStatsOutputSchema = z.object({
   tables: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Vacuum statistics per table"),
-  ...PaginatedBase,
+  count: z.number().optional().describe("Number of items returned"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total count if results truncated"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_query_plan_stats

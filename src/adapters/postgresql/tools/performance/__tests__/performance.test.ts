@@ -324,6 +324,8 @@ describe("pg_index_stats", () => {
   });
 
   it("should filter by schema when provided", async () => {
+    // P154: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ indexrelname: "sales_orders_pkey", idx_scan: 500 }],
     });
@@ -337,6 +339,8 @@ describe("pg_index_stats", () => {
   });
 
   it("should filter by table when provided", async () => {
+    // P154: table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ indexrelname: "orders_pkey", idx_scan: 300 }],
     });
@@ -350,6 +354,9 @@ describe("pg_index_stats", () => {
   });
 
   it("should filter by both schema and table when provided", async () => {
+    // P154: schema existence check + table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ indexrelname: "sales_orders_pkey", idx_scan: 200 }],
     });
@@ -420,6 +427,8 @@ describe("pg_table_stats", () => {
   });
 
   it("should filter by schema when provided", async () => {
+    // P154: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ relname: "orders", seq_scan: 100 }],
     });
@@ -433,6 +442,8 @@ describe("pg_table_stats", () => {
   });
 
   it("should filter by table when provided", async () => {
+    // P154: table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ relname: "orders", seq_scan: 200 }],
     });
@@ -446,6 +457,9 @@ describe("pg_table_stats", () => {
   });
 
   it("should filter by both schema and table when provided", async () => {
+    // P154: schema existence check + table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ relname: "orders", seq_scan: 150 }],
     });
@@ -742,6 +756,8 @@ describe("pg_seq_scan_tables", () => {
   });
 
   it("should filter by schema when provided", async () => {
+    // P154: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_seq_scan_tables")!;
@@ -931,6 +947,9 @@ describe("pg_index_recommendations", () => {
   });
 
   it("should filter by table when provided", async () => {
+    // P154: schema existence check + table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_index_recommendations")!;
@@ -942,6 +961,8 @@ describe("pg_index_recommendations", () => {
   });
 
   it("should filter by schema when provided", async () => {
+    // P154: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_index_recommendations")!;
@@ -2418,6 +2439,8 @@ describe("pg_vacuum_stats comprehensive", () => {
   });
 
   it("should filter by schema when provided", async () => {
+    // P154: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
@@ -2429,6 +2452,8 @@ describe("pg_vacuum_stats comprehensive", () => {
   });
 
   it("should filter by table when provided", async () => {
+    // P154: table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
@@ -2440,6 +2465,9 @@ describe("pg_vacuum_stats comprehensive", () => {
   });
 
   it("should filter by both schema and table when provided", async () => {
+    // P154: schema existence check + table existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
@@ -3028,5 +3056,133 @@ describe("pg_vacuum_stats", () => {
     expect(result.truncated).toBe(false);
     expect(result.totalCount).toBe(1);
     expect(result.count).toBe(1);
+  });
+});
+
+// =============================================================================
+// P154: Nonexistent Table/Schema Pre-check Tests
+// =============================================================================
+
+describe("P154 pre-checks", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_index_stats should return error for nonexistent table", async () => {
+    // Table existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_index_stats")!;
+    const result = (await tool.handler(
+      { table: "nonexistent_table" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
+    expect(result.error).toContain("nonexistent_table");
+  });
+
+  it("pg_index_stats should return error for nonexistent schema", async () => {
+    // Schema existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_index_stats")!;
+    const result = (await tool.handler(
+      { schema: "fake_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+    expect(result.error).toContain("fake_schema");
+  });
+
+  it("pg_table_stats should return error for nonexistent table", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_table_stats")!;
+    const result = (await tool.handler(
+      { table: "nonexistent_table" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
+  });
+
+  it("pg_table_stats should return error for nonexistent schema", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_table_stats")!;
+    const result = (await tool.handler(
+      { schema: "fake_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+  });
+
+  it("pg_vacuum_stats should return error for nonexistent table", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
+    const result = (await tool.handler(
+      { table: "nonexistent_table" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
+  });
+
+  it("pg_bloat_check should return error for nonexistent table", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_bloat_check")!;
+    const result = (await tool.handler(
+      { table: "nonexistent_table" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
+  });
+
+  it("pg_index_recommendations should return error for nonexistent table (table mode)", async () => {
+    // Schema exists but table does not
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_index_recommendations")!;
+    const result = (await tool.handler(
+      { table: "nonexistent_table" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
+  });
+
+  it("pg_seq_scan_tables should return error for nonexistent schema", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_seq_scan_tables")!;
+    const result = (await tool.handler(
+      { schema: "fake_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+    expect(result.error).toContain("fake_schema");
   });
 });
