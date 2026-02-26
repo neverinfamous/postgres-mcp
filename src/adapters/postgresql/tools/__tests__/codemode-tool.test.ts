@@ -13,8 +13,9 @@ import {
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 
 // Mock the dependencies
-vi.mock("../../../codemode/sandbox-factory.js", () => ({
-  createSandboxPool: vi.fn(() => ({
+vi.mock("../../../codemode/sandbox.js", () => ({
+  CodeModeSandbox: {},
+  SandboxPool: vi.fn().mockImplementation(() => ({
     initialize: vi.fn(),
     execute: vi.fn().mockResolvedValue({
       success: true,
@@ -194,5 +195,3 @@ describe("Code Mode Tool", () => {
     });
   });
 });
-
-// Note: getIsolationMode is tested implicitly through sandbox-factory tests

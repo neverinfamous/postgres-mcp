@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Worker isolation mode for Code Mode** — Removed incomplete `worker` (`worker_threads`) sandbox mode that was non-functional due to API bindings not being transferred to worker threads. Deleted `worker-sandbox.ts`, `worker-script.ts`, and `sandbox-factory.ts`. The `vm` sandbox remains as the sole, fully functional isolation mode. Removed `CODEMODE_ISOLATION` environment variable and "Isolation Modes" documentation sections from README, CODE_MODE.md, and wiki
+
 ## [1.3.0] - 2026-02-22
 
 ### Added

@@ -8,11 +8,7 @@
 import { z } from "zod";
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
-import {
-  createSandboxPool,
-  type ISandboxPool,
-  type SandboxMode,
-} from "../../../../codemode/sandbox-factory.js";
+import { SandboxPool } from "../../../../codemode/sandbox.js";
 import { CodeModeSecurityManager } from "../../../../codemode/security.js";
 import { createPgApi } from "../../../../codemode/api.js";
 import type { ExecuteCodeOptions } from "../../../../codemode/types.js";
@@ -57,26 +53,17 @@ export const ExecuteCodeOutputSchema = z.object({
 });
 
 // Singleton instances (initialized on first use)
-let sandboxPool: ISandboxPool | null = null;
+let sandboxPool: SandboxPool | null = null;
 let securityManager: CodeModeSecurityManager | null = null;
-
-/**
- * Get isolation mode from environment variable
- */
-function getIsolationMode(): SandboxMode {
-  const envMode = process.env["CODEMODE_ISOLATION"];
-  if (envMode === "worker") return "worker";
-  return "vm"; // Default
-}
 
 /**
  * Initialize Code Mode infrastructure
  */
 function ensureInitialized(): {
-  pool: ISandboxPool;
+  pool: SandboxPool;
   security: CodeModeSecurityManager;
 } {
-  sandboxPool ??= createSandboxPool(getIsolationMode());
+  sandboxPool ??= new SandboxPool();
   sandboxPool.initialize();
   securityManager ??= new CodeModeSecurityManager();
   return { pool: sandboxPool, security: securityManager };

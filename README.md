@@ -2,7 +2,7 @@
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp -->
 
-**Last Updated February 22, 2026**
+**Last Updated February 26, 2026**
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, Code Mode, tool filtering, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
@@ -83,15 +83,6 @@ If you don't have admin access or prefer individual tool calls, exclude codemode
   "args": ["--tool-filter", "starter,-codemode"]
 }
 ```
-
-### Isolation Modes
-
-| Mode     | Isolation          | When to Use                  |
-| -------- | ------------------ | ---------------------------- |
-| `vm`     | Same process       | **Default, recommended**     |
-| `worker` | Separate V8 thread | Not recommended (incomplete) |
-
-The `vm` mode is fully functional and is the default. No configuration needed.
 
 ### Security
 
