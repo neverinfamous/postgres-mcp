@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Worker isolation mode for Code Mode** — Removed incomplete `worker` (`worker_threads`) sandbox mode that was non-functional due to API bindings not being transferred to worker threads. Deleted `worker-sandbox.ts`, `worker-script.ts`, and `sandbox-factory.ts`. The `vm` sandbox remains as the sole, fully functional isolation mode. Removed `CODEMODE_ISOLATION` environment variable and "Isolation Modes" documentation sections from README, CODE_MODE.md, and wiki
 
+### Documentation
+
+- **README.md / DOCKER_README.md Code Mode promotion** — Expanded the Code Mode section with sandbox description (static validation, rate limiting, timeouts, full API access) and a new "Code Mode Only" subsection with JSON config example using `--tool-filter codemode`. References the [Cloudflare Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) for single-tool API access
+
 ## [1.3.0] - 2026-02-22
 
 ### Added

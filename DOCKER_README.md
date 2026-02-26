@@ -152,12 +152,61 @@ Restart Cursor or your MCP client and start querying PostgreSQL!
 
 Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets.
 
+Code executes in a **sandboxed VM context** with multiple layers of security. All `pg.*` API calls execute against the database within the sandbox, providing:
+
+- **Static code validation** — blocked patterns include `require()`, `process`, `eval()`, and filesystem access
+- **Rate limiting** — 60 executions per minute per client
+- **Hard timeouts** — configurable execution limit (default 30s)
+- **Full API access** — all 20 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`)
+- **Requires `admin` OAuth scope** — execution is logged for audit
+
+### ⚡ Code Mode Only (Maximum Token Savings)
+
+If you control your own setup, you can run with **only Code Mode enabled** — a single tool that provides access to all 206 tools' worth of capability through the `pg.*` API:
+
+```json
+{
+  "mcpServers": {
+    "postgres-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "POSTGRES_HOST",
+        "-e",
+        "POSTGRES_PORT",
+        "-e",
+        "POSTGRES_USER",
+        "-e",
+        "POSTGRES_PASSWORD",
+        "-e",
+        "POSTGRES_DATABASE",
+        "writenotenow/postgres-mcp:latest",
+        "--tool-filter",
+        "codemode"
+      ],
+      "env": {
+        "POSTGRES_HOST": "host.docker.internal",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_USER": "your_user",
+        "POSTGRES_PASSWORD": "your_password",
+        "POSTGRES_DATABASE": "your_database"
+      }
+    }
+  }
+}
+```
+
+This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 20 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
+
 > [!TIP]
-> **Maximize Token Savings:** For the best results, instruct your AI agent to prefer Code Mode over individual tool calls. Add a rule like this to your agent's prompt or system configuration:
+> **Maximize Token Savings:** Instruct your AI agent to prefer Code Mode over individual tool calls:
 >
 > _"When using postgres-mcp, prefer `pg_execute_code` (Code Mode) for multi-step database operations to minimize token usage."_
 >
-> This ensures the agent batches operations into single calls instead of making many individual tool calls. See the [Code Mode wiki](https://github.com/neverinfamous/postgresql-mcp/wiki/Code-Mode) for full API documentation.
+> For maximum savings, use `--tool-filter codemode` to run with Code Mode as your only tool. See the [Code Mode wiki](https://github.com/neverinfamous/postgresql-mcp/wiki/Code-Mode) for full API documentation.
 
 > [!NOTE]
 > **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage, manually provide the contents of [`src/constants/ServerInstructions.ts`](https://github.com/neverinfamous/postgresql-mcp/blob/master/src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
