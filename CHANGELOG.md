@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Performance
+
+- **Code Mode sandbox execution overhead** — Reduced per-call `sandbox.execute()` overhead with three targeted optimizations:
+  - **vm.Script LRU cache** — Compiled `vm.Script` instances are now cached per-sandbox (LRU, max 50 entries). Repeated executions of the same code string skip the expensive `vm.Script` compilation step entirely. Cache is cleared on `sandbox.dispose()`
+  - **`process.memoryUsage.rss()` over `process.memoryUsage()`** — Memory measurement now uses the single-counter `process.memoryUsage.rss()` instead of the full `process.memoryUsage()` which reads multiple OS process memory counters — a significantly cheaper syscall, especially on Windows
+  - **Pre-built async IIFE wrapper** — The `(async () => { ... })()` wrapper prefix and suffix are now module-level constants instead of template literals rebuilt on every call
+
+### Added
+
+- **Performance benchmark suite** — 59 micro-benchmarks across 7 audit domains in `src/__tests__/benchmarks/`: connection pool (6), code mode sandbox (16), tool filtering (10), utilities (13), transport & auth (14). Measures framework overhead with mocked dependencies to isolate platform cost from database latency
+
 ### Removed
 
 - **Worker isolation mode for Code Mode** — Removed incomplete `worker` (`worker_threads`) sandbox mode that was non-functional due to API bindings not being transferred to worker threads. Deleted `worker-sandbox.ts`, `worker-script.ts`, and `sandbox-factory.ts`. The `vm` sandbox remains as the sole, fully functional isolation mode. Removed `CODEMODE_ISOLATION` environment variable and "Isolation Modes" documentation sections from README, CODE_MODE.md, and wiki
