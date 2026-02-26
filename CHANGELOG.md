@@ -26,6 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **README.md / DOCKER_README.md Code Mode promotion** — Expanded the Code Mode section with sandbox description (static validation, rate limiting, timeouts, full API access) and a new "Code Mode Only" subsection with JSON config example using `--tool-filter codemode`. References the [Cloudflare Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) for single-tool API access
 
+### Dependencies
+
+- Bump `@modelcontextprotocol/sdk` from 1.26.0 to 1.27.1
+- Bump `@types/node` from 25.3.0 to 25.3.2
+- Bump `eslint` from 10.0.1 to 10.0.2
+- Bump `pg` from 8.18.0 to 8.19.0
+- Bump `typescript-eslint` from 8.56.0 to 8.56.1
+- **Security audit fixes** — `npm audit fix` upgraded transitive dependencies `hono` (→4.12.3, authentication bypass by IP spoofing in AWS Lambda), `rollup` (→4.59.0, path traversal write), `minimatch` (→10.2.4, ReDoS via `matchOne()` combinatorial backtracking)
+
 ## [1.3.0] - 2026-02-22
 
 ### Added
