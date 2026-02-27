@@ -374,12 +374,19 @@ export {
 // pg_partman schemas
 export {
   PartmanCreateParentSchema,
+  PartmanCreateParentSchemaBase,
   PartmanRunMaintenanceSchema,
+  PartmanRunMaintenanceSchemaBase,
   PartmanShowPartitionsSchema,
+  PartmanShowPartitionsSchemaBase,
   PartmanCheckDefaultSchema,
+  PartmanCheckDefaultSchemaBase,
   PartmanPartitionDataSchema,
+  PartmanPartitionDataSchemaBase,
   PartmanRetentionSchema,
+  PartmanRetentionSchemaBase,
   PartmanUndoPartitionSchema,
+  PartmanUndoPartitionSchemaBase,
   PartmanUpdateConfigSchema,
   // Output schemas
   PartmanCreateExtensionOutputSchema,

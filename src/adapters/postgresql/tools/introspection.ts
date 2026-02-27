@@ -838,15 +838,11 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
         schemaWhere = `AND n.nspname = $${String(schemaParams.length)}`;
       }
 
-      // Tables + columns
+      // Tables + columns (or compact mode without columns)
       if (includeAll || sections.has("tables")) {
-        const tablesResult = await adapter.executeQuery(
-          `SELECT
-            n.nspname AS schema, c.relname AS name,
-            CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table' END AS type,
-            CASE WHEN c.reltuples = -1 THEN COALESCE(s.n_live_tup, 0) ELSE c.reltuples END::bigint AS row_count,
-            pg_table_size(c.oid) AS size_bytes,
-            obj_description(c.oid, 'pg_class') AS comment,
+        const columnsSubquery = parsed.compact
+          ? ""
+          : `,
             (SELECT json_agg(json_build_object(
               'name', a.attname,
               'type', pg_catalog.format_type(a.atttypid, a.atttypmod),
@@ -859,7 +855,14 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
             FROM pg_attribute a
             LEFT JOIN pg_attrdef d ON (a.attrelid, a.attnum) = (d.adrelid, d.adnum)
             WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
-            ) AS columns
+            ) AS columns`;
+        const tablesResult = await adapter.executeQuery(
+          `SELECT
+            n.nspname AS schema, c.relname AS name,
+            CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table' END AS type,
+            CASE WHEN c.reltuples = -1 THEN COALESCE(s.n_live_tup, 0) ELSE c.reltuples END::bigint AS row_count,
+            pg_table_size(c.oid) AS size_bytes,
+            obj_description(c.oid, 'pg_class') AS comment${columnsSubquery}
           FROM pg_class c
           JOIN pg_namespace n ON n.oid = c.relnamespace
           LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
@@ -1045,6 +1048,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
         snapshot,
         stats,
         generatedAt: new Date().toISOString(),
+        ...(parsed.compact && { compact: true }),
         ...(hint !== undefined && { hint }),
       };
     },

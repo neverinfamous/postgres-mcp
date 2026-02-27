@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`pg_schema_snapshot` compact mode** — New `compact` boolean parameter (default: `false`) omits per-column details from the tables section, reducing payload size significantly for initial schema overview. Use `pg_describe_table` to drill into specific tables. Response includes `compact: true` when active. Added 2 unit tests
+
 - **`pg_dependency_graph` / `pg_topological_sort` extension schema exclusion** — New `excludeExtensionSchemas` parameter (default: `true`) filters out known extension-owned schemas (`cron`, `topology`, `tiger`, `tiger_data`) from both the FK dependency graph and topological sort results. Matches the existing `excludeExtensionSchemas` behavior in `pg_schema_snapshot`. Set `excludeExtensionSchemas: false` to include them. `pg_cascade_simulator` always includes all schemas for accurate cascade path tracing. Added 2 unit tests
 
 - **`pg_constraint_analysis` extension schema exclusion** — New `excludeExtensionSchemas` parameter (default: `true`) filters out known extension-owned schemas (`cron`, `topology`, `tiger`, `tiger_data`) from all 3 constraint analysis checks (missing PK, unindexed FK, missing NOT NULL). Previously, extension-schema tables like `cron.job_run_details` appeared in findings alongside user-schema tables. Set `excludeExtensionSchemas: false` or provide a specific `schema`/`table` to include them. Added 1 unit test
@@ -26,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **6 new introspection unit tests** — Added tests for cascade simulator NO ACTION/RESTRICT label preservation, schema snapshot extension exclusion (default + opt-out), and migration history `status`/`sourceSystem` filtering
 
 ### Fixed
+
+- **`ServerInstructions.ts` `pg_constraint_analysis` incorrect `checks` enum value** — Changed documented `'redundant_indexes'` to `'redundant'` to match the actual Zod schema enum value. Previously, passing `checks: ['redundant_indexes']` (as documented) would fail validation
+
+- **`test-tools.md` Split Schema pattern description inaccuracy** — Updated the Split Schema pattern description to clarify that handler-side parsing uses various strategies (`z.preprocess()`, `.default({})`, or direct `.parse()` inside `try/catch`), not always `z.preprocess()`. Fixed self-referencing filename from `test-tools-prompt.md` to `test-tools.md`. Added `compact: true` test scenario for `pg_schema_snapshot`
 
 - **`pg_cascade_simulator` misleading `restrictActions` stats counter** — Renamed `stats.restrictActions` → `stats.blockingActions` to accurately reflect that both `NO ACTION` and `RESTRICT` FK constraints are counted. The previous name implied only `RESTRICT` FKs were counted. Both constraint types block the operation identically
 

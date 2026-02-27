@@ -952,6 +952,51 @@ describe("pg_schema_snapshot", () => {
     // Only 8 queries, not 9
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(8);
   });
+
+  it("should omit columns from tables when compact is true", async () => {
+    // Mock 9 section queries
+    for (let i = 0; i < 9; i++) {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ name: `item_${String(i)}`, schema: "public" }],
+      });
+    }
+
+    const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
+    const result = (await tool.handler({ compact: true }, mockContext)) as {
+      snapshot: Record<string, unknown>;
+      stats: Record<string, number>;
+      compact?: boolean;
+    };
+
+    expect(result.compact).toBe(true);
+    // First call (tables query) should NOT contain the columns subquery
+    const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
+    expect(tablesSql).not.toContain("json_agg");
+    expect(tablesSql).not.toContain("pg_attribute");
+    expect(tablesSql).not.toContain("attname");
+  });
+
+  it("should include columns by default when compact is not set", async () => {
+    // Mock 9 section queries
+    for (let i = 0; i < 9; i++) {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ name: `item_${String(i)}`, schema: "public" }],
+      });
+    }
+
+    const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      compact?: boolean;
+    };
+
+    // compact should not be in response when not set
+    expect(result.compact).toBeUndefined();
+    // First call (tables query) should contain the columns subquery
+    const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
+    expect(tablesSql).toContain("json_agg");
+    expect(tablesSql).toContain("pg_attribute");
+    expect(tablesSql).toContain("attname");
+  });
 });
 
 // =============================================================================

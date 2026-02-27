@@ -14,8 +14,11 @@ import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
   PartmanCreateParentSchema,
+  PartmanCreateParentSchemaBase,
   PartmanRunMaintenanceSchema,
+  PartmanRunMaintenanceSchemaBase,
   PartmanShowPartitionsSchema,
+  PartmanShowPartitionsSchemaBase,
   // Output schemas
   PartmanCreateExtensionOutputSchema,
   PartmanCreateParentOutputSchema,
@@ -83,7 +86,7 @@ TIP: startPartition accepts 'now' as a shorthand for the current date/time.
 WARNING: startPartition creates ALL partitions from that date to current date + premake. 
 A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creates many partitions.`,
     group: "partman",
-    inputSchema: PartmanCreateParentSchema,
+    inputSchema: PartmanCreateParentSchemaBase,
     outputSchema: PartmanCreateParentOutputSchema,
     annotations: write("Create Partition Parent"),
     icons: getToolIcons("partman", write("Create Partition Parent")),
@@ -278,7 +281,7 @@ export function createPartmanRunMaintenanceTool(
 Should be executed regularly (e.g., via pg_cron) to keep partitions current.
 Maintains all partition sets if no specific parent table is specified.`,
     group: "partman",
-    inputSchema: PartmanRunMaintenanceSchema,
+    inputSchema: PartmanRunMaintenanceSchemaBase,
     outputSchema: PartmanRunMaintenanceOutputSchema,
     annotations: write("Run Partition Maintenance"),
     icons: getToolIcons("partman", write("Run Partition Maintenance")),
@@ -461,7 +464,7 @@ export function createPartmanShowPartitionsTool(
     description:
       "List all child partitions for a partition set managed by pg_partman.",
     group: "partman",
-    inputSchema: PartmanShowPartitionsSchema,
+    inputSchema: PartmanShowPartitionsSchemaBase,
     outputSchema: PartmanShowPartitionsOutputSchema,
     annotations: readOnly("Show Partman Partitions"),
     icons: getToolIcons("partman", readOnly("Show Partman Partitions")),
