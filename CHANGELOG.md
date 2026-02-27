@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **README.md Code Mode promotion** — Updated the opening description and the "What Sets Us Apart" table to strongly emphasize Code Mode's massive token savings, highlighting that a single sandbox execution eliminates the overhead of multi-step tool calls for all 217 tools
+
 ### Added
 
 - **`pg_dependency_graph` / `pg_topological_sort` extension schema exclusion** — New `excludeExtensionSchemas` parameter (default: `true`) filters out known extension-owned schemas (`cron`, `topology`, `tiger`, `tiger_data`) from both the FK dependency graph and topological sort results. Matches the existing `excludeExtensionSchemas` behavior in `pg_schema_snapshot`. Set `excludeExtensionSchemas: false` to include them. `pg_cascade_simulator` always includes all schemas for accurate cascade path tracing. Added 2 unit tests
