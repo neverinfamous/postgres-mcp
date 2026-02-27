@@ -414,6 +414,7 @@ export const SchemaSnapshotOutputSchema = z.object({
     extensions: z.number(),
   }),
   generatedAt: z.string(),
+  hint: z.string().optional(),
 });
 
 export const ConstraintAnalysisOutputSchema = z.object({

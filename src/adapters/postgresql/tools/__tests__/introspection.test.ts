@@ -436,6 +436,83 @@ describe("pg_topological_sort", () => {
     expect(tableQueryCall[0]).toContain("'cron'");
     expect(tableQueryCall[0]).toContain("'tiger_data'");
   });
+
+  it("should preserve original dependency levels in drop direction", async () => {
+    // 3-level chain: assignments -> projects -> departments
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          constraint_name: "fk_proj_dept",
+          from_schema: "public",
+          from_table: "projects",
+          from_columns: ["dept_id"],
+          to_schema: "public",
+          to_table: "departments",
+          to_columns: ["id"],
+          on_delete: "CASCADE",
+          on_update: "NO ACTION",
+        },
+        {
+          constraint_name: "fk_assign_proj",
+          from_schema: "public",
+          from_table: "assignments",
+          from_columns: ["project_id"],
+          to_schema: "public",
+          to_table: "projects",
+          to_columns: ["id"],
+          on_delete: "CASCADE",
+          on_update: "NO ACTION",
+        },
+      ],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schema: "public",
+          table_name: "departments",
+          row_count: 10,
+          size_bytes: 8192,
+        },
+        {
+          schema: "public",
+          table_name: "projects",
+          row_count: 50,
+          size_bytes: 16384,
+        },
+        {
+          schema: "public",
+          table_name: "assignments",
+          row_count: 200,
+          size_bytes: 32768,
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_topological_sort")!;
+    const result = (await tool.handler({ direction: "drop" }, mockContext)) as {
+      order: Array<{ table: string; level: number }>;
+      direction: string;
+      hasCycles: boolean;
+    };
+
+    expect(result.direction).toBe("drop");
+    expect(result.hasCycles).toBe(false);
+
+    // Levels should reflect original dependency depth (not re-computed for drop order)
+    const deptEntry = result.order.find((o) => o.table === "departments");
+    const projEntry = result.order.find((o) => o.table === "projects");
+    const assignEntry = result.order.find((o) => o.table === "assignments");
+    expect(deptEntry!.level).toBe(0); // root — no dependencies
+    expect(projEntry!.level).toBe(1); // depends on departments
+    expect(assignEntry!.level).toBe(2); // depends on projects
+
+    // Drop order: assignments before projects before departments
+    const deptIdx = result.order.findIndex((o) => o.table === "departments");
+    const projIdx = result.order.findIndex((o) => o.table === "projects");
+    const assignIdx = result.order.findIndex((o) => o.table === "assignments");
+    expect(assignIdx).toBeLessThan(projIdx);
+    expect(projIdx).toBeLessThan(deptIdx);
+  });
 });
 
 // =============================================================================
@@ -825,6 +902,55 @@ describe("pg_schema_snapshot", () => {
     const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
     expect(tablesSql).toContain("pg_depend");
     expect(tablesSql).toContain("deptype = 'e'");
+  });
+
+  it("should return hint for empty schema filter", async () => {
+    // Mock 8 section queries returning empty (no extensions query when schema filter is set)
+    for (let i = 0; i < 8; i++) {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    }
+
+    const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
+    const result = (await tool.handler(
+      { schema: "nonexistent_schema_xyz" },
+      mockContext,
+    )) as {
+      snapshot: Record<string, unknown>;
+      stats: Record<string, number>;
+      hint?: string;
+    };
+
+    expect(result.hint).toBeDefined();
+    expect(result.hint).toContain("nonexistent_schema_xyz");
+    expect(result.stats["extensions"]).toBe(0);
+  });
+
+  it("should omit extensions when schema filter is set", async () => {
+    // Mock 8 section queries (NOT 9 — extensions query should be skipped)
+    for (let i = 0; i < 8; i++) {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ name: `item_${i}` }],
+      });
+    }
+
+    const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
+    const result = (await tool.handler({ schema: "public" }, mockContext)) as {
+      snapshot: Record<string, unknown>;
+      stats: Record<string, number>;
+    };
+
+    // Extensions should be 0 with no extensions query fired
+    expect(result.stats["extensions"]).toBe(0);
+    // Verify no call contained the extensions query
+    const allSqlCalls = mockAdapter.executeQuery.mock.calls.map(
+      (call) => call[0] as string,
+    );
+    const extensionCall = allSqlCalls.find((sql) =>
+      sql.includes("pg_extension"),
+    );
+    expect(extensionCall).toBeUndefined();
+    // Only 8 queries, not 9
+    expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(8);
   });
 });
 

@@ -557,9 +557,29 @@ function createTopologicalSortTool(adapter: PostgresAdapter): ToolDefinition {
       const cycles = sorted === null ? detectCycles(adjacency) : [];
 
       // Compute level (depth in the dependency graph)
+      // Always use create-order traversal for consistent levels regardless of direction
       const levelMap = new Map<string, number>();
       if (sorted) {
-        for (const node of sorted) {
+        // For create direction, sorted is already in dependency order.
+        // For drop direction, we need create-order to compute levels correctly.
+        let createOrder: string[];
+        if (direction === "create") {
+          createOrder = sorted;
+        } else {
+          // Build create-direction adjacency and sort
+          const createAdj = new Map<string, string[]>();
+          for (const fk of fks) {
+            const from = qualifiedName(fk.fromSchema, fk.fromTable);
+            const to = qualifiedName(fk.toSchema, fk.toTable);
+            if (from === to) continue;
+            const existing = createAdj.get(to) ?? [];
+            existing.push(from);
+            createAdj.set(to, existing);
+          }
+          createOrder =
+            topologicalSort(createAdj, allNodes) ?? [...allNodes].sort();
+        }
+        for (const node of createOrder) {
           const deps = dependsOn.get(node);
           if (!deps || deps.size === 0) {
             levelMap.set(node, 0);
@@ -1001,8 +1021,8 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
         stats.customTypes = typesResult.rows?.length ?? 0;
       }
 
-      // Extensions
-      if (includeAll || sections.has("extensions")) {
+      // Extensions (skip when schema filter is active — extensions are global objects)
+      if ((includeAll || sections.has("extensions")) && !parsed.schema) {
         const extResult = await adapter.executeQuery(
           `SELECT extname AS name, extversion AS version,
                   n.nspname AS schema
@@ -1014,10 +1034,18 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
         stats.extensions = extResult.rows?.length ?? 0;
       }
 
+      // Add hint for nonexistent/empty schema
+      const allEmpty = Object.values(stats).every((v) => v === 0);
+      const hint =
+        parsed.schema !== undefined && allEmpty
+          ? `Schema '${parsed.schema}' returned no tables. Verify the schema exists with pg_list_schemas.`
+          : undefined;
+
       return {
         snapshot,
         stats,
         generatedAt: new Date().toISOString(),
+        ...(hint !== undefined && { hint }),
       };
     },
   };
