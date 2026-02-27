@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - **README.md / DOCKER_README.md Code Mode promotion** — Expanded the Code Mode section with sandbox description (static validation, rate limiting, timeouts, full API access) and a new "Code Mode Only" subsection with JSON config example using `--tool-filter codemode`. References the [Cloudflare Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) for single-tool API access
+- **README.md / DOCKER_README.md security documentation** — Updated "Production-Ready Security" feature row to include SSL certificate verification and HTTP body size enforcement. Added per-tool OAuth scope enforcement note to OAuth section and Enterprise Features. Fixed stale `master` branch references in DOCKER_README.md
 
 ### Security
 
