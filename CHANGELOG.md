@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`ToolFilter.ts` codemode auto-injection aligned with mysql-mcp** — Codemode (`pg_execute_code`) auto-injection now only activates in whitelist mode (e.g., `core`, `starter`), matching the mysql-mcp pattern. In blacklist mode (e.g., `-vector`), codemode is already in the initial full set and user exclusions are naturally respected. Also now recognizes both `-codemode` and `-pg_execute_code` as exclusion signals (previously only `-codemode` was checked). Removes loop-scoped tracking variable in favor of a cleaner post-loop `parts.some()` check
+
+### Added
+
+- **ToolFilter unit tests (58 tests)** — Comprehensive test suite for the tool filtering system in `src/filtering/__tests__/ToolFilter.test.ts`, mirroring mysql-mcp's test coverage. Covers TOOL_GROUPS (21 groups, 227 total tools), META_GROUPS (15 shortcuts with codemode verification), parseToolFilter (whitelist/blacklist/mixed modes), 6 codemode-specific auto-injection tests (`-codemode`, `-pg_execute_code`, `-all`), isToolEnabled, filterTools, calculateTokenSavings, getFilterSummary, getToolGroupInfo, getMetaGroupInfo, and caching behavior
+
 ### Documentation
 
 - **README.md and DOCKER_README.md Code Mode API Tool Group Counts** — Corrected Code Mode descriptions stating that "all 21 tool groups are available via `pg.*`" to "all 20 tool groups" since the codemode tool itself is the 21st group and is not exposed via the sandbox API. Also normalized the Extension Support table in `DOCKER_README.md` to include tool counts matching `README.md`.

@@ -157,9 +157,6 @@ export function parseToolFilter(
     enabledTools.clear();
   }
 
-  // Track if codemode was explicitly excluded
-  let codemodeExplicitlyExcluded = false;
-
   for (const part of parts) {
     if (!part) continue;
 
@@ -174,11 +171,6 @@ export function parseToolFilter(
       isInclude = false;
       isExclude = true;
       target = part.substring(1);
-    }
-
-    // Track explicit codemode exclusion
-    if (target === "codemode" && isExclude) {
-      codemodeExplicitlyExcluded = true;
     }
 
     // Special case: 'all'
@@ -202,7 +194,6 @@ export function parseToolFilter(
       isGroup: targetIsGroup || targetIsMetaGroup,
     });
 
-    // Apply rule - check meta-groups first, then regular groups, then individual tools
     if (targetIsMetaGroup) {
       // Expand meta-group to all its underlying groups' tools
       const metaGroupTools = getMetaGroupTools(target as MetaGroup);
@@ -236,12 +227,18 @@ export function parseToolFilter(
     }
   }
 
-  // Auto-include codemode unless explicitly excluded with -codemode
-  // This ensures code mode is always available by default
-  if (!codemodeExplicitlyExcluded) {
-    const codemodeTools = TOOL_GROUPS.codemode;
-    for (const tool of codemodeTools) {
-      enabledTools.add(tool);
+  // Auto-inject codemode tools (pg_execute_code) in whitelist mode only.
+  // In blacklist mode (starts with -), codemode is already in the initial set
+  // and user exclusions are respected. In whitelist mode, raw group filters
+  // (e.g., "core") would otherwise miss codemode — every meta-group includes it.
+  if (!startsWithExclude && enabledTools.size > 0) {
+    const codemodeExplicitlyExcluded = parts.some(
+      (p) => p === "-codemode" || p === "-pg_execute_code",
+    );
+    if (!codemodeExplicitlyExcluded) {
+      for (const tool of TOOL_GROUPS.codemode) {
+        enabledTools.add(tool);
+      }
     }
   }
 
