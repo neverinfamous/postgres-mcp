@@ -195,6 +195,27 @@ describe("pg_dependency_graph", () => {
       ["app"],
     );
   });
+
+  it("should return hint for nonexistent schema", async () => {
+    // Mock FK and table queries returning empty for unknown schema
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_dependency_graph")!;
+    const result = (await tool.handler(
+      { schema: "nonexistent_schema_xyz" },
+      mockContext,
+    )) as {
+      nodes: unknown[];
+      edges: unknown[];
+      hint?: string;
+    };
+
+    expect(result.nodes).toHaveLength(0);
+    expect(result.edges).toHaveLength(0);
+    expect(result.hint).toBeDefined();
+    expect(result.hint).toContain("nonexistent_schema_xyz");
+  });
 });
 
 // =============================================================================
@@ -1088,6 +1109,34 @@ describe("pg_migration_record", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Duplicate migration");
+  });
+
+  it("should return structured error for missing version", async () => {
+    const tool = tools.find((t) => t.name === "pg_migration_record")!;
+    const result = (await tool.handler(
+      {
+        migrationSql: "CREATE TABLE users (id SERIAL PRIMARY KEY)",
+      },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(result.error).toContain("Validation error");
+  });
+
+  it("should return structured error for missing migrationSql", async () => {
+    const tool = tools.find((t) => t.name === "pg_migration_record")!;
+    const result = (await tool.handler(
+      {
+        version: "1.0.0",
+      },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(result.error).toContain("Validation error");
   });
 });
 

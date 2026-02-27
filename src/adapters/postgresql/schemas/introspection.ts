@@ -210,6 +210,31 @@ export const MigrationInitSchema = MigrationInitSchemaBase;
 export const MigrationRecordSchemaBase = z.object({
   version: z
     .string()
+    .optional()
+    .describe("Version identifier (e.g., '1.0.0', '2024-01-15-add-users')"),
+  description: z
+    .string()
+    .optional()
+    .describe("Human-readable description of the migration"),
+  migrationSql: z
+    .string()
+    .optional()
+    .describe("The DDL/SQL statements applied"),
+  rollbackSql: z.string().optional().describe("SQL to reverse this migration"),
+  sourceSystem: z
+    .string()
+    .optional()
+    .describe("Origin system (e.g., 'mysql', 'sqlite', 'manual', 'agent')"),
+  appliedBy: z
+    .string()
+    .optional()
+    .describe("Who/what applied this migration (e.g., agent name, user)"),
+});
+
+// Internal parse schema — version and migrationSql are required
+const MigrationRecordParseSchema = z.object({
+  version: z
+    .string()
     .describe("Version identifier (e.g., '1.0.0', '2024-01-15-add-users')"),
   description: z
     .string()
@@ -227,7 +252,7 @@ export const MigrationRecordSchemaBase = z.object({
     .describe("Who/what applied this migration (e.g., agent name, user)"),
 });
 
-export const MigrationRecordSchema = MigrationRecordSchemaBase;
+export const MigrationRecordSchema = MigrationRecordParseSchema;
 
 /**
  * pg_migration_rollback input
@@ -316,6 +341,7 @@ export const DependencyGraphOutputSchema = z.object({
     rootTables: z.array(z.string()),
     leafTables: z.array(z.string()),
   }),
+  hint: z.string().optional(),
 });
 
 export const TopologicalSortOutputSchema = z.object({

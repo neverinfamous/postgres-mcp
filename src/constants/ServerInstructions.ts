@@ -465,7 +465,7 @@ Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`sc
 - \`pg_migration_risks\`: Static DDL risk assessment. ⚠️ Does NOT validate object existence—analyzes SQL patterns only. Returns \`{risks, summary}\`
 
 **Migration Tracking (5 tools):**
-- \`pg_migration_init\`: Initialize/verify \`_mcp_schema_versions\` tracking table (idempotent). Returns \`{initialized, created, tableName}\`
+- \`pg_migration_init\`: Initialize/verify \`_mcp_schema_versions\` tracking table (idempotent). Returns \`{success, tableCreated, tableName, existingRecords}\`
 - \`pg_migration_record\`: Record a migration with SHA-256 hash dedup. ⚠️ Records metadata only—does NOT execute the SQL. Params: \`version\`, \`description?\`, \`migrationSql\`, \`rollbackSql?\`, \`sourceSystem?\`. Returns \`{success, record}\`
 - \`pg_migration_rollback\`: Execute stored rollback SQL in a transaction. \`dryRun: true\` (default) previews without executing. Lookup by \`id\` or \`version\`. Returns \`{success, dryRun, rollbackSql, record}\`
 - \`pg_migration_history\`: Query migration history with \`status?\` ('applied'|'rolled_back'), \`sourceSystem?\`, \`limit?\`, \`offset?\`. Returns \`{records, total, limit, offset}\`

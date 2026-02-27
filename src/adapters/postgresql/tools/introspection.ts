@@ -446,6 +446,12 @@ function createDependencyGraphTool(adapter: PostgresAdapter): ToolDefinition {
         onUpdate: fk.onUpdate,
       }));
 
+      // Add hint for nonexistent/empty schema
+      const hint =
+        parsed.schema !== undefined && allNodes.size === 0
+          ? `Schema '${parsed.schema}' returned no tables. Verify the schema exists with pg_list_schemas.`
+          : undefined;
+
       return {
         nodes,
         edges,
@@ -457,6 +463,7 @@ function createDependencyGraphTool(adapter: PostgresAdapter): ToolDefinition {
           rootTables,
           leafTables,
         },
+        ...(hint !== undefined && { hint }),
       };
     },
   };
@@ -1538,7 +1545,25 @@ function createMigrationRecordTool(adapter: PostgresAdapter): ToolDefinition {
     annotations,
     icons: getToolIcons("introspection", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = MigrationRecordSchema.parse(params);
+      let parsed;
+      try {
+        parsed = MigrationRecordSchema.parse(params);
+      } catch (error: unknown) {
+        if (
+          error !== null &&
+          typeof error === "object" &&
+          "issues" in error &&
+          Array.isArray((error as { issues: unknown[] }).issues)
+        ) {
+          const issues = (error as { issues: { message: string }[] }).issues;
+          const messages = issues.map((i) => i.message).join("; ");
+          return {
+            success: false,
+            error: `Validation error: ${messages}`,
+          };
+        }
+        throw error;
+      }
       await ensureTrackingTable(adapter);
 
       const migrationHash = hashMigrationSql(parsed.migrationSql);

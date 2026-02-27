@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_migration_record` raw MCP error for missing required params** — `pg_migration_record({})` or `pg_migration_record({ migrationSql: "..." })` (missing `version`) now returns `{success: false, error: "Validation error: ..."}` instead of a raw MCP Zod validation error (`-32602`). Applied Split Schema pattern: `MigrationRecordSchemaBase` (optional fields) for MCP `inputSchema` visibility, `MigrationRecordParseSchema` (required fields) for handler parsing inside `try/catch`. Added 2 unit tests
+
+- **`pg_dependency_graph` silent empty result for nonexistent schema** — `pg_dependency_graph({ schema: "nonexistent" })` now returns a `hint` field (`"Schema 'nonexistent' returned no tables. Verify the schema exists with pg_list_schemas."`) alongside the empty `nodes`/`edges` arrays. Previously returned an empty graph with no indication that the schema might not exist. Added `hint` optional field to `DependencyGraphOutputSchema`. Added 1 unit test
+
+- **`ServerInstructions.ts` `pg_migration_init` incorrect response docs** — Fixed documented response from `{initialized, created, tableName}` to `{success, tableCreated, tableName, existingRecords}` to match the actual handler output
+
 - **`pg_cascade_simulator` conflates NO ACTION with RESTRICT label** — The `action` field in `affectedTables` now preserves the actual FK constraint action (`"NO ACTION"` or `"RESTRICT"`) instead of mapping both to `"RESTRICT"`. Both still correctly increment the `restrictActions` counter since both block the operation
 
 - **`pg_constraint_analysis` raw MCP error (SQL type mismatch)** — Fixed `operator does not exist: smallint[] <@ int2vector` error by casting `ix.indkey` to `smallint[]` in the unindexed FK detection query. Previously, calling `pg_constraint_analysis` on any schema with foreign keys threw a raw MCP error instead of returning structured results
