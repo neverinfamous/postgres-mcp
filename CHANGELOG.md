@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- **README.md Code Mode promotion** — Updated the opening description and the "What Sets Us Apart" table to strongly emphasize Code Mode's massive token savings, highlighting that a single sandbox execution eliminates the overhead of multi-step tool calls for all 217 tools
+- **README.md and DOCKER_README.md Code Mode promotion** — Updated the opening description and the "What Sets Us Apart" table to strongly emphasize Code Mode's massive token savings, highlighting that a single sandbox execution eliminates the overhead of multi-step tool calls for all 217 tools
 
 ### Added
 
