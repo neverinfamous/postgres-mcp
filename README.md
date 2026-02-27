@@ -6,7 +6,7 @@
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, Code Mode, tool filtering, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**206 specialized tools** · **20 resources** · **19 AI-powered prompts**
+**212 specialized tools** · **20 resources** · **19 AI-powered prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgresql-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgresql-mcp)
@@ -26,12 +26,12 @@
 
 | Feature                          | Description                                                                                                                                                                                   |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **206 Specialized Tools**        | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, and 8 extension ecosystems                                   |
+| **212 Specialized Tools**        | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, and 8 extension ecosystems           |
 | **20 Observability Resources**   | Real-time schema, performance metrics, connection pool status, replication lag, vacuum stats, lock contention, and extension diagnostics                                                      |
 | **19 AI-Powered Prompts**        | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                   |
 | **Code Mode**                    | Sandboxed JavaScript execution with 70-90% token reduction for multi-step operations                                                                                                          |
 | **OAuth 2.1 + Access Control**   | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                    |
-| **Smart Tool Filtering**         | 20 tool groups + 15 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                             |
+| **Smart Tool Filtering**         | 21 tool groups + 15 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                             |
 | **HTTP Streaming Transport**     | SSE-based streaming with `/mcp`, and `/health` endpoints for remote deployments                                                                                                               |
 | **High-Performance Pooling**     | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                      |
 | **8 Extension Ecosystems**       | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                   |
@@ -69,12 +69,12 @@ Code executes in a **sandboxed VM context** with multiple layers of security. Al
 - **Static code validation** — blocked patterns include `require()`, `process`, `eval()`, and filesystem access
 - **Rate limiting** — 60 executions per minute per client
 - **Hard timeouts** — configurable execution limit (default 30s)
-- **Full API access** — all 20 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`)
+- **Full API access** — all 21 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`)
 - **Requires `admin` OAuth scope** — execution is logged for audit
 
 ### ⚡ Code Mode Only (Maximum Token Savings)
 
-If you control your own setup, you can run with **only Code Mode enabled** — a single tool that provides access to all 206 tools' worth of capability through the `pg.*` API:
+If you control your own setup, you can run with **only Code Mode enabled** — a single tool that provides access to all 212 tools' worth of capability through the `pg.*` API:
 
 ```json
 {
@@ -100,7 +100,7 @@ If you control your own setup, you can run with **only Code Mode enabled** — a
 }
 ```
 
-This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 20 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
+This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 21 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
 
 > [!TIP]
 > **Maximize Token Savings:** Instruct your AI agent to prefer Code Mode over individual tool calls:
@@ -228,7 +228,7 @@ node dist/cli.js list-tools
 ## 🛠️ Tool Filtering
 
 > [!IMPORTANT]
-> AI IDEs like Cursor have tool limits. With 206 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
+> AI IDEs like Cursor have tool limits. With 212 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
 
 ### What Can You Filter?
 
@@ -247,50 +247,51 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 
 > Tool counts include Code Mode (`pg_execute_code`) which is included in all presets by default.
 
-| Shortcut       | Tools  | Use Case                 | What's Included                                          |
-| -------------- | ------ | ------------------------ | -------------------------------------------------------- |
-| `starter`      | **59** | 🌟 **Recommended**       | Core, trans, JSONB, schema, codemode                     |
-| `essential`    | 47     | Minimal footprint        | Core, trans, JSONB, codemode                             |
-| `dev-power`    | 54     | Power Developer          | Core, trans, schema, stats, part, codemode               |
-| `ai-data`      | 60     | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
-| `ai-vector`    | 50     | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
-| `dba-monitor`  | 59     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
-| `dba-manage`   | 58     | DBA Management           | Core, admin, backup, part, schema, codemode              |
-| `dba-stats`    | 57     | DBA Stats/Security       | Core, admin, monitoring, trans, stats, codemode          |
-| `geo`          | 43     | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
-| `base-core`    | 59     | Base Building Block      | Core, JSONB, trans, schema, codemode                     |
-| `base-ops`     | 51     | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
-| `ext-ai`       | 26     | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
-| `ext-geo`      | 24     | Extension: Spatial       | PostGIS, ltree, codemode                                 |
-| `ext-schedule` | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
-| `ext-perf`     | 28     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
+| Shortcut       | Tools  | Use Case                 | What's Included                                            |
+| -------------- | ------ | ------------------------ | ---------------------------------------------------------- |
+| `starter`      | **59** | 🌟 **Recommended**       | Core, trans, JSONB, schema, codemode                       |
+| `essential`    | 47     | Minimal footprint        | Core, trans, JSONB, codemode                               |
+| `dev-power`    | 60     | Power Developer          | Core, trans, schema, stats, part, introspection, codemode  |
+| `ai-data`      | 60     | AI Data Analyst          | Core, JSONB, text, trans, codemode                         |
+| `ai-vector`    | 50     | AI/ML with pgvector      | Core, vector, trans, part, codemode                        |
+| `dba-monitor`  | 59     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                    |
+| `dba-manage`   | 64     | DBA Management           | Core, admin, backup, part, schema, introspection, codemode |
+| `dba-stats`    | 57     | DBA Stats/Security       | Core, admin, monitoring, trans, stats, codemode            |
+| `geo`          | 43     | Geospatial Workloads     | Core, PostGIS, trans, codemode                             |
+| `base-core`    | 59     | Base Building Block      | Core, JSONB, trans, schema, codemode                       |
+| `base-ops`     | 51     | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode   |
+| `ext-ai`       | 26     | Extension: AI/Security   | pgvector, pgcrypto, codemode                               |
+| `ext-geo`      | 24     | Extension: Spatial       | PostGIS, ltree, codemode                                   |
+| `ext-schedule` | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                              |
+| `ext-perf`     | 28     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                      |
 
-### Tool Groups (20 Available)
+### Tool Groups (21 Available)
 
 > Tool counts include Code Mode (`pg_execute_code`) which is added to all groups by default.
 
-| Group          | Tools | Description                                                 |
-| -------------- | ----- | ----------------------------------------------------------- |
-| `core`         | 21    | Read/write queries, tables, indexes, convenience/drop tools |
-| `transactions` | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
-| `jsonb`        | 20    | JSONB manipulation and queries                              |
-| `text`         | 14    | Full-text search, fuzzy matching                            |
-| `performance`  | 21    | EXPLAIN, query analysis, optimization                       |
-| `admin`        | 11    | VACUUM, ANALYZE, REINDEX                                    |
-| `monitoring`   | 12    | Database sizes, connections, status                         |
-| `backup`       | 10    | pg_dump, COPY, restore                                      |
-| `schema`       | 13    | Schemas, views, sequences, functions, triggers              |
-| `partitioning` | 7     | Native partition management                                 |
-| `stats`        | 9     | Statistical analysis                                        |
-| `vector`       | 17    | pgvector (AI/ML similarity search)                          |
-| `postgis`      | 16    | PostGIS (geospatial)                                        |
-| `cron`         | 9     | pg_cron (job scheduling)                                    |
-| `partman`      | 11    | pg_partman (auto-partitioning)                              |
-| `kcache`       | 8     | pg_stat_kcache (OS-level stats)                             |
-| `citext`       | 7     | citext (case-insensitive text)                              |
-| `ltree`        | 9     | ltree (hierarchical data)                                   |
-| `pgcrypto`     | 10    | pgcrypto (encryption, UUIDs)                                |
-| `codemode`     | 1     | Code Mode (sandboxed code execution)                        |
+| Group           | Tools | Description                                                 |
+| --------------- | ----- | ----------------------------------------------------------- |
+| `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools |
+| `transactions`  | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
+| `jsonb`         | 20    | JSONB manipulation and queries                              |
+| `text`          | 14    | Full-text search, fuzzy matching                            |
+| `performance`   | 21    | EXPLAIN, query analysis, optimization                       |
+| `admin`         | 11    | VACUUM, ANALYZE, REINDEX                                    |
+| `monitoring`    | 12    | Database sizes, connections, status                         |
+| `backup`        | 10    | pg_dump, COPY, restore                                      |
+| `schema`        | 13    | Schemas, views, sequences, functions, triggers              |
+| `introspection` | 7     | Dependency graphs, cascade simulation, migration risks      |
+| `partitioning`  | 7     | Native partition management                                 |
+| `stats`         | 9     | Statistical analysis                                        |
+| `vector`        | 17    | pgvector (AI/ML similarity search)                          |
+| `postgis`       | 16    | PostGIS (geospatial)                                        |
+| `cron`          | 9     | pg_cron (job scheduling)                                    |
+| `partman`       | 11    | pg_partman (auto-partitioning)                              |
+| `kcache`        | 8     | pg_stat_kcache (OS-level stats)                             |
+| `citext`        | 7     | citext (case-insensitive text)                              |
+| `ltree`         | 9     | ltree (hierarchical data)                                   |
+| `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                |
+| `codemode`      | 1     | Code Mode (sandboxed code execution)                        |
 
 ---
 
@@ -535,7 +536,7 @@ This server provides **20 resources** for structured data access:
 | `ltree`              | Hierarchical tree labels       | 8 ltree tools              |
 | `pgcrypto`           | Hashing, encryption, UUIDs     | 9 pgcrypto tools           |
 
-> Extension tools gracefully handle cases where extensions are not installed. Extension tool counts include `create_extension` helpers, which are utility tools excluded from the published 206 count.
+> Extension tools gracefully handle cases where extensions are not installed. Extension tool counts include `create_extension` helpers, which are utility tools excluded from the published 212 count.
 
 ---
 

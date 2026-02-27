@@ -27,6 +27,7 @@ export type ToolGroup =
   | "citext" // citext extension - case-insensitive text
   | "ltree" // ltree extension - hierarchical tree labels
   | "pgcrypto" // pgcrypto extension - cryptographic functions
+  | "introspection" // Agent-optimized database analysis & migration support
   | "codemode"; // Code Mode - sandboxed code execution
 
 /**

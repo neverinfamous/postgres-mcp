@@ -203,7 +203,7 @@ describe("Tool Filtering Benchmarks", () => {
         `[BENCH] getToolGroupInfo():  mean=${String(result.mean)}µs  p95=${String(result.p95)}µs  groups=${String(info.length)}`,
       );
 
-      expect(info.length).toBe(20);
+      expect(info.length).toBe(21);
       expect(result.p95).toBeLessThan(500);
     });
 

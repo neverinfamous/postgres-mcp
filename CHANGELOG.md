@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Performance benchmark suite** — 59 micro-benchmarks across 7 audit domains in `src/__tests__/benchmarks/`: connection pool (6), code mode sandbox (16), tool filtering (10), utilities (13), transport & auth (14). Measures framework overhead with mocked dependencies to isolate platform cost from database latency
+- **Introspection tool group (6 tools)** — New `introspection` group providing agent-optimized schema analysis for complex database operations. All tools return structured JSON from read-only `pg_catalog` queries:
+  - `pg_dependency_graph` — Foreign key dependency graph with cycle detection, row counts, and severity assessment
+  - `pg_topological_sort` — Safe DDL execution order for CREATE/DROP operations using Kahn's algorithm
+  - `pg_cascade_simulator` — Simulates DELETE/DROP/TRUNCATE impact with cascade path tracing and severity rating
+  - `pg_schema_snapshot` — Comprehensive schema snapshot (tables, views, indexes, constraints, functions, triggers, sequences, types, extensions) in a single call
+  - `pg_constraint_analysis` — Identifies redundant constraints, missing indexes on FKs, missing PKs, and unindexed foreign keys
+  - `pg_migration_risks` — Assesses DDL statements for data loss, lock contention, breaking changes, and downtime requirements
+  - Integrated into Code Mode as `pg.introspection.*` with 6 methods and aliases
+  - Added to `dev-power` (54→60 tools) and `dba-manage` (58→64 tools) shortcut bundles
+  - Total tools: 206→212, total groups: 20→21
 
 ### Removed
 

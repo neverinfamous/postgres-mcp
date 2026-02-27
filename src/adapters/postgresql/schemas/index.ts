@@ -510,3 +510,27 @@ export {
   HypothesisOutputSchema,
   SamplingOutputSchema,
 } from "./stats.js";
+
+// Introspection schemas (agent-optimized database analysis)
+export {
+  // Input schemas
+  DependencyGraphSchemaBase,
+  DependencyGraphSchema,
+  TopologicalSortSchemaBase,
+  TopologicalSortSchema,
+  CascadeSimulatorSchemaBase,
+  CascadeSimulatorSchema,
+  SchemaSnapshotSchemaBase,
+  SchemaSnapshotSchema,
+  ConstraintAnalysisSchemaBase,
+  ConstraintAnalysisSchema,
+  MigrationRisksSchemaBase,
+  MigrationRisksSchema,
+  // Output schemas
+  DependencyGraphOutputSchema,
+  TopologicalSortOutputSchema,
+  CascadeSimulatorOutputSchema,
+  SchemaSnapshotOutputSchema,
+  ConstraintAnalysisOutputSchema,
+  MigrationRisksOutputSchema,
+} from "./introspection.js";
