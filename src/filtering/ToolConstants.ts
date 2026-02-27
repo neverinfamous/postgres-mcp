@@ -277,6 +277,11 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_schema_snapshot",
     "pg_constraint_analysis",
     "pg_migration_risks",
+    "pg_migration_init",
+    "pg_migration_record",
+    "pg_migration_rollback",
+    "pg_migration_history",
+    "pg_migration_status",
   ],
   pgcrypto: [
     "pg_pgcrypto_create_extension",
@@ -300,18 +305,18 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
  *
  * Group sizes:
  *   core:20, transactions:7, jsonb:19, text:13, performance:20,
- *   admin:10, monitoring:11, backup:9, schema:12, introspection:6,
+ *   admin:10, monitoring:11, backup:9, schema:12, introspection:11,
  *   vector:16, postgis:15, partitioning:6, stats:8, cron:8, partman:10
  *   kcache:7, citext:6, ltree:8, pgcrypto:9, codemode:1
  *
  * Tool counts (with codemode):
  *   starter:      59 (core:20 + transactions:7 + jsonb:19 + schema:12 + codemode:1)
  *   essential:    47 (core:20 + transactions:7 + jsonb:19 + codemode:1)
- *   dev-power:    60 (core:20 + transactions:7 + schema:12 + stats:8 + partitioning:6 + introspection:6 + codemode:1)
+ *   dev-power:    65 (core:20 + transactions:7 + schema:12 + stats:8 + partitioning:6 + introspection:11 + codemode:1)
  *   ai-data:      60 (core:20 + jsonb:19 + text:13 + transactions:7 + codemode:1)
  *   ai-vector:    50 (core:20 + vector:16 + transactions:7 + partitioning:6 + codemode:1)
  *   dba-monitor:  59 (core:20 + monitoring:11 + performance:20 + transactions:7 + codemode:1)
- *   dba-manage:   64 (core:20 + admin:10 + backup:9 + partitioning:6 + schema:12 + introspection:6 + codemode:1)
+ *   dba-manage:   69 (core:20 + admin:10 + backup:9 + partitioning:6 + schema:12 + introspection:11 + codemode:1)
  *   dba-stats:    57 (core:20 + admin:10 + monitoring:11 + transactions:7 + stats:8 + codemode:1)
  *   geo:          43 (core:20 + postgis:15 + transactions:7 + codemode:1)
  *   base-core:    59 (core:20 + jsonb:19 + transactions:7 + schema:12 + codemode:1)

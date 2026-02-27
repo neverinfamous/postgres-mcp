@@ -334,9 +334,9 @@ export class PostgresAdapter extends DatabaseAdapter {
           }
           throw new TransactionError(
             "Transaction is in an aborted state and cannot be committed. " +
-            "PostgreSQL has discarded all changes. " +
-            "A previous statement in this transaction failed, putting it into an error state. " +
-            "The transaction has been rolled back.",
+              "PostgreSQL has discarded all changes. " +
+              "A previous statement in this transaction failed, putting it into an error state. " +
+              "The transaction has been rolled back.",
           );
         }
         // Non-aborted probe error — let it fall through to COMMIT
@@ -821,10 +821,10 @@ export class PostgresAdapter extends DatabaseAdapter {
         // Include foreign key reference if present
         foreignKey: fkRef
           ? {
-            table: fkRef.table,
-            schema: fkRef.schema,
-            column: fkRef.column,
-          }
+              table: fkRef.table,
+              schema: fkRef.schema,
+              column: fkRef.column,
+            }
           : undefined,
       };
     });

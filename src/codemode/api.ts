@@ -224,6 +224,11 @@ const METHOD_ALIASES: Record<string, Record<string, string>> = {
     snapshot: "schemaSnapshot", // snapshot() → schemaSnapshot()
     constraints: "constraintAnalysis", // constraints() → constraintAnalysis()
     risks: "migrationRisks", // risks() → migrationRisks()
+    init: "migrationInit", // init() → migrationInit()
+    record: "migrationRecord", // record() → migrationRecord()
+    rollback: "migrationRollback", // rollback() → migrationRollback()
+    history: "migrationHistory", // history() → migrationHistory()
+    status: "migrationStatus", // status() → migrationStatus()
   },
 };
 
@@ -364,6 +369,11 @@ const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.introspection.schemaSnapshot({ sections: ['tables', 'constraints'] })",
     "pg.introspection.constraintAnalysis({ checks: ['unindexed_fk', 'missing_pk'] })",
     "pg.introspection.migrationRisks({ statements: ['ALTER TABLE users DROP COLUMN email'] })",
+    "pg.introspection.migrationInit()",
+    "pg.introspection.migrationRecord({ version: '1.0.0', migrationSql: 'ALTER TABLE...', rollbackSql: 'ALTER TABLE...' })",
+    "pg.introspection.migrationRollback({ version: '1.0.0', dryRun: true })",
+    "pg.introspection.migrationHistory({ status: 'applied' })",
+    "pg.introspection.migrationStatus()",
   ],
 };
 /**
@@ -513,10 +523,10 @@ const ARRAY_WRAP_MAP: Record<string, string> = {
  * has already provided the correct structure (e.g., { data: {...} }).
  */
 const OBJECT_WRAP_MAP: Record<string, { wrapKey: string; skipKeys: string[] }> =
-{
-  object: { wrapKey: "data", skipKeys: ["data", "object", "pairs"] }, // pg.jsonb.object({key: val}) → {data: {key: val}}
-  jsonbObject: { wrapKey: "data", skipKeys: ["data", "object", "pairs"] }, // alias
-};
+  {
+    object: { wrapKey: "data", skipKeys: ["data", "object", "pairs"] }, // pg.jsonb.object({key: val}) → {data: {key: val}}
+    jsonbObject: { wrapKey: "data", skipKeys: ["data", "object", "pairs"] }, // alias
+  };
 
 /**
  * Normalize parameters to support positional arguments.

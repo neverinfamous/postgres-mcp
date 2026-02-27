@@ -26,7 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `pg_migration_risks` — Assesses DDL statements for data loss, lock contention, breaking changes, and downtime requirements
   - Integrated into Code Mode as `pg.introspection.*` with 6 methods and aliases
   - Added to `dev-power` (54→60 tools) and `dba-manage` (58→64 tools) shortcut bundles
-  - Total tools: 206→212, total groups: 20→21
+- **Schema version tracking (5 tools)** — Migration audit trail, rollback capability, and continuation tracking via auto-provisioned `_mcp_schema_versions` table:
+  - `pg_migration_init` — Initialize/verify tracking table (idempotent)
+  - `pg_migration_record` — Record migrations with SHA-256 hash dedup, rollback SQL, and source system tracking
+  - `pg_migration_rollback` — Execute stored rollback SQL in a transaction with dry-run preview
+  - `pg_migration_history` — Query migration history with filtering by status/source and pagination
+  - `pg_migration_status` — Aggregate status dashboard (counts by status, latest version, source systems)
+  - Introspection group scope upgraded from `READ` → `WRITE` to support migration writes
+  - Total tools: 212→217
 
 ### Removed
 

@@ -181,6 +181,105 @@ export const MigrationRisksSchemaBase = z.object({
 export const MigrationRisksSchema = MigrationRisksSchemaBase;
 
 // =============================================================================
+// Migration Tracking Input Schemas (Phase 2: Schema Version Tracking)
+// =============================================================================
+
+/**
+ * pg_migration_init input
+ */
+export const MigrationInitSchemaBase = z
+  .object({
+    schema: z
+      .string()
+      .optional()
+      .describe("Schema to create the tracking table in (default: public)"),
+  })
+  .default({});
+
+export const MigrationInitSchema = MigrationInitSchemaBase;
+
+/**
+ * pg_migration_record input
+ */
+export const MigrationRecordSchemaBase = z.object({
+  version: z
+    .string()
+    .describe("Version identifier (e.g., '1.0.0', '2024-01-15-add-users')"),
+  description: z
+    .string()
+    .optional()
+    .describe("Human-readable description of the migration"),
+  migrationSql: z.string().describe("The DDL/SQL statements applied"),
+  rollbackSql: z.string().optional().describe("SQL to reverse this migration"),
+  sourceSystem: z
+    .string()
+    .optional()
+    .describe("Origin system (e.g., 'mysql', 'sqlite', 'manual', 'agent')"),
+  appliedBy: z
+    .string()
+    .optional()
+    .describe("Who/what applied this migration (e.g., agent name, user)"),
+});
+
+export const MigrationRecordSchema = MigrationRecordSchemaBase;
+
+/**
+ * pg_migration_rollback input
+ */
+export const MigrationRollbackSchemaBase = z.object({
+  id: z.number().optional().describe("Migration ID to roll back"),
+  version: z
+    .string()
+    .optional()
+    .describe("Migration version to roll back (alternative to id)"),
+  dryRun: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, return the rollback SQL without executing (default: false)",
+    ),
+});
+
+export const MigrationRollbackSchema = MigrationRollbackSchemaBase;
+
+/**
+ * pg_migration_history input
+ */
+export const MigrationHistorySchemaBase = z
+  .object({
+    status: z
+      .enum(["applied", "rolled_back", "failed"])
+      .optional()
+      .describe("Filter by status"),
+    sourceSystem: z.string().optional().describe("Filter by source system"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Maximum records to return (default: 50)"),
+    offset: z
+      .number()
+      .optional()
+      .describe("Offset for pagination (default: 0)"),
+  })
+  .default({});
+
+export const MigrationHistorySchema = MigrationHistorySchemaBase;
+
+/**
+ * pg_migration_status input
+ */
+export const MigrationStatusSchemaBase = z
+  .object({
+    schema: z
+      .string()
+      .optional()
+      .describe("Schema where the tracking table lives (default: public)"),
+  })
+  .default({});
+
+export const MigrationStatusSchema = MigrationStatusSchemaBase;
+
+// =============================================================================
 // Output Schemas
 // =============================================================================
 
@@ -301,4 +400,58 @@ export const MigrationRisksOutputSchema = z.object({
     requiresDowntime: z.boolean(),
     estimatedLockImpact: z.string(),
   }),
+});
+
+// =============================================================================
+// Migration Tracking Output Schemas
+// =============================================================================
+
+const MigrationRecordOutputEntry = z.object({
+  id: z.number(),
+  version: z.string(),
+  description: z.string().nullable(),
+  appliedAt: z.string(),
+  appliedBy: z.string().nullable(),
+  migrationHash: z.string(),
+  sourceSystem: z.string().nullable(),
+  status: z.string(),
+});
+
+export const MigrationInitOutputSchema = z.object({
+  success: z.boolean(),
+  tableCreated: z.boolean(),
+  tableName: z.string(),
+  existingRecords: z.number(),
+});
+
+export const MigrationRecordOutputSchema = z.object({
+  success: z.boolean(),
+  record: MigrationRecordOutputEntry,
+});
+
+export const MigrationRollbackOutputSchema = z.object({
+  success: z.boolean(),
+  dryRun: z.boolean(),
+  rollbackSql: z.string().nullable(),
+  record: MigrationRecordOutputEntry,
+});
+
+export const MigrationHistoryOutputSchema = z.object({
+  records: z.array(MigrationRecordOutputEntry),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+});
+
+export const MigrationStatusOutputSchema = z.object({
+  initialized: z.boolean(),
+  latestVersion: z.string().nullable(),
+  latestAppliedAt: z.string().nullable(),
+  counts: z.object({
+    total: z.number(),
+    applied: z.number(),
+    rolledBack: z.number(),
+    failed: z.number(),
+  }),
+  sourceSystems: z.array(z.string()),
 });
