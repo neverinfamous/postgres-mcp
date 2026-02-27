@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`ServerInstructions.ts` `pg_migration_history` incomplete status filter values** — Added `'failed'` to the documented status filter values (`'applied'|'rolled_back'` → `'applied'|'rolled_back'|'failed'`). The `'failed'` status is a valid filter value accepted by the Zod enum and correctly returns failed migration entries, but was missing from the Code Mode documentation
+
 - **`pg_topological_sort` silent empty result for nonexistent schema** — `pg_topological_sort({ schema: "nonexistent" })` now returns a `hint` field (`"Schema 'nonexistent' returned no tables. Verify the schema exists with pg_list_schemas."`) alongside the empty `order` array. Previously returned an empty order with `hasCycles: false` and no indication that the schema might not exist. Added `hint` optional field to `TopologicalSortOutputSchema`. Added 1 unit test
 
 - **`pg_constraint_analysis` silent empty result for nonexistent table** — `pg_constraint_analysis({ table: "nonexistent" })` now returns a `hint` field (`"No findings for table 'public.nonexistent'. Verify the table exists with pg_list_tables."`) alongside the empty findings. Previously returned `{findings: [], summary: {totalFindings: 0}}` with no indication that the table might not exist. Added `hint` optional field to `ConstraintAnalysisOutputSchema`. Added 1 unit test

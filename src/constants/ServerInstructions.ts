@@ -469,7 +469,7 @@ Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`sc
 - \`pg_migration_record\`: Record a migration with SHA-256 hash dedup. ⚠️ Records metadata only—does NOT execute the SQL. Use \`pg_migration_apply\` instead for complete migrations. Params: \`version\`, \`description?\`, \`migrationSql\`, \`rollbackSql?\`, \`sourceSystem?\`. Returns \`{success, record}\`
 - \`pg_migration_apply\`: Execute migration SQL and record it atomically in a single transaction. On failure, rolls back and records status as 'failed'. Same params as \`pg_migration_record\`. Returns \`{success, record}\` or \`{success: false, error}\`
 - \`pg_migration_rollback\`: Execute stored rollback SQL in a transaction. \`dryRun: true\` (default) previews without executing. Lookup by \`id\` or \`version\`. Returns \`{success, dryRun, rollbackSql, record}\`
-- \`pg_migration_history\`: Query migration history with \`status?\` ('applied'|'rolled_back'), \`sourceSystem?\`, \`limit?\`, \`offset?\`. Returns \`{records, total, limit, offset}\`
+- \`pg_migration_history\`: Query migration history with \`status?\` ('applied'|'rolled_back'|'failed'), \`sourceSystem?\`, \`limit?\`, \`offset?\`. Returns \`{records, total, limit, offset}\`
 - \`pg_migration_status\`: Aggregate dashboard. Returns \`{initialized, latestVersion, counts, sourceSystems}\`
 
 **Discovery**: \`pg.introspection.help()\` returns \`{methods, methodAliases, examples}\``;
