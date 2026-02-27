@@ -22,6 +22,9 @@ import type {
   RequestContext,
   ToolGroup,
 } from "../types/index.js";
+import { getAuthContext } from "../auth/auth-context.js";
+import { getRequiredScope } from "../auth/scope-map.js";
+import { requireScope } from "../auth/middleware.js";
 
 /**
  * Abstract base class for database adapters
@@ -219,6 +222,13 @@ export abstract class DatabaseAdapter {
       },
       async (args: unknown, extra: unknown) => {
         try {
+          // Enforce OAuth scope if auth context is present
+          const authCtx = getAuthContext();
+          if (authCtx?.authenticated) {
+            const requiredScope = getRequiredScope(tool.name);
+            requireScope(authCtx, requiredScope);
+          }
+
           // Extract progressToken from extra._meta (SDK passes RequestHandlerExtra)
           const extraMeta = extra as {
             _meta?: { progressToken?: string | number };

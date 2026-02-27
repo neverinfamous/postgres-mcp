@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SECURITY.md Code Mode sandbox boundaries** — Added documentation clarifying that `node:vm` provides script isolation (not security isolation), listing all defense-in-depth mitigations, and stating the trusted AI agent threat model
 - **Gitleaks CI gate enforcement** — Removed `continue-on-error: true` from the Gitleaks step in `secrets-scanning.yml` so confirmed secret leaks now block the CI pipeline. TruffleHog retains `continue-on-error` for `--only-verified` tuning
 - **CLI `--password` security guidance** — Updated `--password` help text to recommend `PGPASSWORD` environment variable to avoid credential exposure in process listings
+- **Per-tool OAuth scope enforcement** — Tool invocations now check the calling token's scopes against the tool group's required scope (`read`, `write`, or `admin`). Uses `AsyncLocalStorage` to thread auth context from the HTTP transport through the MCP SDK to the tool handler wrapper. Scope checks are skipped when OAuth is not configured (stdio transport, backward-compatible). New files: `auth-context.ts`, `scope-map.ts`
 
 ### Dependencies
 

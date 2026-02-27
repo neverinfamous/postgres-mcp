@@ -12,7 +12,12 @@ import {
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { OAuthResourceServer } from "../auth/OAuthResourceServer.js";
 import type { TokenValidator } from "../auth/TokenValidator.js";
-import { validateAuth, formatOAuthError } from "../auth/middleware.js";
+import {
+  validateAuth,
+  formatOAuthError,
+  type AuthenticatedContext,
+} from "../auth/middleware.js";
+import { runWithAuthContext } from "../auth/auth-context.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -296,10 +301,11 @@ export class HttpTransport {
     }
 
     // Authenticate if OAuth is configured and path is not public
+    let authCtx: AuthenticatedContext | undefined;
     if (this.config.resourceServer && this.config.tokenValidator) {
       if (!this.isPublicPath(url.pathname)) {
         try {
-          await validateAuth(req.headers.authorization, {
+          authCtx = await validateAuth(req.headers.authorization, {
             tokenValidator: this.config.tokenValidator,
             required: true,
           });
@@ -315,19 +321,27 @@ export class HttpTransport {
       }
     }
 
-    // Handle MCP requests
-    if (url.pathname === "/sse") {
-      await this.handleSSERequest(req, res);
-      return;
-    }
+    // Dispatch MCP requests — wrap in auth context if OAuth is active
+    const dispatch = async (): Promise<void> => {
+      if (url.pathname === "/sse") {
+        await this.handleSSERequest(req, res);
+        return;
+      }
 
-    if (url.pathname === "/messages") {
-      await this.handleMessageRequest(req, res);
-      return;
-    }
+      if (url.pathname === "/messages") {
+        await this.handleMessageRequest(req, res);
+        return;
+      }
 
-    res.writeHead(404);
-    res.end(JSON.stringify({ error: "Not found" }));
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: "Not found" }));
+    };
+
+    if (authCtx) {
+      await runWithAuthContext(authCtx, dispatch);
+    } else {
+      await dispatch();
+    }
   }
 
   /**

@@ -868,4 +868,112 @@ describe("DatabaseAdapter", () => {
       expect(contents[0]?.text).toBe("plain resource text");
     });
   });
+
+  describe("OAuth scope enforcement", () => {
+    it("should allow tool call when token has sufficient scope", async () => {
+      const { runWithAuthContext } = await import("../../auth/auth-context.js");
+
+      const mockServer = {
+        registerTool: vi.fn(),
+      };
+
+      const mockHandler = vi.fn().mockResolvedValue("success");
+      const tool: ToolDefinition = {
+        name: "pg_read_query", // core group → requires "read" scope
+        description: "Read query",
+        group: "core",
+        tags: [],
+        inputSchema: {},
+        handler: mockHandler,
+      };
+
+      adapter.testRegisterTool(mockServer, tool);
+
+      const registeredHandler = mockServer.registerTool.mock.calls[0]?.[2] as (
+        params: unknown,
+        extra: unknown,
+      ) => Promise<unknown>;
+
+      // Run within auth context that has "read" scope
+      const result = await runWithAuthContext(
+        { authenticated: true, scopes: ["read"] },
+        () => registeredHandler({}, {}),
+      );
+
+      expect(mockHandler).toHaveBeenCalled();
+      const content = (
+        result as { content: Array<{ text: string }>; isError?: boolean }
+      ).content;
+      expect(content[0]?.text).toBe("success");
+    });
+
+    it("should reject tool call when token has insufficient scope", async () => {
+      const { runWithAuthContext } = await import("../../auth/auth-context.js");
+
+      const mockServer = {
+        registerTool: vi.fn(),
+      };
+
+      const mockHandler = vi.fn().mockResolvedValue("should not reach");
+      const tool: ToolDefinition = {
+        name: "pg_vacuum", // admin group → requires "admin" scope
+        description: "Vacuum",
+        group: "admin",
+        tags: [],
+        inputSchema: {},
+        handler: mockHandler,
+      };
+
+      adapter.testRegisterTool(mockServer, tool);
+
+      const registeredHandler = mockServer.registerTool.mock.calls[0]?.[2] as (
+        params: unknown,
+        extra: unknown,
+      ) => Promise<unknown>;
+
+      // Run within auth context that only has "read" scope
+      const result = await runWithAuthContext(
+        { authenticated: true, scopes: ["read"] },
+        () => registeredHandler({}, {}),
+      );
+
+      expect(mockHandler).not.toHaveBeenCalled();
+      const response = result as {
+        content: Array<{ text: string }>;
+        isError?: boolean;
+      };
+      expect(response.isError).toBe(true);
+      expect(response.content[0]?.text).toContain("Insufficient scope");
+    });
+
+    it("should allow tool call when OAuth is not configured (no auth context)", async () => {
+      const mockServer = {
+        registerTool: vi.fn(),
+      };
+
+      const mockHandler = vi.fn().mockResolvedValue("no-auth-success");
+      const tool: ToolDefinition = {
+        name: "pg_vacuum", // admin group → requires "admin" scope
+        description: "Vacuum",
+        group: "admin",
+        tags: [],
+        inputSchema: {},
+        handler: mockHandler,
+      };
+
+      adapter.testRegisterTool(mockServer, tool);
+
+      const registeredHandler = mockServer.registerTool.mock.calls[0]?.[2] as (
+        params: unknown,
+        extra: unknown,
+      ) => Promise<unknown>;
+
+      // Call without any auth context (simulates stdio transport / no OAuth)
+      const result = await registeredHandler({}, {});
+
+      expect(mockHandler).toHaveBeenCalled();
+      const content = (result as { content: Array<{ text: string }> }).content;
+      expect(content[0]?.text).toBe("no-auth-success");
+    });
+  });
 });
