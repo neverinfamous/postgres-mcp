@@ -98,6 +98,12 @@ export const SchemaSnapshotSchemaBase = z
       .boolean()
       .optional()
       .describe("Include system schemas like pg_catalog (default: false)"),
+    excludeExtensionSchemas: z
+      .boolean()
+      .optional()
+      .describe(
+        "Exclude known extension schemas (cron, topology, tiger, tiger_data) from snapshot (default: true)",
+      ),
     sections: z
       .array(
         z.enum([

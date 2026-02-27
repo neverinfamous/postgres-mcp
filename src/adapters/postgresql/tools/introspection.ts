@@ -685,7 +685,7 @@ function createCascadeSimulatorTool(adapter: PostgresAdapter): ToolDefinition {
             affected.push({
               table: ref.fromTable,
               schema: ref.fromSchema,
-              action: "RESTRICT",
+              action,
               estimatedRows: tableInfo?.rowCount,
               path: [...current.path, refQName],
               depth: current.depth + 1,
@@ -772,6 +772,12 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
       const schemaExclude = parsed.includeSystem
         ? ""
         : "AND n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'";
+      const extensionSchemaExclude =
+        !parsed.schema &&
+        !parsed.includeSystem &&
+        parsed.excludeExtensionSchemas !== false
+          ? "AND n.nspname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')"
+          : "";
       const schemaParams: unknown[] = [];
       let schemaWhere = "";
       if (parsed.schema) {
@@ -805,7 +811,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = c.relnamespace
           LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
           WHERE c.relkind IN ('r', 'p')
-            ${schemaExclude} ${schemaWhere}
+            ${schemaExclude} ${extensionSchemaExclude} ${schemaWhere}
           ORDER BY n.nspname, c.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -823,7 +829,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           FROM pg_class c
           JOIN pg_namespace n ON n.oid = c.relnamespace
           WHERE c.relkind IN ('v', 'm')
-            ${schemaExclude} ${schemaWhere}
+            ${schemaExclude} ${extensionSchemaExclude} ${schemaWhere}
           ORDER BY n.nspname, c.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -845,7 +851,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = t.relnamespace
           JOIN pg_am am ON am.oid = i.relam
           WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'"}
-            ${schemaWhere.replace(/\bn\./g, "n.")}
+            ${extensionSchemaExclude} ${schemaWhere.replace(/\bn\./g, "n.")}
           ORDER BY n.nspname, t.relname, i.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -865,7 +871,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_class t ON t.oid = c.conrelid
           JOIN pg_namespace n ON n.oid = t.relnamespace
           WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
-            ${schemaWhere}
+            ${extensionSchemaExclude} ${schemaWhere}
           ORDER BY n.nspname, t.relname, c.conname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -885,7 +891,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = p.pronamespace
           JOIN pg_language l ON l.oid = p.prolang
           WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
-            ${schemaWhere}
+            ${extensionSchemaExclude} ${schemaWhere}
           ORDER BY n.nspname, p.proname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -911,7 +917,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = c.relnamespace
           JOIN pg_proc p ON p.oid = t.tgfoid
           WHERE NOT t.tgisinternal
-            ${schemaExclude.replace(/\bn\./g, "n.")} ${schemaWhere}
+            ${schemaExclude.replace(/\bn\./g, "n.")} ${extensionSchemaExclude.replace(/\bn\./g, "n.")} ${schemaWhere}
           ORDER BY n.nspname, c.relname, t.tgname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -933,7 +939,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           FROM pg_class c
           JOIN pg_namespace n ON n.oid = c.relnamespace
           WHERE c.relkind = 'S'
-            ${schemaExclude} ${schemaWhere}
+            ${schemaExclude} ${extensionSchemaExclude} ${schemaWhere}
           ORDER BY n.nspname, c.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -954,7 +960,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = t.typnamespace
           WHERE t.typtype IN ('e', 'c', 'd', 'r')
             AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-            ${schemaWhere}
+            ${extensionSchemaExclude} ${schemaWhere}
           ORDER BY n.nspname, t.typname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );

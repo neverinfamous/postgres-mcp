@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **ServerInstructions introspection tools documentation** — All 11 introspection tools (6 analysis + 5 migration tracking) are now documented in `ServerInstructions.ts` with tool descriptions, parameter reference, response structures, and key gotchas. Previously, this tool group had zero Code Mode documentation
+
+- **`pg_schema_snapshot` extension schema exclusion** — New `excludeExtensionSchemas` parameter (default: `true`) filters out known extension-owned schemas (`cron`, `topology`, `tiger`, `tiger_data`) from all 8 snapshot sections. Reduces default payload size significantly on databases with extensions installed. Set `excludeExtensionSchemas: false` to include them
+
+- **6 new introspection unit tests** — Added tests for cascade simulator NO ACTION/RESTRICT label preservation, schema snapshot extension exclusion (default + opt-out), and migration history `status`/`sourceSystem` filtering
+
 ### Fixed
+
+- **`pg_cascade_simulator` conflates NO ACTION with RESTRICT label** — The `action` field in `affectedTables` now preserves the actual FK constraint action (`"NO ACTION"` or `"RESTRICT"`) instead of mapping both to `"RESTRICT"`. Both still correctly increment the `restrictActions` counter since both block the operation
 
 - **`pg_constraint_analysis` raw MCP error (SQL type mismatch)** — Fixed `operator does not exist: smallint[] <@ int2vector` error by casting `ix.indkey` to `smallint[]` in the unindexed FK detection query. Previously, calling `pg_constraint_analysis` on any schema with foreign keys threw a raw MCP error instead of returning structured results
 

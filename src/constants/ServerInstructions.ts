@@ -449,4 +449,26 @@ Core: \`begin()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, \`rollbackTo()
 - \`savepoint/release/rollbackTo\`: \`{success, transactionId, savepoint, message}\`
 - \`execute\`: \`{success, statementsExecuted, results: [{sql, rowsAffected, rowCount, rows?}], transactionId?}\`
 
-**Discovery**: \`pg.transactions.help()\` returns \`{methods, methodAliases, examples}\``;
+**Discovery**: \`pg.transactions.help()\` returns \`{methods, methodAliases, examples}\`
+
+## Introspection Tools
+
+Code Mode: \`pg.introspection.*\` — 11 tools for schema analysis and migration tracking.
+Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`schemaSnapshot()\`, \`constraintAnalysis()\`, \`migrationRisks()\`, \`migrationInit()\`, \`migrationRecord()\`, \`migrationRollback()\`, \`migrationHistory()\`, \`migrationStatus()\`
+
+**Schema Analysis (6 tools):**
+- \`pg_dependency_graph\`: FK dependency graph with cycle detection, row counts, edge annotations (CASCADE, RESTRICT, SET NULL, SET DEFAULT, NO ACTION). Params: \`schema?\`
+- \`pg_topological_sort\`: Safe DDL execution order via Kahn's algorithm. \`direction: 'create'\` (default) = dependencies first; \`direction: 'drop'\` = dependents first. Self-referencing FKs are filtered (don't affect ordering)
+- \`pg_cascade_simulator\`: Simulates DELETE/DROP/TRUNCATE impact with cascade path tracing. \`operation\`: 'DELETE' (default), 'DROP', 'TRUNCATE'. ⚠️ DROP/TRUNCATE force-cascade regardless of FK ON DELETE rule → always \`severity: 'critical'\` when dependent tables exist. Returns \`{sourceTable, operation, affectedTables, severity, stats}\`
+- \`pg_schema_snapshot\`: Full schema snapshot in one call. \`sections?\`: \`['tables','views','indexes','constraints','functions','triggers','sequences','types','extensions']\` to limit output. \`excludeExtensionSchemas?\` (default: true): excludes cron, topology, tiger, tiger_data schemas. \`schema?\`: filter to specific schema. Returns \`{snapshot, stats, generatedAt}\`
+- \`pg_constraint_analysis\`: Identifies constraint issues. \`checks?\`: \`['redundant_indexes','missing_fk','missing_not_null','missing_pk','unindexed_fk']\`. Returns \`{findings, summary}\`
+- \`pg_migration_risks\`: Static DDL risk assessment. ⚠️ Does NOT validate object existence—analyzes SQL patterns only. Returns \`{risks, summary}\`
+
+**Migration Tracking (5 tools):**
+- \`pg_migration_init\`: Initialize/verify \`_mcp_schema_versions\` tracking table (idempotent). Returns \`{initialized, created, tableName}\`
+- \`pg_migration_record\`: Record a migration with SHA-256 hash dedup. ⚠️ Records metadata only—does NOT execute the SQL. Params: \`version\`, \`description?\`, \`migrationSql\`, \`rollbackSql?\`, \`sourceSystem?\`. Returns \`{success, record}\`
+- \`pg_migration_rollback\`: Execute stored rollback SQL in a transaction. \`dryRun: true\` (default) previews without executing. Lookup by \`id\` or \`version\`. Returns \`{success, dryRun, rollbackSql, record}\`
+- \`pg_migration_history\`: Query migration history with \`status?\` ('applied'|'rolled_back'), \`sourceSystem?\`, \`limit?\`, \`offset?\`. Returns \`{records, total, limit, offset}\`
+- \`pg_migration_status\`: Aggregate dashboard. Returns \`{initialized, latestVersion, counts, sourceSystems}\`
+
+**Discovery**: \`pg.introspection.help()\` returns \`{methods, methodAliases, examples}\``;

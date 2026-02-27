@@ -568,6 +568,92 @@ describe("pg_cascade_simulator", () => {
     expect(result.affectedTables).toHaveLength(0);
     expect(result.severity).toBe("low");
   });
+
+  it("should preserve NO ACTION label (not conflate with RESTRICT)", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          constraint_name: "fk_orders_user",
+          from_schema: "public",
+          from_table: "orders",
+          from_columns: ["user_id"],
+          to_schema: "public",
+          to_table: "users",
+          to_columns: ["id"],
+          on_delete: "NO ACTION",
+          on_update: "NO ACTION",
+        },
+      ],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schema: "public",
+          table_name: "users",
+          row_count: 100,
+          size_bytes: 8192,
+        },
+        {
+          schema: "public",
+          table_name: "orders",
+          row_count: 500,
+          size_bytes: 16384,
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cascade_simulator")!;
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      affectedTables: Array<{ table: string; action: string }>;
+      stats: { restrictActions: number };
+    };
+
+    // action should be "NO ACTION", not "RESTRICT"
+    expect(result.affectedTables[0]!.action).toBe("NO ACTION");
+    // Still counts as a restrict action
+    expect(result.stats.restrictActions).toBe(1);
+  });
+
+  it("should preserve RESTRICT label in action field", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          constraint_name: "fk_orders_user",
+          from_schema: "public",
+          from_table: "orders",
+          from_columns: ["user_id"],
+          to_schema: "public",
+          to_table: "users",
+          to_columns: ["id"],
+          on_delete: "RESTRICT",
+          on_update: "NO ACTION",
+        },
+      ],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schema: "public",
+          table_name: "users",
+          row_count: 100,
+          size_bytes: 8192,
+        },
+        {
+          schema: "public",
+          table_name: "orders",
+          row_count: 500,
+          size_bytes: 16384,
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cascade_simulator")!;
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      affectedTables: Array<{ table: string; action: string }>;
+    };
+
+    expect(result.affectedTables[0]!.action).toBe("RESTRICT");
+  });
 });
 
 // =============================================================================
@@ -630,6 +716,37 @@ describe("pg_schema_snapshot", () => {
     expect(result.snapshot["constraints"]).toBeDefined();
     expect(result.snapshot["views"]).toBeUndefined();
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(2);
+  });
+
+  it("should exclude extension schemas by default", async () => {
+    // Mock 9 section queries
+    for (let i = 0; i < 9; i++) {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    }
+
+    const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
+    await tool.handler({}, mockContext);
+
+    // First call (tables) should contain the extension schema exclusion
+    const firstCallSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
+    expect(firstCallSql).toContain("'cron'");
+    expect(firstCallSql).toContain("'topology'");
+    expect(firstCallSql).toContain("'tiger'");
+    expect(firstCallSql).toContain("'tiger_data'");
+  });
+
+  it("should include extension schemas when excludeExtensionSchemas is false", async () => {
+    // Mock 9 section queries
+    for (let i = 0; i < 9; i++) {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    }
+
+    const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
+    await tool.handler({ excludeExtensionSchemas: false }, mockContext);
+
+    // First call (tables) should NOT contain the extension schema exclusion
+    const firstCallSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
+    expect(firstCallSql).not.toContain("'cron'");
   });
 });
 
@@ -1129,6 +1246,74 @@ describe("pg_migration_history", () => {
     expect(result.records).toHaveLength(2);
     expect(result.limit).toBe(50);
     expect(result.offset).toBe(0);
+  });
+
+  it("should filter by status parameter", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ count: 1 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 1,
+          version: "1.0.0",
+          description: "init",
+          applied_at: "2026-01-01T00:00:00Z",
+          applied_by: "agent",
+          migration_hash: "abc",
+          source_system: "agent",
+          has_rollback: false,
+          status: "applied",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_migration_history")!;
+    await tool.handler({ status: "applied" }, mockContext);
+
+    // COUNT query should include WHERE status = $1
+    const countCallSql = mockAdapter.executeQuery.mock.calls[1]![0] as string;
+    expect(countCallSql).toContain("status = $1");
+    const countCallParams = mockAdapter.executeQuery.mock
+      .calls[1]![1] as unknown[];
+    expect(countCallParams).toContain("applied");
+  });
+
+  it("should filter by sourceSystem parameter", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ count: 1 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 1,
+          version: "1.0.0",
+          description: "init",
+          applied_at: "2026-01-01T00:00:00Z",
+          applied_by: "agent",
+          migration_hash: "abc",
+          source_system: "agent",
+          has_rollback: false,
+          status: "applied",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_migration_history")!;
+    await tool.handler({ sourceSystem: "agent" }, mockContext);
+
+    // COUNT query should include WHERE source_system = $1
+    const countCallSql = mockAdapter.executeQuery.mock.calls[1]![0] as string;
+    expect(countCallSql).toContain("source_system = $1");
+    const countCallParams = mockAdapter.executeQuery.mock
+      .calls[1]![1] as unknown[];
+    expect(countCallParams).toContain("agent");
   });
 });
 
