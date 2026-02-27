@@ -46,20 +46,20 @@
 
 ### Extension Support
 
-| Extension            | Purpose                        |
-| -------------------- | ------------------------------ |
-| `pg_stat_statements` | Query performance tracking     |
-| `pg_trgm`            | Text similarity                |
-| `fuzzystrmatch`      | Fuzzy matching                 |
-| `hypopg`             | Hypothetical indexes           |
-| `pgvector`           | Vector similarity search       |
-| `PostGIS`            | Geospatial operations          |
-| `pg_cron`            | Job scheduling                 |
-| `pg_partman`         | Automated partition management |
-| `pg_stat_kcache`     | OS-level CPU/memory/I/O stats  |
-| `citext`             | Case-insensitive text          |
-| `ltree`              | Hierarchical tree labels       |
-| `pgcrypto`           | Hashing, encryption, UUIDs     |
+| Extension            | Purpose                        | Tools                      |
+| -------------------- | ------------------------------ | -------------------------- |
+| `pg_stat_statements` | Query performance tracking     | `pg_stat_statements`       |
+| `pg_trgm`            | Text similarity                | `pg_trigram_similarity`    |
+| `fuzzystrmatch`      | Fuzzy matching                 | `pg_fuzzy_match`           |
+| `hypopg`             | Hypothetical indexes           | `pg_index_recommendations` |
+| `pgvector`           | Vector similarity search       | 16 vector tools            |
+| `PostGIS`            | Geospatial operations          | 15 postgis tools           |
+| `pg_cron`            | Job scheduling                 | 8 cron tools               |
+| `pg_partman`         | Automated partition management | 10 partman tools           |
+| `pg_stat_kcache`     | OS-level CPU/memory/I/O stats  | 7 kcache tools             |
+| `citext`             | Case-insensitive text          | 6 citext tools             |
+| `ltree`              | Hierarchical tree labels       | 8 ltree tools              |
+| `pgcrypto`           | Hashing, encryption, UUIDs     | 9 pgcrypto tools           |
 
 ### MCP Resources (20)
 
@@ -157,7 +157,7 @@ Code executes in a **sandboxed VM context** with multiple layers of security. Al
 - **Static code validation** — blocked patterns include `require()`, `process`, `eval()`, and filesystem access
 - **Rate limiting** — 60 executions per minute per client
 - **Hard timeouts** — configurable execution limit (default 30s)
-- **Full API access** — all 21 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`)
+- **Full API access** — all 20 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`)
 - **Requires `admin` OAuth scope** — execution is logged for audit
 
 ### ⚡ Code Mode Only (Maximum Token Savings)
@@ -199,7 +199,7 @@ If you control your own setup, you can run with **only Code Mode enabled** — a
 }
 ```
 
-This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 21 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
+This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 20 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
 
 > [!TIP]
 > **Maximize Token Savings:** Instruct your AI agent to prefer Code Mode over individual tool calls:
