@@ -85,25 +85,26 @@ describe("TOOL_GROUPS", () => {
 });
 
 describe("META_GROUPS", () => {
-  it("should contain all 15 meta-groups", () => {
+  it("should contain all 16 meta-groups", () => {
     const expectedMetaGroups = [
       "starter",
       "essential",
-      "dev-power",
+      "dev-schema",
+      "dev-analytics",
       "ai-data",
       "ai-vector",
       "dba-monitor",
-      "dba-manage",
+      "dba-schema",
+      "dba-infra",
       "dba-stats",
       "geo",
-      "base-core",
       "base-ops",
       "ext-ai",
       "ext-geo",
       "ext-schedule",
       "ext-perf",
     ];
-    expect(Object.keys(META_GROUPS)).toHaveLength(15);
+    expect(Object.keys(META_GROUPS)).toHaveLength(16);
     for (const metaGroup of expectedMetaGroups) {
       expect(META_GROUPS).toHaveProperty(metaGroup);
     }
@@ -189,10 +190,16 @@ describe("getMetaGroupTools", () => {
     expect(tools).toHaveLength(26);
   });
 
-  it("should return correct tools for base-core meta-group", () => {
-    const tools = getMetaGroupTools("base-core");
-    // base-core = core(20) + jsonb(19) + transactions(7) + schema(12) + codemode(1) = 59
-    expect(tools).toHaveLength(59);
+  it("should return correct tools for dev-schema meta-group", () => {
+    const tools = getMetaGroupTools("dev-schema");
+    // dev-schema = core(20) + transactions(7) + schema(12) + introspection(12) + codemode(1) = 52
+    expect(tools).toHaveLength(52);
+  });
+
+  it("should return correct tools for dev-analytics meta-group", () => {
+    const tools = getMetaGroupTools("dev-analytics");
+    // dev-analytics = core(20) + transactions(7) + stats(8) + partitioning(6) + codemode(1) = 42
+    expect(tools).toHaveLength(42);
   });
 
   it("should return correct tools for base-ops meta-group", () => {
@@ -207,10 +214,16 @@ describe("getMetaGroupTools", () => {
     expect(tools).toHaveLength(59);
   });
 
-  it("should return correct tools for dba-manage meta-group", () => {
-    const tools = getMetaGroupTools("dba-manage");
-    // dba-manage = core(20) + admin(10) + backup(9) + partitioning(6) + schema(12) + introspection(12) + codemode(1) = 70
-    expect(tools).toHaveLength(70);
+  it("should return correct tools for dba-schema meta-group", () => {
+    const tools = getMetaGroupTools("dba-schema");
+    // dba-schema = core(20) + schema(12) + introspection(12) + codemode(1) = 45
+    expect(tools).toHaveLength(45);
+  });
+
+  it("should return correct tools for dba-infra meta-group", () => {
+    const tools = getMetaGroupTools("dba-infra");
+    // dba-infra = core(20) + admin(10) + backup(9) + partitioning(6) + codemode(1) = 46
+    expect(tools).toHaveLength(46);
   });
 
   it("should return correct tools for dba-stats meta-group", () => {
@@ -478,9 +491,9 @@ describe("getToolGroupInfo", () => {
 });
 
 describe("getMetaGroupInfo", () => {
-  it("should return info for all 15 meta-groups", () => {
+  it("should return info for all 16 meta-groups", () => {
     const info = getMetaGroupInfo();
-    expect(info).toHaveLength(15);
+    expect(info).toHaveLength(16);
   });
 
   it("should include correct expanded counts", () => {

@@ -29,7 +29,7 @@
 | **19 AI-Powered Prompts**             | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                                                                                |
 | **Code Mode (Massive Token Savings)** | Execute complex database operations locally in a secure sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, AI agents use a single `pg_execute_code` execution to eliminate up to 90% of token overhead while reasoning faster. |
 | **OAuth 2.1 + Access Control**        | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                 |
-| **Smart Tool Filtering**              | 21 tool groups + 15 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                          |
+| **Smart Tool Filtering**              | 21 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                          |
 | **HTTP Streaming Transport**          | SSE-based streaming with `/mcp`, and `/health` endpoints for remote deployments                                                                                                                                                                            |
 | **High-Performance Pooling**          | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                   |
 | **8 Extension Ecosystems**            | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                                                                                |
@@ -280,23 +280,24 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 
 > Tool counts include Code Mode (`pg_execute_code`) which is included in all presets by default.
 
-| Shortcut       | Tools  | Use Case                 | What's Included                                            |
-| -------------- | ------ | ------------------------ | ---------------------------------------------------------- |
-| `starter`      | **59** | 🌟 **Recommended**       | Core, trans, JSONB, schema, codemode                       |
-| `essential`    | 47     | Minimal footprint        | Core, trans, JSONB, codemode                               |
-| `dev-power`    | 66     | Power Developer          | Core, trans, schema, stats, part, introspection, codemode  |
-| `ai-data`      | 60     | AI Data Analyst          | Core, JSONB, text, trans, codemode                         |
-| `ai-vector`    | 50     | AI/ML with pgvector      | Core, vector, trans, part, codemode                        |
-| `dba-monitor`  | 59     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                    |
-| `dba-manage`   | 70     | DBA Management           | Core, admin, backup, part, schema, introspection, codemode |
-| `dba-stats`    | 57     | DBA Stats/Security       | Core, admin, monitoring, trans, stats, codemode            |
-| `geo`          | 43     | Geospatial Workloads     | Core, PostGIS, trans, codemode                             |
-| `base-core`    | 59     | Base Building Block      | Core, JSONB, trans, schema, codemode                       |
-| `base-ops`     | 51     | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode   |
-| `ext-ai`       | 26     | Extension: AI/Security   | pgvector, pgcrypto, codemode                               |
-| `ext-geo`      | 24     | Extension: Spatial       | PostGIS, ltree, codemode                                   |
-| `ext-schedule` | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                              |
-| `ext-perf`     | 28     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                      |
+| Shortcut        | Tools  | Use Case                 | What's Included                                          |
+| --------------- | ------ | ------------------------ | -------------------------------------------------------- |
+| `starter`       | **59** | 🌟 **Recommended**       | Core, trans, JSONB, schema, codemode                     |
+| `essential`     | 47     | Minimal footprint        | Core, trans, JSONB, codemode                             |
+| `dev-schema`    | 52     | Dev Schema & Migrations  | Core, trans, schema, introspection, codemode             |
+| `dev-analytics` | 42     | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
+| `ai-data`       | 60     | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
+| `ai-vector`     | 50     | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
+| `dba-monitor`   | 59     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
+| `dba-schema`    | 45     | DBA Schema & Migrations  | Core, schema, introspection, codemode                    |
+| `dba-infra`     | 46     | DBA Infrastructure       | Core, admin, backup, partitioning, codemode              |
+| `dba-stats`     | 57     | DBA Stats                | Core, admin, monitoring, trans, stats, codemode          |
+| `geo`           | 43     | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
+| `base-ops`      | 51     | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
+| `ext-ai`        | 26     | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
+| `ext-geo`       | 24     | Extension: Spatial       | PostGIS, ltree, codemode                                 |
+| `ext-schedule`  | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
+| `ext-perf`      | 28     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
 
 ### Tool Groups (21 Available)
 

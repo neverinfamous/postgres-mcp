@@ -11,9 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`ToolFilter.ts` codemode auto-injection aligned with mysql-mcp** — Codemode (`pg_execute_code`) auto-injection now only activates in whitelist mode (e.g., `core`, `starter`), matching the mysql-mcp pattern. In blacklist mode (e.g., `-vector`), codemode is already in the initial full set and user exclusions are naturally respected. Also now recognizes both `-codemode` and `-pg_execute_code` as exclusion signals (previously only `-codemode` was checked). Removes loop-scoped tracking variable in favor of a cleaner post-loop `parts.some()` check
 
+- **Tool filtering shortcuts restructured (15 → 16)** — Split oversized shortcuts to stay closer to the ~50 tool target for IDE compatibility:
+  - `dba-manage` (70 tools) → `dba-schema` (45: core, schema, introspection) + `dba-infra` (46: core, admin, backup, partitioning)
+  - `dev-power` (66 tools) → `dev-schema` (52: core, transactions, schema, introspection) + `dev-analytics` (42: core, transactions, stats, partitioning)
+  - Removed `base-core` (59 tools) — identical composition to `starter`, providing no additional value
+  - Updated `ext-perf` composition from kcache + citext → kcache + performance (28 tools) for better thematic coherence
+  - All documentation (README, DOCKER_README, wiki Tool-Filtering, wiki Code-Mode, wiki Resources-and-Prompts) updated to reflect new shortcut names and counts
+
 ### Added
 
-- **ToolFilter unit tests (58 tests)** — Comprehensive test suite for the tool filtering system in `src/filtering/__tests__/ToolFilter.test.ts`, mirroring mysql-mcp's test coverage. Covers TOOL_GROUPS (21 groups, 227 total tools), META_GROUPS (15 shortcuts with codemode verification), parseToolFilter (whitelist/blacklist/mixed modes), 6 codemode-specific auto-injection tests (`-codemode`, `-pg_execute_code`, `-all`), isToolEnabled, filterTools, calculateTokenSavings, getFilterSummary, getToolGroupInfo, getMetaGroupInfo, and caching behavior
+- **ToolFilter unit tests (58 tests)** — Comprehensive test suite for the tool filtering system in `src/filtering/__tests__/ToolFilter.test.ts`, mirroring mysql-mcp's test coverage. Covers TOOL_GROUPS (21 groups, 227 total tools), META_GROUPS (16 shortcuts with codemode verification), parseToolFilter (whitelist/blacklist/mixed modes), 6 codemode-specific auto-injection tests (`-codemode`, `-pg_execute_code`, `-all`), isToolEnabled, filterTools, calculateTokenSavings, getFilterSummary, getToolGroupInfo, getMetaGroupInfo, and caching behavior
 
 ### Documentation
 
