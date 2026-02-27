@@ -37,6 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **6 new introspection unit tests** — Added tests for cascade simulator NO ACTION/RESTRICT label preservation, schema snapshot extension exclusion (default + opt-out), and migration history `status`/`sourceSystem` filtering
 
+### Changed
+
+- **`.gitignore` and `.dockerignore` audit** — Expanded project ignore files to better exclude temporary files, test outputs, logging artifacts, and server registry configurations:
+  - Added build directories (`build/`, `out/`, `*.tsbuildinfo`)
+  - Added environment configuration (`.env.*.local`, `.dev.vars`, `config/*.local.json`, `config/secrets/`)
+  - Added test outputs (`.nyc_output/`)
+  - Added debug logs (`yarn-*.log*`, `pnpm-*.log*`, `lerna-*.log*`)
+  - Added caching directories (`.npm/`, `.eslintcache/`)
+  - Added registry configurations to `.dockerignore` (`server.json`)
+
 ### Removed
 
 - **`pg_dependency_graph` non-functional `includeIndexes` parameter** — Removed the `includeIndexes` boolean parameter from `DependencyGraphSchemaBase` (input schema). The parameter was defined but never implemented in the handler — no index-related information was ever added to output edges. Removing it prevents misleading the LLM/user. `includeRowCounts` remains functional

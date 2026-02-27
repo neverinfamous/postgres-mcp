@@ -3,6 +3,9 @@ node_modules/
 
 # Build output (rebuilt inside Docker)
 dist/
+build/
+out/
+*.tsbuildinfo
 
 # Version control
 .git/
@@ -13,6 +16,8 @@ dist/
 .env
 .env.local
 .env.*.local
+!.env.example
+.dev.vars
 
 # Editor directories
 .gemini/
@@ -45,8 +50,15 @@ temp/
 !LICENSE
 docs/
 
-# CI/CD
+# CI/CD and Version Control
 .github/
+.trivyignore
+releases/
+
+# Node and caching
+.npm/
+.eslintcache/
+.nyc_output/
 
 # Lock files (keep package-lock.json)
 yarn.lock
@@ -68,8 +80,18 @@ __tests__/
 *.spec.ts
 vitest.config.ts
 
+# Logs
+*.log
+
+# Local Config
+config/*.local.json
+config/secrets/
+
 # Prettier/ESLint config
 .prettierrc
 .prettierignore
 .eslintrc*
 eslint.config.*
+
+# Registry Config
+server.json

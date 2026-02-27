@@ -3,17 +3,24 @@ node_modules/
 
 # Build output
 dist/
+build/
+out/
+*.tsbuildinfo
 
 # Environment files
 .env
 .env.local
 .env.*.local
+.dev.vars
 
 # Logs
 logs/
 *.log
 npm-debug.log*
-
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 # Editor directories
 .gemini/
 .idea/
@@ -29,6 +36,7 @@ Thumbs.db
 
 # Test coverage & results
 coverage/
+.nyc_output/
 test-results.json
 
 # Database files
@@ -48,3 +56,11 @@ pnpm-lock.yaml
 # Test database files
 test-database/
 .mcpregistry_*
+
+# Caches
+.npm/
+.eslintcache/
+
+# Local Config
+config/*.local.json
+config/secrets/
