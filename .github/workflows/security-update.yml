@@ -5,14 +5,14 @@ on:
     # Run weekly on Sundays at 2 AM UTC
     - cron: "0 2 * * 0"
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - "Dockerfile"
       - "package.json"
       - "package-lock.json"
       - ".trivyignore"
   pull_request:
-    branches: [master]
+    branches: [main]
     paths:
       - "Dockerfile"
       - "package.json"

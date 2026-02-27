@@ -5,7 +5,7 @@ on:
   workflow_run:
     workflows: ["Lint and Test"]
     types: [completed]
-    branches: [master]
+    branches: [main]
 
 env:
   REGISTRY: docker.io
@@ -198,7 +198,7 @@ jobs:
       deployments: write
 
     environment:
-      name: ${{ github.ref == 'refs/heads/master' && 'production' || '' }}
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || '' }}
       url: https://hub.docker.com/r/writenotenow/postgres-mcp
 
     steps:
@@ -241,8 +241,8 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=v${{ steps.version.outputs.version }},enable=${{ github.event.workflow_run.head_branch == 'master' }}
-            type=raw,value=latest,enable=${{ github.event.workflow_run.head_branch == 'master' }}
+            type=raw,value=v${{ steps.version.outputs.version }},enable=${{ github.event.workflow_run.head_branch == 'main' }}
+            type=raw,value=latest,enable=${{ github.event.workflow_run.head_branch == 'main' }}
             type=sha,prefix=sha-,format=short
 
       - name: Create and push manifest
@@ -257,7 +257,7 @@ jobs:
 
       # Update Docker Hub description
       - name: Update Docker Hub Description
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         uses: peter-evans/dockerhub-description@v5
         continue-on-error: true
         timeout-minutes: 5
@@ -269,7 +269,7 @@ jobs:
           short-description: "MCP Server with 206 tools, Code Mode & Tool Filtering, Connection Pooling, HTTP/SSE, & OAuth 2.1"
 
       - name: Deployment Summary
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         run: |
           echo "✅ Successfully published Docker images to production"
           echo "🐳 Registry: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
