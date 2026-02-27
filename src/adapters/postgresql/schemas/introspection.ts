@@ -265,6 +265,15 @@ const MigrationRecordParseSchema = z.object({
 export const MigrationRecordSchema = MigrationRecordParseSchema;
 
 /**
+ * pg_migration_apply input
+ * Same fields as pg_migration_record — version and migrationSql required.
+ */
+export const MigrationApplySchemaBase = MigrationRecordSchemaBase;
+
+// Internal parse schema — version and migrationSql are required
+export const MigrationApplySchema = MigrationRecordParseSchema;
+
+/**
  * pg_migration_rollback input
  */
 export const MigrationRollbackSchemaBase = z.object({
@@ -465,6 +474,12 @@ export const MigrationInitOutputSchema = z.object({
 });
 
 export const MigrationRecordOutputSchema = z.object({
+  success: z.boolean(),
+  record: MigrationRecordOutputEntry.optional(),
+  error: z.string().optional(),
+});
+
+export const MigrationApplyOutputSchema = z.object({
   success: z.boolean(),
   record: MigrationRecordOutputEntry.optional(),
   error: z.string().optional(),

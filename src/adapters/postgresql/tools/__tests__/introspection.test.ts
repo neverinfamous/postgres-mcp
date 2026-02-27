@@ -24,8 +24,8 @@ describe("getIntrospectionTools", () => {
     tools = getIntrospectionTools(adapter);
   });
 
-  it("should return 11 introspection tools", () => {
-    expect(tools).toHaveLength(11);
+  it("should return 12 introspection tools", () => {
+    expect(tools).toHaveLength(12);
   });
 
   it("should have all expected tool names", () => {
@@ -38,6 +38,7 @@ describe("getIntrospectionTools", () => {
     expect(toolNames).toContain("pg_migration_risks");
     expect(toolNames).toContain("pg_migration_init");
     expect(toolNames).toContain("pg_migration_record");
+    expect(toolNames).toContain("pg_migration_apply");
     expect(toolNames).toContain("pg_migration_rollback");
     expect(toolNames).toContain("pg_migration_history");
     expect(toolNames).toContain("pg_migration_status");
@@ -1413,6 +1414,171 @@ describe("pg_migration_record", () => {
 
   it("should return structured error for missing migrationSql", async () => {
     const tool = tools.find((t) => t.name === "pg_migration_record")!;
+    const result = (await tool.handler(
+      {
+        version: "1.0.0",
+      },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(result.error).toContain("Validation error");
+  });
+});
+
+// =============================================================================
+// pg_migration_apply
+// =============================================================================
+
+describe("pg_migration_apply", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getIntrospectionTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getIntrospectionTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should execute migration SQL and record atomically", async () => {
+    // ensureTrackingTable: exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Duplicate check: no duplicates
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // BEGIN
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Execute migration SQL
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // INSERT RETURNING *
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 1,
+          version: "1.0.0",
+          description: "Add users table",
+          applied_at: new Date("2026-01-01T00:00:00Z"),
+          applied_by: "agent",
+          migration_hash: "abc123",
+          source_system: "agent",
+          status: "applied",
+        },
+      ],
+    });
+    // COMMIT
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_migration_apply")!;
+    const result = (await tool.handler(
+      {
+        version: "1.0.0",
+        description: "Add users table",
+        migrationSql: "CREATE TABLE users (id SERIAL PRIMARY KEY)",
+        rollbackSql: "DROP TABLE users",
+        sourceSystem: "agent",
+      },
+      mockContext,
+    )) as { success: boolean; record?: { version: string } };
+
+    expect(result.success).toBe(true);
+    expect(result.record).toBeDefined();
+    expect(result.record!.version).toBe("1.0.0");
+
+    // Verify BEGIN was called
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("BEGIN");
+    // Verify migration SQL was executed
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      "CREATE TABLE users (id SERIAL PRIMARY KEY)",
+    );
+    // Verify COMMIT was called
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("COMMIT");
+  });
+
+  it("should rollback and record failed entry on SQL error", async () => {
+    // ensureTrackingTable: exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Duplicate check: no duplicates
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // BEGIN
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Execute migration SQL — FAILS
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error('relation "users" already exists'),
+    );
+    // ROLLBACK
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // INSERT failed record (best-effort)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_migration_apply")!;
+    const result = (await tool.handler(
+      {
+        version: "1.0.0",
+        migrationSql: "CREATE TABLE users (id SERIAL PRIMARY KEY)",
+      },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('relation "users" already exists');
+    expect(result.error).toContain("rolled back");
+
+    // Verify ROLLBACK was called
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("ROLLBACK");
+    // Verify failed record was inserted
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("'failed'"),
+      expect.any(Array),
+    );
+  });
+
+  it("should detect duplicate migration by hash", async () => {
+    // ensureTrackingTable: exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Duplicate check: found duplicate
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ id: 1, version: "1.0.0", status: "applied" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_migration_apply")!;
+    const result = (await tool.handler(
+      {
+        version: "1.0.1",
+        migrationSql: "CREATE TABLE users (id SERIAL PRIMARY KEY)",
+      },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Duplicate migration");
+    // Should NOT have called BEGIN (rejected before execution)
+    expect(mockAdapter.executeQuery).not.toHaveBeenCalledWith("BEGIN");
+  });
+
+  it("should return structured error for missing version", async () => {
+    const tool = tools.find((t) => t.name === "pg_migration_apply")!;
+    const result = (await tool.handler(
+      {
+        migrationSql: "CREATE TABLE users (id SERIAL PRIMARY KEY)",
+      },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+    expect(result.error).toContain("Validation error");
+  });
+
+  it("should return structured error for missing migrationSql", async () => {
+    const tool = tools.find((t) => t.name === "pg_migration_apply")!;
     const result = (await tool.handler(
       {
         version: "1.0.0",

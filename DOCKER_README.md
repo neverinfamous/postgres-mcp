@@ -2,9 +2,9 @@
 
 **Last Updated February 27, 2026**
 
-**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 217 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
+**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 222 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**217 specialized tools** · **20 resources** · **19 AI-powered prompts**
+**222 specialized tools** · **20 resources** · **19 AI-powered prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgresql-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgresql-mcp)
@@ -24,7 +24,7 @@
 
 | Feature                               | Description                                                                                                                                                                                                                                                |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **217 Specialized Tools**             | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, schema version tracking, and 8 extension ecosystems                                               |
+| **222 Specialized Tools**             | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, schema version tracking, and 8 extension ecosystems                                               |
 | **20 Observability Resources**        | Real-time schema, performance metrics, connection pool status, replication lag, vacuum stats, lock contention, and extension diagnostics                                                                                                                   |
 | **19 AI-Powered Prompts**             | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                                                                                |
 | **Code Mode (Massive Token Savings)** | Execute complex database operations locally in a secure sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, AI agents use a single `pg_execute_code` execution to eliminate up to 90% of token overhead while reasoning faster. |
@@ -162,7 +162,7 @@ Code executes in a **sandboxed VM context** with multiple layers of security. Al
 
 ### ⚡ Code Mode Only (Maximum Token Savings)
 
-If you control your own setup, you can run with **only Code Mode enabled** — a single tool that provides access to all 217 tools' worth of capability through the `pg.*` API:
+If you control your own setup, you can run with **only Code Mode enabled** — a single tool that provides access to all 222 tools' worth of capability through the `pg.*` API:
 
 ```json
 {
@@ -261,7 +261,7 @@ Click the button below to install directly into Cursor:
 ## 🛠️ Tool Filtering
 
 > [!IMPORTANT]
-> AI IDEs like Cursor have tool limits. With 217 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
+> AI IDEs like Cursor have tool limits. With 222 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
 
 ### What Can You Filter?
 
@@ -284,11 +284,11 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 | -------------- | ------ | ------------------------ | ---------------------------------------------------------- |
 | `starter`      | **59** | 🌟 **Recommended**       | Core, trans, JSONB, schema, codemode                       |
 | `essential`    | 47     | Minimal footprint        | Core, trans, JSONB, codemode                               |
-| `dev-power`    | 60     | Power Developer          | Core, trans, schema, stats, part, introspection, codemode  |
+| `dev-power`    | 66     | Power Developer          | Core, trans, schema, stats, part, introspection, codemode  |
 | `ai-data`      | 60     | AI Data Analyst          | Core, JSONB, text, trans, codemode                         |
 | `ai-vector`    | 50     | AI/ML with pgvector      | Core, vector, trans, part, codemode                        |
 | `dba-monitor`  | 59     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                    |
-| `dba-manage`   | 64     | DBA Management           | Core, admin, backup, part, schema, introspection, codemode |
+| `dba-manage`   | 70     | DBA Management           | Core, admin, backup, part, schema, introspection, codemode |
 | `dba-stats`    | 57     | DBA Stats/Security       | Core, admin, monitoring, trans, stats, codemode            |
 | `geo`          | 43     | Geospatial Workloads     | Core, PostGIS, trans, codemode                             |
 | `base-core`    | 59     | Base Building Block      | Core, JSONB, trans, schema, codemode                       |
@@ -313,7 +313,7 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 | `monitoring`    | 12    | Database sizes, connections, status                         |
 | `backup`        | 10    | pg_dump, COPY, restore                                      |
 | `schema`        | 13    | Schemas, views, sequences, functions, triggers              |
-| `introspection` | 7     | Dependency graphs, cascade simulation, migration risks      |
+| `introspection` | 13    | Dependency graphs, cascade simulation, migration tracking   |
 | `partitioning`  | 7     | Native partition management                                 |
 | `stats`         | 9     | Statistical analysis                                        |
 | `vector`        | 17    | pgvector (AI/ML similarity search)                          |

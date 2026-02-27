@@ -226,6 +226,7 @@ const METHOD_ALIASES: Record<string, Record<string, string>> = {
     risks: "migrationRisks", // risks() → migrationRisks()
     init: "migrationInit", // init() → migrationInit()
     record: "migrationRecord", // record() → migrationRecord()
+    apply: "migrationApply", // apply() → migrationApply()
     rollback: "migrationRollback", // rollback() → migrationRollback()
     history: "migrationHistory", // history() → migrationHistory()
     status: "migrationStatus", // status() → migrationStatus()
@@ -371,6 +372,7 @@ const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.introspection.migrationRisks({ statements: ['ALTER TABLE users DROP COLUMN email'] })",
     "pg.introspection.migrationInit()",
     "pg.introspection.migrationRecord({ version: '1.0.0', migrationSql: 'ALTER TABLE...', rollbackSql: 'ALTER TABLE...' })",
+    "pg.introspection.migrationApply({ version: '2.0.0', migrationSql: 'CREATE TABLE orders (...)', rollbackSql: 'DROP TABLE orders' })",
     "pg.introspection.migrationRollback({ version: '1.0.0', dryRun: true })",
     "pg.introspection.migrationHistory({ status: 'applied' })",
     "pg.introspection.migrationStatus()",

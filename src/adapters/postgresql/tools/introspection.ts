@@ -29,6 +29,8 @@ import {
   MigrationInitSchema,
   MigrationRecordSchemaBase,
   MigrationRecordSchema,
+  MigrationApplySchemaBase,
+  MigrationApplySchema,
   MigrationRollbackSchemaBase,
   MigrationRollbackSchema,
   MigrationHistorySchemaBase,
@@ -44,6 +46,7 @@ import {
   MigrationRisksOutputSchema,
   MigrationInitOutputSchema,
   MigrationRecordOutputSchema,
+  MigrationApplyOutputSchema,
   MigrationRollbackOutputSchema,
   MigrationHistoryOutputSchema,
   MigrationStatusOutputSchema,
@@ -361,6 +364,7 @@ export function getIntrospectionTools(
     createMigrationRisksTool(adapter),
     createMigrationInitTool(adapter),
     createMigrationRecordTool(adapter),
+    createMigrationApplyTool(adapter),
     createMigrationRollbackTool(adapter),
     createMigrationHistoryTool(adapter),
     createMigrationStatusTool(adapter),
@@ -1696,6 +1700,141 @@ function createMigrationRecordTool(adapter: PostgresAdapter): ToolDefinition {
         success: true,
         record: formatRecord(row),
       };
+    },
+  };
+}
+
+// =============================================================================
+// pg_migration_apply
+// =============================================================================
+
+function createMigrationApplyTool(adapter: PostgresAdapter): ToolDefinition {
+  const annotations = destructive("Apply migration");
+  return {
+    name: "pg_migration_apply",
+    description:
+      "Execute migration SQL and record it atomically in a single transaction. " +
+      "Auto-provisions the tracking table on first use. " +
+      "On failure, rolls back and records a 'failed' entry. " +
+      "Use pg_migration_record instead if you only need to log an already-applied migration.",
+    group: "introspection",
+    inputSchema: MigrationApplySchemaBase,
+    outputSchema: MigrationApplyOutputSchema,
+    annotations,
+    icons: getToolIcons("introspection", annotations),
+    handler: async (params: unknown, _context: RequestContext) => {
+      let parsed;
+      try {
+        parsed = MigrationApplySchema.parse(params);
+      } catch (error: unknown) {
+        if (
+          error !== null &&
+          typeof error === "object" &&
+          "issues" in error &&
+          Array.isArray((error as { issues: unknown[] }).issues)
+        ) {
+          const issues = (error as { issues: { message: string }[] }).issues;
+          const messages = issues.map((i) => i.message).join("; ");
+          return {
+            success: false,
+            error: `Validation error: ${messages}`,
+          };
+        }
+        throw error;
+      }
+      await ensureTrackingTable(adapter);
+
+      const migrationHash = hashMigrationSql(parsed.migrationSql);
+
+      // Check for duplicate hash
+      const dupCheck = await adapter.executeQuery(
+        `SELECT id, version, status FROM ${TRACKING_TABLE}
+         WHERE migration_hash = $1 AND status = 'applied'`,
+        [migrationHash],
+      );
+      const dupRows = dupCheck.rows ?? [];
+      if (dupRows.length > 0) {
+        const dup = dupRows[0] ?? {};
+        const dupId = dup["id"] as number;
+        const dupVersion = dup["version"] as string;
+        return {
+          success: false,
+          error:
+            `Duplicate migration detected: version "${dupVersion}" (id: ${String(dupId)}) has the same SQL hash. ` +
+            `Use a different migration SQL or roll back the existing one first.`,
+        };
+      }
+
+      // Execute migration SQL and record atomically
+      try {
+        await adapter.executeQuery("BEGIN");
+
+        // Execute the migration SQL
+        await adapter.executeQuery(parsed.migrationSql);
+
+        // Record in tracking table
+        const result = await adapter.executeQuery(
+          `INSERT INTO ${TRACKING_TABLE}
+           (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING *`,
+          [
+            parsed.version,
+            parsed.description ?? null,
+            parsed.appliedBy ?? null,
+            migrationHash,
+            parsed.migrationSql,
+            parsed.sourceSystem ?? null,
+            parsed.rollbackSql ?? null,
+          ],
+        );
+
+        await adapter.executeQuery("COMMIT");
+
+        const resultRows = result.rows ?? [];
+        if (resultRows.length === 0) {
+          return {
+            success: false,
+            error:
+              "Migration was applied but failed to insert tracking record.",
+          };
+        }
+        const row = resultRows[0] ?? {};
+        return {
+          success: true,
+          record: formatRecord(row),
+        };
+      } catch (err: unknown) {
+        // Roll back the entire transaction (migration SQL + INSERT)
+        await adapter.executeQuery("ROLLBACK");
+
+        const message = err instanceof Error ? err.message : "Unknown error";
+
+        // Record a 'failed' entry outside the rolled-back transaction
+        try {
+          await adapter.executeQuery(
+            `INSERT INTO ${TRACKING_TABLE}
+             (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'failed')`,
+            [
+              parsed.version,
+              parsed.description ?? null,
+              parsed.appliedBy ?? null,
+              migrationHash,
+              parsed.migrationSql,
+              parsed.sourceSystem ?? null,
+              parsed.rollbackSql ?? null,
+            ],
+          );
+        } catch {
+          // Best-effort: if we can't record the failure, still return the error
+        }
+
+        return {
+          success: false,
+          error: `Migration "${parsed.version}" failed: ${message}. Transaction was rolled back.`,
+        };
+      }
     },
   };
 }
