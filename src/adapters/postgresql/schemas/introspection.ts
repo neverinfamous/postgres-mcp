@@ -162,6 +162,12 @@ export const ConstraintAnalysisSchemaBase = z
       )
       .optional()
       .describe("Specific checks to run (default: all)"),
+    excludeExtensionSchemas: z
+      .boolean()
+      .optional()
+      .describe(
+        "Exclude known extension schemas (cron, topology, tiger, tiger_data) from analysis (default: true)",
+      ),
   })
   .default({});
 

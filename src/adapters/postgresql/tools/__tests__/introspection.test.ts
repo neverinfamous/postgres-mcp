@@ -811,6 +811,21 @@ describe("pg_schema_snapshot", () => {
     const firstCallSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
     expect(firstCallSql).not.toContain("'cron'");
   });
+
+  it("should exclude extension-owned objects by default", async () => {
+    // Mock 9 section queries
+    for (let i = 0; i < 9; i++) {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    }
+
+    const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
+    await tool.handler({}, mockContext);
+
+    // Tables query (first call) should contain pg_depend exclusion
+    const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
+    expect(tablesSql).toContain("pg_depend");
+    expect(tablesSql).toContain("deptype = 'e'");
+  });
 });
 
 // =============================================================================
@@ -888,6 +903,23 @@ describe("pg_constraint_analysis", () => {
 
     // Only 1 query should have been executed (missing_pk check only)
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
+  });
+
+  it("should exclude extension schemas by default", async () => {
+    // Mock all 3 check queries
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_constraint_analysis")!;
+    await tool.handler({}, mockContext);
+
+    // All 3 queries should include extension schema exclusion
+    for (let i = 0; i < 3; i++) {
+      const sql = mockAdapter.executeQuery.mock.calls[i]![0] as string;
+      expect(sql).toContain("'cron'");
+      expect(sql).toContain("'tiger_data'");
+    }
   });
 });
 

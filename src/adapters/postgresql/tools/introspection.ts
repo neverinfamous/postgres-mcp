@@ -804,6 +804,13 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
         parsed.excludeExtensionSchemas !== false
           ? "AND n.nspname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')"
           : "";
+      // Exclude extension-owned objects (e.g. spatial_ref_sys, part_config) from public schema
+      const extOwnedActive =
+        !parsed.includeSystem && parsed.excludeExtensionSchemas !== false;
+      const extOwnedClause = (oidExpr: string): string =>
+        extOwnedActive
+          ? `AND NOT EXISTS (SELECT 1 FROM pg_depend dep WHERE dep.objid = ${oidExpr} AND dep.deptype = 'e')`
+          : "";
       const schemaParams: unknown[] = [];
       let schemaWhere = "";
       if (parsed.schema) {
@@ -837,7 +844,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = c.relnamespace
           LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
           WHERE c.relkind IN ('r', 'p')
-            ${schemaExclude} ${extensionSchemaExclude} ${schemaWhere}
+            ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
           ORDER BY n.nspname, c.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -855,7 +862,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           FROM pg_class c
           JOIN pg_namespace n ON n.oid = c.relnamespace
           WHERE c.relkind IN ('v', 'm')
-            ${schemaExclude} ${extensionSchemaExclude} ${schemaWhere}
+            ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
           ORDER BY n.nspname, c.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -877,7 +884,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = t.relnamespace
           JOIN pg_am am ON am.oid = i.relam
           WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'"}
-            ${extensionSchemaExclude} ${schemaWhere.replace(/\bn\./g, "n.")}
+            ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere.replace(/\bn\./g, "n.")}
           ORDER BY n.nspname, t.relname, i.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -897,7 +904,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_class t ON t.oid = c.conrelid
           JOIN pg_namespace n ON n.oid = t.relnamespace
           WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
-            ${extensionSchemaExclude} ${schemaWhere}
+            ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
           ORDER BY n.nspname, t.relname, c.conname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -917,7 +924,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = p.pronamespace
           JOIN pg_language l ON l.oid = p.prolang
           WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
-            ${extensionSchemaExclude} ${schemaWhere}
+            ${extensionSchemaExclude} ${extOwnedClause("p.oid")} ${schemaWhere}
           ORDER BY n.nspname, p.proname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -943,7 +950,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = c.relnamespace
           JOIN pg_proc p ON p.oid = t.tgfoid
           WHERE NOT t.tgisinternal
-            ${schemaExclude.replace(/\bn\./g, "n.")} ${extensionSchemaExclude.replace(/\bn\./g, "n.")} ${schemaWhere}
+            ${schemaExclude.replace(/\bn\./g, "n.")} ${extensionSchemaExclude.replace(/\bn\./g, "n.")} ${extOwnedClause("c.oid")} ${schemaWhere}
           ORDER BY n.nspname, c.relname, t.tgname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -965,7 +972,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           FROM pg_class c
           JOIN pg_namespace n ON n.oid = c.relnamespace
           WHERE c.relkind = 'S'
-            ${schemaExclude} ${extensionSchemaExclude} ${schemaWhere}
+            ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
           ORDER BY n.nspname, c.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -986,7 +993,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = t.typnamespace
           WHERE t.typtype IN ('e', 'c', 'd', 'r')
             AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-            ${extensionSchemaExclude} ${schemaWhere}
+            ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
           ORDER BY n.nspname, t.typname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -1059,6 +1066,13 @@ function createConstraintAnalysisTool(
         tableWhere = `AND c.relname = $${String(schemaParams.length)}`;
       }
 
+      const extensionSchemaExclude =
+        !parsed.schema &&
+        !parsed.table &&
+        parsed.excludeExtensionSchemas !== false
+          ? "AND n.nspname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')"
+          : "";
+
       // Check: Tables without primary keys
       if (runAll || checks.has("missing_pk")) {
         const result = await adapter.executeQuery(
@@ -1072,7 +1086,7 @@ function createConstraintAnalysisTool(
                SELECT 1 FROM pg_constraint pk
                WHERE pk.conrelid = c.oid AND pk.contype = 'p'
              )
-             ${schemaWhere} ${tableWhere}
+             ${extensionSchemaExclude} ${schemaWhere} ${tableWhere}
            ORDER BY n.nspname, c.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -1106,6 +1120,7 @@ function createConstraintAnalysisTool(
           JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = x.attnum
           WHERE c.contype = 'f'
             AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+            ${extensionSchemaExclude}
             AND NOT EXISTS (
               SELECT 1 FROM pg_index ix
               WHERE ix.indrelid = t.oid
@@ -1145,6 +1160,7 @@ function createConstraintAnalysisTool(
             AND a.attnum > 0 AND NOT a.attisdropped AND a.attnotnull = false
             AND n.nspname NOT IN ('pg_catalog', 'information_schema')
             AND n.nspname !~ '^pg_toast'
+            ${extensionSchemaExclude}
             AND a.attname IN ('id', 'uuid', 'email', 'name', 'created_at', 'updated_at', 'status', 'type')
             AND NOT EXISTS (SELECT 1 FROM pg_constraint pk WHERE pk.conrelid = c.oid AND a.attnum = ANY(pk.conkey) AND pk.contype = 'p')
             ${schemaWhere} ${tableWhere}

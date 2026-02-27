@@ -11,9 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_dependency_graph` / `pg_topological_sort` extension schema exclusion** — New `excludeExtensionSchemas` parameter (default: `true`) filters out known extension-owned schemas (`cron`, `topology`, `tiger`, `tiger_data`) from both the FK dependency graph and topological sort results. Matches the existing `excludeExtensionSchemas` behavior in `pg_schema_snapshot`. Set `excludeExtensionSchemas: false` to include them. `pg_cascade_simulator` always includes all schemas for accurate cascade path tracing. Added 2 unit tests
 
+- **`pg_constraint_analysis` extension schema exclusion** — New `excludeExtensionSchemas` parameter (default: `true`) filters out known extension-owned schemas (`cron`, `topology`, `tiger`, `tiger_data`) from all 3 constraint analysis checks (missing PK, unindexed FK, missing NOT NULL). Previously, extension-schema tables like `cron.job_run_details` appeared in findings alongside user-schema tables. Set `excludeExtensionSchemas: false` or provide a specific `schema`/`table` to include them. Added 1 unit test
+
 - **ServerInstructions introspection tools documentation** — All 11 introspection tools (6 analysis + 5 migration tracking) are now documented in `ServerInstructions.ts` with tool descriptions, parameter reference, response structures, and key gotchas. Previously, this tool group had zero Code Mode documentation
 
 - **`pg_schema_snapshot` extension schema exclusion** — New `excludeExtensionSchemas` parameter (default: `true`) filters out known extension-owned schemas (`cron`, `topology`, `tiger`, `tiger_data`) from all 8 snapshot sections. Reduces default payload size significantly on databases with extensions installed. Set `excludeExtensionSchemas: false` to include them
+
+- **`pg_schema_snapshot` extension-owned object exclusion** — When `excludeExtensionSchemas` is active (default), extension-owned objects in the `public` schema (e.g., `spatial_ref_sys` from PostGIS, `part_config`/`part_config_sub` from pg_partman) are now excluded using `pg_depend` with `deptype = 'e'`. Applied across all 8 snapshot sections (tables, views, indexes, constraints, functions, triggers, sequences, types). Further reduces default payload size. Added 1 unit test
 
 - **6 new introspection unit tests** — Added tests for cascade simulator NO ACTION/RESTRICT label preservation, schema snapshot extension exclusion (default + opt-out), and migration history `status`/`sourceSystem` filtering
 
