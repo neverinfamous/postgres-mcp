@@ -347,6 +347,7 @@ export const CascadeSimulatorOutputSchema = z.object({
     setNullActions: z.number(),
     maxDepth: z.number(),
   }),
+  error: z.string().optional(),
 });
 
 export const SchemaSnapshotOutputSchema = z.object({
@@ -426,14 +427,16 @@ export const MigrationInitOutputSchema = z.object({
 
 export const MigrationRecordOutputSchema = z.object({
   success: z.boolean(),
-  record: MigrationRecordOutputEntry,
+  record: MigrationRecordOutputEntry.optional(),
+  error: z.string().optional(),
 });
 
 export const MigrationRollbackOutputSchema = z.object({
   success: z.boolean(),
-  dryRun: z.boolean(),
-  rollbackSql: z.string().nullable(),
-  record: MigrationRecordOutputEntry,
+  dryRun: z.boolean().optional(),
+  rollbackSql: z.string().nullable().optional(),
+  record: MigrationRecordOutputEntry.optional(),
+  error: z.string().optional(),
 });
 
 export const MigrationHistoryOutputSchema = z.object({

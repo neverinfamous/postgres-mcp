@@ -504,6 +504,7 @@ function createTopologicalSortTool(adapter: PostgresAdapter): ToolDefinition {
       for (const fk of fks) {
         const from = qualifiedName(fk.fromSchema, fk.fromTable);
         const to = qualifiedName(fk.toSchema, fk.toTable);
+        if (from === to) continue; // Self-references don't affect ordering
         const deps = dependsOn.get(from) ?? new Set<string>();
         deps.add(to);
         dependsOn.set(from, deps);
@@ -514,6 +515,7 @@ function createTopologicalSortTool(adapter: PostgresAdapter): ToolDefinition {
       for (const fk of fks) {
         const from = qualifiedName(fk.fromSchema, fk.fromTable);
         const to = qualifiedName(fk.toSchema, fk.toTable);
+        if (from === to) continue; // Self-references don't affect ordering
 
         if (direction === "create") {
           const existing = adjacency.get(to) ?? [];
@@ -597,6 +599,24 @@ function createCascadeSimulatorTool(adapter: PostgresAdapter): ToolDefinition {
       const tableMap = new Map(
         tables.map((t) => [qualifiedName(t.schema, t.table), t]),
       );
+
+      // Check if source table exists
+      if (!tableMap.has(sourceQName)) {
+        return {
+          sourceTable: sourceQName,
+          operation,
+          affectedTables: [],
+          severity: "low" as const,
+          stats: {
+            totalTablesAffected: 0,
+            cascadeActions: 0,
+            restrictActions: 0,
+            setNullActions: 0,
+            maxDepth: 0,
+          },
+          error: `Table '${sourceQName}' not found. Use pg_list_tables to verify.`,
+        };
+      }
 
       // Build reverse adjacency: for each table, find what references it
       // (which tables have FKs pointing TO this table)
@@ -690,6 +710,8 @@ function createCascadeSimulatorTool(adapter: PostgresAdapter): ToolDefinition {
       let severity: "low" | "medium" | "high" | "critical";
       if (restrictActions > 0) {
         severity = "critical"; // Operation will fail
+      } else if (operation !== "DELETE" && cascadeActions > 0) {
+        severity = "critical"; // DROP/TRUNCATE force-cascades everything
       } else if (cascadeActions > 5 || maxDepth > 3) {
         severity = "high";
       } else if (cascadeActions > 0) {
@@ -1055,7 +1077,7 @@ function createConstraintAnalysisTool(
             AND NOT EXISTS (
               SELECT 1 FROM pg_index ix
               WHERE ix.indrelid = t.oid
-                AND c.conkey <@ ix.indkey
+                AND c.conkey <@ ix.indkey::smallint[]
             )
             ${schemaWhere} ${tableWhere.replace("c.relname", "t.relname")}
           GROUP BY n.nspname, t.relname, c.conname

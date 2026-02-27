@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`pg_constraint_analysis` raw MCP error (SQL type mismatch)** — Fixed `operator does not exist: smallint[] <@ int2vector` error by casting `ix.indkey` to `smallint[]` in the unindexed FK detection query. Previously, calling `pg_constraint_analysis` on any schema with foreign keys threw a raw MCP error instead of returning structured results
+
+- **`pg_migration_record` output schema validation error on duplicate detection** — Duplicate migration detection now returns `{success: false, error: "Duplicate migration..."}` instead of throwing a raw MCP output validation error. Made `record` optional in `MigrationRecordOutputSchema` since the duplicate path returns without it. Added `error` field
+
+- **`pg_migration_rollback` output schema validation error on all error/execution paths** — Non-dry-run execution, nonexistent migration, missing ID/version, and no-rollback-SQL paths now return structured `{success: false, error}` responses instead of throwing raw MCP output validation errors. Made `dryRun`, `rollbackSql`, and `record` optional in `MigrationRollbackOutputSchema` since error paths return without them. Added `error` field
+
+- **`pg_topological_sort` self-referencing FKs break entire sort** — Tables with self-referencing foreign keys (e.g., `employees.manager_id → employees.id`) no longer cause `hasCycles: true` and all levels to collapse to zero. Self-references are now filtered from adjacency and dependency maps since they don't affect topological ordering. Self-references still appear correctly in `pg_dependency_graph` edges
+
+- **`pg_cascade_simulator` DROP/TRUNCATE severity inversion** — `pg_cascade_simulator` with `operation: "DROP"` or `"TRUNCATE"` now returns `severity: "critical"` when cascading tables exist, instead of `"medium"`. DROP/TRUNCATE force-cascade all dependent tables regardless of the FK `ON DELETE` rule, which is inherently destructive
+
+- **`pg_cascade_simulator` silent success for nonexistent tables** — `pg_cascade_simulator({ table: "nonexistent" })` now returns `{error: "Table '...' not found. Use pg_list_tables to verify.", severity: "low", affectedTables: []}` instead of silently returning an empty result with no indication of failure. Added `error` field to `CascadeSimulatorOutputSchema`
+
 ### Performance
 
 - **Code Mode sandbox execution overhead** — Reduced per-call `sandbox.execute()` overhead with three targeted optimizations:
