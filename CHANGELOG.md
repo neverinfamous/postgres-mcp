@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- **README.md, DOCKER_README.md, and tool-groups-list.md stale tool counts** — Fixed top-level total tool count (222→227) and published tool count (213→218) to accurately reflect the recent expansion of the introspection group with migration tracking tools
+
 - **README.md and DOCKER_README.md Code Mode promotion** — Updated the opening description and the "What Sets Us Apart" table to strongly emphasize Code Mode's massive token savings, highlighting that a single sandbox execution eliminates the overhead of multi-step tool calls for all 222 tools
 
 - **DOCKER_README.md stale tool counts** — Fixed total tool count (217→222), introspection group (7→13), `dev-power` shortcut (60→66), and `dba-manage` shortcut (64→70). Also updated description from "migration risks" to "migration tracking" to reflect the full migration tool suite
