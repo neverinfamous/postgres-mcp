@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **DOCKER_README.md stale tool counts** — Fixed total tool count (217→222), introspection group (7→13), `dev-power` shortcut (60→66), and `dba-manage` shortcut (64→70). Also updated description from "migration risks" to "migration tracking" to reflect the full migration tool suite
 
+- **README.md and DOCKER_README.md stale test and coverage stats** — Fixed badges and "What Sets Us Apart" table to accurately reflect **3000** passing tests and **92.10%** test coverage
+
 ### Added
 
 - **`pg_migration_apply` tool** — New introspection tool that executes migration SQL and records it atomically in a single transaction. On failure, rolls back the transaction and records a `'failed'` entry for auditability. Same parameters as `pg_migration_record` (`version`, `migrationSql`, `rollbackSql?`, etc.). Use `pg_migration_record` when you only need to retroactively log an already-applied migration. Introspection group: 11→12 tools. Added 5 unit tests covering success, SQL failure with rollback, duplicate hash detection, and validation errors. Updated `ToolConstants.ts` (222 total, 213 published), `api.ts` (alias + example), `ServerInstructions.ts` (12 tools, 6 migration tracking), `test-tools.md`, and `tool-groups-list.md`

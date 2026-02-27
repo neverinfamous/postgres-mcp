@@ -17,8 +17,8 @@
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgresql-mcp/blob/main/SECURITY.md)
 ![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Tests](https://img.shields.io/badge/Tests-2939_passed-success.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Coverage](https://img.shields.io/badge/Coverage-92.05%25-brightgreen.svg)](https://github.com/neverinfamous/postgresql-mcp)
+[![Tests](https://img.shields.io/badge/Tests-3000_passed-success.svg)](https://github.com/neverinfamous/postgresql-mcp)
+[![Coverage](https://img.shields.io/badge/Coverage-92.10%25-brightgreen.svg)](https://github.com/neverinfamous/postgresql-mcp)
 
 **[Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgresql-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgresql-mcp/blob/main/CHANGELOG.md)**
 
@@ -37,7 +37,7 @@
 | **8 Extension Ecosystems**       | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                                                                                                                                  |
 | **Deterministic Error Handling** | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes                                                                                                                |
 | **Production-Ready Security**    | SQL injection protection, parameterized queries, input validation, sandboxed code execution, SSL certificate verification by default, and HTTP body size enforcement                                                                                                                                         |
-| **Strict TypeScript**            | 100% type-safe codebase with 2376 tests and 85.37% coverage                                                                                                                                                                                                                                                  |
+| **Strict TypeScript**            | 100% type-safe codebase with 3000 tests and 92.10% coverage                                                                                                                                                                                                                                                  |
 | **MCP 2025-11-25 Compliant**     | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                                                                                                                                |
 
 ## 🚀 Quick Start
