@@ -27,6 +27,12 @@ export const DependencyGraphSchemaBase = z
       .boolean()
       .optional()
       .describe("Include index information on edges (default: false)"),
+    excludeExtensionSchemas: z
+      .boolean()
+      .optional()
+      .describe(
+        "Exclude known extension schemas (cron, topology, tiger, tiger_data) from graph (default: true)",
+      ),
   })
   .default({});
 
@@ -46,6 +52,12 @@ export const TopologicalSortSchemaBase = z
       .optional()
       .describe(
         "Sort direction: 'create' = dependencies first, 'drop' = dependents first (default: create)",
+      ),
+    excludeExtensionSchemas: z
+      .boolean()
+      .optional()
+      .describe(
+        "Exclude known extension schemas (cron, topology, tiger, tiger_data) from sort (default: true)",
       ),
   })
   .default({});
@@ -375,7 +387,7 @@ export const CascadeSimulatorOutputSchema = z.object({
   stats: z.object({
     totalTablesAffected: z.number(),
     cascadeActions: z.number(),
-    restrictActions: z.number(),
+    blockingActions: z.number(),
     setNullActions: z.number(),
     maxDepth: z.number(),
   }),

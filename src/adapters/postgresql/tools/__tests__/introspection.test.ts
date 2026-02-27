@@ -216,6 +216,27 @@ describe("pg_dependency_graph", () => {
     expect(result.hint).toBeDefined();
     expect(result.hint).toContain("nonexistent_schema_xyz");
   });
+
+  it("should exclude extension schemas by default", async () => {
+    // Mock FK and table queries returning empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_dependency_graph")!;
+    await tool.handler({}, mockContext);
+
+    // Verify the FK query includes extension schema exclusion
+    const fkQueryCall = mockAdapter.executeQuery.mock.calls[0]!;
+    expect(fkQueryCall[0]).toContain("'cron'");
+    expect(fkQueryCall[0]).toContain("'topology'");
+    expect(fkQueryCall[0]).toContain("'tiger'");
+    expect(fkQueryCall[0]).toContain("'tiger_data'");
+
+    // Verify the table query also includes extension schema exclusion
+    const tableQueryCall = mockAdapter.executeQuery.mock.calls[1]!;
+    expect(tableQueryCall[0]).toContain("'cron'");
+    expect(tableQueryCall[0]).toContain("'tiger_data'");
+  });
 });
 
 // =============================================================================
@@ -394,6 +415,27 @@ describe("pg_topological_sort", () => {
     expect(deptEntry!.level).toBe(0);
     expect(empEntry!.level).toBeGreaterThan(0);
   });
+
+  it("should exclude extension schemas by default", async () => {
+    // Mock FK and table queries returning empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_topological_sort")!;
+    await tool.handler({}, mockContext);
+
+    // Verify the FK query includes extension schema exclusion
+    const fkQueryCall = mockAdapter.executeQuery.mock.calls[0]!;
+    expect(fkQueryCall[0]).toContain("'cron'");
+    expect(fkQueryCall[0]).toContain("'topology'");
+    expect(fkQueryCall[0]).toContain("'tiger'");
+    expect(fkQueryCall[0]).toContain("'tiger_data'");
+
+    // Verify the table query also includes extension schema exclusion
+    const tableQueryCall = mockAdapter.executeQuery.mock.calls[1]!;
+    expect(tableQueryCall[0]).toContain("'cron'");
+    expect(tableQueryCall[0]).toContain("'tiger_data'");
+  });
 });
 
 // =============================================================================
@@ -461,7 +503,7 @@ describe("pg_cascade_simulator", () => {
       stats: {
         totalTablesAffected: number;
         cascadeActions: number;
-        restrictActions: number;
+        blockingActions: number;
       };
     };
 
@@ -509,11 +551,11 @@ describe("pg_cascade_simulator", () => {
     const tool = tools.find((t) => t.name === "pg_cascade_simulator")!;
     const result = (await tool.handler({ table: "users" }, mockContext)) as {
       severity: string;
-      stats: { restrictActions: number };
+      stats: { blockingActions: number };
     };
 
     expect(result.severity).toBe("critical");
-    expect(result.stats.restrictActions).toBe(1);
+    expect(result.stats.blockingActions).toBe(1);
   });
 
   it("should support schema.table format", async () => {
@@ -626,13 +668,13 @@ describe("pg_cascade_simulator", () => {
     const tool = tools.find((t) => t.name === "pg_cascade_simulator")!;
     const result = (await tool.handler({ table: "users" }, mockContext)) as {
       affectedTables: Array<{ table: string; action: string }>;
-      stats: { restrictActions: number };
+      stats: { blockingActions: number };
     };
 
     // action should be "NO ACTION", not "RESTRICT"
     expect(result.affectedTables[0]!.action).toBe("NO ACTION");
-    // Still counts as a restrict action
-    expect(result.stats.restrictActions).toBe(1);
+    // Still counts as a blocking action
+    expect(result.stats.blockingActions).toBe(1);
   });
 
   it("should preserve RESTRICT label in action field", async () => {

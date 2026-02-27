@@ -82,6 +82,7 @@ interface TableNode {
 async function fetchForeignKeys(
   adapter: PostgresAdapter,
   schemaFilter?: string,
+  excludeExtensionSchemas?: boolean,
 ): Promise<FkEdge[]> {
   const params: unknown[] = [];
   let schemaClause = "";
@@ -89,6 +90,11 @@ async function fetchForeignKeys(
     params.push(schemaFilter);
     schemaClause = `AND src_ns.nspname = $${String(params.length)}`;
   }
+
+  const extensionSchemaExclude =
+    !schemaFilter && excludeExtensionSchemas !== false
+      ? "AND src_ns.nspname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')"
+      : "";
 
   const result = await adapter.executeQuery(
     `SELECT
@@ -119,6 +125,7 @@ async function fetchForeignKeys(
     WHERE c.contype = 'f'
       AND src_ns.nspname NOT IN ('pg_catalog', 'information_schema')
       AND src_ns.nspname !~ '^pg_toast'
+      ${extensionSchemaExclude}
       ${schemaClause}
     GROUP BY c.conname, src_ns.nspname, src_t.relname,
              ref_ns.nspname, ref_t.relname, c.confdeltype, c.confupdtype
@@ -145,6 +152,7 @@ async function fetchForeignKeys(
 async function fetchTableNodes(
   adapter: PostgresAdapter,
   schemaFilter?: string,
+  excludeExtensionSchemas?: boolean,
 ): Promise<TableNode[]> {
   const params: unknown[] = [];
   let schemaClause = "";
@@ -152,6 +160,11 @@ async function fetchTableNodes(
     params.push(schemaFilter);
     schemaClause = `AND n.nspname = $${String(params.length)}`;
   }
+
+  const extensionSchemaExclude =
+    !schemaFilter && excludeExtensionSchemas !== false
+      ? "AND n.nspname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')"
+      : "";
 
   const result = await adapter.executeQuery(
     `SELECT
@@ -166,6 +179,7 @@ async function fetchTableNodes(
     WHERE c.relkind IN ('r', 'p')
       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
       AND n.nspname !~ '^pg_toast'
+      ${extensionSchemaExclude}
       ${schemaClause}
     ORDER BY n.nspname, c.relname`,
     params.length > 0 ? params : undefined,
@@ -371,10 +385,12 @@ function createDependencyGraphTool(adapter: PostgresAdapter): ToolDefinition {
       const parsed = DependencyGraphSchema.parse(params);
       const includeRowCounts = parsed.includeRowCounts !== false;
 
+      const excludeExt = parsed.excludeExtensionSchemas;
+
       const [fks, tables] = await Promise.all([
-        fetchForeignKeys(adapter, parsed.schema),
+        fetchForeignKeys(adapter, parsed.schema, excludeExt),
         includeRowCounts
-          ? fetchTableNodes(adapter, parsed.schema)
+          ? fetchTableNodes(adapter, parsed.schema, excludeExt)
           : Promise.resolve([]),
       ]);
 
@@ -487,8 +503,10 @@ function createTopologicalSortTool(adapter: PostgresAdapter): ToolDefinition {
       const parsed = TopologicalSortSchema.parse(params);
       const direction = parsed.direction ?? "create";
 
-      const fks = await fetchForeignKeys(adapter, parsed.schema);
-      const tables = await fetchTableNodes(adapter, parsed.schema);
+      const excludeExt = parsed.excludeExtensionSchemas;
+
+      const fks = await fetchForeignKeys(adapter, parsed.schema, excludeExt);
+      const tables = await fetchTableNodes(adapter, parsed.schema, excludeExt);
 
       // Build adjacency: A depends on B means A→B
       // For "create" order, we need B before A (dependencies first)
@@ -598,9 +616,10 @@ function createCascadeSimulatorTool(adapter: PostgresAdapter): ToolDefinition {
       const operation = parsed.operation ?? "DELETE";
       const sourceQName = qualifiedName(schema, parsed.table);
 
+      // Cascade simulator must include ALL schemas for accurate cascade path tracing
       const [fks, tables] = await Promise.all([
-        fetchForeignKeys(adapter),
-        fetchTableNodes(adapter),
+        fetchForeignKeys(adapter, undefined, false),
+        fetchTableNodes(adapter, undefined, false),
       ]);
 
       const tableMap = new Map(
@@ -617,7 +636,7 @@ function createCascadeSimulatorTool(adapter: PostgresAdapter): ToolDefinition {
           stats: {
             totalTablesAffected: 0,
             cascadeActions: 0,
-            restrictActions: 0,
+            blockingActions: 0,
             setNullActions: 0,
             maxDepth: 0,
           },
@@ -655,7 +674,7 @@ function createCascadeSimulatorTool(adapter: PostgresAdapter): ToolDefinition {
       visited.add(sourceQName);
 
       let cascadeActions = 0;
-      let restrictActions = 0;
+      let blockingActions = 0;
       let setNullActions = 0;
 
       while (queue.length > 0) {
@@ -688,7 +707,7 @@ function createCascadeSimulatorTool(adapter: PostgresAdapter): ToolDefinition {
               depth: current.depth + 1,
             });
           } else if (action === "RESTRICT" || action === "NO ACTION") {
-            restrictActions++;
+            blockingActions++;
             affected.push({
               table: ref.fromTable,
               schema: ref.fromSchema,
@@ -715,7 +734,7 @@ function createCascadeSimulatorTool(adapter: PostgresAdapter): ToolDefinition {
 
       // Severity assessment
       let severity: "low" | "medium" | "high" | "critical";
-      if (restrictActions > 0) {
+      if (blockingActions > 0) {
         severity = "critical"; // Operation will fail
       } else if (operation !== "DELETE" && cascadeActions > 0) {
         severity = "critical"; // DROP/TRUNCATE force-cascades everything
@@ -735,7 +754,7 @@ function createCascadeSimulatorTool(adapter: PostgresAdapter): ToolDefinition {
         stats: {
           totalTablesAffected: affected.length,
           cascadeActions,
-          restrictActions,
+          blockingActions,
           setNullActions,
           maxDepth,
         },

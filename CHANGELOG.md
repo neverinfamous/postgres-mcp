@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`pg_dependency_graph` / `pg_topological_sort` extension schema exclusion** — New `excludeExtensionSchemas` parameter (default: `true`) filters out known extension-owned schemas (`cron`, `topology`, `tiger`, `tiger_data`) from both the FK dependency graph and topological sort results. Matches the existing `excludeExtensionSchemas` behavior in `pg_schema_snapshot`. Set `excludeExtensionSchemas: false` to include them. `pg_cascade_simulator` always includes all schemas for accurate cascade path tracing. Added 2 unit tests
+
 - **ServerInstructions introspection tools documentation** — All 11 introspection tools (6 analysis + 5 migration tracking) are now documented in `ServerInstructions.ts` with tool descriptions, parameter reference, response structures, and key gotchas. Previously, this tool group had zero Code Mode documentation
 
 - **`pg_schema_snapshot` extension schema exclusion** — New `excludeExtensionSchemas` parameter (default: `true`) filters out known extension-owned schemas (`cron`, `topology`, `tiger`, `tiger_data`) from all 8 snapshot sections. Reduces default payload size significantly on databases with extensions installed. Set `excludeExtensionSchemas: false` to include them
@@ -16,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **6 new introspection unit tests** — Added tests for cascade simulator NO ACTION/RESTRICT label preservation, schema snapshot extension exclusion (default + opt-out), and migration history `status`/`sourceSystem` filtering
 
 ### Fixed
+
+- **`pg_cascade_simulator` misleading `restrictActions` stats counter** — Renamed `stats.restrictActions` → `stats.blockingActions` to accurately reflect that both `NO ACTION` and `RESTRICT` FK constraints are counted. The previous name implied only `RESTRICT` FKs were counted. Both constraint types block the operation identically
 
 - **`pg_migration_record` raw MCP error for missing required params** — `pg_migration_record({})` or `pg_migration_record({ migrationSql: "..." })` (missing `version`) now returns `{success: false, error: "Validation error: ..."}` instead of a raw MCP Zod validation error (`-32602`). Applied Split Schema pattern: `MigrationRecordSchemaBase` (optional fields) for MCP `inputSchema` visibility, `MigrationRecordParseSchema` (required fields) for handler parsing inside `try/catch`. Added 2 unit tests
 
