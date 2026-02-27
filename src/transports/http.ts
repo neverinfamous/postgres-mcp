@@ -265,6 +265,19 @@ export class HttpTransport {
       return;
     }
 
+    // Check body size (Content-Length)
+    const contentLength = parseInt(req.headers["content-length"] ?? "0", 10);
+    if (contentLength > (this.config.maxBodySize ?? 1048576)) {
+      res.writeHead(413, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: "payload_too_large",
+          error_description: `Request body exceeds maximum size of ${String(this.config.maxBodySize ?? 1048576)} bytes.`,
+        }),
+      );
+      return;
+    }
+
     const url = new URL(
       req.url ?? "/",
       `http://${req.headers.host ?? "localhost"}`,

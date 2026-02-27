@@ -514,7 +514,7 @@ describe("ConnectionPool", () => {
   });
 
   describe("SSL Configuration", () => {
-    it("should enable SSL with rejectUnauthorized=false when ssl=true", async () => {
+    it("should enable SSL with rejectUnauthorized=true when ssl=true", async () => {
       const sslPool = new ConnectionPool({
         host: "localhost",
         port: 5432,

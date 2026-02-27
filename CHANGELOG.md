@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **README.md / DOCKER_README.md Code Mode promotion** — Expanded the Code Mode section with sandbox description (static validation, rate limiting, timeouts, full API access) and a new "Code Mode Only" subsection with JSON config example using `--tool-filter codemode`. References the [Cloudflare Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) for single-tool API access
 
+### Security
+
+- **SSL `rejectUnauthorized` secure default** — `ssl: true` now defaults to `rejectUnauthorized: true` (certificate verification enabled) instead of `rejectUnauthorized: false`. Previously, enabling SSL silently disabled certificate validation, allowing potential MITM attacks. Users who need to skip verification must explicitly pass `ssl: { rejectUnauthorized: false }`
+- **HTTP body size enforcement** — `maxBodySize` (default 1MB) is now enforced via `Content-Length` header check in the HTTP transport's `handleRequest()`. Requests exceeding the limit are rejected with HTTP 413 (`payload_too_large`). Previously, the config value was defined but never checked
+- **SECURITY.md Code Mode sandbox boundaries** — Added documentation clarifying that `node:vm` provides script isolation (not security isolation), listing all defense-in-depth mitigations, and stating the trusted AI agent threat model
+- **Gitleaks CI gate enforcement** — Removed `continue-on-error: true` from the Gitleaks step in `secrets-scanning.yml` so confirmed secret leaks now block the CI pipeline. TruffleHog retains `continue-on-error` for `--only-verified` tuning
+- **CLI `--password` security guidance** — Updated `--password` help text to recommend `PGPASSWORD` environment variable to avoid credential exposure in process listings
+
 ### Dependencies
 
 - Bump `@modelcontextprotocol/sdk` from 1.26.0 to 1.27.1

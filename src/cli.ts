@@ -79,7 +79,10 @@ program
   .option("--host <host>", "PostgreSQL host (default: localhost)")
   .option("--pg-port <port>", "PostgreSQL port (default: 5432)", parseInt)
   .option("--user <user>", "PostgreSQL username")
-  .option("--password <password>", "PostgreSQL password")
+  .option(
+    "--password <password>",
+    "PostgreSQL password (prefer PGPASSWORD env var to avoid process list exposure)",
+  )
   .option("--database <database>", "PostgreSQL database name")
   .option("--ssl", "Enable SSL connection")
   .option(

@@ -1195,6 +1195,69 @@ describe("HttpTransport", () => {
     });
   });
 
+  describe("Body Size Enforcement", () => {
+    it("should return 413 when Content-Length exceeds maxBodySize", async () => {
+      const transport = new HttpTransport({
+        port: 3000,
+        maxBodySize: 1024, // 1KB limit
+      });
+      const req = createMockRequest({
+        method: "POST",
+        url: "/messages",
+        headers: {
+          host: "localhost:3000",
+          "content-length": "2048", // 2KB, exceeds limit
+        },
+      });
+      const res = createMockResponse();
+
+      const handleRequest = (
+        transport as unknown as {
+          handleRequest: (
+            req: IncomingMessage,
+            res: ServerResponse,
+          ) => Promise<void>;
+        }
+      ).handleRequest.bind(transport);
+
+      await handleRequest(req, res);
+
+      expect(res._statusCode).toBe(413);
+      expect(res._body).toContain("payload_too_large");
+    });
+
+    it("should allow requests within maxBodySize", async () => {
+      const transport = new HttpTransport({
+        port: 3000,
+        maxBodySize: 1048576, // 1MB
+      });
+      const req = createMockRequest({
+        method: "GET",
+        url: "/health",
+        headers: {
+          host: "localhost:3000",
+          "content-length": "100",
+        },
+      });
+      const res = createMockResponse();
+
+      const handleRequest = (
+        transport as unknown as {
+          handleRequest: (
+            req: IncomingMessage,
+            res: ServerResponse,
+          ) => Promise<void>;
+        }
+      ).handleRequest.bind(transport);
+
+      await handleRequest(req, res);
+
+      // Should proceed to health check handler, not reject
+      expect(res._statusCode).toBe(200);
+      expect(res._body).toContain("healthy");
+    });
+  });
+
   describe("createHttpTransport factory", () => {
     it("should create HttpTransport with factory function", async () => {
       // Import factory function
