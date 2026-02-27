@@ -27,7 +27,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **6 new introspection unit tests** — Added tests for cascade simulator NO ACTION/RESTRICT label preservation, schema snapshot extension exclusion (default + opt-out), and migration history `status`/`sourceSystem` filtering
 
+### Removed
+
+- **`pg_dependency_graph` non-functional `includeIndexes` parameter** — Removed the `includeIndexes` boolean parameter from `DependencyGraphSchemaBase` (input schema). The parameter was defined but never implemented in the handler — no index-related information was ever added to output edges. Removing it prevents misleading the LLM/user. `includeRowCounts` remains functional
+
 ### Fixed
+
+- **`pg_topological_sort` silent empty result for nonexistent schema** — `pg_topological_sort({ schema: "nonexistent" })` now returns a `hint` field (`"Schema 'nonexistent' returned no tables. Verify the schema exists with pg_list_schemas."`) alongside the empty `order` array. Previously returned an empty order with `hasCycles: false` and no indication that the schema might not exist. Added `hint` optional field to `TopologicalSortOutputSchema`. Added 1 unit test
+
+- **`pg_constraint_analysis` silent empty result for nonexistent table** — `pg_constraint_analysis({ table: "nonexistent" })` now returns a `hint` field (`"No findings for table 'public.nonexistent'. Verify the table exists with pg_list_tables."`) alongside the empty findings. Previously returned `{findings: [], summary: {totalFindings: 0}}` with no indication that the table might not exist. Added `hint` optional field to `ConstraintAnalysisOutputSchema`. Added 1 unit test
+
+- **`test-tools.md` cascade simulator scenario inaccuracy** — Updated `pg_cascade_simulator` test scenario to include the NO ACTION block from `test_audit_log` (via the `test_employees` cascade path), which was missing from the original prompt
+
+- **`ServerInstructions.ts` `pg_dependency_graph` missing `includeRowCounts` param** — Added `includeRowCounts?` (default: true) to the documented parameter list. The parameter was functional but undocumented
 
 - **`ServerInstructions.ts` `pg_constraint_analysis` incorrect `checks` enum value** — Changed documented `'redundant_indexes'` to `'redundant'` to match the actual Zod schema enum value. Previously, passing `checks: ['redundant_indexes']` (as documented) would fail validation
 

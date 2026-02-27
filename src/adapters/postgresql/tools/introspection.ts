@@ -606,11 +606,18 @@ function createTopologicalSortTool(adapter: PostgresAdapter): ToolDefinition {
         };
       });
 
+      // Add hint for nonexistent/empty schema
+      const hint =
+        parsed.schema !== undefined && allNodes.size === 0
+          ? `Schema '${parsed.schema}' returned no tables. Verify the schema exists with pg_list_schemas.`
+          : undefined;
+
       return {
         order,
         direction,
         hasCycles: sorted === null,
         ...(cycles.length > 0 ? { cycles } : {}),
+        ...(hint !== undefined && { hint }),
       };
     },
   };
@@ -1222,6 +1229,12 @@ function createConstraintAnalysisTool(
         bySeverity[f.severity] = (bySeverity[f.severity] ?? 0) + 1;
       }
 
+      // Add hint for nonexistent table
+      const hint =
+        parsed.table !== undefined && findings.length === 0
+          ? `No findings for table '${parsed.schema ? parsed.schema + "." : "public."}${parsed.table}'. Verify the table exists with pg_list_tables.`
+          : undefined;
+
       return {
         findings,
         summary: {
@@ -1229,6 +1242,7 @@ function createConstraintAnalysisTool(
           byType,
           bySeverity,
         },
+        ...(hint !== undefined && { hint }),
       };
     },
   };

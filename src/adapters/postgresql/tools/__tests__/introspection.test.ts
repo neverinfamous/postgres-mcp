@@ -513,6 +513,25 @@ describe("pg_topological_sort", () => {
     expect(assignIdx).toBeLessThan(projIdx);
     expect(projIdx).toBeLessThan(deptIdx);
   });
+
+  it("should return hint for nonexistent schema", async () => {
+    // Mock FK and table queries returning empty for unknown schema
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_topological_sort")!;
+    const result = (await tool.handler(
+      { schema: "nonexistent_schema_xyz" },
+      mockContext,
+    )) as {
+      order: unknown[];
+      hint?: string;
+    };
+
+    expect(result.order).toHaveLength(0);
+    expect(result.hint).toBeDefined();
+    expect(result.hint).toContain("nonexistent_schema_xyz");
+  });
 });
 
 // =============================================================================
@@ -1091,6 +1110,28 @@ describe("pg_constraint_analysis", () => {
       expect(sql).toContain("'cron'");
       expect(sql).toContain("'tiger_data'");
     }
+  });
+
+  it("should return hint for nonexistent table", async () => {
+    // Mock all 3 check queries returning empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_constraint_analysis")!;
+    const result = (await tool.handler(
+      { table: "nonexistent_table_xyz" },
+      mockContext,
+    )) as {
+      findings: unknown[];
+      summary: { totalFindings: number };
+      hint?: string;
+    };
+
+    expect(result.findings).toHaveLength(0);
+    expect(result.summary.totalFindings).toBe(0);
+    expect(result.hint).toBeDefined();
+    expect(result.hint).toContain("nonexistent_table_xyz");
   });
 });
 

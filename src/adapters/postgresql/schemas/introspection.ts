@@ -22,10 +22,6 @@ export const DependencyGraphSchemaBase = z.object({
     .boolean()
     .optional()
     .describe("Include estimated row counts (default: true)"),
-  includeIndexes: z
-    .boolean()
-    .optional()
-    .describe("Include index information on edges (default: false)"),
   excludeExtensionSchemas: z
     .boolean()
     .optional()
@@ -363,6 +359,7 @@ export const TopologicalSortOutputSchema = z.object({
   direction: z.string(),
   hasCycles: z.boolean(),
   cycles: z.array(z.array(z.string())).optional(),
+  hint: z.string().optional(),
 });
 
 export const CascadeSimulatorOutputSchema = z.object({
@@ -422,6 +419,7 @@ export const ConstraintAnalysisOutputSchema = z.object({
     byType: z.record(z.string(), z.number()),
     bySeverity: z.record(z.string(), z.number()),
   }),
+  hint: z.string().optional(),
 });
 
 export const MigrationRisksOutputSchema = z.object({
