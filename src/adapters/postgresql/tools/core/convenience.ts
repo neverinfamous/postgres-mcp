@@ -224,9 +224,6 @@ export const BatchInsertSchema = z
   .refine((data) => data.table !== "", {
     message:
       'table (or tableName alias) is required. Usage: pg_batch_insert({ table: "users", rows: [{ name: "John" }, { name: "Jane" }] })',
-  })
-  .refine((data) => data.rows.length > 0, {
-    message: "rows must not be empty",
   });
 
 // MCP visibility schema - table OR tableName required
@@ -560,14 +557,27 @@ export function createBatchInsertTool(
     annotations: write("Batch Insert"),
     icons: getToolIcons("core", write("Batch Insert")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = BatchInsertSchema.parse(params);
+      let parsed;
+      try {
+        parsed = BatchInsertSchema.parse(params);
+      } catch (error: unknown) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join("; ")}`,
+          };
+        }
+        throw error;
+      }
 
       // Validate rows array is not empty
       if (parsed.rows.length === 0) {
-        throw new Error(
-          "rows array must not be empty. Provide at least one row to insert, " +
-            'e.g., rows: [{column: "value"}]',
-        );
+        return {
+          success: false,
+          error:
+            "rows must not be empty. Provide at least one row to insert, " +
+            'e.g., rows: [{ column: "value" }]',
+        };
       }
 
       const schemaName = parsed.schema ?? "public";

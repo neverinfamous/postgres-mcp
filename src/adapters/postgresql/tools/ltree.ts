@@ -14,6 +14,7 @@ import {
   LtreeQuerySchemaBase,
   LtreeSubpathSchema,
   LtreeSubpathSchemaBase,
+  LtreeLcaSchemaBase,
   LtreeLcaSchema,
   LtreeMatchSchema,
   LtreeMatchSchemaBase,
@@ -238,12 +239,24 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_ltree_lca",
     description: "Find the longest common ancestor of multiple ltree paths.",
     group: "ltree",
-    inputSchema: LtreeLcaSchema,
+    inputSchema: LtreeLcaSchemaBase, // Base schema for MCP visibility
     outputSchema: LtreeLcaOutputSchema,
     annotations: readOnly("Ltree LCA"),
     icons: getToolIcons("ltree", readOnly("Ltree LCA")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { paths } = LtreeLcaSchema.parse(params);
+      let parsed;
+      try {
+        parsed = LtreeLcaSchema.parse(params);
+      } catch (error: unknown) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
+        throw error;
+      }
+      const { paths } = parsed;
       const arrayLiteral = paths
         .map((p) => `'${p.replace(/'/g, "''")}'::ltree`)
         .join(", ");
@@ -455,7 +468,7 @@ function createLtreeConvertColumnTool(
       // Check for dependent views before attempting the conversion
       const depCheck = await adapter.executeQuery(
         `
-        SELECT DISTINCT 
+        SELECT DISTINCT
           c.relname as dependent_view,
           n.nspname as view_schema
         FROM pg_depend d

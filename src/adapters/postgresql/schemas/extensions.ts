@@ -524,12 +524,22 @@ export const LtreeSubpathSchema = z.preprocess(
 );
 
 /**
+ * Base schema for MCP visibility - no min constraint.
+ */
+export const LtreeLcaSchemaBase = z.object({
+  paths: z
+    .array(z.string())
+    .describe("Array of ltree paths to find common ancestor (minimum 2)"),
+});
+
+/**
  * Schema for finding longest common ancestor.
+ * Enforces minimum 2 paths; used inside handler try/catch.
  */
 export const LtreeLcaSchema = z.object({
   paths: z
     .array(z.string())
-    .min(2)
+    .min(2, "At least 2 paths are required to find a common ancestor")
     .describe("Array of ltree paths to find common ancestor"),
 });
 

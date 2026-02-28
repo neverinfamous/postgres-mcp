@@ -442,6 +442,7 @@ export {
   LtreeQuerySchemaBase,
   LtreeSubpathSchema,
   LtreeSubpathSchemaBase,
+  LtreeLcaSchemaBase,
   LtreeLcaSchema,
   LtreeMatchSchema,
   LtreeMatchSchemaBase,
