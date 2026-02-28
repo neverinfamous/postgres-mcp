@@ -284,9 +284,14 @@ export const CronJobRunDetailsSchema = CronJobRunDetailsSchemaBase.default({});
 export const CronCleanupHistorySchemaBase = z.object({
   olderThanDays: z
     .number()
+    .min(0, "olderThanDays must be non-negative")
     .optional()
     .describe("Delete records older than N days (default: 7)"),
-  days: z.number().optional().describe("Alias for olderThanDays"),
+  days: z
+    .number()
+    .min(0, "days must be non-negative")
+    .optional()
+    .describe("Alias for olderThanDays"),
   jobId: CoercibleJobId.optional().describe("Clean up only for specific job"),
 });
 
