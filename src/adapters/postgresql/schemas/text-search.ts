@@ -196,18 +196,33 @@ export const FtsIndexOutputSchema = z.object({
 
 // Output schema for pg_text_normalize
 export const TextNormalizeOutputSchema = z.object({
-  normalized: z.string().describe("Text with accent marks removed"),
+  normalized: z.string().optional().describe("Text with accent marks removed"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_text_sentiment
 export const TextSentimentOutputSchema = z.object({
   sentiment: z
     .enum(["very_positive", "positive", "neutral", "negative", "very_negative"])
+    .optional()
     .describe("Overall sentiment classification"),
-  score: z.number().describe("Net sentiment score (positive - negative)"),
-  positiveCount: z.number().describe("Number of positive words found"),
-  negativeCount: z.number().describe("Number of negative words found"),
-  confidence: z.enum(["low", "medium", "high"]).describe("Confidence level"),
+  score: z
+    .number()
+    .optional()
+    .describe("Net sentiment score (positive - negative)"),
+  positiveCount: z
+    .number()
+    .optional()
+    .describe("Number of positive words found"),
+  negativeCount: z
+    .number()
+    .optional()
+    .describe("Number of negative words found"),
+  confidence: z
+    .enum(["low", "medium", "high"])
+    .optional()
+    .describe("Confidence level"),
   matchedPositive: z
     .array(z.string())
     .optional()
@@ -216,17 +231,23 @@ export const TextSentimentOutputSchema = z.object({
     .array(z.string())
     .optional()
     .describe("Matched negative words (if returnWords=true)"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_text_to_vector
 export const TextToVectorOutputSchema = z.object({
-  vector: z.string().describe("tsvector representation"),
+  vector: z.string().optional().describe("tsvector representation"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_text_to_query
 export const TextToQueryOutputSchema = z.object({
-  query: z.string().describe("tsquery representation"),
-  mode: z.string().describe("Query parsing mode used"),
+  query: z.string().optional().describe("tsquery representation"),
+  mode: z.string().optional().describe("Query parsing mode used"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_text_search_config
@@ -242,6 +263,9 @@ export const TextSearchConfigOutputSchema = z.object({
           .describe("Configuration description"),
       }),
     )
+    .optional()
     .describe("Available text search configurations"),
-  count: z.number().describe("Number of configurations"),
+  count: z.number().optional().describe("Number of configurations"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
