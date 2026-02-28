@@ -284,7 +284,7 @@ export function createStatStatementsTool(
       const limit = parsed.limit === 0 ? null : (parsed.limit ?? 20);
       const orderBy = parsed.orderBy ?? "total_time";
 
-      const sql = `SELECT query, calls, total_exec_time as total_time, 
+      const sql = `SELECT query, calls, total_exec_time as total_time,
                         mean_exec_time as mean_time, rows,
                         shared_blks_hit, shared_blks_read
                         FROM pg_stat_statements
@@ -412,6 +412,19 @@ export function createUnusedIndexesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = UnusedIndexesSchema.parse(params);
       const limit = parsed.limit === 0 ? null : (parsed.limit ?? 20);
+
+      // P154: Validate schema existence before querying
+      if (parsed.schema !== undefined) {
+        const validationError = await validatePerformanceTableExists(
+          adapter,
+          undefined,
+          parsed.schema,
+        );
+        if (validationError !== null) {
+          return { success: false, error: validationError };
+        }
+      }
+
       let whereClause =
         "schemaname NOT IN ('pg_catalog', 'information_schema') AND idx_scan = 0";
       if (parsed.schema !== undefined)
@@ -419,7 +432,7 @@ export function createUnusedIndexesTool(
 
       // Summary mode - return aggregated stats
       if (parsed.summary === true) {
-        const summarySql = `SELECT schemaname, 
+        const summarySql = `SELECT schemaname,
                               COUNT(*) as unused_count,
                               pg_size_pretty(SUM(pg_relation_size(indexrelid))) as total_size,
                               SUM(pg_relation_size(indexrelid)) as total_size_bytes
@@ -525,6 +538,19 @@ export function createDuplicateIndexesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = DuplicateIndexesSchema.parse(params);
       const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
+
+      // P154: Validate schema existence before querying
+      if (parsed.schema !== undefined) {
+        const validationError = await validatePerformanceTableExists(
+          adapter,
+          undefined,
+          parsed.schema,
+        );
+        if (validationError !== null) {
+          return { success: false, error: validationError };
+        }
+      }
+
       const schemaFilter =
         parsed.schema !== undefined
           ? `AND n.nspname = '${parsed.schema}'`

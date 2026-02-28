@@ -2156,6 +2156,8 @@ describe("pg_unused_indexes comprehensive", () => {
   });
 
   it("should filter by schema when provided", async () => {
+    // P154: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_unused_indexes")!;
@@ -2164,6 +2166,21 @@ describe("pg_unused_indexes comprehensive", () => {
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("schemaname = 'sales'"),
     );
+  });
+
+  it("should return structured error for nonexistent schema (P154)", async () => {
+    // P154: schema does not exist
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_unused_indexes")!;
+    const result = (await tool.handler(
+      { schema: "fake_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("fake_schema");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should filter by minSize when provided", async () => {
@@ -2362,6 +2379,8 @@ describe("pg_duplicate_indexes comprehensive", () => {
   });
 
   it("should filter by schema when provided", async () => {
+    // P154: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_duplicate_indexes")!;
@@ -2370,6 +2389,21 @@ describe("pg_duplicate_indexes comprehensive", () => {
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("n.nspname = 'analytics'"),
     );
+  });
+
+  it("should return structured error for nonexistent schema (P154)", async () => {
+    // P154: schema does not exist
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_duplicate_indexes")!;
+    const result = (await tool.handler(
+      { schema: "fake_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("fake_schema");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should exclude system schemas by default", async () => {
