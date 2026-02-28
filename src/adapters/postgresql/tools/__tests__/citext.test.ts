@@ -192,6 +192,7 @@ describe("Citext Tools", () => {
 
     it("should filter by schema when provided", async () => {
       mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ schema_name: "custom" }] }) // schema exists
         .mockResolvedValueOnce({ rows: [{ total: 0 }] })
         .mockResolvedValueOnce({ rows: [] });
 
@@ -202,6 +203,19 @@ describe("Citext Tools", () => {
         expect.stringContaining("table_schema = $1"),
         ["custom"],
       );
+    });
+
+    it("should return structured error for nonexistent schema", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // schema does not exist
+
+      const tool = findTool("pg_citext_list_columns");
+      const result = (await tool!.handler(
+        { schema: "nonexistent_schema" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
     });
 
     it("should apply default limit and return truncation info", async () => {
