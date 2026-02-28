@@ -303,15 +303,24 @@ function createTerminateBackendTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: destructive("Terminate Backend"),
     icons: getToolIcons("admin", destructive("Terminate Backend")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { pid } = TerminateBackendSchema.parse(params);
-      const sql = `SELECT pg_terminate_backend($1)`;
-      const result = await adapter.executeQuery(sql, [pid]);
-      const terminated = result.rows?.[0]?.["pg_terminate_backend"] === true;
-      return {
-        success: terminated,
-        pid,
-        message: terminated ? "Backend terminated" : "Failed to terminate",
-      };
+      try {
+        const { pid } = TerminateBackendSchema.parse(params);
+        const sql = `SELECT pg_terminate_backend($1)`;
+        const result = await adapter.executeQuery(sql, [pid]);
+        const terminated = result.rows?.[0]?.["pg_terminate_backend"] === true;
+        return {
+          success: terminated,
+          pid,
+          message: terminated ? "Backend terminated" : "Failed to terminate",
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_terminate_backend",
+          }),
+        };
+      }
     },
   };
 }
@@ -326,15 +335,24 @@ function createCancelBackendTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Cancel Backend"),
     icons: getToolIcons("admin", admin("Cancel Backend")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { pid } = CancelBackendSchema.parse(params);
-      const sql = `SELECT pg_cancel_backend($1)`;
-      const result = await adapter.executeQuery(sql, [pid]);
-      const cancelled = result.rows?.[0]?.["pg_cancel_backend"] === true;
-      return {
-        success: cancelled,
-        pid,
-        message: cancelled ? "Query cancelled" : "Failed to cancel",
-      };
+      try {
+        const { pid } = CancelBackendSchema.parse(params);
+        const sql = `SELECT pg_cancel_backend($1)`;
+        const result = await adapter.executeQuery(sql, [pid]);
+        const cancelled = result.rows?.[0]?.["pg_cancel_backend"] === true;
+        return {
+          success: cancelled,
+          pid,
+          message: cancelled ? "Query cancelled" : "Failed to cancel",
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_cancel_backend",
+          }),
+        };
+      }
     },
   };
 }
@@ -349,12 +367,19 @@ function createReloadConfTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Reload Configuration"),
     icons: getToolIcons("admin", admin("Reload Configuration")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const sql = `SELECT pg_reload_conf()`;
-      const result = await adapter.executeQuery(sql);
-      return {
-        success: result.rows?.[0]?.["pg_reload_conf"],
-        message: "Configuration reloaded",
-      };
+      try {
+        const sql = `SELECT pg_reload_conf()`;
+        const result = await adapter.executeQuery(sql);
+        return {
+          success: result.rows?.[0]?.["pg_reload_conf"],
+          message: "Configuration reloaded",
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_reload_conf" }),
+        };
+      }
     },
   };
 }
@@ -437,42 +462,25 @@ function createSetConfigTool(adapter: PostgresAdapter): ToolDefinition {
   };
 }
 
-/**
- * Handle undefined/null params for tools with optional-only parameters
- */
-function normalizeOptionalParams(input: unknown): Record<string, unknown> {
-  if (typeof input !== "object" || input === null) {
-    return {};
-  }
-  return input as Record<string, unknown>;
-}
-
-const ResetStatsSchema = z.preprocess(
-  normalizeOptionalParams,
-  z.object({
-    type: z.enum(["database", "all"]).optional(),
-  }),
-);
-
 function createResetStatsTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_reset_stats",
     description: "Reset statistics counters (requires superuser).",
     group: "admin",
-    inputSchema: ResetStatsSchema,
+    inputSchema: z.object({}),
     outputSchema: ConfigOutputSchema,
     annotations: admin("Reset Statistics"),
     icons: getToolIcons("admin", admin("Reset Statistics")),
-    handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = ResetStatsSchema.parse(params);
-      let sql: string;
-      if (parsed.type === "all") {
-        sql = `SELECT pg_stat_reset()`;
-      } else {
-        sql = `SELECT pg_stat_reset()`;
+    handler: async (_params: unknown, _context: RequestContext) => {
+      try {
+        await adapter.executeQuery(`SELECT pg_stat_reset()`);
+        return { success: true, message: "Statistics reset" };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_reset_stats" }),
+        };
       }
-      await adapter.executeQuery(sql);
-      return { success: true, message: "Statistics reset" };
     },
   };
 }
@@ -496,6 +504,20 @@ function preprocessClusterParams(input: unknown): unknown {
   if (result["indexName"] !== undefined && result["index"] === undefined) {
     result["index"] = result["indexName"];
   }
+
+  // Parse schema.table format (e.g., 'public.users' → { schema: 'public', table: 'users' })
+  const tableVal = result["table"];
+  if (typeof tableVal === "string" && tableVal.includes(".")) {
+    const parts = tableVal.split(".");
+    if (parts.length === 2 && parts[0] !== "" && parts[1] !== "") {
+      // Only override schema if not explicitly provided
+      if (result["schema"] === undefined) {
+        result["schema"] = parts[0];
+      }
+      result["table"] = parts[1];
+    }
+  }
+
   return result;
 }
 
