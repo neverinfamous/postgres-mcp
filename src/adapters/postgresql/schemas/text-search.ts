@@ -170,6 +170,14 @@ export const TextRowsOutputSchema = z.object({
     .optional()
     .describe("Matching rows"),
   count: z.number().optional().describe("Number of rows returned"),
+  truncated: z
+    .boolean()
+    .optional()
+    .describe("Whether results were truncated by the default limit"),
+  hint: z
+    .string()
+    .optional()
+    .describe("Hint about truncation when results are capped"),
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
 });

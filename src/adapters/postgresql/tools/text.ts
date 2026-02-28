@@ -256,9 +256,15 @@ function createTrigramSimilarityTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = TrigramSimilaritySchema.parse(params);
         const thresh = parsed.threshold ?? 0.3;
-        // Default limit to 100 to prevent large payloads
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
         const limitVal =
-          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
+        const limitClause =
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
@@ -281,10 +287,21 @@ function createTrigramSimilarityTool(adapter: PostgresAdapter): ToolDefinition {
         const sql = `SELECT ${selectCols}, similarity(${columnName}, $1) as similarity
                         FROM ${tableName}
                         WHERE similarity(${columnName}, $1) > ${String(thresh)}${additionalWhere}
-                        ORDER BY similarity DESC LIMIT ${String(limitVal)}`;
+                        ORDER BY similarity DESC${limitClause}`;
 
         const result = await adapter.executeQuery(sql, [parsed.value]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -373,9 +390,15 @@ function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         const method: FuzzyMethod = rawMethod as FuzzyMethod;
 
         const maxDist = parsed.maxDistance ?? 3;
-        // Default limit to 100 to prevent large payloads
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
         const limitVal =
-          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
+        const limitClause =
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
@@ -397,15 +420,26 @@ function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
 
         let sql: string;
         if (method === "soundex") {
-          sql = `SELECT ${selectCols}, soundex(${columnName}) as code FROM ${tableName} WHERE soundex(${columnName}) = soundex($1)${additionalWhere} LIMIT ${String(limitVal)}`;
+          sql = `SELECT ${selectCols}, soundex(${columnName}) as code FROM ${tableName} WHERE soundex(${columnName}) = soundex($1)${additionalWhere}${limitClause}`;
         } else if (method === "metaphone") {
-          sql = `SELECT ${selectCols}, metaphone(${columnName}, 10) as code FROM ${tableName} WHERE metaphone(${columnName}, 10) = metaphone($1, 10)${additionalWhere} LIMIT ${String(limitVal)}`;
+          sql = `SELECT ${selectCols}, metaphone(${columnName}, 10) as code FROM ${tableName} WHERE metaphone(${columnName}, 10) = metaphone($1, 10)${additionalWhere}${limitClause}`;
         } else {
-          sql = `SELECT ${selectCols}, levenshtein(${columnName}, $1) as distance FROM ${tableName} WHERE levenshtein(${columnName}, $1) <= ${String(maxDist)}${additionalWhere} ORDER BY distance LIMIT ${String(limitVal)}`;
+          sql = `SELECT ${selectCols}, levenshtein(${columnName}, $1) as distance FROM ${tableName} WHERE levenshtein(${columnName}, $1) <= ${String(maxDist)}${additionalWhere} ORDER BY distance${limitClause}`;
         }
 
         const result = await adapter.executeQuery(sql, [parsed.value]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -455,14 +489,30 @@ function createRegexpMatchTool(adapter: PostgresAdapter): ToolDefinition {
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        // Default limit to 100 to prevent large payloads
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
         const limitVal =
-          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
-        const limitClause = ` LIMIT ${String(limitVal)}`;
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
+        const limitClause =
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
         const result = await adapter.executeQuery(sql, [parsed.pattern]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -545,14 +595,30 @@ function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        // Default limit to 100 to prevent large payloads
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
         const limitVal =
-          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
-        const limitClause = ` LIMIT ${String(limitVal)}`;
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
+        const limitClause =
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
         const result = await adapter.executeQuery(sql, [parsed.pattern]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -1035,7 +1101,7 @@ function createTextSearchConfigTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("text", readOnly("Search Configurations")),
     handler: async (_params: unknown, _context: RequestContext) => {
       const result = await adapter.executeQuery(`
-                SELECT 
+                SELECT
                     c.cfgname as name,
                     n.nspname as schema,
                     obj_description(c.oid, 'pg_ts_config') as description
