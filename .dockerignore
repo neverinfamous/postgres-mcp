@@ -73,12 +73,13 @@ Dockerfile
 docker-compose*.yml
 .dockerignore
 
-# Tests (not needed in production image)
+# Tests and dev scripts (not needed in production image)
 tests/
 __tests__/
 *.test.ts
 *.spec.ts
 vitest.config.ts
+scripts/
 
 # Logs
 *.log
