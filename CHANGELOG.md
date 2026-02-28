@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`ServerInstructions.ts` `pg_migration_rollback` incorrect `dryRun` default** — Fixed documentation stating `dryRun: true` (default) when the actual schema and handler use `dryRun: false` (default — executes immediately). The old wording implied rollback was a preview by default, which could mislead agents into omitting `dryRun: true` for preview-only calls
+
 - **`pg_citext_list_columns` silent empty result for nonexistent schema** — `pg_citext_list_columns({ schema: "nonexistent" })` now returns `{success: false, error: "Schema 'nonexistent' does not exist. Verify the schema name."}` instead of silently returning `{columns: [], count: 0}`. Added schema existence pre-check via `information_schema.schemata`, matching the pattern in `pg_citext_analyze_candidates`. Also wrapped handler in try/catch with `parsePostgresError` fallback
 
 - **`pg_citext_create_extension` / `pg_citext_compare` missing try/catch** — Both handlers now wrap their logic in try/catch blocks with `parsePostgresError` fallback, matching the error handling pattern of `pg_citext_convert_column`, `pg_citext_analyze_candidates`, and `pg_citext_schema_advisor`. Previously, unexpected database errors would propagate as raw MCP exceptions
