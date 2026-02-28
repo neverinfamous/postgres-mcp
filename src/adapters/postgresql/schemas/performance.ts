@@ -342,17 +342,22 @@ export const UnusedIndexesOutputSchema = z.object({
   count: z.number().optional().describe("Number of indexes returned"),
   hint: z.string().optional().describe("Guidance hint"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_duplicate_indexes
 export const DuplicateIndexesOutputSchema = z.object({
   duplicateIndexes: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Duplicate index pairs"),
-  count: z.number().describe("Number of duplicate pairs"),
+  count: z.number().optional().describe("Number of duplicate pairs"),
   hint: z.string().optional().describe("Guidance hint"),
   totalCount: z.number().optional().describe("Total pairs if truncated"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 // pg_vacuum_stats
