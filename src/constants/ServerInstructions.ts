@@ -58,7 +58,7 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 | \`pg_vacuum_stats\` | \`{tables, count, truncated?, totalCount?}\` | Default 50 rows. Use \`limit: 0\` for all |
 | \`pg_stat_statements\` | \`{statements, count, truncated?, totalCount?}\` | Default 20 rows. \`orderBy\` supported |
 | \`pg_query_plan_stats\` | \`{queryPlanStats, count, truncated?, totalCount?}\` | Default 20 rows. \`truncateQuery: 0\` for full text |
-| \`pg_stat_activity\` | \`{connections, count}\` | \`includeIdle: true\` to include idle connections |
+| \`pg_stat_activity\` | \`{connections, count, backgroundWorkers}\` | \`includeIdle: true\` to include idle connections. \`backgroundWorkers\` = count of background worker processes |
 | \`pg_locks\` | \`{locks}\` | \`showBlocked: true\` switches to blocked/blocking pid format |
 | \`pg_bloat_check\` | \`{tables, count}\` | Tables with \`live_tuples\`, \`dead_tuples\`, \`dead_pct\` |
 | \`pg_cache_hit_ratio\` | \`{heap_read, heap_hit, cache_hit_ratio}\` | All fields nullable (0 tables = null). Flat response, differs from \`pg_analyze_db_health.cacheHitRatio\` |

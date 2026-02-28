@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- **`ServerInstructions.ts` `pg_stat_activity` response docs** — Added missing `backgroundWorkers` field to the documented response structure for `pg_stat_activity`. The field (count of background worker processes) was already returned by the handler but undocumented
+
 - **README.md and DOCKER_README.md Code Mode API Tool Group Counts** — Corrected Code Mode descriptions stating that "all 21 tool groups are available via `pg.*`" to "all 20 tool groups" since the codemode tool itself is the 21st group and is not exposed via the sandbox API. Also normalized the Extension Support table in `DOCKER_README.md` to include tool counts matching `README.md`.
 
 - **README.md, DOCKER_README.md, and tool-groups-list.md stale tool counts** — Fixed top-level total tool count (222→227) and published tool count (213→218) to accurately reflect the recent expansion of the introspection group with migration tracking tools
