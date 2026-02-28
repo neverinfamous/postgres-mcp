@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_list_tables` `limit: 0` returns zero tables instead of all** — `pg_list_tables({ limit: 0 })` now correctly returns all tables (no LIMIT applied) instead of slicing to 0 results. The `??` operator correctly passed `0` through, but then `0` was treated as "limit to 0 rows" instead of "no limit" — the convention documented in `ServerInstructions.ts` and used by every other tool (`pg_index_stats`, `pg_table_stats`, `pg_copy_export`, etc.). Fixed by treating `limit === 0` as undefined (no limit), matching the pattern used by all other paginated tools
+
 - **`ServerInstructions.ts` `pg_migration_rollback` incorrect `dryRun` default** — Fixed documentation stating `dryRun: true` (default) when the actual schema and handler use `dryRun: false` (default — executes immediately). The old wording implied rollback was a preview by default, which could mislead agents into omitting `dryRun: true` for preview-only calls
 
 - **`pg_citext_list_columns` silent empty result for nonexistent schema** — `pg_citext_list_columns({ schema: "nonexistent" })` now returns `{success: false, error: "Schema 'nonexistent' does not exist. Verify the schema name."}` instead of silently returning `{columns: [], count: 0}`. Added schema existence pre-check via `information_schema.schemata`, matching the pattern in `pg_citext_analyze_candidates`. Also wrapped handler in try/catch with `parsePostgresError` fallback
