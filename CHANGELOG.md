@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_cron_cleanup_history` missing try/catch and accepts negative days** — `pg_cron_cleanup_history({ days: -5 })` now returns `{success: false, message: "olderThanDays must be non-negative, got -5"}` instead of silently deleting all history records. Added handler-level validation for negative `olderThanDays` since MCP SDK may not enforce Zod `.min()` constraints during input parsing. Also wrapped handler in try/catch with `ZodError` interception and `formatPostgresError` fallback, matching the error handling pattern of all other cron tool handlers
+
 - **`pg_cron_cleanup_history` accepts negative `olderThanDays`/`days` values** — `pg_cron_cleanup_history({ days: -5 })` now rejects with a Zod validation error (`olderThanDays must be non-negative`) instead of silently deleting all history records. Negative days values caused the `interval '-5 days'` to resolve to a future timestamp, matching all records. Added `.min(0)` validation to both `olderThanDays` and `days` params in `CronCleanupHistorySchemaBase`
 
 - **`pg_list_sequences` no limit/truncation support** — `pg_list_sequences` now defaults to 50 results (matching `pg_list_views`) with `truncated: true`, `totalCount`, and `note` fields when results are limited. Use `limit: 0` for all sequences. Also validates schema existence, returning `{success: false, error: "Schema '...' does not exist"}` for nonexistent schemas instead of silently returning empty results. Updated `ListSequencesOutputSchema` with optional `truncated`, `totalCount`, and `note` fields. Updated `ServerInstructions.ts`. Added 2 unit tests (schema filter mock, nonexistent schema error)

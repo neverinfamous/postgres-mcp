@@ -80,7 +80,7 @@ function createCronExtensionTool(adapter: PostgresAdapter): ToolDefinition {
 function createCronScheduleTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_cron_schedule",
-    description: `Schedule a new cron job. Supports standard cron syntax (e.g., "0 2 * * *" for 2 AM daily) 
+    description: `Schedule a new cron job. Supports standard cron syntax (e.g., "0 2 * * *" for 2 AM daily)
 or interval syntax (e.g., "30 seconds"). Note: pg_cron allows duplicate job names; use unique names to avoid confusion. Returns the job ID.`,
     group: "cron",
     // Use base schema for MCP so properties are properly exposed
@@ -142,7 +142,7 @@ function createCronScheduleInDatabaseTool(
 ): ToolDefinition {
   return {
     name: "pg_cron_schedule_in_database",
-    description: `Schedule a cron job to run in a different database. Useful for cross-database 
+    description: `Schedule a cron job to run in a different database. Useful for cross-database
 maintenance tasks. Returns the job ID.`,
     group: "cron",
     // Use base schema for MCP so properties are properly exposed
@@ -298,7 +298,7 @@ function createCronUnscheduleTool(adapter: PostgresAdapter): ToolDefinition {
 function createCronAlterJobTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_cron_alter_job",
-    description: `Modify an existing cron job. Can change schedule, command, database, username, 
+    description: `Modify an existing cron job. Can change schedule, command, database, username,
 or active status. Only specify the parameters you want to change.`,
     group: "cron",
     inputSchema: CronAlterJobSchemaBase,
@@ -382,7 +382,7 @@ function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
       const parsed = ListJobsSchema.parse(params ?? {});
 
       let sql = `
-                SELECT 
+                SELECT
                     jobid,
                     jobname,
                     schedule,
@@ -463,7 +463,7 @@ function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
 function createCronJobRunDetailsTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_cron_job_run_details",
-    description: `View execution history for cron jobs. Shows start/end times, status, and return messages. 
+    description: `View execution history for cron jobs. Shows start/end times, status, and return messages.
 Useful for monitoring and debugging scheduled jobs.`,
     group: "cron",
     inputSchema: CronJobRunDetailsSchemaBase,
@@ -516,7 +516,7 @@ Useful for monitoring and debugging scheduled jobs.`,
         const limitClause =
           limitVal !== null ? `LIMIT ${String(limitVal)}` : "";
         const sql = `
-                SELECT 
+                SELECT
                     runid,
                     jobid,
                     job_pid,
@@ -603,7 +603,7 @@ function createCronCleanupHistoryTool(
 ): ToolDefinition {
   return {
     name: "pg_cron_cleanup_history",
-    description: `Delete old job run history records. Helps prevent the cron.job_run_details table 
+    description: `Delete old job run history records. Helps prevent the cron.job_run_details table
 from growing too large. By default, removes records older than 7 days.`,
     group: "cron",
     // Use base schema for MCP visibility
@@ -612,34 +612,67 @@ from growing too large. By default, removes records older than 7 days.`,
     annotations: destructive("Cleanup Cron History"),
     icons: getToolIcons("cron", destructive("Cleanup Cron History")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Use transformed schema for validation with alias support
-      const { olderThanDays, jobId } = CronCleanupHistorySchema.parse(params);
+      try {
+        // Use transformed schema for validation with alias support
+        const { olderThanDays, jobId } = CronCleanupHistorySchema.parse(params);
 
-      const days = olderThanDays ?? 7;
-      const conditions: string[] = [
-        `end_time < now() - interval '${String(days)} days'`,
-      ];
-      const queryParams: unknown[] = [];
+        const days = olderThanDays ?? 7;
 
-      if (jobId !== undefined) {
-        conditions.push("jobid = $1");
-        queryParams.push(jobId);
-      }
+        // Handler-level validation for negative days (relaxed from z.min for structured errors)
+        if (days < 0) {
+          return {
+            success: false,
+            deletedCount: 0,
+            olderThanDays: days,
+            jobId: jobId ?? null,
+            message: `olderThanDays must be non-negative, got ${String(days)}`,
+          };
+        }
 
-      const sql = `
+        const conditions: string[] = [
+          `end_time < now() - interval '${String(days)} days'`,
+        ];
+        const queryParams: unknown[] = [];
+
+        if (jobId !== undefined) {
+          conditions.push("jobid = $1");
+          queryParams.push(jobId);
+        }
+
+        const sql = `
                 DELETE FROM cron.job_run_details
                 WHERE ${conditions.join(" AND ")}
             `;
 
-      const result = await adapter.executeQuery(sql, queryParams);
+        const result = await adapter.executeQuery(sql, queryParams);
 
-      return {
-        success: true,
-        deletedCount: result.rowsAffected ?? 0,
-        olderThanDays: days,
-        jobId: jobId ?? null,
-        message: `Deleted ${String(result.rowsAffected ?? 0)} old job run records`,
-      };
+        return {
+          success: true,
+          deletedCount: result.rowsAffected ?? 0,
+          olderThanDays: days,
+          jobId: jobId ?? null,
+          message: `Deleted ${String(result.rowsAffected ?? 0)} old job run records`,
+        };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            deletedCount: 0,
+            olderThanDays: 0,
+            jobId: null,
+            message: error.issues.map((e) => e.message).join("; "),
+          };
+        }
+        return {
+          success: false,
+          deletedCount: 0,
+          olderThanDays: 0,
+          jobId: null,
+          message: formatPostgresError(error, {
+            tool: "pg_cron_cleanup_history",
+          }),
+        };
+      }
     },
   };
 }
