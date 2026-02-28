@@ -291,6 +291,11 @@ describe("pg_list_sequences", () => {
   });
 
   it("should filter by schema", async () => {
+    // First call: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // Second call: main query
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_list_sequences")!;
@@ -300,6 +305,21 @@ describe("pg_list_sequences", () => {
       expect.stringContaining("n.nspname = $1"),
       ["app"],
     );
+  });
+
+  it("should return structured error for nonexistent schema", async () => {
+    // Schema existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_sequences")!;
+    const result = (await tool.handler(
+      { schema: "nonexistent_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema");
+    expect(result.error).toContain("does not exist");
   });
 });
 
@@ -464,6 +484,11 @@ describe("pg_list_views", () => {
   });
 
   it("should filter by schema", async () => {
+    // First call: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // Second call: main query
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_list_views")!;
@@ -473,6 +498,21 @@ describe("pg_list_views", () => {
       expect.stringContaining("n.nspname = $1"),
       ["reports"],
     );
+  });
+
+  it("should return structured error for nonexistent schema", async () => {
+    // Schema existence check returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_views")!;
+    const result = (await tool.handler(
+      { schema: "nonexistent_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should exclude materialized views when requested", async () => {

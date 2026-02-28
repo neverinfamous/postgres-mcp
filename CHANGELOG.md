@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_list_sequences` no limit/truncation support** — `pg_list_sequences` now defaults to 50 results (matching `pg_list_views`) with `truncated: true`, `totalCount`, and `note` fields when results are limited. Use `limit: 0` for all sequences. Also validates schema existence, returning `{success: false, error: "Schema '...' does not exist"}` for nonexistent schemas instead of silently returning empty results. Updated `ListSequencesOutputSchema` with optional `truncated`, `totalCount`, and `note` fields. Updated `ServerInstructions.ts`. Added 2 unit tests (schema filter mock, nonexistent schema error)
+
+- **`pg_list_views` missing `totalCount` when truncated** — `pg_list_views` now includes `totalCount` via a separate `COUNT(*)` query when results are truncated by the limit. Also validates schema existence, returning `{success: false, error: "Schema '...' does not exist"}` for nonexistent schemas instead of silently returning empty results. Updated `ListViewsOutputSchema` with optional `totalCount` field. Updated `ServerInstructions.ts`. Added 2 unit tests (schema filter mock, nonexistent schema error)
+
 - **`pg_list_constraints` constraint type truncated to single character** — Constraint `type` field now returns human-readable names (`primary_key`, `foreign_key`, `unique`, `check`) instead of raw PostgreSQL `"char"` codes (`p`, `f`, `u`, `c`). Root cause: the SQL CASE expression included `ELSE con.contype` which caused PostgreSQL to infer the entire CASE return type as `"char"` (1-byte), silently truncating all text results. Removed the `ELSE` clause and unused `WHEN 'n' THEN 'not_null'` branch (NOT NULL constraints are already excluded by the WHERE clause). Updated `ServerInstructions.ts` constraint docs
 
 ### Changed
