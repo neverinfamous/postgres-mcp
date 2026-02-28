@@ -571,6 +571,12 @@ export function createJsonbContainsTool(
         // Parse JSON string values from MCP clients
         const value = parseJsonbValue(parsed.value);
 
+        // Apply default limit (100) to prevent large payloads
+        const DEFAULT_LIMIT = 100;
+        const requestedLimit = parsed.limit;
+        const effectiveLimit =
+          requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
+
         const selectCols =
           select !== undefined && select.length > 0
             ? select.map((c) => `"${c}"`).join(", ")
@@ -578,18 +584,45 @@ export function createJsonbContainsTool(
         // Build WHERE clause combining containment check with optional filter
         const containsClause = `"${column}" @> $1::jsonb`;
         const whereClause = where ? ` AND ${where}` : "";
-        const sql = `SELECT ${selectCols} FROM ${qualifiedTable} WHERE ${containsClause}${whereClause}`;
+        const baseSql = `SELECT ${selectCols} FROM ${qualifiedTable} WHERE ${containsClause}${whereClause}`;
+
+        // Fetch limit+1 rows to detect truncation without a separate count query
+        const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
+        const sql =
+          fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
         const result = await adapter.executeQuery(sql, [toJsonString(value)]);
+        const allRows = result.rows ?? [];
+        const isTruncated =
+          effectiveLimit > 0 && allRows.length > effectiveLimit;
+        const rows = isTruncated ? allRows.slice(0, effectiveLimit) : allRows;
+
         // Warn if empty object was passed (matches all rows)
         const isEmptyObject =
           typeof value === "object" &&
           value !== null &&
           !Array.isArray(value) &&
           Object.keys(value).length === 0;
-        const response: { rows: unknown; count: number; warning?: string } = {
-          rows: result.rows,
-          count: result.rows?.length ?? 0,
+        const response: {
+          rows: unknown;
+          count: number;
+          truncated?: boolean;
+          totalCount?: number;
+          warning?: string;
+        } = {
+          rows,
+          count: rows.length,
         };
+        if (isTruncated) {
+          response.truncated = true;
+          // Get exact total count
+          const countSql = `SELECT COUNT(*) as total FROM ${qualifiedTable} WHERE ${containsClause}${whereClause}`;
+          const countResult = await adapter.executeQuery(countSql, [
+            toJsonString(value),
+          ]);
+          response.totalCount = Number(
+            countResult.rows?.[0]?.["total"] ?? rows.length,
+          );
+        }
         if (isEmptyObject) {
           response.warning =
             "Empty {} matches ALL rows - this is PostgreSQL containment semantics";
@@ -640,10 +673,46 @@ export function createJsonbPathQueryTool(
         const { path, vars, where } = parsed;
         const whereClause = where ? ` WHERE ${where}` : "";
         const varsJson = vars ? JSON.stringify(vars) : "{}";
-        const sql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
+
+        // Apply default limit (100) to prevent large payloads
+        const DEFAULT_LIMIT = 100;
+        const requestedLimit = parsed.limit;
+        const effectiveLimit =
+          requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
+
+        const baseSql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
+
+        // Fetch limit+1 rows to detect truncation without a separate count query
+        const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
+        const sql =
+          fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
         const result = await adapter.executeQuery(sql, [path, varsJson]);
-        const results = result.rows?.map((r) => r["result"]);
-        return { results, count: results?.length ?? 0 };
+        const allResults = result.rows?.map((r) => r["result"]) ?? [];
+        const isTruncated =
+          effectiveLimit > 0 && allResults.length > effectiveLimit;
+        const results = isTruncated
+          ? allResults.slice(0, effectiveLimit)
+          : allResults;
+
+        const response: {
+          results: unknown[];
+          count: number;
+          truncated?: boolean;
+          totalCount?: number;
+        } = { results, count: results.length };
+        if (isTruncated) {
+          response.truncated = true;
+          // Get exact total count
+          const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) FROM ${qualifiedTable}${whereClause}) sub`;
+          const countResult = await adapter.executeQuery(countSql, [
+            path,
+            varsJson,
+          ]);
+          response.totalCount = Number(
+            countResult.rows?.[0]?.["total"] ?? results.length,
+          );
+        }
+        return response;
       } catch (error) {
         // JSONPath-specific: invalid syntax
         if (

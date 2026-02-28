@@ -110,6 +110,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_cascade_simulator` silent success for nonexistent tables** — `pg_cascade_simulator({ table: "nonexistent" })` now returns `{error: "Table '...' not found. Use pg_list_tables to verify.", severity: "low", affectedTables: []}` instead of silently returning an empty result with no indication of failure. Added `error` field to `CascadeSimulatorOutputSchema`
 
+- **`pg_jsonb_contains` unbounded result set** — `pg_jsonb_contains` now defaults to 100 rows (matching `pg_regexp_match`, `pg_like_search`, and other AI-optimized tools). Returns `truncated: true` and `totalCount` when results are capped. Use `limit: 0` for all rows. Previously returned all matching rows with all columns, producing large payloads on tables with many matches. Added `limit` parameter to `JsonbContainsSchemaBase`, `truncated`/`totalCount` to `JsonbContainsOutputSchema`. Updated `ServerInstructions.ts`. Added 2 unit tests
+
+- **`pg_jsonb_path_query` unbounded result set** — `pg_jsonb_path_query` now defaults to 100 results (matching `contains` and other AI-optimized tools). Returns `truncated: true` and `totalCount` when results are capped. Use `limit: 0` for all results. Previously returned all JSONPath matches unbounded. Added `limit` parameter to `JsonbPathQuerySchemaBase`, `truncated`/`totalCount` to `JsonbPathQueryOutputSchema`. Updated `ServerInstructions.ts`. Added 2 unit tests
+
 ### Performance
 
 - **Code Mode sandbox execution overhead** — Reduced per-call `sandbox.execute()` overhead with three targeted optimizations:

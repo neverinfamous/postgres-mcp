@@ -119,6 +119,7 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 - ⛔ **Object-only tools**: \`diff\`, \`merge\`, \`keys\`, \`indexSuggest\`, \`securityScan\`, \`stats\`—topKeys require JSONB objects, throw descriptive errors for arrays
 - ⛔ **Array-only tools**: \`insert\`—requires JSONB arrays, throws errors for objects
 - 📝 \`normalize\` modes: \`pairs\`/\`keys\`/\`flatten\` for objects; \`array\` for arrays
+- 📦 **AI-Optimized Payloads**: \`contains\` and \`pathQuery\` default to 100 results. Returns \`truncated\` + \`totalCount\` when capped. Use \`limit: 0\` for all rows
 
 **Top-Level Aliases**: \`pg.jsonbExtract()\`, \`pg.jsonbSet()\`, \`pg.jsonbInsert()\`, \`pg.jsonbDelete()\`, \`pg.jsonbContains()\`, \`pg.jsonbPathQuery()\`, \`pg.jsonbAgg()\`, \`pg.jsonbObject()\`, \`pg.jsonbArray()\`, \`pg.jsonbKeys()\`, \`pg.jsonbStripNulls()\`, \`pg.jsonbTypeof()\`, \`pg.jsonbValidatePath()\`, \`pg.jsonbMerge()\`, \`pg.jsonbNormalize()\`, \`pg.jsonbDiff()\`, \`pg.jsonbIndexSuggest()\`, \`pg.jsonbSecurityScan()\`, \`pg.jsonbStats()\`
 
