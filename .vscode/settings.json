@@ -28,6 +28,7 @@
   // Formatting is handled via CLI: npx prettier --write .
   // Do NOT set editor.defaultFormatter to esbenp.prettier-vscode here —
   // AntiGravity does not support VS Code extensions and will show errors.
+  "editor.formatOnSave": false,
   // ═══════════════════════════════════════════════════════════════════════
   // Error Lens Configuration
   // ═══════════════════════════════════════════════════════════════════════
