@@ -39,6 +39,30 @@ export function preprocessPostgisParams(input: unknown): unknown {
     }
   }
 
+  // Assemble flat lat/lng into point object for code mode compatibility
+  // Supports the same aliases as preprocessPoint: lat/latitude/y, lng/lon/longitude/x
+  if (
+    result["point"] === undefined ||
+    (typeof result["point"] === "object" &&
+      result["point"] !== null &&
+      Object.keys(result["point"] as Record<string, unknown>).length === 0)
+  ) {
+    const lat = result["lat"] ?? result["latitude"] ?? result["y"];
+    const lng =
+      result["lng"] ?? result["lon"] ?? result["longitude"] ?? result["x"];
+    if (lat !== undefined || lng !== undefined) {
+      result["point"] = { lat, lng };
+      // Clean up flat keys to prevent schema noise
+      delete result["lat"];
+      delete result["latitude"];
+      delete result["y"];
+      delete result["lng"];
+      delete result["lon"];
+      delete result["longitude"];
+      delete result["x"];
+    }
+  }
+
   return result;
 }
 

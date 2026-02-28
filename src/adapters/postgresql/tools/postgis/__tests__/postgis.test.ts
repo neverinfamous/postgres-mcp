@@ -650,4 +650,24 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     expect(result["success"]).toBe(false);
     expect(result["error"]).toMatch(/must be between -180 and 180/);
   });
+
+  it("pg_distance should return structured error for flat top-level out-of-bounds latitude", async () => {
+    const tool = tools.find((t) => t.name === "pg_distance")!;
+    const result = (await tool.handler(
+      { table: "locations", column: "geom", lat: 95, lng: -74 },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/must be between -90 and 90/);
+  });
+
+  it("pg_distance should return structured error for flat top-level out-of-bounds longitude", async () => {
+    const tool = tools.find((t) => t.name === "pg_distance")!;
+    const result = (await tool.handler(
+      { table: "locations", column: "geom", lat: 40, lng: 200 },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/must be between -180 and 180/);
+  });
 });
