@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`ServerInstructions.ts` refactored to markdown source + build script** — Server instructions content is now maintained as plain markdown in `src/constants/server-instructions.md` (no escaping needed) and converted to the TypeScript template literal via `npm run generate:instructions` (`scripts/generate-server-instructions.ts`). The build script escapes backticks, backslashes, and `${` template expressions. The exported `SERVER_INSTRUCTIONS` constant and its runtime value are unchanged. Added `.prettierignore` to prevent prettier from reformatting the generated file. Eliminates agent editing errors caused by escaped backtick matching ambiguity in the 480-line template literal
+
 - **`ToolFilter.ts` codemode auto-injection aligned with mysql-mcp** — Codemode (`pg_execute_code`) auto-injection now only activates in whitelist mode (e.g., `core`, `starter`), matching the mysql-mcp pattern. In blacklist mode (e.g., `-vector`), codemode is already in the initial full set and user exclusions are naturally respected. Also now recognizes both `-codemode` and `-pg_execute_code` as exclusion signals (previously only `-codemode` was checked). Removes loop-scoped tracking variable in favor of a cleaner post-loop `parts.some()` check
 
 - **Tool filtering shortcuts restructured (15 → 16)** — Split oversized shortcuts to stay closer to the ~50 tool target for IDE compatibility:
