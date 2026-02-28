@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`pg_list_constraints` constraint type truncated to single character** — Constraint `type` field now returns human-readable names (`primary_key`, `foreign_key`, `unique`, `check`) instead of raw PostgreSQL `"char"` codes (`p`, `f`, `u`, `c`). Root cause: the SQL CASE expression included `ELSE con.contype` which caused PostgreSQL to infer the entire CASE return type as `"char"` (1-byte), silently truncating all text results. Removed the `ELSE` clause and unused `WHEN 'n' THEN 'not_null'` branch (NOT NULL constraints are already excluded by the WHERE clause). Updated `ServerInstructions.ts` constraint docs
+
 ### Changed
 
 - **`ToolFilter.ts` codemode auto-injection aligned with mysql-mcp** — Codemode (`pg_execute_code`) auto-injection now only activates in whitelist mode (e.g., `core`, `starter`), matching the mysql-mcp pattern. In blacklist mode (e.g., `-vector`), codemode is already in the initial full set and user exclusions are naturally respected. Also now recognizes both `-codemode` and `-pg_execute_code` as exclusion signals (previously only `-codemode` was checked). Removes loop-scoped tracking variable in favor of a cleaner post-loop `parts.some()` check

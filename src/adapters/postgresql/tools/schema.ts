@@ -955,13 +955,11 @@ function createListConstraintsTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         const sql = `SELECT n.nspname as schema, c.relname as table_name, con.conname as name,
-                          CASE con.contype 
+                          CASE con.contype
                               WHEN 'p' THEN 'primary_key'
                               WHEN 'f' THEN 'foreign_key'
                               WHEN 'u' THEN 'unique'
                               WHEN 'c' THEN 'check'
-                              WHEN 'n' THEN 'not_null'
-                              ELSE con.contype
                           END as type,
                           pg_get_constraintdef(con.oid) as definition
                           FROM pg_constraint con

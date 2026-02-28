@@ -272,7 +272,7 @@ Response Structures:
 - \`listSequences({ schema? })\`: \`{sequences: [{schema, name, owned_by}], count}\`. Note: \`owned_by\` omits \`public.\` prefix for sequences in public schema (e.g., \`users.id\` not \`public.users.id\`)
 - \`listFunctions({ schema?, limit?, exclude? })\`: \`{functions: [{schema, name, arguments, returns, language, volatility}], count, limit}\`
 - \`listTriggers({ schema?, table? })\`: \`{triggers: [{schema, table_name, name, timing, events, function_name, enabled}], count}\`
-- \`listConstraints({ schema?, table?, type? })\`: \`{constraints: [{schema, table_name, name, type, definition}], count}\`. Type codes: \`p\`=primary_key, \`f\`=foreign_key, \`u\`=unique, \`c\`=check
+- \`listConstraints({ schema?, table?, type? })\`: \`{constraints: [{schema, table_name, name, type, definition}], count}\`. Type filter values: \`primary_key\`, \`foreign_key\`, \`unique\`, \`check\`. Returned \`type\` field uses matching human-readable names
 - \`dropSchema/dropView/dropSequence\`: All return \`{existed: true/false}\` to indicate if object existed before drop
 - \`createSchema/createSequence\` (with \`ifNotExists\`) and \`createView\` (with \`orReplace\`): Return \`{alreadyExisted: true/false}\` when the flag is set. Without \`ifNotExists\`/\`orReplace\`, the field is omitted
 
