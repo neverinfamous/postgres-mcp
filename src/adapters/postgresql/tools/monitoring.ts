@@ -99,6 +99,21 @@ function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("monitoring", readOnly("Table Sizes")),
     handler: async (params: unknown, _context: RequestContext) => {
       const { schema, limit } = TableSizesSchema.parse(params);
+
+      // P154: Validate schema existence before querying
+      if (schema) {
+        const schemaCheck = await adapter.executeQuery(
+          `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+          [schema],
+        );
+        if (schemaCheck.rows?.length === 0) {
+          return {
+            success: false,
+            error: `Schema '${schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+          };
+        }
+      }
+
       const schemaClause = schema ? `AND n.nspname = $1` : "";
       const queryParams: string[] = schema ? [schema] : [];
       // Apply limit (default 50)

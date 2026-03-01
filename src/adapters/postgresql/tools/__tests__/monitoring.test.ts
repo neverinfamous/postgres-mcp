@@ -193,17 +193,33 @@ describe("pg_table_sizes", () => {
 
   it("should accept schema and limit parameters", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ schema_name: "sales" }],
+    }); // schema check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ schema: "sales", table_name: "orders", total_size: "100 MB" }],
     });
 
     const tool = tools.find((t) => t.name === "pg_table_sizes")!;
     await tool.handler({ schema: "sales", limit: 10 }, mockContext);
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
-    const params = mockAdapter.executeQuery.mock.calls[0]?.[1] as string[];
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
+    const params = mockAdapter.executeQuery.mock.calls[1]?.[1] as string[];
     expect(sql).toContain("$1");
     expect(params).toEqual(["sales"]);
     expect(sql).toContain("LIMIT 10");
+  });
+
+  it("should return structured error for nonexistent schema", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // schema check
+    const tool = tools.find((t) => t.name === "pg_table_sizes")!;
+    const result = (await tool.handler(
+      { schema: "nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result).toEqual({
+      success: false,
+      error: expect.stringContaining("nonexistent"),
+    });
   });
 });
 
