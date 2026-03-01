@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **WHERE clause blocklist: remote access and side-channel patterns** — Added 3 new dangerous patterns to `validateWhereClause()`: `dblink_connect()` (remote server connection), `dblink_exec()` (remote query execution), and `pg_notify()` (async notification side channel). These PostgreSQL functions can be abused for data exfiltration or lateral movement if injected into WHERE clauses. Added 3 unit tests in `security-injection.test.ts`
+
+- **HTTP rate limit deterministic cleanup** — Replaced the probabilistic rate limit map cleanup (`Math.random() < 0.01` on every check) with a deterministic 60-second `setInterval` that sweeps expired entries. The interval starts in `start()` and is cleared in `stop()`. Prevents unbounded memory growth under sustained traffic from many unique IPs. Updated 2 tests in `http.test.ts`
+
+
 - **Consistent WHERE clause sanitization across all tool groups** — Applied `sanitizeWhereClause()` to 31 WHERE clause interpolation sites across 6 files (`core/convenience.ts`, `core/indexes.ts`, `jsonb/basic.ts`, `jsonb/advanced.ts`, `stats/basic.ts`, `stats/advanced.ts`) that were previously interpolating user-provided WHERE clauses without blocklist validation. The `text` and `vector` tool groups already used `sanitizeWhereClause()`, but these groups bypassed it, creating an inconsistent defense-in-depth gap
 
 - **Parameterized `information_schema` validation queries in stats tools** — Converted all string-interpolated `information_schema` queries in `stats/basic.ts` and `stats/advanced.ts` to use parameterized queries (`$1`, `$2`, `$3`) with bind parameters. Affected queries: `validateNumericColumn()` (column type check + table existence fallback), `validateTableExists()`, and inline validation in `createStatsDescriptiveTool` and `createStatsTimeSeriesTool` (table existence, time column type, value column type). Previously, schema, table, and column names were interpolated directly into SQL strings targeting `information_schema.columns` and `information_schema.tables`

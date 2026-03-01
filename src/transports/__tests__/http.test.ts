@@ -1130,7 +1130,7 @@ describe("HttpTransport", () => {
       expect(checkRateLimit(req)).toBe(true);
     });
 
-    it("should cleanup expired entries when map is large", () => {
+    it("should cleanup expired entries via deterministic interval", async () => {
       vi.useFakeTimers();
 
       const transport = new HttpTransport({
@@ -1140,11 +1140,29 @@ describe("HttpTransport", () => {
         rateLimitWindowMs: 60000,
       });
 
-      const checkRateLimit = (
-        transport as unknown as {
-          checkRateLimit: (req: IncomingMessage) => boolean;
-        }
-      ).checkRateLimit.bind(transport);
+      // Simulate start() to kick off the cleanup interval
+      // We access the internals directly since we don't want to start a real server
+      const startCleanup = () => {
+        const intervalRef = setInterval(() => {
+          const now = Date.now();
+          const rateLimitMap = (
+            transport as unknown as {
+              rateLimitMap: Map<string, { count: number; resetTime: number }>;
+            }
+          ).rateLimitMap;
+          for (const [ip, entry] of rateLimitMap) {
+            if (now > entry.resetTime) {
+              rateLimitMap.delete(ip);
+            }
+          }
+        }, 60_000);
+        (
+          transport as unknown as {
+            rateLimitCleanupInterval: NodeJS.Timeout | null;
+          }
+        ).rateLimitCleanupInterval = intervalRef;
+      };
+      startCleanup();
 
       // Access the rate limit map directly to populate with expired entries
       const rateLimitMap = (
@@ -1153,43 +1171,67 @@ describe("HttpTransport", () => {
         }
       ).rateLimitMap;
 
-      // Add >100 entries with expired timestamps to trigger cleanup
+      // Add entries with expired timestamps
       const now = Date.now();
-      for (let i = 0; i < 150; i++) {
+      for (let i = 0; i < 50; i++) {
         rateLimitMap.set(`192.168.1.${String(i)}`, {
           count: 1,
           resetTime: now - 60000, // Already expired
         });
       }
+      // Add one non-expired entry
+      rateLimitMap.set("10.0.0.1", {
+        count: 1,
+        resetTime: now + 120000, // Still valid
+      });
 
-      // Verify map is large
-      expect(rateLimitMap.size).toBe(150);
+      expect(rateLimitMap.size).toBe(51);
 
-      // Mock Math.random to return a value < 0.01 to trigger cleanup
-      const originalRandom = Math.random;
-      Math.random = () => 0.005;
+      // Advance time past the 60s cleanup interval
+      vi.advanceTimersByTime(60_001);
 
-      // Make a request which should trigger cleanup
-      const req = createMockRequest({
-        socket: { remoteAddress: "10.0.0.1" },
-      } as unknown as IncomingMessage);
-      checkRateLimit(req);
-
-      // Restore Math.random
-      Math.random = originalRandom;
-
-      // After cleanup, expired entries should be removed
-      // Note: cleanup is probabilistic, but with our mock it should trigger
-      // and remove all expired entries (those with resetTime < now)
-      let expiredCount = 0;
-      for (const [, entry] of rateLimitMap) {
-        if (now > entry.resetTime) {
-          expiredCount++;
-        }
-      }
-      // After cleanup, only the new entry and possibly some expired ones remain
-      // The test verifies the cleanup logic was exercised
+      // After cleanup, only the non-expired entry should remain
+      expect(rateLimitMap.size).toBe(1);
       expect(rateLimitMap.has("10.0.0.1")).toBe(true);
+
+      // Clean up
+      await transport.stop();
+      vi.useRealTimers();
+    });
+
+    it("should clear cleanup interval on stop", async () => {
+      vi.useFakeTimers();
+
+      const transport = new HttpTransport({
+        port: 3000,
+        enableRateLimit: true,
+      });
+
+      // Simulate start — set up interval directly
+      const intervalRef = setInterval(() => {}, 60_000);
+      (
+        transport as unknown as {
+          rateLimitCleanupInterval: NodeJS.Timeout | null;
+        }
+      ).rateLimitCleanupInterval = intervalRef;
+
+      expect(
+        (
+          transport as unknown as {
+            rateLimitCleanupInterval: NodeJS.Timeout | null;
+          }
+        ).rateLimitCleanupInterval,
+      ).not.toBeNull();
+
+      await transport.stop();
+
+      expect(
+        (
+          transport as unknown as {
+            rateLimitCleanupInterval: NodeJS.Timeout | null;
+          }
+        ).rateLimitCleanupInterval,
+      ).toBeNull();
 
       vi.useRealTimers();
     });

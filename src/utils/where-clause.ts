@@ -80,6 +80,20 @@ const DANGEROUS_PATTERNS: { pattern: RegExp; reason: string }[] = [
     pattern: /\blo_export\s*\(/i,
     reason: "contains large object export function",
   },
+  // Remote server access via dblink
+  {
+    pattern: /\bdblink_connect\s*\(/i,
+    reason: "contains remote server connection function",
+  },
+  {
+    pattern: /\bdblink_exec\s*\(/i,
+    reason: "contains remote query execution function",
+  },
+  // Asynchronous notification side channel
+  {
+    pattern: /\bpg_notify\s*\(/i,
+    reason: "contains notification side-channel function",
+  },
   // System command execution
   {
     pattern: /\bCOPY\s+.*\s+(FROM|TO)\s+PROGRAM\b/i,

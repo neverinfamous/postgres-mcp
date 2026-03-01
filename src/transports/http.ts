@@ -104,6 +104,7 @@ export class HttpTransport {
 
   // Rate limiting state
   private readonly rateLimitMap = new Map<string, RateLimitEntry>();
+  private rateLimitCleanupInterval: NodeJS.Timeout | null = null;
 
   // Default configuration values
   private static readonly DEFAULT_RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
@@ -149,6 +150,18 @@ export class HttpTransport {
         });
       });
 
+      // Start deterministic rate limit cleanup (every 60s)
+      if (this.config.enableRateLimit) {
+        this.rateLimitCleanupInterval = setInterval(() => {
+          const now = Date.now();
+          for (const [ip, entry] of this.rateLimitMap) {
+            if (now > entry.resetTime) {
+              this.rateLimitMap.delete(ip);
+            }
+          }
+        }, 60_000);
+      }
+
       this.server.on("error", reject);
 
       this.server.listen(this.config.port, this.config.host, () => {
@@ -164,6 +177,11 @@ export class HttpTransport {
    * Stop the HTTP server
    */
   async stop(): Promise<void> {
+    if (this.rateLimitCleanupInterval) {
+      clearInterval(this.rateLimitCleanupInterval);
+      this.rateLimitCleanupInterval = null;
+    }
+
     return new Promise((resolve) => {
       if (this.server) {
         this.server.close(() => {
@@ -215,14 +233,7 @@ export class HttpTransport {
 
     const entry = this.rateLimitMap.get(clientIp);
 
-    // Clean up expired entries periodically (every 100 checks)
-    if (this.rateLimitMap.size > 100 && Math.random() < 0.01) {
-      for (const [ip, e] of this.rateLimitMap) {
-        if (now > e.resetTime) {
-          this.rateLimitMap.delete(ip);
-        }
-      }
-    }
+    // Expired entries are cleaned up by a deterministic interval (see start())
 
     if (!entry || now > entry.resetTime) {
       // Start new window
