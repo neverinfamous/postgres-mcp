@@ -61,6 +61,8 @@
 | `ltree`              | Hierarchical tree labels       | 8 ltree tools              |
 | `pgcrypto`           | Hashing, encryption, UUIDs     | 9 pgcrypto tools           |
 
+> Extension tool counts include `create_extension` helpers but exclude Code Mode; the Tool Groups table below adds +1 per group for Code Mode.
+
 ### MCP Resources (20)
 
 Real-time database meta-awareness - AI accesses these automatically:
@@ -299,32 +301,32 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 | `ext-schedule`  | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
 | `ext-perf`      | 28     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
 
-### Tool Groups (21 Available)
+### Tool Groups (20 Functional + Code Mode)
 
-> Tool counts include Code Mode (`pg_execute_code`) which is added to all groups by default.
+> Tool counts shown are base group sizes. Code Mode (`pg_execute_code`) is automatically added to every group, adding +1 to the effective count.
 
 | Group           | Tools | Description                                                 |
 | --------------- | ----- | ----------------------------------------------------------- |
-| `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools |
-| `transactions`  | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
-| `jsonb`         | 20    | JSONB manipulation and queries                              |
-| `text`          | 14    | Full-text search, fuzzy matching                            |
-| `performance`   | 21    | EXPLAIN, query analysis, optimization                       |
-| `admin`         | 11    | VACUUM, ANALYZE, REINDEX                                    |
-| `monitoring`    | 12    | Database sizes, connections, status                         |
-| `backup`        | 10    | pg_dump, COPY, restore                                      |
-| `schema`        | 13    | Schemas, views, sequences, functions, triggers              |
-| `introspection` | 13    | Dependency graphs, cascade simulation, migration tracking   |
-| `partitioning`  | 7     | Native partition management                                 |
-| `stats`         | 9     | Statistical analysis                                        |
-| `vector`        | 17    | pgvector (AI/ML similarity search)                          |
-| `postgis`       | 16    | PostGIS (geospatial)                                        |
-| `cron`          | 9     | pg_cron (job scheduling)                                    |
-| `partman`       | 11    | pg_partman (auto-partitioning)                              |
-| `kcache`        | 8     | pg_stat_kcache (OS-level stats)                             |
-| `citext`        | 7     | citext (case-insensitive text)                              |
-| `ltree`         | 9     | ltree (hierarchical data)                                   |
-| `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                |
+| `core`          | 20    | Read/write queries, tables, indexes, convenience/drop tools |
+| `transactions`  | 7     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
+| `jsonb`         | 19    | JSONB manipulation and queries                              |
+| `text`          | 13    | Full-text search, fuzzy matching                            |
+| `performance`   | 20    | EXPLAIN, query analysis, optimization                       |
+| `admin`         | 10    | VACUUM, ANALYZE, REINDEX                                    |
+| `monitoring`    | 11    | Database sizes, connections, status                         |
+| `backup`        | 9     | pg_dump, COPY, restore                                      |
+| `schema`        | 12    | Schemas, views, sequences, functions, triggers              |
+| `introspection` | 12    | Dependency graphs, cascade simulation, migration tracking   |
+| `partitioning`  | 6     | Native partition management                                 |
+| `stats`         | 8     | Statistical analysis                                        |
+| `vector`        | 16    | pgvector (AI/ML similarity search)                          |
+| `postgis`       | 15    | PostGIS (geospatial)                                        |
+| `cron`          | 8     | pg_cron (job scheduling)                                    |
+| `partman`       | 10    | pg_partman (auto-partitioning)                              |
+| `kcache`        | 7     | pg_stat_kcache (OS-level stats)                             |
+| `citext`        | 6     | citext (case-insensitive text)                              |
+| `ltree`         | 8     | ltree (hierarchical data)                                   |
+| `pgcrypto`      | 9     | pgcrypto (encryption, UUIDs)                                |
 | `codemode`      | 1     | Code Mode (sandboxed code execution)                        |
 
 ---

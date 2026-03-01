@@ -44,11 +44,62 @@
 
 ### Prerequisites
 
-- Node.js 24+ (LTS)
 - PostgreSQL 12-18 (tested with PostgreSQL 18.1)
-- npm or yarn
+- **Docker** (recommended) or Node.js 24+ (LTS)
 
-### Installation
+### Docker (Recommended)
+
+```bash
+docker pull writenotenow/postgres-mcp:latest
+```
+
+```json
+{
+  "mcpServers": {
+    "postgres-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "POSTGRES_HOST",
+        "-e",
+        "POSTGRES_PORT",
+        "-e",
+        "POSTGRES_USER",
+        "-e",
+        "POSTGRES_PASSWORD",
+        "-e",
+        "POSTGRES_DATABASE",
+        "writenotenow/postgres-mcp:latest",
+        "--tool-filter",
+        "starter"
+      ],
+      "env": {
+        "POSTGRES_HOST": "host.docker.internal",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_USER": "your_username",
+        "POSTGRES_PASSWORD": "your_password",
+        "POSTGRES_DATABASE": "your_database"
+      }
+    }
+  }
+}
+```
+
+> **Note for Docker**: Use `host.docker.internal` to connect to PostgreSQL running on your host machine.
+
+📖 **Full Docker guide:** [DOCKER_README.md](DOCKER_README.md) · [Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp)
+
+### npm
+
+```bash
+npm install -g @neverinfamous/postgres-mcp
+postgres-mcp --transport stdio --postgres postgres://user:password@localhost:5432/database
+```
+
+### From Source
 
 ```bash
 git clone https://github.com/neverinfamous/postgresql-mcp.git
@@ -537,26 +588,9 @@ This server provides **20 resources** for structured data access:
 | `ltree`              | Hierarchical tree labels       | 8 ltree tools              |
 | `pgcrypto`           | Hashing, encryption, UUIDs     | 9 pgcrypto tools           |
 
-> Extension tools gracefully handle cases where extensions are not installed. Extension tool counts include `create_extension` helpers, which are utility tools excluded from the published 218 count.
+> Extension tools gracefully handle cases where extensions are not installed. Extension tool counts include `create_extension` helpers but exclude Code Mode; the [Tool Groups](#-tool-filtering) table above adds +1 per group for Code Mode.
 
 ---
-
-## 🔥 Core Capabilities
-
-- 📊 **Full SQL Support** - Execute any PostgreSQL query with parameter binding
-- 🔍 **JSONB Operations** - Native JSONB functions and path queries
-- 🔐 **Connection Pooling** - Efficient connection management with health checks
-- 🎛️ **Tool Filtering** - Control which operations are exposed
-- ⚡ **Performance Tools** - EXPLAIN ANALYZE, buffer analysis, index hints
-- 🗺️ **PostGIS Support** - Geospatial queries and spatial indexes
-- 🧠 **pgvector Support** - AI/ML vector similarity search
-
-### 🏢 Enterprise Features
-
-- 🔐 **OAuth 2.1 Authentication** - RFC 9728/8414 compliant
-- 🛡️ **Per-Tool Scope Enforcement** - Each tool group requires specific OAuth scope (`read`, `write`, or `admin`)
-- 🛡️ **Tool Filtering** - Control which database operations are exposed
-- 📈 **Monitoring** - Process lists, replication lag, cache hit ratios
 
 ---
 
