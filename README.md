@@ -183,9 +183,14 @@ See **[From Source](#from-source)** above for setup. After cloning:
 
 ```bash
 npm run lint && npm run typecheck  # Run checks
+npm run bench                      # Run performance benchmarks
 node dist/cli.js info              # Test CLI
 node dist/cli.js list-tools        # List available tools
 ```
+
+### Benchmarks
+
+Run `npm run bench` to execute the performance benchmark suite (9 files, 75+ scenarios) powered by [Vitest Bench](https://vitest.dev/guide/features.html#benchmarking). Benchmarks cover schema parsing, handler dispatch, identifier sanitization, auth middleware, connection pooling, Code Mode, logging, and more. Use `npm run bench:verbose` for detailed table output.
 
 ---
 
