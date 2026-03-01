@@ -361,6 +361,8 @@ docker run --rm -p 3000:3000 \
 - `DELETE /mcp` — Session termination
 - `GET /health` — Health check
 
+**Docker Health Check:** The built-in `HEALTHCHECK` is transport-aware. When running with `--transport http` or `--transport sse`, it uses `curl` to verify the `/health` endpoint (confirming both HTTP server and database connectivity). In stdio mode (default), it falls back to a Node.js process check since no HTTP endpoint is available.
+
 ---
 
 ## 🛡️ Supply Chain Security

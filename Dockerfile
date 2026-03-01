@@ -109,9 +109,15 @@ USER appuser
 # Expose HTTP port for SSE transport (optional)
 EXPOSE 3000
 
-# Health check
+# Health check — transport-aware:
+# HTTP/SSE: curl the /health endpoint (verifies HTTP server + DB connectivity)
+# stdio:    verify Node.js runtime is alive (no HTTP endpoint available)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "console.log('Server healthy')" || exit 1
+    CMD if [ "$MCP_TRANSPORT" = "http" ] || [ "$MCP_TRANSPORT" = "sse" ]; then \
+        curl -sf http://localhost:${PORT:-3000}/health || exit 1; \
+    else \
+        node -e "console.log('healthy')" || exit 1; \
+    fi
 
 # Run the MCP server (default: stdio transport)
 CMD ["node", "dist/cli.js"]
