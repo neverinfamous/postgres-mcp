@@ -12,6 +12,7 @@ import type {
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "./error-helpers.js";
+import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   GetIndexesSchemaBase,
   GetIndexesSchema,
@@ -141,7 +142,7 @@ export function createCreateIndexTool(
       // If ifNotExists is true, check if index already exists BEFORE creating
       if (ifNotExists === true) {
         const checkSql = `
-                    SELECT 1 FROM pg_indexes 
+                    SELECT 1 FROM pg_indexes
                     WHERE schemaname = $1 AND indexname = $2
                 `;
         const checkResult = await adapter.executeQuery(checkSql, [
@@ -166,7 +167,7 @@ export function createCreateIndexTool(
       const uniqueClause = unique ? "UNIQUE " : "";
       const concurrentlyClause = concurrently ? "CONCURRENTLY " : "";
       const usingClause = type ? `USING ${type} ` : "";
-      const whereClause = where ? ` WHERE ${where}` : "";
+      const whereClause = where ? ` WHERE ${sanitizeWhereClause(where)}` : "";
 
       // Support expression indexes: detect expressions (containing parentheses or operators)
       // and don't quote them

@@ -18,6 +18,7 @@ import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "./error-helpers.js";
+import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   WriteQueryOutputSchema,
   CountOutputSchema,
@@ -716,7 +717,7 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
       // Treat empty where string as no where clause
       const whereClause =
         parsed.where !== undefined && parsed.where.trim() !== ""
-          ? ` WHERE ${parsed.where}`
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
 
       const sql = `SELECT COUNT(${countExpr}) as count FROM ${qualifiedTable}${whereClause}`;
@@ -769,7 +770,9 @@ export function createExistsTool(adapter: PostgresAdapter): ToolDefinition {
       // Build SQL with optional WHERE clause
       const whereValue = parsed.where ?? "";
       const hasWhere = whereValue.trim() !== "";
-      const whereClause = hasWhere ? ` WHERE ${whereValue}` : "";
+      const whereClause = hasWhere
+        ? ` WHERE ${sanitizeWhereClause(whereValue)}`
+        : "";
       const sql = `SELECT EXISTS(SELECT 1 FROM ${qualifiedTable}${whereClause}) as exists`;
 
       const result = await adapter.executeQuery(sql, parsed.params);

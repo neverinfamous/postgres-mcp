@@ -12,6 +12,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   // Base schemas for MCP visibility
   StatsTimeSeriesSchemaBase,
@@ -224,22 +225,29 @@ async function validateNumericColumn(
   ];
 
   const typeCheckQuery = `
-    SELECT data_type 
-    FROM information_schema.columns 
-    WHERE table_schema = '${schema}' 
-    AND table_name = '${table}'
-    AND column_name = '${column}'
+    SELECT data_type
+    FROM information_schema.columns
+    WHERE table_schema = $1
+    AND table_name = $2
+    AND column_name = $3
   `;
-  const typeResult = await adapter.executeQuery(typeCheckQuery);
+  const typeResult = await adapter.executeQuery(typeCheckQuery, [
+    schema,
+    table,
+    column,
+  ]);
   const typeRow = typeResult.rows?.[0] as { data_type: string } | undefined;
 
   if (!typeRow) {
     // Check if table exists
     const tableCheckQuery = `
-      SELECT 1 FROM information_schema.tables 
-      WHERE table_schema = '${schema}' AND table_name = '${table}'
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = $1 AND table_name = $2
     `;
-    const tableResult = await adapter.executeQuery(tableCheckQuery);
+    const tableResult = await adapter.executeQuery(tableCheckQuery, [
+      schema,
+      table,
+    ]);
     if (tableResult.rows?.length === 0) {
       throw new Error(`Table "${schema}.${table}" not found`);
     }
@@ -265,10 +273,13 @@ async function validateTableExists(
   schema: string,
 ): Promise<void> {
   const tableCheckQuery = `
-    SELECT 1 FROM information_schema.tables 
-    WHERE table_schema = '${schema}' AND table_name = '${table}'
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = $1 AND table_name = $2
   `;
-  const tableResult = await adapter.executeQuery(tableCheckQuery);
+  const tableResult = await adapter.executeQuery(tableCheckQuery, [
+    schema,
+    table,
+  ]);
   if (tableResult.rows?.length === 0) {
     throw new Error(`Table "${schema}.${table}" not found`);
   }
@@ -322,7 +333,7 @@ export function createStatsTimeSeriesTool(
         };
 
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where ? `WHERE ${where}` : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
         const agg = aggregation ?? "avg";
 
         // Handle limit: undefined uses default (100), 0 means no limit
@@ -338,23 +349,30 @@ export function createStatsTimeSeriesTool(
         // First check if table exists
         const schemaName = schema ?? "public";
         const tableCheckQuery = `
-        SELECT 1 FROM information_schema.tables 
-        WHERE table_schema = '${schemaName}' AND table_name = '${table}'
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = $1 AND table_name = $2
       `;
-        const tableCheckResult = await adapter.executeQuery(tableCheckQuery);
+        const tableCheckResult = await adapter.executeQuery(tableCheckQuery, [
+          schemaName,
+          table,
+        ]);
         if (tableCheckResult.rows?.length === 0) {
           throw new Error(`Table "${schemaName}.${table}" not found`);
         }
 
         // Validate timeColumn is a timestamp/date type
         const typeCheckQuery = `
-                SELECT data_type 
-                FROM information_schema.columns 
-                WHERE table_schema = '${schemaName}' 
-                AND table_name = '${table}'
-                AND column_name = '${timeColumn}'
+                SELECT data_type
+                FROM information_schema.columns
+                WHERE table_schema = $1
+                AND table_name = $2
+                AND column_name = $3
             `;
-        const typeResult = await adapter.executeQuery(typeCheckQuery);
+        const typeResult = await adapter.executeQuery(typeCheckQuery, [
+          schemaName,
+          table,
+          timeColumn,
+        ]);
         const typeRow = typeResult.rows?.[0] as
           | { data_type: string }
           | undefined;
@@ -393,13 +411,17 @@ export function createStatsTimeSeriesTool(
           "money",
         ];
         const valueTypeQuery = `
-        SELECT data_type 
-        FROM information_schema.columns 
-        WHERE table_schema = '${schemaName}' 
-        AND table_name = '${table}'
-        AND column_name = '${valueColumn}'
+        SELECT data_type
+        FROM information_schema.columns
+        WHERE table_schema = $1
+        AND table_name = $2
+        AND column_name = $3
       `;
-        const valueTypeResult = await adapter.executeQuery(valueTypeQuery);
+        const valueTypeResult = await adapter.executeQuery(valueTypeQuery, [
+          schemaName,
+          table,
+          valueColumn,
+        ]);
         const valueTypeRow = valueTypeResult.rows?.[0] as
           | { data_type: string }
           | undefined;
@@ -448,7 +470,7 @@ export function createStatsTimeSeriesTool(
           // First get total count of distinct groups for truncation indicator
           // COUNT(DISTINCT) excludes NULLs per SQL standard, so add 1 if any NULLs exist
           const groupCountSql = `
-          SELECT COUNT(DISTINCT "${groupBy}") + 
+          SELECT COUNT(DISTINCT "${groupBy}") +
             CASE WHEN COUNT(*) > COUNT("${groupBy}") THEN 1 ELSE 0 END as total_groups
           FROM ${schemaPrefix}"${table}"
           ${whereClause}
@@ -461,7 +483,7 @@ export function createStatsTimeSeriesTool(
 
           // Grouped time series
           const sql = `
-                    SELECT 
+                    SELECT
                         "${groupBy}" as group_key,
                         DATE_TRUNC('${interval}', "${timeColumn}") as time_bucket,
                         ${agg.toUpperCase()}("${valueColumn}")::numeric(20,6) as value,
@@ -573,7 +595,7 @@ export function createStatsTimeSeriesTool(
         }
 
         const sql = `
-                SELECT 
+                SELECT
                     DATE_TRUNC('${interval}', "${timeColumn}") as time_bucket,
                     ${agg.toUpperCase()}("${valueColumn}")::numeric(20,6) as value,
                     COUNT(*) as count
@@ -660,7 +682,7 @@ export function createStatsDistributionTool(
 
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where ? `WHERE ${where}` : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
         const numBuckets = buckets ?? 10;
 
         // Validate column exists and is numeric
@@ -683,7 +705,7 @@ export function createStatsDistributionTool(
 
           const statsQuery = `
                     WITH stats AS (
-                        SELECT 
+                        SELECT
                             MIN("${column}") as min_val,
                             MAX("${column}") as max_val,
                             AVG("${column}") as mean,
@@ -693,7 +715,7 @@ export function createStatsDistributionTool(
                         ${filterClause}
                     ),
                     moments AS (
-                        SELECT 
+                        SELECT
                             s.min_val,
                             s.max_val,
                             s.mean,
@@ -752,7 +774,7 @@ export function createStatsDistributionTool(
             : whereClause;
 
           const histogramQuery = `
-                    SELECT 
+                    SELECT
                         WIDTH_BUCKET("${column}", ${String(minVal)}, ${String(maxVal + 0.0001)}, ${String(numBuckets)}) as bucket,
                         COUNT(*) as frequency,
                         MIN("${column}") as bucket_min,
@@ -943,7 +965,7 @@ export function createStatsHypothesisTool(
 
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where ? `WHERE ${where}` : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         // Validate column exists and is numeric
         await validateNumericColumn(adapter, table, column, schemaName);
@@ -1049,7 +1071,7 @@ export function createStatsHypothesisTool(
         if (groupBy !== undefined) {
           // Grouped hypothesis tests
           const sql = `
-                    SELECT 
+                    SELECT
                         "${groupBy}" as group_key,
                         COUNT("${column}") as n,
                         AVG("${column}")::numeric(20,6) as mean,
@@ -1091,7 +1113,7 @@ export function createStatsHypothesisTool(
 
         // Ungrouped hypothesis test
         const sql = `
-                SELECT 
+                SELECT
                     COUNT("${column}") as n,
                     AVG("${column}")::numeric(20,6) as mean,
                     STDDEV_SAMP("${column}")::numeric(20,6) as stddev
@@ -1189,7 +1211,7 @@ export function createStatsSamplingTool(
           select && select.length > 0
             ? select.map((c) => `"${c}"`).join(", ")
             : "*";
-        const whereClause = where ? `WHERE ${where}` : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
         const samplingMethod = method ?? "random";
 
         let sql: string;

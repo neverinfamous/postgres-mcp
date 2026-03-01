@@ -270,18 +270,46 @@ export class HttpTransport {
       return;
     }
 
-    // Check body size (Content-Length)
+    // Check body size — two-layer enforcement:
+    // 1. Content-Length header for fast rejection of well-behaved clients
+    // 2. Streaming byte tracking for missing/spoofed headers and chunked encoding
+    const maxBodySize = this.config.maxBodySize ?? 1048576;
     const contentLength = parseInt(req.headers["content-length"] ?? "0", 10);
-    if (contentLength > (this.config.maxBodySize ?? 1048576)) {
+    if (contentLength > maxBodySize) {
       res.writeHead(413, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
           error: "payload_too_large",
-          error_description: `Request body exceeds maximum size of ${String(this.config.maxBodySize ?? 1048576)} bytes.`,
+          error_description: `Request body exceeds maximum size of ${String(maxBodySize)} bytes.`,
         }),
       );
       return;
     }
+
+    // Streaming body size enforcement — track actual received bytes
+    // Guard: only attach if req supports event listeners (real IncomingMessage)
+    let receivedBytes = 0;
+    let bodyLimitExceeded = false;
+    if (typeof req.on === "function") {
+      req.on("data", (chunk: Buffer) => {
+        receivedBytes += chunk.length;
+        if (receivedBytes > maxBodySize && !bodyLimitExceeded) {
+          bodyLimitExceeded = true;
+          req.destroy();
+          if (!res.headersSent) {
+            res.writeHead(413, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                error: "payload_too_large",
+                error_description: `Request body exceeds maximum size of ${String(maxBodySize)} bytes.`,
+              }),
+            );
+          }
+        }
+      });
+    }
+
+    if (bodyLimitExceeded) return;
 
     const url = new URL(
       req.url ?? "/",

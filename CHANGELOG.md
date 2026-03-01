@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Consistent WHERE clause sanitization across all tool groups** — Applied `sanitizeWhereClause()` to 31 WHERE clause interpolation sites across 6 files (`core/convenience.ts`, `core/indexes.ts`, `jsonb/basic.ts`, `jsonb/advanced.ts`, `stats/basic.ts`, `stats/advanced.ts`) that were previously interpolating user-provided WHERE clauses without blocklist validation. The `text` and `vector` tool groups already used `sanitizeWhereClause()`, but these groups bypassed it, creating an inconsistent defense-in-depth gap
+
+- **Parameterized `information_schema` validation queries in stats tools** — Converted all string-interpolated `information_schema` queries in `stats/basic.ts` and `stats/advanced.ts` to use parameterized queries (`$1`, `$2`, `$3`) with bind parameters. Affected queries: `validateNumericColumn()` (column type check + table existence fallback), `validateTableExists()`, and inline validation in `createStatsDescriptiveTool` and `createStatsTimeSeriesTool` (table existence, time column type, value column type). Previously, schema, table, and column names were interpolated directly into SQL strings targeting `information_schema.columns` and `information_schema.tables`
+
+- **Streaming HTTP body size enforcement** — Added streaming byte-count tracking to the HTTP transport's `handleRequest()` method, supplementing the existing `Content-Length` header check. The streaming listener attaches to `req.on('data')` and destroys the request with HTTP 413 if actual received bytes exceed `maxBodySize`. This prevents bypasses via missing, zero, or spoofed `Content-Length` headers, and handles chunked transfer encoding where `Content-Length` is absent
+
 ### Fixed
 
 - **P154 structured errors now return as parseable JSON instead of raw MCP errors** — When tools encounter nonexistent schemas or other P154 error scenarios, the response `{success: false, error: "..."}` is now sent as `structuredContent` instead of setting `isError: true`. Previously, `DatabaseAdapter.registerTool()` detected P154 errors and set `isError: true` to bypass SDK output schema validation, but this caused AntiGravity to treat the response as a raw error string, preventing structured JSON parsing. Fixed by: (1) removing the `isError: true` branch from `DatabaseAdapter.ts`, always sending results as `structuredContent`; (2) updating all output schemas across 6 files (`performance.ts`, `monitoring.ts`, `introspection.ts`, `backup.ts`, `partitioning.ts`, `extensions.ts`) to make non-error fields optional and add `success`/`error` fields where missing, so P154 error shapes pass SDK validation

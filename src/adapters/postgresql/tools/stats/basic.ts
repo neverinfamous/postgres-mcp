@@ -12,6 +12,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   // Base schemas for MCP visibility
   StatsDescriptiveSchemaBase,
@@ -68,17 +69,21 @@ export function createStatsDescriptiveTool(
         };
 
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where ? `WHERE ${where}` : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         // Validate column is numeric type
         const typeCheckQuery = `
-                SELECT data_type 
-                FROM information_schema.columns 
-                WHERE table_schema = '${schema ?? "public"}' 
-                AND table_name = '${table}'
-                AND column_name = '${column}'
+                SELECT data_type
+                FROM information_schema.columns
+                WHERE table_schema = $1
+                AND table_name = $2
+                AND column_name = $3
             `;
-        const typeResult = await adapter.executeQuery(typeCheckQuery);
+        const typeResult = await adapter.executeQuery(typeCheckQuery, [
+          schema ?? "public",
+          table,
+          column,
+        ]);
         const typeRow = typeResult.rows?.[0] as
           | { data_type: string }
           | undefined;
@@ -86,10 +91,13 @@ export function createStatsDescriptiveTool(
         if (!typeRow) {
           // Check if table exists
           const tableCheckQuery = `
-                    SELECT 1 FROM information_schema.tables 
-                    WHERE table_schema = '${schema ?? "public"}' AND table_name = '${table}'
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = $1 AND table_name = $2
                 `;
-          const tableResult = await adapter.executeQuery(tableCheckQuery);
+          const tableResult = await adapter.executeQuery(tableCheckQuery, [
+            schema ?? "public",
+            table,
+          ]);
           if (tableResult.rows?.length === 0) {
             throw new Error(`Table "${schema ?? "public"}.${table}" not found`);
           }
@@ -143,7 +151,7 @@ export function createStatsDescriptiveTool(
         if (groupBy !== undefined) {
           // Grouped statistics
           const sql = `
-                    SELECT 
+                    SELECT
                         "${groupBy}" as group_key,
                         COUNT("${column}") as count,
                         MIN("${column}") as min,
@@ -183,7 +191,7 @@ export function createStatsDescriptiveTool(
 
         // Ungrouped statistics (original behavior)
         const sql = `
-                SELECT 
+                SELECT
                     COUNT("${column}") as count,
                     MIN("${column}") as min,
                     MAX("${column}") as max,
@@ -243,22 +251,29 @@ async function validateNumericColumn(
   ];
 
   const typeCheckQuery = `
-    SELECT data_type 
-    FROM information_schema.columns 
-    WHERE table_schema = '${schema}' 
-    AND table_name = '${table}'
-    AND column_name = '${column}'
+    SELECT data_type
+    FROM information_schema.columns
+    WHERE table_schema = $1
+    AND table_name = $2
+    AND column_name = $3
   `;
-  const typeResult = await adapter.executeQuery(typeCheckQuery);
+  const typeResult = await adapter.executeQuery(typeCheckQuery, [
+    schema,
+    table,
+    column,
+  ]);
   const typeRow = typeResult.rows?.[0] as { data_type: string } | undefined;
 
   if (!typeRow) {
     // Check if table exists
     const tableCheckQuery = `
-      SELECT 1 FROM information_schema.tables 
-      WHERE table_schema = '${schema}' AND table_name = '${table}'
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = $1 AND table_name = $2
     `;
-    const tableResult = await adapter.executeQuery(tableCheckQuery);
+    const tableResult = await adapter.executeQuery(tableCheckQuery, [
+      schema,
+      table,
+    ]);
     if (tableResult.rows?.length === 0) {
       throw new Error(`Table "${schema}.${table}" not found`);
     }
@@ -319,7 +334,7 @@ export function createStatsPercentilesTool(
 
         const pctiles = percentiles ?? [0.25, 0.5, 0.75];
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where ? `WHERE ${where}` : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         const percentileSelects = pctiles
           .map(
@@ -347,7 +362,7 @@ export function createStatsPercentilesTool(
         if (groupBy !== undefined) {
           // Grouped percentiles
           const sql = `
-                    SELECT 
+                    SELECT
                         "${groupBy}" as group_key,
                         ${percentileSelects}
                     FROM ${schemaPrefix}"${table}"
@@ -387,7 +402,7 @@ export function createStatsPercentilesTool(
 
         // Ungrouped percentiles
         const sql = `
-                SELECT 
+                SELECT
                     ${percentileSelects}
                 FROM ${schemaPrefix}"${table}"
                 ${whereClause}
@@ -461,7 +476,7 @@ export function createStatsCorrelationTool(
 
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where ? `WHERE ${where}` : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         // Validate both columns exist and are numeric (with table-first error checking)
         await validateNumericColumn(adapter, table, column1, schemaName);
@@ -511,7 +526,7 @@ export function createStatsCorrelationTool(
         if (groupBy !== undefined) {
           // Grouped correlation
           const sql = `
-                    SELECT 
+                    SELECT
                         "${groupBy}" as group_key,
                         CORR("${column1}", "${column2}")::numeric(10,6) as correlation,
                         COVAR_POP("${column1}", "${column2}")::numeric(20,6) as covariance_pop,
@@ -547,7 +562,7 @@ export function createStatsCorrelationTool(
 
         // Ungrouped correlation
         const sql = `
-                SELECT 
+                SELECT
                     CORR("${column1}", "${column2}")::numeric(10,6) as correlation,
                     COVAR_POP("${column1}", "${column2}")::numeric(20,6) as covariance_pop,
                     COVAR_SAMP("${column1}", "${column2}")::numeric(20,6) as covariance_sample,
@@ -626,7 +641,7 @@ export function createStatsRegressionTool(
 
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where ? `WHERE ${where}` : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         // Validate both columns exist and are numeric
         await validateNumericColumn(adapter, table, xColumn, schemaName);
@@ -670,7 +685,7 @@ export function createStatsRegressionTool(
         if (groupBy !== undefined) {
           // Grouped regression
           const sql = `
-                    SELECT 
+                    SELECT
                         "${groupBy}" as group_key,
                         REGR_SLOPE("${yColumn}", "${xColumn}")::numeric(20,6) as slope,
                         REGR_INTERCEPT("${yColumn}", "${xColumn}")::numeric(20,6) as intercept,
@@ -709,7 +724,7 @@ export function createStatsRegressionTool(
 
         // Ungrouped regression
         const sql = `
-                SELECT 
+                SELECT
                     REGR_SLOPE("${yColumn}", "${xColumn}")::numeric(20,6) as slope,
                     REGR_INTERCEPT("${yColumn}", "${xColumn}")::numeric(20,6) as intercept,
                     REGR_R2("${yColumn}", "${xColumn}")::numeric(10,6) as r_squared,
