@@ -81,11 +81,14 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         // Check if it's a sequence by querying pg_class
-        const relkindResult = await adapter.executeQuery(`
+        const relkindResult = await adapter.executeQuery(
+          `
                 SELECT relkind FROM pg_class c
                 JOIN pg_namespace n ON c.relnamespace = n.oid
-                WHERE n.nspname = '${schemaName}' AND c.relname = '${tableName}'
-            `);
+                WHERE n.nspname = $1 AND c.relname = $2
+            `,
+          [schemaName, tableName],
+        );
         const relkind = relkindResult.rows?.[0]?.["relkind"];
 
         // relkind 'S' = sequence
@@ -93,14 +96,17 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
           // Use pg_sequence system catalog (works in all PostgreSQL versions 10+)
           // Fallback to basic DDL if query fails
           try {
-            const seqInfo = await adapter.executeQuery(`
+            const seqInfo = await adapter.executeQuery(
+              `
                         SELECT s.seqstart as start_value, s.seqincrement as increment_by,
                                s.seqmin as min_value, s.seqmax as max_value, s.seqcycle as cycle
                         FROM pg_sequence s
                         JOIN pg_class c ON s.seqrelid = c.oid
                         JOIN pg_namespace n ON c.relnamespace = n.oid
-                        WHERE n.nspname = '${schemaName}' AND c.relname = '${tableName}'
-                    `);
+                        WHERE n.nspname = $1 AND c.relname = $2
+                    `,
+              [schemaName, tableName],
+            );
             const seq = seqInfo.rows?.[0];
             if (seq !== undefined) {
               const startVal =
@@ -161,10 +167,13 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         // relkind 'v' = view, 'm' = materialized view
         if (relkind === "v" || relkind === "m") {
           try {
-            const viewDefResult = await adapter.executeQuery(`
+            const viewDefResult = await adapter.executeQuery(
+              `
                         SELECT definition FROM pg_views
-                        WHERE schemaname = '${schemaName}' AND viewname = '${tableName}'
-                    `);
+                        WHERE schemaname = $1 AND viewname = $2
+                    `,
+              [schemaName, tableName],
+            );
             const definition = viewDefResult.rows?.[0]?.["definition"];
             if (typeof definition === "string") {
               const createType = relkind === "m" ? "MATERIALIZED VIEW" : "VIEW";
@@ -194,7 +203,8 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         if (isPartitionedTable) {
           try {
             // Query pg_partitioned_table to get partition strategy and key columns
-            const partInfo = await adapter.executeQuery(`
+            const partInfo = await adapter.executeQuery(
+              `
             SELECT pt.partstrat,
                    array_agg(a.attname ORDER BY partattrs.ord) as partition_columns
             FROM pg_partitioned_table pt
@@ -202,9 +212,11 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
             JOIN pg_namespace n ON c.relnamespace = n.oid
             CROSS JOIN LATERAL unnest(pt.partattrs) WITH ORDINALITY AS partattrs(attnum, ord)
             JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = partattrs.attnum
-            WHERE n.nspname = '${schemaName}' AND c.relname = '${tableName}'
+            WHERE n.nspname = $1 AND c.relname = $2
             GROUP BY pt.partstrat
-          `);
+          `,
+              [schemaName, tableName],
+            );
 
             const partRow = partInfo.rows?.[0];
             if (partRow) {

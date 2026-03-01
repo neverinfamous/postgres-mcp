@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Streaming HTTP body size enforcement** — Added streaming byte-count tracking to the HTTP transport's `handleRequest()` method, supplementing the existing `Content-Length` header check. The streaming listener attaches to `req.on('data')` and destroys the request with HTTP 413 if actual received bytes exceed `maxBodySize`. This prevents bypasses via missing, zero, or spoofed `Content-Length` headers, and handles chunked transfer encoding where `Content-Length` is absent
 
+- **PostGIS WHERE clause sanitization** — Applied `sanitizeWhereClause()` to 3 remaining WHERE clause interpolation sites in PostGIS tools (`pg_buffer` in `basic.ts`, `pg_geo_transform` and `pg_geo_cluster` in `advanced.ts`) that were missed in the prior audit sweep. These interpolated `parsed.where` directly into SQL without blocklist validation
+
+- **PostGIS/Backup catalog query parameterization** — Converted all string-interpolated `pg_class`/`pg_views`/`pg_sequence`/`pg_partitioned_table` catalog queries in `backup/dump.ts` (5 queries across `pg_dump_table`) and `postgis/advanced.ts` (`pg_geo_index_optimize` — 2 queries) from `'${schemaName}'`/`'${tableName}'` string interpolation to parameterized queries (`$1`, `$2`) with bind parameters
+
+- **PostGIS `AddGeometryColumn` parameterization** — Converted `pg_geometry_column`'s `AddGeometryColumn()` call from string interpolation (`'${schemaName}', '${parsed.table}'`) to parameterized query (`$1, $2, $3, $4, $5`) with bind parameters
+
+- **PostGIS identifier quoting consistency** — Replaced manual template-literal quoting (`"${parsed.table}"`) in `pg_geo_transform` and `pg_geo_cluster` with `sanitizeTableName()`/`sanitizeIdentifier()` functions, which properly escape embedded double-quotes per SQL standard
+
+- **Code Mode sandbox pattern hardening** — Added 3 additional blocked patterns to `DEFAULT_SECURITY_CONFIG.blockedPatterns`: `new Proxy()` (Proxy construction), `Reflect.` (Reflect API), and `Symbol.` (Symbol access) to reduce theoretical `vm` sandbox escape vectors
+
 ### Fixed
 
 - **P154 structured errors now return as parseable JSON instead of raw MCP errors** — When tools encounter nonexistent schemas or other P154 error scenarios, the response `{success: false, error: "..."}` is now sent as `structuredContent` instead of setting `isError: true`. Previously, `DatabaseAdapter.registerTool()` detected P154 errors and set `isError: true` to bypass SDK output schema validation, but this caused AntiGravity to treat the response as a raw error string, preventing structured JSON parsing. Fixed by: (1) removing the `isError: true` branch from `DatabaseAdapter.ts`, always sending results as `structuredContent`; (2) updating all output schemas across 6 files (`performance.ts`, `monitoring.ts`, `introspection.ts`, `backup.ts`, `partitioning.ts`, `extensions.ts`) to make non-error fields optional and add `success`/`error` fields where missing, so P154 error shapes pass SDK validation

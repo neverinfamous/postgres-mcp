@@ -20,6 +20,7 @@ import {
   sanitizeIdentifier,
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
+import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   GeometryColumnSchemaBase,
   GeometryColumnSchema,
@@ -129,8 +130,14 @@ export function createGeometryColumnTool(
         };
       }
 
-      const sql = `SELECT AddGeometryColumn('${schemaName}', '${parsed.table}', '${parsed.column}', ${String(srid)}, '${geomType}', 2)`;
-      await adapter.executeQuery(sql);
+      const sql = `SELECT AddGeometryColumn($1, $2, $3, $4, $5, 2)`;
+      await adapter.executeQuery(sql, [
+        schemaName,
+        parsed.table,
+        parsed.column,
+        srid,
+        geomType,
+      ]);
 
       return {
         success: true,
@@ -178,8 +185,8 @@ export function createPointInPolygonTool(
 
         // Get non-geometry columns to avoid returning raw WKB
         const colQuery = `
-          SELECT column_name FROM information_schema.columns 
-          WHERE table_schema = $1 AND table_name = $2 
+          SELECT column_name FROM information_schema.columns
+          WHERE table_schema = $1 AND table_name = $2
           AND udt_name NOT IN ('geometry', 'geography')
           ORDER BY ordinal_position
         `;
@@ -264,8 +271,8 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Get non-geometry columns to avoid returning raw WKB
         const colQuery = `
-          SELECT column_name FROM information_schema.columns 
-          WHERE table_schema = $1 AND table_name = $2 
+          SELECT column_name FROM information_schema.columns
+          WHERE table_schema = $1 AND table_name = $2
           AND udt_name NOT IN ('geometry', 'geography')
           ORDER BY ordinal_position
         `;
@@ -330,7 +337,9 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = BufferSchema.parse(params ?? {});
         const whereClause =
-          parsed.where !== undefined ? ` WHERE ${parsed.where}` : "";
+          parsed.where !== undefined
+            ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+            : "";
 
         const schemaName = parsed.schema ?? "public";
         const qualifiedTable = sanitizeTableName(
@@ -343,8 +352,8 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
         const effectiveLimit = parsed.limit ?? 50;
         // Get non-geometry columns to avoid returning raw WKB
         const colQuery = `
-          SELECT column_name FROM information_schema.columns 
-          WHERE table_schema = $1 AND table_name = $2 
+          SELECT column_name FROM information_schema.columns
+          WHERE table_schema = $1 AND table_name = $2
           AND udt_name NOT IN ('geometry', 'geography')
           ORDER BY ordinal_position
         `;
@@ -453,8 +462,8 @@ export function createIntersectionTool(
         } else {
           // Get non-geometry columns to avoid returning raw WKB
           const colQuery = `
-            SELECT column_name FROM information_schema.columns 
-            WHERE table_schema = $1 AND table_name = $2 
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = $1 AND table_name = $2
             AND udt_name NOT IN ('geometry', 'geography')
             ORDER BY ordinal_position
           `;
@@ -478,10 +487,10 @@ export function createIntersectionTool(
         if (!isGeoJson && srid === undefined) {
           // Query the column's SRID from geometry_columns or geography_columns
           const sridQuery = `
-                      SELECT srid FROM geometry_columns 
+                      SELECT srid FROM geometry_columns
                       WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geometry_column = $3
                       UNION
-                      SELECT srid FROM geography_columns 
+                      SELECT srid FROM geography_columns
                       WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geography_column = $3
                       LIMIT 1
                   `;
@@ -568,8 +577,8 @@ export function createBoundingBoxTool(
         } else {
           // Get non-geometry columns to avoid returning raw WKB
           const colQuery = `
-            SELECT column_name FROM information_schema.columns 
-            WHERE table_schema = $1 AND table_name = $2 
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = $1 AND table_name = $2
             AND udt_name NOT IN ('geometry', 'geography')
             ORDER BY ordinal_position
           `;

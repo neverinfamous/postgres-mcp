@@ -14,6 +14,11 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
 import {
+  sanitizeIdentifier,
+  sanitizeTableName,
+} from "../../../../utils/identifiers.js";
+import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
+import {
   GeocodeSchemaBase,
   GeocodeSchema,
   GeoTransformSchemaBase,
@@ -42,7 +47,7 @@ export function createGeocodeTool(adapter: PostgresAdapter): ToolDefinition {
         const parsed = GeocodeSchema.parse(params ?? {});
         const srid = parsed.srid ?? 4326;
 
-        const sql = `SELECT 
+        const sql = `SELECT
                         ST_AsGeoJSON(ST_SetSRID(ST_MakePoint($1, $2), $3)) as geojson,
                         ST_AsText(ST_SetSRID(ST_MakePoint($1, $2), $3)) as wkt`;
 
@@ -99,11 +104,11 @@ export function createGeoTransformTool(
         const parsed = GeoTransformSchema.parse(params ?? {});
 
         const schemaName = parsed.schema ?? "public";
-        const qualifiedTable =
-          schemaName !== "public"
-            ? `"${schemaName}"."${parsed.table}"`
-            : `"${parsed.table}"`;
-        const columnName = `"${parsed.column}"`;
+        const qualifiedTable = sanitizeTableName(
+          parsed.table,
+          schemaName !== "public" ? schemaName : undefined,
+        );
+        const columnName = sanitizeIdentifier(parsed.column);
 
         // Auto-detect fromSrid from column metadata if not provided
         let fromSrid = parsed.fromSrid;
@@ -122,10 +127,10 @@ export function createGeoTransformTool(
           }
 
           const sridQuery = `
-            SELECT srid FROM geometry_columns 
+            SELECT srid FROM geometry_columns
             WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geometry_column = $3
             UNION
-            SELECT srid FROM geography_columns 
+            SELECT srid FROM geography_columns
             WHERE f_table_schema = $1 AND f_table_name = $2 AND f_geography_column = $3
             LIMIT 1
           `;
@@ -147,7 +152,9 @@ export function createGeoTransformTool(
         }
 
         const whereClause =
-          parsed.where !== undefined ? `WHERE ${parsed.where}` : "";
+          parsed.where !== undefined
+            ? `WHERE ${sanitizeWhereClause(parsed.where)}`
+            : "";
 
         // Default limit of 50 to prevent large payloads, use limit: 0 for all
         const effectiveLimit = parsed.limit ?? 50;
@@ -156,8 +163,8 @@ export function createGeoTransformTool(
 
         // Get non-geometry columns to avoid returning raw WKB
         const colQuery = `
-          SELECT column_name FROM information_schema.columns 
-          WHERE table_schema = $1 AND table_name = $2 
+          SELECT column_name FROM information_schema.columns
+          WHERE table_schema = $1 AND table_name = $2
           AND udt_name NOT IN ('geometry', 'geography')
           ORDER BY ordinal_position
         `;
@@ -249,7 +256,7 @@ export function createGeoIndexOptimizeTool(
       const schemaName = parsed.schema ?? "public";
 
       const indexQuery = `
-                SELECT 
+                SELECT
                     c.relname as table_name,
                     i.relname as index_name,
                     a.attname as column_name,
@@ -268,15 +275,18 @@ export function createGeoIndexOptimizeTool(
                 WHERE n.nspname = $1
                 AND (pg_get_indexdef(i.oid) LIKE '%gist%' OR pg_get_indexdef(i.oid) LIKE '%spgist%')
                 AND t.typname IN ('geometry', 'geography')
-                ${parsed.table !== undefined ? `AND c.relname = '${parsed.table}'` : ""}
+                ${parsed.table !== undefined ? `AND c.relname = $2` : ""}
                 ORDER BY index_size_bytes DESC
             `;
 
+      const indexParams: unknown[] = [schemaName];
+      if (parsed.table !== undefined) indexParams.push(parsed.table);
+
       const [indexes, tableStats] = await Promise.all([
-        adapter.executeQuery(indexQuery, [schemaName]),
+        adapter.executeQuery(indexQuery, indexParams),
         adapter.executeQuery(
           `
-                    SELECT 
+                    SELECT
                         c.relname as table_name,
                         n_live_tup as row_count,
                         pg_size_pretty(pg_table_size(c.oid)) as table_size
@@ -284,15 +294,15 @@ export function createGeoIndexOptimizeTool(
                     JOIN pg_class c ON c.relname = t.relname
                     JOIN pg_namespace n ON n.oid = c.relnamespace
                     WHERE n.nspname = $1
-                    ${parsed.table !== undefined ? `AND c.relname = '${parsed.table}'` : ""}
+                    ${parsed.table !== undefined ? `AND c.relname = $${String(parsed.table !== undefined ? 2 : 1)}` : ""}
                     AND EXISTS (
                         SELECT 1 FROM information_schema.columns ic
-                        WHERE ic.table_schema = n.nspname 
-                        AND ic.table_name = c.relname 
+                        WHERE ic.table_schema = n.nspname
+                        AND ic.table_name = c.relname
                         AND ic.udt_name IN ('geometry', 'geography')
                     )
                 `,
-          [schemaName],
+          indexParams,
         ),
       ]);
 
@@ -386,12 +396,14 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
 
         const method = parsed.method ?? "dbscan";
         const schemaName = parsed.schema ?? "public";
-        const qualifiedTable =
-          schemaName !== "public"
-            ? `"${schemaName}"."${parsed.table}"`
-            : `"${parsed.table}"`;
+        const qualifiedTable = sanitizeTableName(
+          parsed.table,
+          schemaName !== "public" ? schemaName : undefined,
+        );
         const whereClause =
-          parsed.where !== undefined ? `WHERE ${parsed.where}` : "";
+          parsed.where !== undefined
+            ? `WHERE ${sanitizeWhereClause(parsed.where)}`
+            : "";
         const limitClause =
           parsed.limit !== undefined && parsed.limit > 0
             ? `LIMIT ${String(parsed.limit)}`
@@ -448,13 +460,13 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
 
         const sql = `
                   WITH clustered AS (
-                      SELECT 
+                      SELECT
                           *,
                           ${clusterFunction} as cluster_id
                       FROM ${qualifiedTable}
                       ${whereClause}
                   )
-                  SELECT 
+                  SELECT
                       cluster_id,
                       COUNT(*) as point_count,
                       ST_AsGeoJSON(ST_Centroid(ST_Collect("${parsed.column}"))) as centroid,
@@ -474,7 +486,7 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
                           FROM ${qualifiedTable}
                           ${whereClause}
                       )
-                      SELECT 
+                      SELECT
                           COUNT(DISTINCT cluster_id) as num_clusters,
                           COUNT(*) FILTER (WHERE cluster_id IS NULL) as noise_points,
                           COUNT(*) as total_points
