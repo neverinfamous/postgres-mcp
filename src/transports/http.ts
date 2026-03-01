@@ -456,14 +456,17 @@ export class HttpTransport {
     res.setHeader("X-Content-Type-Options", "nosniff");
     // Prevent clickjacking
     res.setHeader("X-Frame-Options", "DENY");
-    // Enable XSS filtering
-    res.setHeader("X-XSS-Protection", "1; mode=block");
     // Prevent caching of API responses
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     // Content Security Policy - API server has no content to load
     res.setHeader(
       "Content-Security-Policy",
       "default-src 'none'; frame-ancestors 'none'",
+    );
+    // Restrict browser features not needed by an API server
+    res.setHeader(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=()",
     );
 
     // HTTP Strict Transport Security (for HTTPS deployments)

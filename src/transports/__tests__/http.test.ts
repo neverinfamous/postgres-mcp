@@ -231,7 +231,7 @@ describe("HttpTransport", () => {
       expect(res._headers["x-frame-options"]).toBe("DENY");
     });
 
-    it("should set X-XSS-Protection header", () => {
+    it("should not set deprecated X-XSS-Protection header", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
@@ -243,7 +243,24 @@ describe("HttpTransport", () => {
 
       setSecurityHeaders(res);
 
-      expect(res._headers["x-xss-protection"]).toBe("1; mode=block");
+      expect(res._headers["x-xss-protection"]).toBeUndefined();
+    });
+
+    it("should set Permissions-Policy header", () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const res = createMockResponse();
+
+      const setSecurityHeaders = (
+        transport as unknown as {
+          setSecurityHeaders: (res: ServerResponse) => void;
+        }
+      ).setSecurityHeaders.bind(transport);
+
+      setSecurityHeaders(res);
+
+      expect(res._headers["permissions-policy"]).toBe(
+        "camera=(), microphone=(), geolocation=()",
+      );
     });
 
     it("should set Cache-Control to prevent caching", () => {

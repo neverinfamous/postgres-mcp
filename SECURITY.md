@@ -74,9 +74,9 @@ Key functions:
 
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
-- `X-XSS-Protection: 1; mode=block`
 - `Cache-Control: no-store, must-revalidate`
 - `Content-Security-Policy: default-src 'none'`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 
 **HSTS Support**
 

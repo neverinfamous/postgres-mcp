@@ -630,12 +630,12 @@ from growing too large. By default, removes records older than 7 days.`,
         }
 
         const conditions: string[] = [
-          `end_time < now() - interval '${String(days)} days'`,
+          `end_time < now() - ($1 || ' days')::interval`,
         ];
-        const queryParams: unknown[] = [];
+        const queryParams: unknown[] = [String(days)];
 
         if (jobId !== undefined) {
-          conditions.push("jobid = $1");
+          conditions.push("jobid = $2");
           queryParams.push(jobId);
         }
 

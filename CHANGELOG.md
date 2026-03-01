@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **HTTP rate limit deterministic cleanup** — Replaced the probabilistic rate limit map cleanup (`Math.random() < 0.01` on every check) with a deterministic 60-second `setInterval` that sweeps expired entries. The interval starts in `start()` and is cleared in `stop()`. Prevents unbounded memory growth under sustained traffic from many unique IPs. Updated 2 tests in `http.test.ts`
 
+- **Removed deprecated `X-XSS-Protection` header** — The `X-XSS-Protection: 1; mode=block` header has been removed from the HTTP transport's security headers. This header is [deprecated and removed](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection) from modern browsers, and in some edge cases can introduce XSS auditor bypass vulnerabilities. The existing `Content-Security-Policy: default-src 'none'` provides superior XSS protection. Updated 1 test in `http.test.ts`, updated `SECURITY.md`
+
+- **`Permissions-Policy` security header** — Added `Permissions-Policy: camera=(), microphone=(), geolocation=()` to the HTTP transport's security headers, denying browser feature access that an API server does not need. Added 1 test in `http.test.ts`, updated `SECURITY.md`
+
+- **`pg_cron_cleanup_history` interval parameterization** — Converted the `days` value in the cron cleanup history tool from string interpolation (`interval '${days} days'`) to a parameterized query (`($1 || ' days')::interval`) with bind parameter. While the previous approach was safe (Zod validates `days` as a number), this aligns with the project's defense-in-depth pattern of parameterizing all user-supplied values. Updated 5 tests in `cron.test.ts`
 
 - **Consistent WHERE clause sanitization across all tool groups** — Applied `sanitizeWhereClause()` to 31 WHERE clause interpolation sites across 6 files (`core/convenience.ts`, `core/indexes.ts`, `jsonb/basic.ts`, `jsonb/advanced.ts`, `stats/basic.ts`, `stats/advanced.ts`) that were previously interpolating user-provided WHERE clauses without blocklist validation. The `text` and `vector` tool groups already used `sanitizeWhereClause()`, but these groups bypassed it, creating an inconsistent defense-in-depth gap
 
