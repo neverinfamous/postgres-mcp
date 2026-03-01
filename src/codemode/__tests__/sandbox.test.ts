@@ -91,6 +91,12 @@ describe("CodeModeSandbox", () => {
       expect(result.error).toBeDefined();
     });
 
+    it("should block access to Proxy constructor", async () => {
+      const result = await sandbox.execute("return typeof Proxy;", {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBe("undefined");
+    });
+
     it("should return error after disposed", async () => {
       sandbox.dispose();
       const result = await sandbox.execute("return 1;", {});

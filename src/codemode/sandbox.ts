@@ -138,6 +138,8 @@ export class CodeModeSandbox {
       setTimeout: undefined, // Disabled for security
       setInterval: undefined, // Disabled for security
       setImmediate: undefined, // Disabled for security
+      // Block sandbox escape vectors
+      Proxy: undefined, // Prevent Proxy construction bypassing static pattern check
     };
 
     const context = vm.createContext(sandbox);

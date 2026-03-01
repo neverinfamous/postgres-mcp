@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **WHERE clause blocklist: `dblink()` and `pg_execute_server_program()` patterns** — Added 2 new dangerous patterns to `validateWhereClause()`: `dblink()` (remote query execution via the simpler dblink function, complementing existing `dblink_connect`/`dblink_exec` patterns) and `pg_execute_server_program()` (PostgreSQL 12+ OS command execution). Added 2 unit tests in `security-injection.test.ts`
+
+- **Code Mode sandbox: `Proxy` constructor blocked** — Added `Proxy: undefined` to the sandbox context object, preventing access to the `Proxy` constructor. The existing static pattern (`new Proxy(...)`) didn't catch `const P = Proxy; new P(...)` bypasses. Added 1 unit test in `sandbox.test.ts`
+
+- **`SECURITY.md` `Cache-Control` header documentation** — Fixed documented header value from `no-store, must-revalidate` to `no-store, no-cache, must-revalidate` to match the actual header set in `http.ts`
+
 - **WHERE clause blocklist: remote access and side-channel patterns** — Added 3 new dangerous patterns to `validateWhereClause()`: `dblink_connect()` (remote server connection), `dblink_exec()` (remote query execution), and `pg_notify()` (async notification side channel). These PostgreSQL functions can be abused for data exfiltration or lateral movement if injected into WHERE clauses. Added 3 unit tests in `security-injection.test.ts`
 
 - **HTTP rate limit deterministic cleanup** — Replaced the probabilistic rate limit map cleanup (`Math.random() < 0.01` on every check) with a deterministic 60-second `setInterval` that sweeps expired entries. The interval starts in `start()` and is cleared in `stop()`. Prevents unbounded memory growth under sustained traffic from many unique IPs. Updated 2 tests in `http.test.ts`

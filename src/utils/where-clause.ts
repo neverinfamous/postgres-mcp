@@ -99,6 +99,16 @@ const DANGEROUS_PATTERNS: { pattern: RegExp; reason: string }[] = [
     pattern: /\bCOPY\s+.*\s+(FROM|TO)\s+PROGRAM\b/i,
     reason: "contains COPY PROGRAM (command execution)",
   },
+  // Remote query execution via dblink()
+  {
+    pattern: /\bdblink\s*\(/i,
+    reason: "contains remote query execution function",
+  },
+  // OS command execution (PostgreSQL 12+)
+  {
+    pattern: /\bpg_execute_server_program\s*\(/i,
+    reason: "contains OS command execution function",
+  },
 ];
 
 /**

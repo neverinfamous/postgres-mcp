@@ -74,7 +74,7 @@ Key functions:
 
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
-- `Cache-Control: no-store, must-revalidate`
+- `Cache-Control: no-store, no-cache, must-revalidate`
 - `Content-Security-Policy: default-src 'none'`
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 
