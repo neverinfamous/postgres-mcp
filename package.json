@@ -19,8 +19,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "bench": "vitest bench",
-    "bench:verbose": "vitest bench --reporter=verbose",
+    "bench": "vitest bench --run",
+    "bench:verbose": "vitest bench --run --reporter=verbose",
     "check": "npm run lint && npm run typecheck",
     "generate:instructions": "node scripts/generate-server-instructions.ts"
   },
