@@ -2,7 +2,7 @@
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp -->
 
-**Last Updated February 27, 2026**
+**Last Updated February 28, 2026**
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 227 tools through a single, secure JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
@@ -120,7 +120,7 @@ Code executes in a **sandboxed VM context** with multiple layers of security. Al
 - **Static code validation** — blocked patterns include `require()`, `process`, `eval()`, and filesystem access
 - **Rate limiting** — 60 executions per minute per client
 - **Hard timeouts** — configurable execution limit (default 30s)
-- **Full API access** — all 20 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`)
+- **Full API access** — all 21 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`)
 - **Requires `admin` OAuth scope** — execution is logged for audit
 
 ### ⚡ Code Mode Only (Maximum Token Savings)
@@ -151,7 +151,7 @@ If you control your own setup, you can run with **only Code Mode enabled** — a
 }
 ```
 
-This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 20 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
+This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 21 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
 
 > [!TIP]
 > **Maximize Token Savings:** Instruct your AI agent to prefer Code Mode over individual tool calls:
@@ -179,31 +179,12 @@ If you don't have admin access or prefer individual tool calls, exclude codemode
 
 ## Development
 
-**Clone and install:**
+See **[From Source](#from-source)** above for setup. After cloning:
 
 ```bash
-git clone https://github.com/neverinfamous/postgresql-mcp.git
-cd postgres-mcp
-npm install
-```
-
-**Build:**
-
-```bash
-npm run build
-```
-
-**Run checks:**
-
-```bash
-npm run lint && npm run typecheck
-```
-
-**Test CLI:**
-
-```bash
-node dist/cli.js info
-node dist/cli.js list-tools
+npm run lint && npm run typecheck  # Run checks
+node dist/cli.js info              # Test CLI
+node dist/cli.js list-tools        # List available tools
 ```
 
 ---
@@ -323,6 +304,7 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 
 | Group           | Tools | Description                                                 |
 | --------------- | ----- | ----------------------------------------------------------- |
+| `codemode`      | 1     | Code Mode (sandboxed code execution)                        |
 | `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools |
 | `transactions`  | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
 | `jsonb`         | 20    | JSONB manipulation and queries                              |
@@ -343,7 +325,6 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 | `citext`        | 7     | citext (case-insensitive text)                              |
 | `ltree`         | 9     | ltree (hierarchical data)                                   |
 | `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                |
-| `codemode`      | 1     | Code Mode (sandboxed code execution)                        |
 
 ---
 
@@ -589,8 +570,6 @@ This server provides **20 resources** for structured data access:
 | `pgcrypto`           | Hashing, encryption, UUIDs     | 9 pgcrypto tools           |
 
 > Extension tools gracefully handle cases where extensions are not installed. Extension tool counts include `create_extension` helpers but exclude Code Mode; the [Tool Groups](#-tool-filtering) table above adds +1 per group for Code Mode.
-
----
 
 ---
 

@@ -1,6 +1,6 @@
 # postgres-mcp
 
-**Last Updated February 27, 2026**
+**Last Updated February 28, 2026**
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 227 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
@@ -159,7 +159,7 @@ Code executes in a **sandboxed VM context** with multiple layers of security. Al
 - **Static code validation** — blocked patterns include `require()`, `process`, `eval()`, and filesystem access
 - **Rate limiting** — 60 executions per minute per client
 - **Hard timeouts** — configurable execution limit (default 30s)
-- **Full API access** — all 20 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`)
+- **Full API access** — all 21 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`)
 - **Requires `admin` OAuth scope** — execution is logged for audit
 
 ### ⚡ Code Mode Only (Maximum Token Savings)
@@ -201,7 +201,7 @@ If you control your own setup, you can run with **only Code Mode enabled** — a
 }
 ```
 
-This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 20 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
+This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 21 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
 
 > [!TIP]
 > **Maximize Token Savings:** Instruct your AI agent to prefer Code Mode over individual tool calls:
@@ -301,33 +301,33 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 | `ext-schedule`  | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
 | `ext-perf`      | 28     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
 
-### Tool Groups (20 Functional + Code Mode)
+### Tool Groups (21 Available)
 
-> Tool counts shown are base group sizes. Code Mode (`pg_execute_code`) is automatically added to every group, adding +1 to the effective count.
+> Tool counts include Code Mode (`pg_execute_code`) which is added to all groups by default.
 
 | Group           | Tools | Description                                                 |
 | --------------- | ----- | ----------------------------------------------------------- |
-| `core`          | 20    | Read/write queries, tables, indexes, convenience/drop tools |
-| `transactions`  | 7     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
-| `jsonb`         | 19    | JSONB manipulation and queries                              |
-| `text`          | 13    | Full-text search, fuzzy matching                            |
-| `performance`   | 20    | EXPLAIN, query analysis, optimization                       |
-| `admin`         | 10    | VACUUM, ANALYZE, REINDEX                                    |
-| `monitoring`    | 11    | Database sizes, connections, status                         |
-| `backup`        | 9     | pg_dump, COPY, restore                                      |
-| `schema`        | 12    | Schemas, views, sequences, functions, triggers              |
-| `introspection` | 12    | Dependency graphs, cascade simulation, migration tracking   |
-| `partitioning`  | 6     | Native partition management                                 |
-| `stats`         | 8     | Statistical analysis                                        |
-| `vector`        | 16    | pgvector (AI/ML similarity search)                          |
-| `postgis`       | 15    | PostGIS (geospatial)                                        |
-| `cron`          | 8     | pg_cron (job scheduling)                                    |
-| `partman`       | 10    | pg_partman (auto-partitioning)                              |
-| `kcache`        | 7     | pg_stat_kcache (OS-level stats)                             |
-| `citext`        | 6     | citext (case-insensitive text)                              |
-| `ltree`         | 8     | ltree (hierarchical data)                                   |
-| `pgcrypto`      | 9     | pgcrypto (encryption, UUIDs)                                |
 | `codemode`      | 1     | Code Mode (sandboxed code execution)                        |
+| `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools |
+| `transactions`  | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
+| `jsonb`         | 20    | JSONB manipulation and queries                              |
+| `text`          | 14    | Full-text search, fuzzy matching                            |
+| `performance`   | 21    | EXPLAIN, query analysis, optimization                       |
+| `admin`         | 11    | VACUUM, ANALYZE, REINDEX                                    |
+| `monitoring`    | 12    | Database sizes, connections, status                         |
+| `backup`        | 10    | pg_dump, COPY, restore                                      |
+| `schema`        | 13    | Schemas, views, sequences, functions, triggers              |
+| `introspection` | 13    | Dependency graphs, cascade simulation, migration tracking   |
+| `partitioning`  | 7     | Native partition management                                 |
+| `stats`         | 9     | Statistical analysis                                        |
+| `vector`        | 17    | pgvector (AI/ML similarity search)                          |
+| `postgis`       | 16    | PostGIS (geospatial)                                        |
+| `cron`          | 9     | pg_cron (job scheduling)                                    |
+| `partman`       | 11    | pg_partman (auto-partitioning)                              |
+| `kcache`        | 8     | pg_stat_kcache (OS-level stats)                             |
+| `citext`        | 7     | citext (case-insensitive text)                              |
+| `ltree`         | 9     | ltree (hierarchical data)                                   |
+| `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                |
 
 ---
 
