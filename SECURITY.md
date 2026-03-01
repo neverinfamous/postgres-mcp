@@ -40,7 +40,7 @@ If you discover a security vulnerability, please report it by emailing **admin@a
 
 **Identifier Sanitization** (`src/utils/identifiers.ts`)
 
-- All table, column, schema, and index names are validated and quoted
+- All table, column, schema, and index names are validated and quoted across all tool groups (admin, backup, core, jsonb, monitoring, partitioning, performance, postgis, schema, stats, text, vector)
 - PostgreSQL identifier rules enforced: start with letter/underscore, contain only alphanumerics, underscores, or $ signs
 - Maximum 63-character limit enforced
 - Invalid identifiers throw `InvalidIdentifierError`

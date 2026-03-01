@@ -200,7 +200,9 @@ describe("pg_table_sizes", () => {
     await tool.handler({ schema: "sales", limit: 10 }, mockContext);
 
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
-    expect(sql).toContain("'sales'");
+    const params = mockAdapter.executeQuery.mock.calls[0]?.[1] as string[];
+    expect(sql).toContain("$1");
+    expect(params).toEqual(["sales"]);
     expect(sql).toContain("LIMIT 10");
   });
 });

@@ -76,8 +76,8 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
                         blocking.pid as blocking_pid, blocking.query as blocking_query
                         FROM pg_stat_activity blocked
                         JOIN pg_locks bl ON blocked.pid = bl.pid
-                        JOIN pg_locks lk ON bl.locktype = lk.locktype 
-                            AND bl.relation = lk.relation 
+                        JOIN pg_locks lk ON bl.locktype = lk.locktype
+                            AND bl.relation = lk.relation
                             AND bl.pid != lk.pid
                         JOIN pg_stat_activity blocking ON lk.pid = blocking.pid
                         WHERE NOT bl.granted`;
@@ -130,11 +130,14 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
         tableName = parts[1] ?? tableName;
       }
       let whereClause = "n_dead_tup > 0";
+      const queryParams: string[] = [];
       if (schemaName !== undefined) {
-        whereClause += ` AND schemaname = '${schemaName}'`;
+        queryParams.push(schemaName);
+        whereClause += ` AND schemaname = $${String(queryParams.length)}`;
       }
       if (tableName !== undefined) {
-        whereClause += ` AND relname = '${tableName}'`;
+        queryParams.push(tableName);
+        whereClause += ` AND relname = $${String(queryParams.length)}`;
       }
 
       // P154: Validate table/schema existence before querying
@@ -156,7 +159,7 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
                         ORDER BY n_dead_tup DESC
                         LIMIT 20`;
 
-      const result = await adapter.executeQuery(sql);
+      const result = await adapter.executeQuery(sql, queryParams);
       // Coerce numeric fields to JavaScript numbers
       const tables = (result.rows ?? []).map(
         (row: Record<string, unknown>) => ({
@@ -186,10 +189,10 @@ export function createCacheHitRatioTool(
     annotations: readOnly("Cache Hit Ratio"),
     icons: getToolIcons("performance", readOnly("Cache Hit Ratio")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const sql = `SELECT 
+      const sql = `SELECT
                         sum(heap_blks_read) as heap_read,
                         sum(heap_blks_hit) as heap_hit,
-                        CASE WHEN sum(heap_blks_read) + sum(heap_blks_hit) > 0 
+                        CASE WHEN sum(heap_blks_read) + sum(heap_blks_hit) > 0
                             THEN round(100.0 * sum(heap_blks_hit) / (sum(heap_blks_hit) + sum(heap_blks_read)), 2)
                             ELSE 100 END as cache_hit_ratio
                         FROM pg_statio_user_tables`;

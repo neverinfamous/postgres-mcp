@@ -114,8 +114,15 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
 
       let whereClause =
         "schemaname NOT IN ('pg_catalog', 'information_schema')";
-      if (schema) whereClause += ` AND schemaname = '${schema}'`;
-      if (table) whereClause += ` AND relname = '${table}'`;
+      const queryParams: string[] = [];
+      if (schema) {
+        queryParams.push(schema);
+        whereClause += ` AND schemaname = $${String(queryParams.length)}`;
+      }
+      if (table) {
+        queryParams.push(table);
+        whereClause += ` AND relname = $${String(queryParams.length)}`;
+      }
 
       const sql = `SELECT schemaname, relname as table_name, indexrelname as index_name,
                         idx_scan as scans, idx_tup_read as tuples_read, idx_tup_fetch as tuples_fetched,
@@ -125,7 +132,7 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
                         ORDER BY idx_scan DESC
                         ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
-      const result = await adapter.executeQuery(sql);
+      const result = await adapter.executeQuery(sql, queryParams);
       // Coerce numeric fields to JavaScript numbers
       const indexes = (result.rows ?? []).map(
         (row: Record<string, unknown>) => ({
@@ -144,7 +151,7 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
       // Add totalCount if results were limited
       if (limit !== null && indexes.length === limit) {
         const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_indexes WHERE ${whereClause}`;
-        const countResult = await adapter.executeQuery(countSql);
+        const countResult = await adapter.executeQuery(countSql, queryParams);
         response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
         response["truncated"] = true;
       } else {
@@ -202,8 +209,15 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
 
       let whereClause =
         "schemaname NOT IN ('pg_catalog', 'information_schema')";
-      if (schema) whereClause += ` AND schemaname = '${schema}'`;
-      if (table) whereClause += ` AND relname = '${table}'`;
+      const queryParams: string[] = [];
+      if (schema) {
+        queryParams.push(schema);
+        whereClause += ` AND schemaname = $${String(queryParams.length)}`;
+      }
+      if (table) {
+        queryParams.push(table);
+        whereClause += ` AND relname = $${String(queryParams.length)}`;
+      }
 
       const sql = `SELECT schemaname, relname as table_name,
                         seq_scan, seq_tup_read, idx_scan, idx_tup_fetch,
@@ -215,7 +229,7 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
                         ORDER BY seq_scan DESC
                         ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
-      const result = await adapter.executeQuery(sql);
+      const result = await adapter.executeQuery(sql, queryParams);
       // Coerce numeric fields to JavaScript numbers
       const tables = (result.rows ?? []).map(
         (row: Record<string, unknown>) => ({
@@ -239,7 +253,7 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
       };
       if (limit !== null && tables.length === limit) {
         const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_tables WHERE ${whereClause}`;
-        const countResult = await adapter.executeQuery(countSql);
+        const countResult = await adapter.executeQuery(countSql, queryParams);
         response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
         response["truncated"] = true;
       } else {
@@ -427,8 +441,11 @@ export function createUnusedIndexesTool(
 
       let whereClause =
         "schemaname NOT IN ('pg_catalog', 'information_schema') AND idx_scan = 0";
-      if (parsed.schema !== undefined)
-        whereClause += ` AND schemaname = '${parsed.schema}'`;
+      const queryParams: string[] = [];
+      if (parsed.schema !== undefined) {
+        queryParams.push(parsed.schema);
+        whereClause += ` AND schemaname = $${String(queryParams.length)}`;
+      }
 
       // Summary mode - return aggregated stats
       if (parsed.summary === true) {
@@ -441,7 +458,10 @@ export function createUnusedIndexesTool(
                               ${parsed.minSize !== undefined ? `AND pg_relation_size(indexrelid) >= pg_size_bytes('${parsed.minSize}')` : ""}
                               GROUP BY schemaname
                               ORDER BY SUM(pg_relation_size(indexrelid)) DESC`;
-        const summaryResult = await adapter.executeQuery(summarySql);
+        const summaryResult = await adapter.executeQuery(
+          summarySql,
+          queryParams,
+        );
         const bySchema = (summaryResult.rows ?? []).map(
           (row: Record<string, unknown>) => ({
             schema: row["schemaname"],
@@ -477,7 +497,7 @@ export function createUnusedIndexesTool(
                         ORDER BY pg_relation_size(indexrelid) DESC
                         ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
-      const result = await adapter.executeQuery(sql);
+      const result = await adapter.executeQuery(sql, queryParams);
       // Coerce numeric fields to JavaScript numbers
       const unusedIndexes = (result.rows ?? []).map(
         (row: Record<string, unknown>) => ({
@@ -498,7 +518,7 @@ export function createUnusedIndexesTool(
       if (limit !== null && unusedIndexes.length === limit) {
         const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_indexes WHERE ${whereClause}
                           ${parsed.minSize !== undefined ? `AND pg_relation_size(indexrelid) >= pg_size_bytes('${parsed.minSize}')` : ""}`;
-        const countResult = await adapter.executeQuery(countSql);
+        const countResult = await adapter.executeQuery(countSql, queryParams);
         response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
         response["truncated"] = true;
       }
@@ -551,9 +571,11 @@ export function createDuplicateIndexesTool(
         }
       }
 
+      const queryParams: string[] = [];
       const schemaFilter =
         parsed.schema !== undefined
-          ? `AND n.nspname = '${parsed.schema}'`
+          ? (queryParams.push(parsed.schema),
+            `AND n.nspname = $${String(queryParams.length)}`)
           : "AND n.nspname NOT IN ('pg_catalog', 'information_schema')";
 
       // Find indexes with the same leading column(s) on the same table
@@ -593,7 +615,7 @@ export function createDuplicateIndexesTool(
             ORDER BY a.schemaname, a.tablename, a.size_bytes DESC
             ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
-      const result = await adapter.executeQuery(sql);
+      const result = await adapter.executeQuery(sql, queryParams);
       const duplicates = result.rows ?? [];
 
       const response: Record<string, unknown> = {
@@ -628,7 +650,7 @@ export function createDuplicateIndexesTool(
                   AND (a.columns = b.columns
                       OR a.columns[1:array_length(b.columns, 1)] = b.columns
                       OR b.columns[1:array_length(a.columns, 1)] = a.columns)`;
-        const countResult = await adapter.executeQuery(countSql);
+        const countResult = await adapter.executeQuery(countSql, queryParams);
         response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
         response["truncated"] = true;
       }
@@ -673,8 +695,15 @@ export function createVacuumStatsTool(
       const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
       let whereClause =
         "schemaname NOT IN ('pg_catalog', 'information_schema')";
-      if (schema !== undefined) whereClause += ` AND schemaname = '${schema}'`;
-      if (table !== undefined) whereClause += ` AND relname = '${table}'`;
+      const queryParams: string[] = [];
+      if (schema !== undefined) {
+        queryParams.push(schema);
+        whereClause += ` AND schemaname = $${String(queryParams.length)}`;
+      }
+      if (table !== undefined) {
+        queryParams.push(table);
+        whereClause += ` AND relname = $${String(queryParams.length)}`;
+      }
 
       // P154: Validate table/schema existence before querying
       const validationError = await validatePerformanceTableExists(
@@ -707,7 +736,7 @@ export function createVacuumStatsTool(
                 ORDER BY s.n_dead_tup DESC
                 ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
-      const result = await adapter.executeQuery(sql);
+      const result = await adapter.executeQuery(sql, queryParams);
       // Coerce numeric fields to JavaScript numbers
       const tables = (result.rows ?? []).map(
         (row: Record<string, unknown>) => ({
@@ -730,7 +759,7 @@ export function createVacuumStatsTool(
       // Add totalCount if results were limited
       if (limit !== null && tables.length === limit) {
         const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_tables WHERE ${whereClause}`;
-        const countResult = await adapter.executeQuery(countSql);
+        const countResult = await adapter.executeQuery(countSql, queryParams);
         response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
         response["truncated"] = true;
       } else {

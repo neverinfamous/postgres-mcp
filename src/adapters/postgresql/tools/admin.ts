@@ -12,6 +12,11 @@ import { admin, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { formatPostgresError } from "./core/error-helpers.js";
 import {
+  sanitizeIdentifier,
+  sanitizeIdentifiers,
+  sanitizeTableName,
+} from "../../../utils/identifiers.js";
+import {
   buildProgressContext,
   sendProgress,
 } from "../../../utils/progress-utils.js";
@@ -73,11 +78,7 @@ function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
         const verboseClause = verbose === true ? "VERBOSE " : "";
         const analyzeClause = analyze === true ? "ANALYZE " : "";
         const target =
-          table !== undefined
-            ? schema !== undefined
-              ? `"${schema}"."${table}"`
-              : `"${table}"`
-            : "";
+          table !== undefined ? sanitizeTableName(table, schema) : "";
 
         const sql = `VACUUM ${fullClause}${verboseClause}${analyzeClause}${target}`;
         await adapter.executeQuery(sql);
@@ -128,11 +129,7 @@ function createVacuumAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
         const fullClause = full === true ? "FULL " : "";
         const verboseClause = verbose === true ? "VERBOSE " : "";
         const target =
-          table !== undefined
-            ? schema !== undefined
-              ? `"${schema}"."${table}"`
-              : `"${table}"`
-            : "";
+          table !== undefined ? sanitizeTableName(table, schema) : "";
 
         const sql = `VACUUM ${fullClause}${verboseClause}ANALYZE ${target}`;
         await adapter.executeQuery(sql);
@@ -193,14 +190,10 @@ function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         const target =
-          table !== undefined
-            ? schema !== undefined
-              ? `"${schema}"."${table}"`
-              : `"${table}"`
-            : "";
+          table !== undefined ? sanitizeTableName(table, schema) : "";
         const columnClause =
           columns !== undefined && columns.length > 0
-            ? `(${columns.map((c) => `"${c}"`).join(", ")})`
+            ? `(${sanitizeIdentifiers(columns).join(", ")})`
             : "";
 
         const sql = `ANALYZE ${target}${columnClause}`;
@@ -270,7 +263,7 @@ function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
           };
         }
 
-        const sql = `REINDEX ${parsed.target.toUpperCase()} ${concurrentlyClause}"${effectiveName}"`;
+        const sql = `REINDEX ${parsed.target.toUpperCase()} ${concurrentlyClause}${sanitizeIdentifier(effectiveName)}`;
         await adapter.executeQuery(sql);
 
         await sendProgress(progress, 3, 3, "REINDEX complete");
@@ -607,11 +600,8 @@ function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
               "table and index must both be specified together, or both omitted for database-wide re-cluster",
           };
         }
-        const tableName =
-          parsed.schema !== undefined
-            ? `"${parsed.schema}"."${parsed.table}"`
-            : `"${parsed.table}"`;
-        const sql = `CLUSTER ${tableName} USING "${parsed.index}"`;
+        const tableName = sanitizeTableName(parsed.table, parsed.schema);
+        const sql = `CLUSTER ${tableName} USING ${sanitizeIdentifier(parsed.index)}`;
         await adapter.executeQuery(sql);
 
         await sendProgress(progress, 2, 2, "CLUSTER complete");

@@ -99,7 +99,8 @@ function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("monitoring", readOnly("Table Sizes")),
     handler: async (params: unknown, _context: RequestContext) => {
       const { schema, limit } = TableSizesSchema.parse(params);
-      const schemaClause = schema ? `AND n.nspname = '${schema}'` : "";
+      const schemaClause = schema ? `AND n.nspname = $1` : "";
+      const queryParams: string[] = schema ? [schema] : [];
       // Apply limit (default 50)
       const effectiveLimit = limit !== undefined && limit > 0 ? limit : 50;
       const limitClause = ` LIMIT ${String(effectiveLimit)}`;
@@ -116,7 +117,7 @@ function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
                         ${schemaClause}
                         ORDER BY pg_total_relation_size(c.oid) DESC${limitClause}`;
 
-      const result = await adapter.executeQuery(sql);
+      const result = await adapter.executeQuery(sql, queryParams);
       // Coerce total_bytes to number for each table row
       const tables = (result.rows ?? []).map((row: Record<string, unknown>) => {
         const totalBytes = row["total_bytes"];
@@ -139,7 +140,7 @@ function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
                           WHERE c.relkind IN ('r', 'p')
                           AND n.nspname NOT IN ('pg_catalog', 'information_schema')
                           ${schemaClause}`;
-        const countResult = await adapter.executeQuery(countSql);
+        const countResult = await adapter.executeQuery(countSql, queryParams);
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
         return {
@@ -234,7 +235,7 @@ function createReplicationStatusTool(adapter: PostgresAdapter): ToolDefinition {
       const isReplica = recoveryResult.rows?.[0]?.["is_replica"];
 
       if (isReplica === true) {
-        const sql = `SELECT 
+        const sql = `SELECT
                             now() - pg_last_xact_replay_timestamp() as replay_lag,
                             pg_last_wal_receive_lsn() as receive_lsn,
                             pg_last_wal_replay_lsn() as replay_lsn`;
@@ -351,7 +352,7 @@ function createUptimeTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Server Uptime"),
     icons: getToolIcons("monitoring", readOnly("Server Uptime")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const sql = `SELECT 
+      const sql = `SELECT
                         pg_postmaster_start_time() as start_time,
                         EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time())) as total_seconds`;
       const result = await adapter.executeQuery(sql);
@@ -393,9 +394,9 @@ function createRecoveryStatusTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("monitoring", readOnly("Recovery Status")),
     handler: async (_params: unknown, _context: RequestContext) => {
       const sql = `SELECT pg_is_in_recovery() as in_recovery,
-                        CASE WHEN pg_is_in_recovery() 
-                            THEN pg_last_xact_replay_timestamp() 
-                            ELSE NULL 
+                        CASE WHEN pg_is_in_recovery()
+                            THEN pg_last_xact_replay_timestamp()
+                            ELSE NULL
                         END as last_replay_timestamp`;
       const result = await adapter.executeQuery(sql);
       return result.rows?.[0];
@@ -465,12 +466,12 @@ function createCapacityPlanningTool(adapter: PostgresAdapter): ToolDefinition {
 
       const [dbSize, tableStats, connStats, statsAge] = await Promise.all([
         adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         pg_database_size(current_database()) as current_size_bytes,
                         pg_size_pretty(pg_database_size(current_database())) as current_size
                 `),
         adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         count(*) as table_count,
                         sum(n_live_tup) as total_rows,
                         sum(n_tup_ins) as total_inserts,
@@ -478,7 +479,7 @@ function createCapacityPlanningTool(adapter: PostgresAdapter): ToolDefinition {
                     FROM pg_stat_user_tables
                 `),
         adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         current_setting('max_connections')::int as max_connections,
                         count(*) as current_connections
                     FROM pg_stat_activity
@@ -488,7 +489,7 @@ function createCapacityPlanningTool(adapter: PostgresAdapter): ToolDefinition {
         // Use pg_stat_database.stats_reset (works in all PG versions including 17+)
         // Fall back to server start time if stats_reset is NULL
         adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         COALESCE(
                             (SELECT stats_reset FROM pg_stat_database WHERE datname = current_database()),
                             pg_postmaster_start_time()
@@ -645,12 +646,12 @@ function createResourceUsageAnalyzeTool(
           // PG17+ moved buffers_checkpoint to pg_stat_checkpointer as buffers_written
           isPg17Plus
             ? adapter.executeQuery(`
-                        SELECT 
+                        SELECT
                             buffers_clean, maxwritten_clean, buffers_alloc
                         FROM pg_stat_bgwriter
                     `)
             : adapter.executeQuery(`
-                        SELECT 
+                        SELECT
                             buffers_checkpoint, buffers_clean, buffers_backend,
                             maxwritten_clean, buffers_alloc
                         FROM pg_stat_bgwriter
@@ -658,22 +659,22 @@ function createResourceUsageAnalyzeTool(
           // PG17+ moved checkpoint stats to pg_stat_checkpointer with renamed columns
           isPg17Plus
             ? adapter.executeQuery(`
-                        SELECT 
-                            num_timed as checkpoints_timed, 
+                        SELECT
+                            num_timed as checkpoints_timed,
                             num_requested as checkpoints_req,
-                            write_time as checkpoint_write_time, 
+                            write_time as checkpoint_write_time,
                             sync_time as checkpoint_sync_time,
                             buffers_written as buffers_checkpoint
                         FROM pg_stat_checkpointer
                     `)
             : adapter.executeQuery(`
-                        SELECT 
+                        SELECT
                             checkpoints_timed, checkpoints_req,
                             checkpoint_write_time, checkpoint_sync_time
                         FROM pg_stat_bgwriter
                     `),
           adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         state, wait_event_type, wait_event,
                         count(*) as count
                     FROM pg_stat_activity
@@ -681,7 +682,7 @@ function createResourceUsageAnalyzeTool(
                     GROUP BY state, wait_event_type, wait_event
                 `),
           adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         sum(heap_blks_read) as heap_reads,
                         sum(heap_blks_hit) as heap_hits,
                         sum(idx_blks_read) as index_reads,
@@ -689,7 +690,7 @@ function createResourceUsageAnalyzeTool(
                     FROM pg_statio_user_tables
                 `),
           adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         count(*) FILTER (WHERE state = 'active') as active_queries,
                         count(*) FILTER (WHERE state = 'idle') as idle_connections,
                         count(*) FILTER (WHERE wait_event_type = 'Lock') as lock_waiting,

@@ -25,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Code Mode sandbox pattern hardening** — Added 3 additional blocked patterns to `DEFAULT_SECURITY_CONFIG.blockedPatterns`: `new Proxy()` (Proxy construction), `Reflect.` (Reflect API), and `Symbol.` (Symbol access) to reduce theoretical `vm` sandbox escape vectors
 
+- **Performance tools SQL parameterization** — Converted all string-interpolated schema/table filters in 8 performance tool handlers to parameterized queries (`$1`, `$2`) with bind parameters. Affected tools: `pg_index_stats`, `pg_table_stats`, `pg_bloat_check`, `pg_vacuum_stats`, `pg_seq_scan_tables`, `pg_index_recommendations`, `pg_unused_indexes`, and `pg_duplicate_indexes` across `stats.ts`, `monitoring.ts`, and `analysis.ts`. Previously, schema and table names were interpolated as `schemaname = 'X'` directly into SQL WHERE clauses targeting `pg_stat_user_indexes`, `pg_stat_user_tables`, and `pg_class`
+
+- **Admin tools SQL injection hardening** — Applied `sanitizeIdentifier()` and `sanitizeTableName()` to 6 admin tool handlers (`pg_vacuum`, `pg_vacuum_analyze`, `pg_analyze`, `pg_reindex`, `pg_cluster`, `pg_set_config`) in `admin.ts`. All schema, table, index, and column names are now escaped via double-quote wrapping with embedded quote escaping per SQL standard
+
+- **Backup command parameter quoting** — Added shell-safe quoting for the `--file` parameter in `pg_dump_table` (`dump.ts`). The output path is now wrapped in single quotes with internal single-quote escaping to prevent command injection via crafted file paths
+
+- **Monitoring tools SQL parameterization** — Converted `pg_table_sizes` schema filter from string interpolation to parameterized query in `monitoring.ts`. Previously interpolated `schemaname = '${schema}'` directly into the SQL WHERE clause
+
 ### Fixed
 
 - **P154 structured errors now return as parseable JSON instead of raw MCP errors** — When tools encounter nonexistent schemas or other P154 error scenarios, the response `{success: false, error: "..."}` is now sent as `structuredContent` instead of setting `isError: true`. Previously, `DatabaseAdapter.registerTool()` detected P154 errors and set `isError: true` to bypass SDK output schema validation, but this caused AntiGravity to treat the response as a raw error string, preventing structured JSON parsing. Fixed by: (1) removing the `isError: true` branch from `DatabaseAdapter.ts`, always sending results as `structuredContent`; (2) updating all output schemas across 6 files (`performance.ts`, `monitoring.ts`, `introspection.ts`, `backup.ts`, `partitioning.ts`, `extensions.ts`) to make non-error fields optional and add `success`/`error` fields where missing, so P154 error shapes pass SDK validation

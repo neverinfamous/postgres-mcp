@@ -103,8 +103,10 @@ export function createSeqScanTablesTool(
       const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
 
       let whereClause = `seq_scan > ${String(minScans)}`;
+      const queryParams: string[] = [];
       if (parsed.schema !== undefined) {
-        whereClause += ` AND schemaname = '${parsed.schema}'`;
+        queryParams.push(parsed.schema);
+        whereClause += ` AND schemaname = $${String(queryParams.length)}`;
       }
 
       // P154: Validate schema existence when filtering by schema
@@ -117,7 +119,7 @@ export function createSeqScanTablesTool(
       }
 
       const sql = `SELECT schemaname, relname as table_name,
-                        seq_scan, seq_tup_read, 
+                        seq_scan, seq_tup_read,
                         idx_scan, idx_tup_fetch,
                         CASE WHEN idx_scan > 0 THEN round((100.0 * seq_scan / (seq_scan + idx_scan))::numeric, 2) ELSE 100 END as seq_scan_pct
                         FROM pg_stat_user_tables
@@ -125,7 +127,7 @@ export function createSeqScanTablesTool(
                         ORDER BY seq_scan DESC
                         ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
-      const result = await adapter.executeQuery(sql);
+      const result = await adapter.executeQuery(sql, queryParams);
       // Coerce numeric fields to JavaScript numbers
       const tables = (result.rows ?? []).map(
         (row: Record<string, unknown>) => ({
@@ -148,7 +150,7 @@ export function createSeqScanTablesTool(
       // Add totalCount if results were limited
       if (limit !== null && tables.length === limit) {
         const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_tables WHERE ${whereClause}`;
-        const countResult = await adapter.executeQuery(countSql);
+        const countResult = await adapter.executeQuery(countSql, queryParams);
         response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
         response["truncated"] = true;
       }
@@ -407,9 +409,13 @@ export function createIndexRecommendationsTool(
         }
 
         // Fall back to table statistics-based recommendations
-        const tableClause =
-          parsed.table !== undefined ? `AND relname = '${parsed.table}'` : "";
-        const schemaClause = `AND schemaname = '${schemaName}'`;
+        const statsParams: string[] = [schemaName];
+        const schemaClause = `AND schemaname = $${String(statsParams.length)}`;
+        let tableClause = "";
+        if (parsed.table !== undefined) {
+          statsParams.push(parsed.table);
+          tableClause = `AND relname = $${String(statsParams.length)}`;
+        }
 
         // P154: Validate table/schema existence in table-stats path
         const validationError = await validatePerformanceTableExists(
@@ -425,7 +431,7 @@ export function createIndexRecommendationsTool(
                         seq_scan, idx_scan,
                         n_live_tup as row_count,
                         pg_size_pretty(pg_table_size(relid)) as size,
-                        CASE 
+                        CASE
                             WHEN idx_scan = 0 AND seq_scan > 100 THEN 'HIGH - No index usage, many seq scans'
                             WHEN idx_scan > 0 AND seq_scan > idx_scan * 10 THEN 'MEDIUM - Seq scans dominate'
                             ELSE 'LOW - Good index usage'
@@ -435,7 +441,7 @@ export function createIndexRecommendationsTool(
                         ORDER BY seq_scan DESC
                         LIMIT 20`;
 
-        const result = await adapter.executeQuery(sql);
+        const result = await adapter.executeQuery(sql, statsParams);
         // Coerce numeric fields to JavaScript numbers
         const recommendations = (result.rows ?? []).map(
           (row: Record<string, unknown>) => ({

@@ -27,6 +27,11 @@ import {
   CopyImportOutputSchema,
 } from "../../schemas/index.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import {
+  sanitizeIdentifier,
+  sanitizeIdentifiers,
+  sanitizeTableName,
+} from "../../../../utils/identifiers.js";
 
 export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
   return {
@@ -138,7 +143,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
               const minValue = minVal !== null ? ` MINVALUE ${minVal}` : "";
               const maxValue = maxVal !== null ? ` MAXVALUE ${maxVal}` : "";
               const cycle = seq["cycle"] === true ? " CYCLE" : "";
-              const ddl = `CREATE SEQUENCE "${schemaName}"."${tableName}"${startValue}${increment}${minValue}${maxValue}${cycle};`;
+              const ddl = `CREATE SEQUENCE ${sanitizeTableName(tableName, schemaName)}${startValue}${increment}${minValue}${maxValue}${cycle};`;
               return {
                 ddl,
                 type: "sequence",
@@ -154,7 +159,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
           }
           // Fallback if pg_sequence query fails
           return {
-            ddl: `CREATE SEQUENCE "${schemaName}"."${tableName}";`,
+            ddl: `CREATE SEQUENCE ${sanitizeTableName(tableName, schemaName)};`,
             type: "sequence",
             note: "Basic CREATE SEQUENCE. Use pg_list_sequences for details.",
             ...(parsed.includeData === true && {
@@ -177,7 +182,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
             const definition = viewDefResult.rows?.[0]?.["definition"];
             if (typeof definition === "string") {
               const createType = relkind === "m" ? "MATERIALIZED VIEW" : "VIEW";
-              const ddl = `CREATE ${createType} "${schemaName}"."${tableName}" AS\n${definition.trim()}`;
+              const ddl = `CREATE ${createType} ${sanitizeTableName(tableName, schemaName)} AS\n${definition.trim()}`;
               return {
                 ddl,
                 type: relkind === "m" ? "materialized_view" : "view",
@@ -190,7 +195,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
           // Fallback for views
           const createType = relkind === "m" ? "MATERIALIZED VIEW" : "VIEW";
           return {
-            ddl: `-- Unable to retrieve ${createType.toLowerCase()} definition\nCREATE ${createType} "${schemaName}"."${tableName}" AS SELECT ...;`,
+            ddl: `-- Unable to retrieve ${createType.toLowerCase()} definition\nCREATE ${createType} ${sanitizeTableName(tableName, schemaName)} AS SELECT ...;`,
             type: relkind === "m" ? "materialized_view" : "view",
             note: "View definition could not be retrieved. Use pg_list_views for details.",
           };
@@ -237,7 +242,9 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
               // Build column list - PostgreSQL returns array_agg as string like "{col1,col2}"
               let columnList = "";
               if (Array.isArray(columns)) {
-                columnList = columns.map((c) => `"${String(c)}"`).join(", ");
+                columnList = columns
+                  .map((c) => sanitizeIdentifier(String(c)))
+                  .join(", ");
               } else if (typeof columns === "string") {
                 // Parse PostgreSQL array literal format: "{col1,col2}" -> ["col1", "col2"]
                 const parsed = columns
@@ -245,7 +252,9 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
                   .replace(/\}$/, "")
                   .split(",")
                   .filter((c) => c.length > 0);
-                columnList = parsed.map((c) => `"${c.trim()}"`).join(", ");
+                columnList = parsed
+                  .map((c) => sanitizeIdentifier(c.trim()))
+                  .join(", ");
               }
 
               if (columnList) {
@@ -262,7 +271,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         const columns =
           tableInfo.columns
             ?.map((col) => {
-              let def = `    "${col.name}" ${col.type}`;
+              let def = `    ${sanitizeIdentifier(col.name)} ${col.type}`;
               if (col.defaultValue !== undefined && col.defaultValue !== null) {
                 let defaultStr: string;
                 if (typeof col.defaultValue === "object") {
@@ -283,7 +292,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
             })
             .join(",\n") ?? "";
 
-        const createTable = `CREATE TABLE "${schemaName}"."${tableName}" (\n${columns}\n)${partitionClause};`;
+        const createTable = `CREATE TABLE ${sanitizeTableName(tableName, schemaName)} (\n${columns}\n)${partitionClause};`;
 
         const result: {
           ddl: string;
@@ -305,13 +314,13 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
           const limitClause =
             effectiveLimit !== null ? ` LIMIT ${String(effectiveLimit)}` : "";
           const dataResult = await adapter.executeQuery(
-            `SELECT * FROM "${schemaName}"."${tableName}"${limitClause}`,
+            `SELECT * FROM ${sanitizeTableName(tableName, schemaName)}${limitClause}`,
           );
           if (dataResult.rows !== undefined && dataResult.rows.length > 0) {
             const firstRow = dataResult.rows[0];
             if (firstRow === undefined) return result;
             const cols = Object.keys(firstRow)
-              .map((c) => `"${c}"`)
+              .map((c) => sanitizeIdentifier(c))
               .join(", ");
             const inserts = dataResult.rows
               .map((row) => {
@@ -349,7 +358,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
                     return `'${JSON.stringify(value).replace(/\\/g, "\\\\").replace(/'/g, "''")}'::jsonb`;
                   })
                   .join(", ");
-                return `INSERT INTO "${schemaName}"."${tableName}" (${cols}) VALUES (${vals});`;
+                return `INSERT INTO ${sanitizeTableName(tableName, schemaName)} (${cols}) VALUES (${vals});`;
               })
               .join("\n");
             result.insertStatements = inserts;
@@ -398,7 +407,7 @@ export function createDumpSchemaTool(
         ? "Warning: Using .sql extension with --format=custom produces binary output. Use .dump extension or --format=plain for SQL text output."
         : undefined;
 
-      command += ` --file=${outputFilename}`;
+      command += ` --file="${outputFilename}"`;
       command += " $POSTGRES_CONNECTION_STRING";
 
       return Promise.resolve({
@@ -675,13 +684,11 @@ export function createCopyImportTool(
           }
         }
 
-        const tableName = schemaNamePart
-          ? `"${schemaNamePart}"."${tableNamePart}"`
-          : `"${tableNamePart}"`;
+        const tableName = sanitizeTableName(tableNamePart, schemaNamePart);
 
         const columnClause =
           parsed.columns !== undefined && parsed.columns.length > 0
-            ? ` (${parsed.columns.map((c) => `"${c}"`).join(", ")})`
+            ? ` (${sanitizeIdentifiers(parsed.columns).join(", ")})`
             : "";
 
         const options: string[] = [];
