@@ -244,15 +244,10 @@ export abstract class DatabaseAdapter {
           const result = await tool.handler(args, context);
 
           // MCP 2025-11-25: Return structuredContent if outputSchema present
+          // P154 errors ({success: false, error: "..."}) are sent as structuredContent
+          // rather than isError: true, so AG receives parseable structured JSON.
+          // All output schemas accommodate both success and error shapes.
           if (hasOutputSchema) {
-            // Detect structured error responses (P154 pattern: {success: false, error: "..."})
-            // Set isError: true so MCP SDK skips output schema validation for error paths
-            const isStructuredError =
-              typeof result === "object" &&
-              result !== null &&
-              "success" in result &&
-              (result as Record<string, unknown>)["success"] === false;
-
             return {
               content: [
                 {
@@ -260,11 +255,7 @@ export abstract class DatabaseAdapter {
                   text: JSON.stringify(result, null, 2),
                 },
               ],
-              ...(isStructuredError
-                ? { isError: true }
-                : {
-                    structuredContent: result as Record<string, unknown>,
-                  }),
+              structuredContent: result as Record<string, unknown>,
             };
           }
 

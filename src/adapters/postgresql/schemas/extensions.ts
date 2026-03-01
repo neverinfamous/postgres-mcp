@@ -804,7 +804,7 @@ export const PgcryptoCryptSchema = z.object({
  */
 export const KcacheCreateExtensionOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether extension was enabled"),
+    success: z.boolean().optional().describe("Whether extension was enabled"),
     message: z.string().optional().describe("Status message"),
     note: z.string().optional().describe("Additional note"),
     error: z.string().optional().describe("Error message"),
@@ -917,7 +917,7 @@ export const KcacheResourceAnalysisOutputSchema = z
  */
 export const KcacheResetOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether reset succeeded"),
+    success: z.boolean().optional().describe("Whether reset succeeded"),
     message: z.string().optional().describe("Status message"),
     note: z.string().optional().describe("Additional note"),
     error: z.string().optional().describe("Error message"),
@@ -933,9 +933,10 @@ export const KcacheResetOutputSchema = z
  */
 export const CitextCreateExtensionOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether extension was enabled"),
-    message: z.string().describe("Status message"),
-    usage: z.string().describe("Usage information"),
+    success: z.boolean().optional().describe("Whether extension was enabled"),
+    message: z.string().optional().describe("Status message"),
+    usage: z.string().optional().describe("Usage information"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("citext extension creation result");
 
@@ -944,7 +945,7 @@ export const CitextCreateExtensionOutputSchema = z
  */
 export const CitextConvertColumnOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether conversion succeeded"),
+    success: z.boolean().optional().describe("Whether conversion succeeded"),
     message: z.string().optional().describe("Status message"),
     table: z.string().optional().describe("Qualified table name"),
     previousType: z.string().optional().describe("Previous column type"),
@@ -978,12 +979,15 @@ export const CitextListColumnsOutputSchema = z
   .object({
     columns: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("citext columns"),
-    count: z.number().describe("Number of columns returned"),
-    totalCount: z.number().describe("Total available count"),
-    truncated: z.boolean().describe("Results were truncated"),
+    count: z.number().optional().describe("Number of columns returned"),
+    totalCount: z.number().optional().describe("Total available count"),
+    truncated: z.boolean().optional().describe("Results were truncated"),
     limit: z.number().optional().describe("Limit applied"),
     schema: z.string().optional().describe("Schema filter applied"),
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("List of citext columns");
 
@@ -1028,13 +1032,18 @@ export const CitextAnalyzeCandidatesOutputSchema = z
  */
 export const CitextCompareOutputSchema = z
   .object({
-    value1: z.string().describe("First value"),
-    value2: z.string().describe("Second value"),
+    value1: z.string().optional().describe("First value"),
+    value2: z.string().optional().describe("Second value"),
     citextEqual: z.boolean().optional().describe("citext equality result"),
-    textEqual: z.boolean().describe("Text equality result"),
-    lowerEqual: z.boolean().describe("Lowercase equality result"),
-    extensionInstalled: z.boolean().describe("Whether citext is installed"),
+    textEqual: z.boolean().optional().describe("Text equality result"),
+    lowerEqual: z.boolean().optional().describe("Lowercase equality result"),
+    extensionInstalled: z
+      .boolean()
+      .optional()
+      .describe("Whether citext is installed"),
     hint: z.string().optional().describe("Helpful hint"),
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Comparison result");
 
@@ -1083,8 +1092,9 @@ export const CitextSchemaAdvisorOutputSchema = z
  */
 export const LtreeCreateExtensionOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether extension was enabled"),
-    message: z.string().describe("Status message"),
+    success: z.boolean().optional().describe("Whether extension was enabled"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("ltree extension creation result");
 
@@ -1113,7 +1123,7 @@ export const LtreeQueryOutputSchema = z
  */
 export const LtreeSubpathOutputSchema = z
   .object({
-    originalPath: z.string().describe("Original path"),
+    originalPath: z.string().optional().describe("Original path"),
     offset: z.number().optional().describe("Offset used"),
     length: z
       .union([z.number(), z.string()])
@@ -1132,9 +1142,11 @@ export const LtreeSubpathOutputSchema = z
  */
 export const LtreeLcaOutputSchema = z
   .object({
-    paths: z.array(z.string()).describe("Input paths"),
-    longestCommonAncestor: z.string().describe("LCA path"),
-    hasCommonAncestor: z.boolean().describe("Whether LCA exists"),
+    paths: z.array(z.string()).optional().describe("Input paths"),
+    longestCommonAncestor: z.string().optional().describe("LCA path"),
+    hasCommonAncestor: z.boolean().optional().describe("Whether LCA exists"),
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Longest common ancestor result");
 
@@ -1163,8 +1175,11 @@ export const LtreeListColumnsOutputSchema = z
   .object({
     columns: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("ltree columns"),
-    count: z.number().describe("Number of columns"),
+    count: z.number().optional().describe("Number of columns"),
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("List of ltree columns");
 
@@ -1173,7 +1188,7 @@ export const LtreeListColumnsOutputSchema = z
  */
 export const LtreeConvertColumnOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether conversion succeeded"),
+    success: z.boolean().optional().describe("Whether conversion succeeded"),
     message: z.string().optional().describe("Status message"),
     table: z.string().optional().describe("Qualified table name"),
     previousType: z.string().optional().describe("Previous column type"),
@@ -1201,7 +1216,7 @@ export const LtreeConvertColumnOutputSchema = z
  */
 export const LtreeCreateIndexOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether index was created"),
+    success: z.boolean().optional().describe("Whether index was created"),
     message: z.string().optional().describe("Status message"),
     indexName: z.string().optional().describe("Index name"),
     alreadyExists: z.boolean().optional().describe("Index already existed"),
@@ -1221,8 +1236,9 @@ export const LtreeCreateIndexOutputSchema = z
  */
 export const PgcryptoCreateExtensionOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether extension was enabled"),
-    message: z.string().describe("Status message"),
+    success: z.boolean().optional().describe("Whether extension was enabled"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("pgcrypto extension creation result");
 
@@ -1231,7 +1247,7 @@ export const PgcryptoCreateExtensionOutputSchema = z
  */
 export const PgcryptoHashOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether hash succeeded"),
+    success: z.boolean().optional().describe("Whether hash succeeded"),
     algorithm: z.string().optional().describe("Hash algorithm used"),
     encoding: z.string().optional().describe("Output encoding"),
     hash: z.string().optional().describe("Hash result"),
@@ -1245,7 +1261,7 @@ export const PgcryptoHashOutputSchema = z
  */
 export const PgcryptoHmacOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether HMAC succeeded"),
+    success: z.boolean().optional().describe("Whether HMAC succeeded"),
     algorithm: z.string().optional().describe("HMAC algorithm used"),
     encoding: z.string().optional().describe("Output encoding"),
     hmac: z.string().optional().describe("HMAC result"),
@@ -1258,7 +1274,7 @@ export const PgcryptoHmacOutputSchema = z
  */
 export const PgcryptoEncryptOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether encryption succeeded"),
+    success: z.boolean().optional().describe("Whether encryption succeeded"),
     encrypted: z.string().optional().describe("Encrypted data"),
     encoding: z.string().optional().describe("Output encoding"),
     error: z.string().optional().describe("Error message"),
@@ -1270,7 +1286,7 @@ export const PgcryptoEncryptOutputSchema = z
  */
 export const PgcryptoDecryptOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether decryption succeeded"),
+    success: z.boolean().optional().describe("Whether decryption succeeded"),
     decrypted: z.string().optional().describe("Decrypted data"),
     verified: z.boolean().optional().describe("Whether decryption verified"),
     error: z.string().optional().describe("Error message"),
@@ -1282,7 +1298,7 @@ export const PgcryptoDecryptOutputSchema = z
  */
 export const PgcryptoGenRandomUuidOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether generation succeeded"),
+    success: z.boolean().optional().describe("Whether generation succeeded"),
     uuids: z.array(z.string()).optional().describe("Generated UUIDs"),
     count: z.number().optional().describe("Number of UUIDs generated"),
     uuid: z.string().optional().describe("First UUID (for single requests)"),
@@ -1295,7 +1311,7 @@ export const PgcryptoGenRandomUuidOutputSchema = z
  */
 export const PgcryptoGenRandomBytesOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether generation succeeded"),
+    success: z.boolean().optional().describe("Whether generation succeeded"),
     randomBytes: z.string().optional().describe("Random bytes"),
     length: z.number().optional().describe("Number of bytes"),
     encoding: z.string().optional().describe("Output encoding"),
@@ -1308,7 +1324,10 @@ export const PgcryptoGenRandomBytesOutputSchema = z
  */
 export const PgcryptoGenSaltOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether salt generation succeeded"),
+    success: z
+      .boolean()
+      .optional()
+      .describe("Whether salt generation succeeded"),
     salt: z.string().optional().describe("Generated salt"),
     type: z.string().optional().describe("Salt type"),
     error: z.string().optional().describe("Error message"),
@@ -1320,8 +1339,12 @@ export const PgcryptoGenSaltOutputSchema = z
  */
 export const PgcryptoCryptOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether password hashing succeeded"),
-    hash: z.string().describe("Password hash"),
-    algorithm: z.string().describe("Detected algorithm"),
+    success: z
+      .boolean()
+      .optional()
+      .describe("Whether password hashing succeeded"),
+    hash: z.string().optional().describe("Password hash"),
+    algorithm: z.string().optional().describe("Detected algorithm"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("Password crypt result");

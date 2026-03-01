@@ -93,10 +93,13 @@ export const TableSizesOutputSchema = z.object({
         total_bytes: z.number().describe("Total size in bytes"),
       }),
     )
+    .optional()
     .describe("Table size information"),
-  count: z.number().describe("Number of tables returned"),
+  count: z.number().optional().describe("Number of tables returned"),
   totalCount: z.number().optional().describe("Total tables if truncated"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
@@ -111,9 +114,12 @@ export const ConnectionStatsOutputSchema = z.object({
         connections: z.number().describe("Number of connections"),
       }),
     )
+    .optional()
     .describe("Connections grouped by database and state"),
-  totalConnections: z.number().describe("Total active connections"),
-  maxConnections: z.number().describe("Maximum allowed connections"),
+  totalConnections: z.number().optional().describe("Total active connections"),
+  maxConnections: z.number().optional().describe("Maximum allowed connections"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
@@ -121,7 +127,7 @@ export const ConnectionStatsOutputSchema = z.object({
  */
 export const ReplicationStatusOutputSchema = z
   .object({
-    role: z.string().describe("Server role: primary or replica"),
+    role: z.string().optional().describe("Server role: primary or replica"),
     // Replica-specific fields
     replay_lag: z.unknown().optional().describe("Replication lag interval"),
     receive_lsn: z
@@ -139,6 +145,8 @@ export const ReplicationStatusOutputSchema = z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Connected replicas"),
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .loose();
 
@@ -146,9 +154,14 @@ export const ReplicationStatusOutputSchema = z
  * pg_server_version output
  */
 export const ServerVersionOutputSchema = z.object({
-  full_version: z.string().describe("Full PostgreSQL version string"),
-  version: z.string().describe("PostgreSQL version number"),
-  version_num: z.number().describe("Numeric version for comparison"),
+  full_version: z
+    .string()
+    .optional()
+    .describe("Full PostgreSQL version string"),
+  version: z.string().optional().describe("PostgreSQL version number"),
+  version_num: z.number().optional().describe("Numeric version for comparison"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
@@ -165,35 +178,48 @@ export const ShowSettingsOutputSchema = z.object({
         short_desc: z.string().describe("Description"),
       }),
     )
+    .optional()
     .describe("Configuration settings"),
-  count: z.number().describe("Number of settings returned"),
+  count: z.number().optional().describe("Number of settings returned"),
   totalCount: z.number().optional().describe("Total settings if truncated"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
  * pg_uptime output
  */
 export const UptimeOutputSchema = z.object({
-  start_time: z.unknown().describe("Server start timestamp"),
-  uptime: z.object({
-    days: z.number().describe("Days since start"),
-    hours: z.number().describe("Hours component"),
-    minutes: z.number().describe("Minutes component"),
-    seconds: z.number().describe("Seconds component"),
-    milliseconds: z.number().describe("Milliseconds component"),
-  }),
+  start_time: z.unknown().optional().describe("Server start timestamp"),
+  uptime: z
+    .object({
+      days: z.number().describe("Days since start"),
+      hours: z.number().describe("Hours component"),
+      minutes: z.number().describe("Minutes component"),
+      seconds: z.number().describe("Seconds component"),
+      milliseconds: z.number().describe("Milliseconds component"),
+    })
+    .optional(),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
  * pg_recovery_status output
  */
 export const RecoveryStatusOutputSchema = z.object({
-  in_recovery: z.boolean().describe("Whether server is in recovery mode"),
+  in_recovery: z
+    .boolean()
+    .optional()
+    .describe("Whether server is in recovery mode"),
   last_replay_timestamp: z
     .string()
     .nullable()
+    .optional()
     .describe("Last replayed transaction timestamp (null if primary)"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
@@ -297,15 +323,18 @@ export const ResourceUsageAnalyzeOutputSchema = z.object({
         count: z.number().describe("Number of connections"),
       }),
     )
+    .optional()
     .describe("Connection distribution by state and wait event"),
-  bufferUsage: z.object({
-    heap_reads: z.number().describe("Heap blocks read from disk"),
-    heap_hits: z.number().describe("Heap blocks found in cache"),
-    index_reads: z.number().describe("Index blocks read from disk"),
-    index_hits: z.number().describe("Index blocks found in cache"),
-    heapHitRate: z.string().describe("Heap cache hit rate"),
-    indexHitRate: z.string().describe("Index cache hit rate"),
-  }),
+  bufferUsage: z
+    .object({
+      heap_reads: z.number().describe("Heap blocks read from disk"),
+      heap_hits: z.number().describe("Heap blocks found in cache"),
+      index_reads: z.number().describe("Index blocks read from disk"),
+      index_hits: z.number().describe("Index blocks found in cache"),
+      heapHitRate: z.string().describe("Heap cache hit rate"),
+      indexHitRate: z.string().describe("Index cache hit rate"),
+    })
+    .optional(),
   activity: z
     .object({
       active_queries: z.number().describe("Currently running queries"),
@@ -314,13 +343,17 @@ export const ResourceUsageAnalyzeOutputSchema = z.object({
       io_waiting: z.number().describe("Queries waiting on I/O"),
     })
     .optional(),
-  analysis: z.object({
-    heapCachePerformance: z.string().describe("Heap cache analysis"),
-    indexCachePerformance: z.string().describe("Index cache analysis"),
-    checkpointPressure: z.string().describe("Checkpoint pressure assessment"),
-    ioPattern: z.string().describe("I/O pattern analysis"),
-    lockContention: z.string().describe("Lock contention analysis"),
-  }),
+  analysis: z
+    .object({
+      heapCachePerformance: z.string().describe("Heap cache analysis"),
+      indexCachePerformance: z.string().describe("Index cache analysis"),
+      checkpointPressure: z.string().describe("Checkpoint pressure assessment"),
+      ioPattern: z.string().describe("I/O pattern analysis"),
+      lockContention: z.string().describe("Lock contention analysis"),
+    })
+    .optional(),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**

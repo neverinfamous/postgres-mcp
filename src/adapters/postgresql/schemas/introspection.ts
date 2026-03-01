@@ -343,112 +343,141 @@ const DependencyEdgeSchema = z.object({
 });
 
 export const DependencyGraphOutputSchema = z.object({
-  nodes: z.array(DependencyNodeSchema),
-  edges: z.array(DependencyEdgeSchema),
-  circularDependencies: z.array(z.array(z.string())),
-  stats: z.object({
-    totalTables: z.number(),
-    totalRelationships: z.number(),
-    maxDepth: z.number(),
-    rootTables: z.array(z.string()),
-    leafTables: z.array(z.string()),
-  }),
+  nodes: z.array(DependencyNodeSchema).optional(),
+  edges: z.array(DependencyEdgeSchema).optional(),
+  circularDependencies: z.array(z.array(z.string())).optional(),
+  stats: z
+    .object({
+      totalTables: z.number(),
+      totalRelationships: z.number(),
+      maxDepth: z.number(),
+      rootTables: z.array(z.string()),
+      leafTables: z.array(z.string()),
+    })
+    .optional(),
   hint: z.string().optional(),
+  success: z.boolean().optional(),
+  error: z.string().optional(),
 });
 
 export const TopologicalSortOutputSchema = z.object({
-  order: z.array(
-    z.object({
-      table: z.string(),
-      schema: z.string(),
-      level: z.number(),
-      dependencies: z.array(z.string()),
-    }),
-  ),
-  direction: z.string(),
-  hasCycles: z.boolean(),
+  order: z
+    .array(
+      z.object({
+        table: z.string(),
+        schema: z.string(),
+        level: z.number(),
+        dependencies: z.array(z.string()),
+      }),
+    )
+    .optional(),
+  direction: z.string().optional(),
+  hasCycles: z.boolean().optional(),
   cycles: z.array(z.array(z.string())).optional(),
   hint: z.string().optional(),
+  success: z.boolean().optional(),
+  error: z.string().optional(),
 });
 
 export const CascadeSimulatorOutputSchema = z.object({
-  sourceTable: z.string(),
-  operation: z.string(),
-  affectedTables: z.array(
-    z.object({
-      table: z.string(),
-      schema: z.string(),
-      action: z.string(),
-      estimatedRows: z.number().optional(),
-      path: z.array(z.string()),
-      depth: z.number(),
-    }),
-  ),
-  severity: z.enum(["low", "medium", "high", "critical"]),
-  stats: z.object({
-    totalTablesAffected: z.number(),
-    cascadeActions: z.number(),
-    blockingActions: z.number(),
-    setNullActions: z.number(),
-    maxDepth: z.number(),
-  }),
+  sourceTable: z.string().optional(),
+  operation: z.string().optional(),
+  affectedTables: z
+    .array(
+      z.object({
+        table: z.string(),
+        schema: z.string(),
+        action: z.string(),
+        estimatedRows: z.number().optional(),
+        path: z.array(z.string()),
+        depth: z.number(),
+      }),
+    )
+    .optional(),
+  severity: z.enum(["low", "medium", "high", "critical"]).optional(),
+  stats: z
+    .object({
+      totalTablesAffected: z.number(),
+      cascadeActions: z.number(),
+      blockingActions: z.number(),
+      setNullActions: z.number(),
+      maxDepth: z.number(),
+    })
+    .optional(),
+  success: z.boolean().optional(),
   error: z.string().optional(),
 });
 
 export const SchemaSnapshotOutputSchema = z.object({
-  snapshot: z.record(z.string(), z.unknown()),
-  stats: z.object({
-    tables: z.number(),
-    views: z.number(),
-    indexes: z.number(),
-    constraints: z.number(),
-    functions: z.number(),
-    triggers: z.number(),
-    sequences: z.number(),
-    customTypes: z.number(),
-    extensions: z.number(),
-  }),
-  generatedAt: z.string(),
+  snapshot: z.record(z.string(), z.unknown()).optional(),
+  stats: z
+    .object({
+      tables: z.number(),
+      views: z.number(),
+      indexes: z.number(),
+      constraints: z.number(),
+      functions: z.number(),
+      triggers: z.number(),
+      sequences: z.number(),
+      customTypes: z.number(),
+      extensions: z.number(),
+    })
+    .optional(),
+  generatedAt: z.string().optional(),
   compact: z.boolean().optional(),
   hint: z.string().optional(),
+  success: z.boolean().optional(),
+  error: z.string().optional(),
 });
 
 export const ConstraintAnalysisOutputSchema = z.object({
-  findings: z.array(
-    z.object({
-      type: z.string(),
-      severity: z.enum(["info", "warning", "error"]),
-      table: z.string(),
-      description: z.string(),
-      suggestion: z.string().optional(),
-    }),
-  ),
-  summary: z.object({
-    totalFindings: z.number(),
-    byType: z.record(z.string(), z.number()),
-    bySeverity: z.record(z.string(), z.number()),
-  }),
+  findings: z
+    .array(
+      z.object({
+        type: z.string(),
+        severity: z.enum(["info", "warning", "error"]),
+        table: z.string(),
+        description: z.string(),
+        suggestion: z.string().optional(),
+      }),
+    )
+    .optional(),
+  summary: z
+    .object({
+      totalFindings: z.number(),
+      byType: z.record(z.string(), z.number()),
+      bySeverity: z.record(z.string(), z.number()),
+    })
+    .optional(),
   hint: z.string().optional(),
+  success: z.boolean().optional(),
+  error: z.string().optional(),
 });
 
 export const MigrationRisksOutputSchema = z.object({
-  risks: z.array(
-    z.object({
-      statement: z.string(),
-      statementIndex: z.number(),
-      riskLevel: z.enum(["low", "medium", "high", "critical"]),
-      category: z.string(),
-      description: z.string(),
-      mitigation: z.string().optional(),
-    }),
-  ),
-  summary: z.object({
-    totalStatements: z.number(),
-    totalRisks: z.number(),
-    highestRisk: z.string(),
-    requiresDowntime: z.boolean(),
-    estimatedLockImpact: z.string(),
-  }),
+  risks: z
+    .array(
+      z.object({
+        statement: z.string(),
+        statementIndex: z.number(),
+        riskLevel: z.enum(["low", "medium", "high", "critical"]),
+        category: z.string(),
+        description: z.string(),
+        mitigation: z.string().optional(),
+      }),
+    )
+    .optional(),
+  summary: z
+    .object({
+      totalStatements: z.number(),
+      totalRisks: z.number(),
+      highestRisk: z.string(),
+      requiresDowntime: z.boolean(),
+      estimatedLockImpact: z.string(),
+    })
+    .optional(),
+  success: z.boolean().optional(),
+  error: z.string().optional(),
 });
 
 // =============================================================================
@@ -467,10 +496,11 @@ const MigrationRecordOutputEntry = z.object({
 });
 
 export const MigrationInitOutputSchema = z.object({
-  success: z.boolean(),
-  tableCreated: z.boolean(),
-  tableName: z.string(),
-  existingRecords: z.number(),
+  success: z.boolean().optional(),
+  tableCreated: z.boolean().optional(),
+  tableName: z.string().optional(),
+  existingRecords: z.number().optional(),
+  error: z.string().optional(),
 });
 
 export const MigrationRecordOutputSchema = z.object({
@@ -494,21 +524,27 @@ export const MigrationRollbackOutputSchema = z.object({
 });
 
 export const MigrationHistoryOutputSchema = z.object({
-  records: z.array(MigrationRecordOutputEntry),
-  total: z.number(),
-  limit: z.number(),
-  offset: z.number(),
+  records: z.array(MigrationRecordOutputEntry).optional(),
+  total: z.number().optional(),
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+  success: z.boolean().optional(),
+  error: z.string().optional(),
 });
 
 export const MigrationStatusOutputSchema = z.object({
-  initialized: z.boolean(),
-  latestVersion: z.string().nullable(),
-  latestAppliedAt: z.string().nullable(),
-  counts: z.object({
-    total: z.number(),
-    applied: z.number(),
-    rolledBack: z.number(),
-    failed: z.number(),
-  }),
-  sourceSystems: z.array(z.string()),
+  initialized: z.boolean().optional(),
+  latestVersion: z.string().nullable().optional(),
+  latestAppliedAt: z.string().nullable().optional(),
+  counts: z
+    .object({
+      total: z.number(),
+      applied: z.number(),
+      rolledBack: z.number(),
+      failed: z.number(),
+    })
+    .optional(),
+  sourceSystems: z.array(z.string()).optional(),
+  success: z.boolean().optional(),
+  error: z.string().optional(),
 });
