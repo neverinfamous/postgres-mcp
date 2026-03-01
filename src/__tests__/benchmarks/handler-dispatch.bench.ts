@@ -69,7 +69,7 @@ for (const name of toolNames) {
     description: `Tool ${name}`,
     group: "core",
     inputSchema: { type: "object", properties: {} },
-    handler: () => ({ content: [{ type: "text" as const, text: "ok" }] }),
+    handler: () => Promise.resolve({ content: [{ type: "text" as const, text: "ok" }] }),
   });
 }
 

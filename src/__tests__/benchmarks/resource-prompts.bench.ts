@@ -69,9 +69,10 @@ for (const group of toolGroups) {
       description: `Performs ${group} operation ${String(i)}. Supports multiple options and parameters.`,
       group: group as ToolGroup,
       inputSchema: { type: "object", properties: {} },
-      handler: () => ({
-        content: [{ type: "text" as const, text: "ok" }],
-      }),
+      handler: () =>
+        Promise.resolve({
+          content: [{ type: "text" as const, text: "ok" }],
+        }),
     });
   }
 }
