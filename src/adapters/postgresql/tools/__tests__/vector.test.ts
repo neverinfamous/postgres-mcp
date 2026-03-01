@@ -1,7 +1,7 @@
 /**
  * postgres-mcp - Vector (pgvector) Tools Unit Tests
  *
- * Tests for vector similarity search operations (14 tools total).
+ * Tests for vector similarity search operations (16 tools total).
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -776,7 +776,7 @@ describe("Vector Tools", () => {
     });
   });
 
-  it("should export all 15 vector tools", () => {
+  it("should export all 16 vector tools", () => {
     expect(tools).toHaveLength(16);
     const toolNames = tools.map((t) => t.name);
     // Basic
