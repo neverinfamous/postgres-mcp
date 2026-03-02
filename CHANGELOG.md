@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-03-02
+
 ### Added
 
 - **ToolFilter unit tests (58 tests)** — Comprehensive test suite for the tool filtering system in `src/filtering/__tests__/ToolFilter.test.ts`, mirroring mysql-mcp's test coverage. Covers TOOL_GROUPS (21 groups, 227 total tools), META_GROUPS (16 shortcuts with codemode verification), parseToolFilter (whitelist/blacklist/mixed modes), 6 codemode-specific auto-injection tests (`-codemode`, `-pg_execute_code`, `-all`), isToolEnabled, filterTools, calculateTokenSavings, getFilterSummary, getToolGroupInfo, getMetaGroupInfo, and caching behavior

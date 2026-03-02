@@ -954,9 +954,7 @@ describe("monitoring.ts branch coverage", () => {
 
   it("pg_show_settings exact name pattern (line 320-322)", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [
-        { name: "timezone", setting: "UTC", category: "Locale" },
-      ],
+      rows: [{ name: "timezone", setting: "UTC", category: "Locale" }],
     });
 
     const tool = tools.find((t) => t.name === "pg_show_settings")!;
@@ -981,10 +979,10 @@ describe("monitoring.ts branch coverage", () => {
       .mockResolvedValueOnce({ rows: [{ total: "20" }] });
 
     const tool = tools.find((t) => t.name === "pg_show_settings")!;
-    const result = (await tool.handler(
-      { limit: 5 },
-      mockContext,
-    )) as Record<string, unknown>;
+    const result = (await tool.handler({ limit: 5 }, mockContext)) as Record<
+      string,
+      unknown
+    >;
 
     expect(result.truncated).toBe(true);
     expect(result.totalCount).toBe(20);
@@ -1148,7 +1146,9 @@ describe("monitoring.ts branch coverage", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ version_num: 170000 }] }) // PG17+
       .mockResolvedValueOnce({
-        rows: [{ buffers_clean: 500, maxwritten_clean: 10, buffers_alloc: 1000 }],
+        rows: [
+          { buffers_clean: 500, maxwritten_clean: 10, buffers_alloc: 1000 },
+        ],
       }) // bgwriter (no buffers_checkpoint)
       .mockResolvedValueOnce({
         rows: [
@@ -1164,7 +1164,12 @@ describe("monitoring.ts branch coverage", () => {
       .mockResolvedValueOnce({ rows: [{ state: "active", count: 5 }] })
       .mockResolvedValueOnce({
         rows: [
-          { heap_reads: 100, heap_hits: 9900, index_reads: 50, index_hits: 4950 },
+          {
+            heap_reads: 100,
+            heap_hits: 9900,
+            index_reads: 50,
+            index_hits: 4950,
+          },
         ],
       })
       .mockResolvedValueOnce({
@@ -1191,9 +1196,7 @@ describe("monitoring.ts branch coverage", () => {
   it("pg_connection_stats string coercion for totalConnections", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
-        rows: [
-          { datname: "db", state: "active", connections: "5" },
-        ],
+        rows: [{ datname: "db", state: "active", connections: "5" }],
       })
       .mockResolvedValueOnce({ rows: [{ max_connections: "200" }] })
       .mockResolvedValueOnce({ rows: [{ total: "25" }] });
