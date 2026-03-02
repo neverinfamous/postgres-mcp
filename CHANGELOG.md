@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_pgcrypto_crypt` missing error handling** — `pg_pgcrypto_crypt` handler now wraps its logic in a try/catch block, returning structured `{success: false, error}` responses for Zod validation failures and PostgreSQL errors. Previously, errors propagated as raw MCP exceptions since this was the only pgcrypto tool handler without error handling
+
 - **`pg_partman_create_parent` raw MCP error for deprecated interval keywords** — `pg_partman_create_parent({ interval: "daily" })` now returns `{success: false, error: "Deprecated interval 'daily'. Use PostgreSQL interval syntax instead: '1 day'."}` instead of a raw MCP `-32602` Zod validation error. Root cause: `PartmanCreateParentSchemaBase` had a `.superRefine()` on the `interval` field that rejected deprecated keywords (daily, weekly, monthly, quarterly, yearly, hourly) at the MCP framework input validation level, before the handler could catch it. Moved deprecated interval detection from the schema to handler logic, returning a structured response with the correct replacement interval. Exported `DEPRECATED_INTERVALS` constant from `partman.ts` for handler use
 
 - **`pg_partman_create_parent` `startPartition: "now"` silently fails** — pg_partman 5.4.1 does not recognize the literal string `'now'` as a valid `p_start_partition` value, causing `create_parent()` to return `false` and create no child partitions. The tool now converts `startPartition: "now"` to `NOW()::text` at SQL generation time, producing an actual timestamp string that pg_partman accepts
