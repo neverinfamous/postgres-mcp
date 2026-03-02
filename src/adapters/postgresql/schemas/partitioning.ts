@@ -263,9 +263,7 @@ export const CreatePartitionedTableSchemaBase = z.object({
       }),
     )
     .describe("Column definitions"),
-  partitionBy: z
-    .enum(["range", "list", "hash"])
-    .describe("Partition strategy (range, list, or hash)"),
+  partitionBy: z.string().describe("Partition strategy (range, list, or hash)"),
   partitionKey: z.string().describe("Partition key column(s)"),
   primaryKey: z
     .array(z.string())

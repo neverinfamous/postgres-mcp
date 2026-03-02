@@ -20,7 +20,7 @@
 
 **[GitHub](https://github.com/neverinfamous/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgres-mcp/blob/main/CHANGELOG.md)**
 
-### 🎯 What Sets Us Apart
+## 🎯 What Sets Us Apart
 
 | Feature                               | Description                                                                                                                                                                                                                                                |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -105,7 +105,7 @@ docker pull writenotenow/postgres-mcp:latest
 
 ### 2. Add to MCP Config
 
-Add this to your `~/.cursor/mcp.json`:
+Add this to your MCP client config (e.g., `~/.cursor/mcp.json` for Cursor):
 
 ```json
 {
@@ -410,8 +410,8 @@ docker pull writenotenow/postgres-mcp@sha256:<manifest-digest>
 
 **Available Tags:**
 
-- `1.3.0` - Specific version (recommended for production)
 - `latest` - Always the newest version
+- `x.y.z` - Specific version tag (recommended for production — see [releases](https://github.com/neverinfamous/postgres-mcp/releases))
 - `sha256-<digest>` - SHA-pinned for maximum security
 
 ---

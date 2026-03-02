@@ -55,6 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_create_partitioned_table` raw MCP error for uppercase `partitionBy`** — `pg_create_partitioned_table({ partitionBy: "RANGE" })` now correctly normalizes to lowercase via the preprocessor instead of failing with a raw MCP `-32602` Zod validation error. Root cause: `CreatePartitionedTableSchemaBase` used `z.enum(["range", "list", "hash"])` which rejected uppercase values at MCP input validation before the `preprocessCreatePartitionedTable` normalizer could run. Changed to `z.string()` in the base schema; the preprocessor still lowercases and the handler's `CreatePartitionedTableSchema` (preprocessed) validates the final value
+
+
+
 - **`pg_list_views` / `pg_list_sequences` raw MCP error for nonexistent schema** — `pg_list_views({ schema: "nonexistent" })` and `pg_list_sequences({ schema: "nonexistent" })` now return `{success: false, error: "Schema '...' does not exist"}` instead of a raw MCP output validation error (`-32602`). Root cause: `ListViewsOutputSchema` had `views`, `count`, `hasMatViews`, and `truncated` as required fields, and `ListSequencesOutputSchema` had `sequences` and `count` as required fields — both failing Zod output validation when the handler returned `{success: false, error}`. Made all success-path fields optional and added `success`/`error` fields to `ListViewsOutputSchema`, matching the existing pattern in `ListFunctionsOutputSchema`, `ListTriggersOutputSchema`, and `ListConstraintsOutputSchema`
 
 - **`pg_jsonb_contains` `select` param rejects expression aliases** — `pg_jsonb_contains({ select: ["metadata->>'author' AS author"] })` now returns the aliased expression result instead of a `column not found` error. The `select` param previously double-quoted each item as a literal identifier (`"metadata->>'author' AS author"`), while `pg_jsonb_agg` correctly used `parseSelectAlias()` to handle expressions and aliases. Applied the same `parseSelectAlias()` pattern from `pg_jsonb_agg` to `pg_jsonb_contains`, with simple column names still receiving identifier quoting
