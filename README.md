@@ -2,56 +2,108 @@
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp -->
 
-**Last Updated February 22, 2026**
+**Last Updated March 2, 2026**
 
-**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, Code Mode, tool filtering, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
+**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 227 tools through a single, secure JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection and migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**206 specialized tools** · **20 resources** · **19 AI-powered prompts**
+**227 Specialized Tools** · **20 Resources** · **19 AI-Powered Prompts**
 
-[![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgresql-mcp)
-![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgresql-mcp)
+[![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
+![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp)](https://hub.docker.com/r/writenotenow/postgres-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![MCP](https://img.shields.io/badge/MCP-Registry-green.svg)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)
 [![npm](https://img.shields.io/npm/v/@neverinfamous/postgres-mcp)](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)
-[![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgresql-mcp/blob/master/SECURITY.md)
+[![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)
 ![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Tests](https://img.shields.io/badge/Tests-2920_passed-success.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Coverage](https://img.shields.io/badge/Coverage-92.05%25-brightgreen.svg)](https://github.com/neverinfamous/postgresql-mcp)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgres-mcp)
+[![Tests](https://img.shields.io/badge/Tests-3176_passed-success.svg)](https://github.com/neverinfamous/postgres-mcp)
+[![Coverage](https://img.shields.io/badge/Coverage-93.58%25-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp)
 
-**[Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgresql-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgresql-mcp/blob/master/CHANGELOG.md)**
+**[Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgres-mcp/blob/main/CHANGELOG.md)**
 
 ## 🎯 What Sets Us Apart
 
-| Feature                          | Description                                                                                                                                                                                   |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **206 Specialized Tools**        | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, and 8 extension ecosystems                                   |
-| **20 Observability Resources**   | Real-time schema, performance metrics, connection pool status, replication lag, vacuum stats, lock contention, and extension diagnostics                                                      |
-| **19 AI-Powered Prompts**        | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                   |
-| **Code Mode**                    | Sandboxed JavaScript execution with 70-90% token reduction for multi-step operations                                                                                                          |
-| **OAuth 2.1 + Access Control**   | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                    |
-| **Smart Tool Filtering**         | 20 tool groups + 15 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                             |
-| **HTTP Streaming Transport**     | SSE-based streaming with `/mcp`, and `/health` endpoints for remote deployments                                                                                                               |
-| **High-Performance Pooling**     | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                      |
-| **8 Extension Ecosystems**       | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                   |
-| **Deterministic Error Handling** | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes |
-| **Production-Ready Security**    | SQL injection protection, parameterized queries, input validation, and sandboxed code execution                                                                                               |
-| **Strict TypeScript**            | 100% type-safe codebase with 2376 tests and 85.37% coverage                                                                                                                                   |
-| **MCP 2025-11-25 Compliant**     | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                 |
+| Feature                                | Description                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **227 Specialized Tools**              | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, schema version tracking, and 8 extension ecosystems                                                                                                 |
+| **20 Observability Resources**         | Real-time schema, performance metrics, connection pool status, replication lag, vacuum stats, lock contention, and extension diagnostics                                                                                                                                                                     |
+| **19 AI-Powered Prompts**              | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                                                                                                                                  |
+| **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, Code Mode exposes all 227 capabilities locally, reducing token overhead by up to 90% and supercharging AI agent reasoning. |
+| **OAuth 2.1 + Access Control**         | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                                                                   |
+| **Smart Tool Filtering**               | 21 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                                                                            |
+| **HTTP Streaming Transport**           | SSE-based streaming with `/mcp`, and `/health` endpoints for remote deployments                                                                                                                                                                                                                              |
+| **High-Performance Pooling**           | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                                                                     |
+| **8 Extension Ecosystems**             | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                                                                                                                                  |
+| **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools that let AI assistants reason about schema changes before executing them                                                                          |
+| **Deterministic Error Handling**       | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes                                                                                                                |
+| **Production-Ready Security**          | SQL injection protection, parameterized queries, input validation, sandboxed code execution, SSL certificate verification by default, and HTTP body size enforcement                                                                                                                                         |
+| **Strict TypeScript**                  | 100% type-safe codebase with 3176 tests and 93.58% coverage                                                                                                                                                                                                                                                  |
+| **MCP 2025-11-25 Compliant**           | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                                                                                                                                |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 24+ (LTS)
 - PostgreSQL 12-18 (tested with PostgreSQL 18.1)
-- npm or yarn
+- **Docker** (recommended) or Node.js 24+ (LTS)
 
-### Installation
+### Docker (Recommended)
 
 ```bash
-git clone https://github.com/neverinfamous/postgresql-mcp.git
+docker pull writenotenow/postgres-mcp:latest
+```
+
+```json
+{
+  "mcpServers": {
+    "postgres-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "POSTGRES_HOST",
+        "-e",
+        "POSTGRES_PORT",
+        "-e",
+        "POSTGRES_USER",
+        "-e",
+        "POSTGRES_PASSWORD",
+        "-e",
+        "POSTGRES_DATABASE",
+        "writenotenow/postgres-mcp:latest",
+        "--tool-filter",
+        "starter"
+      ],
+      "env": {
+        "POSTGRES_HOST": "host.docker.internal",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_USER": "your_username",
+        "POSTGRES_PASSWORD": "your_password",
+        "POSTGRES_DATABASE": "your_database"
+      }
+    }
+  }
+}
+```
+
+> **Note for Docker**: Use `host.docker.internal` to connect to PostgreSQL running on your host machine.
+
+📖 **Full Docker guide:** [DOCKER_README.md](DOCKER_README.md) · [Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp)
+
+### npm
+
+```bash
+npm install -g @neverinfamous/postgres-mcp
+postgres-mcp --transport stdio --postgres postgres://user:password@localhost:5432/database
+```
+
+### From Source
+
+```bash
+git clone https://github.com/neverinfamous/postgres-mcp.git
 cd postgres-mcp
 npm install
 npm run build
@@ -64,12 +116,50 @@ node dist/cli.js --transport stdio --postgres postgres://user:password@localhost
 
 Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets.
 
+Code executes in a **sandboxed VM context** with multiple layers of security. All `pg.*` API calls execute against the database within the sandbox, providing:
+
+- **Static code validation** — blocked patterns include `require()`, `process`, `eval()`, and filesystem access
+- **Rate limiting** — 60 executions per minute per client
+- **Hard timeouts** — configurable execution limit (default 30s)
+- **Full API access** — all 20 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`)
+- **Requires `admin` OAuth scope** — execution is logged for audit
+
+### ⚡ Code Mode Only (Maximum Token Savings)
+
+If you control your own setup, you can run with **only Code Mode enabled** — a single tool that provides access to all 227 tools' worth of capability through the `pg.*` API:
+
+```json
+{
+  "mcpServers": {
+    "postgres-mcp": {
+      "command": "node",
+      "args": [
+        "/path/to/postgres-mcp/dist/cli.js",
+        "--transport",
+        "stdio",
+        "--tool-filter",
+        "codemode"
+      ],
+      "env": {
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_USER": "your_user",
+        "POSTGRES_PASSWORD": "your_password",
+        "POSTGRES_DATABASE": "your_database"
+      }
+    }
+  }
+}
+```
+
+This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 20 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
+
 > [!TIP]
-> **Maximize Token Savings:** For the best results, instruct your AI agent to prefer Code Mode over individual tool calls. Add a rule like this to your agent's prompt or system configuration:
+> **Maximize Token Savings:** Instruct your AI agent to prefer Code Mode over individual tool calls:
 >
 > _"When using postgres-mcp, prefer `pg_execute_code` (Code Mode) for multi-step database operations to minimize token usage."_
 >
-> This ensures the agent batches operations into single calls instead of making many individual tool calls. See the [Code Mode wiki](https://github.com/neverinfamous/postgresql-mcp/wiki/Code-Mode) for full API documentation.
+> For maximum savings, use `--tool-filter codemode` to run with Code Mode as your only tool. See the [Code Mode wiki](https://github.com/neverinfamous/postgres-mcp/wiki/Code-Mode) for full API documentation.
 
 > [!NOTE]
 > **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage in AntiGravity, manually provide the contents of [`src/constants/ServerInstructions.ts`](src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
@@ -84,53 +174,24 @@ If you don't have admin access or prefer individual tool calls, exclude codemode
 }
 ```
 
-### Isolation Modes
-
-| Mode     | Isolation          | When to Use                  |
-| -------- | ------------------ | ---------------------------- |
-| `vm`     | Same process       | **Default, recommended**     |
-| `worker` | Separate V8 thread | Not recommended (incomplete) |
-
-The `vm` mode is fully functional and is the default. No configuration needed.
-
-### Security
-
-- Requires `admin` OAuth scope
-- Blocked: `require()`, `process`, `eval()`, filesystem
-- Rate limited: 60 executions/minute
-
 📖 **Full documentation:** [docs/CODE_MODE.md](docs/CODE_MODE.md)
 
 ---
 
 ## Development
 
-**Clone and install:**
+See **[From Source](#from-source)** above for setup. After cloning:
 
 ```bash
-git clone https://github.com/neverinfamous/postgresql-mcp.git
-cd postgres-mcp
-npm install
+npm run lint && npm run typecheck  # Run checks
+npm run bench                      # Run performance benchmarks
+node dist/cli.js info              # Test CLI
+node dist/cli.js list-tools        # List available tools
 ```
 
-**Build:**
+### Benchmarks
 
-```bash
-npm run build
-```
-
-**Run checks:**
-
-```bash
-npm run lint && npm run typecheck
-```
-
-**Test CLI:**
-
-```bash
-node dist/cli.js info
-node dist/cli.js list-tools
-```
+Run `npm run bench` to execute the performance benchmark suite (9 files, 75+ scenarios) powered by [Vitest Bench](https://vitest.dev/guide/features.html#benchmarking). Benchmarks cover schema parsing, handler dispatch, identifier sanitization, auth middleware, connection pooling, Code Mode, logging, and more. Use `npm run bench:verbose` for detailed table output.
 
 ---
 
@@ -205,7 +266,7 @@ node dist/cli.js list-tools
 ## 🛠️ Tool Filtering
 
 > [!IMPORTANT]
-> AI IDEs like Cursor have tool limits. With 206 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
+> AI IDEs like Cursor have tool limits. With 227 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
 
 ### What Can You Filter?
 
@@ -224,50 +285,52 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 
 > Tool counts include Code Mode (`pg_execute_code`) which is included in all presets by default.
 
-| Shortcut       | Tools  | Use Case                 | What's Included                                          |
-| -------------- | ------ | ------------------------ | -------------------------------------------------------- |
-| `starter`      | **59** | 🌟 **Recommended**       | Core, trans, JSONB, schema, codemode                     |
-| `essential`    | 47     | Minimal footprint        | Core, trans, JSONB, codemode                             |
-| `dev-power`    | 54     | Power Developer          | Core, trans, schema, stats, part, codemode               |
-| `ai-data`      | 60     | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
-| `ai-vector`    | 50     | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
-| `dba-monitor`  | 59     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
-| `dba-manage`   | 58     | DBA Management           | Core, admin, backup, part, schema, codemode              |
-| `dba-stats`    | 57     | DBA Stats/Security       | Core, admin, monitoring, trans, stats, codemode          |
-| `geo`          | 43     | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
-| `base-core`    | 59     | Base Building Block      | Core, JSONB, trans, schema, codemode                     |
-| `base-ops`     | 51     | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
-| `ext-ai`       | 26     | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
-| `ext-geo`      | 24     | Extension: Spatial       | PostGIS, ltree, codemode                                 |
-| `ext-schedule` | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
-| `ext-perf`     | 28     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
+| Shortcut        | Tools  | Use Case                 | What's Included                                          |
+| --------------- | ------ | ------------------------ | -------------------------------------------------------- |
+| `starter`       | **59** | 🌟 **Recommended**       | Core, trans, JSONB, schema, codemode                     |
+| `essential`     | 47     | Minimal footprint        | Core, trans, JSONB, codemode                             |
+| `dev-schema`    | 52     | Dev Schema & Migrations  | Core, trans, schema, introspection, codemode             |
+| `dev-analytics` | 42     | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
+| `ai-data`       | 60     | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
+| `ai-vector`     | 50     | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
+| `dba-monitor`   | 59     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
+| `dba-schema`    | 45     | DBA Schema & Migrations  | Core, schema, introspection, codemode                    |
+| `dba-infra`     | 46     | DBA Infrastructure       | Core, admin, backup, partitioning, codemode              |
+| `dba-stats`     | 57     | DBA Stats                | Core, admin, monitoring, trans, stats, codemode          |
+| `geo`           | 43     | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
+| `base-ops`      | 51     | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
+| `ext-ai`        | 26     | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
+| `ext-geo`       | 24     | Extension: Spatial       | PostGIS, ltree, codemode                                 |
+| `ext-schedule`  | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
+| `ext-perf`      | 28     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
 
-### Tool Groups (20 Available)
+### Tool Groups (21 Available)
 
 > Tool counts include Code Mode (`pg_execute_code`) which is added to all groups by default.
 
-| Group          | Tools | Description                                                 |
-| -------------- | ----- | ----------------------------------------------------------- |
-| `core`         | 21    | Read/write queries, tables, indexes, convenience/drop tools |
-| `transactions` | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
-| `jsonb`        | 20    | JSONB manipulation and queries                              |
-| `text`         | 14    | Full-text search, fuzzy matching                            |
-| `performance`  | 21    | EXPLAIN, query analysis, optimization                       |
-| `admin`        | 11    | VACUUM, ANALYZE, REINDEX                                    |
-| `monitoring`   | 12    | Database sizes, connections, status                         |
-| `backup`       | 10    | pg_dump, COPY, restore                                      |
-| `schema`       | 13    | Schemas, views, sequences, functions, triggers              |
-| `partitioning` | 7     | Native partition management                                 |
-| `stats`        | 9     | Statistical analysis                                        |
-| `vector`       | 17    | pgvector (AI/ML similarity search)                          |
-| `postgis`      | 16    | PostGIS (geospatial)                                        |
-| `cron`         | 9     | pg_cron (job scheduling)                                    |
-| `partman`      | 11    | pg_partman (auto-partitioning)                              |
-| `kcache`       | 8     | pg_stat_kcache (OS-level stats)                             |
-| `citext`       | 7     | citext (case-insensitive text)                              |
-| `ltree`        | 9     | ltree (hierarchical data)                                   |
-| `pgcrypto`     | 10    | pgcrypto (encryption, UUIDs)                                |
-| `codemode`     | 1     | Code Mode (sandboxed code execution)                        |
+| Group           | Tools | Description                                                 |
+| --------------- | ----- | ----------------------------------------------------------- |
+| `codemode`      | 1     | Code Mode (sandboxed code execution)                        |
+| `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools |
+| `transactions`  | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
+| `jsonb`         | 20    | JSONB manipulation and queries                              |
+| `text`          | 14    | Full-text search, fuzzy matching                            |
+| `performance`   | 21    | EXPLAIN, query analysis, optimization                       |
+| `admin`         | 11    | VACUUM, ANALYZE, REINDEX                                    |
+| `monitoring`    | 12    | Database sizes, connections, status                         |
+| `backup`        | 10    | pg_dump, COPY, restore                                      |
+| `schema`        | 13    | Schemas, views, sequences, functions, triggers              |
+| `introspection` | 13    | Dependency graphs, cascade simulation, migration tracking   |
+| `partitioning`  | 7     | Native partition management                                 |
+| `stats`         | 9     | Statistical analysis                                        |
+| `vector`        | 17    | pgvector (AI/ML similarity search)                          |
+| `postgis`       | 16    | PostGIS (geospatial)                                        |
+| `cron`          | 9     | pg_cron (job scheduling)                                    |
+| `partman`       | 11    | pg_partman (auto-partitioning)                              |
+| `kcache`        | 8     | pg_stat_kcache (OS-level stats)                             |
+| `citext`        | 7     | citext (case-insensitive text)                              |
+| `ltree`         | 9     | ltree (hierarchical data)                                   |
+| `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                |
 
 ---
 
@@ -417,6 +480,9 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 
 > **Note for Keycloak users:** Add an **Audience mapper** to your client (Client → Client scopes → dedicated scope → Add mapper → Audience) to include the correct `aud` claim in tokens.
 
+> [!NOTE]
+> **Per-tool scope enforcement:** Scopes are enforced at the tool level — each tool group maps to a required scope (`read`, `write`, or `admin`). When OAuth is enabled, every tool invocation checks the calling token's scopes before execution. When OAuth is not configured, scope checks are skipped entirely.
+
 ---
 
 ## ⚡ Performance Tuning
@@ -447,7 +513,7 @@ This server includes **19 intelligent prompts** for guided workflows:
 | `pg_quick_query`           | Quick SQL query guidance for common operations     | core                          | `starter`      |
 | `pg_quick_schema`          | Quick reference for exploring database schema      | core                          | `starter`      |
 | `pg_database_health_check` | Comprehensive database health assessment           | core, performance, monitoring | `dba-monitor`  |
-| `pg_backup_strategy`       | Enterprise backup planning with RTO/RPO            | core, monitoring, backup      | `dba-manage`   |
+| `pg_backup_strategy`       | Enterprise backup planning with RTO/RPO            | core, monitoring, backup      | `dba-infra`    |
 | `pg_index_tuning`          | Index analysis and optimization workflow           | core, performance             | `dba-monitor`  |
 | `pg_extension_setup`       | Extension installation and configuration guide     | core                          | `starter`      |
 | `pg_setup_pgvector`        | Complete pgvector setup for semantic search        | core, vector                  | `ai-vector`    |
@@ -509,25 +575,7 @@ This server provides **20 resources** for structured data access:
 | `ltree`              | Hierarchical tree labels       | 8 ltree tools              |
 | `pgcrypto`           | Hashing, encryption, UUIDs     | 9 pgcrypto tools           |
 
-> Extension tools gracefully handle cases where extensions are not installed. Extension tool counts include `create_extension` helpers, which are utility tools excluded from the published 206 count.
-
----
-
-## 🔥 Core Capabilities
-
-- 📊 **Full SQL Support** - Execute any PostgreSQL query with parameter binding
-- 🔍 **JSONB Operations** - Native JSONB functions and path queries
-- 🔐 **Connection Pooling** - Efficient connection management with health checks
-- 🎛️ **Tool Filtering** - Control which operations are exposed
-- ⚡ **Performance Tools** - EXPLAIN ANALYZE, buffer analysis, index hints
-- 🗺️ **PostGIS Support** - Geospatial queries and spatial indexes
-- 🧠 **pgvector Support** - AI/ML vector similarity search
-
-### 🏢 Enterprise Features
-
-- 🔐 **OAuth 2.1 Authentication** - RFC 9728/8414 compliant
-- 🛡️ **Tool Filtering** - Control which database operations are exposed
-- 📈 **Monitoring** - Process lists, replication lag, cache hit ratios
+> Extension tools gracefully handle cases where extensions are not installed. Extension tool counts include `create_extension` helpers but exclude Code Mode; the [Tool Groups](#-tool-filtering) table above adds +1 per group for Code Mode.
 
 ---
 

@@ -21,6 +21,17 @@ import {
 } from "./types.js";
 
 /**
+ * Maximum number of compiled vm.Script instances to cache per sandbox.
+ * Prevents unbounded memory growth while avoiding recompilation of
+ * frequently-used code strings.
+ */
+const SCRIPT_CACHE_MAX = 50;
+
+/** Pre-built async IIFE wrapper fragments (avoids template alloc per call) */
+const IIFE_PREFIX = "\n(async () => {\n";
+const IIFE_SUFFIX = "\n})();\n";
+
+/**
  * A sandboxed execution context using Node.js vm module
  */
 export class CodeModeSandbox {
@@ -28,6 +39,13 @@ export class CodeModeSandbox {
   private readonly options: Required<SandboxOptions>;
   private disposed = false;
   private readonly logBuffer: string[] = [];
+
+  /**
+   * LRU cache of compiled vm.Script instances keyed by wrapped code string.
+   * Avoids the expensive vm.Script compilation on repeated executions of
+   * the same code (common in benchmarks and agent retry loops).
+   */
+  private readonly scriptCache = new Map<string, vm.Script>();
 
   private constructor(context: vm.Context, options: Required<SandboxOptions>) {
     this.context = context;
@@ -120,6 +138,8 @@ export class CodeModeSandbox {
       setTimeout: undefined, // Disabled for security
       setInterval: undefined, // Disabled for security
       setImmediate: undefined, // Disabled for security
+      // Block sandbox escape vectors
+      Proxy: undefined, // Prevent Proxy construction bypassing static pattern check
     };
 
     const context = vm.createContext(sandbox);
@@ -150,23 +170,17 @@ export class CodeModeSandbox {
     }
 
     const startTime = performance.now();
-    const startMemory = process.memoryUsage().heapUsed;
+    const startRss = process.memoryUsage.rss();
 
     try {
       // Inject pg API bindings into the context
       this.context["pg"] = apiBindings;
 
       // Wrap code in async IIFE to support await
-      const wrappedCode = `
-                (async () => {
-                    ${code}
-                })();
-            `;
+      const wrappedCode = IIFE_PREFIX + code + IIFE_SUFFIX;
 
-      // Compile and run with timeout
-      const script = new vm.Script(wrappedCode, {
-        filename: "codemode-script.js",
-      });
+      // Compile (or retrieve from cache) and run with timeout
+      const script = this.getOrCompileScript(wrappedCode);
 
       const result = await (script.runInContext(this.context, {
         timeout: this.options.timeoutMs,
@@ -174,21 +188,16 @@ export class CodeModeSandbox {
       }) as Promise<unknown>);
 
       const endTime = performance.now();
-      const endMemory = process.memoryUsage().heapUsed;
+      const endRss = process.memoryUsage.rss();
 
       return {
         success: true,
         result,
-        metrics: this.calculateMetrics(
-          startTime,
-          endTime,
-          startMemory,
-          endMemory,
-        ),
+        metrics: this.calculateMetrics(startTime, endTime, startRss, endRss),
       };
     } catch (error) {
       const endTime = performance.now();
-      const endMemory = process.memoryUsage().heapUsed;
+      const endRss = process.memoryUsage.rss();
 
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -200,12 +209,7 @@ export class CodeModeSandbox {
           success: false,
           error: `Execution timeout: exceeded ${String(this.options.timeoutMs)}ms limit`,
           stack,
-          metrics: this.calculateMetrics(
-            startTime,
-            endTime,
-            startMemory,
-            endMemory,
-          ),
+          metrics: this.calculateMetrics(startTime, endTime, startRss, endRss),
         };
       }
 
@@ -213,30 +217,56 @@ export class CodeModeSandbox {
         success: false,
         error: errorMessage,
         stack,
-        metrics: this.calculateMetrics(
-          startTime,
-          endTime,
-          startMemory,
-          endMemory,
-        ),
+        metrics: this.calculateMetrics(startTime, endTime, startRss, endRss),
       };
     }
   }
 
   /**
-   * Calculate execution metrics
+   * Retrieve a compiled vm.Script from the LRU cache, or compile and cache it.
+   * Evicts the oldest entry when the cache exceeds SCRIPT_CACHE_MAX.
+   */
+  private getOrCompileScript(wrappedCode: string): vm.Script {
+    const cached = this.scriptCache.get(wrappedCode);
+    if (cached) {
+      // Move to end (most-recently-used) by re-inserting
+      this.scriptCache.delete(wrappedCode);
+      this.scriptCache.set(wrappedCode, cached);
+      return cached;
+    }
+
+    const script = new vm.Script(wrappedCode, {
+      filename: "codemode-script.js",
+    });
+
+    // Evict oldest if at capacity
+    if (this.scriptCache.size >= SCRIPT_CACHE_MAX) {
+      const oldest = this.scriptCache.keys().next().value;
+      if (oldest !== undefined) {
+        this.scriptCache.delete(oldest);
+      }
+    }
+
+    this.scriptCache.set(wrappedCode, script);
+    return script;
+  }
+
+  /**
+   * Calculate execution metrics.
+   * Uses RSS delta (process.memoryUsage.rss()) instead of heapUsed
+   * for significantly lower syscall overhead on Windows.
    */
   private calculateMetrics(
     startTime: number,
     endTime: number,
-    startMemory: number,
-    endMemory: number,
+    startRss: number,
+    endRss: number,
   ): ExecutionMetrics {
     return {
       wallTimeMs: Math.round(endTime - startTime),
       cpuTimeMs: Math.round(endTime - startTime), // Approximation
       memoryUsedMb:
-        Math.round(((endMemory - startMemory) / (1024 * 1024)) * 100) / 100,
+        Math.round(((endRss - startRss) / (1024 * 1024)) * 100) / 100,
     };
   }
 
@@ -268,7 +298,8 @@ export class CodeModeSandbox {
     if (this.disposed) return;
 
     this.disposed = true;
-    // vm.Context doesn't need explicit cleanup, but we mark as disposed
+    // Release cached compiled scripts
+    this.scriptCache.clear();
     this.logBuffer.length = 0;
   }
 }

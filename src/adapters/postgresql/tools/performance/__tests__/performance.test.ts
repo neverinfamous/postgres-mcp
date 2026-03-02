@@ -319,6 +319,7 @@ describe("pg_index_stats", () => {
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("pg_stat_user_indexes"),
+      expect.any(Array),
     );
     expect(result.indexes).toHaveLength(1);
   });
@@ -334,7 +335,8 @@ describe("pg_index_stats", () => {
     await tool.handler({ schema: "sales" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'sales'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
   });
 
@@ -349,7 +351,8 @@ describe("pg_index_stats", () => {
     await tool.handler({ table: "orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("relname = 'orders'"),
+      expect.stringContaining("relname = $"),
+      expect.any(Array),
     );
   });
 
@@ -365,10 +368,12 @@ describe("pg_index_stats", () => {
     await tool.handler({ schema: "sales", table: "orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'sales'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("relname = 'orders'"),
+      expect.stringContaining("relname = $"),
+      expect.any(Array),
     );
   });
 
@@ -409,10 +414,12 @@ describe("pg_index_stats", () => {
     await tool.handler({ table: "sales.orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'sales'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("relname = 'orders'"),
+      expect.stringContaining("relname = $"),
+      expect.any(Array),
     );
   });
 });
@@ -441,6 +448,7 @@ describe("pg_table_stats", () => {
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("pg_stat_user_tables"),
+      expect.any(Array),
     );
     expect(result.tables).toHaveLength(1);
   });
@@ -456,7 +464,8 @@ describe("pg_table_stats", () => {
     await tool.handler({ schema: "sales" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'sales'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
   });
 
@@ -471,7 +480,8 @@ describe("pg_table_stats", () => {
     await tool.handler({ table: "orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("relname = 'orders'"),
+      expect.stringContaining("relname = $"),
+      expect.any(Array),
     );
   });
 
@@ -487,10 +497,12 @@ describe("pg_table_stats", () => {
     await tool.handler({ schema: "sales", table: "orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'sales'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("relname = 'orders'"),
+      expect.stringContaining("relname = $"),
+      expect.any(Array),
     );
   });
 
@@ -524,10 +536,12 @@ describe("pg_table_stats", () => {
     await tool.handler({ table: "sales.orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'sales'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("relname = 'orders'"),
+      expect.stringContaining("relname = $"),
+      expect.any(Array),
     );
   });
 });
@@ -731,6 +745,7 @@ describe("pg_bloat_check", () => {
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("n_dead_tup"),
+      expect.any(Array),
     );
     expect(result.tables).toHaveLength(1);
   });
@@ -747,10 +762,12 @@ describe("pg_bloat_check", () => {
     await tool.handler({ table: "sales.orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'sales'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("relname = 'orders'"),
+      expect.stringContaining("relname = $"),
+      expect.any(Array),
     );
   });
 });
@@ -787,10 +804,12 @@ describe("pg_vacuum_stats - schema.table", () => {
     await tool.handler({ table: "sales.orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("s.schemaname = 'sales'"),
+      expect.stringContaining("s.schemaname = $"),
+      expect.any(Array),
     );
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("s.relname = 'orders'"),
+      expect.stringContaining("s.relname = $"),
+      expect.any(Array),
     );
   });
 });
@@ -848,6 +867,7 @@ describe("pg_seq_scan_tables", () => {
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("seq_scan"),
+      expect.any(Array),
     );
     expect(result.tables).toHaveLength(1);
   });
@@ -861,7 +881,8 @@ describe("pg_seq_scan_tables", () => {
     await tool.handler({ schema: "analytics" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'analytics'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
   });
 
@@ -878,6 +899,7 @@ describe("pg_seq_scan_tables", () => {
     expect(result.tables).toHaveLength(100);
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.not.stringContaining("LIMIT"),
+      expect.any(Array),
     );
   });
 
@@ -1053,7 +1075,8 @@ describe("pg_index_recommendations", () => {
     await tool.handler({ table: "orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("relname = 'orders'"),
+      expect.stringContaining("relname = $"),
+      expect.any(Array),
     );
   });
 
@@ -1066,7 +1089,8 @@ describe("pg_index_recommendations", () => {
     await tool.handler({ schema: "sales" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'sales'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
   });
 
@@ -2152,18 +2176,37 @@ describe("pg_unused_indexes comprehensive", () => {
     expect(result.hint).toContain("never been used");
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("idx_scan = 0"),
+      expect.any(Array),
     );
   });
 
   it("should filter by schema when provided", async () => {
+    // P154: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_unused_indexes")!;
     await tool.handler({ schema: "sales" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("schemaname = 'sales'"),
+      expect.stringContaining("schemaname = $"),
+      expect.any(Array),
     );
+  });
+
+  it("should return structured error for nonexistent schema (P154)", async () => {
+    // P154: schema does not exist
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_unused_indexes")!;
+    const result = (await tool.handler(
+      { schema: "fake_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("fake_schema");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should filter by minSize when provided", async () => {
@@ -2174,6 +2217,7 @@ describe("pg_unused_indexes comprehensive", () => {
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("pg_size_bytes('1 MB')"),
+      expect.any(Array),
     );
   });
 
@@ -2233,6 +2277,7 @@ describe("pg_unused_indexes comprehensive", () => {
     // Should not have LIMIT clause
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.not.stringContaining("LIMIT"),
+      expect.any(Array),
     );
   });
 
@@ -2362,14 +2407,32 @@ describe("pg_duplicate_indexes comprehensive", () => {
   });
 
   it("should filter by schema when provided", async () => {
+    // P154: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_duplicate_indexes")!;
     await tool.handler({ schema: "analytics" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("n.nspname = 'analytics'"),
+      expect.stringContaining("n.nspname = $"),
+      expect.any(Array),
     );
+  });
+
+  it("should return structured error for nonexistent schema (P154)", async () => {
+    // P154: schema does not exist
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_duplicate_indexes")!;
+    const result = (await tool.handler(
+      { schema: "fake_schema" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("fake_schema");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should exclude system schemas by default", async () => {
@@ -2380,6 +2443,7 @@ describe("pg_duplicate_indexes comprehensive", () => {
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("NOT IN ('pg_catalog', 'information_schema')"),
+      expect.any(Array),
     );
   });
 
@@ -2544,7 +2608,8 @@ describe("pg_vacuum_stats comprehensive", () => {
     await tool.handler({ schema: "logs" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("s.schemaname = 'logs'"),
+      expect.stringContaining("s.schemaname = $"),
+      expect.any(Array),
     );
   });
 
@@ -2557,7 +2622,8 @@ describe("pg_vacuum_stats comprehensive", () => {
     await tool.handler({ table: "events" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("s.relname = 'events'"),
+      expect.stringContaining("s.relname = $"),
+      expect.any(Array),
     );
   });
 
@@ -2574,10 +2640,12 @@ describe("pg_vacuum_stats comprehensive", () => {
     );
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("s.schemaname = 'analytics'"),
+      expect.stringContaining("s.schemaname = $"),
+      expect.any(Array),
     );
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("s.relname = 'pageviews'"),
+      expect.stringContaining("s.relname = $"),
+      expect.any(Array),
     );
   });
 

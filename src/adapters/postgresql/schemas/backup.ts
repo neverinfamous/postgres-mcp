@@ -165,7 +165,7 @@ export const DumpTableOutputSchema = z
  */
 export const DumpSchemaOutputSchema = z
   .object({
-    command: z.string().describe("pg_dump command to run"),
+    command: z.string().optional().describe("pg_dump command to run"),
     warning: z
       .string()
       .optional()
@@ -174,7 +174,9 @@ export const DumpSchemaOutputSchema = z
       .string()
       .optional()
       .describe("Warning about .sql extension with custom format"),
-    notes: z.array(z.string()).describe("Usage notes"),
+    notes: z.array(z.string()).optional().describe("Usage notes"),
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .loose();
 
@@ -204,27 +206,33 @@ export const CopyExportOutputSchema = z
  * pg_copy_import output - COPY FROM command
  */
 export const CopyImportOutputSchema = z.object({
-  command: z.string().describe("COPY FROM command"),
-  stdinCommand: z.string().describe("COPY FROM STDIN command"),
-  notes: z.string().describe("Usage notes"),
+  command: z.string().optional().describe("COPY FROM command"),
+  stdinCommand: z.string().optional().describe("COPY FROM STDIN command"),
+  notes: z.string().optional().describe("Usage notes"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
  * pg_create_backup_plan output - backup strategy
  */
 export const CreateBackupPlanOutputSchema = z.object({
-  strategy: z.object({
-    fullBackup: z.object({
-      command: z.string().describe("pg_dump command with timestamp"),
-      frequency: z.string().describe("Backup frequency"),
-      cronSchedule: z.string().describe("Cron schedule expression"),
-      retention: z.string().describe("Retention policy"),
-    }),
-    walArchiving: z.object({
-      note: z.string().describe("WAL archiving recommendation"),
-      configChanges: z.array(z.string()).describe("PostgreSQL config changes"),
-    }),
-  }),
+  strategy: z
+    .object({
+      fullBackup: z.object({
+        command: z.string().describe("pg_dump command with timestamp"),
+        frequency: z.string().describe("Backup frequency"),
+        cronSchedule: z.string().describe("Cron schedule expression"),
+        retention: z.string().describe("Retention policy"),
+      }),
+      walArchiving: z.object({
+        note: z.string().describe("WAL archiving recommendation"),
+        configChanges: z
+          .array(z.string())
+          .describe("PostgreSQL config changes"),
+      }),
+    })
+    .optional(),
   estimates: z
     .object({
       databaseSize: z.string().describe("Current database size"),
@@ -239,28 +247,38 @@ export const CreateBackupPlanOutputSchema = z.object({
         .describe("Backups per week (for weekly)"),
       totalStorageNeeded: z.string().describe("Total storage needed"),
     })
-    .loose(),
+    .loose()
+    .optional(),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
  * pg_restore_command output - pg_restore command
  */
 export const RestoreCommandOutputSchema = z.object({
-  command: z.string().describe("pg_restore command"),
+  command: z.string().optional().describe("pg_restore command"),
   warnings: z
     .array(z.string())
     .optional()
     .describe("Warnings about missing parameters"),
-  notes: z.array(z.string()).describe("Usage notes"),
+  notes: z.array(z.string()).optional().describe("Usage notes"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
  * pg_backup_physical output - pg_basebackup command
  */
 export const PhysicalBackupOutputSchema = z.object({
-  command: z.string().describe("pg_basebackup command"),
-  notes: z.array(z.string()).describe("Usage notes"),
-  requirements: z.array(z.string()).describe("PostgreSQL requirements"),
+  command: z.string().optional().describe("pg_basebackup command"),
+  notes: z.array(z.string()).optional().describe("Usage notes"),
+  requirements: z
+    .array(z.string())
+    .optional()
+    .describe("PostgreSQL requirements"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });
 
 /**
@@ -269,23 +287,28 @@ export const PhysicalBackupOutputSchema = z.object({
 export const RestoreValidateOutputSchema = z
   .object({
     note: z.string().optional().describe("Default type note"),
-    validationSteps: z.array(
-      z
-        .object({
-          step: z.number().describe("Step number"),
-          name: z.string().describe("Step name"),
-          command: z.string().optional().describe("Command to run"),
-          commands: z
-            .array(z.string())
-            .optional()
-            .describe("Multiple commands"),
-          note: z.string().optional().describe("Step note"),
-        })
-        .loose(),
-    ),
+    validationSteps: z
+      .array(
+        z
+          .object({
+            step: z.number().describe("Step number"),
+            name: z.string().describe("Step name"),
+            command: z.string().optional().describe("Command to run"),
+            commands: z
+              .array(z.string())
+              .optional()
+              .describe("Multiple commands"),
+            note: z.string().optional().describe("Step note"),
+          })
+          .loose(),
+      )
+      .optional(),
     recommendations: z
       .array(z.string())
+      .optional()
       .describe("Best practice recommendations"),
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .loose();
 
@@ -293,31 +316,39 @@ export const RestoreValidateOutputSchema = z
  * pg_backup_schedule_optimize output - schedule analysis
  */
 export const BackupScheduleOptimizeOutputSchema = z.object({
-  analysis: z.object({
-    databaseSize: z.unknown().describe("Database size"),
-    totalChanges: z.number().describe("Total DML changes since stats reset"),
-    changeVelocity: z.number().describe("Change velocity ratio"),
-    changeVelocityRatio: z.string().describe("Change velocity as percentage"),
-    activityByHour: z
-      .array(
-        z.object({
-          hour: z.number().describe("Hour of day"),
-          connection_count: z.number().describe("Connection count"),
-        }),
-      )
-      .optional()
-      .describe("Connection activity by hour"),
-    activityNote: z.string().describe("Activity data caveat"),
-  }),
-  recommendation: z.object({
-    strategy: z.string().describe("Recommended strategy"),
-    fullBackupFrequency: z.string().describe("Full backup frequency"),
-    incrementalFrequency: z.string().describe("Incremental/WAL frequency"),
-    bestTimeForBackup: z.string().describe("Recommended backup time"),
-    retentionPolicy: z.string().describe("Retention policy"),
-  }),
-  commands: z.object({
-    cronSchedule: z.string().describe("Sample cron schedule"),
-    walArchive: z.string().describe("WAL archive command"),
-  }),
+  analysis: z
+    .object({
+      databaseSize: z.unknown().describe("Database size"),
+      totalChanges: z.number().describe("Total DML changes since stats reset"),
+      changeVelocity: z.number().describe("Change velocity ratio"),
+      changeVelocityRatio: z.string().describe("Change velocity as percentage"),
+      activityByHour: z
+        .array(
+          z.object({
+            hour: z.number().describe("Hour of day"),
+            connection_count: z.number().describe("Connection count"),
+          }),
+        )
+        .optional()
+        .describe("Connection activity by hour"),
+      activityNote: z.string().describe("Activity data caveat"),
+    })
+    .optional(),
+  recommendation: z
+    .object({
+      strategy: z.string().describe("Recommended strategy"),
+      fullBackupFrequency: z.string().describe("Full backup frequency"),
+      incrementalFrequency: z.string().describe("Incremental/WAL frequency"),
+      bestTimeForBackup: z.string().describe("Recommended backup time"),
+      retentionPolicy: z.string().describe("Retention policy"),
+    })
+    .optional(),
+  commands: z
+    .object({
+      cronSchedule: z.string().describe("Sample cron schedule"),
+      walArchive: z.string().describe("WAL archive command"),
+    })
+    .optional(),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 });

@@ -12,7 +12,12 @@ import {
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { OAuthResourceServer } from "../auth/OAuthResourceServer.js";
 import type { TokenValidator } from "../auth/TokenValidator.js";
-import { validateAuth, formatOAuthError } from "../auth/middleware.js";
+import {
+  validateAuth,
+  formatOAuthError,
+  type AuthenticatedContext,
+} from "../auth/middleware.js";
+import { runWithAuthContext } from "../auth/auth-context.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -99,6 +104,7 @@ export class HttpTransport {
 
   // Rate limiting state
   private readonly rateLimitMap = new Map<string, RateLimitEntry>();
+  private rateLimitCleanupInterval: NodeJS.Timeout | null = null;
 
   // Default configuration values
   private static readonly DEFAULT_RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
@@ -144,6 +150,18 @@ export class HttpTransport {
         });
       });
 
+      // Start deterministic rate limit cleanup (every 60s)
+      if (this.config.enableRateLimit) {
+        this.rateLimitCleanupInterval = setInterval(() => {
+          const now = Date.now();
+          for (const [ip, entry] of this.rateLimitMap) {
+            if (now > entry.resetTime) {
+              this.rateLimitMap.delete(ip);
+            }
+          }
+        }, 60_000);
+      }
+
       this.server.on("error", reject);
 
       this.server.listen(this.config.port, this.config.host, () => {
@@ -159,6 +177,11 @@ export class HttpTransport {
    * Stop the HTTP server
    */
   async stop(): Promise<void> {
+    if (this.rateLimitCleanupInterval) {
+      clearInterval(this.rateLimitCleanupInterval);
+      this.rateLimitCleanupInterval = null;
+    }
+
     return new Promise((resolve) => {
       if (this.server) {
         this.server.close(() => {
@@ -210,14 +233,7 @@ export class HttpTransport {
 
     const entry = this.rateLimitMap.get(clientIp);
 
-    // Clean up expired entries periodically (every 100 checks)
-    if (this.rateLimitMap.size > 100 && Math.random() < 0.01) {
-      for (const [ip, e] of this.rateLimitMap) {
-        if (now > e.resetTime) {
-          this.rateLimitMap.delete(ip);
-        }
-      }
-    }
+    // Expired entries are cleaned up by a deterministic interval (see start())
 
     if (!entry || now > entry.resetTime) {
       // Start new window
@@ -265,6 +281,47 @@ export class HttpTransport {
       return;
     }
 
+    // Check body size — two-layer enforcement:
+    // 1. Content-Length header for fast rejection of well-behaved clients
+    // 2. Streaming byte tracking for missing/spoofed headers and chunked encoding
+    const maxBodySize = this.config.maxBodySize ?? 1048576;
+    const contentLength = parseInt(req.headers["content-length"] ?? "0", 10);
+    if (contentLength > maxBodySize) {
+      res.writeHead(413, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: "payload_too_large",
+          error_description: `Request body exceeds maximum size of ${String(maxBodySize)} bytes.`,
+        }),
+      );
+      return;
+    }
+
+    // Streaming body size enforcement — track actual received bytes
+    // Guard: only attach if req supports event listeners (real IncomingMessage)
+    let receivedBytes = 0;
+    let bodyLimitExceeded = false;
+    if (typeof req.on === "function") {
+      req.on("data", (chunk: Buffer) => {
+        receivedBytes += chunk.length;
+        if (receivedBytes > maxBodySize && !bodyLimitExceeded) {
+          bodyLimitExceeded = true;
+          req.destroy();
+          if (!res.headersSent) {
+            res.writeHead(413, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                error: "payload_too_large",
+                error_description: `Request body exceeds maximum size of ${String(maxBodySize)} bytes.`,
+              }),
+            );
+          }
+        }
+      });
+    }
+
+    if (bodyLimitExceeded) return;
+
     const url = new URL(
       req.url ?? "/",
       `http://${req.headers.host ?? "localhost"}`,
@@ -283,10 +340,11 @@ export class HttpTransport {
     }
 
     // Authenticate if OAuth is configured and path is not public
+    let authCtx: AuthenticatedContext | undefined;
     if (this.config.resourceServer && this.config.tokenValidator) {
       if (!this.isPublicPath(url.pathname)) {
         try {
-          await validateAuth(req.headers.authorization, {
+          authCtx = await validateAuth(req.headers.authorization, {
             tokenValidator: this.config.tokenValidator,
             required: true,
           });
@@ -302,19 +360,27 @@ export class HttpTransport {
       }
     }
 
-    // Handle MCP requests
-    if (url.pathname === "/sse") {
-      await this.handleSSERequest(req, res);
-      return;
-    }
+    // Dispatch MCP requests — wrap in auth context if OAuth is active
+    const dispatch = async (): Promise<void> => {
+      if (url.pathname === "/sse") {
+        await this.handleSSERequest(req, res);
+        return;
+      }
 
-    if (url.pathname === "/messages") {
-      await this.handleMessageRequest(req, res);
-      return;
-    }
+      if (url.pathname === "/messages") {
+        await this.handleMessageRequest(req, res);
+        return;
+      }
 
-    res.writeHead(404);
-    res.end(JSON.stringify({ error: "Not found" }));
+      res.writeHead(404);
+      res.end(JSON.stringify({ error: "Not found" }));
+    };
+
+    if (authCtx) {
+      await runWithAuthContext(authCtx, dispatch);
+    } else {
+      await dispatch();
+    }
   }
 
   /**
@@ -390,14 +456,17 @@ export class HttpTransport {
     res.setHeader("X-Content-Type-Options", "nosniff");
     // Prevent clickjacking
     res.setHeader("X-Frame-Options", "DENY");
-    // Enable XSS filtering
-    res.setHeader("X-XSS-Protection", "1; mode=block");
     // Prevent caching of API responses
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     // Content Security Policy - API server has no content to load
     res.setHeader(
       "Content-Security-Policy",
       "default-src 'none'; frame-ancestors 'none'",
+    );
+    // Restrict browser features not needed by an API server
+    res.setHeader(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=()",
     );
 
     // HTTP Strict Transport Security (for HTTPS deployments)

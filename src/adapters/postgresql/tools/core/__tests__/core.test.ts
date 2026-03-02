@@ -2570,15 +2570,16 @@ describe("pg_batch_insert", () => {
   it("should reject empty rows array", async () => {
     const tool = tools.find((t) => t.name === "pg_batch_insert")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "users",
-          rows: [], // Empty
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow(/rows must not be empty/);
+    const result = (await tool.handler(
+      {
+        table: "users",
+        rows: [], // Empty
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/rows must not be empty/);
   });
 
   it("should accept tableName as alias for table", async () => {

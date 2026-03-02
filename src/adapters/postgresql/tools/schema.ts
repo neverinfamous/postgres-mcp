@@ -216,18 +216,46 @@ function createListSequencesTool(adapter: PostgresAdapter): ToolDefinition {
     inputSchema: z
       .object({
         schema: z.string().optional(),
+        limit: z
+          .number()
+          .optional()
+          .describe(
+            "Maximum number of sequences to return (default: 50). Use 0 for all.",
+          ),
       })
       .default({}),
     outputSchema: ListSequencesOutputSchema,
     annotations: readOnly("List Sequences"),
     icons: getToolIcons("schema", readOnly("List Sequences")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = (params ?? {}) as { schema?: string };
+      const parsed = (params ?? {}) as {
+        schema?: string;
+        limit?: number;
+      };
       const queryParams: unknown[] = [];
+
+      // Validate schema existence when filtering by schema
+      if (parsed.schema) {
+        const schemaCheck = await adapter.executeQuery(
+          `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+          [parsed.schema],
+        );
+        if ((schemaCheck.rows?.length ?? 0) === 0) {
+          return {
+            success: false,
+            error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+          };
+        }
+      }
+
       const schemaClause = parsed.schema
         ? (queryParams.push(parsed.schema),
           `AND n.nspname = $${String(queryParams.length)}`)
         : "";
+
+      // Default limit: 50, 0 = no limit
+      const limitVal = parsed.limit ?? 50;
+      const limitClause = limitVal > 0 ? `LIMIT ${String(limitVal + 1)}` : "";
 
       // Use subquery for owned_by to avoid duplicate rows from JOINs
       const sql = `SELECT n.nspname as schema, c.relname as name,
@@ -242,13 +270,51 @@ function createListSequencesTool(adapter: PostgresAdapter): ToolDefinition {
                         WHERE c.relkind = 'S'
                         AND n.nspname NOT IN ('pg_catalog', 'information_schema')
                         ${schemaClause}
-                        ORDER BY n.nspname, c.relname`;
+                        ORDER BY n.nspname, c.relname
+                        ${limitClause}`;
 
       const result =
         queryParams.length > 0
           ? await adapter.executeQuery(sql, queryParams)
           : await adapter.executeQuery(sql);
-      return { sequences: result.rows, count: result.rows?.length ?? 0 };
+      let sequences = result.rows ?? [];
+
+      // Check if there are more results than the limit
+      const hasMore = limitVal > 0 && sequences.length > limitVal;
+      if (hasMore) {
+        sequences = sequences.slice(0, limitVal);
+      }
+
+      const response: Record<string, unknown> = {
+        sequences,
+        count: sequences.length,
+      };
+
+      // Always include truncated field for consistent response structure
+      response["truncated"] = hasMore;
+      if (hasMore) {
+        // Get total count
+        const countParams: unknown[] = [];
+        const countSchemaClause = parsed.schema
+          ? (countParams.push(parsed.schema),
+            `AND n.nspname = $${String(countParams.length)}`)
+          : "";
+        const countSql = `SELECT COUNT(*)::int as total FROM pg_class c
+                          JOIN pg_namespace n ON n.oid = c.relnamespace
+                          WHERE c.relkind = 'S'
+                          AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                          ${countSchemaClause}`;
+        const countResult =
+          countParams.length > 0
+            ? await adapter.executeQuery(countSql, countParams)
+            : await adapter.executeQuery(countSql);
+        response["totalCount"] =
+          countResult.rows?.[0]?.["total"] ?? sequences.length;
+        response["note"] =
+          `Results limited to ${String(limitVal)}. Use 'limit: 0' for all sequences.`;
+      }
+
+      return response;
     },
   };
 }
@@ -440,6 +506,21 @@ function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
         limit?: number;
       };
       const queryParams: unknown[] = [];
+
+      // Validate schema existence when filtering by schema
+      if (parsed.schema) {
+        const schemaCheck = await adapter.executeQuery(
+          `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+          [parsed.schema],
+        );
+        if ((schemaCheck.rows?.length ?? 0) === 0) {
+          return {
+            success: false,
+            error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+          };
+        }
+      }
+
       const schemaClause = parsed.schema
         ? (queryParams.push(parsed.schema),
           `AND n.nspname = $${String(queryParams.length)}`)
@@ -509,6 +590,23 @@ function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
       // Always include truncated field for consistent response structure
       response["truncated"] = hasMore;
       if (hasMore) {
+        // Get total count
+        const countParams: unknown[] = [];
+        const countSchemaClause = parsed.schema
+          ? (countParams.push(parsed.schema),
+            `AND n.nspname = $${String(countParams.length)}`)
+          : "";
+        const countSql = `SELECT COUNT(*)::int as total FROM pg_class c
+                          JOIN pg_namespace n ON n.oid = c.relnamespace
+                          WHERE c.relkind ${kindClause}
+                          AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                          ${countSchemaClause}`;
+        const countResult =
+          countParams.length > 0
+            ? await adapter.executeQuery(countSql, countParams)
+            : await adapter.executeQuery(countSql);
+        response["totalCount"] =
+          countResult.rows?.[0]?.["total"] ?? views.length;
         response["note"] =
           `Results limited to ${String(limitVal)}. Use 'limit: 0' for all views.`;
       }
@@ -955,13 +1053,11 @@ function createListConstraintsTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         const sql = `SELECT n.nspname as schema, c.relname as table_name, con.conname as name,
-                          CASE con.contype 
+                          CASE con.contype
                               WHEN 'p' THEN 'primary_key'
                               WHEN 'f' THEN 'foreign_key'
                               WHEN 'u' THEN 'unique'
                               WHEN 'c' THEN 'check'
-                              WHEN 'n' THEN 'not_null'
-                              ELSE con.contype
                           END as type,
                           pg_get_constraintdef(con.oid) as definition
                           FROM pg_constraint con

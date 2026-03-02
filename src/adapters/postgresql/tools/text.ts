@@ -109,10 +109,15 @@ function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const tsvector = sanitizedCols
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitVal =
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
         const limitClause =
-          parsed.limit !== undefined && parsed.limit > 0
-            ? ` LIMIT ${String(parsed.limit)}`
-            : "";
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         const sql = `SELECT ${selectCols}, ts_rank_cd(to_tsvector('${cfg}', ${tsvector}), plainto_tsquery('${cfg}', $1)) as rank
                         FROM ${tableName}
@@ -120,7 +125,18 @@ function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
                         ORDER BY rank DESC${limitClause}`;
 
         const result = await adapter.executeQuery(sql, [parsed.query]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -212,10 +228,15 @@ function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         const tsvector = sanitizedCols
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitVal =
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
         const limitClause =
-          parsed.limit !== undefined && parsed.limit > 0
-            ? ` LIMIT ${String(parsed.limit)}`
-            : "";
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         const sql = `SELECT ${selectCols}, ts_rank_cd(to_tsvector('${cfg}', ${tsvector}), plainto_tsquery('${cfg}', $1), ${String(norm)}) as rank
                         FROM ${tableName}
@@ -223,7 +244,18 @@ function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
                         ORDER BY rank DESC${limitClause}`;
 
         const result = await adapter.executeQuery(sql, [parsed.query]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -256,9 +288,15 @@ function createTrigramSimilarityTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = TrigramSimilaritySchema.parse(params);
         const thresh = parsed.threshold ?? 0.3;
-        // Default limit to 100 to prevent large payloads
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
         const limitVal =
-          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
+        const limitClause =
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
@@ -281,10 +319,21 @@ function createTrigramSimilarityTool(adapter: PostgresAdapter): ToolDefinition {
         const sql = `SELECT ${selectCols}, similarity(${columnName}, $1) as similarity
                         FROM ${tableName}
                         WHERE similarity(${columnName}, $1) > ${String(thresh)}${additionalWhere}
-                        ORDER BY similarity DESC LIMIT ${String(limitVal)}`;
+                        ORDER BY similarity DESC${limitClause}`;
 
         const result = await adapter.executeQuery(sql, [parsed.value]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -373,9 +422,15 @@ function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         const method: FuzzyMethod = rawMethod as FuzzyMethod;
 
         const maxDist = parsed.maxDistance ?? 3;
-        // Default limit to 100 to prevent large payloads
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
         const limitVal =
-          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
+        const limitClause =
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
@@ -397,15 +452,26 @@ function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
 
         let sql: string;
         if (method === "soundex") {
-          sql = `SELECT ${selectCols}, soundex(${columnName}) as code FROM ${tableName} WHERE soundex(${columnName}) = soundex($1)${additionalWhere} LIMIT ${String(limitVal)}`;
+          sql = `SELECT ${selectCols}, soundex(${columnName}) as code FROM ${tableName} WHERE soundex(${columnName}) = soundex($1)${additionalWhere}${limitClause}`;
         } else if (method === "metaphone") {
-          sql = `SELECT ${selectCols}, metaphone(${columnName}, 10) as code FROM ${tableName} WHERE metaphone(${columnName}, 10) = metaphone($1, 10)${additionalWhere} LIMIT ${String(limitVal)}`;
+          sql = `SELECT ${selectCols}, metaphone(${columnName}, 10) as code FROM ${tableName} WHERE metaphone(${columnName}, 10) = metaphone($1, 10)${additionalWhere}${limitClause}`;
         } else {
-          sql = `SELECT ${selectCols}, levenshtein(${columnName}, $1) as distance FROM ${tableName} WHERE levenshtein(${columnName}, $1) <= ${String(maxDist)}${additionalWhere} ORDER BY distance LIMIT ${String(limitVal)}`;
+          sql = `SELECT ${selectCols}, levenshtein(${columnName}, $1) as distance FROM ${tableName} WHERE levenshtein(${columnName}, $1) <= ${String(maxDist)}${additionalWhere} ORDER BY distance${limitClause}`;
         }
 
         const result = await adapter.executeQuery(sql, [parsed.value]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -455,14 +521,30 @@ function createRegexpMatchTool(adapter: PostgresAdapter): ToolDefinition {
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        // Default limit to 100 to prevent large payloads
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
         const limitVal =
-          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
-        const limitClause = ` LIMIT ${String(limitVal)}`;
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
+        const limitClause =
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
         const result = await adapter.executeQuery(sql, [parsed.pattern]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -545,14 +627,30 @@ function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        // Default limit to 100 to prevent large payloads
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
         const limitVal =
-          parsed.limit !== undefined && parsed.limit > 0 ? parsed.limit : 100;
-        const limitClause = ` LIMIT ${String(limitVal)}`;
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
+        const limitClause =
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
         const result = await adapter.executeQuery(sql, [parsed.pattern]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -655,17 +753,33 @@ function createTextHeadlineTool(adapter: PostgresAdapter): ToolDefinition {
           parsed.select !== undefined && parsed.select.length > 0
             ? sanitizeIdentifiers(parsed.select).join(", ") + ", "
             : "";
+        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitVal =
+          parsed.limit === 0
+            ? null
+            : parsed.limit !== undefined && parsed.limit > 0
+              ? parsed.limit
+              : 100;
         const limitClause =
-          parsed.limit !== undefined && parsed.limit > 0
-            ? ` LIMIT ${String(parsed.limit)}`
-            : "";
+          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
 
         const sql = `SELECT ${selectCols}ts_headline('${cfg}', ${columnName}, plainto_tsquery('${cfg}', $1), '${opts}') as headline
                         FROM ${tableName}
                         WHERE to_tsvector('${cfg}', ${columnName}) @@ plainto_tsquery('${cfg}', $1)${limitClause}`;
 
         const result = await adapter.executeQuery(sql, [parsed.query]);
-        return { rows: result.rows, count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const truncated = limitVal !== null && count === limitVal;
+        return {
+          rows: result.rows,
+          count,
+          ...(truncated
+            ? {
+                truncated: true,
+                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+              }
+            : {}),
+        };
       } catch (error: unknown) {
         if (error instanceof ZodError) {
           return {
@@ -792,16 +906,31 @@ function createTextNormalizeTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Text Normalize"),
     icons: getToolIcons("text", readOnly("Text Normalize")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = NormalizeSchema.parse(params ?? {});
+      try {
+        const parsed = NormalizeSchema.parse(params ?? {});
 
-      // Ensure unaccent extension is available
-      await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS unaccent");
+        // Ensure unaccent extension is available
+        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS unaccent");
 
-      const result = await adapter.executeQuery(
-        `SELECT unaccent($1) as normalized`,
-        [parsed.text],
-      );
-      return { normalized: result.rows?.[0]?.["normalized"] };
+        const result = await adapter.executeQuery(
+          `SELECT unaccent($1) as normalized`,
+          [parsed.text],
+        );
+        return { normalized: result.rows?.[0]?.["normalized"] };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_text_normalize validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_text_normalize",
+          }),
+        };
+      }
     },
   };
 }
@@ -828,107 +957,121 @@ function createTextSentimentTool(_adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Text Sentiment"),
     icons: getToolIcons("text", readOnly("Text Sentiment")),
     handler: (params: unknown, _context: RequestContext) => {
-      const parsed = SentimentSchema.parse(params ?? {});
-      const text = parsed.text.toLowerCase();
+      try {
+        const parsed = SentimentSchema.parse(params ?? {});
+        const text = parsed.text.toLowerCase();
 
-      const positiveWords = [
-        "good",
-        "great",
-        "excellent",
-        "amazing",
-        "wonderful",
-        "fantastic",
-        "love",
-        "happy",
-        "positive",
-        "best",
-        "beautiful",
-        "awesome",
-        "perfect",
-        "nice",
-        "helpful",
-        "thank",
-        "thanks",
-        "pleased",
-        "satisfied",
-        "recommend",
-        "enjoy",
-        "impressive",
-        "brilliant",
-      ];
+        const positiveWords = [
+          "good",
+          "great",
+          "excellent",
+          "amazing",
+          "wonderful",
+          "fantastic",
+          "love",
+          "happy",
+          "positive",
+          "best",
+          "beautiful",
+          "awesome",
+          "perfect",
+          "nice",
+          "helpful",
+          "thank",
+          "thanks",
+          "pleased",
+          "satisfied",
+          "recommend",
+          "enjoy",
+          "impressive",
+          "brilliant",
+        ];
 
-      const negativeWords = [
-        "bad",
-        "terrible",
-        "awful",
-        "horrible",
-        "worst",
-        "hate",
-        "angry",
-        "disappointed",
-        "poor",
-        "wrong",
-        "problem",
-        "issue",
-        "fail",
-        "failed",
-        "broken",
-        "useless",
-        "waste",
-        "frustrating",
-        "annoyed",
-        "unhappy",
-        "negative",
-        "complaint",
-        "slow",
-      ];
+        const negativeWords = [
+          "bad",
+          "terrible",
+          "awful",
+          "horrible",
+          "worst",
+          "hate",
+          "angry",
+          "disappointed",
+          "poor",
+          "wrong",
+          "problem",
+          "issue",
+          "fail",
+          "failed",
+          "broken",
+          "useless",
+          "waste",
+          "frustrating",
+          "annoyed",
+          "unhappy",
+          "negative",
+          "complaint",
+          "slow",
+        ];
 
-      const words = text.split(/\s+/);
-      const matchedPositive = words
-        .map((w) => w.replace(/[^a-z]/g, ""))
-        .filter((w) => positiveWords.includes(w));
-      const matchedNegative = words
-        .map((w) => w.replace(/[^a-z]/g, ""))
-        .filter((w) => negativeWords.includes(w));
+        const words = text.split(/\s+/);
+        const matchedPositive = words
+          .map((w) => w.replace(/[^a-z]/g, ""))
+          .filter((w) => positiveWords.includes(w));
+        const matchedNegative = words
+          .map((w) => w.replace(/[^a-z]/g, ""))
+          .filter((w) => negativeWords.includes(w));
 
-      const positiveScore = matchedPositive.length;
-      const negativeScore = matchedNegative.length;
-      const totalScore = positiveScore - negativeScore;
+        const positiveScore = matchedPositive.length;
+        const negativeScore = matchedNegative.length;
+        const totalScore = positiveScore - negativeScore;
 
-      let sentiment: string;
-      if (totalScore > 2) sentiment = "very_positive";
-      else if (totalScore > 0) sentiment = "positive";
-      else if (totalScore < -2) sentiment = "very_negative";
-      else if (totalScore < 0) sentiment = "negative";
-      else sentiment = "neutral";
+        let sentiment: string;
+        if (totalScore > 2) sentiment = "very_positive";
+        else if (totalScore > 0) sentiment = "positive";
+        else if (totalScore < -2) sentiment = "very_negative";
+        else if (totalScore < 0) sentiment = "negative";
+        else sentiment = "neutral";
 
-      const result: {
-        sentiment: string;
-        score: number;
-        positiveCount: number;
-        negativeCount: number;
-        confidence: string;
-        matchedPositive?: string[];
-        matchedNegative?: string[];
-      } = {
-        sentiment,
-        score: totalScore,
-        positiveCount: positiveScore,
-        negativeCount: negativeScore,
-        confidence:
-          positiveScore + negativeScore > 3
-            ? "high"
-            : positiveScore + negativeScore > 1
-              ? "medium"
-              : "low",
-      };
+        const result: {
+          sentiment: string;
+          score: number;
+          positiveCount: number;
+          negativeCount: number;
+          confidence: string;
+          matchedPositive?: string[];
+          matchedNegative?: string[];
+        } = {
+          sentiment,
+          score: totalScore,
+          positiveCount: positiveScore,
+          negativeCount: negativeScore,
+          confidence:
+            positiveScore + negativeScore > 3
+              ? "high"
+              : positiveScore + negativeScore > 1
+                ? "medium"
+                : "low",
+        };
 
-      if (parsed.returnWords) {
-        result.matchedPositive = matchedPositive;
-        result.matchedNegative = matchedNegative;
+        if (parsed.returnWords) {
+          result.matchedPositive = matchedPositive;
+          result.matchedNegative = matchedNegative;
+        }
+
+        return Promise.resolve(result);
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return Promise.resolve({
+            success: false as const,
+            error: `pg_text_sentiment validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          });
+        }
+        return Promise.resolve({
+          success: false as const,
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
+        });
       }
-
-      return Promise.resolve(result);
     },
   };
 }
@@ -955,14 +1098,29 @@ function createTextToVectorTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Text to Vector"),
     icons: getToolIcons("text", readOnly("Text to Vector")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = ToVectorSchema.parse(params ?? {});
-      const cfg = parsed.config ?? "english";
+      try {
+        const parsed = ToVectorSchema.parse(params ?? {});
+        const cfg = parsed.config ?? "english";
 
-      const result = await adapter.executeQuery(
-        `SELECT to_tsvector($1, $2) as vector`,
-        [cfg, parsed.text],
-      );
-      return { vector: result.rows?.[0]?.["vector"] };
+        const result = await adapter.executeQuery(
+          `SELECT to_tsvector($1, $2) as vector`,
+          [cfg, parsed.text],
+        );
+        return { vector: result.rows?.[0]?.["vector"] };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_text_to_vector validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_text_to_vector",
+          }),
+        };
+      }
     },
   };
 }
@@ -995,27 +1153,42 @@ function createTextToQueryTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Text to Query"),
     icons: getToolIcons("text", readOnly("Text to Query")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = ToQuerySchema.parse(params ?? {});
-      const cfg = parsed.config ?? "english";
-      const mode = parsed.mode ?? "plain";
+      try {
+        const parsed = ToQuerySchema.parse(params ?? {});
+        const cfg = parsed.config ?? "english";
+        const mode = parsed.mode ?? "plain";
 
-      let fn: string;
-      switch (mode) {
-        case "phrase":
-          fn = "phraseto_tsquery";
-          break;
-        case "websearch":
-          fn = "websearch_to_tsquery";
-          break;
-        default:
-          fn = "plainto_tsquery";
+        let fn: string;
+        switch (mode) {
+          case "phrase":
+            fn = "phraseto_tsquery";
+            break;
+          case "websearch":
+            fn = "websearch_to_tsquery";
+            break;
+          default:
+            fn = "plainto_tsquery";
+        }
+
+        const result = await adapter.executeQuery(
+          `SELECT ${fn}($1, $2) as query`,
+          [cfg, parsed.text],
+        );
+        return { query: result.rows?.[0]?.["query"], mode };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            success: false,
+            error: `pg_text_to_query validation error: ${error.issues.map((e) => e.message).join(", ")}`,
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_text_to_query",
+          }),
+        };
       }
-
-      const result = await adapter.executeQuery(
-        `SELECT ${fn}($1, $2) as query`,
-        [cfg, parsed.text],
-      );
-      return { query: result.rows?.[0]?.["query"], mode };
     },
   };
 }
@@ -1034,8 +1207,9 @@ function createTextSearchConfigTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Search Configurations"),
     icons: getToolIcons("text", readOnly("Search Configurations")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const result = await adapter.executeQuery(`
-                SELECT 
+      try {
+        const result = await adapter.executeQuery(`
+                SELECT
                     c.cfgname as name,
                     n.nspname as schema,
                     obj_description(c.oid, 'pg_ts_config') as description
@@ -1043,10 +1217,18 @@ function createTextSearchConfigTool(adapter: PostgresAdapter): ToolDefinition {
                 JOIN pg_namespace n ON n.oid = c.cfgnamespace
                 ORDER BY c.cfgname
             `);
-      return {
-        configs: result.rows ?? [],
-        count: result.rows?.length ?? 0,
-      };
+        return {
+          configs: result.rows ?? [],
+          count: result.rows?.length ?? 0,
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_text_search_config",
+          }),
+        };
+      }
     },
   };
 }

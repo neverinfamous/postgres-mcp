@@ -91,6 +91,12 @@ describe("CodeModeSandbox", () => {
       expect(result.error).toBeDefined();
     });
 
+    it("should block access to Proxy constructor", async () => {
+      const result = await sandbox.execute("return typeof Proxy;", {});
+      expect(result.success).toBe(true);
+      expect(result.result).toBe("undefined");
+    });
+
     it("should return error after disposed", async () => {
       sandbox.dispose();
       const result = await sandbox.execute("return 1;", {});
@@ -118,6 +124,31 @@ describe("CodeModeSandbox", () => {
       sandbox.dispose();
       sandbox.dispose(); // Should not throw
       expect(sandbox.isHealthy()).toBe(false);
+    });
+  });
+  describe("script cache", () => {
+    it("should reuse cached vm.Script for identical code (cache hit)", async () => {
+      const code = "return 42;";
+
+      // Cold run — compiles vm.Script
+      const r1 = await sandbox.execute(code, {});
+      expect(r1.success).toBe(true);
+      expect(r1.result).toBe(42);
+
+      // Warm run — should reuse cached compiled script
+      const r2 = await sandbox.execute(code, {});
+      expect(r2.success).toBe(true);
+      expect(r2.result).toBe(42);
+    });
+
+    it("should produce correct results for different code strings", async () => {
+      const r1 = await sandbox.execute("return 1 + 1;", {});
+      const r2 = await sandbox.execute("return 2 + 2;", {});
+      const r3 = await sandbox.execute("return 1 + 1;", {}); // cache hit
+
+      expect(r1.result).toBe(2);
+      expect(r2.result).toBe(4);
+      expect(r3.result).toBe(2);
     });
   });
 });

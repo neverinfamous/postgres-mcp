@@ -22,6 +22,9 @@ import type {
   RequestContext,
   ToolGroup,
 } from "../types/index.js";
+import { getAuthContext } from "../auth/auth-context.js";
+import { getRequiredScope } from "../auth/scope-map.js";
+import { requireScope } from "../auth/middleware.js";
 
 /**
  * Abstract base class for database adapters
@@ -219,6 +222,13 @@ export abstract class DatabaseAdapter {
       },
       async (args: unknown, extra: unknown) => {
         try {
+          // Enforce OAuth scope if auth context is present
+          const authCtx = getAuthContext();
+          if (authCtx?.authenticated) {
+            const requiredScope = getRequiredScope(tool.name);
+            requireScope(authCtx, requiredScope);
+          }
+
           // Extract progressToken from extra._meta (SDK passes RequestHandlerExtra)
           const extraMeta = extra as {
             _meta?: { progressToken?: string | number };
@@ -234,6 +244,9 @@ export abstract class DatabaseAdapter {
           const result = await tool.handler(args, context);
 
           // MCP 2025-11-25: Return structuredContent if outputSchema present
+          // P154 errors ({success: false, error: "..."}) are sent as structuredContent
+          // rather than isError: true, so AG receives parseable structured JSON.
+          // All output schemas accommodate both success and error shapes.
           if (hasOutputSchema) {
             return {
               content: [

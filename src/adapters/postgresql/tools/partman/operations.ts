@@ -14,9 +14,13 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
   PartmanCheckDefaultSchema,
+  PartmanCheckDefaultSchemaBase,
   PartmanPartitionDataSchema,
+  PartmanPartitionDataSchemaBase,
   PartmanRetentionSchema,
+  PartmanRetentionSchemaBase,
   PartmanUndoPartitionSchema,
+  PartmanUndoPartitionSchemaBase,
   // Output schemas
   PartmanCheckDefaultOutputSchema,
   PartmanPartitionDataOutputSchema,
@@ -97,7 +101,7 @@ export function createPartmanCheckDefaultTool(
     description: `Check if any data exists in the default partition that should be moved to child partitions.
 Data in default indicates partitions may be missing for certain time/value ranges.`,
     group: "partman",
-    inputSchema: PartmanCheckDefaultSchema,
+    inputSchema: PartmanCheckDefaultSchemaBase,
     outputSchema: PartmanCheckDefaultOutputSchema,
     annotations: readOnly("Check Partman Default"),
     icons: getToolIcons("partman", readOnly("Check Partman Default")),
@@ -258,7 +262,7 @@ export function createPartmanPartitionDataTool(
     description: `Move data from the default partition to appropriate child partitions.
 Creates new partitions if needed for the data being moved.`,
     group: "partman",
-    inputSchema: PartmanPartitionDataSchema,
+    inputSchema: PartmanPartitionDataSchemaBase,
     outputSchema: PartmanPartitionDataOutputSchema,
     annotations: write("Partition Data"),
     icons: getToolIcons("partman", write("Partition Data")),
@@ -387,7 +391,7 @@ export function createPartmanSetRetentionTool(
     description: `Configure retention policy for a partition set. 
 Partitions older than the retention period will be dropped or detached during maintenance.`,
     group: "partman",
-    inputSchema: PartmanRetentionSchema,
+    inputSchema: PartmanRetentionSchemaBase,
     outputSchema: PartmanSetRetentionOutputSchema,
     annotations: write("Set Partition Retention"),
     icons: getToolIcons("partman", write("Set Partition Retention")),
@@ -530,7 +534,7 @@ You must first create an empty table with the same structure as the parent, then
 
 Example: undoPartition({ parentTable: "public.events", targetTable: "public.events_consolidated" })`,
     group: "partman",
-    inputSchema: PartmanUndoPartitionSchema,
+    inputSchema: PartmanUndoPartitionSchemaBase,
     outputSchema: PartmanUndoPartitionOutputSchema,
     annotations: destructive("Undo Partitioning"),
     icons: getToolIcons("partman", destructive("Undo Partitioning")),

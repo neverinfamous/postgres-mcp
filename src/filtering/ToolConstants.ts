@@ -5,8 +5,8 @@
  * STRICT LIMIT: No shortcut may exceed 50 tools.
  *
  * TOOL COUNT ACCOUNTING:
- *   ToolConstants arrays total: 215 tools (sum of all group arrays)
- *   Published "specialized tools": 206 (215 - 9 utility tools)
+ *   ToolConstants arrays total: 227 tools (sum of all group arrays)
+ *   Published "specialized tools": 218 (227 - 9 utility tools)
  *
  *   The 9 excluded utility tools:
  *     - 8 create_extension helpers (one per extension group):
@@ -19,6 +19,8 @@
  *   When adding new tools: update group sizes, meta-group sums,
  *   and the published total in README/DOCKER_README/wiki.
  *   The published total = array total - 9 utility tools.
+ *
+ *   Verify: 20+7+19+13+20+10+11+9+12+16+15+6+8+8+10+7+6+8+12+9+1 = 227
  */
 
 import type { ToolGroup, MetaGroup } from "../types/index.js";
@@ -270,6 +272,20 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_ltree_convert_column",
     "pg_ltree_create_index",
   ],
+  introspection: [
+    "pg_dependency_graph",
+    "pg_topological_sort",
+    "pg_cascade_simulator",
+    "pg_schema_snapshot",
+    "pg_constraint_analysis",
+    "pg_migration_risks",
+    "pg_migration_init",
+    "pg_migration_record",
+    "pg_migration_apply",
+    "pg_migration_rollback",
+    "pg_migration_history",
+    "pg_migration_status",
+  ],
   pgcrypto: [
     "pg_pgcrypto_create_extension",
     "pg_pgcrypto_hash",
@@ -292,45 +308,48 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
  *
  * Group sizes:
  *   core:20, transactions:7, jsonb:19, text:13, performance:20,
- *   admin:10, monitoring:11, backup:9, schema:12, vector:16
- *   postgis:15, partitioning:6, stats:8, cron:8, partman:10
+ *   admin:10, monitoring:11, backup:9, schema:12, introspection:12,
+ *   vector:16, postgis:15, partitioning:6, stats:8, cron:8, partman:10
  *   kcache:7, citext:6, ltree:8, pgcrypto:9, codemode:1
  *
  * Tool counts (with codemode):
- *   starter:      59 (core:20 + transactions:7 + jsonb:19 + schema:12 + codemode:1)
- *   essential:    47 (core:20 + transactions:7 + jsonb:19 + codemode:1)
- *   dev-power:    54 (core:20 + transactions:7 + schema:12 + stats:8 + partitioning:6 + codemode:1)
- *   ai-data:      60 (core:20 + jsonb:19 + text:13 + transactions:7 + codemode:1)
- *   ai-vector:    50 (core:20 + vector:16 + transactions:7 + partitioning:6 + codemode:1)
- *   dba-monitor:  59 (core:20 + monitoring:11 + performance:20 + transactions:7 + codemode:1)
- *   dba-manage:   58 (core:20 + admin:10 + backup:9 + partitioning:6 + schema:12 + codemode:1)
- *   dba-stats:    57 (core:20 + admin:10 + monitoring:11 + transactions:7 + stats:8 + codemode:1)
- *   geo:          43 (core:20 + postgis:15 + transactions:7 + codemode:1)
- *   base-core:    59 (core:20 + jsonb:19 + transactions:7 + schema:12 + codemode:1)
- *   base-ops:     51 (admin:10 + monitoring:11 + backup:9 + partitioning:6 + stats:8 + citext:6 + codemode:1)
- *   ext-ai:       26 (vector:16 + pgcrypto:9 + codemode:1)
- *   ext-geo:      24 (postgis:15 + ltree:8 + codemode:1)
- *   ext-schedule: 19 (cron:8 + partman:10 + codemode:1)
- *   ext-perf:     28 (kcache:7 + performance:20 + codemode:1)
+ *   starter:       59 (core:20 + transactions:7 + jsonb:19 + schema:12 + codemode:1)
+ *   essential:     47 (core:20 + transactions:7 + jsonb:19 + codemode:1)
+ *   dev-schema:    52 (core:20 + transactions:7 + schema:12 + introspection:12 + codemode:1)
+ *   dev-analytics: 42 (core:20 + transactions:7 + stats:8 + partitioning:6 + codemode:1)
+ *   ai-data:       60 (core:20 + jsonb:19 + text:13 + transactions:7 + codemode:1)
+ *   ai-vector:     50 (core:20 + vector:16 + transactions:7 + partitioning:6 + codemode:1)
+ *   dba-monitor:   59 (core:20 + monitoring:11 + performance:20 + transactions:7 + codemode:1)
+ *   dba-schema:    45 (core:20 + schema:12 + introspection:12 + codemode:1)
+ *   dba-infra:     46 (core:20 + admin:10 + backup:9 + partitioning:6 + codemode:1)
+ *   dba-stats:     57 (core:20 + admin:10 + monitoring:11 + transactions:7 + stats:8 + codemode:1)
+ *   geo:           43 (core:20 + postgis:15 + transactions:7 + codemode:1)
+ *   base-ops:      51 (admin:10 + monitoring:11 + backup:9 + partitioning:6 + stats:8 + citext:6 + codemode:1)
+ *   ext-ai:        26 (vector:16 + pgcrypto:9 + codemode:1)
+ *   ext-geo:       24 (postgis:15 + ltree:8 + codemode:1)
+ *   ext-schedule:  19 (cron:8 + partman:10 + codemode:1)
+ *   ext-perf:      28 (kcache:7 + performance:20 + codemode:1)
  */
 export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
-  // 1. General Use (Recommended) - All include codemode for token efficiency
+  // 1. General Use - All include codemode for token efficiency
   starter: ["core", "transactions", "jsonb", "schema", "codemode"], // 59
   essential: ["core", "transactions", "jsonb", "codemode"], // 47
-  "dev-power": [
+
+  // 2. Developer Workloads
+  "dev-schema": ["core", "transactions", "schema", "introspection", "codemode"], // 52
+  "dev-analytics": [
     "core",
     "transactions",
-    "schema",
     "stats",
     "partitioning",
     "codemode",
-  ], // 54
+  ], // 42
 
-  // 2. AI Workloads
+  // 3. AI Workloads
   "ai-data": ["core", "jsonb", "text", "transactions", "codemode"], // 60
   "ai-vector": ["core", "vector", "transactions", "partitioning", "codemode"], // 50
 
-  // 3. DBA Workloads
+  // 4. DBA Workloads
   "dba-monitor": [
     "core",
     "monitoring",
@@ -338,14 +357,8 @@ export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
     "transactions",
     "codemode",
   ], // 59
-  "dba-manage": [
-    "core",
-    "admin",
-    "backup",
-    "partitioning",
-    "schema",
-    "codemode",
-  ], // 58
+  "dba-schema": ["core", "schema", "introspection", "codemode"], // 45
+  "dba-infra": ["core", "admin", "backup", "partitioning", "codemode"], // 46
   "dba-stats": [
     "core",
     "admin",
@@ -355,11 +368,10 @@ export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
     "codemode",
   ], // 57
 
-  // 4. Specialty Workloads
+  // 5. Specialty Workloads
   geo: ["core", "postgis", "transactions", "codemode"], // 43
 
-  // 5. Base Blocks (Building Blocks for Combining)
-  "base-core": ["core", "jsonb", "transactions", "schema", "codemode"], // 59
+  // 6. Building Blocks (for combining)
   "base-ops": [
     "admin",
     "monitoring",
@@ -370,7 +382,7 @@ export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
     "codemode",
   ], // 51
 
-  // 6. Extension Bundles (for adding extension capabilities)
+  // 7. Extension Bundles (for adding extension capabilities)
   "ext-ai": ["vector", "pgcrypto", "codemode"], // 26
   "ext-geo": ["postgis", "ltree", "codemode"], // 24
   "ext-schedule": ["cron", "partman", "codemode"], // 19

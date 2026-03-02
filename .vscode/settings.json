@@ -1,0 +1,61 @@
+{
+  // ═══════════════════════════════════════════════════════════════════════
+  // ESLint Configuration
+  // ═══════════════════════════════════════════════════════════════════════
+  "eslint.enable": true,
+  "eslint.useFlatConfig": true,
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact",
+    "json",
+    "jsonc",
+    "markdown"
+  ],
+  // Run ESLint on save (provides feedback to agent)
+  "eslint.run": "onSave",
+  // Show severity inline
+  "eslint.rules.customizations": [
+    {
+      "rule": "*",
+      "severity": "warn"
+    }
+  ],
+  // ═══════════════════════════════════════════════════════════════════════
+  // Prettier Configuration
+  // ═══════════════════════════════════════════════════════════════════════
+  // Formatting is handled via CLI: npx prettier --write .
+  // Do NOT set editor.defaultFormatter to esbenp.prettier-vscode here —
+  // AntiGravity does not support VS Code extensions and will show errors.
+  "editor.formatOnSave": false,
+  // ═══════════════════════════════════════════════════════════════════════
+  // Error Lens Configuration
+  // ═══════════════════════════════════════════════════════════════════════
+  "errorLens.enabled": true,
+  "errorLens.enabledDiagnosticLevels": ["error", "warning", "info"],
+  "errorLens.messageEnabled": true,
+  "errorLens.statusBarMessageEnabled": true,
+  "errorLens.gutterIconsEnabled": true,
+  // Delay to avoid flicker during active typing
+  "errorLens.delay": 500,
+  // Exclude noisy hints if needed
+  "errorLens.excludeBySource": [],
+  // ═══════════════════════════════════════════════════════════════════════
+  // TypeScript Configuration (Built-in)
+  // ═══════════════════════════════════════════════════════════════════════
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.suggest.autoImports": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  // ═══════════════════════════════════════════════════════════════════════
+  // Editor Behavior
+  // ═══════════════════════════════════════════════════════════════════════
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "never"
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true
+}

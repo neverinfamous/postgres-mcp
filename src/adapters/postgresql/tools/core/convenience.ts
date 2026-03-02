@@ -18,6 +18,7 @@ import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "./error-helpers.js";
+import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   WriteQueryOutputSchema,
   CountOutputSchema,
@@ -224,9 +225,6 @@ export const BatchInsertSchema = z
   .refine((data) => data.table !== "", {
     message:
       'table (or tableName alias) is required. Usage: pg_batch_insert({ table: "users", rows: [{ name: "John" }, { name: "Jane" }] })',
-  })
-  .refine((data) => data.rows.length > 0, {
-    message: "rows must not be empty",
   });
 
 // MCP visibility schema - table OR tableName required
@@ -560,14 +558,27 @@ export function createBatchInsertTool(
     annotations: write("Batch Insert"),
     icons: getToolIcons("core", write("Batch Insert")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = BatchInsertSchema.parse(params);
+      let parsed;
+      try {
+        parsed = BatchInsertSchema.parse(params);
+      } catch (error: unknown) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join("; ")}`,
+          };
+        }
+        throw error;
+      }
 
       // Validate rows array is not empty
       if (parsed.rows.length === 0) {
-        throw new Error(
-          "rows array must not be empty. Provide at least one row to insert, " +
-            'e.g., rows: [{column: "value"}]',
-        );
+        return {
+          success: false,
+          error:
+            "rows must not be empty. Provide at least one row to insert, " +
+            'e.g., rows: [{ column: "value" }]',
+        };
       }
 
       const schemaName = parsed.schema ?? "public";
@@ -706,7 +717,7 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
       // Treat empty where string as no where clause
       const whereClause =
         parsed.where !== undefined && parsed.where.trim() !== ""
-          ? ` WHERE ${parsed.where}`
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
 
       const sql = `SELECT COUNT(${countExpr}) as count FROM ${qualifiedTable}${whereClause}`;
@@ -759,7 +770,9 @@ export function createExistsTool(adapter: PostgresAdapter): ToolDefinition {
       // Build SQL with optional WHERE clause
       const whereValue = parsed.where ?? "";
       const hasWhere = whereValue.trim() !== "";
-      const whereClause = hasWhere ? ` WHERE ${whereValue}` : "";
+      const whereClause = hasWhere
+        ? ` WHERE ${sanitizeWhereClause(whereValue)}`
+        : "";
       const sql = `SELECT EXISTS(SELECT 1 FROM ${qualifiedTable}${whereClause}) as exists`;
 
       const result = await adapter.executeQuery(sql, parsed.params);

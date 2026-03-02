@@ -215,6 +215,22 @@ const METHOD_ALIASES: Record<string, Record<string, string>> = {
     detach: "detachPartition", // detach() → detachPartition()
     remove: "detachPartition", // remove() → detachPartition()
   },
+  // Introspection: shorthand aliases for common operations
+  introspection: {
+    deps: "dependencyGraph", // deps() → dependencyGraph()
+    graph: "dependencyGraph", // graph() → dependencyGraph()
+    sort: "topologicalSort", // sort() → topologicalSort()
+    cascade: "cascadeSimulator", // cascade() → cascadeSimulator()
+    snapshot: "schemaSnapshot", // snapshot() → schemaSnapshot()
+    constraints: "constraintAnalysis", // constraints() → constraintAnalysis()
+    risks: "migrationRisks", // risks() → migrationRisks()
+    init: "migrationInit", // init() → migrationInit()
+    record: "migrationRecord", // record() → migrationRecord()
+    apply: "migrationApply", // apply() → migrationApply()
+    rollback: "migrationRollback", // rollback() → migrationRollback()
+    history: "migrationHistory", // history() → migrationHistory()
+    status: "migrationStatus", // status() → migrationStatus()
+  },
 };
 
 /**
@@ -345,6 +361,21 @@ const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.pgcrypto.genRandomUuid()",
     "pg.pgcrypto.genSalt({ type: 'bf', iterations: 10 })",
     "pg.pgcrypto.crypt({ password: 'userpass', salt: storedHash })",
+  ],
+  introspection: [
+    "pg.introspection.dependencyGraph()",
+    "pg.introspection.dependencyGraph({ schema: 'public' })",
+    "pg.introspection.topologicalSort({ direction: 'create' })",
+    "pg.introspection.cascadeSimulator({ table: 'users' })",
+    "pg.introspection.schemaSnapshot({ sections: ['tables', 'constraints'] })",
+    "pg.introspection.constraintAnalysis({ checks: ['unindexed_fk', 'missing_pk'] })",
+    "pg.introspection.migrationRisks({ statements: ['ALTER TABLE users DROP COLUMN email'] })",
+    "pg.introspection.migrationInit()",
+    "pg.introspection.migrationRecord({ version: '1.0.0', migrationSql: 'ALTER TABLE...', rollbackSql: 'ALTER TABLE...' })",
+    "pg.introspection.migrationApply({ version: '2.0.0', migrationSql: 'CREATE TABLE orders (...)', rollbackSql: 'DROP TABLE orders' })",
+    "pg.introspection.migrationRollback({ version: '1.0.0', dryRun: true })",
+    "pg.introspection.migrationHistory({ status: 'applied' })",
+    "pg.introspection.migrationStatus()",
   ],
 };
 /**
@@ -865,6 +896,10 @@ export class PgApi {
   readonly citext: Record<string, (...args: unknown[]) => Promise<unknown>>;
   readonly ltree: Record<string, (...args: unknown[]) => Promise<unknown>>;
   readonly pgcrypto: Record<string, (...args: unknown[]) => Promise<unknown>>;
+  readonly introspection: Record<
+    string,
+    (...args: unknown[]) => Promise<unknown>
+  >;
 
   private readonly toolsByGroup: Map<string, ToolDefinition[]>;
 
@@ -969,6 +1004,11 @@ export class PgApi {
       "pgcrypto",
       this.toolsByGroup.get("pgcrypto") ?? [],
     );
+    this.introspection = createGroupApi(
+      adapter,
+      "introspection",
+      this.toolsByGroup.get("introspection") ?? [],
+    );
   }
 
   /**
@@ -1055,6 +1095,7 @@ export class PgApi {
       "citext",
       "ltree",
       "pgcrypto",
+      "introspection",
     ] as const;
 
     for (const groupName of groupNames) {

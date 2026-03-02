@@ -1,0 +1,9 @@
+# Build artifacts
+dist/
+node_modules/
+
+# Generated files (edit the .md source instead)
+src/constants/ServerInstructions.ts
+
+# Test output
+test-results.json

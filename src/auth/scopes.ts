@@ -75,6 +75,9 @@ export const TOOL_GROUP_SCOPES: Record<ToolGroup, StandardScope> = {
   ltree: SCOPES.READ,
   pgcrypto: SCOPES.READ,
 
+  // Introspection (read-only analysis tools)
+  introspection: SCOPES.WRITE,
+
   // Code Mode (requires admin - can execute arbitrary operations)
   codemode: SCOPES.ADMIN,
 };

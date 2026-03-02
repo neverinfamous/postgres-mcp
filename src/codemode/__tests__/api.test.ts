@@ -1264,7 +1264,7 @@ describe("Text group metaphone wrapper execution", () => {
 });
 
 // =============================================================================
-// Full sandbox bindings coverage — all 19 tool groups
+// Full sandbox bindings coverage — all 20 tool groups
 // =============================================================================
 
 describe("createSandboxBindings — full group coverage", () => {
@@ -1600,6 +1600,27 @@ describe("createSandboxBindings — full group coverage", () => {
         inputSchema: {},
         handler,
       })),
+      // Introspection group
+      ...[
+        "pg_dependency_graph",
+        "pg_topological_sort",
+        "pg_cascade_simulator",
+        "pg_schema_snapshot",
+        "pg_constraint_analysis",
+        "pg_migration_risks",
+        "pg_migration_init",
+        "pg_migration_record",
+        "pg_migration_apply",
+        "pg_migration_rollback",
+        "pg_migration_history",
+        "pg_migration_status",
+      ].map((name) => ({
+        name,
+        description: name,
+        group: "introspection" as ToolGroup,
+        inputSchema: {},
+        handler,
+      })),
     ];
 
     return {
@@ -1608,12 +1629,12 @@ describe("createSandboxBindings — full group coverage", () => {
     } as unknown as PostgresAdapter;
   }
 
-  it("should create top-level aliases for all 19 tool groups", () => {
+  it("should create top-level aliases for all 20 tool groups", () => {
     const adapter = createFullMockAdapter();
     const api = createPgApi(adapter);
     const bindings = api.createSandboxBindings();
 
-    // All 19 group namespaces should exist
+    // All 20 group namespaces should exist
     const expectedGroups = [
       "core",
       "transactions",
@@ -1634,6 +1655,7 @@ describe("createSandboxBindings — full group coverage", () => {
       "citext",
       "ltree",
       "pgcrypto",
+      "introspection",
     ];
     for (const group of expectedGroups) {
       expect(bindings).toHaveProperty(group);

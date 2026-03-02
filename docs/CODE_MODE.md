@@ -97,17 +97,6 @@ const coreApi = pg.core.help(); // Group-specific methods and examples
 
 ---
 
-## Isolation Modes
-
-| Mode     | Isolation          | Recommendation                  |
-| -------- | ------------------ | ------------------------------- |
-| `vm`     | Same process       | ✅ **Default, recommended**     |
-| `worker` | Separate V8 thread | ⚠️ Not recommended (incomplete) |
-
-The `vm` mode is fully functional and requires no configuration.
-
----
-
 ## Security Constraints
 
 Code Mode enforces strict security:

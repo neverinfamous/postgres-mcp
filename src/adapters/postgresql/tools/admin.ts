@@ -12,6 +12,11 @@ import { admin, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { formatPostgresError } from "./core/error-helpers.js";
 import {
+  sanitizeIdentifier,
+  sanitizeIdentifiers,
+  sanitizeTableName,
+} from "../../../utils/identifiers.js";
+import {
   buildProgressContext,
   sendProgress,
 } from "../../../utils/progress-utils.js";
@@ -73,11 +78,7 @@ function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
         const verboseClause = verbose === true ? "VERBOSE " : "";
         const analyzeClause = analyze === true ? "ANALYZE " : "";
         const target =
-          table !== undefined
-            ? schema !== undefined
-              ? `"${schema}"."${table}"`
-              : `"${table}"`
-            : "";
+          table !== undefined ? sanitizeTableName(table, schema) : "";
 
         const sql = `VACUUM ${fullClause}${verboseClause}${analyzeClause}${target}`;
         await adapter.executeQuery(sql);
@@ -128,11 +129,7 @@ function createVacuumAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
         const fullClause = full === true ? "FULL " : "";
         const verboseClause = verbose === true ? "VERBOSE " : "";
         const target =
-          table !== undefined
-            ? schema !== undefined
-              ? `"${schema}"."${table}"`
-              : `"${table}"`
-            : "";
+          table !== undefined ? sanitizeTableName(table, schema) : "";
 
         const sql = `VACUUM ${fullClause}${verboseClause}ANALYZE ${target}`;
         await adapter.executeQuery(sql);
@@ -193,14 +190,10 @@ function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         const target =
-          table !== undefined
-            ? schema !== undefined
-              ? `"${schema}"."${table}"`
-              : `"${table}"`
-            : "";
+          table !== undefined ? sanitizeTableName(table, schema) : "";
         const columnClause =
           columns !== undefined && columns.length > 0
-            ? `(${columns.map((c) => `"${c}"`).join(", ")})`
+            ? `(${sanitizeIdentifiers(columns).join(", ")})`
             : "";
 
         const sql = `ANALYZE ${target}${columnClause}`;
@@ -270,7 +263,7 @@ function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
           };
         }
 
-        const sql = `REINDEX ${parsed.target.toUpperCase()} ${concurrentlyClause}"${effectiveName}"`;
+        const sql = `REINDEX ${parsed.target.toUpperCase()} ${concurrentlyClause}${sanitizeIdentifier(effectiveName)}`;
         await adapter.executeQuery(sql);
 
         await sendProgress(progress, 3, 3, "REINDEX complete");
@@ -303,15 +296,24 @@ function createTerminateBackendTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: destructive("Terminate Backend"),
     icons: getToolIcons("admin", destructive("Terminate Backend")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { pid } = TerminateBackendSchema.parse(params);
-      const sql = `SELECT pg_terminate_backend($1)`;
-      const result = await adapter.executeQuery(sql, [pid]);
-      const terminated = result.rows?.[0]?.["pg_terminate_backend"] === true;
-      return {
-        success: terminated,
-        pid,
-        message: terminated ? "Backend terminated" : "Failed to terminate",
-      };
+      try {
+        const { pid } = TerminateBackendSchema.parse(params);
+        const sql = `SELECT pg_terminate_backend($1)`;
+        const result = await adapter.executeQuery(sql, [pid]);
+        const terminated = result.rows?.[0]?.["pg_terminate_backend"] === true;
+        return {
+          success: terminated,
+          pid,
+          message: terminated ? "Backend terminated" : "Failed to terminate",
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_terminate_backend",
+          }),
+        };
+      }
     },
   };
 }
@@ -326,15 +328,24 @@ function createCancelBackendTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Cancel Backend"),
     icons: getToolIcons("admin", admin("Cancel Backend")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { pid } = CancelBackendSchema.parse(params);
-      const sql = `SELECT pg_cancel_backend($1)`;
-      const result = await adapter.executeQuery(sql, [pid]);
-      const cancelled = result.rows?.[0]?.["pg_cancel_backend"] === true;
-      return {
-        success: cancelled,
-        pid,
-        message: cancelled ? "Query cancelled" : "Failed to cancel",
-      };
+      try {
+        const { pid } = CancelBackendSchema.parse(params);
+        const sql = `SELECT pg_cancel_backend($1)`;
+        const result = await adapter.executeQuery(sql, [pid]);
+        const cancelled = result.rows?.[0]?.["pg_cancel_backend"] === true;
+        return {
+          success: cancelled,
+          pid,
+          message: cancelled ? "Query cancelled" : "Failed to cancel",
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_cancel_backend",
+          }),
+        };
+      }
     },
   };
 }
@@ -349,12 +360,19 @@ function createReloadConfTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Reload Configuration"),
     icons: getToolIcons("admin", admin("Reload Configuration")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const sql = `SELECT pg_reload_conf()`;
-      const result = await adapter.executeQuery(sql);
-      return {
-        success: result.rows?.[0]?.["pg_reload_conf"],
-        message: "Configuration reloaded",
-      };
+      try {
+        const sql = `SELECT pg_reload_conf()`;
+        const result = await adapter.executeQuery(sql);
+        return {
+          success: result.rows?.[0]?.["pg_reload_conf"],
+          message: "Configuration reloaded",
+        };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_reload_conf" }),
+        };
+      }
     },
   };
 }
@@ -437,42 +455,25 @@ function createSetConfigTool(adapter: PostgresAdapter): ToolDefinition {
   };
 }
 
-/**
- * Handle undefined/null params for tools with optional-only parameters
- */
-function normalizeOptionalParams(input: unknown): Record<string, unknown> {
-  if (typeof input !== "object" || input === null) {
-    return {};
-  }
-  return input as Record<string, unknown>;
-}
-
-const ResetStatsSchema = z.preprocess(
-  normalizeOptionalParams,
-  z.object({
-    type: z.enum(["database", "all"]).optional(),
-  }),
-);
-
 function createResetStatsTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_reset_stats",
     description: "Reset statistics counters (requires superuser).",
     group: "admin",
-    inputSchema: ResetStatsSchema,
+    inputSchema: z.object({}),
     outputSchema: ConfigOutputSchema,
     annotations: admin("Reset Statistics"),
     icons: getToolIcons("admin", admin("Reset Statistics")),
-    handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = ResetStatsSchema.parse(params);
-      let sql: string;
-      if (parsed.type === "all") {
-        sql = `SELECT pg_stat_reset()`;
-      } else {
-        sql = `SELECT pg_stat_reset()`;
+    handler: async (_params: unknown, _context: RequestContext) => {
+      try {
+        await adapter.executeQuery(`SELECT pg_stat_reset()`);
+        return { success: true, message: "Statistics reset" };
+      } catch (error: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_reset_stats" }),
+        };
       }
-      await adapter.executeQuery(sql);
-      return { success: true, message: "Statistics reset" };
     },
   };
 }
@@ -496,6 +497,20 @@ function preprocessClusterParams(input: unknown): unknown {
   if (result["indexName"] !== undefined && result["index"] === undefined) {
     result["index"] = result["indexName"];
   }
+
+  // Parse schema.table format (e.g., 'public.users' → { schema: 'public', table: 'users' })
+  const tableVal = result["table"];
+  if (typeof tableVal === "string" && tableVal.includes(".")) {
+    const parts = tableVal.split(".");
+    if (parts.length === 2 && parts[0] !== "" && parts[1] !== "") {
+      // Only override schema if not explicitly provided
+      if (result["schema"] === undefined) {
+        result["schema"] = parts[0];
+      }
+      result["table"] = parts[1];
+    }
+  }
+
   return result;
 }
 
@@ -585,11 +600,8 @@ function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
               "table and index must both be specified together, or both omitted for database-wide re-cluster",
           };
         }
-        const tableName =
-          parsed.schema !== undefined
-            ? `"${parsed.schema}"."${parsed.table}"`
-            : `"${parsed.table}"`;
-        const sql = `CLUSTER ${tableName} USING "${parsed.index}"`;
+        const tableName = sanitizeTableName(parsed.table, parsed.schema);
+        const sql = `CLUSTER ${tableName} USING ${sanitizeIdentifier(parsed.index)}`;
         await adapter.executeQuery(sql);
 
         await sendProgress(progress, 2, 2, "CLUSTER complete");

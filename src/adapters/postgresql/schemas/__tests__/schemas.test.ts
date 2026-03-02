@@ -2575,24 +2575,22 @@ describe("PartmanCreateParentSchema (preprocessPartmanParams)", () => {
     expect(result.parentTable).toBe("analytics.events");
   });
 
-  it("should reject deprecated interval keyword 'daily'", () => {
-    expect(() =>
-      PartmanCreateParentSchema.parse({
-        table: "events",
-        controlColumn: "created_at",
-        interval: "daily",
-      }),
-    ).toThrow("Deprecated interval");
+  it("should pass deprecated interval keyword 'daily' through schema (handler validates)", () => {
+    const result = PartmanCreateParentSchema.parse({
+      table: "events",
+      controlColumn: "created_at",
+      interval: "daily",
+    });
+    expect(result.interval).toBe("daily");
   });
 
-  it("should reject deprecated interval keyword 'monthly'", () => {
-    expect(() =>
-      PartmanCreateParentSchema.parse({
-        table: "events",
-        controlColumn: "created_at",
-        interval: "monthly",
-      }),
-    ).toThrow("Deprecated interval");
+  it("should pass deprecated interval keyword 'monthly' through schema (handler validates)", () => {
+    const result = PartmanCreateParentSchema.parse({
+      table: "events",
+      controlColumn: "created_at",
+      interval: "monthly",
+    });
+    expect(result.interval).toBe("monthly");
   });
 });
 

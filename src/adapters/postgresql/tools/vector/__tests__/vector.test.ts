@@ -1210,3 +1210,1298 @@ describe("Object Existence Checks (P154)", () => {
     });
   });
 });
+
+describe("Coverage: Missing Param Validation", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getVectorTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getVectorTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  describe("pg_vector_search", () => {
+    it("should return error when table is empty string", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_search")!;
+      const result = (await tool.handler(
+        { table: "", column: "vec", vector: [0.1] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("table");
+    });
+
+    it("should return error when column is empty string", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_search")!;
+      const result = (await tool.handler(
+        { table: "t", column: "", vector: [0.1] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("column");
+    });
+
+    it("should use inner_product metric operator", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ distance: 0.5 }] });
+      const tool = tools.find((t) => t.name === "pg_vector_search")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", vector: [0.1], metric: "inner_product" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.metric).toBe("inner_product");
+      const sql = mockAdapter.executeQuery.mock.calls[2][0] as string;
+      expect(sql).toContain("<#>");
+    });
+
+    it("should apply excludeNull filter", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [] });
+      const tool = tools.find((t) => t.name === "pg_vector_search")!;
+      await tool.handler(
+        { table: "t", column: "vec", vector: [0.1], excludeNull: true },
+        mockContext,
+      );
+      const sql = mockAdapter.executeQuery.mock.calls[2][0] as string;
+      expect(sql).toContain("IS NOT NULL");
+    });
+
+    it("should add hint when no select columns specified", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ distance: 0.1 }] });
+      const tool = tools.find((t) => t.name === "pg_vector_search")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", vector: [0.1] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.hint).toBeDefined();
+    });
+
+    it("should note NULL distance values", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ distance: null }] });
+      const tool = tools.find((t) => t.name === "pg_vector_search")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", vector: [0.1] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.note).toContain("NULL");
+    });
+  });
+
+  describe("pg_vector_insert", () => {
+    it("should return error when table is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_insert")!;
+      const result = (await tool.handler(
+        { table: "", column: "vec", vector: [0.1] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("table");
+    });
+
+    it("should return error when column is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_insert")!;
+      const result = (await tool.handler(
+        { table: "t", column: "", vector: [0.1] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("column");
+    });
+
+    it("should return error when vector is empty array", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_insert")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", vector: [] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("vector");
+    });
+
+    it("should handle schema.table format in insert", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
+      const tool = tools.find((t) => t.name === "pg_vector_insert")!;
+      const result = (await tool.handler(
+        { table: "myschema.mytable", column: "vec", vector: [0.1] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+    });
+
+    it("should handle additionalColumns in insert mode", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [], rowsAffected: 1 });
+      const tool = tools.find((t) => t.name === "pg_vector_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "t",
+          column: "vec",
+          vector: [0.1],
+          additionalColumns: { name: "test" },
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+    });
+
+    it("should handle additionalColumns in update mode", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rowsAffected: 1 });
+      const tool = tools.find((t) => t.name === "pg_vector_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "t",
+          column: "vec",
+          vector: [0.1],
+          updateExisting: true,
+          conflictColumn: "id",
+          conflictValue: 1,
+          additionalColumns: { name: "updated" },
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+      expect(result.mode).toBe("update");
+      expect(result.columnsUpdated).toBe(2);
+    });
+  });
+
+  describe("pg_vector_add_column", () => {
+    it("should return error when table is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_add_column")!;
+      const result = (await tool.handler(
+        { column: "vec", dimensions: 3 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("table");
+    });
+
+    it("should return error when column is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_add_column")!;
+      const result = (await tool.handler(
+        { table: "t", dimensions: 3 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("column");
+    });
+
+    it("should skip when ifNotExists=true and column already exists", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // table exists
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }); // column exists
+      const tool = tools.find((t) => t.name === "pg_vector_add_column")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", dimensions: 3, ifNotExists: true },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+      expect(result.alreadyExists).toBe(true);
+    });
+
+    it("should rethrow non-duplicate-column errors", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockRejectedValueOnce(new Error("permission denied"));
+      const tool = tools.find((t) => t.name === "pg_vector_add_column")!;
+      await expect(
+        tool.handler({ table: "t", column: "vec", dimensions: 3 }, mockContext),
+      ).rejects.toThrow("permission denied");
+    });
+  });
+
+  describe("pg_vector_create_index", () => {
+    it("should return error when table is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_create_index")!;
+      const result = (await tool.handler(
+        { column: "vec", type: "hnsw" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("table");
+    });
+
+    it("should return error when column is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_create_index")!;
+      const result = (await tool.handler(
+        { table: "t", type: "hnsw" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("column");
+    });
+
+    it("should handle race condition with ifNotExists=true", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check
+        .mockResolvedValueOnce({ rows: [] }) // pg_indexes check - not found
+        .mockRejectedValueOnce(new Error("relation already exists")); // race
+      const tool = tools.find((t) => t.name === "pg_vector_create_index")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", type: "hnsw", ifNotExists: true },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+      expect(result.alreadyExists).toBe(true);
+    });
+
+    it("should use cosine metric operator class", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
+      const tool = tools.find((t) => t.name === "pg_vector_create_index")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", type: "hnsw", metric: "cosine" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+      expect(result.metric).toBe("cosine");
+      const sql = mockAdapter.executeQuery.mock.calls[1][0] as string;
+      expect(sql).toContain("vector_cosine_ops");
+    });
+
+    it("should use inner_product operator class", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
+      const tool = tools.find((t) => t.name === "pg_vector_create_index")!;
+      const result = (await tool.handler(
+        {
+          table: "t",
+          column: "vec",
+          type: "ivfflat",
+          metric: "inner_product",
+          lists: 50,
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+      const sql = mockAdapter.executeQuery.mock.calls[1][0] as string;
+      expect(sql).toContain("vector_ip_ops");
+      expect(sql).toContain("lists = 50");
+    });
+  });
+
+  describe("pg_vector_aggregate", () => {
+    it("should return error when table is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      const result = (await tool.handler(
+        { column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("table");
+    });
+
+    it("should return error when column is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      const result = (await tool.handler(
+        { table: "t" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("column");
+    });
+
+    it("should return non-vector-column error", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "text" }] });
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      const result = (await tool.handler(
+        { table: "t", column: "name" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not a vector column");
+    });
+
+    it("should handle schema.table format", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({
+          rows: [{ average_vector: "[0.1,0.2]", count: "3" }],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      const result = (await tool.handler(
+        { table: "myschema.mytable", column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.count).toBe(3);
+    });
+
+    it("should handle where clause", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({
+          rows: [{ average_vector: "[0.1]", count: 1 }],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      await tool.handler(
+        { table: "t", column: "vec", where: "category = 1" },
+        mockContext,
+      );
+      const sql = mockAdapter.executeQuery.mock.calls[2][0] as string;
+      expect(sql).toContain("WHERE");
+    });
+
+    it("should note empty/null results", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ average_vector: null, count: 0 }] });
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", summarizeVector: false },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.note).toContain("No vectors found");
+    });
+
+    it("should note all-NULL vectors", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({
+          rows: [{ average_vector: null, count: "5" }],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", summarizeVector: false },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.note).toContain("NULL vectors");
+    });
+
+    it("should summarize large vectors by default", async () => {
+      const bigVec = Array.from({ length: 20 }, (_, i) => i * 0.1).join(",");
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({
+          rows: [{ average_vector: `[${bigVec}]`, count: 1 }],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      const av = result.average_vector as { truncated: boolean };
+      expect(av.truncated).toBe(true);
+    });
+
+    it("should handle groupBy with NULL average vectors and excludeNullGroups", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({
+          rows: [
+            { group_key: "a", average_vector: "[0.1]", count: 2 },
+            { group_key: "b", average_vector: null, count: 1 },
+          ],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+
+      // Without excludeNullGroups: should include note
+      const r1 = (await tool.handler(
+        {
+          table: "t",
+          column: "vec",
+          groupBy: "category",
+          summarizeVector: false,
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(r1.note).toContain("NULL average_vector");
+      expect((r1.groups as unknown[]).length).toBe(2);
+    });
+
+    it("should filter out null groups when excludeNullGroups=true", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({
+          rows: [
+            { group_key: "a", average_vector: "[0.1]", count: 2 },
+            { group_key: "b", average_vector: null, count: 1 },
+          ],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      const r = (await tool.handler(
+        {
+          table: "t",
+          column: "vec",
+          groupBy: "category",
+          excludeNullGroups: true,
+          summarizeVector: false,
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect((r.groups as unknown[]).length).toBe(1);
+      expect(r.count).toBe(1);
+    });
+
+    it("should handle count as number type", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({
+          rows: [{ average_vector: "[0.1]", count: 5 }],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_aggregate")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", summarizeVector: false },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.count).toBe(5);
+    });
+  });
+
+  describe("pg_vector_distance", () => {
+    it("should return error for dimension mismatch", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_distance")!;
+      const result = (await tool.handler(
+        { vector1: [0.1, 0.2], vector2: [0.1, 0.2, 0.3] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("dimensions must match");
+    });
+
+    it("should use cosine operator", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ distance: 0.5 }],
+      });
+      const tool = tools.find((t) => t.name === "pg_vector_distance")!;
+      await tool.handler(
+        { vector1: [0.1], vector2: [0.2], metric: "cosine" },
+        mockContext,
+      );
+      const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+      expect(sql).toContain("<=>");
+    });
+
+    it("should use inner_product operator", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ distance: 0.5 }],
+      });
+      const tool = tools.find((t) => t.name === "pg_vector_distance")!;
+      await tool.handler(
+        { vector1: [0.1], vector2: [0.2], metric: "inner_product" },
+        mockContext,
+      );
+      const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+      expect(sql).toContain("<#>");
+    });
+  });
+
+  describe("pg_vector_normalize", () => {
+    it("should return error for zero vector", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_normalize")!;
+      const result = (await tool.handler(
+        { vector: [0, 0, 0] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("zero vector");
+    });
+  });
+
+  describe("pg_vector_batch_insert", () => {
+    it("should return success for empty vectors array", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "1": 1 }] });
+      const tool = tools.find((t) => t.name === "pg_vector_batch_insert")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", vectors: [] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+      expect(result.rowsInserted).toBe(0);
+    });
+
+    it("should handle schema.table format", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [], rowsAffected: 1 });
+      const tool = tools.find((t) => t.name === "pg_vector_batch_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "myschema.mytable",
+          column: "vec",
+          vectors: [{ vector: [0.1] }],
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+    });
+
+    it("should handle vectors with additional data columns", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [], rowsAffected: 2 });
+      const tool = tools.find((t) => t.name === "pg_vector_batch_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "t",
+          column: "vec",
+          vectors: [
+            { vector: [0.1], data: { name: "a", score: 1 } },
+            { vector: [0.2], data: { name: "b" } },
+          ],
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(true);
+      expect(result.rowsInserted).toBe(2);
+    });
+
+    it("should rethrow non-dimension errors", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockRejectedValueOnce(new Error("permission denied"));
+      const tool = tools.find((t) => t.name === "pg_vector_batch_insert")!;
+      await expect(
+        tool.handler(
+          { table: "t", column: "vec", vectors: [{ vector: [0.1] }] },
+          mockContext,
+        ),
+      ).rejects.toThrow("permission denied");
+    });
+  });
+
+  describe("pg_vector_validate", () => {
+    it("should return table-not-found error", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [] }) // column not found
+        .mockResolvedValueOnce({ rows: [] }); // table not found
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { table: "nonexistent", column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("Table");
+    });
+
+    it("should return column-not-found error", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [] }) // column not found
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }); // table exists
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { table: "t", column: "bad" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("Column");
+    });
+
+    it("should detect dimension mismatch", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // column exists
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] }) // type check
+        .mockResolvedValueOnce({ rows: [{ dimensions: "384" }] }); // dimension check
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", vector: [0.1, 0.2, 0.3] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("dimensions");
+      expect(result.suggestion).toContain("embedding model");
+    });
+
+    it("should suggest dimension_reduce when vector is too large", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ dimensions: 3 }] });
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", vector: [0.1, 0.2, 0.3, 0.4, 0.5] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.valid).toBe(false);
+      expect(result.suggestion).toContain("dimension_reduce");
+    });
+
+    it("should handle empty table (no sample row)", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockRejectedValueOnce(new Error("no rows"));
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.valid).toBe(true);
+    });
+
+    it("should validate with dimensions param only (no table)", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { vector: [0.1, 0.2], dimensions: 3 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.valid).toBe(false);
+    });
+
+    it("should return valid=true when no expected dimensions", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { vector: [0.1, 0.2] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.valid).toBe(true);
+      expect(result.vectorDimensions).toBe(2);
+    });
+
+    it("should handle ZodError for invalid vector input", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_validate")!;
+      const result = (await tool.handler(
+        { vector: "not-an-array" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.valid).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+  });
+});
+
+describe("Coverage: Hybrid Search Error Paths", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getVectorTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getVectorTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return error when table is empty", async () => {
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      { vectorColumn: "vec", textColumn: "c", vector: [0.1], textQuery: "t" },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  it("should return error when vectorColumn is empty", async () => {
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      { table: "t", textColumn: "c", vector: [0.1], textQuery: "t" },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("vectorColumn");
+  });
+
+  it("should reject tsvector column for vectorColumn", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "tsvector", udt_name: "tsvector" }],
+      }); // type check
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      {
+        table: "t",
+        vectorColumn: "tsv",
+        textColumn: "c",
+        vector: [0.1],
+        textQuery: "t",
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("tsvector");
+  });
+
+  it("should reject non-vector column type", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      });
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      {
+        table: "t",
+        vectorColumn: "name",
+        textColumn: "c",
+        vector: [0.1],
+        textQuery: "t",
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("text");
+  });
+
+  it("should catch column-not-found error from query execution", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "USER-DEFINED", udt_name: "vector" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      })
+      .mockResolvedValueOnce({ rows: [{ column_name: "id" }] })
+      .mockRejectedValueOnce(new Error('column "content" does not exist'));
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      {
+        table: "t",
+        vectorColumn: "vec",
+        textColumn: "content",
+        vector: [0.1],
+        textQuery: "t",
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+    expect(result.parameterWithIssue).toBe("textColumn");
+  });
+
+  it("should catch dimension mismatch from query execution", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "USER-DEFINED", udt_name: "vector" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      })
+      .mockResolvedValueOnce({ rows: [{ column_name: "id" }] })
+      .mockRejectedValueOnce(
+        new Error("different vector dimensions 384 and 3"),
+      );
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      {
+        table: "t",
+        vectorColumn: "vec",
+        textColumn: "c",
+        vector: [0.1],
+        textQuery: "t",
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.success).toBe(false);
+    expect(result.expectedDimensions).toBe(384);
+  });
+
+  it("should catch relation-not-found from query execution", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "USER-DEFINED", udt_name: "vector" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      })
+      .mockResolvedValueOnce({ rows: [{ column_name: "id" }] })
+      .mockRejectedValueOnce(new Error('relation "t" does not exist'));
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      {
+        table: "t",
+        vectorColumn: "vec",
+        textColumn: "c",
+        vector: [0.1],
+        textQuery: "t",
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+  });
+
+  it("should return generic error for unexpected Error", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "USER-DEFINED", udt_name: "vector" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      })
+      .mockResolvedValueOnce({ rows: [{ column_name: "id" }] })
+      .mockRejectedValueOnce(new Error("some generic DB error"));
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      {
+        table: "t",
+        vectorColumn: "vec",
+        textColumn: "c",
+        vector: [0.1],
+        textQuery: "t",
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.success).toBe(false);
+  });
+
+  it("should handle non-Error exception", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "USER-DEFINED", udt_name: "vector" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      })
+      .mockResolvedValueOnce({ rows: [{ column_name: "id" }] })
+      .mockRejectedValueOnce("string error");
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      {
+        table: "t",
+        vectorColumn: "vec",
+        textColumn: "c",
+        vector: [0.1],
+        textQuery: "t",
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("An unexpected error occurred");
+  });
+
+  it("should handle schema.table format", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "USER-DEFINED", udt_name: "vector" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      })
+      .mockResolvedValueOnce({ rows: [{ column_name: "id" }] })
+      .mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      {
+        table: "myschema.docs",
+        vectorColumn: "vec",
+        textColumn: "c",
+        vector: [0.1],
+        textQuery: "t",
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.count).toBe(0);
+  });
+
+  it("should handle tsvector textColumn type", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "USER-DEFINED", udt_name: "vector" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ data_type: "tsvector", udt_name: "tsvector" }],
+      })
+      .mockResolvedValueOnce({ rows: [{ column_name: "id" }] })
+      .mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_hybrid_search")!;
+    const result = (await tool.handler(
+      {
+        table: "t",
+        vectorColumn: "vec",
+        textColumn: "tsv_col",
+        vector: [0.1],
+        textQuery: "t",
+      },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.count).toBe(0);
+  });
+});
+
+describe("Coverage: Advanced Tool Edge Cases", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getVectorTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getVectorTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  describe("pg_vector_cluster", () => {
+    it("should return error for k < 1", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] });
+      const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", k: 0 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("at least 1");
+    });
+
+    it("should return error when insufficient data for k clusters", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ vec: "[0.1,0.2]" }] });
+      const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", k: 5 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.availableDataPoints).toBe(1);
+    });
+
+    it("should handle iteration errors gracefully", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({
+          rows: [{ vec: "[0.1]" }, { vec: "[0.2]" }],
+        })
+        .mockRejectedValue(new Error("cluster error")); // iterations fail
+      const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", k: 2 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.k).toBe(2);
+    });
+
+    it("should handle large vector truncation in centroids", async () => {
+      const bigVec = Array.from({ length: 20 }, (_, i) => i * 0.1).join(",");
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({
+          rows: [{ vec: `[${bigVec}]` }, { vec: `[${bigVec}]` }],
+        })
+        .mockRejectedValue(new Error("break")); // stop iterations
+      const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", k: 2 },
+        mockContext,
+      )) as Record<string, unknown>;
+      const centroids = result.centroids as { truncated?: boolean }[];
+      expect(centroids[0].truncated).toBe(true);
+    });
+
+    it("should handle non-parseable centroid vector", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ vec: "baddata" }, { vec: "[0.1]" }] })
+        .mockRejectedValue(new Error("break"));
+      const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", k: 2 },
+        mockContext,
+      )) as Record<string, unknown>;
+      const centroids = result.centroids as { vector?: unknown }[];
+      // parseVector("baddata") returns [NaN], so it gets wrapped as {vector: [NaN]}
+      expect(centroids[0].vector).toBeDefined();
+    });
+  });
+
+  describe("pg_vector_index_optimize", () => {
+    it("should return non-vector-column error", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence
+        .mockResolvedValueOnce({
+          rows: [{ estimated_rows: "100", table_size: "1 MB" }],
+        })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "text" }] }); // type check
+      const tool = tools.find((t) => t.name === "pg_vector_index_optimize")!;
+      const result = (await tool.handler(
+        { table: "t", column: "name" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not a vector column");
+    });
+
+    it("should recommend HNSW for large tables", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({
+          rows: [{ estimated_rows: "500000", table_size: "2 GB" }],
+        })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ dimensions: 384 }] })
+        .mockResolvedValueOnce({ rows: [] });
+      const tool = tools.find((t) => t.name === "pg_vector_index_optimize")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      const recs = result.recommendations as { type: string }[];
+      expect(recs[0].type).toBe("hnsw");
+      expect(recs[1].type).toBe("ivfflat");
+    });
+
+    it("should recommend none for small tables", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({
+          rows: [{ estimated_rows: "100", table_size: "1 MB" }],
+        })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ dimensions: 3 }] })
+        .mockResolvedValueOnce({ rows: [] });
+      const tool = tools.find((t) => t.name === "pg_vector_index_optimize")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      const recs = result.recommendations as { type: string }[];
+      expect(recs[0].type).toBe("none");
+    });
+
+    it("should recommend higher m for high-dim vectors in large tables", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({
+          rows: [{ estimated_rows: "500000", table_size: "5 GB" }],
+        })
+        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] })
+        .mockResolvedValueOnce({ rows: [{ dimensions: 1536 }] })
+        .mockResolvedValueOnce({ rows: [] });
+      const tool = tools.find((t) => t.name === "pg_vector_index_optimize")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      const recs = result.recommendations as { type: string; m?: number }[];
+      expect(recs[0].m).toBe(32);
+    });
+  });
+
+  describe("pg_vector_performance", () => {
+    it("should return error when table is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_performance")!;
+      const result = (await tool.handler(
+        { column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+    });
+
+    it("should return error when column is empty", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_performance")!;
+      const result = (await tool.handler(
+        { table: "t" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+    });
+
+    it("should auto-generate testVector from first row", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence
+        .mockResolvedValueOnce({ rows: [{ indexname: "idx" }] }) // indexes
+        .mockResolvedValueOnce({
+          rows: [{ estimated_rows: "100", table_size: "1 MB" }],
+        }) // stats
+        .mockResolvedValueOnce({ rows: [{ vec: "[0.1,0.2]" }] }) // sample
+        .mockResolvedValueOnce({ rows: [{ "QUERY PLAN": "Seq Scan" }] }); // EXPLAIN
+      const tool = tools.find((t) => t.name === "pg_vector_performance")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.testVectorSource).toBe("auto-generated from first row");
+      expect(result.benchmark).toBeDefined();
+    });
+
+    it("should handle hint when no testVector available", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [] }) // no indexes
+        .mockResolvedValueOnce({
+          rows: [{ estimated_rows: "-1", table_size: "0 bytes" }],
+        })
+        .mockRejectedValueOnce(new Error("empty table")); // sample fails
+      const tool = tools.find((t) => t.name === "pg_vector_performance")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec" },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.hint).toContain("testVector");
+      expect(result.estimatedRows).toBe(0);
+      expect((result.recommendations as string[]).length).toBeGreaterThan(0);
+    });
+
+    it("should use user-provided testVector", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({
+          rows: [{ estimated_rows: "50", table_size: "1 MB" }],
+        })
+        .mockResolvedValueOnce({ rows: [{ "QUERY PLAN": "Seq Scan" }] });
+      const tool = tools.find((t) => t.name === "pg_vector_performance")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", testVector: [0.1, 0.2] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.testVectorSource).toBe("user-provided");
+    });
+
+    it("should truncate long QUERY PLAN lines", async () => {
+      const longPlan = "a".repeat(250) + "[0.1,0.2,0.3]'::vector something";
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({
+          rows: [{ estimated_rows: "50", table_size: "1 MB" }],
+        })
+        .mockResolvedValueOnce({ rows: [{ "QUERY PLAN": longPlan }] });
+      const tool = tools.find((t) => t.name === "pg_vector_performance")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", testVector: [0.1, 0.2] },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.benchmark).toBeDefined();
+    });
+  });
+
+  describe("pg_vector_dimension_reduce", () => {
+    it("should return error when target >= original dimensions", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_dimension_reduce")!;
+      const result = (await tool.handler(
+        { vector: [0.1, 0.2], targetDimensions: 5 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("less than original");
+    });
+
+    it("should reduce vectors from table", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({
+          rows: [
+            { id: 1, vector_text: "[0.1,0.2,0.3,0.4,0.5]" },
+            { id: 2, vector_text: "[0.5,0.4,0.3,0.2,0.1]" },
+          ],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_dimension_reduce")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", targetDimensions: 2, summarize: false },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.mode).toBe("table");
+      expect(result.processedCount).toBe(2);
+    });
+
+    it("should handle empty table in table mode", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
+      const tool = tools.find((t) => t.name === "pg_vector_dimension_reduce")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", targetDimensions: 2 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.error).toContain("No vectors found");
+    });
+
+    it("should skip vectors where target >= vector length", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({
+          rows: [{ id: 1, vector_text: "[0.1,0.2]" }],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_dimension_reduce")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", targetDimensions: 5 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.processedCount).toBe(0);
+    });
+
+    it("should return error when neither vector nor table provided", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_dimension_reduce")!;
+      const result = (await tool.handler(
+        { targetDimensions: 2 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.error).toContain("Either vector");
+    });
+
+    it("should summarize by default in table mode", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+        .mockResolvedValueOnce({
+          rows: [{ id: 1, vector_text: "[0.1,0.2,0.3,0.4,0.5]" }],
+        });
+      const tool = tools.find((t) => t.name === "pg_vector_dimension_reduce")!;
+      const result = (await tool.handler(
+        { table: "t", column: "vec", targetDimensions: 2 },
+        mockContext,
+      )) as Record<string, unknown>;
+      expect(result.summarized).toBe(true);
+      expect(result.hint).toContain("summarize: false");
+    });
+  });
+
+  describe("pg_vector_embed", () => {
+    it("should return full vector when summarize=false", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_embed")!;
+      const result = (await tool.handler(
+        { text: "hello", dimensions: 10, summarize: false },
+        mockContext,
+      )) as Record<string, unknown>;
+      const emb = result.embedding as {
+        truncated: boolean;
+        dimensions: number;
+      };
+      expect(emb.truncated).toBe(false);
+      expect(emb.dimensions).toBe(10);
+    });
+
+    it("should return error for empty text", async () => {
+      const tool = tools.find((t) => t.name === "pg_vector_embed")!;
+      const result = (await tool.handler({ text: "" }, mockContext)) as Record<
+        string,
+        unknown
+      >;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("text");
+    });
+  });
+});

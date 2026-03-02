@@ -263,9 +263,7 @@ export const CreatePartitionedTableSchemaBase = z.object({
       }),
     )
     .describe("Column definitions"),
-  partitionBy: z
-    .enum(["range", "list", "hash"])
-    .describe("Partition strategy (range, list, or hash)"),
+  partitionBy: z.string().describe("Partition strategy (range, list, or hash)"),
   partitionKey: z.string().describe("Partition key column(s)"),
   primaryKey: z
     .array(z.string())
@@ -565,14 +563,20 @@ export const ListPartitionsOutputSchema = z
   .object({
     partitions: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Partition list with name, bounds, size"),
-    count: z.number().describe("Number of partitions returned"),
-    truncated: z.boolean().describe("Whether results were truncated"),
+    count: z.number().optional().describe("Number of partitions returned"),
+    truncated: z
+      .boolean()
+      .optional()
+      .describe("Whether results were truncated"),
     totalCount: z.number().optional().describe("Total count when truncated"),
     warning: z
       .string()
       .optional()
       .describe("Warning message if table not partitioned"),
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .loose();
 
@@ -581,7 +585,7 @@ export const ListPartitionsOutputSchema = z
  */
 export const CreatePartitionedTableOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether the operation succeeded"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
     error: z.string().optional().describe("Error message if operation failed"),
     table: z.string().optional().describe("Table name (schema.name)"),
     partitionBy: z.string().optional().describe("Partition strategy used"),
@@ -598,7 +602,7 @@ export const CreatePartitionedTableOutputSchema = z
  */
 export const CreatePartitionOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether the operation succeeded"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
     error: z.string().optional().describe("Error message if operation failed"),
     partition: z.string().optional().describe("Partition name (schema.name)"),
     parent: z.string().optional().describe("Parent table name"),
@@ -612,7 +616,7 @@ export const CreatePartitionOutputSchema = z
  * pg_attach_partition output
  */
 export const AttachPartitionOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
   parent: z.string().optional().describe("Parent table name"),
   partition: z.string().optional().describe("Attached partition name"),
@@ -623,7 +627,7 @@ export const AttachPartitionOutputSchema = z.object({
  * pg_detach_partition output
  */
 export const DetachPartitionOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
   parent: z.string().optional().describe("Parent table name"),
   partition: z.string().optional().describe("Detached partition name"),
@@ -637,14 +641,21 @@ export const PartitionInfoOutputSchema = z
     tableInfo: z
       .record(z.string(), z.unknown())
       .nullable()
+      .optional()
       .describe("Table partitioning info"),
     partitions: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Partition details with size and row counts"),
-    totalSizeBytes: z.number().describe("Total size of all partitions"),
+    totalSizeBytes: z
+      .number()
+      .optional()
+      .describe("Total size of all partitions"),
     warning: z
       .string()
       .optional()
       .describe("Warning message if table not partitioned"),
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .loose();

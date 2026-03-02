@@ -124,6 +124,9 @@ export const DEFAULT_SECURITY_CONFIG: SecurityConfig = {
     /\bnet\./, // No networking
     /\bhttp\./, // No HTTP
     /\bhttps\./, // No HTTPS
+    /\bnew\s+Proxy\s*\(/, // No Proxy construction
+    /\bReflect\./, // No Reflect API
+    /\bSymbol\./, // No Symbol access
   ],
 };
 

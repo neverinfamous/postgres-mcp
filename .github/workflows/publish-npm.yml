@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: npm
-      url: https://www.npmjs.com/package/postgres-mcp
+      url: https://www.npmjs.com/package/@neverinfamous/postgres-mcp
 
     steps:
       - name: Checkout code
@@ -70,4 +70,4 @@ jobs:
       - name: Verify publication
         run: |
           sleep 10
-          npm view postgres-mcp version
+          npm view @neverinfamous/postgres-mcp version

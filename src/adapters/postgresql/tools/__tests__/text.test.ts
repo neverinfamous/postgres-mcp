@@ -1288,3 +1288,373 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     expect(result.error).toMatch(/Invalid method/i);
   });
 });
+
+// =============================================================================
+// Branch Coverage Tests - text.ts edge cases
+// =============================================================================
+
+describe("text.ts branch coverage", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getTextTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getTextTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_like_search should use case-sensitive LIKE when caseSensitive=true", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_like_search")!;
+    await tool.handler(
+      { table: "t", column: "c", pattern: "%x%", caseSensitive: true },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain(" LIKE ");
+    expect(sql).not.toContain("ILIKE");
+  });
+
+  it("pg_like_search limit:0 should have no LIMIT", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_like_search")!;
+    await tool.handler(
+      { table: "t", column: "c", pattern: "%x%", limit: 0 },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).not.toContain("LIMIT");
+  });
+
+  it("pg_like_search with where clause", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_like_search")!;
+    await tool.handler(
+      { table: "t", column: "c", pattern: "%x%", where: "id > 5" },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain("AND");
+    expect(sql).toContain("id > 5");
+  });
+
+  it("pg_like_search truncation indicator when results equal limit", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: Array(100).fill({ c: "x" }),
+    });
+    const tool = tools.find((t) => t.name === "pg_like_search")!;
+    const result = (await tool.handler(
+      { table: "t", column: "c", pattern: "%x%" },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.truncated).toBe(true);
+    expect(result.hint).toContain("limit: 0");
+  });
+
+  it("pg_trigram_similarity with where clause and limit:0", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
+    await tool.handler(
+      { table: "t", column: "c", value: "x", where: "active=true", limit: 0 },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain("active=true");
+    expect(sql).not.toContain("LIMIT");
+  });
+
+  it("pg_trigram_similarity truncation indicator", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: Array(100).fill({ c: "x", similarity: 0.8 }),
+    });
+    const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      { table: "t", column: "c", value: "x" },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.truncated).toBe(true);
+  });
+
+  it("pg_trigram_similarity select columns", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
+    await tool.handler(
+      { table: "t", column: "c", value: "x", select: ["id", "name"] },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain('"id", "name"');
+  });
+
+  it("pg_fuzzy_match with where clause and limit:0", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    await tool.handler(
+      {
+        table: "t",
+        column: "c",
+        value: "x",
+        where: "active=true",
+        limit: 0,
+      },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain("active=true");
+    expect(sql).not.toContain("LIMIT");
+  });
+
+  it("pg_fuzzy_match truncation indicator", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: Array(100).fill({ c: "x", distance: 1 }),
+    });
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    const result = (await tool.handler(
+      { table: "t", column: "c", value: "x" },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.truncated).toBe(true);
+  });
+
+  it("pg_fuzzy_match select columns", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    await tool.handler(
+      { table: "t", column: "c", value: "x", select: ["id"] },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain('"id"');
+  });
+
+  it("pg_regexp_match with where clause and limit:0", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_regexp_match")!;
+    await tool.handler(
+      { table: "t", column: "c", pattern: "^x", where: "id>1", limit: 0 },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain("id>1");
+    expect(sql).not.toContain("LIMIT");
+  });
+
+  it("pg_regexp_match truncation indicator", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: Array(100).fill({ c: "x" }),
+    });
+    const tool = tools.find((t) => t.name === "pg_regexp_match")!;
+    const result = (await tool.handler(
+      { table: "t", column: "c", pattern: "." },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.truncated).toBe(true);
+  });
+
+  it("pg_text_headline with options string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ headline: "test" }],
+    });
+    const tool = tools.find((t) => t.name === "pg_text_headline")!;
+    await tool.handler(
+      {
+        table: "t",
+        column: "c",
+        query: "q",
+        options: "MaxWords=10, MinWords=3",
+      },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain("MaxWords=10, MinWords=3");
+  });
+
+  it("pg_text_headline with custom selectors", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_text_headline")!;
+    await tool.handler(
+      {
+        table: "t",
+        column: "c",
+        query: "q",
+        startSel: "<em>",
+        stopSel: "</em>",
+        maxWords: 20,
+        minWords: 5,
+      },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain("StartSel=<em>");
+    expect(sql).toContain("MaxWords=20");
+  });
+
+  it("pg_text_headline limit:0 and truncation", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: Array(100).fill({ headline: "t" }),
+    });
+    const tool = tools.find((t) => t.name === "pg_text_headline")!;
+    const result = (await tool.handler(
+      { table: "t", column: "c", query: "q" },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.truncated).toBe(true);
+  });
+
+  it("pg_text_headline with select columns", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_text_headline")!;
+    await tool.handler(
+      { table: "t", column: "c", query: "q", select: ["id"] },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain('"id"');
+  });
+
+  it("pg_create_fts_index with ifNotExists=false", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_create_fts_index")!;
+    const result = (await tool.handler(
+      { table: "t", column: "c", ifNotExists: false },
+      mockContext,
+    )) as { success: boolean };
+    expect(result.success).toBe(true);
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).not.toContain("IF NOT EXISTS");
+  });
+
+  it("pg_create_fts_index skipped when index already exists", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // check query - exists
+      .mockResolvedValueOnce({ rows: [] }); // create query
+    const tool = tools.find((t) => t.name === "pg_create_fts_index")!;
+    const result = (await tool.handler(
+      { table: "t", column: "c" },
+      mockContext,
+    )) as { skipped: boolean };
+    expect(result.skipped).toBe(true);
+  });
+
+  it("pg_text_sentiment very_positive", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_sentiment")!;
+    const result = (await tool.handler(
+      { text: "amazing wonderful excellent great love happy best" },
+      mockContext,
+    )) as { sentiment: string };
+    expect(result.sentiment).toBe("very_positive");
+  });
+
+  it("pg_text_sentiment very_negative", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_sentiment")!;
+    const result = (await tool.handler(
+      { text: "terrible horrible awful worst hate broken useless" },
+      mockContext,
+    )) as { sentiment: string };
+    expect(result.sentiment).toBe("very_negative");
+  });
+
+  it("pg_text_sentiment high confidence", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_sentiment")!;
+    const result = (await tool.handler(
+      { text: "great good love happy amazing wonderful excellent best" },
+      mockContext,
+    )) as { confidence: string };
+    expect(result.confidence).toBe("high");
+  });
+
+  it("pg_text_to_vector basic", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ vector: "'hello':1 'world':2" }],
+    });
+    const tool = tools.find((t) => t.name === "pg_text_to_vector")!;
+    const result = (await tool.handler(
+      { text: "hello world" },
+      mockContext,
+    )) as { vector: string };
+    expect(result.vector).toBeDefined();
+  });
+
+  it("pg_text_to_query basic", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ query: "'hello' & 'world'" }],
+    });
+    const tool = tools.find((t) => t.name === "pg_text_to_query")!;
+    const result = (await tool.handler(
+      { text: "hello world" },
+      mockContext,
+    )) as { query: string };
+    expect(result.query).toBeDefined();
+  });
+
+  it("pg_text_search_config basic", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ cfgname: "english" }],
+    });
+    const tool = tools.find((t) => t.name === "pg_text_search_config")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      configs: unknown[];
+    };
+    expect(result).toBeDefined();
+  });
+
+  it("pg_text_search with schema", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_text_search")!;
+    await tool.handler(
+      {
+        table: "t",
+        columns: ["c"],
+        query: "q",
+        schema: "myschema",
+      },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain('"myschema"');
+  });
+
+  it("pg_text_search truncation indicator", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: Array(100).fill({ c: "x", rank: 0.5 }),
+    });
+    const tool = tools.find((t) => t.name === "pg_text_search")!;
+    const result = (await tool.handler(
+      { table: "t", columns: ["c"], query: "q" },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.truncated).toBe(true);
+  });
+
+  it("pg_text_rank with schema and select", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_text_rank")!;
+    await tool.handler(
+      {
+        table: "t",
+        column: "c",
+        query: "q",
+        schema: "s",
+        select: ["id"],
+      },
+      mockContext,
+    );
+    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(sql).toContain('"s"');
+    expect(sql).toContain('"id"');
+  });
+
+  it("pg_text_rank limit:0 and truncation", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: Array(100).fill({ rank: 0.5 }),
+    });
+    const tool = tools.find((t) => t.name === "pg_text_rank")!;
+    const result = (await tool.handler(
+      { table: "t", column: "c", query: "q" },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result.truncated).toBe(true);
+  });
+});

@@ -45,20 +45,21 @@ describe("Performance Benchmarks", () => {
       expect(secondDuration).toBeLessThan(firstDuration); // Cache is faster
     });
 
-    it("should generate 194 tool definitions", () => {
-      // Verify the tool count matches documentation
+    it("should generate 226 tool definitions across 20 groups", () => {
+      // Verify the tool count matches documentation (tool-groups-list.md)
+      // These are raw group counts; pg_execute_code (codemode) is auto-injected separately
       const toolGroups = {
-        core: 13,
+        core: 20,
         transactions: 7,
         jsonb: 19,
-        text: 11,
-        performance: 16,
+        text: 13,
+        performance: 20,
         admin: 10,
         monitoring: 11,
         backup: 9,
-        schema: 10,
-        vector: 14,
-        postgis: 12,
+        schema: 12,
+        vector: 16,
+        postgis: 15,
         partitioning: 6,
         stats: 8,
         cron: 8,
@@ -67,10 +68,11 @@ describe("Performance Benchmarks", () => {
         citext: 6,
         ltree: 8,
         pgcrypto: 9,
+        introspection: 12,
       };
 
       const total = Object.values(toolGroups).reduce((a, b) => a + b, 0);
-      expect(total).toBe(194);
+      expect(total).toBe(226);
     });
   });
 

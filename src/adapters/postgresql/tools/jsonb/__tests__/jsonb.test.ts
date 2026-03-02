@@ -700,6 +700,102 @@ describe("JSONB Validation and Error Paths", () => {
 
       expect(result.warning).toContain("Empty {}");
     });
+
+    it("should truncate results at default limit (100) and report totalCount", async () => {
+      // Simulate 101 rows returned (limit+1 detection pattern)
+      const rows = Array.from({ length: 101 }, (_, i) => ({ id: i + 1 }));
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows }) // main query returns 101 (limit+1)
+        .mockResolvedValueOnce({ rows: [{ total: 250 }] }); // count query
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_contains")!;
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "metadata",
+          value: { role: "admin" },
+        },
+        mockContext,
+      )) as {
+        rows: unknown[];
+        count: number;
+        truncated: boolean;
+        totalCount: number;
+      };
+
+      expect(result.count).toBe(100);
+      expect(result.truncated).toBe(true);
+      expect(result.totalCount).toBe(250);
+      expect((result.rows as unknown[]).length).toBe(100);
+    });
+
+    it("should not truncate when limit is 0", async () => {
+      const rows = Array.from({ length: 200 }, (_, i) => ({ id: i + 1 }));
+      mockAdapter.executeQuery.mockResolvedValue({ rows });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_contains")!;
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "metadata",
+          value: { role: "admin" },
+          limit: 0,
+        },
+        mockContext,
+      )) as { rows: unknown[]; count: number; truncated?: boolean };
+
+      expect(result.count).toBe(200);
+      expect(result.truncated).toBeUndefined();
+    });
+  });
+
+  describe("pg_jsonb_path_query default limit", () => {
+    it("should truncate results at default limit (100) and report totalCount", async () => {
+      // Simulate 101 results returned (limit+1 detection pattern)
+      const rows = Array.from({ length: 101 }, (_, i) => ({
+        result: `value_${String(i)}`,
+      }));
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows }) // main query returns 101
+        .mockResolvedValueOnce({ rows: [{ total: 500 }] }); // count query
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_path_query")!;
+      const result = (await tool.handler(
+        { table: "users", column: "metadata", path: "$.items[*].name" },
+        mockContext,
+      )) as {
+        results: unknown[];
+        count: number;
+        truncated: boolean;
+        totalCount: number;
+      };
+
+      expect(result.count).toBe(100);
+      expect(result.truncated).toBe(true);
+      expect(result.totalCount).toBe(500);
+      expect(result.results.length).toBe(100);
+    });
+
+    it("should not truncate when limit is 0", async () => {
+      const rows = Array.from({ length: 200 }, (_, i) => ({
+        result: `value_${String(i)}`,
+      }));
+      mockAdapter.executeQuery.mockResolvedValue({ rows });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_path_query")!;
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "metadata",
+          path: "$.items[*].name",
+          limit: 0,
+        },
+        mockContext,
+      )) as { results: unknown[]; count: number; truncated?: boolean };
+
+      expect(result.count).toBe(200);
+      expect(result.truncated).toBeUndefined();
+    });
   });
 
   describe("pg_jsonb_extract with select columns", () => {

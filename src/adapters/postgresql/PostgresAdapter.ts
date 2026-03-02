@@ -51,6 +51,7 @@ import { getKcacheTools } from "./tools/kcache.js";
 import { getCitextTools } from "./tools/citext.js";
 import { getLtreeTools } from "./tools/ltree.js";
 import { getPgcryptoTools } from "./tools/pgcrypto.js";
+import { getIntrospectionTools } from "./tools/introspection.js";
 import { getCodeModeTools } from "./tools/codemode/index.js";
 import { getPostgresResources } from "./resources/index.js";
 import { getPostgresPrompts } from "./prompts/index.js";
@@ -1141,6 +1142,7 @@ export class PostgresAdapter extends DatabaseAdapter {
       "citext",
       "ltree",
       "pgcrypto",
+      "introspection",
       "codemode",
     ];
   }
@@ -1175,6 +1177,7 @@ export class PostgresAdapter extends DatabaseAdapter {
       ...getCitextTools(this),
       ...getLtreeTools(this),
       ...getPgcryptoTools(this),
+      ...getIntrospectionTools(this),
       ...getCodeModeTools(this),
     ];
 

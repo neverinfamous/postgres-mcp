@@ -55,10 +55,11 @@ export function createListTablesTool(adapter: PostgresAdapter): ToolDefinition {
         tables = tables.filter((t) => !exclude.includes(t.schema ?? ""));
       }
 
-      // Apply default limit of 100 if not specified
-      const effectiveLimit = limit ?? 100;
-      const truncated = tables.length > effectiveLimit;
-      if (truncated) {
+      // Apply default limit of 100 if not specified; limit: 0 means "no limit" (return all)
+      const effectiveLimit = limit === 0 ? undefined : (limit ?? 100);
+      const truncated =
+        effectiveLimit !== undefined && tables.length > effectiveLimit;
+      if (truncated && effectiveLimit !== undefined) {
         tables = tables.slice(0, effectiveLimit);
       }
 

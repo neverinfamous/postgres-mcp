@@ -444,21 +444,40 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Crypt Password"),
     icons: getToolIcons("pgcrypto", readOnly("Crypt Password")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { password, salt } = PgcryptoCryptSchema.parse(params);
-      const result = await adapter.executeQuery(
-        `SELECT crypt($1, $2) as hash`,
-        [password, salt],
-      );
-      const hash = result.rows?.[0]?.["hash"] as string;
-      const algorithm =
-        salt.startsWith("$2a$") || salt.startsWith("$2b$")
-          ? "bcrypt"
-          : salt.startsWith("$1$")
-            ? "md5"
-            : salt.startsWith("_")
-              ? "xdes"
-              : "des";
-      return { success: true, hash, algorithm };
+      try {
+        const { password, salt } = PgcryptoCryptSchema.parse(params);
+        const result = await adapter.executeQuery(
+          `SELECT crypt($1, $2) as hash`,
+          [password, salt],
+        );
+        const hash = result.rows?.[0]?.["hash"] as string;
+        const algorithm =
+          salt.startsWith("$2a$") || salt.startsWith("$2b$")
+            ? "bcrypt"
+            : salt.startsWith("$1$")
+              ? "md5"
+              : salt.startsWith("_")
+                ? "xdes"
+                : "des";
+        return { success: true, hash, algorithm };
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false,
+            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
+        let errorMessage =
+          error instanceof Error ? error.message : String(error);
+        try {
+          errorMessage = parsePostgresError(error, {
+            tool: "pg_pgcrypto_crypt",
+          }).message;
+        } catch {
+          // parsePostgresError re-throws unrecognized errors; use original message
+        }
+        return { success: false, error: errorMessage };
+      }
     },
   };
 }

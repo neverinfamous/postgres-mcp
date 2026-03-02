@@ -16,4 +16,8 @@ export default defineConfig({
       ],
     },
   },
+  bench: {
+    include: ["src/__tests__/benchmarks/**/*.bench.ts"],
+    reporters: ["default"],
+  },
 });

@@ -515,7 +515,7 @@ describe("pg_cron_cleanup_history", () => {
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("DELETE FROM cron.job_run_details"),
-      [],
+      ["7"],
     );
     expect(result.success).toBe(true);
     expect(result.deletedCount).toBe(150);
@@ -531,8 +531,8 @@ describe("pg_cron_cleanup_history", () => {
     };
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("interval '30 days'"),
-      [],
+      expect.stringContaining("($1 || ' days')::interval"),
+      ["30"],
     );
     expect(result.olderThanDays).toBe(30);
   });
@@ -544,8 +544,8 @@ describe("pg_cron_cleanup_history", () => {
     await tool.handler({ jobId: 5 }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("jobid = $1"),
-      [5],
+      expect.stringContaining("jobid = $2"),
+      ["7", 5],
     );
   });
 
@@ -558,8 +558,8 @@ describe("pg_cron_cleanup_history", () => {
     };
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("interval '14 days'"),
-      [],
+      expect.stringContaining("($1 || ' days')::interval"),
+      ["14"],
     );
     expect(result.olderThanDays).toBe(14);
   });
@@ -763,8 +763,8 @@ describe("pg_cron string jobId coercion", () => {
     )) as { success: boolean };
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      expect.stringContaining("jobid = $1"),
-      [10], // Coerced to number
+      expect.stringContaining("jobid = $2"),
+      ["7", 10], // days param first, then coerced jobId
     );
     expect(result.success).toBe(true);
   });

@@ -268,6 +268,12 @@ export const JsonbContainsSchemaBase = z
       .describe("Columns to select in result"),
     where: z.string().optional().describe("Additional WHERE clause filter"),
     filter: z.string().optional().describe("WHERE clause (alias for where)"),
+    limit: z
+      .number()
+      .optional()
+      .describe(
+        "Maximum number of rows to return (default: 100). Use 0 for all rows.",
+      ),
     schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
@@ -302,6 +308,12 @@ export const JsonbPathQuerySchemaBase = z
       .describe("Variables for JSONPath (access with $var_name)"),
     where: z.string().optional().describe("WHERE clause"),
     filter: z.string().optional().describe("WHERE clause (alias for where)"),
+    limit: z
+      .number()
+      .optional()
+      .describe(
+        "Maximum number of results to return (default: 100). Use 0 for all results.",
+      ),
     schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
@@ -692,7 +704,15 @@ export const JsonbContainsOutputSchema = z.object({
     .array(z.record(z.string(), z.unknown()))
     .optional()
     .describe("Matching rows"),
-  count: z.number().optional().describe("Number of matching rows"),
+  count: z.number().optional().describe("Number of matching rows returned"),
+  truncated: z
+    .boolean()
+    .optional()
+    .describe("Whether results were truncated by the limit"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total matching rows before limit (present when truncated)"),
   warning: z
     .string()
     .optional()
@@ -704,7 +724,15 @@ export const JsonbContainsOutputSchema = z.object({
 // Output schema for pg_jsonb_path_query
 export const JsonbPathQueryOutputSchema = z.object({
   results: z.array(z.unknown()).optional().describe("Query results"),
-  count: z.number().optional().describe("Number of results"),
+  count: z.number().optional().describe("Number of results returned"),
+  truncated: z
+    .boolean()
+    .optional()
+    .describe("Whether results were truncated by the limit"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total results before limit (present when truncated)"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
 });

@@ -77,7 +77,7 @@ export class ConnectionPool {
       };
 
       if (this.config.ssl === true) {
-        poolConfig.ssl = { rejectUnauthorized: false };
+        poolConfig.ssl = { rejectUnauthorized: true };
       } else if (this.config.ssl !== undefined && this.config.ssl !== false) {
         poolConfig.ssl = this.config.ssl;
       }

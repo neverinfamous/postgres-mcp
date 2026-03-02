@@ -27,6 +27,7 @@ export type ToolGroup =
   | "citext" // citext extension - case-insensitive text
   | "ltree" // ltree extension - hierarchical tree labels
   | "pgcrypto" // pgcrypto extension - cryptographic functions
+  | "introspection" // Agent-optimized database analysis & migration support
   | "codemode"; // Code Mode - sandboxed code execution
 
 /**
@@ -37,26 +38,28 @@ export type ToolGroup =
  */
 export type MetaGroup =
   // General Use
-  | "starter" // 🌟 Recommended default (core, transactions, jsonb, schema) ~49 tools
-  | "essential" // Minimal footprint (core, transactions, jsonb) ~39 tools
-  | "dev-power" // Power Developer (core, trans, schema, stats, part, backup) ~48 tools
+  | "starter" // 🌟 Recommended default (core, transactions, jsonb, schema) 59 tools
+  | "essential" // Minimal footprint (core, transactions, jsonb) 47 tools
+  // Developer Workloads
+  | "dev-schema" // Dev Schema & Migrations (core, trans, schema, introspection) 52 tools
+  | "dev-analytics" // Dev Analytics (core, trans, stats, partitioning) 42 tools
   // AI Workloads
-  | "ai-data" // AI Data Analyst (core, jsonb, text, transactions) ~50 tools
-  | "ai-vector" // AI/ML with pgvector (core, vector, trans, schema, part) ~46 tools
+  | "ai-data" // AI Data Analyst (core, jsonb, text, transactions) 60 tools
+  | "ai-vector" // AI/ML with pgvector (core, vector, trans, partitioning) 50 tools
   // DBA Workloads
-  | "dba-monitor" // DBA Monitoring (core, monitoring, performance, trans) ~47 tools
-  | "dba-manage" // DBA Management (core, admin, backup, part, schema) ~48 tools
-  | "dba-stats" // DBA Stats/Security (core, admin, monitoring, trans, stats) ~49 tools
+  | "dba-monitor" // DBA Monitoring (core, monitoring, performance, trans) 59 tools
+  | "dba-schema" // DBA Schema (core, schema, introspection) 45 tools
+  | "dba-infra" // DBA Infrastructure (core, admin, backup, partitioning) 46 tools
+  | "dba-stats" // DBA Stats (core, admin, monitoring, trans, stats) 57 tools
   // Specialty
-  | "geo" // Geospatial Workloads (core, postgis, transactions) ~32 tools
+  | "geo" // Geospatial Workloads (core, postgis, transactions) 43 tools
   // Building Blocks
-  | "base-core" // Base Core (core, jsonb, transactions, schema) ~49 tools
-  | "base-ops" // Base Ops (admin, monitoring, backup, part, perf) ~50 tools
+  | "base-ops" // Operations Block (admin, monitoring, backup, part, stats, citext) 51 tools
   // Extension Bundles
-  | "ext-ai" // Extension: AI/Security (vector, pgcrypto) ~23 tools
-  | "ext-geo" // Extension: Spatial/Hierarchical (postgis, ltree) ~20 tools
-  | "ext-schedule" // Extension: Scheduling (cron, partman) ~18 tools
-  | "ext-perf"; // Extension: Performance/Types (kcache, citext) ~13 tools
+  | "ext-ai" // Extension: AI/Security (vector, pgcrypto) 26 tools
+  | "ext-geo" // Extension: Spatial/Hierarchical (postgis, ltree) 24 tools
+  | "ext-schedule" // Extension: Scheduling (cron, partman) 19 tools
+  | "ext-perf"; // Extension: Performance/Analysis (kcache, performance) 28 tools
 
 /**
  * Tool filter rule

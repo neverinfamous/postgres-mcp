@@ -40,7 +40,7 @@ If you discover a security vulnerability, please report it by emailing **admin@a
 
 **Identifier Sanitization** (`src/utils/identifiers.ts`)
 
-- All table, column, schema, and index names are validated and quoted
+- All table, column, schema, and index names are validated and quoted across all tool groups (admin, backup, core, jsonb, monitoring, partitioning, performance, postgis, schema, stats, text, vector)
 - PostgreSQL identifier rules enforced: start with letter/underscore, contain only alphanumerics, underscores, or $ signs
 - Maximum 63-character limit enforced
 - Invalid identifiers throw `InvalidIdentifierError`
@@ -74,9 +74,9 @@ Key functions:
 
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
-- `X-XSS-Protection: 1; mode=block`
-- `Cache-Control: no-store, must-revalidate`
+- `Cache-Control: no-store, no-cache, must-revalidate`
 - `Content-Security-Policy: default-src 'none'`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 
 **HSTS Support**
 
@@ -95,6 +95,19 @@ Key functions:
 - RFC 8414 Authorization Server Metadata discovery
 - JWT token validation with JWKS caching
 - PostgreSQL-specific scopes: `read`, `write`, `admin`, `full`, `db:{name}`, `schema:{name}`, `table:{schema}:{table}`
+
+### Code Mode Sandbox Boundaries
+
+Code Mode executes user-provided JavaScript in a Node.js `vm` context. The `vm` module provides **script isolation, not security isolation** — it is not designed to resist a determined attacker with direct access. The following defense-in-depth mitigations significantly reduce risk within the intended **trusted AI agent** threat model:
+
+- **Blocked globals** — `require`, `process`, `global`, `globalThis`, `module`, `exports`, `setTimeout`, `setInterval`, `setImmediate` set to `undefined`
+- **Blocked patterns** — Static validation rejects code containing `require()`, `import()`, `eval()`, `Function()`, `__proto__`, `constructor.constructor`, and filesystem/network/child_process references
+- **Execution limits** — 30s timeout, 50KB code input, 10MB result output
+- **Rate limiting** — 60 executions per minute per client
+- **Audit logging** — Every execution logged with ID, metrics, and code preview
+- **Admin scope** — Code Mode requires `admin` scope when OAuth is enabled
+
+> **Note:** Code Mode is designed for use by trusted AI agents, not for executing arbitrary untrusted code from end users. If your deployment exposes Code Mode to untrusted input, consider process-level sandboxing (containers, `isolate-vm`, etc.).
 
 ### Logging Security
 

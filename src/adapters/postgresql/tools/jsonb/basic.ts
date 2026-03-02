@@ -13,6 +13,7 @@ import { z, ZodError } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   sanitizeTableName,
   sanitizeIdentifier,
@@ -112,7 +113,9 @@ export function createJsonbExtractTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = JsonbExtractSchema.parse(params);
-        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+        const whereClause = parsed.where
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+          : "";
         const limitClause =
           parsed.limit !== undefined ? ` LIMIT ${String(parsed.limit)}` : "";
         // Use normalizePathToArray for PostgreSQL #> operator
@@ -263,7 +266,7 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Handle empty path - replace entire column value
         if (path.length === 0) {
-          const sql = `UPDATE ${qualifiedTable} SET "${column}" = $1::jsonb WHERE ${where}`;
+          const sql = `UPDATE ${qualifiedTable} SET "${column}" = $1::jsonb WHERE ${sanitizeWhereClause(where)}`;
           const result = await adapter.executeQuery(sql, [toJsonString(value)]);
           return {
             rowsAffected: result.rowsAffected,
@@ -290,7 +293,7 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
           // Final set with actual value
           const fullPathStr = "{" + path.join(",") + "}";
           expr = `jsonb_set(${expr}, '${fullPathStr}'::text[], $1::jsonb, true)`;
-          sql = `UPDATE ${qualifiedTable} SET "${column}" = ${expr} WHERE ${where}`;
+          sql = `UPDATE ${qualifiedTable} SET "${column}" = ${expr} WHERE ${sanitizeWhereClause(where)}`;
           const result = await adapter.executeQuery(sql, [toJsonString(value)]);
           return {
             rowsAffected: result.rowsAffected,
@@ -298,7 +301,7 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
           };
         } else {
           // Use COALESCE to handle NULL columns - initialize to empty object
-          sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_set(COALESCE("${column}", '{}'::jsonb), $1, $2::jsonb, $3) WHERE ${where}`;
+          sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_set(COALESCE("${column}", '{}'::jsonb), $1, $2::jsonb, $3) WHERE ${sanitizeWhereClause(where)}`;
           const result = await adapter.executeQuery(sql, [
             path,
             toJsonString(value),
@@ -364,7 +367,7 @@ export function createJsonbInsertTool(
         }
 
         // Check for NULL columns first - jsonb_insert requires existing array context
-        const checkSql = `SELECT COUNT(*) as null_count FROM ${qualifiedTable} WHERE ${parsed.where} AND "${column}" IS NULL`;
+        const checkSql = `SELECT COUNT(*) as null_count FROM ${qualifiedTable} WHERE ${sanitizeWhereClause(parsed.where)} AND "${column}" IS NULL`;
         const checkResult = await adapter.executeQuery(checkSql);
         const nullCount = Number(checkResult.rows?.[0]?.["null_count"] ?? 0);
         if (nullCount > 0) {
@@ -379,7 +382,7 @@ export function createJsonbInsertTool(
         const parentPath = path.slice(0, -1);
         if (parentPath.length === 0) {
           // Inserting at root level - check column type
-          const typeCheckSql = `SELECT jsonb_typeof("${column}") as type FROM ${qualifiedTable} WHERE ${parsed.where} LIMIT 1`;
+          const typeCheckSql = `SELECT jsonb_typeof("${column}") as type FROM ${qualifiedTable} WHERE ${sanitizeWhereClause(parsed.where)} LIMIT 1`;
           const typeResult = await adapter.executeQuery(typeCheckSql);
           const columnType = typeResult.rows?.[0]?.["type"] as
             | string
@@ -392,7 +395,7 @@ export function createJsonbInsertTool(
           }
         } else {
           // Check the parent path type
-          const typeCheckSql = `SELECT jsonb_typeof("${column}" #> $1) as type FROM ${qualifiedTable} WHERE ${parsed.where} LIMIT 1`;
+          const typeCheckSql = `SELECT jsonb_typeof("${column}" #> $1) as type FROM ${qualifiedTable} WHERE ${sanitizeWhereClause(parsed.where)} LIMIT 1`;
           const parentPathStrings = parentPath.map((p) => String(p));
           const typeResult = await adapter.executeQuery(typeCheckSql, [
             parentPathStrings,
@@ -408,7 +411,7 @@ export function createJsonbInsertTool(
           }
         }
 
-        const sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_insert("${column}", $1, $2::jsonb, $3) WHERE ${parsed.where}`;
+        const sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_insert("${column}", $1, $2::jsonb, $3) WHERE ${sanitizeWhereClause(parsed.where)}`;
         const result = await adapter.executeQuery(sql, [
           path,
           toJsonString(parsed.value),
@@ -519,7 +522,7 @@ export function createJsonbDeleteTool(
         }
 
         const pathExpr = useArrayOperator ? `#- $1` : `- $1`;
-        const sql = `UPDATE ${qualifiedTable} SET "${column}" = "${column}" ${pathExpr} WHERE ${parsed.where}`;
+        const sql = `UPDATE ${qualifiedTable} SET "${column}" = "${column}" ${pathExpr} WHERE ${sanitizeWhereClause(parsed.where)}`;
         const result = await adapter.executeQuery(sql, [pathForPostgres]);
         return {
           rowsAffected: result.rowsAffected,
@@ -571,25 +574,78 @@ export function createJsonbContainsTool(
         // Parse JSON string values from MCP clients
         const value = parseJsonbValue(parsed.value);
 
+        // Apply default limit (100) to prevent large payloads
+        const DEFAULT_LIMIT = 100;
+        const requestedLimit = parsed.limit;
+        const effectiveLimit =
+          requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
+
         const selectCols =
           select !== undefined && select.length > 0
-            ? select.map((c) => `"${c}"`).join(", ")
+            ? select
+                .map((item) => {
+                  const { expr, alias } = parseSelectAlias(item);
+                  // Simple column names get quoted; expressions pass through
+                  const needsQuote =
+                    !expr.includes("->") &&
+                    !expr.includes("(") &&
+                    !expr.includes("::") &&
+                    /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(expr);
+                  const exprStr = needsQuote ? `"${expr}"` : expr;
+                  // Only add AS alias when an explicit alias was provided
+                  return alias !== expr &&
+                    alias !==
+                      expr
+                        .replace(/[^\w]/g, "_")
+                        .replace(/_+/g, "_")
+                        .replace(/^_|_$/g, "")
+                    ? `${exprStr} AS "${alias}"`
+                    : exprStr;
+                })
+                .join(", ")
             : "*";
         // Build WHERE clause combining containment check with optional filter
         const containsClause = `"${column}" @> $1::jsonb`;
-        const whereClause = where ? ` AND ${where}` : "";
-        const sql = `SELECT ${selectCols} FROM ${qualifiedTable} WHERE ${containsClause}${whereClause}`;
+        const whereClause = where ? ` AND ${sanitizeWhereClause(where)}` : "";
+        const baseSql = `SELECT ${selectCols} FROM ${qualifiedTable} WHERE ${containsClause}${whereClause}`;
+
+        // Fetch limit+1 rows to detect truncation without a separate count query
+        const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
+        const sql =
+          fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
         const result = await adapter.executeQuery(sql, [toJsonString(value)]);
+        const allRows = result.rows ?? [];
+        const isTruncated =
+          effectiveLimit > 0 && allRows.length > effectiveLimit;
+        const rows = isTruncated ? allRows.slice(0, effectiveLimit) : allRows;
+
         // Warn if empty object was passed (matches all rows)
         const isEmptyObject =
           typeof value === "object" &&
           value !== null &&
           !Array.isArray(value) &&
           Object.keys(value).length === 0;
-        const response: { rows: unknown; count: number; warning?: string } = {
-          rows: result.rows,
-          count: result.rows?.length ?? 0,
+        const response: {
+          rows: unknown;
+          count: number;
+          truncated?: boolean;
+          totalCount?: number;
+          warning?: string;
+        } = {
+          rows,
+          count: rows.length,
         };
+        if (isTruncated) {
+          response.truncated = true;
+          // Get exact total count
+          const countSql = `SELECT COUNT(*) as total FROM ${qualifiedTable} WHERE ${containsClause}${whereClause}`;
+          const countResult = await adapter.executeQuery(countSql, [
+            toJsonString(value),
+          ]);
+          response.totalCount = Number(
+            countResult.rows?.[0]?.["total"] ?? rows.length,
+          );
+        }
         if (isEmptyObject) {
           response.warning =
             "Empty {} matches ALL rows - this is PostgreSQL containment semantics";
@@ -638,12 +694,48 @@ export function createJsonbPathQueryTool(
         if (tableError) return tableError;
 
         const { path, vars, where } = parsed;
-        const whereClause = where ? ` WHERE ${where}` : "";
+        const whereClause = where ? ` WHERE ${sanitizeWhereClause(where)}` : "";
         const varsJson = vars ? JSON.stringify(vars) : "{}";
-        const sql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
+
+        // Apply default limit (100) to prevent large payloads
+        const DEFAULT_LIMIT = 100;
+        const requestedLimit = parsed.limit;
+        const effectiveLimit =
+          requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
+
+        const baseSql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
+
+        // Fetch limit+1 rows to detect truncation without a separate count query
+        const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
+        const sql =
+          fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
         const result = await adapter.executeQuery(sql, [path, varsJson]);
-        const results = result.rows?.map((r) => r["result"]);
-        return { results, count: results?.length ?? 0 };
+        const allResults = result.rows?.map((r) => r["result"]) ?? [];
+        const isTruncated =
+          effectiveLimit > 0 && allResults.length > effectiveLimit;
+        const results = isTruncated
+          ? allResults.slice(0, effectiveLimit)
+          : allResults;
+
+        const response: {
+          results: unknown[];
+          count: number;
+          truncated?: boolean;
+          totalCount?: number;
+        } = { results, count: results.length };
+        if (isTruncated) {
+          response.truncated = true;
+          // Get exact total count
+          const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) FROM ${qualifiedTable}${whereClause}) sub`;
+          const countResult = await adapter.executeQuery(countSql, [
+            path,
+            varsJson,
+          ]);
+          response.totalCount = Number(
+            countResult.rows?.[0]?.["total"] ?? results.length,
+          );
+        }
+        return response;
       } catch (error) {
         // JSONPath-specific: invalid syntax
         if (
@@ -736,7 +828,9 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
           selectExpr = "to_jsonb(t.*)";
         }
 
-        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+        const whereClause = parsed.where
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+          : "";
         const orderByClause = parsed.orderBy
           ? ` ORDER BY ${parsed.orderBy}`
           : "";
@@ -940,7 +1034,9 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
         );
         if (tableError) return tableError;
 
-        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+        const whereClause = parsed.where
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+          : "";
         const sql = `SELECT DISTINCT jsonb_object_keys("${column}") as key FROM ${qualifiedTable}${whereClause}`;
         const result = await adapter.executeQuery(sql);
         const keys = result.rows?.map((r) => r["key"]) as string[];
@@ -1026,7 +1122,7 @@ export function createJsonbStripNullsTool(
 
         if (parsed.preview === true) {
           // Preview mode - show before/after without modifying
-          const previewSql = `SELECT "${column}" as before, jsonb_strip_nulls("${column}") as after FROM ${qualifiedTable} WHERE ${whereClause}`;
+          const previewSql = `SELECT "${column}" as before, jsonb_strip_nulls("${column}") as after FROM ${qualifiedTable} WHERE ${sanitizeWhereClause(whereClause)}`;
           const result = await adapter.executeQuery(previewSql);
           return {
             preview: true,
@@ -1036,7 +1132,7 @@ export function createJsonbStripNullsTool(
           };
         }
 
-        const sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_strip_nulls("${column}") WHERE ${whereClause}`;
+        const sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_strip_nulls("${column}") WHERE ${sanitizeWhereClause(whereClause)}`;
         const result = await adapter.executeQuery(sql);
         return { rowsAffected: result.rowsAffected };
       } catch (error) {
@@ -1081,7 +1177,9 @@ export function createJsonbTypeofTool(
         );
         if (tableError) return tableError;
 
-        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+        const whereClause = parsed.where
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+          : "";
         // Normalize path to array format (accepts both string and array)
         const pathArray =
           parsed.path !== undefined

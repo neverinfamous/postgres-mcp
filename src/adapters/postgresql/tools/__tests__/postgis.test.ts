@@ -62,6 +62,7 @@ describe("PostGIS Tools", () => {
       expect(result.type).toBe("GEOMETRY");
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
         expect.stringContaining("AddGeometryColumn"),
+        ["public", "locations", "geom", 4326, "GEOMETRY"],
       );
     });
 
@@ -81,13 +82,8 @@ describe("PostGIS Tools", () => {
       );
 
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-        expect.stringContaining("'geo'"),
-      );
-      expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-        expect.stringContaining("3857"),
-      );
-      expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-        expect.stringContaining("'POLYGON'"),
+        expect.stringContaining("AddGeometryColumn"),
+        ["geo", "regions", "boundary", 3857, "POLYGON"],
       );
     });
 
@@ -125,7 +121,8 @@ describe("PostGIS Tools", () => {
       );
 
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-        expect.stringContaining("'locations'"),
+        expect.stringContaining("AddGeometryColumn"),
+        expect.arrayContaining(["locations"]),
       );
     });
   });

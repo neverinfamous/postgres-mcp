@@ -13,6 +13,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -296,7 +297,9 @@ export function createJsonbNormalizeTool(
         if (!table || !column) {
           return { success: false, error: "table and column are required" };
         }
-        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+        const whereClause = parsed.where
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+          : "";
         const mode = parsed.mode ?? "keys";
 
         // Validate mode parameter
@@ -354,22 +357,22 @@ export function createJsonbNormalizeTool(
           sql = `SELECT ${rowIdExpr} as ${rowIdAlias}, jsonb_array_elements(${columnName}) as element FROM ${tableName}${whereClause}`;
         } else if (mode === "flatten") {
           sql = `
-                    WITH RECURSIVE 
+                    WITH RECURSIVE
                     source_rows AS (
                         SELECT ${rowIdExpr} as ${rowIdAlias}, ${columnName} as doc
                         FROM ${tableName}${whereClause}
                     ),
                     flattened AS (
-                        SELECT 
+                        SELECT
                             sr.${rowIdAlias},
                             kv.key as path,
                             kv.value,
                             jsonb_typeof(kv.value) as value_type
                         FROM source_rows sr, jsonb_each(sr.doc) kv
-                        
+
                         UNION ALL
-                        
-                        SELECT 
+
+                        SELECT
                             f.${rowIdAlias},
                             f.path || '.' || kv.key,
                             kv.value,
@@ -377,7 +380,7 @@ export function createJsonbNormalizeTool(
                         FROM flattened f, jsonb_each(f.value) kv
                         WHERE jsonb_typeof(f.value) = 'object'
                     )
-                    SELECT ${rowIdAlias}, path as key, value, value_type FROM flattened 
+                    SELECT ${rowIdAlias}, path as key, value, value_type FROM flattened
                     WHERE value_type != 'object' OR value = '{}'::jsonb
                     ORDER BY ${rowIdAlias}, path
                 `;
@@ -469,14 +472,14 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         const sql = `
-                WITH 
+                WITH
                     j1 AS (SELECT key, value FROM jsonb_each($1::jsonb)),
                     j2 AS (SELECT key, value FROM jsonb_each($2::jsonb))
-                SELECT 
+                SELECT
                     COALESCE(j1.key, j2.key) as key,
                     j1.value as value1,
                     j2.value as value2,
-                    CASE 
+                    CASE
                         WHEN j1.key IS NULL THEN 'added'
                         WHEN j2.key IS NULL THEN 'removed'
                         WHEN j1.value = j2.value THEN 'unchanged'
@@ -534,7 +537,9 @@ export function createJsonbIndexSuggestTool(
           return { success: false, error: "table and column are required" };
         }
         const sample = parsed.sampleSize ?? 1000;
-        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+        const whereClause = parsed.where
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+          : "";
 
         // Validate schema existence for non-public schemas
         const schemaName = parsed.schema ?? "public";
@@ -555,10 +560,10 @@ export function createJsonbIndexSuggestTool(
         const columnName = sanitizeIdentifier(column);
 
         const keySql = `
-                SELECT key, COUNT(*) as frequency, 
+                SELECT key, COUNT(*) as frequency,
                        jsonb_typeof(value) as value_type
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,
-                     jsonb_each(${columnName}) 
+                     jsonb_each(${columnName})
                 GROUP BY key, jsonb_typeof(value)
                 ORDER BY frequency DESC
                 LIMIT 20
@@ -673,7 +678,9 @@ export function createJsonbSecurityScanTool(
           return { success: false, error: "table and column are required" };
         }
         const sample = parsed.sampleSize ?? 100;
-        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+        const whereClause = parsed.where
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+          : "";
 
         const issues: { type: string; key: string; count: number }[] = [];
 
@@ -704,7 +711,7 @@ export function createJsonbSecurityScanTool(
                 SELECT key, COUNT(*) as count
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,
                      jsonb_each_text(${columnName})
-                WHERE lower(key) IN ('password', 'secret', 'token', 'api_key', 'apikey', 
+                WHERE lower(key) IN ('password', 'secret', 'token', 'api_key', 'apikey',
                                      'auth', 'credential', 'ssn', 'credit_card', 'cvv')
                 GROUP BY key
             `;
@@ -812,7 +819,9 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
           return { success: false, error: "table and column are required" };
         }
         const sample = parsed.sampleSize ?? 1000;
-        const whereClause = parsed.where ? ` WHERE ${parsed.where}` : "";
+        const whereClause = parsed.where
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+          : "";
 
         // Validate schema existence for non-public schemas
         const schemaName = parsed.schema ?? "public";
@@ -833,7 +842,7 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
         const columnName = sanitizeIdentifier(column);
 
         const basicSql = `
-                SELECT 
+                SELECT
                     COUNT(*) as total_rows,
                     COUNT(${columnName}) as non_null_count,
                     AVG(length(${columnName}::text))::int as avg_size_bytes,
