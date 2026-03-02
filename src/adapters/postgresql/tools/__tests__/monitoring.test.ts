@@ -955,17 +955,17 @@ describe("monitoring.ts branch coverage", () => {
   it("pg_show_settings exact name pattern (line 320-322)", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [
-        { name: "max_connections", setting: "100", category: "Connections" },
+        { name: "timezone", setting: "UTC", category: "Locale" },
       ],
     });
 
     const tool = tools.find((t) => t.name === "pg_show_settings")!;
-    await tool.handler({ pattern: "max_connections" }, mockContext);
+    await tool.handler({ pattern: "timezone" }, mockContext);
 
-    // Should use exact match OR LIKE with auto-wildcards
+    // Should use exact match OR LIKE with auto-wildcards (no % or _ in pattern)
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("WHERE name = $1 OR name LIKE $2"),
-      ["max_connections", "%max_connections%"],
+      ["timezone", "%timezone%"],
     );
   });
 
