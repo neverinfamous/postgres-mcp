@@ -379,6 +379,8 @@ export {
   PartmanRunMaintenanceSchemaBase,
   PartmanShowPartitionsSchema,
   PartmanShowPartitionsSchemaBase,
+  PartmanShowConfigSchema,
+  PartmanShowConfigSchemaBase,
   PartmanCheckDefaultSchema,
   PartmanCheckDefaultSchemaBase,
   PartmanPartitionDataSchema,

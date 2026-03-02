@@ -219,6 +219,27 @@ export const PartmanShowPartitionsSchema = z
   .default({});
 
 /**
+ * Schema for viewing partition configuration.
+ * Queries partman.part_config table.
+ */
+export const PartmanShowConfigSchemaBase = z.object({
+  parentTable: z
+    .string()
+    .optional()
+    .describe("Parent table name (all configs if omitted)"),
+  limit: z
+    .number()
+    .optional()
+    .describe(
+      "Maximum number of configs to return (default: 50, use 0 for all)",
+    ),
+});
+
+export const PartmanShowConfigSchema = z
+  .preprocess(preprocessPartmanParams, PartmanShowConfigSchemaBase)
+  .default({});
+
+/**
  * Schema for checking data in default partition.
  * Uses partman.check_default() function.
  */

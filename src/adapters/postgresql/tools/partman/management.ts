@@ -19,6 +19,8 @@ import {
   PartmanRunMaintenanceSchemaBase,
   PartmanShowPartitionsSchema,
   PartmanShowPartitionsSchemaBase,
+  PartmanShowConfigSchema,
+  PartmanShowConfigSchemaBase,
   // Output schemas
   PartmanCreateExtensionOutputSchema,
   PartmanCreateParentOutputSchema,
@@ -33,8 +35,8 @@ import {
  */
 async function getPartmanSchema(adapter: PostgresAdapter): Promise<string> {
   const result = await adapter.executeQuery(`
-        SELECT table_schema FROM information_schema.tables 
-        WHERE table_name = 'part_config' 
+        SELECT table_schema FROM information_schema.tables
+        WHERE table_name = 'part_config'
         AND table_schema IN ('partman', 'public')
         LIMIT 1
     `);
@@ -71,19 +73,19 @@ export function createPartmanCreateParentTool(
 ): ToolDefinition {
   return {
     name: "pg_partman_create_parent",
-    description: `Create a new partition set using pg_partman's create_parent() function. 
+    description: `Create a new partition set using pg_partman's create_parent() function.
 Supports time-based and integer-based partitioning with automatic child partition creation.
 The parent table must already exist before calling this function.
 
 Partition type (time vs integer) is automatically detected from the control column's data type.
 For non-timestamp/integer columns (text, uuid), use raw pg_partman SQL with timeEncoder/timeDecoder parameters.
 
-IMPORTANT: For empty tables with no data, you MUST provide startPartition (e.g., 'now' for current date, or a specific date like '2024-01-01'). 
+IMPORTANT: For empty tables with no data, you MUST provide startPartition (e.g., 'now' for current date, or a specific date like '2024-01-01').
 Without startPartition and data, pg_partman cannot determine where to start creating partitions.
 
 TIP: startPartition accepts 'now' as a shorthand for the current date/time.
 
-WARNING: startPartition creates ALL partitions from that date to current date + premake. 
+WARNING: startPartition creates ALL partitions from that date to current date + premake.
 A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creates many partitions.`,
     group: "partman",
     inputSchema: PartmanCreateParentSchemaBase,
@@ -132,7 +134,13 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
         args.push(`p_premake := ${String(premake)}`);
       }
       if (startPartition !== undefined) {
-        args.push(`p_start_partition := '${startPartition}'`);
+        // pg_partman 5.x doesn't interpret 'now' as a timestamp literal.
+        // Resolve 'now' to NOW()::text so pg_partman receives an actual timestamp string.
+        if (startPartition.toLowerCase() === "now") {
+          args.push(`p_start_partition := NOW()::text`);
+        } else {
+          args.push(`p_start_partition := '${startPartition}'`);
+        }
       }
       if (templateTable !== undefined) {
         args.push(`p_template_table := '${templateTable}'`);
@@ -380,7 +388,7 @@ Maintains all partition sets if no specific parent table is specified.`,
 
         const tableExistsResult = await adapter.executeQuery(
           `
-                    SELECT 1 FROM information_schema.tables 
+                    SELECT 1 FROM information_schema.tables
                     WHERE table_schema = $1 AND table_name = $2
                 `,
           [schema, tableName],
@@ -549,76 +557,24 @@ export function createPartmanShowPartitionsTool(
 export function createPartmanShowConfigTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Preprocess to support table/parent/name aliases and auto-prefix public schema
-  const inputSchema = z
-    .preprocess(
-      (input) => {
-        if (typeof input !== "object" || input === null) return input;
-        const raw = input as {
-          table?: string;
-          parent?: string;
-          name?: string;
-          parentTable?: string;
-          limit?: number;
-        };
-        const result = { ...raw };
-
-        // Alias: table → parentTable
-        if (result.table && !result.parentTable) {
-          result.parentTable = result.table;
-        }
-
-        // Alias: parent → parentTable (documented in ServerInstructions)
-        if (result.parent && !result.parentTable) {
-          result.parentTable = result.parent;
-        }
-
-        // Alias: name → parentTable (documented in ServerInstructions)
-        if (result.name && !result.parentTable) {
-          result.parentTable = result.name;
-        }
-
-        // Auto-prefix public. for parentTable when no schema specified
-        // (Consistent with other partman tools)
-        if (result.parentTable && !result.parentTable.includes(".")) {
-          result.parentTable = `public.${result.parentTable}`;
-        }
-
-        return result;
-      },
-      z.object({
-        parentTable: z
-          .string()
-          .optional()
-          .describe("Parent table name (all configs if omitted)"),
-        limit: z
-          .number()
-          .optional()
-          .describe(
-            "Maximum number of configs to return (default: 50, use 0 for all)",
-          ),
-      }),
-    )
-    .default({});
-
   return {
     name: "pg_partman_show_config",
     description:
       "View the configuration for a partition set from part_config table.",
     group: "partman",
-    inputSchema,
+    inputSchema: PartmanShowConfigSchemaBase,
     outputSchema: PartmanShowConfigOutputSchema,
     annotations: readOnly("Show Partman Config"),
     icons: getToolIcons("partman", readOnly("Show Partman Config")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = inputSchema.parse(params);
+      const parsed = PartmanShowConfigSchema.parse(params);
       const partmanSchema = await getPartmanSchema(adapter);
 
       // Dynamically detect available columns to handle different pg_partman versions
       const columnsResult = await adapter.executeQuery(
         `
-                SELECT column_name 
-                FROM information_schema.columns 
+                SELECT column_name
+                FROM information_schema.columns
                 WHERE table_schema = $1 AND table_name = 'part_config'
             `,
         [partmanSchema],
@@ -690,7 +646,7 @@ export function createPartmanShowConfigTool(
 
           const tableExistsResult = await adapter.executeQuery(
             `
-                        SELECT 1 FROM information_schema.tables 
+                        SELECT 1 FROM information_schema.tables
                         WHERE table_schema = $1 AND table_name = $2
                     `,
             [schema, tableName],

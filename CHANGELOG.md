@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`pg_partman_create_parent` `startPartition: "now"` silently fails** — pg_partman 5.4.1 does not recognize the literal string `'now'` as a valid `p_start_partition` value, causing `create_parent()` to return `false` and create no child partitions. The tool now converts `startPartition: "now"` to `NOW()::text` at SQL generation time, producing an actual timestamp string that pg_partman accepts
+
+- **`pg_partman_show_config` Split Schema violation** — `show_config` defined its `inputSchema` inline as `z.preprocess().default({})`, which strips parameter metadata from MCP JSON Schema generation (hiding `parentTable` and `limit` from MCP clients). Extracted `PartmanShowConfigSchemaBase` and `PartmanShowConfigSchema` to `partman.ts`, matching the Split Schema pattern used by all other partman tools
+
 ### Changed
 
 - **GitHub repo renamed `postgresql-mcp` → `postgres-mcp`** — Standardized the project name across all surfaces (GitHub, npm, Docker, MCP Registry, CLI). The old `postgres-mcp` repo (deprecated Python version) was renamed to `postgres-mcp-legacy`. Updated all GitHub URLs in `package.json`, `server.json`, `Dockerfile`, `README.md`, `DOCKER_README.md`, release notes, and `publish-npm.yml`. GitHub automatically redirects all old `postgresql-mcp` URLs indefinitely
@@ -56,8 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`pg_create_partitioned_table` raw MCP error for uppercase `partitionBy`** — `pg_create_partitioned_table({ partitionBy: "RANGE" })` now correctly normalizes to lowercase via the preprocessor instead of failing with a raw MCP `-32602` Zod validation error. Root cause: `CreatePartitionedTableSchemaBase` used `z.enum(["range", "list", "hash"])` which rejected uppercase values at MCP input validation before the `preprocessCreatePartitionedTable` normalizer could run. Changed to `z.string()` in the base schema; the preprocessor still lowercases and the handler's `CreatePartitionedTableSchema` (preprocessed) validates the final value
-
-
 
 - **`pg_list_views` / `pg_list_sequences` raw MCP error for nonexistent schema** — `pg_list_views({ schema: "nonexistent" })` and `pg_list_sequences({ schema: "nonexistent" })` now return `{success: false, error: "Schema '...' does not exist"}` instead of a raw MCP output validation error (`-32602`). Root cause: `ListViewsOutputSchema` had `views`, `count`, `hasMatViews`, and `truncated` as required fields, and `ListSequencesOutputSchema` had `sequences` and `count` as required fields — both failing Zod output validation when the handler returned `{success: false, error}`. Made all success-path fields optional and added `success`/`error` fields to `ListViewsOutputSchema`, matching the existing pattern in `ListFunctionsOutputSchema`, `ListTriggersOutputSchema`, and `ListConstraintsOutputSchema`
 
