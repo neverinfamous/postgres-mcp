@@ -918,7 +918,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = t.relnamespace
           JOIN pg_am am ON am.oid = i.relam
           WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'"}
-            ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere.replace(/\bn\./g, "n.")}
+            ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
           ORDER BY n.nspname, t.relname, i.relname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
@@ -984,7 +984,7 @@ function createSchemaSnapshotTool(adapter: PostgresAdapter): ToolDefinition {
           JOIN pg_namespace n ON n.oid = c.relnamespace
           JOIN pg_proc p ON p.oid = t.tgfoid
           WHERE NOT t.tgisinternal
-            ${schemaExclude.replace(/\bn\./g, "n.")} ${extensionSchemaExclude.replace(/\bn\./g, "n.")} ${extOwnedClause("c.oid")} ${schemaWhere}
+            ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
           ORDER BY n.nspname, c.relname, t.tgname`,
           schemaParams.length > 0 ? schemaParams : undefined,
         );
