@@ -375,6 +375,7 @@ export {
 export {
   PartmanCreateParentSchema,
   PartmanCreateParentSchemaBase,
+  DEPRECATED_INTERVALS,
   PartmanRunMaintenanceSchema,
   PartmanRunMaintenanceSchemaBase,
   PartmanShowPartitionsSchema,

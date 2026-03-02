@@ -21,6 +21,7 @@ import {
   PartmanShowPartitionsSchemaBase,
   PartmanShowConfigSchema,
   PartmanShowConfigSchemaBase,
+  DEPRECATED_INTERVALS,
   // Output schemas
   PartmanCreateExtensionOutputSchema,
   PartmanCreateParentOutputSchema,
@@ -115,6 +116,17 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
           error: `Missing required parameters: ${missing.join(", ")}.`,
           hint: 'Example: pg_partman_create_parent({ parentTable: "public.events", controlColumn: "created_at", interval: "1 month" })',
           aliases: { control: "controlColumn" },
+        };
+      }
+
+      // Check for deprecated interval keywords and return structured error
+      const deprecatedReplacement =
+        DEPRECATED_INTERVALS[interval.toLowerCase()];
+      if (deprecatedReplacement) {
+        return {
+          success: false,
+          error: `Deprecated interval '${interval}'. Use PostgreSQL interval syntax instead: '${deprecatedReplacement}'.`,
+          hint: "Valid examples: '1 day', '1 week', '1 month', '3 months', '1 year'. Do NOT use keywords like 'daily' or 'monthly'.",
         };
       }
 

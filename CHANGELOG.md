@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_partman_create_parent` raw MCP error for deprecated interval keywords** — `pg_partman_create_parent({ interval: "daily" })` now returns `{success: false, error: "Deprecated interval 'daily'. Use PostgreSQL interval syntax instead: '1 day'."}` instead of a raw MCP `-32602` Zod validation error. Root cause: `PartmanCreateParentSchemaBase` had a `.superRefine()` on the `interval` field that rejected deprecated keywords (daily, weekly, monthly, quarterly, yearly, hourly) at the MCP framework input validation level, before the handler could catch it. Moved deprecated interval detection from the schema to handler logic, returning a structured response with the correct replacement interval. Exported `DEPRECATED_INTERVALS` constant from `partman.ts` for handler use
+
 - **`pg_partman_create_parent` `startPartition: "now"` silently fails** — pg_partman 5.4.1 does not recognize the literal string `'now'` as a valid `p_start_partition` value, causing `create_parent()` to return `false` and create no child partitions. The tool now converts `startPartition: "now"` to `NOW()::text` at SQL generation time, producing an actual timestamp string that pg_partman accepts
 
 - **`pg_partman_show_config` Split Schema violation** — `show_config` defined its `inputSchema` inline as `z.preprocess().default({})`, which strips parameter metadata from MCP JSON Schema generation (hiding `parentTable` and `limit` from MCP clients). Extracted `PartmanShowConfigSchemaBase` and `PartmanShowConfigSchema` to `partman.ts`, matching the Split Schema pattern used by all other partman tools

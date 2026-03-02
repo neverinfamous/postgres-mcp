@@ -38,7 +38,7 @@ interface RawPartmanInput {
  * Deprecated interval keywords that pg_partman no longer accepts.
  * Maps legacy keywords to their PostgreSQL interval equivalents.
  */
-const DEPRECATED_INTERVALS: Record<string, string> = {
+export const DEPRECATED_INTERVALS: Record<string, string> = {
   daily: "1 day",
   weekly: "1 week",
   monthly: "1 month",
@@ -129,16 +129,6 @@ export const PartmanCreateParentSchemaBase = z.object({
   interval: z
     .string()
     .optional()
-    .superRefine((val, ctx) => {
-      if (!val) return; // Skip validation for undefined
-      const deprecated = DEPRECATED_INTERVALS[val.toLowerCase()];
-      if (deprecated) {
-        ctx.addIssue({
-          code: "custom",
-          message: `Deprecated interval '${val}'. Use PostgreSQL interval syntax instead: '${deprecated}'. Examples: '1 day', '1 week', '1 month'`,
-        });
-      }
-    })
     .describe(
       'Partition interval using PostgreSQL syntax (e.g., "1 month", "1 day", "1 week", "10000" for integer). Required.',
     ),
