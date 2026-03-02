@@ -290,6 +290,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `pg` from 8.18.0 to 8.19.0
 - Bump `typescript-eslint` from 8.56.0 to 8.56.1
 - **Security audit fixes** — `npm audit fix` upgraded transitive dependencies `hono` (→4.12.3, authentication bypass by IP spoofing in AWS Lambda), `rollup` (→4.59.0, path traversal write), `minimatch` (→10.2.4, ReDoS via `matchOne()` combinatorial backtracking)
+- Bump `@types/node` from 25.3.2 to 25.3.3
+- Bump `@types/pg` from 8.16.0 to 8.18.0
+- Bump `globals` from 17.3.0 to 17.4.0
 
 ## [1.3.0] - 2026-02-22
 
