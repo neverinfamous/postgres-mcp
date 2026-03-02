@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`secrets-scanning.yml` Gitleaks CI failure on PRs** — Added `GITHUB_TOKEN` environment variable to the `gitleaks/gitleaks-action@v2` step. Gitleaks Action v2 now requires `GITHUB_TOKEN` to scan pull requests, causing all PR CI checks to fail with `GITHUB_TOKEN is now required to scan pull requests`
 
-- **`security-update.yml` Trivy SARIF upload failure** — Added `hashFiles('trivy-results.sarif') != ''` condition to the `upload-sarif` step. Previously used `if: always()` which attempted to upload the SARIF file even when the Trivy scan step failed (e.g., binary installation failure), causing a secondary `Path does not exist: trivy-results.sarif` error
+### Removed
+
+- **`security-update.yml` Trivy workflow** — Removed the dedicated Trivy security scanning workflow. Docker Scout in `docker-publish.yml` already provides container security scanning as a gate before pushing images, making Trivy redundant. The Trivy Action (`aquasecurity/trivy-action@0.34.1`) was also experiencing transient binary installation failures blocking unrelated PRs
 
 ## [2.0.0] - 2026-03-02
 
