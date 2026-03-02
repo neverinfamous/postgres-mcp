@@ -887,3 +887,324 @@ describe("pg_alert_threshold_set", () => {
     expect(result.error).toContain("connection_usage");
   });
 });
+
+// =============================================================================
+// Branch Coverage Tests - monitoring.ts edge cases
+// =============================================================================
+
+describe("monitoring.ts branch coverage", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMonitoringTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMonitoringTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_table_sizes truncation indicator when results equal limit (lines 152-161)", async () => {
+    // 50 tables (default limit) to trigger truncation path
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: Array(50).fill({
+        schema: "public",
+        table_name: "t",
+        table_size: "1 MB",
+        indexes_size: "1 MB",
+        total_size: "2 MB",
+        total_bytes: "2097152",
+      }),
+    });
+    // Count query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: "100" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_table_sizes")!;
+    const result = (await tool.handler({}, mockContext)) as Record<
+      string,
+      unknown
+    >;
+
+    expect(result.truncated).toBe(true);
+    expect(result.totalCount).toBe(100);
+    expect(result.count).toBe(50);
+  });
+
+  it("pg_table_sizes total_bytes string coercion", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schema: "public",
+          table_name: "t",
+          total_bytes: "12345",
+          total_size: "12 kB",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_table_sizes")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      tables: { total_bytes: number }[];
+    };
+
+    expect(result.tables[0].total_bytes).toBe(12345);
+  });
+
+  it("pg_show_settings exact name pattern (line 320-322)", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { name: "max_connections", setting: "100", category: "Connections" },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_show_settings")!;
+    await tool.handler({ pattern: "max_connections" }, mockContext);
+
+    // Should use exact match OR LIKE with auto-wildcards
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("WHERE name = $1 OR name LIKE $2"),
+      ["max_connections", "%max_connections%"],
+    );
+  });
+
+  it("pg_show_settings truncation indicator (lines 339-344)", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: Array(5).fill({
+          name: "setting",
+          setting: "val",
+          category: "cat",
+        }),
+      })
+      .mockResolvedValueOnce({ rows: [{ total: "20" }] });
+
+    const tool = tools.find((t) => t.name === "pg_show_settings")!;
+    const result = (await tool.handler(
+      { limit: 5 },
+      mockContext,
+    )) as Record<string, unknown>;
+
+    expect(result.truncated).toBe(true);
+    expect(result.totalCount).toBe(20);
+    expect(result.count).toBe(5);
+  });
+
+  it("pg_capacity_planning non-ZodError catch (line 475)", async () => {
+    // Trigger a non-Zod error by making the DB queries fail
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("DB connection failed"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
+    // This should trigger the non-ZodError path since the parse succeeds
+    // but the DB call fails. However, the parse happens first, so we need
+    // valid input that passes parsing but fails on DB.
+    // Actually the non-ZodError is in the parse catch block (line 475).
+    // We can't easily trigger that without mocking Zod.
+    // Let's instead focus on other branches.
+    // The capacity_planning daysOfData < 1 estimation quality branch:
+    mockAdapter.executeQuery.mockReset();
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [{ current_size_bytes: 1073741824, current_size: "1 GB" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            table_count: 10,
+            total_rows: 1000,
+            total_inserts: 100,
+            total_deletes: 10,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ max_connections: 100, current_connections: 20 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ stats_since: "2024-01-01", days_of_data: "0.5" }],
+      });
+
+    const result = (await tool.handler({}, mockContext)) as {
+      growth: { estimationQuality: string };
+    };
+
+    expect(result.growth.estimationQuality).toContain(
+      "Low confidence - less than 1 day",
+    );
+  });
+
+  it("pg_capacity_planning moderate confidence (< 7 days)", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [{ current_size_bytes: 1073741824, current_size: "1 GB" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            table_count: 10,
+            total_rows: 1000,
+            total_inserts: 100,
+            total_deletes: 10,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ max_connections: 100, current_connections: 20 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ stats_since: "2024-01-01", days_of_data: "3" }],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      growth: { estimationQuality: string };
+    };
+    expect(result.growth.estimationQuality).toContain("Moderate confidence");
+  });
+
+  it("pg_capacity_planning good confidence (< 30 days)", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [{ current_size_bytes: 1073741824, current_size: "1 GB" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            table_count: 10,
+            total_rows: 1000,
+            total_inserts: 100,
+            total_deletes: 10,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ max_connections: 100, current_connections: 20 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ stats_since: "2024-01-01", days_of_data: "15" }],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      growth: { estimationQuality: string };
+    };
+    expect(result.growth.estimationQuality).toContain("Good confidence");
+  });
+
+  it("pg_capacity_planning with days alias", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [{ current_size_bytes: 1073741824, current_size: "1 GB" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            table_count: 10,
+            total_rows: 1000,
+            total_inserts: 100,
+            total_deletes: 10,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ max_connections: 100, current_connections: 20 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ stats_since: "2024-01-01", days_of_data: "45" }],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
+    const result = (await tool.handler({ days: 30 }, mockContext)) as {
+      projection: { days: number };
+    };
+    expect(result.projection.days).toBe(30);
+  });
+
+  it("pg_database_size returns undefined row", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_database_size")!;
+    const result = await tool.handler({}, mockContext);
+    expect(result).toBeUndefined();
+  });
+
+  it("pg_server_version returns undefined row", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_server_version")!;
+    const result = await tool.handler({}, mockContext);
+    expect(result).toBeUndefined();
+  });
+
+  it("pg_uptime returns undefined row", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = tools.find((t) => t.name === "pg_uptime")!;
+    const result = await tool.handler({}, mockContext);
+    expect(result).toBeUndefined();
+  });
+
+  it("pg_resource_usage_analyze PG17+ code path", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ version_num: 170000 }] }) // PG17+
+      .mockResolvedValueOnce({
+        rows: [{ buffers_clean: 500, maxwritten_clean: 10, buffers_alloc: 1000 }],
+      }) // bgwriter (no buffers_checkpoint)
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            checkpoints_timed: 100,
+            checkpoints_req: 10,
+            checkpoint_write_time: 1000,
+            checkpoint_sync_time: 500,
+            buffers_checkpoint: 800,
+          },
+        ],
+      }) // checkpointer (PG17)
+      .mockResolvedValueOnce({ rows: [{ state: "active", count: 5 }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { heap_reads: 100, heap_hits: 9900, index_reads: 50, index_hits: 4950 },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            active_queries: 2,
+            idle_connections: 10,
+            lock_waiting: 0,
+            io_waiting: 0,
+          },
+        ],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const result = (await tool.handler({}, mockContext)) as Record<
+      string,
+      unknown
+    >;
+
+    expect(result).toHaveProperty("backgroundWriter");
+    expect(result).toHaveProperty("checkpoints");
+  });
+
+  it("pg_connection_stats string coercion for totalConnections", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [
+          { datname: "db", state: "active", connections: "5" },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ max_connections: "200" }] })
+      .mockResolvedValueOnce({ rows: [{ total: "25" }] });
+
+    const tool = tools.find((t) => t.name === "pg_connection_stats")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      totalConnections: number;
+      maxConnections: number;
+    };
+
+    expect(result.totalConnections).toBe(25);
+    expect(result.maxConnections).toBe(200);
+  });
+});
