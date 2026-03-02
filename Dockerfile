@@ -124,7 +124,7 @@ CMD ["node", "dist/cli.js"]
 
 # Labels for Docker Hub
 LABEL maintainer="Adamic.tech"
-LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 203 tools, 20 resources, 19 prompts"
+LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 227 tools, 20 resources, 19 prompts"
 LABEL version="1.3.0"
-LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgres-mcp"
+LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgresql-mcp"
 LABEL io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp"

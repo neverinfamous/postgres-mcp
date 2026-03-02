@@ -5,8 +5,8 @@
  * STRICT LIMIT: No shortcut may exceed 50 tools.
  *
  * TOOL COUNT ACCOUNTING:
- *   ToolConstants arrays total: 222 tools (sum of all group arrays)
- *   Published "specialized tools": 213 (222 - 9 utility tools)
+ *   ToolConstants arrays total: 227 tools (sum of all group arrays)
+ *   Published "specialized tools": 218 (227 - 9 utility tools)
  *
  *   The 9 excluded utility tools:
  *     - 8 create_extension helpers (one per extension group):
@@ -19,6 +19,8 @@
  *   When adding new tools: update group sizes, meta-group sums,
  *   and the published total in README/DOCKER_README/wiki.
  *   The published total = array total - 9 utility tools.
+ *
+ *   Verify: 20+7+19+13+20+10+11+9+12+16+15+6+8+8+10+7+6+8+12+9+1 = 227
  */
 
 import type { ToolGroup, MetaGroup } from "../types/index.js";

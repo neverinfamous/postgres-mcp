@@ -582,7 +582,27 @@ export function createJsonbContainsTool(
 
         const selectCols =
           select !== undefined && select.length > 0
-            ? select.map((c) => `"${c}"`).join(", ")
+            ? select
+                .map((item) => {
+                  const { expr, alias } = parseSelectAlias(item);
+                  // Simple column names get quoted; expressions pass through
+                  const needsQuote =
+                    !expr.includes("->") &&
+                    !expr.includes("(") &&
+                    !expr.includes("::") &&
+                    /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(expr);
+                  const exprStr = needsQuote ? `"${expr}"` : expr;
+                  // Only add AS alias when an explicit alias was provided
+                  return alias !== expr &&
+                    alias !==
+                      expr
+                        .replace(/[^\w]/g, "_")
+                        .replace(/_+/g, "_")
+                        .replace(/^_|_$/g, "")
+                    ? `${exprStr} AS "${alias}"`
+                    : exprStr;
+                })
+                .join(", ")
             : "*";
         // Build WHERE clause combining containment check with optional filter
         const containsClause = `"${column}" @> $1::jsonb`;
