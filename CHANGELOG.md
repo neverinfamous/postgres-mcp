@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`secrets-scanning.yml` Gitleaks CI failure on PRs** — Added `GITHUB_TOKEN` environment variable to the `gitleaks/gitleaks-action@v2` step. Gitleaks Action v2 now requires `GITHUB_TOKEN` to scan pull requests, causing all PR CI checks to fail with `GITHUB_TOKEN is now required to scan pull requests`
+
 ## [2.0.0] - 2026-03-02
 
 ### Added
