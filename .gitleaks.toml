@@ -1,0 +1,11 @@
+# Gitleaks Configuration
+# https://github.com/gitleaks/gitleaks#configuration
+
+title = "postgres-mcp gitleaks config"
+
+# Allowlist for known false positives in test fixtures
+[allowlist]
+  description = "Test fixtures containing intentionally fake secrets for benchmarking"
+  paths = [
+    '''src/__tests__/benchmarks/logger-sanitization\.bench\.ts''',
+  ]
