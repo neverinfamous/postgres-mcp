@@ -4,7 +4,7 @@
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 227 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection and migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**227 specialized tools** · **20 resources** · **19 AI-powered prompts**
+**227 Specialized Tools** · **20 Resources** · **19 AI-Powered Prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
