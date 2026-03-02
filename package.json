@@ -38,12 +38,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/neverinfamous/postgresql-mcp.git"
+    "url": "git+https://github.com/neverinfamous/postgres-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/neverinfamous/postgresql-mcp/issues"
+    "url": "https://github.com/neverinfamous/postgres-mcp/issues"
   },
-  "homepage": "https://github.com/neverinfamous/postgresql-mcp#readme",
+  "homepage": "https://github.com/neverinfamous/postgres-mcp#readme",
   "engines": {
     "node": ">=24.0.0"
   },

@@ -126,5 +126,5 @@ CMD ["node", "dist/cli.js"]
 LABEL maintainer="Adamic.tech"
 LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 227 tools, 20 resources, 19 prompts"
 LABEL version="1.3.0"
-LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgresql-mcp"
+LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgres-mcp"
 LABEL io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp"

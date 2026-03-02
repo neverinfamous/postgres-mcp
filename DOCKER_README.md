@@ -1,24 +1,24 @@
 # postgres-mcp
 
-**Last Updated February 28, 2026**
+**Last Updated March 2, 2026**
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 227 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
 **227 specialized tools** · **20 resources** · **19 AI-powered prompts**
 
-[![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgresql-mcp)
-![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgresql-mcp)
+[![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
+![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
 [![Docker Pulls](https://img.shields.io/docker/pulls/writenotenow/postgres-mcp)](https://hub.docker.com/r/writenotenow/postgres-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![MCP](https://img.shields.io/badge/MCP-Registry-green.svg)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)
 [![npm](https://img.shields.io/npm/v/@neverinfamous/postgres-mcp)](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)
-[![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgresql-mcp/blob/main/SECURITY.md)
+[![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)
 ![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Tests](https://img.shields.io/badge/Tests-3000_passed-success.svg)](https://github.com/neverinfamous/postgresql-mcp)
-[![Coverage](https://img.shields.io/badge/Coverage-92.10%25-brightgreen.svg)](https://github.com/neverinfamous/postgresql-mcp)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgres-mcp)
+[![Tests](https://img.shields.io/badge/Tests-3000_passed-success.svg)](https://github.com/neverinfamous/postgres-mcp)
+[![Coverage](https://img.shields.io/badge/Coverage-92.10%25-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp)
 
-**[GitHub](https://github.com/neverinfamous/postgresql-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgresql-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgresql-mcp/blob/main/CHANGELOG.md)**
+**[GitHub](https://github.com/neverinfamous/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgres-mcp/blob/main/CHANGELOG.md)**
 
 ### 🎯 What Sets Us Apart
 
@@ -76,7 +76,7 @@ Real-time database meta-awareness - AI accesses these automatically:
 | `postgres://indexes`      | Index usage statistics                        |
 | `postgres://activity`     | Current connections and active queries        |
 
-**[Full resources list →](https://github.com/neverinfamous/postgresql-mcp#resources)**
+**[Full resources list →](https://github.com/neverinfamous/postgres-mcp#resources)**
 
 ### MCP Prompts (19)
 
@@ -91,7 +91,7 @@ Guided workflows for complex operations:
 | `pg_backup_strategy`       | Design backup strategy          |
 | `pg_tool_index`            | Compact tool index reference    |
 
-**[Full prompts list →](https://github.com/neverinfamous/postgresql-mcp#-ai-powered-prompts)**
+**[Full prompts list →](https://github.com/neverinfamous/postgres-mcp#-ai-powered-prompts)**
 
 ---
 
@@ -208,10 +208,10 @@ This exposes just `pg_execute_code`. The agent writes JavaScript against the typ
 >
 > _"When using postgres-mcp, prefer `pg_execute_code` (Code Mode) for multi-step database operations to minimize token usage."_
 >
-> For maximum savings, use `--tool-filter codemode` to run with Code Mode as your only tool. See the [Code Mode wiki](https://github.com/neverinfamous/postgresql-mcp/wiki/Code-Mode) for full API documentation.
+> For maximum savings, use `--tool-filter codemode` to run with Code Mode as your only tool. See the [Code Mode wiki](https://github.com/neverinfamous/postgres-mcp/wiki/Code-Mode) for full API documentation.
 
 > [!NOTE]
-> **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage, manually provide the contents of [`src/constants/ServerInstructions.ts`](https://github.com/neverinfamous/postgresql-mcp/blob/main/src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
+> **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage, manually provide the contents of [`src/constants/ServerInstructions.ts`](https://github.com/neverinfamous/postgres-mcp/blob/main/src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
 
 ---
 
@@ -228,7 +228,7 @@ Click the button below to install directly into Cursor:
 - ✅ Docker installed and running
 - ✅ PostgreSQL database accessible
 
-**📖 [See Full Installation Guide →](https://github.com/neverinfamous/postgresql-mcp#readme)**
+**📖 [See Full Installation Guide →](https://github.com/neverinfamous/postgres-mcp#readme)**
 
 ---
 
@@ -421,7 +421,7 @@ docker pull writenotenow/postgres-mcp@sha256:<manifest-digest>
 **Step 1: Clone the repository**
 
 ```bash
-git clone https://github.com/neverinfamous/postgresql-mcp.git
+git clone https://github.com/neverinfamous/postgres-mcp.git
 cd postgres-mcp
 ```
 
@@ -462,12 +462,12 @@ Update your `~/.cursor/mcp.json` to use the local build:
 
 ## 📚 Documentation & Resources
 
-- **[GitHub Repository](https://github.com/neverinfamous/postgresql-mcp)** - Source code & full documentation
+- **[GitHub Repository](https://github.com/neverinfamous/postgres-mcp)** - Source code & full documentation
 - **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** - Node.js distribution
-- **[Issues](https://github.com/neverinfamous/postgresql-mcp/issues)** - Bug reports & feature requests
+- **[Issues](https://github.com/neverinfamous/postgres-mcp/issues)** - Bug reports & feature requests
 
 ---
 
 ## 📄 License
 
-MIT License - See [LICENSE](https://github.com/neverinfamous/postgresql-mcp/blob/main/LICENSE)
+MIT License - See [LICENSE](https://github.com/neverinfamous/postgres-mcp/blob/main/LICENSE)

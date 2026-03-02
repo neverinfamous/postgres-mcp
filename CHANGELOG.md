@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **GitHub repo renamed `postgresql-mcp` → `postgres-mcp`** — Standardized the project name across all surfaces (GitHub, npm, Docker, MCP Registry, CLI). The old `postgres-mcp` repo (deprecated Python version) was renamed to `postgres-mcp-legacy`. Updated all GitHub URLs in `package.json`, `server.json`, `Dockerfile`, `README.md`, `DOCKER_README.md`, release notes, and `publish-npm.yml`. GitHub automatically redirects all old `postgresql-mcp` URLs indefinitely
+
 ### Security
 
 - **WHERE clause blocklist: `dblink()` and `pg_execute_server_program()` patterns** — Added 2 new dangerous patterns to `validateWhereClause()`: `dblink()` (remote query execution via the simpler dblink function, complementing existing `dblink_connect`/`dblink_exec` patterns) and `pg_execute_server_program()` (PostgreSQL 12+ OS command execution). Added 2 unit tests in `security-injection.test.ts`
