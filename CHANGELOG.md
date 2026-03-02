@@ -293,6 +293,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump `@types/node` from 25.3.2 to 25.3.3
 - Bump `@types/pg` from 8.16.0 to 8.18.0
 - Bump `globals` from 17.3.0 to 17.4.0
+- Bump `aquasecurity/trivy-action` from 0.34.0 to 0.34.1 in `security-update.yml`
+- Bump `actions/upload-artifact` from v6 to v7 in `docker-publish.yml`
+- Bump `actions/download-artifact` from v7 to v8 in `docker-publish.yml`
 
 ## [1.3.0] - 2026-02-22
 
