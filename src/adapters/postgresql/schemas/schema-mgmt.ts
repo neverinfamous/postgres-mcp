@@ -333,8 +333,9 @@ export const ListSequencesOutputSchema = z
   .object({
     sequences: z
       .array(z.record(z.string(), z.unknown()))
+      .optional()
       .describe("Sequence list"),
-    count: z.number().describe("Number of sequences"),
+    count: z.number().optional().describe("Number of sequences"),
     truncated: z
       .boolean()
       .optional()
@@ -388,19 +389,30 @@ export const DropSequenceOutputSchema = z
  */
 export const ListViewsOutputSchema = z
   .object({
-    views: z.array(z.record(z.string(), z.unknown())).describe("View list"),
-    count: z.number().describe("Number of views"),
-    hasMatViews: z.boolean().describe("Whether materialized views were found"),
+    views: z
+      .array(z.record(z.string(), z.unknown()))
+      .optional()
+      .describe("View list"),
+    count: z.number().optional().describe("Number of views"),
+    hasMatViews: z
+      .boolean()
+      .optional()
+      .describe("Whether materialized views were found"),
     truncatedDefinitions: z
       .number()
       .optional()
       .describe("Number of truncated definitions"),
-    truncated: z.boolean().describe("Whether results were truncated"),
+    truncated: z
+      .boolean()
+      .optional()
+      .describe("Whether results were truncated"),
     totalCount: z
       .number()
       .optional()
       .describe("Total number of views when truncated"),
     note: z.string().optional().describe("Note about truncation"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
   })
   .loose();
 
