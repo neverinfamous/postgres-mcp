@@ -128,7 +128,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     fi
 
 # Run the MCP server (default: stdio transport)
-CMD ["node", "dist/cli.js"]
+ENTRYPOINT ["node", "dist/cli.js"]
+CMD []
 
 # Labels for Docker Hub
 LABEL maintainer="Adamic.tech"
