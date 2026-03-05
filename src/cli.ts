@@ -374,6 +374,9 @@ async function startHttpServer(
     toolFilter,
   });
 
+  // ALWAYSS register components (tools, resources, prompts) regardless of transport
+  mcpServer.registerComponents();
+
   // Build HTTP transport config
   const transportConfig: HttpTransportConfig = {
     port,

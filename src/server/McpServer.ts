@@ -63,7 +63,7 @@ export class PostgresMcpServer {
   /**
    * Register all tools, resources, and prompts
    */
-  private registerComponents(): void {
+  public registerComponents(): void {
     // Register tools (with filtering)
     this.adapter.registerTools(this.mcpServer, this.filterConfig.enabledTools);
 
