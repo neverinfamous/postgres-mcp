@@ -38,6 +38,8 @@ Thumbs.db
 coverage/
 .nyc_output/
 test-results.json
+playwright-report/
+test-results/
 
 # Database files
 *.db
