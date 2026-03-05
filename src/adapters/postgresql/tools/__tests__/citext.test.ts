@@ -10,7 +10,7 @@ import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
-import { getCitextTools } from "../citext.js";
+import { getCitextTools } from "../citext/index.js";
 
 describe("Citext Tools", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
