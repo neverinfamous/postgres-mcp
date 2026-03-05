@@ -1871,7 +1871,7 @@ import {
   LtreeIndexSchema,
   PgcryptoEncryptSchema,
   PgcryptoDecryptSchema,
-} from "../extensions.js";
+} from "../extensions/index.js";
 
 describe("CitextConvertColumnSchema", () => {
   it("should resolve col alias to column", () => {

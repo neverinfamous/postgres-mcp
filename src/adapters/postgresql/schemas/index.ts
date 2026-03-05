@@ -489,7 +489,7 @@ export {
   PgcryptoGenRandomBytesOutputSchema,
   PgcryptoGenSaltOutputSchema,
   PgcryptoCryptOutputSchema,
-} from "./extensions.js";
+} from "./extensions/index.js";
 
 // Stats schemas
 export {

@@ -13,23 +13,31 @@ import {
   createVectorExtensionTool,
   createVectorAddColumnTool,
   createVectorInsertTool,
+  createVectorBatchInsertTool,
+} from "./data.js";
+
+import {
   createVectorSearchTool,
   createVectorCreateIndexTool,
   createVectorDistanceTool,
   createVectorNormalizeTool,
   createVectorAggregateTool,
-  createVectorBatchInsertTool,
   createVectorValidateTool,
-} from "./basic.js";
+} from "./query.js";
 
+// Search & analysis operations
 import {
   createVectorClusterTool,
-  createVectorIndexOptimizeTool,
   createHybridSearchTool,
   createVectorPerformanceTool,
+} from "./search-advanced.js";
+
+// Index & utility management
+import {
+  createVectorIndexOptimizeTool,
   createVectorDimensionReduceTool,
   createVectorEmbedTool,
-} from "./advanced.js";
+} from "./management.js";
 
 /**
  * Get all pgvector tools

@@ -8,21 +8,25 @@
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
-// Basic JSONB operations
+// Read JSONB operations
 import {
   createJsonbExtractTool,
-  createJsonbSetTool,
-  createJsonbInsertTool,
-  createJsonbDeleteTool,
   createJsonbContainsTool,
   createJsonbPathQueryTool,
   createJsonbAggTool,
+  createJsonbKeysTool,
+  createJsonbTypeofTool,
+} from "./read.js";
+
+// Write JSONB operations
+import {
+  createJsonbSetTool,
+  createJsonbInsertTool,
+  createJsonbDeleteTool,
   createJsonbObjectTool,
   createJsonbArrayTool,
-  createJsonbKeysTool,
   createJsonbStripNullsTool,
-  createJsonbTypeofTool,
-} from "./basic.js";
+} from "./write.js";
 
 // Advanced JSONB operations
 import {

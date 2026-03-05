@@ -701,10 +701,10 @@ describe("Pgcrypto Tools", () => {
       );
 
       const tool = findTool("pg_pgcrypto_gen_random_uuid");
-      const result = (await tool!.handler(
-        { count: 1 },
-        mockContext,
-      )) as { success: boolean; error: string };
+      const result = (await tool!.handler({ count: 1 }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -716,10 +716,10 @@ describe("Pgcrypto Tools", () => {
       );
 
       const tool = findTool("pg_pgcrypto_gen_random_bytes");
-      const result = (await tool!.handler(
-        { length: 16 },
-        mockContext,
-      )) as { success: boolean; error: string };
+      const result = (await tool!.handler({ length: 16 }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -731,10 +731,10 @@ describe("Pgcrypto Tools", () => {
       );
 
       const tool = findTool("pg_pgcrypto_gen_salt");
-      const result = (await tool!.handler(
-        { type: "bf" },
-        mockContext,
-      )) as { success: boolean; error: string };
+      const result = (await tool!.handler({ type: "bf" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -782,10 +782,7 @@ describe("Pgcrypto Tools", () => {
       });
 
       const tool = findTool("pg_pgcrypto_gen_salt");
-      await tool!.handler(
-        { type: "xdes", iterations: 725 },
-        mockContext,
-      );
+      await tool!.handler({ type: "xdes", iterations: 725 }, mockContext);
 
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
         expect.stringContaining("gen_salt($1, $2)"),
@@ -825,7 +822,12 @@ describe("Pgcrypto Tools", () => {
     it("pg_pgcrypto_hmac should return structured error for invalid encoding", async () => {
       const tool = findTool("pg_pgcrypto_hmac");
       const result = (await tool!.handler(
-        { data: "msg", key: "key", algorithm: "sha256", encoding: "invalid_enc" },
+        {
+          data: "msg",
+          key: "key",
+          algorithm: "sha256",
+          encoding: "invalid_enc",
+        },
         mockContext,
       )) as { success: boolean; error: string };
 
