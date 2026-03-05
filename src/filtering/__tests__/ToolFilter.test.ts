@@ -127,7 +127,7 @@ describe("META_GROUPS", () => {
   });
 
   it("should include codemode in every meta-group", () => {
-    for (const [name, groups] of Object.entries(META_GROUPS)) {
+    for (const [, groups] of Object.entries(META_GROUPS)) {
       expect(groups).toContain("codemode");
     }
   });
