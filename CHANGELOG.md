@@ -13,7 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **NPM Audit Remediation** — Patched high severity vulnerabilities in transitive dependencies
+  - `@hono/node-server`: updated to 1.19.11
+  - `hono`: updated to 4.12.5
 - **CVE-2026-27904, CVE-2026-27903 (minimatch ReDoS)** — Updated `minimatch` override from `>=10.2.1` to `>=10.2.3` in `package.json` and added Dockerfile patch for npm's bundled minimatch
+
+### Dependencies
+
+- `pg`: 8.19.0 → 8.20.0
 
 ### Removed
 
