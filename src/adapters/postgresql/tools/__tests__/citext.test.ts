@@ -513,17 +513,18 @@ describe("Citext Tools", () => {
       expect(result.hint).toBeDefined();
     });
 
-    it("should throw validation error when value2 is missing", async () => {
+    it("should return structured error when value2 is missing", async () => {
       const tool = findTool("pg_citext_compare");
-      await expect(
-        tool!.handler(
-          {
-            value1: "HELLO",
-            // value2 is missing
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow();
+      const result = (await tool!.handler(
+        {
+          value1: "HELLO",
+          // value2 is missing
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 

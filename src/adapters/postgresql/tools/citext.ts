@@ -14,7 +14,7 @@ import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
-import { parsePostgresError } from "./core/error-helpers.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import {
   CitextConvertColumnSchema,
@@ -71,9 +71,12 @@ citext is ideal for emails, usernames, and other identifiers where case shouldn'
             "Create columns with type CITEXT instead of TEXT for case-insensitive comparisons",
         };
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_citext_create_extension",
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_citext_create_extension",
+          }),
+        };
       }
     },
   };
@@ -254,9 +257,12 @@ Note: If views depend on this column, you must drop and recreate them manually b
           };
         }
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_citext_convert_column",
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_citext_convert_column",
+          }),
+        };
       }
     },
   };
@@ -359,9 +365,12 @@ Useful for auditing case-insensitive columns.`,
           ...(schema !== undefined && { schema }),
         };
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_citext_list_columns",
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_citext_list_columns",
+          }),
+        };
       }
     },
   };
@@ -653,9 +662,12 @@ Useful for testing citext behavior before converting columns.`,
           };
         }
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_citext_compare",
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_citext_compare",
+          }),
+        };
       }
     },
   };
@@ -821,9 +833,12 @@ Requires the 'table' parameter to specify which table to analyze.`,
               : ["No columns require conversion"],
         };
       } catch (error) {
-        throw parsePostgresError(error, {
-          tool: "pg_citext_schema_advisor",
-        });
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_citext_schema_advisor",
+          }),
+        };
       }
     },
   };

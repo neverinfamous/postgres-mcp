@@ -629,4 +629,208 @@ describe("Pgcrypto Tools", () => {
     expect(toolNames).toContain("pg_pgcrypto_gen_salt");
     expect(toolNames).toContain("pg_pgcrypto_crypt");
   });
+
+  // ==========================================================================
+  // DB-error paths (parsePostgresError catch blocks)
+  // ==========================================================================
+
+  describe("DB-error handling via parsePostgresError", () => {
+    it("pg_pgcrypto_hash should return structured error for DB errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_pgcrypto_hash");
+      const result = (await tool!.handler(
+        { data: "test", algorithm: "sha256" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("pg_pgcrypto_hmac should return structured error for DB errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_pgcrypto_hmac");
+      const result = (await tool!.handler(
+        { data: "test", key: "secret", algorithm: "sha256" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("pg_pgcrypto_encrypt should return structured error for DB execution errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_pgcrypto_encrypt");
+      const result = (await tool!.handler(
+        { data: "secret", password: "pass" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("pg_pgcrypto_decrypt should return structured error for DB execution errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_pgcrypto_decrypt");
+      const result = (await tool!.handler(
+        { encryptedData: "abc", password: "pass" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("pg_pgcrypto_gen_random_uuid should return structured error for DB errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_pgcrypto_gen_random_uuid");
+      const result = (await tool!.handler(
+        { count: 1 },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("pg_pgcrypto_gen_random_bytes should return structured error for DB errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_pgcrypto_gen_random_bytes");
+      const result = (await tool!.handler(
+        { length: 16 },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("pg_pgcrypto_gen_salt should return structured error for DB errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_pgcrypto_gen_salt");
+      const result = (await tool!.handler(
+        { type: "bf" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    it("pg_pgcrypto_crypt should return structured error for DB errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_pgcrypto_crypt");
+      const result = (await tool!.handler(
+        { password: "pass", salt: "$2a$06$somesalt" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+  });
+
+  // ==========================================================================
+  // Edge-case branches
+  // ==========================================================================
+
+  describe("Edge-case branches", () => {
+    it("pg_pgcrypto_decrypt should return error when decrypted value is null", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ decrypted: null }],
+      });
+
+      const tool = findTool("pg_pgcrypto_decrypt");
+      const result = (await tool!.handler(
+        { encryptedData: "somedata", password: "pass" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Decryption failed");
+    });
+
+    it("pg_pgcrypto_gen_salt should pass iterations for xdes type", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ salt: "_J9..salt" }],
+      });
+
+      const tool = findTool("pg_pgcrypto_gen_salt");
+      await tool!.handler(
+        { type: "xdes", iterations: 725 },
+        mockContext,
+      );
+
+      expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+        expect.stringContaining("gen_salt($1, $2)"),
+        ["xdes", 725],
+      );
+    });
+
+    it("pg_pgcrypto_gen_random_uuid should set uuid convenience property for single uuid", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ uuid: "550e8400-e29b-41d4-a716-446655440000" }],
+      });
+
+      const tool = findTool("pg_pgcrypto_gen_random_uuid");
+      const result = (await tool!.handler({ count: 1 }, mockContext)) as {
+        uuid: string;
+        uuids: string[];
+      };
+
+      expect(result.uuid).toBe("550e8400-e29b-41d4-a716-446655440000");
+      expect(result.uuids).toHaveLength(1);
+    });
+
+    it("pg_pgcrypto_crypt should detect $2b$ as bcrypt", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ hash: "$2b$12$hashedpass" }],
+      });
+
+      const tool = findTool("pg_pgcrypto_crypt");
+      const result = (await tool!.handler(
+        { password: "pass", salt: "$2b$12$somesalt" },
+        mockContext,
+      )) as { algorithm: string };
+
+      expect(result.algorithm).toBe("bcrypt");
+    });
+
+    it("pg_pgcrypto_hmac should return structured error for invalid encoding", async () => {
+      const tool = findTool("pg_pgcrypto_hmac");
+      const result = (await tool!.handler(
+        { data: "msg", key: "key", algorithm: "sha256", encoding: "invalid_enc" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+  });
 });

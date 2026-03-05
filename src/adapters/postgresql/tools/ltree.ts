@@ -8,7 +8,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
-import { parsePostgresError } from "./core/error-helpers.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import {
   LtreeQuerySchema,
   LtreeQuerySchemaBase,
@@ -59,8 +59,17 @@ function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Create Ltree Extension"),
     icons: getToolIcons("ltree", write("Create Ltree Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS ltree");
-      return { success: true, message: "ltree extension enabled" };
+      try {
+        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS ltree");
+        return { success: true, message: "ltree extension enabled" };
+      } catch (error: unknown) {
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_ltree_create_extension",
+          }),
+        };
+      }
     },
   };
 }
@@ -76,52 +85,74 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Query Ltree"),
     icons: getToolIcons("ltree", readOnly("Query Ltree")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { table, column, path, mode, schema, limit } =
-        LtreeQuerySchema.parse(params);
-      const schemaName = schema ?? "public";
-      const queryMode = mode ?? "descendants";
-      const qualifiedTable = `"${schemaName}"."${table}"`;
-      const limitClause = limit !== undefined ? `LIMIT ${String(limit)}` : "";
+      try {
+        const { table, column, path, mode, schema, limit } =
+          LtreeQuerySchema.parse(params);
+        const schemaName = schema ?? "public";
+        const queryMode = mode ?? "descendants";
+        const qualifiedTable = `"${schemaName}"."${table}"`;
+        const limitClause = limit !== undefined ? `LIMIT ${String(limit)}` : "";
 
-      // Validate column is ltree type
-      const colCheck = await adapter.executeQuery(
-        `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
-        [schemaName, table, column],
-      );
-      if (!colCheck.rows || colCheck.rows.length === 0) {
-        // Distinguish table-not-found from column-not-found
-        const tableCheck = await adapter.executeQuery(
-          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-          [schemaName, table],
+        // Validate column is ltree type
+        const colCheck = await adapter.executeQuery(
+          `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
+          [schemaName, table, column],
         );
-        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+        if (!colCheck.rows || colCheck.rows.length === 0) {
+          // Distinguish table-not-found from column-not-found
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+            [schemaName, table],
+          );
+          if (!tableCheck.rows || tableCheck.rows.length === 0) {
+            return {
+              success: false,
+              error: `Table ${qualifiedTable} does not exist.`,
+            };
+          }
           return {
             success: false,
-            error: `Table ${qualifiedTable} does not exist.`,
+            error: `Column "${column}" not found in table ${qualifiedTable}.`,
           };
         }
-        return {
-          success: false,
-          error: `Column "${column}" not found in table ${qualifiedTable}.`,
-        };
-      }
-      const udtName = colCheck.rows[0]?.["udt_name"] as string;
-      if (udtName !== "ltree") {
-        return {
-          success: false,
-          error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
-        };
-      }
+        const udtName = colCheck.rows[0]?.["udt_name"] as string;
+        if (udtName !== "ltree") {
+          return {
+            success: false,
+            error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+          };
+        }
 
-      // Detect if path contains lquery pattern characters
-      const isLqueryPattern = /[*?{!@|]/.test(path);
+        // Detect if path contains lquery pattern characters
+        const isLqueryPattern = /[*?{!@|]/.test(path);
 
-      // Get total count when limit is applied for truncation indicators
-      let totalCount: number | undefined;
-      if (limit !== undefined) {
-        let countSql: string;
+        // Get total count when limit is applied for truncation indicators
+        let totalCount: number | undefined;
+        if (limit !== undefined) {
+          let countSql: string;
+          if (isLqueryPattern) {
+            countSql = `SELECT COUNT(*)::int as total FROM ${qualifiedTable} WHERE "${column}" ~ $1::lquery`;
+          } else {
+            let operator: string;
+            switch (queryMode) {
+              case "ancestors":
+                operator = "@>";
+                break;
+              case "exact":
+                operator = "=";
+                break;
+              default:
+                operator = "<@";
+            }
+            countSql = `SELECT COUNT(*)::int as total FROM ${qualifiedTable} WHERE "${column}" ${operator} $1::ltree`;
+          }
+          const countResult = await adapter.executeQuery(countSql, [path]);
+          totalCount = countResult.rows?.[0]?.["total"] as number;
+        }
+
+        let sql: string;
         if (isLqueryPattern) {
-          countSql = `SELECT COUNT(*)::int as total FROM ${qualifiedTable} WHERE "${column}" ~ $1::lquery`;
+          sql = `SELECT *, nlevel("${column}") as depth FROM ${qualifiedTable} WHERE "${column}" ~ $1::lquery ORDER BY "${column}" ${limitClause}`;
         } else {
           let operator: string;
           switch (queryMode) {
@@ -134,53 +165,40 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
             default:
               operator = "<@";
           }
-          countSql = `SELECT COUNT(*)::int as total FROM ${qualifiedTable} WHERE "${column}" ${operator} $1::ltree`;
+          sql = `SELECT *, nlevel("${column}") as depth FROM ${qualifiedTable} WHERE "${column}" ${operator} $1::ltree ORDER BY "${column}" ${limitClause}`;
         }
-        const countResult = await adapter.executeQuery(countSql, [path]);
-        totalCount = countResult.rows?.[0]?.["total"] as number;
-      }
 
-      let sql: string;
-      if (isLqueryPattern) {
-        // Use lquery pattern matching with ~ operator
-        sql = `SELECT *, nlevel("${column}") as depth FROM ${qualifiedTable} WHERE "${column}" ~ $1::lquery ORDER BY "${column}" ${limitClause}`;
-      } else {
-        // Use standard ltree hierarchy operators
-        // @> means "is ancestor of" (left contains right)
-        // <@ means "is descendant of" (left is contained by right)
-        let operator: string;
-        switch (queryMode) {
-          // ancestors: column @> path means column contains path, i.e., column is ancestor of path
-          case "ancestors":
-            operator = "@>";
-            break;
-          case "exact":
-            operator = "=";
-            break;
-          // descendants: column <@ path means column is contained by path, i.e., column is descendant of path
-          default:
-            operator = "<@";
+        const result = await adapter.executeQuery(sql, [path]);
+        const resultCount = result.rows?.length ?? 0;
+        const response: Record<string, unknown> = {
+          path,
+          mode: isLqueryPattern ? "pattern" : queryMode,
+          isPattern: isLqueryPattern,
+          results: result.rows ?? [],
+          count: resultCount,
+        };
+
+        // Add truncation indicators when limit is applied
+        if (limit !== undefined && totalCount !== undefined) {
+          response["truncated"] = resultCount < totalCount;
+          response["totalCount"] = totalCount;
         }
-        sql = `SELECT *, nlevel("${column}") as depth FROM ${qualifiedTable} WHERE "${column}" ${operator} $1::ltree ORDER BY "${column}" ${limitClause}`;
+
+        return response;
+      } catch (error: unknown) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_ltree_query",
+          }),
+        };
       }
-
-      const result = await adapter.executeQuery(sql, [path]);
-      const resultCount = result.rows?.length ?? 0;
-      const response: Record<string, unknown> = {
-        path,
-        mode: isLqueryPattern ? "pattern" : queryMode,
-        isPattern: isLqueryPattern,
-        results: result.rows ?? [],
-        count: resultCount,
-      };
-
-      // Add truncation indicators when limit is applied
-      if (limit !== undefined && totalCount !== undefined) {
-        response["truncated"] = resultCount < totalCount;
-        response["totalCount"] = totalCount;
-      }
-
-      return response;
     },
   };
 }
@@ -195,41 +213,56 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Ltree Subpath"),
     icons: getToolIcons("ltree", readOnly("Ltree Subpath")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { path, offset, length } = LtreeSubpathSchema.parse(params);
+      try {
+        const { path, offset, length } = LtreeSubpathSchema.parse(params);
 
-      // First get the path depth for validation
-      const depthResult = await adapter.executeQuery(
-        `SELECT nlevel($1::ltree) as depth`,
-        [path],
-      );
-      const pathDepth = depthResult.rows?.[0]?.["depth"] as number;
+        // First get the path depth for validation
+        const depthResult = await adapter.executeQuery(
+          `SELECT nlevel($1::ltree) as depth`,
+          [path],
+        );
+        const pathDepth = depthResult.rows?.[0]?.["depth"] as number;
 
-      // Validate offset is within bounds
-      const effectiveOffset = offset < 0 ? pathDepth + offset : offset;
-      if (effectiveOffset < 0 || effectiveOffset >= pathDepth) {
+        // Validate offset is within bounds
+        const effectiveOffset = offset < 0 ? pathDepth + offset : offset;
+        if (effectiveOffset < 0 || effectiveOffset >= pathDepth) {
+          return {
+            success: false,
+            error: `Invalid offset: ${String(offset)}. Path "${path}" has ${String(pathDepth)} labels (valid offset range: 0 to ${String(pathDepth - 1)}, or -${String(pathDepth)} to -1 for negative indexing).`,
+            originalPath: path,
+            pathDepth,
+          };
+        }
+
+        const sql =
+          length !== undefined
+            ? `SELECT subpath($1::ltree, $2, $3) as subpath, nlevel($1::ltree) as original_depth`
+            : `SELECT subpath($1::ltree, $2) as subpath, nlevel($1::ltree) as original_depth`;
+        const queryParams =
+          length !== undefined ? [path, offset, length] : [path, offset];
+        const result = await adapter.executeQuery(sql, queryParams);
+        const row = result.rows?.[0];
         return {
-          success: false,
-          error: `Invalid offset: ${String(offset)}. Path "${path}" has ${String(pathDepth)} labels (valid offset range: 0 to ${String(pathDepth - 1)}, or -${String(pathDepth)} to -1 for negative indexing).`,
           originalPath: path,
-          pathDepth,
+          offset,
+          length: length ?? "to end",
+          subpath: row?.["subpath"] as string,
+          originalDepth: row?.["original_depth"] as number,
+        };
+      } catch (error: unknown) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_ltree_subpath",
+          }),
         };
       }
-
-      const sql =
-        length !== undefined
-          ? `SELECT subpath($1::ltree, $2, $3) as subpath, nlevel($1::ltree) as original_depth`
-          : `SELECT subpath($1::ltree, $2) as subpath, nlevel($1::ltree) as original_depth`;
-      const queryParams =
-        length !== undefined ? [path, offset, length] : [path, offset];
-      const result = await adapter.executeQuery(sql, queryParams);
-      const row = result.rows?.[0];
-      return {
-        originalPath: path,
-        offset,
-        length: length ?? "to end",
-        subpath: row?.["subpath"] as string,
-        originalDepth: row?.["original_depth"] as number,
-      };
     },
   };
 }
@@ -244,30 +277,33 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Ltree LCA"),
     icons: getToolIcons("ltree", readOnly("Ltree LCA")),
     handler: async (params: unknown, _context: RequestContext) => {
-      let parsed;
       try {
-        parsed = LtreeLcaSchema.parse(params);
+        const { paths } = LtreeLcaSchema.parse(params);
+        const arrayLiteral = paths
+          .map((p) => `'${p.replace(/'/g, "''")}'::ltree`)
+          .join(", ");
+        const sql = `SELECT lca(ARRAY[${arrayLiteral}]) as lca`;
+        const result = await adapter.executeQuery(sql);
+        const lca = result.rows?.[0]?.["lca"] as string | null;
+        return {
+          paths,
+          longestCommonAncestor: lca ?? "",
+          hasCommonAncestor: lca !== null && lca !== "",
+        };
       } catch (error: unknown) {
         if (error instanceof z.ZodError) {
           return {
-            success: false,
+            success: false as const,
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        throw error;
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_ltree_lca",
+          }),
+        };
       }
-      const { paths } = parsed;
-      const arrayLiteral = paths
-        .map((p) => `'${p.replace(/'/g, "''")}'::ltree`)
-        .join(", ");
-      const sql = `SELECT lca(ARRAY[${arrayLiteral}]) as lca`;
-      const result = await adapter.executeQuery(sql);
-      const lca = result.rows?.[0]?.["lca"] as string | null;
-      return {
-        paths,
-        longestCommonAncestor: lca ?? "",
-        hasCommonAncestor: lca !== null && lca !== "",
-      };
     },
   };
 }
@@ -342,14 +378,19 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
         return {
-          success: false,
-          error: parsePostgresError(error, {
+          success: false as const,
+          error: formatPostgresError(error, {
             tool: "pg_ltree_match",
             table,
-            schema: schemaName,
-          }).message,
+          }),
         };
       }
     },
@@ -366,19 +407,34 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("List Ltree Columns"),
     icons: getToolIcons("ltree", readOnly("List Ltree Columns")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { schema } = LtreeListColumnsSchema.parse(params);
-      const conditions: string[] = [
-        "udt_name = 'ltree'",
-        "table_schema NOT IN ('pg_catalog', 'information_schema')",
-      ];
-      const queryParams: unknown[] = [];
-      if (schema !== undefined) {
-        conditions.push(`table_schema = $1`);
-        queryParams.push(schema);
+      try {
+        const { schema } = LtreeListColumnsSchema.parse(params);
+        const conditions: string[] = [
+          "udt_name = 'ltree'",
+          "table_schema NOT IN ('pg_catalog', 'information_schema')",
+        ];
+        const queryParams: unknown[] = [];
+        if (schema !== undefined) {
+          conditions.push(`table_schema = $1`);
+          queryParams.push(schema);
+        }
+        const sql = `SELECT table_schema, table_name, column_name, is_nullable, column_default FROM information_schema.columns WHERE ${conditions.join(" AND ")} ORDER BY table_schema, table_name, ordinal_position`;
+        const result = await adapter.executeQuery(sql, queryParams);
+        return { columns: result.rows ?? [], count: result.rows?.length ?? 0 };
+      } catch (error: unknown) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_ltree_list_columns",
+          }),
+        };
       }
-      const sql = `SELECT table_schema, table_name, column_name, is_nullable, column_default FROM information_schema.columns WHERE ${conditions.join(" AND ")} ORDER BY table_schema, table_name, ordinal_position`;
-      const result = await adapter.executeQuery(sql, queryParams);
-      return { columns: result.rows ?? [], count: result.rows?.length ?? 0 };
     },
   };
 }
@@ -396,112 +452,113 @@ function createLtreeConvertColumnTool(
     annotations: write("Convert to Ltree"),
     icons: getToolIcons("ltree", write("Convert to Ltree")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { table, column, schema } = LtreeConvertColumnSchema.parse(params);
-      const schemaName = schema ?? "public";
-      const qualifiedTable = `"${schemaName}"."${table}"`;
+      try {
+        const { table, column, schema } =
+          LtreeConvertColumnSchema.parse(params);
+        const schemaName = schema ?? "public";
+        const qualifiedTable = `"${schemaName}"."${table}"`;
 
-      // Check if ltree extension is installed
-      const extCheck = await adapter.executeQuery(`
-        SELECT EXISTS(
-          SELECT 1 FROM pg_extension WHERE extname = 'ltree'
-        ) as installed
-      `);
-      const hasExt = (extCheck.rows?.[0]?.["installed"] as boolean) ?? false;
-      if (!hasExt) {
-        return {
-          success: false,
-          error:
-            "ltree extension is not installed. Run pg_ltree_create_extension first.",
-        };
-      }
-
-      const colCheck = await adapter.executeQuery(
-        `SELECT data_type, udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
-        [schemaName, table, column],
-      );
-      if (!colCheck.rows || colCheck.rows.length === 0) {
-        // Distinguish table-not-found from column-not-found
-        const tableCheck = await adapter.executeQuery(
-          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-          [schemaName, table],
-        );
-        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+        // Check if ltree extension is installed
+        const extCheck = await adapter.executeQuery(`
+          SELECT EXISTS(
+            SELECT 1 FROM pg_extension WHERE extname = 'ltree'
+          ) as installed
+        `);
+        const hasExt = (extCheck.rows?.[0]?.["installed"] as boolean) ?? false;
+        if (!hasExt) {
           return {
             success: false,
-            error: `Table ${qualifiedTable} does not exist. Verify the table name.`,
+            error:
+              "ltree extension is not installed. Run pg_ltree_create_extension first.",
           };
         }
-        return {
-          success: false,
-          error: `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
-        };
-      }
 
-      const dataType = colCheck.rows[0]?.["data_type"] as string;
-      const udtName = colCheck.rows[0]?.["udt_name"] as string;
-      const currentType = dataType === "USER-DEFINED" ? udtName : dataType;
+        const colCheck = await adapter.executeQuery(
+          `SELECT data_type, udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
+          [schemaName, table, column],
+        );
+        if (!colCheck.rows || colCheck.rows.length === 0) {
+          // Distinguish table-not-found from column-not-found
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+            [schemaName, table],
+          );
+          if (!tableCheck.rows || tableCheck.rows.length === 0) {
+            return {
+              success: false,
+              error: `Table ${qualifiedTable} does not exist. Verify the table name.`,
+            };
+          }
+          return {
+            success: false,
+            error: `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
+          };
+        }
 
-      if (udtName === "ltree") {
-        return {
-          success: true,
-          message: `Column ${column} is already ltree`,
-          table: qualifiedTable,
-          previousType: "ltree",
-          wasAlreadyLtree: true,
-        };
-      }
+        const dataType = colCheck.rows[0]?.["data_type"] as string;
+        const udtName = colCheck.rows[0]?.["udt_name"] as string;
+        const currentType = dataType === "USER-DEFINED" ? udtName : dataType;
 
-      // Validate source column is text-based (like citext tool does)
-      const allowedTypes = ["text", "varchar", "character varying", "bpchar"];
-      const normalizedType = dataType.toLowerCase();
-      if (!allowedTypes.includes(normalizedType)) {
-        return {
-          success: false,
-          error: `Cannot convert column "${column}" of type "${currentType}" to ltree. Only text-based columns can be converted.`,
-          currentType,
-          allowedTypes: ["text", "varchar", "character varying"],
-          suggestion:
-            "Create a new TEXT column with ltree-formatted paths, then convert that column.",
-        };
-      }
+        if (udtName === "ltree") {
+          return {
+            success: true,
+            message: `Column ${column} is already ltree`,
+            table: qualifiedTable,
+            previousType: "ltree",
+            wasAlreadyLtree: true,
+          };
+        }
 
-      // Check for dependent views before attempting the conversion
-      const depCheck = await adapter.executeQuery(
-        `
-        SELECT DISTINCT
-          c.relname as dependent_view,
-          n.nspname as view_schema
-        FROM pg_depend d
-        JOIN pg_rewrite r ON d.objid = r.oid
-        JOIN pg_class c ON r.ev_class = c.oid
-        JOIN pg_namespace n ON c.relnamespace = n.oid
-        JOIN pg_class t ON d.refobjid = t.oid
-        JOIN pg_namespace tn ON t.relnamespace = tn.oid
-        JOIN pg_attribute a ON d.refobjid = a.attrelid AND d.refobjsubid = a.attnum
-        WHERE c.relkind = 'v'
-          AND tn.nspname = $1
-          AND t.relname = $2
-          AND a.attname = $3
-        `,
-        [schemaName, table, column],
-      );
+        // Validate source column is text-based (like citext tool does)
+        const allowedTypes = ["text", "varchar", "character varying", "bpchar"];
+        const normalizedType = dataType.toLowerCase();
+        if (!allowedTypes.includes(normalizedType)) {
+          return {
+            success: false,
+            error: `Cannot convert column "${column}" of type "${currentType}" to ltree. Only text-based columns can be converted.`,
+            currentType,
+            allowedTypes: ["text", "varchar", "character varying"],
+            suggestion:
+              "Create a new TEXT column with ltree-formatted paths, then convert that column.",
+          };
+        }
 
-      const dependentViews = depCheck.rows ?? [];
+        // Check for dependent views before attempting the conversion
+        const depCheck = await adapter.executeQuery(
+          `
+          SELECT DISTINCT
+            c.relname as dependent_view,
+            n.nspname as view_schema
+          FROM pg_depend d
+          JOIN pg_rewrite r ON d.objid = r.oid
+          JOIN pg_class c ON r.ev_class = c.oid
+          JOIN pg_namespace n ON c.relnamespace = n.oid
+          JOIN pg_class t ON d.refobjid = t.oid
+          JOIN pg_namespace tn ON t.relnamespace = tn.oid
+          JOIN pg_attribute a ON d.refobjid = a.attrelid AND d.refobjsubid = a.attnum
+          WHERE c.relkind = 'v'
+            AND tn.nspname = $1
+            AND t.relname = $2
+            AND a.attname = $3
+          `,
+          [schemaName, table, column],
+        );
 
-      if (dependentViews.length > 0) {
-        return {
-          success: false,
-          error:
-            "Column has dependent views that must be dropped before conversion",
-          dependentViews: dependentViews.map(
-            (v) =>
-              `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
-          ),
-          hint: "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
-        };
-      }
+        const dependentViews = depCheck.rows ?? [];
 
-      try {
+        if (dependentViews.length > 0) {
+          return {
+            success: false,
+            error:
+              "Column has dependent views that must be dropped before conversion",
+            dependentViews: dependentViews.map(
+              (v) =>
+                `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
+            ),
+            hint: "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
+          };
+        }
+
         await adapter.executeQuery(
           `ALTER TABLE ${qualifiedTable} ALTER COLUMN "${column}" TYPE ltree USING "${column}"::ltree`,
         );
@@ -511,13 +568,18 @@ function createLtreeConvertColumnTool(
           table: qualifiedTable,
           previousType: currentType,
         };
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+      } catch (error: unknown) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
         return {
-          success: false,
-          error: `Failed to convert column: ${errorMessage}`,
-          hint: "If views depend on this column, they may need to be dropped and recreated",
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_ltree_convert_column",
+          }),
         };
       }
     },
@@ -596,15 +658,19 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
           column,
           indexType: "gist",
         };
-      } catch (error) {
+      } catch (error: unknown) {
+        if (error instanceof z.ZodError) {
+          return {
+            success: false as const,
+            error: error.issues.map((i) => i.message).join("; "),
+          };
+        }
         return {
-          success: false,
-          error: parsePostgresError(error, {
+          success: false as const,
+          error: formatPostgresError(error, {
             tool: "pg_ltree_create_index",
             table,
-            schema: schemaName,
-            index: idxName,
-          }).message,
+          }),
         };
       }
     },
