@@ -384,10 +384,17 @@ async function startHttpServer(
   if (tokenValidator) transportConfig.tokenValidator = tokenValidator;
 
   // Create HTTP transport with OAuth
-  const httpTransport = new HttpTransport(transportConfig, (transport) => {
-    // Connect MCP server to the transport when client connects
-    void mcpServer.getMcpServer().connect(transport);
-  });
+  const httpTransport = new HttpTransport(
+    transportConfig,
+    async (transport) => {
+      const server = mcpServer.getMcpServer();
+      // Close any existing transport before connecting (SDK throws if already connected)
+      if (server.isConnected()) {
+        await server.close();
+      }
+      await server.connect(transport);
+    },
+  );
 
   // Handle shutdown
   const shutdown = (): void => {

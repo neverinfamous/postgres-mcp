@@ -109,7 +109,7 @@ interface RateLimitEntry {
 export class HttpTransport {
   private server: ReturnType<typeof createServer> | null = null;
   private readonly config: HttpTransportConfig;
-  private readonly onConnect?: (transport: Transport) => void;
+  private readonly onConnect?: (transport: Transport) => void | Promise<void>;
 
   /** Active transports by session ID (supports both transport types) */
   private readonly transports = new Map<
@@ -129,7 +129,7 @@ export class HttpTransport {
 
   constructor(
     config: HttpTransportConfig,
-    onConnect?: (transport: Transport) => void,
+    onConnect?: (transport: Transport) => void | Promise<void>,
   ) {
     this.config = {
       ...config,
@@ -466,92 +466,17 @@ export class HttpTransport {
     res: ServerResponse,
   ): Promise<void> {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
-    let transport: StreamableHTTPServerTransport | undefined;
 
-    if (sessionId && this.transports.has(sessionId)) {
-      const existing = this.transports.get(sessionId);
-      if (existing instanceof StreamableHTTPServerTransport) {
-        transport = existing;
-      } else {
-        // Session exists but uses legacy SSE transport
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            error: {
-              code: -32000,
-              message:
-                "Bad Request: Session exists but uses a different transport protocol",
-            },
-            id: null,
-          }),
-        );
-        return;
-      }
-    } else if (!sessionId && req.method === "POST") {
-      // Parse body to check if this is an initialization request
-      let body: unknown;
-      try {
-        body = await this.readBody(req);
-      } catch {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            error: { code: -32700, message: "Parse error" },
-            id: null,
-          }),
-        );
-        return;
-      }
-
-      if (isInitializeRequest(body)) {
-        const newTransport = new StreamableHTTPServerTransport({
-          sessionIdGenerator: () => randomUUID(),
-          onsessioninitialized: (newSessionId: string) => {
-            logger.debug("Streamable HTTP session initialized", {
-              sessionId: newSessionId,
-            });
-            this.transports.set(newSessionId, newTransport);
-          },
-        });
-
-        // Clean up on close
-        newTransport.onclose = () => {
-          const sid = newTransport.sessionId;
-          if (sid && this.transports.has(sid)) {
-            logger.debug("Streamable HTTP transport closed", {
-              sessionId: sid,
-            });
-            this.transports.delete(sid);
-          }
-        };
-
-        // Connect MCP server to this transport
-        if (this.onConnect) {
-          this.onConnect(newTransport as unknown as Transport);
+    // For non-POST requests (GET for SSE stream, DELETE for session termination),
+    // delegate directly to the transport if we have a valid session
+    if (req.method !== "POST") {
+      if (sessionId && this.transports.has(sessionId)) {
+        const existing = this.transports.get(sessionId);
+        if (existing instanceof StreamableHTTPServerTransport) {
+          await existing.handleRequest(req, res);
+          return;
         }
-
-        // Handle request with pre-parsed body
-        await newTransport.handleRequest(req, res, body);
-        return;
-      } else {
-        // POST without session ID and not an initialization request
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            error: {
-              code: -32000,
-              message: "Bad Request: No valid session ID provided",
-            },
-            id: null,
-          }),
-        );
-        return;
       }
-    } else {
-      // No session ID and not a POST, or invalid session
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
@@ -566,8 +491,91 @@ export class HttpTransport {
       return;
     }
 
-    // Existing session — handle the request directly
-    await transport.handleRequest(req, res);
+    // POST requests — pre-parse the body (required because the streaming body size
+    // enforcement listener consumes the req data stream before the SDK can read it)
+    let body: unknown;
+    try {
+      body = await this.readBody(req);
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code: -32700, message: "Parse error: Invalid JSON" },
+          id: null,
+        }),
+      );
+      return;
+    }
+
+    // Existing session — route to the correct transport
+    if (sessionId && this.transports.has(sessionId)) {
+      const existing = this.transports.get(sessionId);
+      if (existing instanceof StreamableHTTPServerTransport) {
+        await existing.handleRequest(req, res, body);
+        return;
+      }
+      // Session exists but uses legacy SSE transport
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32000,
+            message:
+              "Bad Request: Session exists but uses a different transport protocol",
+          },
+          id: null,
+        }),
+      );
+      return;
+    }
+
+    // No session ID — must be an initialization request
+    if (!sessionId && isInitializeRequest(body)) {
+      const newTransport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+        onsessioninitialized: (newSessionId: string) => {
+          logger.debug("Streamable HTTP session initialized", {
+            sessionId: newSessionId,
+          });
+          this.transports.set(newSessionId, newTransport);
+        },
+      });
+
+      // Clean up on close
+      newTransport.onclose = () => {
+        const sid = newTransport.sessionId;
+        if (sid && this.transports.has(sid)) {
+          logger.debug("Streamable HTTP transport closed", {
+            sessionId: sid,
+          });
+          this.transports.delete(sid);
+        }
+      };
+
+      // Connect MCP server to this transport (must complete before handling request)
+      if (this.onConnect) {
+        await this.onConnect(newTransport as unknown as Transport);
+      }
+
+      // Handle request with pre-parsed body
+      await newTransport.handleRequest(req, res, body);
+      return;
+    }
+
+    // POST without session ID and not an initialization request
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        error: {
+          code: -32000,
+          message: "Bad Request: No valid session ID provided",
+        },
+        id: null,
+      }),
+    );
   }
 
   // ===========================================================================
@@ -599,7 +607,7 @@ export class HttpTransport {
 
     // Connect MCP server to this transport
     if (this.onConnect) {
-      this.onConnect(transport as unknown as Transport);
+      void this.onConnect(transport as unknown as Transport);
     }
   }
 
