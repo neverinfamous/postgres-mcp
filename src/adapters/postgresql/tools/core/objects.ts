@@ -12,6 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { formatPostgresError } from "./error-helpers.js";
 import {
   ListObjectsSchemaBase,
   ListObjectsSchema,
@@ -38,153 +39,162 @@ export function createListObjectsTool(
     inputSchema: ListObjectsSchemaBase,
     outputSchema: ObjectListOutputSchema,
     handler: async (params: unknown, _context: RequestContext) => {
-      const { schema, types, limit } = ListObjectsSchema.parse(params);
+      try {
+        const { schema, types, limit } = ListObjectsSchema.parse(params);
 
-      const schemaFilter = schema
-        ? `AND n.nspname = '${schema}'`
-        : `AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')`;
+        const schemaFilter = schema
+          ? `AND n.nspname = '${schema}'`
+          : `AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')`;
 
-      const typeFilters: string[] = [];
-      const selectedTypes = types ?? [
-        "table",
-        "view",
-        "materialized_view",
-        "function",
-        "sequence",
-      ];
+        const typeFilters: string[] = [];
+        const selectedTypes = types ?? [
+          "table",
+          "view",
+          "materialized_view",
+          "function",
+          "sequence",
+        ];
 
-      if (selectedTypes.includes("table")) typeFilters.push(`('r', 'table')`);
-      if (selectedTypes.includes("view")) typeFilters.push(`('v', 'view')`);
-      if (selectedTypes.includes("materialized_view"))
-        typeFilters.push(`('m', 'materialized_view')`);
-      if (selectedTypes.includes("sequence"))
-        typeFilters.push(`('S', 'sequence')`);
+        if (selectedTypes.includes("table")) typeFilters.push(`('r', 'table')`);
+        if (selectedTypes.includes("view")) typeFilters.push(`('v', 'view')`);
+        if (selectedTypes.includes("materialized_view"))
+          typeFilters.push(`('m', 'materialized_view')`);
+        if (selectedTypes.includes("sequence"))
+          typeFilters.push(`('S', 'sequence')`);
 
-      const objects: {
-        type: string;
-        schema: string;
-        name: string;
-        owner: string;
-      }[] = [];
+        const objects: {
+          type: string;
+          schema: string;
+          name: string;
+          owner: string;
+        }[] = [];
 
-      // Get tables, views, materialized views, sequences
-      if (typeFilters.length > 0) {
-        const sql = `
-                    SELECT 
-                        CASE c.relkind 
-                            ${selectedTypes.includes("table") ? `WHEN 'r' THEN 'table'` : ""}
-                            ${selectedTypes.includes("view") ? `WHEN 'v' THEN 'view'` : ""}
-                            ${selectedTypes.includes("materialized_view") ? `WHEN 'm' THEN 'materialized_view'` : ""}
-                            ${selectedTypes.includes("sequence") ? `WHEN 'S' THEN 'sequence'` : ""}
-                        END as type,
-                        n.nspname as schema,
-                        c.relname as name,
-                        pg_get_userbyid(c.relowner) as owner
-                    FROM pg_class c
-                    JOIN pg_namespace n ON n.oid = c.relnamespace
-                    WHERE c.relkind IN (${selectedTypes
-                      .map((t) => {
-                        if (t === "table") return `'r'`;
-                        if (t === "view") return `'v'`;
-                        if (t === "materialized_view") return `'m'`;
-                        if (t === "sequence") return `'S'`;
-                        return null;
-                      })
-                      .filter(Boolean)
-                      .join(", ")})
-                    ${schemaFilter}
-                    ORDER BY n.nspname, c.relname
-                `;
-        const result = await adapter.executeQuery(sql);
-        objects.push(...(result.rows as typeof objects));
+        // Get tables, views, materialized views, sequences
+        if (typeFilters.length > 0) {
+          const sql = `
+                      SELECT
+                          CASE c.relkind
+                              ${selectedTypes.includes("table") ? `WHEN 'r' THEN 'table'` : ""}
+                              ${selectedTypes.includes("view") ? `WHEN 'v' THEN 'view'` : ""}
+                              ${selectedTypes.includes("materialized_view") ? `WHEN 'm' THEN 'materialized_view'` : ""}
+                              ${selectedTypes.includes("sequence") ? `WHEN 'S' THEN 'sequence'` : ""}
+                          END as type,
+                          n.nspname as schema,
+                          c.relname as name,
+                          pg_get_userbyid(c.relowner) as owner
+                      FROM pg_class c
+                      JOIN pg_namespace n ON n.oid = c.relnamespace
+                      WHERE c.relkind IN (${selectedTypes
+                        .map((t) => {
+                          if (t === "table") return `'r'`;
+                          if (t === "view") return `'v'`;
+                          if (t === "materialized_view") return `'m'`;
+                          if (t === "sequence") return `'S'`;
+                          return null;
+                        })
+                        .filter(Boolean)
+                        .join(", ")})
+                      ${schemaFilter}
+                      ORDER BY n.nspname, c.relname
+                  `;
+          const result = await adapter.executeQuery(sql);
+          objects.push(...(result.rows as typeof objects));
+        }
+
+        // Get functions
+        if (
+          selectedTypes.includes("function") ||
+          selectedTypes.includes("procedure")
+        ) {
+          const kindFilter = [];
+          if (selectedTypes.includes("function")) kindFilter.push(`'f'`, `'a'`);
+          if (selectedTypes.includes("procedure")) kindFilter.push(`'p'`);
+
+          const sql = `
+                      SELECT
+                          CASE p.prokind WHEN 'p' THEN 'procedure' ELSE 'function' END as type,
+                          n.nspname as schema,
+                          p.proname as name,
+                          pg_get_userbyid(p.proowner) as owner
+                      FROM pg_proc p
+                      JOIN pg_namespace n ON n.oid = p.pronamespace
+                      WHERE p.prokind IN (${kindFilter.join(", ")})
+                      ${
+                        schema
+                          ? `AND n.nspname = '${schema}'`
+                          : `AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
+                      }
+                      ORDER BY n.nspname, p.proname
+                  `;
+          const result = await adapter.executeQuery(sql);
+          objects.push(...(result.rows as typeof objects));
+        }
+
+        // Get indexes
+        if (selectedTypes.includes("index")) {
+          const sql = `
+                      SELECT
+                          'index' as type,
+                          n.nspname as schema,
+                          c.relname as name,
+                          pg_get_userbyid(c.relowner) as owner
+                      FROM pg_class c
+                      JOIN pg_namespace n ON n.oid = c.relnamespace
+                      WHERE c.relkind = 'i'
+                      ${schemaFilter}
+                      ORDER BY n.nspname, c.relname
+                  `;
+          const result = await adapter.executeQuery(sql);
+          objects.push(...(result.rows as typeof objects));
+        }
+
+        // Get triggers
+        if (selectedTypes.includes("trigger")) {
+          const sql = `
+                      SELECT DISTINCT
+                          'trigger' as type,
+                          n.nspname as schema,
+                          t.tgname as name,
+                          pg_get_userbyid(c.relowner) as owner
+                      FROM pg_trigger t
+                      JOIN pg_class c ON c.oid = t.tgrelid
+                      JOIN pg_namespace n ON n.oid = c.relnamespace
+                      WHERE NOT t.tgisinternal
+                      ${schemaFilter}
+                      ORDER BY n.nspname, t.tgname
+                  `;
+          const result = await adapter.executeQuery(sql);
+          objects.push(...(result.rows as typeof objects));
+        }
+
+        // Apply default limit of 100 if not specified
+        const effectiveLimit = limit ?? 100;
+        const truncated = objects.length > effectiveLimit;
+        const limitedObjects = truncated
+          ? objects.slice(0, effectiveLimit)
+          : objects;
+
+        return {
+          objects: limitedObjects,
+          count: limitedObjects.length,
+          totalCount: objects.length, // Total before limit
+          byType: limitedObjects.reduce<Record<string, number>>((acc, obj) => {
+            acc[obj.type] = (acc[obj.type] ?? 0) + 1;
+            return acc;
+          }, {}),
+          ...(truncated && {
+            truncated: true,
+            hint: `Showing ${String(effectiveLimit)} of ${String(objects.length)} objects. Use 'limit' to see more, or 'schema'/'types' to filter.`,
+          }),
+        };
+      } catch (error: unknown) {
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_list_objects",
+          }),
+        };
       }
-
-      // Get functions
-      if (
-        selectedTypes.includes("function") ||
-        selectedTypes.includes("procedure")
-      ) {
-        const kindFilter = [];
-        if (selectedTypes.includes("function")) kindFilter.push(`'f'`, `'a'`);
-        if (selectedTypes.includes("procedure")) kindFilter.push(`'p'`);
-
-        const sql = `
-                    SELECT 
-                        CASE p.prokind WHEN 'p' THEN 'procedure' ELSE 'function' END as type,
-                        n.nspname as schema,
-                        p.proname as name,
-                        pg_get_userbyid(p.proowner) as owner
-                    FROM pg_proc p
-                    JOIN pg_namespace n ON n.oid = p.pronamespace
-                    WHERE p.prokind IN (${kindFilter.join(", ")})
-                    ${
-                      schema
-                        ? `AND n.nspname = '${schema}'`
-                        : `AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
-                    }
-                    ORDER BY n.nspname, p.proname
-                `;
-        const result = await adapter.executeQuery(sql);
-        objects.push(...(result.rows as typeof objects));
-      }
-
-      // Get indexes
-      if (selectedTypes.includes("index")) {
-        const sql = `
-                    SELECT 
-                        'index' as type,
-                        n.nspname as schema,
-                        c.relname as name,
-                        pg_get_userbyid(c.relowner) as owner
-                    FROM pg_class c
-                    JOIN pg_namespace n ON n.oid = c.relnamespace
-                    WHERE c.relkind = 'i'
-                    ${schemaFilter}
-                    ORDER BY n.nspname, c.relname
-                `;
-        const result = await adapter.executeQuery(sql);
-        objects.push(...(result.rows as typeof objects));
-      }
-
-      // Get triggers
-      if (selectedTypes.includes("trigger")) {
-        const sql = `
-                    SELECT DISTINCT
-                        'trigger' as type,
-                        n.nspname as schema,
-                        t.tgname as name,
-                        pg_get_userbyid(c.relowner) as owner
-                    FROM pg_trigger t
-                    JOIN pg_class c ON c.oid = t.tgrelid
-                    JOIN pg_namespace n ON n.oid = c.relnamespace
-                    WHERE NOT t.tgisinternal
-                    ${schemaFilter}
-                    ORDER BY n.nspname, t.tgname
-                `;
-        const result = await adapter.executeQuery(sql);
-        objects.push(...(result.rows as typeof objects));
-      }
-
-      // Apply default limit of 100 if not specified
-      const effectiveLimit = limit ?? 100;
-      const truncated = objects.length > effectiveLimit;
-      const limitedObjects = truncated
-        ? objects.slice(0, effectiveLimit)
-        : objects;
-
-      return {
-        objects: limitedObjects,
-        count: limitedObjects.length,
-        totalCount: objects.length, // Total before limit
-        byType: limitedObjects.reduce<Record<string, number>>((acc, obj) => {
-          acc[obj.type] = (acc[obj.type] ?? 0) + 1;
-          return acc;
-        }, {}),
-        ...(truncated && {
-          truncated: true,
-          hint: `Showing ${String(effectiveLimit)} of ${String(objects.length)} objects. Use 'limit' to see more, or 'schema'/'types' to filter.`,
-        }),
-      };
     },
   };
 }
@@ -211,21 +221,21 @@ export function createObjectDetailsTool(
 
         // Determine the actual object type
         const detectSql = `
-                SELECT 
-                    CASE 
-                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+                SELECT
+                    CASE
+                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                                     WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind = 'r') THEN 'table'
-                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                                     WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind = 'p') THEN 'partitioned_table'
-                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                                     WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind = 'v') THEN 'view'
-                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                                     WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind = 'm') THEN 'materialized_view'
-                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                                     WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind = 'i') THEN 'index'
-                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace 
+                        WHEN EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
                                     WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind = 'S') THEN 'sequence'
-                        WHEN EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace 
+                        WHEN EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
                                     WHERE p.proname = $1 AND n.nspname = $2) THEN 'function'
                     END as object_type
             `;
@@ -301,7 +311,7 @@ export function createObjectDetailsTool(
           }
         } else if (objectType === "function") {
           const sql = `
-                    SELECT 
+                    SELECT
                         p.proname as name,
                         pg_get_function_arguments(p.oid) as arguments,
                         pg_get_function_result(p.oid) as return_type,
@@ -327,7 +337,7 @@ export function createObjectDetailsTool(
         } else if (objectType === "sequence") {
           // Get sequence metadata from pg_sequence catalog
           const metaSql = `
-                    SELECT 
+                    SELECT
                         s.seqstart as start_value,
                         s.seqmin as min_value,
                         s.seqmax as max_value,
@@ -369,7 +379,7 @@ export function createObjectDetailsTool(
           }
         } else if (objectType === "index") {
           const sql = `
-                    SELECT 
+                    SELECT
                         i.relname as index_name,
                         t.relname as table_name,
                         am.amname as index_type,
@@ -392,8 +402,12 @@ export function createObjectDetailsTool(
 
         return details;
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_object_details",
+          }),
+        };
       }
     },
   };
@@ -414,21 +428,30 @@ export function createListExtensionsTool(
     annotations: readOnly("List Extensions"),
     icons: getToolIcons("core", readOnly("List Extensions")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const result = await adapter.executeQuery(`
-        SELECT 
-          e.extname as name,
-          e.extversion as version,
-          n.nspname as schema,
-          c.description
-        FROM pg_extension e
-        LEFT JOIN pg_namespace n ON n.oid = e.extnamespace
-        LEFT JOIN pg_description c ON c.objoid = e.oid AND c.classoid = 'pg_extension'::regclass
-        ORDER BY e.extname
-      `);
-      return {
-        extensions: result.rows,
-        count: result.rows?.length ?? 0,
-      };
+      try {
+        const result = await adapter.executeQuery(`
+          SELECT
+            e.extname as name,
+            e.extversion as version,
+            n.nspname as schema,
+            c.description
+          FROM pg_extension e
+          LEFT JOIN pg_namespace n ON n.oid = e.extnamespace
+          LEFT JOIN pg_description c ON c.objoid = e.oid AND c.classoid = 'pg_extension'::regclass
+          ORDER BY e.extname
+        `);
+        return {
+          extensions: result.rows,
+          count: result.rows?.length ?? 0,
+        };
+      } catch (error: unknown) {
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_list_extensions",
+          }),
+        };
+      }
     },
   };
 }

@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { parsePostgresError } from "./error-helpers.js";
+import { formatPostgresError } from "./error-helpers.js";
 import {
   ReadQuerySchemaBase,
   ReadQuerySchema,
@@ -57,21 +57,25 @@ export function createReadQueryTool(adapter: PostgresAdapter): ToolDefinition {
               queryParams,
             );
           } catch (error: unknown) {
-            const parsed = parsePostgresError(error, {
-              tool: "pg_read_query",
-              sql,
-            });
-            return { success: false, error: parsed.message };
+            return {
+              success: false,
+              error: formatPostgresError(error, {
+                tool: "pg_read_query",
+                sql,
+              }),
+            };
           }
         } else {
           try {
             result = await adapter.executeReadQuery(sql, queryParams);
           } catch (error: unknown) {
-            const parsed = parsePostgresError(error, {
-              tool: "pg_read_query",
-              sql,
-            });
-            return { success: false, error: parsed.message };
+            return {
+              success: false,
+              error: formatPostgresError(error, {
+                tool: "pg_read_query",
+                sql,
+              }),
+            };
           }
         }
 
@@ -140,21 +144,25 @@ export function createWriteQueryTool(adapter: PostgresAdapter): ToolDefinition {
               queryParams,
             );
           } catch (error: unknown) {
-            const parsed = parsePostgresError(error, {
-              tool: "pg_write_query",
-              sql,
-            });
-            return { success: false, error: parsed.message };
+            return {
+              success: false,
+              error: formatPostgresError(error, {
+                tool: "pg_write_query",
+                sql,
+              }),
+            };
           }
         } else {
           try {
             result = await adapter.executeWriteQuery(sql, queryParams);
           } catch (error: unknown) {
-            const parsed = parsePostgresError(error, {
-              tool: "pg_write_query",
-              sql,
-            });
-            return { success: false, error: parsed.message };
+            return {
+              success: false,
+              error: formatPostgresError(error, {
+                tool: "pg_write_query",
+                sql,
+              }),
+            };
           }
         }
 
