@@ -10,6 +10,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { formatPostgresError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -77,78 +78,81 @@ export function createVectorClusterTool(
     annotations: readOnly("Vector Cluster"),
     icons: getToolIcons("vector", readOnly("Vector Cluster")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = ClusterSchema.parse(params);
-      // Refine guarantees k is defined, but add explicit check for TypeScript
-      const k = parsed.k;
-      if (k === undefined) {
-        throw new Error("k (or clusters alias) is required");
-      }
-      if (k < 1) {
-        return {
-          success: false,
-          error: "k must be at least 1 (number of clusters)",
-          suggestion: "Provide k >= 1, typically between 2 and 20",
-        };
-      }
-      const maxIter = parsed.iterations ?? 10;
-      const sample = parsed.sampleSize ?? 10000;
-      const schemaName = parsed.schema ?? "public";
-      const tableName = sanitizeTableName(parsed.table, parsed.schema);
-      const columnName = sanitizeIdentifier(parsed.column);
+      try {
+        const parsed = ClusterSchema.parse(params);
+        // Refine guarantees k is defined, but add explicit check for TypeScript
+        const k = parsed.k;
+        if (k === undefined) {
+          throw new Error("k (or clusters alias) is required");
+        }
+        if (k < 1) {
+          return {
+            success: false,
+            error: "k must be at least 1 (number of clusters)",
+            suggestion: "Provide k >= 1, typically between 2 and 20",
+          };
+        }
+        const maxIter = parsed.iterations ?? 10;
+        const sample = parsed.sampleSize ?? 10000;
+        const schemaName = parsed.schema ?? "public";
+        const tableName = sanitizeTableName(parsed.table, parsed.schema);
+        const columnName = sanitizeIdentifier(parsed.column);
 
-      // Two-step existence check: table first, then column
-      const existenceCheck = await checkTableAndColumn(
-        adapter,
-        parsed.table,
-        parsed.column,
-        schemaName,
-      );
-      if (existenceCheck) {
-        return { success: false, ...existenceCheck };
-      }
+        // Two-step existence check: table first, then column
+        const existenceCheck = await checkTableAndColumn(
+          adapter,
+          parsed.table,
+          parsed.column,
+          schemaName,
+        );
+        if (existenceCheck) {
+          return { success: false, ...existenceCheck };
+        }
 
-      // Validate column is actually a vector type
-      const typeCheckSql = `
+        // Validate column is actually a vector type
+        const typeCheckSql = `
         SELECT udt_name FROM information_schema.columns
         WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
       `;
-      const typeResult = await adapter.executeQuery(typeCheckSql, [
-        schemaName,
-        parsed.table,
-        parsed.column,
-      ]);
-      const udtName = typeResult.rows?.[0]?.["udt_name"] as string | undefined;
-      if (udtName !== "vector") {
-        return {
-          success: false,
-          error: `Column '${parsed.column}' is not a vector column (type: ${udtName ?? "unknown"})`,
-          suggestion: "Use a column with vector type for clustering",
-        };
-      }
+        const typeResult = await adapter.executeQuery(typeCheckSql, [
+          schemaName,
+          parsed.table,
+          parsed.column,
+        ]);
+        const udtName = typeResult.rows?.[0]?.["udt_name"] as
+          | string
+          | undefined;
+        if (udtName !== "vector") {
+          return {
+            success: false,
+            error: `Column '${parsed.column}' is not a vector column (type: ${udtName ?? "unknown"})`,
+            suggestion: "Use a column with vector type for clustering",
+          };
+        }
 
-      const sampleSql = `
-                SELECT ${columnName} as vec 
-                FROM ${tableName} 
+        const sampleSql = `
+                SELECT ${columnName} as vec
+                FROM ${tableName}
                 WHERE ${columnName} IS NOT NULL
-                ORDER BY RANDOM() 
+                ORDER BY RANDOM()
                 LIMIT ${String(sample)}
             `;
-      const sampleResult = await adapter.executeQuery(sampleSql);
-      const vectors = (sampleResult.rows ?? []) as { vec: string }[];
+        const sampleResult = await adapter.executeQuery(sampleSql);
+        const vectors = (sampleResult.rows ?? []) as { vec: string }[];
 
-      if (vectors.length < k) {
-        return {
-          success: false,
-          error: `Cannot create ${String(k)} clusters with only ${String(vectors.length)} data points. Reduce k to at most ${String(vectors.length)} or increase sampleSize.`,
-          k: k,
-          availableDataPoints: vectors.length,
-          sampleSize: sample,
-        };
-      }
+        if (vectors.length < k) {
+          return {
+            success: false,
+            error: `Cannot create ${String(k)} clusters with only ${String(vectors.length)} data points. Reduce k to at most ${String(vectors.length)} or increase sampleSize.`,
+            k: k,
+            availableDataPoints: vectors.length,
+            sampleSize: sample,
+          };
+        }
 
-      const initialCentroids = vectors.slice(0, k).map((v) => v.vec);
+        const initialCentroids = vectors.slice(0, k).map((v) => v.vec);
 
-      const clusterSql = `
+        const clusterSql = `
                 WITH sample_vectors AS (
                     SELECT ROW_NUMBER() OVER () as id, ${columnName} as vec
                     FROM ${tableName}
@@ -158,7 +162,7 @@ export function createVectorClusterTool(
                 centroids AS (
                     SELECT unnest($1::vector[]) as centroid
                 )
-                SELECT 
+                SELECT
                     c.centroid,
                     COUNT(*) as cluster_size,
                     AVG(s.vec) as new_centroid
@@ -171,43 +175,49 @@ export function createVectorClusterTool(
                 GROUP BY c.centroid
             `;
 
-      let centroids = initialCentroids;
-      for (let i = 0; i < maxIter; i++) {
-        try {
-          const result = await adapter.executeQuery(clusterSql, [centroids]);
-          centroids = (result.rows ?? []).map(
-            (r: Record<string, unknown>) => r["new_centroid"] as string,
-          );
-        } catch {
-          break;
+        let centroids = initialCentroids;
+        for (let i = 0; i < maxIter; i++) {
+          try {
+            const result = await adapter.executeQuery(clusterSql, [centroids]);
+            centroids = (result.rows ?? []).map(
+              (r: Record<string, unknown>) => r["new_centroid"] as string,
+            );
+          } catch {
+            break;
+          }
         }
+
+        // Truncate large centroids for display (like pg_vector_aggregate does)
+        const parsedCentroids = centroids.map((c) => {
+          const parsed = parseVector(c);
+          if (parsed === null) {
+            return { vector: c };
+          }
+          // For large vectors, use preview format (first 10 dimensions)
+          if (parsed.length > 10) {
+            const truncated = truncateVector(parsed, 10);
+            return {
+              preview: truncated.preview,
+              dimensions: truncated.dimensions,
+              truncated: truncated.truncated,
+            };
+          }
+          return { vector: parsed };
+        });
+
+        return {
+          k: k,
+          iterations: maxIter,
+          sampleSize: vectors.length,
+          centroids: parsedCentroids,
+          note: "For production clustering, consider using specialized libraries",
+        };
+      } catch (error: unknown) {
+        return {
+          success: false as const,
+          error: formatPostgresError(error, { tool: "pg_vector_cluster" }),
+        };
       }
-
-      // Truncate large centroids for display (like pg_vector_aggregate does)
-      const parsedCentroids = centroids.map((c) => {
-        const parsed = parseVector(c);
-        if (parsed === null) {
-          return { vector: c };
-        }
-        // For large vectors, use preview format (first 10 dimensions)
-        if (parsed.length > 10) {
-          const truncated = truncateVector(parsed, 10);
-          return {
-            preview: truncated.preview,
-            dimensions: truncated.dimensions,
-            truncated: truncated.truncated,
-          };
-        }
-        return { vector: parsed };
-      });
-
-      return {
-        k: k,
-        iterations: maxIter,
-        sampleSize: vectors.length,
-        centroids: parsedCentroids,
-        note: "For production clustering, consider using specialized libraries",
-      };
     },
   };
 }
@@ -240,119 +250,130 @@ export function createVectorIndexOptimizeTool(
     annotations: readOnly("Vector Index Optimize"),
     icons: getToolIcons("vector", readOnly("Vector Index Optimize")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = IndexOptimizeSchema.parse(params ?? {});
-      const tableName = sanitizeTableName(parsed.table, parsed.schema);
-      const columnName = sanitizeIdentifier(parsed.column);
-      const schemaName = parsed.schema ?? "public";
+      try {
+        const parsed = IndexOptimizeSchema.parse(params ?? {});
+        const tableName = sanitizeTableName(parsed.table, parsed.schema);
+        const columnName = sanitizeIdentifier(parsed.column);
+        const schemaName = parsed.schema ?? "public";
 
-      // Two-step existence check: table first, then column (must run before stats query)
-      const existenceCheck = await checkTableAndColumn(
-        adapter,
-        parsed.table,
-        parsed.column,
-        schemaName,
-      );
-      if (existenceCheck) {
-        return { success: false, ...existenceCheck };
-      }
+        // Two-step existence check: table first, then column (must run before stats query)
+        const existenceCheck = await checkTableAndColumn(
+          adapter,
+          parsed.table,
+          parsed.column,
+          schemaName,
+        );
+        if (existenceCheck) {
+          return { success: false, ...existenceCheck };
+        }
 
-      const statsSql = `
-                SELECT 
+        const statsSql = `
+                SELECT
                     reltuples::bigint as estimated_rows,
                     pg_size_pretty(pg_total_relation_size('${tableName}'::regclass)) as table_size
                 FROM pg_class c
                 JOIN pg_namespace n ON c.relnamespace = n.oid
                 WHERE c.relname = $1 AND n.nspname = $2
             `;
-      const statsResult = await adapter.executeQuery(statsSql, [
-        parsed.table,
-        schemaName,
-      ]);
-      // PostgreSQL returns bigint as string, cast as needed
-      const stats = (statsResult.rows?.[0] ?? {}) as {
-        estimated_rows: string | number;
-        table_size: string;
-      };
+        const statsResult = await adapter.executeQuery(statsSql, [
+          parsed.table,
+          schemaName,
+        ]);
+        // PostgreSQL returns bigint as string, cast as needed
+        const stats = (statsResult.rows?.[0] ?? {}) as {
+          estimated_rows: string | number;
+          table_size: string;
+        };
 
-      // Validate column is actually a vector type
-      const typeCheckSql = `
+        // Validate column is actually a vector type
+        const typeCheckSql = `
         SELECT udt_name FROM information_schema.columns
         WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
       `;
-      const typeResult = await adapter.executeQuery(typeCheckSql, [
-        schemaName,
-        parsed.table,
-        parsed.column,
-      ]);
-      const udtName = typeResult.rows?.[0]?.["udt_name"] as string | undefined;
-      if (udtName !== "vector") {
-        return {
-          success: false,
-          error: `Column '${parsed.column}' is not a vector column (type: ${udtName ?? "unknown"})`,
-          suggestion: "Use a column with vector type for index optimization",
-        };
-      }
+        const typeResult = await adapter.executeQuery(typeCheckSql, [
+          schemaName,
+          parsed.table,
+          parsed.column,
+        ]);
+        const udtName = typeResult.rows?.[0]?.["udt_name"] as
+          | string
+          | undefined;
+        if (udtName !== "vector") {
+          return {
+            success: false,
+            error: `Column '${parsed.column}' is not a vector column (type: ${udtName ?? "unknown"})`,
+            suggestion: "Use a column with vector type for index optimization",
+          };
+        }
 
-      const dimSql = `
+        const dimSql = `
                 SELECT vector_dims(${columnName}) as dimensions
                 FROM ${tableName}
                 WHERE ${columnName} IS NOT NULL
                 LIMIT 1
             `;
-      const dimResult = await adapter.executeQuery(dimSql);
-      const dimensions = (
-        dimResult.rows?.[0] as { dimensions: number } | undefined
-      )?.dimensions;
+        const dimResult = await adapter.executeQuery(dimSql);
+        const dimensions = (
+          dimResult.rows?.[0] as { dimensions: number } | undefined
+        )?.dimensions;
 
-      const indexSql = `
+        const indexSql = `
                 SELECT i.indexname, i.indexdef
                 FROM pg_indexes i
                 WHERE i.tablename = $1 AND i.schemaname = $2
                 AND i.indexdef LIKE '%vector%'
             `;
-      const indexResult = await adapter.executeQuery(indexSql, [
-        parsed.table,
-        schemaName,
-      ]);
+        const indexResult = await adapter.executeQuery(indexSql, [
+          parsed.table,
+          schemaName,
+        ]);
 
-      // Convert PostgreSQL bigint string to number for output schema compliance
-      const rows = Number(stats.estimated_rows ?? 0);
-      const recommendations = [];
+        // Convert PostgreSQL bigint string to number for output schema compliance
+        const rows = Number(stats.estimated_rows ?? 0);
+        const recommendations = [];
 
-      if (rows < 10000) {
-        recommendations.push({
-          type: "none",
-          reason: "Table is small enough for brute force search",
-        });
-      } else if (rows < 100000) {
-        recommendations.push({
-          type: "ivfflat",
-          lists: Math.min(100, Math.round(Math.sqrt(rows))),
-          reason: "IVFFlat recommended for medium tables",
-        });
-      } else {
-        recommendations.push({
-          type: "hnsw",
-          m: dimensions !== undefined && dimensions > 768 ? 32 : 16,
-          efConstruction: 64,
-          reason: "HNSW recommended for large tables with high recall",
-        });
-        recommendations.push({
-          type: "ivfflat",
-          lists: Math.round(Math.sqrt(rows)),
-          reason: "IVFFlat is faster to build but lower recall",
-        });
+        if (rows < 10000) {
+          recommendations.push({
+            type: "none",
+            reason: "Table is small enough for brute force search",
+          });
+        } else if (rows < 100000) {
+          recommendations.push({
+            type: "ivfflat",
+            lists: Math.min(100, Math.round(Math.sqrt(rows))),
+            reason: "IVFFlat recommended for medium tables",
+          });
+        } else {
+          recommendations.push({
+            type: "hnsw",
+            m: dimensions !== undefined && dimensions > 768 ? 32 : 16,
+            efConstruction: 64,
+            reason: "HNSW recommended for large tables with high recall",
+          });
+          recommendations.push({
+            type: "ivfflat",
+            lists: Math.round(Math.sqrt(rows)),
+            reason: "IVFFlat is faster to build but lower recall",
+          });
+        }
+
+        return {
+          table: parsed.table,
+          column: parsed.column,
+          dimensions,
+          estimatedRows: rows,
+          tableSize: stats.table_size,
+          existingIndexes: indexResult.rows,
+          recommendations,
+        };
+      } catch (error: unknown) {
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_vector_index_optimize",
+          }),
+        };
       }
-
-      return {
-        table: parsed.table,
-        column: parsed.column,
-        dimensions,
-        estimatedRows: rows,
-        tableSize: stats.table_size,
-        existingIndexes: indexResult.rows,
-        recommendations,
-      };
     },
   };
 }
@@ -401,145 +422,146 @@ export function createHybridSearchTool(
     annotations: readOnly("Hybrid Search"),
     icons: getToolIcons("vector", readOnly("Hybrid Search")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = HybridSearchSchema.parse(params);
+      try {
+        const parsed = HybridSearchSchema.parse(params);
 
-      // Validate required parameters before using them
-      if (parsed.table === "") {
-        return {
-          success: false,
-          error: "table (or tableName) parameter is required",
-          requiredParams: [
-            "table",
-            "vectorColumn",
-            "textColumn",
-            "vector",
-            "textQuery",
-          ],
-        };
-      }
-      if (parsed.vectorColumn === "") {
-        return {
-          success: false,
-          error: "vectorColumn (or vectorCol) parameter is required",
-          requiredParams: [
-            "table",
-            "vectorColumn",
-            "textColumn",
-            "vector",
-            "textQuery",
-          ],
-        };
-      }
+        // Validate required parameters before using them
+        if (parsed.table === "") {
+          return {
+            success: false,
+            error: "table (or tableName) parameter is required",
+            requiredParams: [
+              "table",
+              "vectorColumn",
+              "textColumn",
+              "vector",
+              "textQuery",
+            ],
+          };
+        }
+        if (parsed.vectorColumn === "") {
+          return {
+            success: false,
+            error: "vectorColumn (or vectorCol) parameter is required",
+            requiredParams: [
+              "table",
+              "vectorColumn",
+              "textColumn",
+              "vector",
+              "textQuery",
+            ],
+          };
+        }
 
-      // Parse schema.table format (embedded schema takes priority)
-      let resolvedTable = parsed.table;
-      let resolvedSchema: string | undefined;
-      if (parsed.table.includes(".")) {
-        const parts = parsed.table.split(".");
-        resolvedSchema = parts[0];
-        resolvedTable = parts[1] ?? parsed.table;
-      }
-      const schemaName = resolvedSchema ?? "public";
-      const tableName = sanitizeTableName(resolvedTable, schemaName);
+        // Parse schema.table format (embedded schema takes priority)
+        let resolvedTable = parsed.table;
+        let resolvedSchema: string | undefined;
+        if (parsed.table.includes(".")) {
+          const parts = parsed.table.split(".");
+          resolvedSchema = parts[0];
+          resolvedTable = parts[1] ?? parsed.table;
+        }
+        const schemaName = resolvedSchema ?? "public";
+        const tableName = sanitizeTableName(resolvedTable, schemaName);
 
-      // P154: Verify table and vectorColumn exist before querying
-      const existenceError = await checkTableAndColumn(
-        adapter,
-        resolvedTable,
-        parsed.vectorColumn,
-        schemaName,
-      );
-      if (existenceError !== null) {
-        return { success: false, ...existenceError };
-      }
+        // P154: Verify table and vectorColumn exist before querying
+        const existenceError = await checkTableAndColumn(
+          adapter,
+          resolvedTable,
+          parsed.vectorColumn,
+          schemaName,
+        );
+        if (existenceError !== null) {
+          return { success: false, ...existenceError };
+        }
 
-      // Check column type - reject if it's a tsvector
-      const colTypeSql = `
-                SELECT data_type, udt_name 
-                FROM information_schema.columns 
+        // Check column type - reject if it's a tsvector
+        const colTypeSql = `
+                SELECT data_type, udt_name
+                FROM information_schema.columns
                 WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
             `;
-      const colTypeResult = await adapter.executeQuery(colTypeSql, [
-        schemaName,
-        resolvedTable,
-        parsed.vectorColumn,
-      ]);
-      const colType = colTypeResult.rows?.[0] as
-        | { data_type?: string; udt_name?: string }
-        | undefined;
-
-      if (
-        colType?.udt_name === "tsvector" ||
-        colType?.data_type === "tsvector"
-      ) {
-        return {
-          success: false,
-          error: `Column '${parsed.vectorColumn}' is tsvector, not vector. For hybrid search, vectorColumn must be a pgvector column (type 'vector'). Use textColumn for text search.`,
-          suggestion: `Specify a different vector column, or check your table structure with pg_describe_table`,
-        };
-      }
-
-      if (colType?.udt_name !== "vector" && colType !== undefined) {
-        const actualType = colType.udt_name ?? colType.data_type ?? "unknown";
-        return {
-          success: false,
-          error: `Column '${parsed.vectorColumn}' has type '${actualType}', not 'vector'. Hybrid search requires a pgvector column.`,
-          columnType: actualType,
-        };
-      }
-
-      // Check textColumn type to determine if we need to_tsvector() wrapping
-      const textColTypeResult = await adapter.executeQuery(colTypeSql, [
-        schemaName,
-        resolvedTable,
-        parsed.textColumn,
-      ]);
-      const textColType = textColTypeResult.rows?.[0] as
-        | { data_type?: string; udt_name?: string }
-        | undefined;
-      const isTextColumnTsvector =
-        textColType?.udt_name === "tsvector" ||
-        textColType?.data_type === "tsvector";
-
-      // Use tsvector column directly, otherwise wrap with to_tsvector()
-      const textExpr = isTextColumnTsvector
-        ? `"${parsed.textColumn}"`
-        : `to_tsvector('english', "${parsed.textColumn}")`;
-
-      const vectorWeight = parsed.vectorWeight ?? 0.5;
-      // Fix floating point precision (e.g., 0.30000000000000004 -> 0.3)
-      const textWeight = Math.round((1 - vectorWeight) * 1000) / 1000;
-      const limitVal = parsed.limit ?? 10;
-      const vectorStr = `[${parsed.vector.join(",")}]`;
-
-      // Build select clause - use specified columns, excluding vector column if using t.*
-      let selectCols: string;
-      if (parsed.select !== undefined && parsed.select.length > 0) {
-        // Use only the explicitly selected columns
-        selectCols = parsed.select.map((c) => `t."${c}"`).join(", ");
-      } else {
-        // Get all columns except vector columns to avoid token waste
-        const colsSql = `
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_schema = $1 AND table_name = $2 
-                    AND udt_name != 'vector' 
-                    ORDER BY ordinal_position
-                `;
-        const colsResult = await adapter.executeQuery(colsSql, [
+        const colTypeResult = await adapter.executeQuery(colTypeSql, [
           schemaName,
           resolvedTable,
+          parsed.vectorColumn,
         ]);
-        const cols = (colsResult.rows ?? []).map(
-          (r: Record<string, unknown>) => r["column_name"] as string,
-        );
-        selectCols =
-          cols.length > 0 ? cols.map((c) => `t."${c}"`).join(", ") : "t.*";
-      }
+        const colType = colTypeResult.rows?.[0] as
+          | { data_type?: string; udt_name?: string }
+          | undefined;
 
-      const sql = `
+        if (
+          colType?.udt_name === "tsvector" ||
+          colType?.data_type === "tsvector"
+        ) {
+          return {
+            success: false,
+            error: `Column '${parsed.vectorColumn}' is tsvector, not vector. For hybrid search, vectorColumn must be a pgvector column (type 'vector'). Use textColumn for text search.`,
+            suggestion: `Specify a different vector column, or check your table structure with pg_describe_table`,
+          };
+        }
+
+        if (colType?.udt_name !== "vector" && colType !== undefined) {
+          const actualType = colType.udt_name ?? colType.data_type ?? "unknown";
+          return {
+            success: false,
+            error: `Column '${parsed.vectorColumn}' has type '${actualType}', not 'vector'. Hybrid search requires a pgvector column.`,
+            columnType: actualType,
+          };
+        }
+
+        // Check textColumn type to determine if we need to_tsvector() wrapping
+        const textColTypeResult = await adapter.executeQuery(colTypeSql, [
+          schemaName,
+          resolvedTable,
+          parsed.textColumn,
+        ]);
+        const textColType = textColTypeResult.rows?.[0] as
+          | { data_type?: string; udt_name?: string }
+          | undefined;
+        const isTextColumnTsvector =
+          textColType?.udt_name === "tsvector" ||
+          textColType?.data_type === "tsvector";
+
+        // Use tsvector column directly, otherwise wrap with to_tsvector()
+        const textExpr = isTextColumnTsvector
+          ? `"${parsed.textColumn}"`
+          : `to_tsvector('english', "${parsed.textColumn}")`;
+
+        const vectorWeight = parsed.vectorWeight ?? 0.5;
+        // Fix floating point precision (e.g., 0.30000000000000004 -> 0.3)
+        const textWeight = Math.round((1 - vectorWeight) * 1000) / 1000;
+        const limitVal = parsed.limit ?? 10;
+        const vectorStr = `[${parsed.vector.join(",")}]`;
+
+        // Build select clause - use specified columns, excluding vector column if using t.*
+        let selectCols: string;
+        if (parsed.select !== undefined && parsed.select.length > 0) {
+          // Use only the explicitly selected columns
+          selectCols = parsed.select.map((c) => `t."${c}"`).join(", ");
+        } else {
+          // Get all columns except vector columns to avoid token waste
+          const colsSql = `
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = $1 AND table_name = $2
+                    AND udt_name != 'vector'
+                    ORDER BY ordinal_position
+                `;
+          const colsResult = await adapter.executeQuery(colsSql, [
+            schemaName,
+            resolvedTable,
+          ]);
+          const cols = (colsResult.rows ?? []).map(
+            (r: Record<string, unknown>) => r["column_name"] as string,
+          );
+          selectCols =
+            cols.length > 0 ? cols.map((c) => `t."${c}"`).join(", ") : "t.*";
+        }
+
+        const sql = `
                 WITH vector_scores AS (
-                    SELECT 
+                    SELECT
                         ctid,
                         1 - ("${parsed.vectorColumn}" <=> '${vectorStr}'::vector) as vector_score
                     FROM ${tableName}
@@ -548,15 +570,15 @@ export function createHybridSearchTool(
                     LIMIT ${String(limitVal * 3)}
                 ),
                 text_scores AS (
-                    SELECT 
+                    SELECT
                         ctid,
                         ts_rank(${textExpr}, plainto_tsquery($1)) as text_score
                     FROM ${tableName}
                     WHERE ${textExpr} @@ plainto_tsquery($1)
                 )
-                SELECT 
+                SELECT
                     ${selectCols},
-                    COALESCE(v.vector_score, 0) * ${String(vectorWeight)} + 
+                    COALESCE(v.vector_score, 0) * ${String(vectorWeight)} +
                     COALESCE(ts.text_score, 0) * ${String(textWeight)} as combined_score,
                     COALESCE(v.vector_score, 0) as vector_score,
                     COALESCE(ts.text_score, 0) as text_score
@@ -568,79 +590,85 @@ export function createHybridSearchTool(
                 LIMIT ${String(limitVal)}
             `;
 
-      try {
-        const result = await adapter.executeQuery(sql, [parsed.textQuery]);
-        return {
-          results: result.rows,
-          count: result.rows?.length ?? 0,
-          vectorWeight,
-          textWeight,
-        };
-      } catch (error: unknown) {
-        if (error instanceof Error) {
-          // Parse column not found errors
-          const colMatch = /column "([^"]+)" does not exist/.exec(
-            error.message,
-          );
-          if (colMatch) {
-            const missingCol = colMatch[1] ?? "";
-            // Determine which parameter has the issue
-            let paramName = "column";
-            if (missingCol === parsed.textColumn) {
-              paramName = "textColumn";
-            } else if (missingCol === parsed.vectorColumn) {
-              paramName = "vectorColumn";
+        try {
+          const result = await adapter.executeQuery(sql, [parsed.textQuery]);
+          return {
+            results: result.rows,
+            count: result.rows?.length ?? 0,
+            vectorWeight,
+            textWeight,
+          };
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            // Parse column not found errors
+            const colMatch = /column "([^"]+)" does not exist/.exec(
+              error.message,
+            );
+            if (colMatch) {
+              const missingCol = colMatch[1] ?? "";
+              // Determine which parameter has the issue
+              let paramName = "column";
+              if (missingCol === parsed.textColumn) {
+                paramName = "textColumn";
+              } else if (missingCol === parsed.vectorColumn) {
+                paramName = "vectorColumn";
+              }
+              return {
+                success: false,
+                error: `Column '${missingCol}' does not exist in table '${resolvedTable}'`,
+                parameterWithIssue: paramName,
+                suggestion: "Use pg_describe_table to find available columns",
+              };
             }
+
+            // Parse dimension mismatch errors
+            const dimMatch = /different vector dimensions (\d+) and (\d+)/.exec(
+              error.message,
+            );
+            if (dimMatch) {
+              const expectedDim = dimMatch[1] ?? "0";
+              const providedDim = dimMatch[2] ?? "0";
+              return {
+                success: false,
+                error: `Vector dimension mismatch: column expects ${expectedDim} dimensions, but you provided ${providedDim} dimensions.`,
+                expectedDimensions: parseInt(expectedDim, 10),
+                providedDimensions: parseInt(providedDim, 10),
+                suggestion:
+                  "Ensure your query vector has the same dimensions as the column.",
+              };
+            }
+
+            // Parse relation not found errors
+            const relationMatch = /relation "([^"]+)" does not exist/.exec(
+              error.message,
+            );
+            if (relationMatch) {
+              const missingRelation = relationMatch[1] ?? "";
+              return {
+                success: false,
+                error: `Table '${missingRelation}' does not exist in schema '${schemaName}'`,
+                suggestion: "Use pg_list_tables to find available tables",
+              };
+            }
+
+            // Return generic database error as {success: false} instead of throwing
             return {
               success: false,
-              error: `Column '${missingCol}' does not exist in table '${resolvedTable}'`,
-              parameterWithIssue: paramName,
-              suggestion: "Use pg_describe_table to find available columns",
+              error: error.message,
+              suggestion: "Check your query parameters and table structure",
             };
           }
-
-          // Parse dimension mismatch errors
-          const dimMatch = /different vector dimensions (\d+) and (\d+)/.exec(
-            error.message,
-          );
-          if (dimMatch) {
-            const expectedDim = dimMatch[1] ?? "0";
-            const providedDim = dimMatch[2] ?? "0";
-            return {
-              success: false,
-              error: `Vector dimension mismatch: column expects ${expectedDim} dimensions, but you provided ${providedDim} dimensions.`,
-              expectedDimensions: parseInt(expectedDim, 10),
-              providedDimensions: parseInt(providedDim, 10),
-              suggestion:
-                "Ensure your query vector has the same dimensions as the column.",
-            };
-          }
-
-          // Parse relation not found errors
-          const relationMatch = /relation "([^"]+)" does not exist/.exec(
-            error.message,
-          );
-          if (relationMatch) {
-            const missingRelation = relationMatch[1] ?? "";
-            return {
-              success: false,
-              error: `Table '${missingRelation}' does not exist in schema '${schemaName}'`,
-              suggestion: "Use pg_list_tables to find available tables",
-            };
-          }
-
-          // Return generic database error as {success: false} instead of throwing
+          // For non-Error exceptions, return generic error
           return {
             success: false,
-            error: error.message,
-            suggestion: "Check your query parameters and table structure",
+            error: "An unexpected error occurred",
+            details: String(error),
           };
         }
-        // For non-Error exceptions, return generic error
+      } catch (error: unknown) {
         return {
-          success: false,
-          error: "An unexpected error occurred",
-          details: String(error),
+          success: false as const,
+          error: formatPostgresError(error, { tool: "pg_hybrid_search" }),
         };
       }
     },
@@ -680,42 +708,43 @@ export function createVectorPerformanceTool(
     annotations: readOnly("Vector Performance"),
     icons: getToolIcons("vector", readOnly("Vector Performance")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = PerformanceSchema.parse(params);
+      try {
+        const parsed = PerformanceSchema.parse(params);
 
-      // Validate required params
-      if (parsed.table === "") {
-        return {
-          success: false,
-          error: "table (or tableName) parameter is required",
-          requiredParams: ["table", "column"],
-        };
-      }
-      if (parsed.column === "") {
-        return {
-          success: false,
-          error:
-            "column (or col) parameter is required for the vector column name",
-          requiredParams: ["table", "column"],
-        };
-      }
+        // Validate required params
+        if (parsed.table === "") {
+          return {
+            success: false,
+            error: "table (or tableName) parameter is required",
+            requiredParams: ["table", "column"],
+          };
+        }
+        if (parsed.column === "") {
+          return {
+            success: false,
+            error:
+              "column (or col) parameter is required for the vector column name",
+            requiredParams: ["table", "column"],
+          };
+        }
 
-      const tableName = sanitizeTableName(parsed.table, parsed.schema);
-      const columnName = sanitizeIdentifier(parsed.column);
-      const schemaName = parsed.schema ?? "public";
+        const tableName = sanitizeTableName(parsed.table, parsed.schema);
+        const columnName = sanitizeIdentifier(parsed.column);
+        const schemaName = parsed.schema ?? "public";
 
-      // Two-step existence check: table first, then column
-      const existenceCheck = await checkTableAndColumn(
-        adapter,
-        parsed.table,
-        parsed.column,
-        schemaName,
-      );
-      if (existenceCheck) {
-        return { success: false, ...existenceCheck };
-      }
+        // Two-step existence check: table first, then column
+        const existenceCheck = await checkTableAndColumn(
+          adapter,
+          parsed.table,
+          parsed.column,
+          schemaName,
+        );
+        if (existenceCheck) {
+          return { success: false, ...existenceCheck };
+        }
 
-      const indexSql = `
-                SELECT 
+        const indexSql = `
+                SELECT
                     i.indexname,
                     i.indexdef,
                     pg_size_pretty(pg_relation_size((i.schemaname || '.' || i.indexname)::regclass)) as index_size,
@@ -726,121 +755,127 @@ export function createVectorPerformanceTool(
                 WHERE i.tablename = $1 AND i.schemaname = $2
                 AND i.indexdef LIKE '%vector%'
             `;
-      const indexResult = await adapter.executeQuery(indexSql, [
-        parsed.table,
-        schemaName,
-      ]);
+        const indexResult = await adapter.executeQuery(indexSql, [
+          parsed.table,
+          schemaName,
+        ]);
 
-      const statsSql = `
-                SELECT 
+        const statsSql = `
+                SELECT
                     reltuples::bigint as estimated_rows,
                     pg_size_pretty(pg_relation_size('${tableName}'::regclass)) as table_size
                 FROM pg_class c
                 JOIN pg_namespace n ON c.relnamespace = n.oid
                 WHERE c.relname = $1 AND n.nspname = $2
             `;
-      const statsResult = await adapter.executeQuery(statsSql, [
-        parsed.table,
-        schemaName,
-      ]);
-      // PostgreSQL returns bigint as string, cast as needed
-      const stats = (statsResult.rows?.[0] ?? {}) as {
-        estimated_rows?: string | number;
-        table_size?: string;
-      };
+        const statsResult = await adapter.executeQuery(statsSql, [
+          parsed.table,
+          schemaName,
+        ]);
+        // PostgreSQL returns bigint as string, cast as needed
+        const stats = (statsResult.rows?.[0] ?? {}) as {
+          estimated_rows?: string | number;
+          table_size?: string;
+        };
 
-      let benchmark = null;
-      let testVectorSource: string | undefined;
-      let testVector = parsed.testVector;
+        let benchmark = null;
+        let testVectorSource: string | undefined;
+        let testVector = parsed.testVector;
 
-      // Auto-generate test vector from first row if not provided
-      if (testVector === undefined) {
-        try {
-          const sampleSql = `SELECT ${columnName}::text as vec FROM ${tableName} WHERE ${columnName} IS NOT NULL LIMIT 1`;
-          const sampleResult = await adapter.executeQuery(sampleSql);
-          const sampleRow = sampleResult.rows?.[0] as
-            | { vec?: string }
-            | undefined;
-          if (sampleRow?.vec !== undefined) {
-            // Parse vector string like "[0.1,0.2,0.3]" to array
-            const vecStr = sampleRow.vec.replace(/[[\]]/g, "");
-            testVector = vecStr.split(",").map(Number);
-            testVectorSource = "auto-generated from first row";
+        // Auto-generate test vector from first row if not provided
+        if (testVector === undefined) {
+          try {
+            const sampleSql = `SELECT ${columnName}::text as vec FROM ${tableName} WHERE ${columnName} IS NOT NULL LIMIT 1`;
+            const sampleResult = await adapter.executeQuery(sampleSql);
+            const sampleRow = sampleResult.rows?.[0] as
+              | { vec?: string }
+              | undefined;
+            if (sampleRow?.vec !== undefined) {
+              // Parse vector string like "[0.1,0.2,0.3]" to array
+              const vecStr = sampleRow.vec.replace(/[[\]]/g, "");
+              testVector = vecStr.split(",").map(Number);
+              testVectorSource = "auto-generated from first row";
+            }
+          } catch {
+            // Silently ignore - benchmark just won't be available
           }
-        } catch {
-          // Silently ignore - benchmark just won't be available
+        } else {
+          testVectorSource = "user-provided";
         }
-      } else {
-        testVectorSource = "user-provided";
-      }
 
-      if (testVector !== undefined && testVector.length > 0) {
-        const vectorStr = `[${testVector.join(",")}]`;
-        const benchSql = `
+        if (testVector !== undefined && testVector.length > 0) {
+          const vectorStr = `[${testVector.join(",")}]`;
+          const benchSql = `
                     EXPLAIN ANALYZE
                     SELECT * FROM ${tableName}
                     ORDER BY ${columnName} <-> '${vectorStr}'::vector
                     LIMIT 10
                 `;
-        const benchResult = await adapter.executeQuery(benchSql);
+          const benchResult = await adapter.executeQuery(benchSql);
 
-        // Truncate large vectors in EXPLAIN output to reduce payload size
-        // Pattern matches vector literals like '[0.1,0.2,...,0.9]'::vector
-        const vectorPattern = /\[[\d.,\s-e]+\]'::vector/g;
-        const truncatedRows = (benchResult.rows ?? []).map(
-          (row: Record<string, unknown>) => {
-            const planLine = row["QUERY PLAN"] as string | undefined;
-            if (planLine && planLine.length > 200) {
-              // Truncate long vector literals in query plan
-              const truncated = planLine.replace(
-                vectorPattern,
-                `[...${String(testVector.length)} dims]'::vector`,
-              );
-              return { "QUERY PLAN": truncated };
-            }
-            return row;
-          },
+          // Truncate large vectors in EXPLAIN output to reduce payload size
+          // Pattern matches vector literals like '[0.1,0.2,...,0.9]'::vector
+          const vectorPattern = /\[[\d.,\s-e]+\]'::vector/g;
+          const truncatedRows = (benchResult.rows ?? []).map(
+            (row: Record<string, unknown>) => {
+              const planLine = row["QUERY PLAN"] as string | undefined;
+              if (planLine && planLine.length > 200) {
+                // Truncate long vector literals in query plan
+                const truncated = planLine.replace(
+                  vectorPattern,
+                  `[...${String(testVector.length)} dims]'::vector`,
+                );
+                return { "QUERY PLAN": truncated };
+              }
+              return row;
+            },
+          );
+          benchmark = truncatedRows;
+        }
+
+        // Convert PostgreSQL bigint strings to numbers for output schema compliance
+        const estimatedRows = Number(stats.estimated_rows ?? 0);
+        // Map indexes to convert bigint stats to numbers (idx_scan, idx_tup_read)
+        const indexes = (indexResult.rows ?? []).map(
+          (row: Record<string, unknown>) => ({
+            ...row,
+            idx_scan: row["idx_scan"] != null ? Number(row["idx_scan"]) : null,
+            idx_tup_read:
+              row["idx_tup_read"] != null ? Number(row["idx_tup_read"]) : null,
+          }),
         );
-        benchmark = truncatedRows;
+
+        const response: Record<string, unknown> = {
+          table: parsed.table,
+          column: parsed.column,
+          tableSize: stats.table_size,
+          // PostgreSQL returns -1 for tables that haven't been analyzed; normalize to 0
+          estimatedRows: estimatedRows < 0 ? 0 : estimatedRows,
+          indexes,
+          benchmark,
+          recommendations:
+            (indexResult.rows?.length ?? 0) === 0
+              ? [
+                  "No vector index found - consider creating one for better performance",
+                ]
+              : [],
+        };
+
+        if (testVectorSource !== undefined) {
+          response["testVectorSource"] = testVectorSource;
+        }
+        if (benchmark === null) {
+          response["hint"] =
+            "No vectors in table to auto-generate test. Provide testVector param for benchmarking.";
+        }
+
+        return response;
+      } catch (error: unknown) {
+        return {
+          success: false as const,
+          error: formatPostgresError(error, { tool: "pg_vector_performance" }),
+        };
       }
-
-      // Convert PostgreSQL bigint strings to numbers for output schema compliance
-      const estimatedRows = Number(stats.estimated_rows ?? 0);
-      // Map indexes to convert bigint stats to numbers (idx_scan, idx_tup_read)
-      const indexes = (indexResult.rows ?? []).map(
-        (row: Record<string, unknown>) => ({
-          ...row,
-          idx_scan: row["idx_scan"] != null ? Number(row["idx_scan"]) : null,
-          idx_tup_read:
-            row["idx_tup_read"] != null ? Number(row["idx_tup_read"]) : null,
-        }),
-      );
-
-      const response: Record<string, unknown> = {
-        table: parsed.table,
-        column: parsed.column,
-        tableSize: stats.table_size,
-        // PostgreSQL returns -1 for tables that haven't been analyzed; normalize to 0
-        estimatedRows: estimatedRows < 0 ? 0 : estimatedRows,
-        indexes,
-        benchmark,
-        recommendations:
-          (indexResult.rows?.length ?? 0) === 0
-            ? [
-                "No vector index found - consider creating one for better performance",
-              ]
-            : [],
-      };
-
-      if (testVectorSource !== undefined) {
-        response["testVectorSource"] = testVectorSource;
-      }
-      if (benchmark === null) {
-        response["hint"] =
-          "No vectors in table to auto-generate test. Provide testVector param for benchmarking.";
-      }
-
-      return response;
     },
   };
 }
@@ -936,144 +971,153 @@ export function createVectorDimensionReduceTool(
     annotations: readOnly("Vector Dimension Reduce"),
     icons: getToolIcons("vector", readOnly("Vector Dimension Reduce")),
     handler: async (params: unknown, _context: RequestContext) => {
-      // Use transformed schema with alias resolution for validation
-      const parsed = VectorDimensionReduceSchema.parse(params);
-      // Refine guarantees targetDimensions is defined, but add explicit check for type narrowing
-      const targetDim = parsed.targetDimensions;
-      if (targetDim === undefined) {
-        throw new Error("targetDimensions (or dimensions alias) is required");
-      }
-      const seed = parsed.seed ?? 42;
+      try {
+        // Use transformed schema with alias resolution for validation
+        const parsed = VectorDimensionReduceSchema.parse(params);
+        // Refine guarantees targetDimensions is defined, but add explicit check for type narrowing
+        const targetDim = parsed.targetDimensions;
+        if (targetDim === undefined) {
+          throw new Error("targetDimensions (or dimensions alias) is required");
+        }
+        const seed = parsed.seed ?? 42;
 
-      // Direct vector mode
-      if (parsed.vector !== undefined) {
-        const originalDim = parsed.vector.length;
+        // Direct vector mode
+        if (parsed.vector !== undefined) {
+          const originalDim = parsed.vector.length;
 
-        if (targetDim >= originalDim) {
+          if (targetDim >= originalDim) {
+            return {
+              success: false,
+              error: "Target dimensions must be less than original",
+              originalDimensions: originalDim,
+              targetDimensions: targetDim,
+              suggestion: `Reduce from ${String(originalDim)} to a smaller number`,
+            };
+          }
+
           return {
-            success: false,
-            error: "Target dimensions must be less than original",
             originalDimensions: originalDim,
             targetDimensions: targetDim,
-            suggestion: `Reduce from ${String(originalDim)} to a smaller number`,
+            reduced: reduceVector(parsed.vector, targetDim, seed),
+            method: "random_projection",
+            note: "For PCA or UMAP, use external libraries",
           };
         }
 
-        return {
-          originalDimensions: originalDim,
-          targetDimensions: targetDim,
-          reduced: reduceVector(parsed.vector, targetDim, seed),
-          method: "random_projection",
-          note: "For PCA or UMAP, use external libraries",
-        };
-      }
+        // Table-based mode
+        if (parsed.table !== undefined && parsed.column !== undefined) {
+          // P154: Verify table and column exist before querying
+          const existenceError = await checkTableAndColumn(
+            adapter,
+            parsed.table,
+            parsed.column,
+            "public",
+          );
+          if (existenceError !== null) {
+            return { success: false, ...existenceError };
+          }
 
-      // Table-based mode
-      if (parsed.table !== undefined && parsed.column !== undefined) {
-        // P154: Verify table and column exist before querying
-        const existenceError = await checkTableAndColumn(
-          adapter,
-          parsed.table,
-          parsed.column,
-          "public",
-        );
-        if (existenceError !== null) {
-          return { success: false, ...existenceError };
-        }
+          const idCol = parsed.idColumn ?? "id";
+          const limitVal = parsed.limit ?? 100;
 
-        const idCol = parsed.idColumn ?? "id";
-        const limitVal = parsed.limit ?? 100;
-
-        // Fetch vectors from table
-        const sql = `
+          // Fetch vectors from table
+          const sql = `
                     SELECT "${idCol}" as id, "${parsed.column}"::text as vector_text
                     FROM "${parsed.table}"
                     WHERE "${parsed.column}" IS NOT NULL
                     LIMIT ${String(limitVal)}
                 `;
-        const result = await adapter.executeQuery(sql);
+          const result = await adapter.executeQuery(sql);
 
-        if ((result.rows?.length ?? 0) === 0) {
-          return {
-            error: "No vectors found in table",
+          if ((result.rows?.length ?? 0) === 0) {
+            return {
+              error: "No vectors found in table",
+              table: parsed.table,
+              column: parsed.column,
+            };
+          }
+
+          // Determine if we should summarize (default true for table mode)
+          const shouldSummarize = parsed.summarize ?? true;
+
+          // Parse and reduce each vector
+          const reducedRows: {
+            id: unknown;
+            original_dimensions: number;
+            reduced:
+              | number[]
+              | {
+                  preview: number[] | null;
+                  dimensions: number;
+                  truncated: boolean;
+                };
+          }[] = [];
+          let originalDim = 0;
+
+          for (const row of result.rows ?? []) {
+            const vectorText = row["vector_text"] as string;
+            // Parse PostgreSQL vector format: [0.1, 0.2, ...]
+            const vectorMatch = /\[([\d.,\s-e]+)\]/.exec(vectorText);
+            if (vectorMatch?.[1] === undefined) continue;
+
+            const vector = vectorMatch[1]
+              .split(",")
+              .map((s) => parseFloat(s.trim()));
+            if (originalDim === 0) originalDim = vector.length;
+
+            if (targetDim >= vector.length) continue;
+
+            const reducedVector = reduceVector(vector, targetDim, seed);
+
+            // Apply summarization if requested
+            reducedRows.push({
+              id: row["id"],
+              original_dimensions: vector.length,
+              reduced: shouldSummarize
+                ? truncateVector(reducedVector)
+                : reducedVector,
+            });
+          }
+
+          const response: Record<string, unknown> = {
+            mode: "table",
             table: parsed.table,
             column: parsed.column,
+            originalDimensions: originalDim,
+            targetDimensions: targetDim,
+            processedCount: reducedRows.length,
+            rows: reducedRows,
+            method: "random_projection",
+            note: "For PCA or UMAP, use external libraries",
           };
+
+          // Add summarize indicator when summarization was applied
+          if (shouldSummarize) {
+            response["summarized"] = true;
+            response["hint"] =
+              "Vectors summarized to preview format. Use summarize: false for full vectors.";
+          }
+
+          return response;
         }
 
-        // Determine if we should summarize (default true for table mode)
-        const shouldSummarize = parsed.summarize ?? true;
-
-        // Parse and reduce each vector
-        const reducedRows: {
-          id: unknown;
-          original_dimensions: number;
-          reduced:
-            | number[]
-            | {
-                preview: number[] | null;
-                dimensions: number;
-                truncated: boolean;
-              };
-        }[] = [];
-        let originalDim = 0;
-
-        for (const row of result.rows ?? []) {
-          const vectorText = row["vector_text"] as string;
-          // Parse PostgreSQL vector format: [0.1, 0.2, ...]
-          const vectorMatch = /\[([\d.,\s-e]+)\]/.exec(vectorText);
-          if (vectorMatch?.[1] === undefined) continue;
-
-          const vector = vectorMatch[1]
-            .split(",")
-            .map((s) => parseFloat(s.trim()));
-          if (originalDim === 0) originalDim = vector.length;
-
-          if (targetDim >= vector.length) continue;
-
-          const reducedVector = reduceVector(vector, targetDim, seed);
-
-          // Apply summarization if requested
-          reducedRows.push({
-            id: row["id"],
-            original_dimensions: vector.length,
-            reduced: shouldSummarize
-              ? truncateVector(reducedVector)
-              : reducedVector,
-          });
-        }
-
-        const response: Record<string, unknown> = {
-          mode: "table",
-          table: parsed.table,
-          column: parsed.column,
-          originalDimensions: originalDim,
-          targetDimensions: targetDim,
-          processedCount: reducedRows.length,
-          rows: reducedRows,
-          method: "random_projection",
-          note: "For PCA or UMAP, use external libraries",
+        return {
+          error:
+            "Either vector (for direct mode) or table+column (for table mode) must be provided",
+          usage: {
+            directMode: "{ vector: [0.1, 0.2, ...], targetDimensions: 50 }",
+            tableMode:
+              '{ table: "embeddings", column: "vector", targetDimensions: 50, limit: 100 }',
+          },
         };
-
-        // Add summarize indicator when summarization was applied
-        if (shouldSummarize) {
-          response["summarized"] = true;
-          response["hint"] =
-            "Vectors summarized to preview format. Use summarize: false for full vectors.";
-        }
-
-        return response;
+      } catch (error: unknown) {
+        return {
+          success: false as const,
+          error: formatPostgresError(error, {
+            tool: "pg_vector_dimension_reduce",
+          }),
+        };
       }
-
-      return {
-        error:
-          "Either vector (for direct mode) or table+column (for table mode) must be provided",
-        usage: {
-          directMode: "{ vector: [0.1, 0.2, ...], targetDimensions: 50 }",
-          tableMode:
-            '{ table: "embeddings", column: "vector", targetDimensions: 50, limit: 100 }',
-        },
-      };
     },
   };
 }
@@ -1101,51 +1145,58 @@ export function createVectorEmbedTool(): ToolDefinition {
     annotations: readOnly("Vector Embed"),
     icons: getToolIcons("vector", readOnly("Vector Embed")),
     handler: (params: unknown, _context: RequestContext) => {
-      const parsed = EmbedSchema.parse(params ?? {});
+      try {
+        const parsed = EmbedSchema.parse(params ?? {});
 
-      // Validate non-empty text
-      if (parsed.text === undefined || parsed.text === "") {
+        // Validate non-empty text
+        if (parsed.text === undefined || parsed.text === "") {
+          return Promise.resolve({
+            success: false,
+            error: "text parameter is required and must be non-empty",
+            suggestion: "Provide text content to generate an embedding",
+          });
+        }
+
+        const dims = parsed.dimensions ?? 384;
+        const shouldSummarize = parsed.summarize ?? true;
+
+        const vector: number[] = [];
+
+        for (let i = 0; i < dims; i++) {
+          let hash = 0;
+          for (let j = 0; j < parsed.text.length; j++) {
+            hash = ((hash << 5) - hash + parsed.text.charCodeAt(j) + i) | 0;
+          }
+          vector.push(Math.sin(hash) * 0.5);
+        }
+
+        const magnitude = Math.sqrt(vector.reduce((sum, x) => sum + x * x, 0));
+        const normalized = vector.map((x) => x / magnitude);
+
+        // Always return object format for output schema compliance
+        // When summarized: use truncateVector helper
+        // When not summarized: wrap full vector in object format with truncated: false
+        const embeddingOutput = shouldSummarize
+          ? truncateVector(normalized)
+          : {
+              preview: normalized,
+              dimensions: dims,
+              truncated: false,
+            };
+
         return Promise.resolve({
-          success: false,
-          error: "text parameter is required and must be non-empty",
-          suggestion: "Provide text content to generate an embedding",
+          embedding: embeddingOutput,
+          dimensions: dims,
+          textLength: parsed.text.length,
+          warning:
+            "This is a demo embedding using hash functions. For production, use OpenAI, Cohere, or other embedding APIs.",
+        });
+      } catch (error: unknown) {
+        return Promise.resolve({
+          success: false as const,
+          error: formatPostgresError(error, { tool: "pg_vector_embed" }),
         });
       }
-
-      const dims = parsed.dimensions ?? 384;
-      const shouldSummarize = parsed.summarize ?? true;
-
-      const vector: number[] = [];
-
-      for (let i = 0; i < dims; i++) {
-        let hash = 0;
-        for (let j = 0; j < parsed.text.length; j++) {
-          hash = ((hash << 5) - hash + parsed.text.charCodeAt(j) + i) | 0;
-        }
-        vector.push(Math.sin(hash) * 0.5);
-      }
-
-      const magnitude = Math.sqrt(vector.reduce((sum, x) => sum + x * x, 0));
-      const normalized = vector.map((x) => x / magnitude);
-
-      // Always return object format for output schema compliance
-      // When summarized: use truncateVector helper
-      // When not summarized: wrap full vector in object format with truncated: false
-      const embeddingOutput = shouldSummarize
-        ? truncateVector(normalized)
-        : {
-            preview: normalized,
-            dimensions: dims,
-            truncated: false,
-          };
-
-      return Promise.resolve({
-        embedding: embeddingOutput,
-        dimensions: dims,
-        textLength: parsed.text.length,
-        warning:
-          "This is a demo embedding using hash functions. For production, use OpenAI, Cohere, or other embedding APIs.",
-      });
     },
   };
 }

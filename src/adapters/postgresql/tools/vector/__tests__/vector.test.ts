@@ -218,15 +218,18 @@ describe("Error Handling", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should propagate database errors", async () => {
+  it("should return structured error for database errors", async () => {
     const dbError = new Error('extension "vector" is not available');
     mockAdapter.executeQuery.mockRejectedValue(dbError);
 
     const tool = tools.find((t) => t.name === "pg_vector_create_extension")!;
 
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
-      'extension "vector" is not available',
-    );
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('extension "vector" is not available');
   });
 });
 
@@ -471,17 +474,17 @@ describe("Bug Fixes", () => {
       expect((result.reduced as number[]).length).toBe(3);
     });
 
-    it("should throw error when neither targetDimensions nor dimensions provided", async () => {
+    it("should return structured error when neither targetDimensions nor dimensions provided", async () => {
       const tool = tools.find((t) => t.name === "pg_vector_dimension_reduce")!;
 
-      await expect(
-        tool.handler(
-          {
-            vector: [0.1, 0.2, 0.3],
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow();
+      const result = (await tool.handler(
+        {
+          vector: [0.1, 0.2, 0.3],
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 
@@ -694,18 +697,18 @@ describe("Bug Fixes", () => {
       expect(result.k).toBe(3);
     });
 
-    it("should throw when neither k nor clusters provided", async () => {
+    it("should return structured error when neither k nor clusters provided", async () => {
       const tool = tools.find((t) => t.name === "pg_vector_cluster")!;
 
-      await expect(
-        tool.handler(
-          {
-            table: "embeddings",
-            column: "vector",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow();
+      const result = (await tool.handler(
+        {
+          table: "embeddings",
+          column: "vector",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 
@@ -1417,14 +1420,17 @@ describe("Coverage: Missing Param Validation", () => {
       expect(result.alreadyExists).toBe(true);
     });
 
-    it("should rethrow non-duplicate-column errors", async () => {
+    it("should return structured error for non-duplicate-column errors", async () => {
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
         .mockRejectedValueOnce(new Error("permission denied"));
       const tool = tools.find((t) => t.name === "pg_vector_add_column")!;
-      await expect(
-        tool.handler({ table: "t", column: "vec", dimensions: 3 }, mockContext),
-      ).rejects.toThrow("permission denied");
+      const result = (await tool.handler(
+        { table: "t", column: "vec", dimensions: 3 },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("permission denied");
     });
   });
 
@@ -1775,17 +1781,17 @@ describe("Coverage: Missing Param Validation", () => {
       expect(result.rowsInserted).toBe(2);
     });
 
-    it("should rethrow non-dimension errors", async () => {
+    it("should return structured error for non-dimension errors", async () => {
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
         .mockRejectedValueOnce(new Error("permission denied"));
       const tool = tools.find((t) => t.name === "pg_vector_batch_insert")!;
-      await expect(
-        tool.handler(
-          { table: "t", column: "vec", vectors: [{ vector: [0.1] }] },
-          mockContext,
-        ),
-      ).rejects.toThrow("permission denied");
+      const result = (await tool.handler(
+        { table: "t", column: "vec", vectors: [{ vector: [0.1] }] },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("permission denied");
     });
   });
 
