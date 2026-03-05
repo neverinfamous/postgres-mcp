@@ -30,7 +30,7 @@
 | **Code Mode (Massive Token Savings)**  | Execute complex database operations locally in a secure sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, AI agents use a single `pg_execute_code` execution to eliminate up to 90% of token overhead while reasoning faster. |
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                 |
 | **Smart Tool Filtering**               | 21 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                          |
-| **HTTP Streaming Transport**           | SSE-based streaming with `/mcp`, and `/health` endpoints for remote deployments                                                                                                                                                                            |
+| **Dual HTTP Transport**                | Streamable HTTP (`/mcp`) for modern clients + legacy SSE (`/sse`) for backward compatibility — both protocols supported simultaneously                                                                                                                     |
 | **High-Performance Pooling**           | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                   |
 | **8 Extension Ecosystems**             | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                                                                                |
 | **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools that let AI assistants reason about schema changes before executing them                        |
@@ -355,12 +355,34 @@ docker run --rm -p 3000:3000 \
   --transport http --port 3000
 ```
 
-**Endpoints:**
+The server supports **two MCP transport protocols simultaneously**, enabling both modern and legacy clients to connect:
 
-- `POST /mcp` — JSON-RPC requests
-- `GET /mcp` — SSE stream for notifications
-- `DELETE /mcp` — Session termination
-- `GET /health` — Health check
+### Streamable HTTP (Recommended)
+
+Modern protocol (MCP 2025-03-26) — single endpoint, session-based:
+
+| Method   | Endpoint | Purpose                                          |
+| -------- | -------- | ------------------------------------------------ |
+| `POST`   | `/mcp`   | JSON-RPC requests (initialize, tools/list, etc.) |
+| `GET`    | `/mcp`   | SSE stream for server notifications              |
+| `DELETE` | `/mcp`   | Session termination                              |
+
+Sessions are managed via the `Mcp-Session-Id` header.
+
+### Legacy SSE (Backward Compatibility)
+
+Legacy protocol (MCP 2024-11-05) — for clients like Python `mcp.client.sse`:
+
+| Method | Endpoint                   | Purpose                                                       |
+| ------ | -------------------------- | ------------------------------------------------------------- |
+| `GET`  | `/sse`                     | Opens SSE stream, returns `/messages?sessionId=<id>` endpoint |
+| `POST` | `/messages?sessionId=<id>` | Send JSON-RPC messages to the session                         |
+
+### Utility Endpoints
+
+| Method | Endpoint  | Purpose                              |
+| ------ | --------- | ------------------------------------ |
+| `GET`  | `/health` | Health check (database connectivity) |
 
 **Docker Health Check:** The built-in `HEALTHCHECK` is transport-aware. When running with `--transport http` or `--transport sse`, it uses `curl` to verify the `/health` endpoint (confirming both HTTP server and database connectivity). In stdio mode (default), it falls back to a Node.js process check since no HTTP endpoint is available.
 

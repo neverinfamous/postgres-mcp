@@ -32,7 +32,7 @@
 | **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, Code Mode exposes all 227 capabilities locally, reducing token overhead by up to 90% and supercharging AI agent reasoning. |
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                                                                   |
 | **Smart Tool Filtering**               | 21 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                                                                            |
-| **HTTP Streaming Transport**           | SSE-based streaming with `/mcp`, and `/health` endpoints for remote deployments                                                                                                                                                                                                                              |
+| **Dual HTTP Transport**                | Streamable HTTP (`/mcp`) for modern clients + legacy SSE (`/sse`) for backward compatibility — both protocols supported simultaneously                                                                                                                                                                       |
 | **High-Performance Pooling**           | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                                                                     |
 | **8 Extension Ecosystems**             | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                                                                                                                                  |
 | **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools that let AI assistants reason about schema changes before executing them                                                                          |
@@ -418,6 +418,57 @@ Add one of these configurations to your IDE's MCP settings file:
 
 **Legacy Syntax (still supported):**
 If you start with a negative filter (e.g., `-base,-extensions`), it assumes you want to start with _all_ tools enabled and then subtract.
+
+---
+
+## 🌐 HTTP/SSE Transport (Remote Access)
+
+For remote access, web-based clients, or HTTP-compatible MCP hosts, use the HTTP transport:
+
+```bash
+node dist/cli.js \
+  --transport http \
+  --port 3000 \
+  --postgres "postgres://user:pass@localhost:5432/db"
+```
+
+**Docker:**
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e POSTGRES_URL=postgres://user:pass@host:5432/db \
+  writenotenow/postgres-mcp:latest \
+  --transport http --port 3000
+```
+
+The server supports **two MCP transport protocols simultaneously**, enabling both modern and legacy clients to connect:
+
+### Streamable HTTP (Recommended)
+
+Modern protocol (MCP 2025-03-26) — single endpoint, session-based:
+
+| Method   | Endpoint | Purpose                                          |
+| -------- | -------- | ------------------------------------------------ |
+| `POST`   | `/mcp`   | JSON-RPC requests (initialize, tools/list, etc.) |
+| `GET`    | `/mcp`   | SSE stream for server notifications              |
+| `DELETE` | `/mcp`   | Session termination                              |
+
+Sessions are managed via the `Mcp-Session-Id` header.
+
+### Legacy SSE (Backward Compatibility)
+
+Legacy protocol (MCP 2024-11-05) — for clients like Python `mcp.client.sse`:
+
+| Method | Endpoint                   | Purpose                                                       |
+| ------ | -------------------------- | ------------------------------------------------------------- |
+| `GET`  | `/sse`                     | Opens SSE stream, returns `/messages?sessionId=<id>` endpoint |
+| `POST` | `/messages?sessionId=<id>` | Send JSON-RPC messages to the session                         |
+
+### Utility Endpoints
+
+| Method | Endpoint  | Purpose                              |
+| ------ | --------- | ------------------------------------ |
+| `GET`  | `/health` | Health check (database connectivity) |
 
 ---
 
