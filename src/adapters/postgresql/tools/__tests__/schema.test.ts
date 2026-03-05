@@ -34,8 +34,10 @@ describe("getSchemaTools", () => {
     expect(toolNames).toContain("pg_drop_schema");
     expect(toolNames).toContain("pg_list_sequences");
     expect(toolNames).toContain("pg_create_sequence");
+    expect(toolNames).toContain("pg_drop_sequence");
     expect(toolNames).toContain("pg_list_views");
     expect(toolNames).toContain("pg_create_view");
+    expect(toolNames).toContain("pg_drop_view");
     expect(toolNames).toContain("pg_list_functions");
     expect(toolNames).toContain("pg_list_triggers");
     expect(toolNames).toContain("pg_list_constraints");
@@ -401,6 +403,17 @@ describe("pg_create_sequence", () => {
     expect(result.sequence).toBe("public.aliased_seq");
   });
 
+  it("should return error for invalid ownedBy format", async () => {
+    const tool = tools.find((t) => t.name === "pg_create_sequence")!;
+    const result = (await tool.handler(
+      { name: "bad_seq", ownedBy: "invalid_format" },
+      mockContext,
+    )) as any;
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid ownedBy format");
+  });
+
   it("should return alreadyExisted: false when sequence does not exist", async () => {
     // First call: existence check returns empty, second call: create
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
@@ -439,6 +452,107 @@ describe("pg_create_sequence", () => {
 
     expect(result.success).toBe(true);
     expect(result.alreadyExisted).toBe(true);
+  });
+
+  it("should accept valid string for ownedBy and apply to sequence", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_create_sequence")!;
+    const result = (await tool.handler(
+      { name: "table_seq", ownedBy: "public.users.id" },
+      mockContext,
+    )) as any;
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining('OWNED BY "public"."users"."id"'),
+    );
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("pg_list_sequences extra edge cases", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getSchemaTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getSchemaTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should trigger truncated flag with schema filter", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    }); // schema check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ name: "seq1" }, { name: "seq2" }, { name: "seq3" }],
+    }); // the sequences query
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ total: 10 }] }); // the count query
+
+    const tool = tools.find((t) => t.name === "pg_list_sequences")!;
+    const result = (await tool.handler(
+      { schema: "public", limit: 2 },
+      mockContext,
+    )) as any;
+
+    expect(result.truncated).toBe(true);
+    expect(result.totalCount).toBe(10);
+    expect(result.sequences).toHaveLength(2);
+    expect(result.note).toContain("Results limited to 2");
+  });
+});
+
+describe("pg_drop_sequence", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getSchemaTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getSchemaTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should drop a sequence", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_drop_sequence")!;
+    const result = (await tool.handler(
+      { name: "old_seq" },
+      mockContext,
+    )) as any;
+
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      2,
+      'DROP SEQUENCE "public"."old_seq"',
+    );
+    expect(result.success).toBe(true);
+    expect(result.sequence).toBe("public.old_seq");
+    expect(result.existed).toBe(true);
+  });
+
+  it("should drop sequence with IF EXISTS and CASCADE", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_drop_sequence")!;
+    await tool.handler(
+      { name: "old_seq", ifExists: true, cascade: true },
+      mockContext,
+    );
+
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      2,
+      'DROP SEQUENCE IF EXISTS "public"."old_seq" CASCADE',
+    );
   });
 });
 
@@ -1432,5 +1546,53 @@ describe("Structured Error Responses", () => {
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
     expect(typeof result.error).toBe("string");
+  });
+
+  it("should catch ZodError for all schema object tools", async () => {
+    const toolsToTest = [
+      "pg_create_schema",
+      "pg_drop_schema",
+      "pg_create_sequence",
+      "pg_drop_sequence",
+      "pg_create_view",
+      "pg_drop_view",
+    ];
+
+    for (const toolName of toolsToTest) {
+      const tool = tools.find((t) => t.name === toolName)!;
+      // Provide an invalid structure that will fail Zod (missing required name for all these)
+      const result = (await tool.handler(
+        { invalidFieldWhichWillFailZodCheck: 123 },
+        mockContext,
+      )) as any;
+      expect(result.success).toBe(false);
+      expect(result.error).toBeTruthy();
+    }
+  });
+
+  it("should catch Postgres format errors for list tools", async () => {
+    const listTools = [
+      "pg_list_functions",
+      "pg_list_triggers",
+      "pg_list_constraints",
+    ];
+
+    for (const toolName of listTools) {
+      const pgError = new Error("mock connection error");
+      (pgError as any).code = "08006";
+      mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+      const tool = tools.find((t) => t.name === toolName)!;
+      // Many list tools need some schema/table context or nothing string so pass empty object or specific args
+      const result = (await tool.handler(
+        toolName === "pg_list_triggers" || toolName === "pg_list_constraints"
+          ? {}
+          : {},
+        mockContext,
+      )) as any;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    }
   });
 });

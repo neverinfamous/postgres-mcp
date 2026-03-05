@@ -595,6 +595,30 @@ describe("JSONB Validation and Error Paths", () => {
 
       expect(result.rowsAffected).toBe(1);
     });
+
+    it("should accept path as a dot-separated string that parses into array", async () => {
+      mockAdapter.executeQuery.mockResolvedValue({ rowsAffected: 1 });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_delete")!;
+      const result = (await tool.handler(
+        { table: "users", column: "tags", path: "a.b.c", where: "id = 1" },
+        mockContext,
+      )) as { rowsAffected: number };
+
+      expect(result.rowsAffected).toBe(1);
+    });
+
+    it("should propagate database error in pg_jsonb_delete", async () => {
+      mockAdapter.executeQuery.mockRejectedValue(new Error("db error delete"));
+      const tool = tools.find((t) => t.name === "pg_jsonb_delete")!;
+      const result = (await tool.handler(
+        { table: "users", column: "tags", path: "a", where: "id = 1" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/db error delete/);
+    });
   });
 
   describe("pg_jsonb_insert validations", () => {
@@ -637,6 +661,90 @@ describe("JSONB Validation and Error Paths", () => {
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/NULL columns/);
     });
+
+    it("should reject string index paths that are not numeric", async () => {
+      mockAdapter.executeQuery.mockRejectedValue(
+        new Error("path element is not an integer"),
+      );
+      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "tags",
+          path: ["tags", "invalid"],
+          value: "new",
+          where: "id = 1",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/requires numeric index/);
+    });
+
+    it("should improve error when trying to replace existing key (object target)", async () => {
+      mockAdapter.executeQuery.mockRejectedValue(
+        new Error("cannot replace existing key"),
+      );
+      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "tags",
+          path: ["tags", 0],
+          value: "new",
+          where: "id = 1",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/is for arrays only/);
+    });
+
+    it("should reject target paths that point to objects", async () => {
+      // Mock for checking parent path type returning 'object'
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ null_count: 0 }] })
+        .mockResolvedValueOnce({ rows: [{ type: "object" }] });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "tags",
+          path: ["tags", 0],
+          value: "new",
+          where: "id = 1",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/requires an array target/);
+    });
+
+    it("should reject root path insertion if column is object", async () => {
+      // Mock for checking root type returning 'object'
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ null_count: 0 }] })
+        .mockResolvedValueOnce({ rows: [{ type: "object" }] });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "tags",
+          path: [0],
+          value: "new",
+          where: "id = 1",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/requires an array target/);
+    });
   });
 
   describe("pg_jsonb_strip_nulls validations", () => {
@@ -665,6 +773,17 @@ describe("JSONB Validation and Error Paths", () => {
 
       expect(result.preview).toBe(true);
       expect(result.rows).toBeDefined();
+    });
+
+    it("should reject when table or column are missing (Zod validation bypass)", async () => {
+      const tool = tools.find((t) => t.name === "pg_jsonb_strip_nulls")!;
+      // Casting to bypass inputSchema validation if called directly
+      const result = (await tool.handler(
+        { table: "users" } as any, // missing column and where
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/validation error/);
     });
   });
 

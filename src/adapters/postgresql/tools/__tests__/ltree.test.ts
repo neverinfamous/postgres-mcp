@@ -813,6 +813,113 @@ describe("Ltree Tools", () => {
     });
   });
 
+  describe("ZodError and Edge Case Coverage", () => {
+    it("pg_ltree_lca: should catch ZodError for invalid input", async () => {
+      const tool = findTool("pg_ltree_lca");
+      const result = (await tool!.handler({}, mockContext)) as any;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("expected array");
+    });
+
+    it("pg_ltree_match: should handle column not found but table exists", async () => {
+      // column check fails
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // table check succeeds
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+
+      const tool = findTool("pg_ltree_match");
+      const result = (await tool!.handler(
+        { table: "categories", column: "bad_col", pattern: "*" },
+        mockContext,
+      )) as any;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Column "bad_col" not found');
+    });
+
+    it("pg_ltree_match: should catch ZodError for invalid input", async () => {
+      const tool = findTool("pg_ltree_match");
+      const result = (await tool!.handler({}, mockContext)) as any;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("expected string");
+    });
+
+    it("pg_ltree_list_columns: should catch ZodError for invalid input", async () => {
+      const tool = findTool("pg_ltree_list_columns");
+      const result = (await tool!.handler({ schema: 123 }, mockContext)) as any;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("expected string");
+    });
+
+    it("pg_ltree_convert_column: should error if ltree extension is missing", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ installed: false }],
+      });
+      const tool = findTool("pg_ltree_convert_column");
+      const result = (await tool!.handler(
+        { table: "categories", column: "path" },
+        mockContext,
+      )) as any;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("ltree extension is not installed");
+    });
+
+    it("pg_ltree_convert_column: should catch ZodError for invalid input", async () => {
+      const tool = findTool("pg_ltree_convert_column");
+      const result = (await tool!.handler({}, mockContext)) as any;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("expected string");
+    });
+
+    it("pg_ltree_convert_column: should error if dependent views prevent conversion", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ installed: true }],
+      }); // extension
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      }); // column
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ dependent_view: "v_categories", view_schema: "public" }],
+      }); // dependent views
+
+      const tool = findTool("pg_ltree_convert_column");
+      const result = (await tool!.handler(
+        { table: "categories", column: "path" },
+        mockContext,
+      )) as any;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("dependent views");
+      expect(result.dependentViews).toContain("public.v_categories");
+    });
+
+    it("pg_ltree_create_index: should handle column not found but table exists", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // column check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      }); // table check
+
+      const tool = findTool("pg_ltree_create_index");
+      const result = (await tool!.handler(
+        { table: "categories", column: "bad_col" },
+        mockContext,
+      )) as any;
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Column "bad_col" not found');
+    });
+
+    it("pg_ltree_create_index: should catch ZodError for invalid input", async () => {
+      const tool = findTool("pg_ltree_create_index");
+      const result = (await tool!.handler({}, mockContext)) as any;
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("expected string");
+    });
+  });
+
   it("should export all 8 ltree tools", () => {
     expect(tools).toHaveLength(8);
     const toolNames = tools.map((t) => t.name);

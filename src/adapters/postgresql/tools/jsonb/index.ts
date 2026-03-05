@@ -28,16 +28,20 @@ import {
   createJsonbStripNullsTool,
 } from "./write.js";
 
-// Advanced JSONB operations
+// JSONB transform operations (validate path, merge, normalize, diff)
 import {
   createJsonbValidatePathTool,
   createJsonbMergeTool,
   createJsonbNormalizeTool,
   createJsonbDiffTool,
+} from "./transform.js";
+
+// JSONB analytics operations (index suggest, security scan, stats)
+import {
   createJsonbIndexSuggestTool,
   createJsonbSecurityScanTool,
   createJsonbStatsTool,
-} from "./advanced.js";
+} from "./analytics.js";
 
 /**
  * Get all JSONB tools

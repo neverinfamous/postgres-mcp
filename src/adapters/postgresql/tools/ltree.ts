@@ -318,42 +318,42 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Ltree Match"),
     icons: getToolIcons("ltree", readOnly("Ltree Match")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { table, column, pattern, schema, limit } =
-        LtreeMatchSchema.parse(params);
-      const schemaName = schema ?? "public";
-      const qualifiedTable = `"${schemaName}"."${table}"`;
-      const limitClause = limit !== undefined ? `LIMIT ${String(limit)}` : "";
+      try {
+        const { table, column, pattern, schema, limit } =
+          LtreeMatchSchema.parse(params);
+        const schemaName = schema ?? "public";
+        const qualifiedTable = `"${schemaName}"."${table}"`;
+        const limitClause = limit !== undefined ? `LIMIT ${String(limit)}` : "";
 
-      // Validate table exists and column is ltree type
-      const colCheck = await adapter.executeQuery(
-        `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
-        [schemaName, table, column],
-      );
-      if (!colCheck.rows || colCheck.rows.length === 0) {
-        const tableCheck = await adapter.executeQuery(
-          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-          [schemaName, table],
+        // Validate table exists and column is ltree type
+        const colCheck = await adapter.executeQuery(
+          `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
+          [schemaName, table, column],
         );
-        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+        if (!colCheck.rows || colCheck.rows.length === 0) {
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+            [schemaName, table],
+          );
+          if (!tableCheck.rows || tableCheck.rows.length === 0) {
+            return {
+              success: false,
+              error: `Table ${qualifiedTable} does not exist.`,
+            };
+          }
           return {
             success: false,
-            error: `Table ${qualifiedTable} does not exist.`,
+            error: `Column "${column}" not found in table ${qualifiedTable}.`,
           };
         }
-        return {
-          success: false,
-          error: `Column "${column}" not found in table ${qualifiedTable}.`,
-        };
-      }
-      const udtName = colCheck.rows[0]?.["udt_name"] as string;
-      if (udtName !== "ltree") {
-        return {
-          success: false,
-          error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
-        };
-      }
+        const udtName = colCheck.rows[0]?.["udt_name"] as string;
+        if (udtName !== "ltree") {
+          return {
+            success: false,
+            error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+          };
+        }
 
-      try {
         // Get total count when limit is applied for truncation indicators
         let totalCount: number | undefined;
         if (limit !== undefined) {
@@ -597,42 +597,42 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Create Ltree Index"),
     icons: getToolIcons("ltree", write("Create Ltree Index")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { table, column, indexName, schema } =
-        LtreeIndexSchema.parse(params);
-      const schemaName = schema ?? "public";
-      const qualifiedTable = `"${schemaName}"."${table}"`;
-      const idxName = indexName ?? `idx_${table}_${column}_ltree`;
+      try {
+        const { table, column, indexName, schema } =
+          LtreeIndexSchema.parse(params);
+        const schemaName = schema ?? "public";
+        const qualifiedTable = `"${schemaName}"."${table}"`;
+        const idxName = indexName ?? `idx_${table}_${column}_ltree`;
 
-      // Validate table exists and column is ltree type
-      const colCheck = await adapter.executeQuery(
-        `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
-        [schemaName, table, column],
-      );
-      if (!colCheck.rows || colCheck.rows.length === 0) {
-        const tableCheck = await adapter.executeQuery(
-          `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-          [schemaName, table],
+        // Validate table exists and column is ltree type
+        const colCheck = await adapter.executeQuery(
+          `SELECT udt_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND column_name = $3`,
+          [schemaName, table, column],
         );
-        if (!tableCheck.rows || tableCheck.rows.length === 0) {
+        if (!colCheck.rows || colCheck.rows.length === 0) {
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+            [schemaName, table],
+          );
+          if (!tableCheck.rows || tableCheck.rows.length === 0) {
+            return {
+              success: false,
+              error: `Table ${qualifiedTable} does not exist.`,
+            };
+          }
           return {
             success: false,
-            error: `Table ${qualifiedTable} does not exist.`,
+            error: `Column "${column}" not found in table ${qualifiedTable}.`,
           };
         }
-        return {
-          success: false,
-          error: `Column "${column}" not found in table ${qualifiedTable}.`,
-        };
-      }
-      const udtName = colCheck.rows[0]?.["udt_name"] as string;
-      if (udtName !== "ltree") {
-        return {
-          success: false,
-          error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
-        };
-      }
+        const udtName = colCheck.rows[0]?.["udt_name"] as string;
+        if (udtName !== "ltree") {
+          return {
+            success: false,
+            error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+          };
+        }
 
-      try {
         const idxCheck = await adapter.executeQuery(
           `SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE schemaname = $1 AND indexname = $2) as exists`,
           [schemaName, idxName],

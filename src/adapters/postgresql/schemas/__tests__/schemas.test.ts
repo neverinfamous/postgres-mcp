@@ -24,7 +24,7 @@ import {
   BufferSchema,
   GeocodeSchema,
   GeoTransformSchema,
-} from "../postgis.js";
+} from "../postgis/index.js";
 
 // Schema management schemas
 import {
@@ -682,7 +682,7 @@ import {
   StatsRegressionSchema,
   StatsHypothesisSchema,
   StatsTimeSeriesSchema,
-} from "../stats.js";
+} from "../stats/index.js";
 
 describe("StatsPercentilesSchema", () => {
   it("should normalize percentiles from 0-100 to 0-1 format", () => {
@@ -869,7 +869,7 @@ import {
   parseJsonbValue,
   normalizePathToArray,
   normalizePathToString,
-} from "../jsonb.js";
+} from "../jsonb/index.js";
 
 describe("stringPathToArray", () => {
   it("should convert simple dot notation", () => {
@@ -1054,7 +1054,7 @@ import {
   SavepointSchema,
   TransactionExecuteSchema,
   ListTablesSchema,
-} from "../core.js";
+} from "../core/index.js";
 
 describe("ReadQuerySchema", () => {
   it("should resolve query alias to sql", () => {
@@ -1659,7 +1659,7 @@ import {
   JsonbInsertSchema,
   JsonbDeleteSchema,
   JsonbAggSchema,
-} from "../jsonb.js";
+} from "../jsonb/index.js";
 
 describe("preprocessJsonbParams", () => {
   it("should pass through non-objects", () => {
@@ -2742,7 +2742,7 @@ import {
   GeoTransformSchema,
   GeometryTransformSchema,
   GeometryBufferSchema,
-} from "../postgis.js";
+} from "../postgis/index.js";
 
 describe("preprocessPostgisParams", () => {
   it("should pass through non-objects", () => {
@@ -3219,7 +3219,7 @@ import {
   StatsDistributionSchema,
   StatsHypothesisSchema,
   StatsSamplingSchema,
-} from "../stats.js";
+} from "../stats/index.js";
 
 describe("StatsDescriptiveSchema (preprocessBasicStatsParams)", () => {
   it("should resolve tableName alias to table", () => {
@@ -3854,7 +3854,7 @@ import {
   StatsSamplingSchema,
   StatsPercentilesSchema,
   StatsCorrelationSchema,
-} from "../stats.js";
+} from "../stats/index.js";
 
 describe("StatsRegressionSchema", () => {
   it("should resolve tableName alias", () => {

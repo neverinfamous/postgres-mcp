@@ -36,7 +36,7 @@ export {
   TransactionResultOutputSchema,
   SavepointResultOutputSchema,
   TransactionExecuteOutputSchema,
-} from "./core.js";
+} from "./core/index.js";
 
 // JSONB operation schemas
 export {
@@ -99,7 +99,7 @@ export {
   JsonbIndexSuggestOutputSchema,
   JsonbSecurityScanOutputSchema,
   JsonbStatsOutputSchema,
-} from "./jsonb.js";
+} from "./jsonb/index.js";
 
 // Text search schemas
 export {
@@ -319,7 +319,7 @@ export {
   GeometryBufferOutputSchema,
   GeometryIntersectionOutputSchema,
   GeometryTransformOutputSchema,
-} from "./postgis.js";
+} from "./postgis/index.js";
 
 // Partitioning schemas
 export {
@@ -520,7 +520,7 @@ export {
   DistributionOutputSchema,
   HypothesisOutputSchema,
   SamplingOutputSchema,
-} from "./stats.js";
+} from "./stats/index.js";
 
 // Introspection schemas (agent-optimized database analysis)
 export {
