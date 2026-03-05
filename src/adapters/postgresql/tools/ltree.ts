@@ -389,7 +389,6 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
           success: false as const,
           error: formatPostgresError(error, {
             tool: "pg_ltree_match",
-            table,
           }),
         };
       }
@@ -669,7 +668,6 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
           success: false as const,
           error: formatPostgresError(error, {
             tool: "pg_ltree_create_index",
-            table,
           }),
         };
       }
