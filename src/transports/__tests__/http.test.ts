@@ -780,105 +780,145 @@ describe("HttpTransport", () => {
     });
   });
 
-  describe("handleMessageRequest", () => {
-    it("should return 400 when no transport is connected", async () => {
+  describe("handleLegacyMessageRequest", () => {
+    it("should return 400 when sessionId is missing", async () => {
       const transport = new HttpTransport({ port: 3000 });
       const req = createMockRequest({ method: "POST", url: "/messages" });
       const res = createMockResponse();
+      const url = new URL("http://localhost:3000/messages");
 
-      const handleMessageRequest = (
+      const handleLegacyMessageRequest = (
         transport as unknown as {
-          handleMessageRequest: (
+          handleLegacyMessageRequest: (
             req: IncomingMessage,
             res: ServerResponse,
+            url: URL,
           ) => Promise<void>;
         }
-      ).handleMessageRequest.bind(transport);
+      ).handleLegacyMessageRequest.bind(transport);
 
-      await handleMessageRequest(req, res);
+      await handleLegacyMessageRequest(req, res, url);
 
       expect(res._statusCode).toBe(400);
-      expect(res._body).toContain("No active connection");
+      expect(res._body).toContain("Missing sessionId parameter");
     });
 
-    it("should forward request to transport when active", async () => {
+    it("should return 404 when sessionId not found in transports", async () => {
       const transport = new HttpTransport({ port: 3000 });
-      const mockTransport = {
-        handleRequest: vi.fn().mockResolvedValue(undefined),
-        start: vi.fn().mockResolvedValue(undefined),
-      };
-
-      // Set the internal transport directly
-      (transport as unknown as { transport: typeof mockTransport }).transport =
-        mockTransport;
-
-      const req = createMockRequest({ method: "POST", url: "/messages" });
+      const req = createMockRequest({
+        method: "POST",
+        url: "/messages?sessionId=unknown",
+      });
       const res = createMockResponse();
+      const url = new URL("http://localhost:3000/messages?sessionId=unknown");
 
-      const handleMessageRequest = (
+      const handleLegacyMessageRequest = (
         transport as unknown as {
-          handleMessageRequest: (
+          handleLegacyMessageRequest: (
             req: IncomingMessage,
             res: ServerResponse,
+            url: URL,
           ) => Promise<void>;
         }
-      ).handleMessageRequest.bind(transport);
+      ).handleLegacyMessageRequest.bind(transport);
 
-      await handleMessageRequest(req, res);
+      await handleLegacyMessageRequest(req, res, url);
 
-      expect(mockTransport.handleRequest).toHaveBeenCalledWith(req, res);
+      expect(res._statusCode).toBe(404);
+      expect(res._body).toContain("No transport found for sessionId");
+    });
+
+    it("should forward request to SSE transport when session exists", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const mockSSETransport = {
+        handlePostMessage: vi.fn().mockResolvedValue(undefined),
+        sessionId: "test-session",
+      };
+
+      // Inject a mock transport into the transports map
+      const transportsMap = transport.getTransports();
+      // Use Object.create to make instanceof checks work
+      const { SSEServerTransport: SSEClass } =
+        await import("@modelcontextprotocol/sdk/server/sse.js");
+      Object.setPrototypeOf(mockSSETransport, SSEClass.prototype);
+      transportsMap.set(
+        "test-session",
+        mockSSETransport as unknown as InstanceType<typeof SSEClass>,
+      );
+
+      const req = createMockRequest({
+        method: "POST",
+        url: "/messages?sessionId=test-session",
+      });
+      const res = createMockResponse();
+      const url = new URL(
+        "http://localhost:3000/messages?sessionId=test-session",
+      );
+
+      const handleLegacyMessageRequest = (
+        transport as unknown as {
+          handleLegacyMessageRequest: (
+            req: IncomingMessage,
+            res: ServerResponse,
+            url: URL,
+          ) => Promise<void>;
+        }
+      ).handleLegacyMessageRequest.bind(transport);
+
+      await handleLegacyMessageRequest(req, res, url);
+
+      expect(mockSSETransport.handlePostMessage).toHaveBeenCalledWith(req, res);
     });
   });
 
-  describe("handleSSERequest", () => {
-    it("should create transport and call onConnect callback", async () => {
+  describe("handleLegacySSERequest", () => {
+    it("should call onConnect callback with SSE transport", async () => {
       const onConnect = vi.fn();
       const transport = new HttpTransport({ port: 3000 }, onConnect);
       const req = createMockRequest({ method: "GET", url: "/sse" });
       const res = createMockResponse();
 
-      const handleSSERequest = (
+      const handleLegacySSERequest = (
         transport as unknown as {
-          handleSSERequest: (
+          handleLegacySSERequest: (
             req: IncomingMessage,
             res: ServerResponse,
           ) => Promise<void>;
         }
-      ).handleSSERequest.bind(transport);
+      ).handleLegacySSERequest.bind(transport);
 
-      // StreamableHTTPServerTransport will be created internally
-      // The test verifies the onConnect callback pattern
       try {
-        await handleSSERequest(req, res);
-        // If it completes successfully, transport should be set
-        expect(transport.getTransport()).not.toBeNull();
+        await handleLegacySSERequest(req, res);
+        // onConnect should be called with the SSE transport
         expect(onConnect).toHaveBeenCalled();
+        // Transport should be registered in the transports map
+        expect(transport.getTransports().size).toBeGreaterThan(0);
       } catch {
         // May fail in unit test environment without full HTTP context
       }
     });
 
-    it("should set internal transport after successful SSE connection", async () => {
+    it("should register transport in transports map", async () => {
       const transport = new HttpTransport({ port: 3000 });
       const req = createMockRequest({ method: "GET", url: "/sse" });
       const res = createMockResponse();
 
-      // Initially null
-      expect(transport.getTransport()).toBeNull();
+      // Initially empty
+      expect(transport.getTransports().size).toBe(0);
 
-      const handleSSERequest = (
+      const handleLegacySSERequest = (
         transport as unknown as {
-          handleSSERequest: (
+          handleLegacySSERequest: (
             req: IncomingMessage,
             res: ServerResponse,
           ) => Promise<void>;
         }
-      ).handleSSERequest.bind(transport);
+      ).handleLegacySSERequest.bind(transport);
 
       try {
-        await handleSSERequest(req, res);
-        // After SSE request, transport should be set
-        expect(transport.getTransport()).not.toBeNull();
+        await handleLegacySSERequest(req, res);
+        // After SSE request, a transport should be registered
+        expect(transport.getTransports().size).toBe(1);
       } catch {
         // Expected in unit test without proper HTTP stream
       }
@@ -933,11 +973,11 @@ describe("HttpTransport", () => {
     });
   });
 
-  describe("getTransport", () => {
-    it("should return null when not connected", () => {
+  describe("getTransports", () => {
+    it("should return empty map when no sessions exist", () => {
       const transport = new HttpTransport({ port: 3000 });
 
-      expect(transport.getTransport()).toBeNull();
+      expect(transport.getTransports().size).toBe(0);
     });
   });
 
@@ -1054,7 +1094,7 @@ describe("HttpTransport", () => {
   });
 
   describe("SSE Request Handling", () => {
-    it("should route /sse to SSE handler", async () => {
+    it("should route /sse to legacy SSE handler", async () => {
       const onConnect = vi.fn();
       const transport = new HttpTransport({ port: 3000 }, onConnect);
       const req = createMockRequest({
@@ -1073,12 +1113,13 @@ describe("HttpTransport", () => {
         }
       ).handleRequest.bind(transport);
 
-      // This will attempt to create a StreamableHTTPServerTransport
-      // In unit tests this may fail but we verify the path is routed correctly
+      // Legacy SSE creates SSEServerTransport which calls res.writeHead for SSE stream
       try {
         await handleRequest(req, res);
         // If it succeeds, onConnect should be called
         expect(onConnect).toHaveBeenCalled();
+        // Transport should be registered in the transports map
+        expect(transport.getTransports().size).toBeGreaterThan(0);
       } catch {
         // Expected in unit test without proper transport setup
       }

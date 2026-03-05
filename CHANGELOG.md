@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **SSE connection not working (#65)** — Legacy SSE clients (e.g., Python `mcp.client.sse.sse_client`) can now connect via `GET /sse` + `POST /messages?sessionId=<id>`. The server previously routed `/sse` and `/messages` through `StreamableHTTPServerTransport` (MCP protocol 2025-11-25), which is incompatible with legacy SSE protocol (2024-11-05). Rewrote `HttpTransport` with dual-transport support: `/sse` + `/messages` use `SSEServerTransport` for backward compatibility, `/mcp` uses `StreamableHTTPServerTransport` for modern clients. Added session management via `transports` Map keyed by session ID, with cleanup on disconnect for both transport types. Updated `onConnect` callback signature from `StreamableHTTPServerTransport` to generic `Transport`. Added targeted `no-deprecated` eslint override for `http.ts` since `SSEServerTransport` is intentionally used for backward compatibility
 - **`secrets-scanning.yml` Gitleaks CI failure on PRs** — Added `GITHUB_TOKEN` environment variable to the `gitleaks/gitleaks-action@v2` step. Gitleaks Action v2 now requires `GITHUB_TOKEN` to scan pull requests, causing all PR CI checks to fail with `GITHUB_TOKEN is now required to scan pull requests`
 
 ### Security

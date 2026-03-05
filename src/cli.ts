@@ -12,7 +12,6 @@ import { PostgresMcpServer } from "./server/McpServer.js";
 import { parseToolFilter, getFilterSummary } from "./filtering/ToolFilter.js";
 import { logger } from "./utils/logger.js";
 import { HttpTransport, type HttpTransportConfig } from "./transports/http.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   OAuthResourceServer,
   TokenValidator,
@@ -387,7 +386,7 @@ async function startHttpServer(
   // Create HTTP transport with OAuth
   const httpTransport = new HttpTransport(transportConfig, (transport) => {
     // Connect MCP server to the transport when client connects
-    void mcpServer.getMcpServer().connect(transport as Transport);
+    void mcpServer.getMcpServer().connect(transport);
   });
 
   // Handle shutdown

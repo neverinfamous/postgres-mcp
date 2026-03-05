@@ -1,15 +1,23 @@
 /**
  * postgres-mcp - HTTP Transport
  *
- * HTTP/SSE transport with OAuth 2.0 support.
+ * Dual-protocol HTTP transport with backward compatibility:
+ * - `/mcp` — Streamable HTTP transport (MCP protocol 2025-11-25)
+ * - `/sse` + `/messages` — Legacy SSE transport (MCP protocol 2024-11-05)
+ *
+ * Includes OAuth 2.0 support, rate limiting, CORS, and security headers.
  */
 
+import { randomUUID } from "node:crypto";
 import {
   createServer,
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { OAuthResourceServer } from "../auth/OAuthResourceServer.js";
 import type { TokenValidator } from "../auth/TokenValidator.js";
 import {
@@ -93,14 +101,21 @@ interface RateLimitEntry {
 
 /**
  * HTTP Transport for MCP
+ *
+ * Supports two transport protocols simultaneously:
+ * 1. Streamable HTTP (2025-11-25) via `/mcp` — preferred for modern clients
+ * 2. Legacy SSE (2024-11-05) via `/sse` + `/messages` — backward compatibility
  */
 export class HttpTransport {
   private server: ReturnType<typeof createServer> | null = null;
   private readonly config: HttpTransportConfig;
-  private transport: StreamableHTTPServerTransport | null = null;
-  private readonly onConnect?: (
-    transport: StreamableHTTPServerTransport,
-  ) => void;
+  private readonly onConnect?: (transport: Transport) => void;
+
+  /** Active transports by session ID (supports both transport types) */
+  private readonly transports = new Map<
+    string,
+    StreamableHTTPServerTransport | SSEServerTransport
+  >();
 
   // Rate limiting state
   private readonly rateLimitMap = new Map<string, RateLimitEntry>();
@@ -114,7 +129,7 @@ export class HttpTransport {
 
   constructor(
     config: HttpTransportConfig,
-    onConnect?: (transport: StreamableHTTPServerTransport) => void,
+    onConnect?: (transport: Transport) => void,
   ) {
     this.config = {
       ...config,
@@ -182,6 +197,16 @@ export class HttpTransport {
       this.rateLimitCleanupInterval = null;
     }
 
+    // Close all active transports
+    for (const [sessionId, transport] of this.transports) {
+      try {
+        await transport.close();
+      } catch {
+        logger.warn("Error closing transport during shutdown", { sessionId });
+      }
+    }
+    this.transports.clear();
+
     return new Promise((resolve) => {
       if (this.server) {
         this.server.close(() => {
@@ -247,6 +272,38 @@ export class HttpTransport {
 
     entry.count++;
     return true;
+  }
+
+  /**
+   * Read and parse JSON body from an incoming request.
+   * Returns undefined for GET/DELETE/OPTIONS (no body expected).
+   */
+  private async readBody(req: IncomingMessage): Promise<unknown> {
+    if (
+      req.method === "GET" ||
+      req.method === "DELETE" ||
+      req.method === "OPTIONS"
+    ) {
+      return undefined;
+    }
+
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      req.on("data", (chunk: Buffer) => chunks.push(chunk));
+      req.on("end", () => {
+        const raw = Buffer.concat(chunks).toString("utf-8");
+        if (!raw) {
+          resolve(undefined);
+          return;
+        }
+        try {
+          resolve(JSON.parse(raw));
+        } catch {
+          reject(new Error("Invalid JSON in request body"));
+        }
+      });
+      req.on("error", reject);
+    });
   }
 
   /**
@@ -362,13 +419,24 @@ export class HttpTransport {
 
     // Dispatch MCP requests — wrap in auth context if OAuth is active
     const dispatch = async (): Promise<void> => {
+      // =====================================================================
+      // Streamable HTTP Transport (Protocol 2025-11-25) — canonical endpoint
+      // =====================================================================
+      if (url.pathname === "/mcp") {
+        await this.handleStreamableRequest(req, res);
+        return;
+      }
+
+      // =====================================================================
+      // Legacy SSE Transport (Protocol 2024-11-05) — backward compatibility
+      // =====================================================================
       if (url.pathname === "/sse") {
-        await this.handleSSERequest(req, res);
+        this.handleLegacySSERequest(req, res);
         return;
       }
 
       if (url.pathname === "/messages") {
-        await this.handleMessageRequest(req, res);
+        await this.handleLegacyMessageRequest(req, res, url);
         return;
       }
 
@@ -383,42 +451,201 @@ export class HttpTransport {
     }
   }
 
+  // ===========================================================================
+  // Streamable HTTP Transport (Protocol 2025-11-25)
+  // ===========================================================================
+
   /**
-   * Handle SSE connection request
+   * Handle Streamable HTTP requests on `/mcp`.
+   *
+   * Supports GET (SSE stream), POST (initialize + messages), DELETE (terminate).
+   * Session management is handled via the `Mcp-Session-Id` header.
    */
-  private async handleSSERequest(
+  private async handleStreamableRequest(
     req: IncomingMessage,
     res: ServerResponse,
   ): Promise<void> {
-    // Create new transport for this connection
-    // Note: Do NOT call transport.start() here - the MCP SDK's Server.connect()
-    // calls start() internally, and calling it twice throws "Transport already started"
-    const transport = new StreamableHTTPServerTransport();
-    this.transport = transport;
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    let transport: StreamableHTTPServerTransport | undefined;
 
-    if (this.onConnect) {
-      this.onConnect(transport);
-    }
+    if (sessionId && this.transports.has(sessionId)) {
+      const existing = this.transports.get(sessionId);
+      if (existing instanceof StreamableHTTPServerTransport) {
+        transport = existing;
+      } else {
+        // Session exists but uses legacy SSE transport
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32000,
+              message:
+                "Bad Request: Session exists but uses a different transport protocol",
+            },
+            id: null,
+          }),
+        );
+        return;
+      }
+    } else if (!sessionId && req.method === "POST") {
+      // Parse body to check if this is an initialization request
+      let body: unknown;
+      try {
+        body = await this.readBody(req);
+      } catch {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: { code: -32700, message: "Parse error" },
+            id: null,
+          }),
+        );
+        return;
+      }
 
-    // Handle the request (keeps connection open for SSE)
-    await transport.handleRequest(req, res);
-  }
+      if (isInitializeRequest(body)) {
+        const newTransport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (newSessionId: string) => {
+            logger.debug("Streamable HTTP session initialized", {
+              sessionId: newSessionId,
+            });
+            this.transports.set(newSessionId, newTransport);
+          },
+        });
 
-  /**
-   * Handle MCP message request
-   */
-  private async handleMessageRequest(
-    req: IncomingMessage,
-    res: ServerResponse,
-  ): Promise<void> {
-    if (!this.transport) {
-      res.writeHead(400);
-      res.end(JSON.stringify({ error: "No active connection" }));
+        // Clean up on close
+        newTransport.onclose = () => {
+          const sid = newTransport.sessionId;
+          if (sid && this.transports.has(sid)) {
+            logger.debug("Streamable HTTP transport closed", {
+              sessionId: sid,
+            });
+            this.transports.delete(sid);
+          }
+        };
+
+        // Connect MCP server to this transport
+        if (this.onConnect) {
+          this.onConnect(newTransport as unknown as Transport);
+        }
+
+        // Handle request with pre-parsed body
+        await newTransport.handleRequest(req, res, body);
+        return;
+      } else {
+        // POST without session ID and not an initialization request
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            error: {
+              code: -32000,
+              message: "Bad Request: No valid session ID provided",
+            },
+            id: null,
+          }),
+        );
+        return;
+      }
+    } else {
+      // No session ID and not a POST, or invalid session
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: {
+            code: -32000,
+            message: "Bad Request: No valid session ID provided",
+          },
+          id: null,
+        }),
+      );
       return;
     }
 
-    await this.transport.handleRequest(req, res);
+    // Existing session — handle the request directly
+    await transport.handleRequest(req, res);
   }
+
+  // ===========================================================================
+  // Legacy SSE Transport (Protocol 2024-11-05)
+  // ===========================================================================
+
+  /**
+   * Handle legacy SSE connection request (GET /sse).
+   *
+   * Creates an SSEServerTransport that establishes an event stream and
+   * directs the client to POST messages to `/messages?sessionId=<id>`.
+   */
+  private handleLegacySSERequest(
+    _req: IncomingMessage,
+    res: ServerResponse,
+  ): void {
+    logger.debug("Legacy SSE connection established");
+
+    const transport = new SSEServerTransport("/messages", res);
+    this.transports.set(transport.sessionId, transport);
+
+    // Clean up on disconnect
+    res.on("close", () => {
+      logger.debug("Legacy SSE transport closed", {
+        sessionId: transport.sessionId,
+      });
+      this.transports.delete(transport.sessionId);
+    });
+
+    // Connect MCP server to this transport
+    if (this.onConnect) {
+      this.onConnect(transport as unknown as Transport);
+    }
+  }
+
+  /**
+   * Handle legacy message request (POST /messages?sessionId=<id>).
+   *
+   * Routes the message to the correct SSEServerTransport instance.
+   */
+  private async handleLegacyMessageRequest(
+    req: IncomingMessage,
+    res: ServerResponse,
+    url: URL,
+  ): Promise<void> {
+    const sessionId = url.searchParams.get("sessionId");
+
+    if (!sessionId) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Missing sessionId parameter" }));
+      return;
+    }
+
+    const transport = this.transports.get(sessionId);
+
+    if (!transport) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "No transport found for sessionId" }));
+      return;
+    }
+
+    if (!(transport instanceof SSEServerTransport)) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error:
+            "Session exists but uses a different transport protocol. Use /mcp instead.",
+        }),
+      );
+      return;
+    }
+
+    await transport.handlePostMessage(req, res);
+  }
+
+  // ===========================================================================
+  // Utility Endpoints
+  // ===========================================================================
 
   /**
    * Handle protected resource metadata endpoint
@@ -447,6 +674,10 @@ export class HttpTransport {
       }),
     );
   }
+
+  // ===========================================================================
+  // Security Headers
+  // ===========================================================================
 
   /**
    * Set security headers for all responses
@@ -513,11 +744,18 @@ export class HttpTransport {
     }
   }
 
+  // ===========================================================================
+  // Accessors
+  // ===========================================================================
+
   /**
-   * Get the underlying transport
+   * Get all active transports (for testing/introspection)
    */
-  getTransport(): StreamableHTTPServerTransport | null {
-    return this.transport;
+  getTransports(): Map<
+    string,
+    StreamableHTTPServerTransport | SSEServerTransport
+  > {
+    return this.transports;
   }
 }
 
@@ -526,7 +764,7 @@ export class HttpTransport {
  */
 export function createHttpTransport(
   config: HttpTransportConfig,
-  onConnect?: (transport: StreamableHTTPServerTransport) => void,
+  onConnect?: (transport: Transport) => void,
 ): HttpTransport {
   return new HttpTransport(config, onConnect);
 }
