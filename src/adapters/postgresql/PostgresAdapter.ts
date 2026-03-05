@@ -35,12 +35,12 @@ import { parsePostgresError } from "./tools/core/error-helpers.js";
 import { getCoreTools } from "./tools/core/index.js";
 import { getTransactionTools } from "./tools/transactions.js";
 import { getJsonbTools } from "./tools/jsonb/index.js";
-import { getTextTools } from "./tools/text.js";
+import { getTextTools } from "./tools/text/index.js";
 import { getPerformanceTools } from "./tools/performance/index.js";
 import { getAdminTools } from "./tools/admin.js";
-import { getMonitoringTools } from "./tools/monitoring.js";
+import { getMonitoringTools } from "./tools/monitoring/index.js";
 import { getBackupTools } from "./tools/backup/index.js";
-import { getSchemaTools } from "./tools/schema.js";
+import { getSchemaTools } from "./tools/schema/index.js";
 import { getVectorTools } from "./tools/vector/index.js";
 import { getPostgisTools } from "./tools/postgis/index.js";
 import { getPartitioningTools } from "./tools/partitioning.js";
@@ -51,7 +51,7 @@ import { getKcacheTools } from "./tools/kcache.js";
 import { getCitextTools } from "./tools/citext.js";
 import { getLtreeTools } from "./tools/ltree.js";
 import { getPgcryptoTools } from "./tools/pgcrypto.js";
-import { getIntrospectionTools } from "./tools/introspection.js";
+import { getIntrospectionTools } from "./tools/introspection/index.js";
 import { getCodeModeTools } from "./tools/codemode/index.js";
 import { getPostgresResources } from "./resources/index.js";
 import { getPostgresPrompts } from "./prompts/index.js";
@@ -522,7 +522,7 @@ export class PostgresAdapter extends DatabaseAdapter {
     if (cached) return cached;
 
     const result = await this.executeQuery(`
-            SELECT 
+            SELECT
                 i.relname as name,
                 t.relname as table_name,
                 n.nspname as schema_name,
@@ -692,7 +692,7 @@ export class PostgresAdapter extends DatabaseAdapter {
     if (cached) return cached;
 
     const result = await this.executeQuery(`
-            SELECT 
+            SELECT
                 c.relname as name,
                 n.nspname as schema,
                 CASE c.relkind
@@ -756,15 +756,15 @@ export class PostgresAdapter extends DatabaseAdapter {
     // Get column information including foreign key references
     const columnsResult = await this.executeQuery(
       `
-            SELECT 
+            SELECT
                 a.attname as name,
                 pg_catalog.format_type(a.atttypid, a.atttypmod) as type,
                 NOT a.attnotnull as nullable,
                 COALESCE(
-                    (SELECT true FROM pg_constraint c 
-                     WHERE c.conrelid = a.attrelid 
-                     AND a.attnum = ANY(c.conkey) 
-                     AND c.contype = 'p'), 
+                    (SELECT true FROM pg_constraint c
+                     WHERE c.conrelid = a.attrelid
+                     AND a.attnum = ANY(c.conkey)
+                     AND c.contype = 'p'),
                     false
                 ) as primary_key,
                 pg_get_expr(d.adbin, d.adrelid) as default_value,
@@ -780,9 +780,9 @@ export class PostgresAdapter extends DatabaseAdapter {
                 FROM pg_constraint c
                 JOIN pg_class ref_t ON ref_t.oid = c.confrelid
                 JOIN pg_namespace ref_n ON ref_n.oid = ref_t.relnamespace
-                JOIN pg_attribute ref_a ON ref_a.attrelid = ref_t.oid 
+                JOIN pg_attribute ref_a ON ref_a.attrelid = ref_t.oid
                     AND ref_a.attnum = c.confkey[array_position(c.conkey, a.attnum)]
-                WHERE c.conrelid = a.attrelid 
+                WHERE c.conrelid = a.attrelid
                   AND a.attnum = ANY(c.conkey)
                   AND c.contype = 'f'
                 LIMIT 1
@@ -832,7 +832,7 @@ export class PostgresAdapter extends DatabaseAdapter {
     // Get table info
     const tableResult = await this.executeQuery(
       `
-            SELECT 
+            SELECT
                 CASE c.relkind
                     WHEN 'r' THEN 'table'
                     WHEN 'v' THEN 'view'
@@ -861,7 +861,7 @@ export class PostgresAdapter extends DatabaseAdapter {
     // Get indexes for this table
     const indexesResult = await this.executeQuery(
       `
-            SELECT 
+            SELECT
                 i.relname as name,
                 am.amname as type,
                 ix.indisunique as is_unique,
@@ -898,9 +898,9 @@ export class PostgresAdapter extends DatabaseAdapter {
     // Get constraints (CHECK, UNIQUE, PRIMARY KEY, EXCLUSION - FK handled separately)
     const constraintsResult = await this.executeQuery(
       `
-            SELECT 
+            SELECT
                 c.conname as name,
-                CASE c.contype 
+                CASE c.contype
                     WHEN 'p' THEN 'primary_key'
                     WHEN 'c' THEN 'check'
                     WHEN 'u' THEN 'unique'
@@ -913,11 +913,11 @@ export class PostgresAdapter extends DatabaseAdapter {
             JOIN pg_namespace n ON n.oid = t.relnamespace
             LEFT JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS x(attnum, ordinality) ON true
             LEFT JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = x.attnum
-            WHERE t.relname = $1 
+            WHERE t.relname = $1
               AND n.nspname = $2
               AND c.contype IN ('p', 'c', 'u', 'x')
             GROUP BY c.conname, c.contype, c.oid
-            ORDER BY 
+            ORDER BY
                 CASE c.contype WHEN 'p' THEN 0 WHEN 'u' THEN 1 WHEN 'c' THEN 2 ELSE 3 END,
                 c.conname
         `,
@@ -948,20 +948,20 @@ export class PostgresAdapter extends DatabaseAdapter {
     // Get foreign keys
     const foreignKeysResult = await this.executeQuery(
       `
-            SELECT 
+            SELECT
                 c.conname as name,
                 a.attname as column,
                 ref_t.relname as referenced_table,
                 ref_n.nspname as referenced_schema,
                 ref_a.attname as referenced_column,
-                CASE c.confupdtype 
+                CASE c.confupdtype
                     WHEN 'a' THEN 'NO ACTION'
                     WHEN 'r' THEN 'RESTRICT'
                     WHEN 'c' THEN 'CASCADE'
                     WHEN 'n' THEN 'SET NULL'
                     WHEN 'd' THEN 'SET DEFAULT'
                 END as on_update,
-                CASE c.confdeltype 
+                CASE c.confdeltype
                     WHEN 'a' THEN 'NO ACTION'
                     WHEN 'r' THEN 'RESTRICT'
                     WHEN 'c' THEN 'CASCADE'
@@ -975,7 +975,7 @@ export class PostgresAdapter extends DatabaseAdapter {
             JOIN pg_class ref_t ON ref_t.oid = c.confrelid
             JOIN pg_namespace ref_n ON ref_n.oid = ref_t.relnamespace
             JOIN pg_attribute ref_a ON ref_a.attrelid = ref_t.oid AND ref_a.attnum = ANY(c.confkey)
-            WHERE t.relname = $1 
+            WHERE t.relname = $1
               AND n.nspname = $2
               AND c.contype = 'f'
             ORDER BY c.conname
@@ -1023,8 +1023,8 @@ export class PostgresAdapter extends DatabaseAdapter {
 
   async listSchemas(): Promise<string[]> {
     const result = await this.executeQuery(`
-            SELECT nspname 
-            FROM pg_catalog.pg_namespace 
+            SELECT nspname
+            FROM pg_catalog.pg_namespace
             WHERE nspname NOT IN ('pg_catalog', 'information_schema')
               AND nspname !~ '^pg_toast'
               AND nspname !~ '^pg_temp'
@@ -1042,7 +1042,7 @@ export class PostgresAdapter extends DatabaseAdapter {
   ): Promise<IndexInfo[]> {
     const result = await this.executeQuery(
       `
-            SELECT 
+            SELECT
                 i.relname as name,
                 am.amname as type,
                 ix.indisunique as is_unique,

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`schema.ts` modular refactoring** — Split monolithic `schema.ts` (1083 lines, 12 tools) into `schema/objects.ts` (6 tools: schemas, sequences) and `schema/views.ts` (6 tools: views, functions, triggers, constraints). Created `schema/index.ts` barrel file aggregating exports. Updated `PostgresAdapter.ts` import path. No functional changes
+- **`monitoring.ts` modular refactoring** — Split monolithic `monitoring.ts` (941 lines, 11 tools) into `monitoring/basic.ts` (8 tools: database size, table sizes, connections, replication, version, settings, uptime, recovery) and `monitoring/analysis.ts` (3 tools: capacity planning, resource usage, alert thresholds). Created `monitoring/index.ts` barrel file aggregating exports. Updated `PostgresAdapter.ts` import path. No functional changes
+
 ### Fixed
 
 - **SSE connection not working (#65)** — Legacy SSE clients (e.g., Python `mcp.client.sse.sse_client`) can now connect via `GET /sse` + `POST /messages?sessionId=<id>`. The server previously routed `/sse` and `/messages` through `StreamableHTTPServerTransport` (MCP protocol 2025-11-25), which is incompatible with legacy SSE protocol (2024-11-05). Rewrote `HttpTransport` with dual-transport support: `/sse` + `/messages` use `SSEServerTransport` for backward compatibility, `/mcp` uses `StreamableHTTPServerTransport` for modern clients. Added session management via `transports` Map keyed by session ID, with cleanup on disconnect for both transport types. Updated `onConnect` callback signature from `StreamableHTTPServerTransport` to generic `Transport`. Added targeted `no-deprecated` eslint override for `http.ts` since `SSEServerTransport` is intentionally used for backward compatibility
