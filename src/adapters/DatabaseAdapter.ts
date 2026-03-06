@@ -394,12 +394,13 @@ export abstract class DatabaseAdapter {
     );
   }
 
-  // =========================================================================
-  // Query Validation
-  // =========================================================================
-
   /**
-   * Validate query for safety (SQL injection prevention)
+   * Validate full query for safety (SQL statement injection prevention)
+   * Note: This intentionally uses a less restrictive blocklist than
+   * `where-clause.ts` because full queries legitimately contain constructs
+   * (like UNION, SELECT, file ops) that are dangerous in a WHERE fragment.
+   * Parameterized queries provide the primary defense against data-level injection.
+   *
    * @param sql - SQL query to validate
    * @param isReadOnly - Whether to enforce read-only restrictions
    */

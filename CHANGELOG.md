@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Removed Local MCP Registry Tokens** — Deleted `.mcpregistry_github_token` and `.mcpregistry_registry_token` from the local repository. Although they were gitignored and excluded from Docker builds, they are unnecessary artifacts since the project is already published to the MCP registry.
+- **Hardened TruffleHog CI Workflow** — Modified `secrets-scanning.yml` by removing `continue-on-error: true` (making it a hard gate), removing the `--only-verified` flag to catch unverified but real leaks, and pinning the action to a specific version (`v3.88.10`) instead of `@main` to mitigate supply chain risks.
+- **`introspection` Scope Mapping** — Updated the `introspection` tool group in `scopes.ts` to require `SCOPES.READ` instead of `SCOPES.WRITE` to correctly align with its read-only analysis definition.
+- **Query Validation Documentation** — Added explanatory documentation to `validateQuery` in `DatabaseAdapter.ts` detailing the deliberate separation of concerns and differential strictness between full-query validation and `where-clause.ts` fragment validation.
 - **NPM Audit Remediation** — Patched high severity vulnerabilities in transitive dependencies
   - `@hono/node-server`: updated to 1.19.11
   - `hono`: updated to 4.12.5
