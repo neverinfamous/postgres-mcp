@@ -34,7 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 
-- `pg`: 8.19.0 → 8.20.0
+- `@types/node`: 25.3.3 → 25.3.5
+- `jose`: 6.1.3 → 6.2.0
+- Dockerfile: bumped npm-bundled `tar` patch from 7.5.8 → 7.5.10, updated `package.json` override to `>=7.5.10`
 
 ### Removed
 

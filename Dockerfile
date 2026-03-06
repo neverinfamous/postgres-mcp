@@ -28,13 +28,13 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.8
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.10
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.8 && \
+    npm pack tar@7.5.10 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.8.tgz && \
+    tar -xzf tar-7.5.10.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.8.tgz
+    rm tar-7.5.10.tgz
 
 # Copy package files first for better layer caching
 COPY package*.json ./
@@ -80,13 +80,13 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.8
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.10
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.8 && \
+    npm pack tar@7.5.10 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.8.tgz && \
+    tar -xzf tar-7.5.10.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.8.tgz
+    rm tar-7.5.10.tgz
 
 # Fix CVE-2026-27904, CVE-2026-27903: Manually update npm's bundled minimatch to 10.2.3+
 RUN cd /usr/local/lib/node_modules/npm && \
