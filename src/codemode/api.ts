@@ -865,6 +865,511 @@ function toolNameToMethodName(toolName: string, groupName: string): string {
 }
 
 /**
+ * Data-driven top-level alias definitions.
+ * Each entry maps `pg.<bindingName>()` → `pg.<group>.<methodName>()`.
+ * The loop in createSandboxBindings() iterates this array instead of
+ * hundreds of manual if-checks.
+ */
+const TOP_LEVEL_ALIASES: readonly {
+  group: string;
+  bindingName: string;
+  methodName: string;
+}[] = [
+  // vector
+  { group: "vector", bindingName: "hybridSearch", methodName: "hybridSearch" },
+  // jsonb
+  { group: "jsonb", bindingName: "jsonbExtract", methodName: "extract" },
+  { group: "jsonb", bindingName: "jsonbSet", methodName: "set" },
+  { group: "jsonb", bindingName: "jsonbInsert", methodName: "insert" },
+  { group: "jsonb", bindingName: "jsonbDelete", methodName: "delete" },
+  { group: "jsonb", bindingName: "jsonbContains", methodName: "contains" },
+  { group: "jsonb", bindingName: "jsonbPathQuery", methodName: "pathQuery" },
+  { group: "jsonb", bindingName: "jsonbAgg", methodName: "agg" },
+  { group: "jsonb", bindingName: "jsonbObject", methodName: "object" },
+  { group: "jsonb", bindingName: "jsonbArray", methodName: "array" },
+  { group: "jsonb", bindingName: "jsonbKeys", methodName: "keys" },
+  { group: "jsonb", bindingName: "jsonbStripNulls", methodName: "stripNulls" },
+  { group: "jsonb", bindingName: "jsonbTypeof", methodName: "typeof" },
+  {
+    group: "jsonb",
+    bindingName: "jsonbValidatePath",
+    methodName: "validatePath",
+  },
+  { group: "jsonb", bindingName: "jsonbMerge", methodName: "merge" },
+  { group: "jsonb", bindingName: "jsonbNormalize", methodName: "normalize" },
+  { group: "jsonb", bindingName: "jsonbDiff", methodName: "diff" },
+  {
+    group: "jsonb",
+    bindingName: "jsonbIndexSuggest",
+    methodName: "indexSuggest",
+  },
+  {
+    group: "jsonb",
+    bindingName: "jsonbSecurityScan",
+    methodName: "securityScan",
+  },
+  { group: "jsonb", bindingName: "jsonbStats", methodName: "stats" },
+  // text
+  { group: "text", bindingName: "textSearch", methodName: "search" },
+  { group: "text", bindingName: "textRank", methodName: "rank" },
+  { group: "text", bindingName: "textHeadline", methodName: "headline" },
+  { group: "text", bindingName: "textNormalize", methodName: "normalize" },
+  { group: "text", bindingName: "textSentiment", methodName: "sentiment" },
+  { group: "text", bindingName: "textToVector", methodName: "toVector" },
+  { group: "text", bindingName: "textToQuery", methodName: "toQuery" },
+  {
+    group: "text",
+    bindingName: "textSearchConfig",
+    methodName: "searchConfig",
+  },
+  {
+    group: "text",
+    bindingName: "textTrigramSimilarity",
+    methodName: "trigramSimilarity",
+  },
+  { group: "text", bindingName: "textFuzzyMatch", methodName: "fuzzyMatch" },
+  { group: "text", bindingName: "textLikeSearch", methodName: "likeSearch" },
+  {
+    group: "text",
+    bindingName: "textRegexpMatch",
+    methodName: "regexpMatch",
+  },
+  {
+    group: "text",
+    bindingName: "textCreateFtsIndex",
+    methodName: "createFtsIndex",
+  },
+  // citext
+  {
+    group: "citext",
+    bindingName: "citextCreateExtension",
+    methodName: "createExtension",
+  },
+  {
+    group: "citext",
+    bindingName: "citextConvertColumn",
+    methodName: "convertColumn",
+  },
+  {
+    group: "citext",
+    bindingName: "citextListColumns",
+    methodName: "listColumns",
+  },
+  {
+    group: "citext",
+    bindingName: "citextAnalyzeCandidates",
+    methodName: "analyzeCandidates",
+  },
+  { group: "citext", bindingName: "citextCompare", methodName: "compare" },
+  {
+    group: "citext",
+    bindingName: "citextSchemaAdvisor",
+    methodName: "schemaAdvisor",
+  },
+  // ltree
+  {
+    group: "ltree",
+    bindingName: "ltreeCreateExtension",
+    methodName: "createExtension",
+  },
+  { group: "ltree", bindingName: "ltreeQuery", methodName: "query" },
+  { group: "ltree", bindingName: "ltreeSubpath", methodName: "subpath" },
+  { group: "ltree", bindingName: "ltreeLca", methodName: "lca" },
+  { group: "ltree", bindingName: "ltreeMatch", methodName: "match" },
+  {
+    group: "ltree",
+    bindingName: "ltreeListColumns",
+    methodName: "listColumns",
+  },
+  {
+    group: "ltree",
+    bindingName: "ltreeConvertColumn",
+    methodName: "convertColumn",
+  },
+  {
+    group: "ltree",
+    bindingName: "ltreeCreateIndex",
+    methodName: "createIndex",
+  },
+  // pgcrypto
+  {
+    group: "pgcrypto",
+    bindingName: "pgcryptoCreateExtension",
+    methodName: "createExtension",
+  },
+  { group: "pgcrypto", bindingName: "pgcryptoHash", methodName: "hash" },
+  { group: "pgcrypto", bindingName: "pgcryptoHmac", methodName: "hmac" },
+  { group: "pgcrypto", bindingName: "pgcryptoEncrypt", methodName: "encrypt" },
+  { group: "pgcrypto", bindingName: "pgcryptoDecrypt", methodName: "decrypt" },
+  {
+    group: "pgcrypto",
+    bindingName: "pgcryptoGenRandomUuid",
+    methodName: "genRandomUuid",
+  },
+  {
+    group: "pgcrypto",
+    bindingName: "pgcryptoGenRandomBytes",
+    methodName: "genRandomBytes",
+  },
+  { group: "pgcrypto", bindingName: "pgcryptoGenSalt", methodName: "genSalt" },
+  { group: "pgcrypto", bindingName: "pgcryptoCrypt", methodName: "crypt" },
+  // core
+  { group: "core", bindingName: "readQuery", methodName: "readQuery" },
+  { group: "core", bindingName: "writeQuery", methodName: "writeQuery" },
+  { group: "core", bindingName: "listTables", methodName: "listTables" },
+  {
+    group: "core",
+    bindingName: "describeTable",
+    methodName: "describeTable",
+  },
+  { group: "core", bindingName: "createTable", methodName: "createTable" },
+  { group: "core", bindingName: "dropTable", methodName: "dropTable" },
+  { group: "core", bindingName: "count", methodName: "count" },
+  { group: "core", bindingName: "exists", methodName: "exists" },
+  { group: "core", bindingName: "upsert", methodName: "upsert" },
+  { group: "core", bindingName: "batchInsert", methodName: "batchInsert" },
+  { group: "core", bindingName: "truncate", methodName: "truncate" },
+  { group: "core", bindingName: "createIndex", methodName: "createIndex" },
+  { group: "core", bindingName: "dropIndex", methodName: "dropIndex" },
+  { group: "core", bindingName: "getIndexes", methodName: "getIndexes" },
+  { group: "core", bindingName: "listObjects", methodName: "listObjects" },
+  {
+    group: "core",
+    bindingName: "objectDetails",
+    methodName: "objectDetails",
+  },
+  {
+    group: "core",
+    bindingName: "analyzeDbHealth",
+    methodName: "analyzeDbHealth",
+  },
+  {
+    group: "core",
+    bindingName: "analyzeQueryIndexes",
+    methodName: "analyzeQueryIndexes",
+  },
+  {
+    group: "core",
+    bindingName: "analyzeWorkloadIndexes",
+    methodName: "analyzeWorkloadIndexes",
+  },
+  {
+    group: "core",
+    bindingName: "listExtensions",
+    methodName: "listExtensions",
+  },
+  // transactions
+  {
+    group: "transactions",
+    bindingName: "transactionBegin",
+    methodName: "transactionBegin",
+  },
+  {
+    group: "transactions",
+    bindingName: "transactionCommit",
+    methodName: "transactionCommit",
+  },
+  {
+    group: "transactions",
+    bindingName: "transactionRollback",
+    methodName: "transactionRollback",
+  },
+  {
+    group: "transactions",
+    bindingName: "transactionSavepoint",
+    methodName: "transactionSavepoint",
+  },
+  {
+    group: "transactions",
+    bindingName: "transactionRelease",
+    methodName: "transactionRelease",
+  },
+  {
+    group: "transactions",
+    bindingName: "transactionRollbackTo",
+    methodName: "transactionRollbackTo",
+  },
+  {
+    group: "transactions",
+    bindingName: "transactionExecute",
+    methodName: "transactionExecute",
+  },
+  // performance
+  {
+    group: "performance",
+    bindingName: "explain",
+    methodName: "explain",
+  },
+  {
+    group: "performance",
+    bindingName: "explainAnalyze",
+    methodName: "explainAnalyze",
+  },
+  {
+    group: "performance",
+    bindingName: "cacheHitRatio",
+    methodName: "cacheHitRatio",
+  },
+  {
+    group: "performance",
+    bindingName: "indexStats",
+    methodName: "indexStats",
+  },
+  {
+    group: "performance",
+    bindingName: "tableStats",
+    methodName: "tableStats",
+  },
+  {
+    group: "performance",
+    bindingName: "indexRecommendations",
+    methodName: "indexRecommendations",
+  },
+  {
+    group: "performance",
+    bindingName: "bloatCheck",
+    methodName: "bloatCheck",
+  },
+  {
+    group: "performance",
+    bindingName: "vacuumStats",
+    methodName: "vacuumStats",
+  },
+  {
+    group: "performance",
+    bindingName: "unusedIndexes",
+    methodName: "unusedIndexes",
+  },
+  {
+    group: "performance",
+    bindingName: "duplicateIndexes",
+    methodName: "duplicateIndexes",
+  },
+  {
+    group: "performance",
+    bindingName: "seqScanTables",
+    methodName: "seqScanTables",
+  },
+  // admin
+  { group: "admin", bindingName: "vacuum", methodName: "vacuum" },
+  {
+    group: "admin",
+    bindingName: "vacuumAnalyze",
+    methodName: "vacuumAnalyze",
+  },
+  { group: "admin", bindingName: "analyze", methodName: "analyze" },
+  { group: "admin", bindingName: "reindex", methodName: "reindex" },
+  { group: "admin", bindingName: "cluster", methodName: "cluster" },
+  { group: "admin", bindingName: "setConfig", methodName: "setConfig" },
+  { group: "admin", bindingName: "reloadConf", methodName: "reloadConf" },
+  { group: "admin", bindingName: "resetStats", methodName: "resetStats" },
+  {
+    group: "admin",
+    bindingName: "cancelBackend",
+    methodName: "cancelBackend",
+  },
+  {
+    group: "admin",
+    bindingName: "terminateBackend",
+    methodName: "terminateBackend",
+  },
+  // monitoring
+  {
+    group: "monitoring",
+    bindingName: "databaseSize",
+    methodName: "databaseSize",
+  },
+  {
+    group: "monitoring",
+    bindingName: "tableSizes",
+    methodName: "tableSizes",
+  },
+  {
+    group: "monitoring",
+    bindingName: "connectionStats",
+    methodName: "connectionStats",
+  },
+  {
+    group: "monitoring",
+    bindingName: "serverVersion",
+    methodName: "serverVersion",
+  },
+  { group: "monitoring", bindingName: "uptime", methodName: "uptime" },
+  {
+    group: "monitoring",
+    bindingName: "showSettings",
+    methodName: "showSettings",
+  },
+  {
+    group: "monitoring",
+    bindingName: "recoveryStatus",
+    methodName: "recoveryStatus",
+  },
+  {
+    group: "monitoring",
+    bindingName: "replicationStatus",
+    methodName: "replicationStatus",
+  },
+  {
+    group: "monitoring",
+    bindingName: "capacityPlanning",
+    methodName: "capacityPlanning",
+  },
+  {
+    group: "monitoring",
+    bindingName: "resourceUsageAnalyze",
+    methodName: "resourceUsageAnalyze",
+  },
+  {
+    group: "monitoring",
+    bindingName: "alertThresholdSet",
+    methodName: "alertThresholdSet",
+  },
+  // backup
+  { group: "backup", bindingName: "dumpTable", methodName: "dumpTable" },
+  { group: "backup", bindingName: "dumpSchema", methodName: "dumpSchema" },
+  { group: "backup", bindingName: "copyExport", methodName: "copyExport" },
+  { group: "backup", bindingName: "copyImport", methodName: "copyImport" },
+  {
+    group: "backup",
+    bindingName: "createBackupPlan",
+    methodName: "createBackupPlan",
+  },
+  {
+    group: "backup",
+    bindingName: "restoreCommand",
+    methodName: "restoreCommand",
+  },
+  {
+    group: "backup",
+    bindingName: "restoreValidate",
+    methodName: "restoreValidate",
+  },
+  { group: "backup", bindingName: "physical", methodName: "physical" },
+  {
+    group: "backup",
+    bindingName: "backupPhysical",
+    methodName: "physical",
+  },
+  {
+    group: "backup",
+    bindingName: "scheduleOptimize",
+    methodName: "scheduleOptimize",
+  },
+  {
+    group: "backup",
+    bindingName: "backupScheduleOptimize",
+    methodName: "scheduleOptimize",
+  },
+  // stats
+  { group: "stats", bindingName: "descriptive", methodName: "descriptive" },
+  { group: "stats", bindingName: "percentiles", methodName: "percentiles" },
+  { group: "stats", bindingName: "correlation", methodName: "correlation" },
+  { group: "stats", bindingName: "regression", methodName: "regression" },
+  { group: "stats", bindingName: "timeSeries", methodName: "timeSeries" },
+  {
+    group: "stats",
+    bindingName: "distribution",
+    methodName: "distribution",
+  },
+  { group: "stats", bindingName: "hypothesis", methodName: "hypothesis" },
+  { group: "stats", bindingName: "sampling", methodName: "sampling" },
+  // postgis
+  {
+    group: "postgis",
+    bindingName: "postgisCreateExtension",
+    methodName: "createExtension",
+  },
+  { group: "postgis", bindingName: "postgisGeocode", methodName: "geocode" },
+  {
+    group: "postgis",
+    bindingName: "postgisGeometryColumn",
+    methodName: "geometryColumn",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisSpatialIndex",
+    methodName: "spatialIndex",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisDistance",
+    methodName: "distance",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisBoundingBox",
+    methodName: "boundingBox",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisIntersection",
+    methodName: "intersection",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisPointInPolygon",
+    methodName: "pointInPolygon",
+  },
+  { group: "postgis", bindingName: "postgisBuffer", methodName: "buffer" },
+  {
+    group: "postgis",
+    bindingName: "postgisGeoTransform",
+    methodName: "geoTransform",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisGeoCluster",
+    methodName: "geoCluster",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisGeometryBuffer",
+    methodName: "geometryBuffer",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisGeometryTransform",
+    methodName: "geometryTransform",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisGeometryIntersection",
+    methodName: "geometryIntersection",
+  },
+  {
+    group: "postgis",
+    bindingName: "postgisGeoIndexOptimize",
+    methodName: "geoIndexOptimize",
+  },
+  // cron
+  {
+    group: "cron",
+    bindingName: "cronCreateExtension",
+    methodName: "createExtension",
+  },
+  { group: "cron", bindingName: "cronSchedule", methodName: "schedule" },
+  {
+    group: "cron",
+    bindingName: "cronScheduleInDatabase",
+    methodName: "scheduleInDatabase",
+  },
+  { group: "cron", bindingName: "cronUnschedule", methodName: "unschedule" },
+  { group: "cron", bindingName: "cronAlterJob", methodName: "alterJob" },
+  { group: "cron", bindingName: "cronListJobs", methodName: "listJobs" },
+  {
+    group: "cron",
+    bindingName: "cronJobRunDetails",
+    methodName: "jobRunDetails",
+  },
+  {
+    group: "cron",
+    bindingName: "cronCleanupHistory",
+    methodName: "cleanupHistory",
+  },
+];
+
+/**
  * Main API class exposing all tool groups
  */
 export class PgApi {
@@ -1138,620 +1643,13 @@ export class PgApi {
     // Add top-level help as directly callable pg.help()
     bindings["help"] = () => this.help();
 
-    // Add top-level hybridSearch alias for convenience: pg.hybridSearch() → pg.vector.hybridSearch()
-    const vectorApi = bindings["vector"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (vectorApi?.["hybridSearch"] !== undefined) {
-      bindings["hybridSearch"] = vectorApi["hybridSearch"];
-    }
-
-    // Add top-level JSONB aliases for convenience: pg.jsonbXxx() → pg.jsonb.xxx()
-    const jsonbApi = bindings["jsonb"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (jsonbApi !== undefined) {
-      if (jsonbApi["extract"] !== undefined) {
-        bindings["jsonbExtract"] = jsonbApi["extract"];
-      }
-      if (jsonbApi["set"] !== undefined) {
-        bindings["jsonbSet"] = jsonbApi["set"];
-      }
-      if (jsonbApi["insert"] !== undefined) {
-        bindings["jsonbInsert"] = jsonbApi["insert"];
-      }
-      if (jsonbApi["delete"] !== undefined) {
-        bindings["jsonbDelete"] = jsonbApi["delete"];
-      }
-      if (jsonbApi["contains"] !== undefined) {
-        bindings["jsonbContains"] = jsonbApi["contains"];
-      }
-      if (jsonbApi["pathQuery"] !== undefined) {
-        bindings["jsonbPathQuery"] = jsonbApi["pathQuery"];
-      }
-      if (jsonbApi["agg"] !== undefined) {
-        bindings["jsonbAgg"] = jsonbApi["agg"];
-      }
-      if (jsonbApi["object"] !== undefined) {
-        bindings["jsonbObject"] = jsonbApi["object"];
-      }
-      if (jsonbApi["array"] !== undefined) {
-        bindings["jsonbArray"] = jsonbApi["array"];
-      }
-      if (jsonbApi["keys"] !== undefined) {
-        bindings["jsonbKeys"] = jsonbApi["keys"];
-      }
-      if (jsonbApi["stripNulls"] !== undefined) {
-        bindings["jsonbStripNulls"] = jsonbApi["stripNulls"];
-      }
-      if (jsonbApi["typeof"] !== undefined) {
-        bindings["jsonbTypeof"] = jsonbApi["typeof"];
-      }
-      if (jsonbApi["validatePath"] !== undefined) {
-        bindings["jsonbValidatePath"] = jsonbApi["validatePath"];
-      }
-      if (jsonbApi["merge"] !== undefined) {
-        bindings["jsonbMerge"] = jsonbApi["merge"];
-      }
-      if (jsonbApi["normalize"] !== undefined) {
-        bindings["jsonbNormalize"] = jsonbApi["normalize"];
-      }
-      if (jsonbApi["diff"] !== undefined) {
-        bindings["jsonbDiff"] = jsonbApi["diff"];
-      }
-      if (jsonbApi["indexSuggest"] !== undefined) {
-        bindings["jsonbIndexSuggest"] = jsonbApi["indexSuggest"];
-      }
-      if (jsonbApi["securityScan"] !== undefined) {
-        bindings["jsonbSecurityScan"] = jsonbApi["securityScan"];
-      }
-      if (jsonbApi["stats"] !== undefined) {
-        bindings["jsonbStats"] = jsonbApi["stats"];
-      }
-    }
-
-    // Add top-level text aliases for convenience: pg.textXxx() → pg.text.xxx()
-    const textApi = bindings["text"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (textApi !== undefined) {
-      if (textApi["search"] !== undefined) {
-        bindings["textSearch"] = textApi["search"];
-      }
-      if (textApi["rank"] !== undefined) {
-        bindings["textRank"] = textApi["rank"];
-      }
-      if (textApi["headline"] !== undefined) {
-        bindings["textHeadline"] = textApi["headline"];
-      }
-      if (textApi["normalize"] !== undefined) {
-        bindings["textNormalize"] = textApi["normalize"];
-      }
-      if (textApi["sentiment"] !== undefined) {
-        bindings["textSentiment"] = textApi["sentiment"];
-      }
-      if (textApi["toVector"] !== undefined) {
-        bindings["textToVector"] = textApi["toVector"];
-      }
-      if (textApi["toQuery"] !== undefined) {
-        bindings["textToQuery"] = textApi["toQuery"];
-      }
-      if (textApi["searchConfig"] !== undefined) {
-        bindings["textSearchConfig"] = textApi["searchConfig"];
-      }
-      if (textApi["trigramSimilarity"] !== undefined) {
-        bindings["textTrigramSimilarity"] = textApi["trigramSimilarity"];
-      }
-      if (textApi["fuzzyMatch"] !== undefined) {
-        bindings["textFuzzyMatch"] = textApi["fuzzyMatch"];
-      }
-      if (textApi["likeSearch"] !== undefined) {
-        bindings["textLikeSearch"] = textApi["likeSearch"];
-      }
-      if (textApi["regexpMatch"] !== undefined) {
-        bindings["textRegexpMatch"] = textApi["regexpMatch"];
-      }
-      if (textApi["createFtsIndex"] !== undefined) {
-        bindings["textCreateFtsIndex"] = textApi["createFtsIndex"];
-      }
-    }
-
-    // Add top-level citext aliases for convenience: pg.citextXxx() → pg.citext.xxx()
-    const citextApi = bindings["citext"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (citextApi !== undefined) {
-      if (citextApi["createExtension"] !== undefined) {
-        bindings["citextCreateExtension"] = citextApi["createExtension"];
-      }
-      if (citextApi["convertColumn"] !== undefined) {
-        bindings["citextConvertColumn"] = citextApi["convertColumn"];
-      }
-      if (citextApi["listColumns"] !== undefined) {
-        bindings["citextListColumns"] = citextApi["listColumns"];
-      }
-      if (citextApi["analyzeCandidates"] !== undefined) {
-        bindings["citextAnalyzeCandidates"] = citextApi["analyzeCandidates"];
-      }
-      if (citextApi["compare"] !== undefined) {
-        bindings["citextCompare"] = citextApi["compare"];
-      }
-      if (citextApi["schemaAdvisor"] !== undefined) {
-        bindings["citextSchemaAdvisor"] = citextApi["schemaAdvisor"];
-      }
-    }
-
-    // Add top-level ltree aliases for convenience: pg.ltreeXxx() → pg.ltree.xxx()
-    const ltreeApi = bindings["ltree"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (ltreeApi !== undefined) {
-      if (ltreeApi["createExtension"] !== undefined) {
-        bindings["ltreeCreateExtension"] = ltreeApi["createExtension"];
-      }
-      if (ltreeApi["query"] !== undefined) {
-        bindings["ltreeQuery"] = ltreeApi["query"];
-      }
-      if (ltreeApi["subpath"] !== undefined) {
-        bindings["ltreeSubpath"] = ltreeApi["subpath"];
-      }
-      if (ltreeApi["lca"] !== undefined) {
-        bindings["ltreeLca"] = ltreeApi["lca"];
-      }
-      if (ltreeApi["match"] !== undefined) {
-        bindings["ltreeMatch"] = ltreeApi["match"];
-      }
-      if (ltreeApi["listColumns"] !== undefined) {
-        bindings["ltreeListColumns"] = ltreeApi["listColumns"];
-      }
-      if (ltreeApi["convertColumn"] !== undefined) {
-        bindings["ltreeConvertColumn"] = ltreeApi["convertColumn"];
-      }
-      if (ltreeApi["createIndex"] !== undefined) {
-        bindings["ltreeCreateIndex"] = ltreeApi["createIndex"];
-      }
-    }
-
-    // Add top-level pgcrypto aliases for convenience: pg.pgcryptoXxx() → pg.pgcrypto.xxx()
-    const pgcryptoApi = bindings["pgcrypto"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (pgcryptoApi !== undefined) {
-      if (pgcryptoApi["createExtension"] !== undefined) {
-        bindings["pgcryptoCreateExtension"] = pgcryptoApi["createExtension"];
-      }
-      if (pgcryptoApi["hash"] !== undefined) {
-        bindings["pgcryptoHash"] = pgcryptoApi["hash"];
-      }
-      if (pgcryptoApi["hmac"] !== undefined) {
-        bindings["pgcryptoHmac"] = pgcryptoApi["hmac"];
-      }
-      if (pgcryptoApi["encrypt"] !== undefined) {
-        bindings["pgcryptoEncrypt"] = pgcryptoApi["encrypt"];
-      }
-      if (pgcryptoApi["decrypt"] !== undefined) {
-        bindings["pgcryptoDecrypt"] = pgcryptoApi["decrypt"];
-      }
-      if (pgcryptoApi["genRandomUuid"] !== undefined) {
-        bindings["pgcryptoGenRandomUuid"] = pgcryptoApi["genRandomUuid"];
-      }
-      if (pgcryptoApi["genRandomBytes"] !== undefined) {
-        bindings["pgcryptoGenRandomBytes"] = pgcryptoApi["genRandomBytes"];
-      }
-      if (pgcryptoApi["genSalt"] !== undefined) {
-        bindings["pgcryptoGenSalt"] = pgcryptoApi["genSalt"];
-      }
-      if (pgcryptoApi["crypt"] !== undefined) {
-        bindings["pgcryptoCrypt"] = pgcryptoApi["crypt"];
-      }
-    }
-
-    // Add top-level core aliases for the most common starter tools: pg.readQuery() → pg.core.readQuery()
-    const coreApi = bindings["core"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (coreApi !== undefined) {
-      // Query tools
-      if (coreApi["readQuery"] !== undefined) {
-        bindings["readQuery"] = coreApi["readQuery"];
-      }
-      if (coreApi["writeQuery"] !== undefined) {
-        bindings["writeQuery"] = coreApi["writeQuery"];
-      }
-      // Table metadata tools
-      if (coreApi["listTables"] !== undefined) {
-        bindings["listTables"] = coreApi["listTables"];
-      }
-      if (coreApi["describeTable"] !== undefined) {
-        bindings["describeTable"] = coreApi["describeTable"];
-      }
-      // Table CRUD tools
-      if (coreApi["createTable"] !== undefined) {
-        bindings["createTable"] = coreApi["createTable"];
-      }
-      if (coreApi["dropTable"] !== undefined) {
-        bindings["dropTable"] = coreApi["dropTable"];
-      }
-      // Row operation tools
-      if (coreApi["count"] !== undefined) {
-        bindings["count"] = coreApi["count"];
-      }
-      if (coreApi["exists"] !== undefined) {
-        bindings["exists"] = coreApi["exists"];
-      }
-      if (coreApi["upsert"] !== undefined) {
-        bindings["upsert"] = coreApi["upsert"];
-      }
-      if (coreApi["batchInsert"] !== undefined) {
-        bindings["batchInsert"] = coreApi["batchInsert"];
-      }
-      if (coreApi["truncate"] !== undefined) {
-        bindings["truncate"] = coreApi["truncate"];
-      }
-      // Index tools
-      if (coreApi["createIndex"] !== undefined) {
-        bindings["createIndex"] = coreApi["createIndex"];
-      }
-      if (coreApi["dropIndex"] !== undefined) {
-        bindings["dropIndex"] = coreApi["dropIndex"];
-      }
-      if (coreApi["getIndexes"] !== undefined) {
-        bindings["getIndexes"] = coreApi["getIndexes"];
-      }
-      // Object listing tools
-      if (coreApi["listObjects"] !== undefined) {
-        bindings["listObjects"] = coreApi["listObjects"];
-      }
-      if (coreApi["objectDetails"] !== undefined) {
-        bindings["objectDetails"] = coreApi["objectDetails"];
-      }
-      // Health/analysis tools
-      if (coreApi["analyzeDbHealth"] !== undefined) {
-        bindings["analyzeDbHealth"] = coreApi["analyzeDbHealth"];
-      }
-      if (coreApi["analyzeQueryIndexes"] !== undefined) {
-        bindings["analyzeQueryIndexes"] = coreApi["analyzeQueryIndexes"];
-      }
-      if (coreApi["analyzeWorkloadIndexes"] !== undefined) {
-        bindings["analyzeWorkloadIndexes"] = coreApi["analyzeWorkloadIndexes"];
-      }
-      // Extensions
-      if (coreApi["listExtensions"] !== undefined) {
-        bindings["listExtensions"] = coreApi["listExtensions"];
-      }
-    }
-
-    // Add top-level transaction aliases for consistency: pg.transactionXxx() → pg.transactions.xxx()
-    const transactionsApi = bindings["transactions"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (transactionsApi !== undefined) {
-      if (transactionsApi["transactionBegin"] !== undefined) {
-        bindings["transactionBegin"] = transactionsApi["transactionBegin"];
-      }
-      if (transactionsApi["transactionCommit"] !== undefined) {
-        bindings["transactionCommit"] = transactionsApi["transactionCommit"];
-      }
-      if (transactionsApi["transactionRollback"] !== undefined) {
-        bindings["transactionRollback"] =
-          transactionsApi["transactionRollback"];
-      }
-      if (transactionsApi["transactionSavepoint"] !== undefined) {
-        bindings["transactionSavepoint"] =
-          transactionsApi["transactionSavepoint"];
-      }
-      if (transactionsApi["transactionRelease"] !== undefined) {
-        bindings["transactionRelease"] = transactionsApi["transactionRelease"];
-      }
-      if (transactionsApi["transactionRollbackTo"] !== undefined) {
-        bindings["transactionRollbackTo"] =
-          transactionsApi["transactionRollbackTo"];
-      }
-      if (transactionsApi["transactionExecute"] !== undefined) {
-        bindings["transactionExecute"] = transactionsApi["transactionExecute"];
-      }
-    }
-
-    // Add top-level performance aliases for convenience: pg.explain() → pg.performance.explain()
-    const performanceApi = bindings["performance"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (performanceApi !== undefined) {
-      // Query plan analysis
-      if (performanceApi["explain"] !== undefined) {
-        bindings["explain"] = performanceApi["explain"];
-      }
-      if (performanceApi["explainAnalyze"] !== undefined) {
-        bindings["explainAnalyze"] = performanceApi["explainAnalyze"];
-      }
-      // Cache and stats
-      if (performanceApi["cacheHitRatio"] !== undefined) {
-        bindings["cacheHitRatio"] = performanceApi["cacheHitRatio"];
-      }
-      if (performanceApi["indexStats"] !== undefined) {
-        bindings["indexStats"] = performanceApi["indexStats"];
-      }
-      if (performanceApi["tableStats"] !== undefined) {
-        bindings["tableStats"] = performanceApi["tableStats"];
-      }
-      // Recommendations and analysis
-      if (performanceApi["indexRecommendations"] !== undefined) {
-        bindings["indexRecommendations"] =
-          performanceApi["indexRecommendations"];
-      }
-      if (performanceApi["bloatCheck"] !== undefined) {
-        bindings["bloatCheck"] = performanceApi["bloatCheck"];
-      }
-      if (performanceApi["vacuumStats"] !== undefined) {
-        bindings["vacuumStats"] = performanceApi["vacuumStats"];
-      }
-      // Index analysis
-      if (performanceApi["unusedIndexes"] !== undefined) {
-        bindings["unusedIndexes"] = performanceApi["unusedIndexes"];
-      }
-      if (performanceApi["duplicateIndexes"] !== undefined) {
-        bindings["duplicateIndexes"] = performanceApi["duplicateIndexes"];
-      }
-      if (performanceApi["seqScanTables"] !== undefined) {
-        bindings["seqScanTables"] = performanceApi["seqScanTables"];
-      }
-    }
-
-    // Add top-level admin aliases for convenience: pg.vacuum() → pg.admin.vacuum()
-    // Note: Admin tools are system-level operations, so we include essential maintenance aliases
-    const adminApi = bindings["admin"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (adminApi !== undefined) {
-      // Maintenance operations
-      if (adminApi["vacuum"] !== undefined) {
-        bindings["vacuum"] = adminApi["vacuum"];
-      }
-      if (adminApi["vacuumAnalyze"] !== undefined) {
-        bindings["vacuumAnalyze"] = adminApi["vacuumAnalyze"];
-      }
-      if (adminApi["analyze"] !== undefined) {
-        bindings["analyze"] = adminApi["analyze"];
-      }
-      if (adminApi["reindex"] !== undefined) {
-        bindings["reindex"] = adminApi["reindex"];
-      }
-      if (adminApi["cluster"] !== undefined) {
-        bindings["cluster"] = adminApi["cluster"];
-      }
-      // Configuration
-      if (adminApi["setConfig"] !== undefined) {
-        bindings["setConfig"] = adminApi["setConfig"];
-      }
-      if (adminApi["reloadConf"] !== undefined) {
-        bindings["reloadConf"] = adminApi["reloadConf"];
-      }
-      // Statistics
-      if (adminApi["resetStats"] !== undefined) {
-        bindings["resetStats"] = adminApi["resetStats"];
-      }
-      // Backend management
-      if (adminApi["cancelBackend"] !== undefined) {
-        bindings["cancelBackend"] = adminApi["cancelBackend"];
-      }
-      if (adminApi["terminateBackend"] !== undefined) {
-        bindings["terminateBackend"] = adminApi["terminateBackend"];
-      }
-    }
-
-    // Add top-level monitoring aliases for convenience: pg.databaseSize() → pg.monitoring.databaseSize()
-    const monitoringApi = bindings["monitoring"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (monitoringApi !== undefined) {
-      // Database and table sizing
-      if (monitoringApi["databaseSize"] !== undefined) {
-        bindings["databaseSize"] = monitoringApi["databaseSize"];
-      }
-      if (monitoringApi["tableSizes"] !== undefined) {
-        bindings["tableSizes"] = monitoringApi["tableSizes"];
-      }
-      // Connection monitoring
-      if (monitoringApi["connectionStats"] !== undefined) {
-        bindings["connectionStats"] = monitoringApi["connectionStats"];
-      }
-      // Server information
-      if (monitoringApi["serverVersion"] !== undefined) {
-        bindings["serverVersion"] = monitoringApi["serverVersion"];
-      }
-      if (monitoringApi["uptime"] !== undefined) {
-        bindings["uptime"] = monitoringApi["uptime"];
-      }
-      // Configuration
-      if (monitoringApi["showSettings"] !== undefined) {
-        bindings["showSettings"] = monitoringApi["showSettings"];
-      }
-      // Recovery and replication
-      if (monitoringApi["recoveryStatus"] !== undefined) {
-        bindings["recoveryStatus"] = monitoringApi["recoveryStatus"];
-      }
-      if (monitoringApi["replicationStatus"] !== undefined) {
-        bindings["replicationStatus"] = monitoringApi["replicationStatus"];
-      }
-      // Capacity and resource analysis
-      if (monitoringApi["capacityPlanning"] !== undefined) {
-        bindings["capacityPlanning"] = monitoringApi["capacityPlanning"];
-      }
-      if (monitoringApi["resourceUsageAnalyze"] !== undefined) {
-        bindings["resourceUsageAnalyze"] =
-          monitoringApi["resourceUsageAnalyze"];
-      }
-      // Alert thresholds
-      if (monitoringApi["alertThresholdSet"] !== undefined) {
-        bindings["alertThresholdSet"] = monitoringApi["alertThresholdSet"];
-      }
-    }
-
-    // Add top-level backup aliases for convenience: pg.dumpTable() → pg.backup.dumpTable()
-    const backupApi = bindings["backup"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (backupApi !== undefined) {
-      // Dump operations
-      if (backupApi["dumpTable"] !== undefined) {
-        bindings["dumpTable"] = backupApi["dumpTable"];
-      }
-      if (backupApi["dumpSchema"] !== undefined) {
-        bindings["dumpSchema"] = backupApi["dumpSchema"];
-      }
-      // Copy operations
-      if (backupApi["copyExport"] !== undefined) {
-        bindings["copyExport"] = backupApi["copyExport"];
-      }
-      if (backupApi["copyImport"] !== undefined) {
-        bindings["copyImport"] = backupApi["copyImport"];
-      }
-      // Backup planning
-      if (backupApi["createBackupPlan"] !== undefined) {
-        bindings["createBackupPlan"] = backupApi["createBackupPlan"];
-      }
-      // Restore operations
-      if (backupApi["restoreCommand"] !== undefined) {
-        bindings["restoreCommand"] = backupApi["restoreCommand"];
-      }
-      if (backupApi["restoreValidate"] !== undefined) {
-        bindings["restoreValidate"] = backupApi["restoreValidate"];
-      }
-      // Physical backup
-      if (backupApi["physical"] !== undefined) {
-        bindings["physical"] = backupApi["physical"];
-        bindings["backupPhysical"] = backupApi["physical"]; // Also add prefixed alias
-      }
-      // Schedule optimization
-      if (backupApi["scheduleOptimize"] !== undefined) {
-        bindings["scheduleOptimize"] = backupApi["scheduleOptimize"];
-        bindings["backupScheduleOptimize"] = backupApi["scheduleOptimize"]; // Also add prefixed alias
-      }
-    }
-
-    // Add top-level stats aliases for convenience: pg.descriptive() → pg.stats.descriptive()
-    const statsApi = bindings["stats"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (statsApi !== undefined) {
-      // Core statistics
-      if (statsApi["descriptive"] !== undefined) {
-        bindings["descriptive"] = statsApi["descriptive"];
-      }
-      if (statsApi["percentiles"] !== undefined) {
-        bindings["percentiles"] = statsApi["percentiles"];
-      }
-      if (statsApi["correlation"] !== undefined) {
-        bindings["correlation"] = statsApi["correlation"];
-      }
-      if (statsApi["regression"] !== undefined) {
-        bindings["regression"] = statsApi["regression"];
-      }
-      // Advanced statistics
-      if (statsApi["timeSeries"] !== undefined) {
-        bindings["timeSeries"] = statsApi["timeSeries"];
-      }
-      if (statsApi["distribution"] !== undefined) {
-        bindings["distribution"] = statsApi["distribution"];
-      }
-      if (statsApi["hypothesis"] !== undefined) {
-        bindings["hypothesis"] = statsApi["hypothesis"];
-      }
-      if (statsApi["sampling"] !== undefined) {
-        bindings["sampling"] = statsApi["sampling"];
-      }
-    }
-
-    // Add top-level PostGIS aliases for convenience: pg.postgisXxx() → pg.postgis.xxx()
-    const postgisApi = bindings["postgis"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (postgisApi !== undefined) {
-      // Extension
-      if (postgisApi["createExtension"] !== undefined) {
-        bindings["postgisCreateExtension"] = postgisApi["createExtension"];
-      }
-      // Geometry creation
-      if (postgisApi["geocode"] !== undefined) {
-        bindings["postgisGeocode"] = postgisApi["geocode"];
-      }
-      if (postgisApi["geometryColumn"] !== undefined) {
-        bindings["postgisGeometryColumn"] = postgisApi["geometryColumn"];
-      }
-      if (postgisApi["spatialIndex"] !== undefined) {
-        bindings["postgisSpatialIndex"] = postgisApi["spatialIndex"];
-      }
-      // Spatial queries
-      if (postgisApi["distance"] !== undefined) {
-        bindings["postgisDistance"] = postgisApi["distance"];
-      }
-      if (postgisApi["boundingBox"] !== undefined) {
-        bindings["postgisBoundingBox"] = postgisApi["boundingBox"];
-      }
-      if (postgisApi["intersection"] !== undefined) {
-        bindings["postgisIntersection"] = postgisApi["intersection"];
-      }
-      if (postgisApi["pointInPolygon"] !== undefined) {
-        bindings["postgisPointInPolygon"] = postgisApi["pointInPolygon"];
-      }
-      // Table operations
-      if (postgisApi["buffer"] !== undefined) {
-        bindings["postgisBuffer"] = postgisApi["buffer"];
-      }
-      if (postgisApi["geoTransform"] !== undefined) {
-        bindings["postgisGeoTransform"] = postgisApi["geoTransform"];
-      }
-      if (postgisApi["geoCluster"] !== undefined) {
-        bindings["postgisGeoCluster"] = postgisApi["geoCluster"];
-      }
-      // Standalone geometry operations
-      if (postgisApi["geometryBuffer"] !== undefined) {
-        bindings["postgisGeometryBuffer"] = postgisApi["geometryBuffer"];
-      }
-      if (postgisApi["geometryTransform"] !== undefined) {
-        bindings["postgisGeometryTransform"] = postgisApi["geometryTransform"];
-      }
-      if (postgisApi["geometryIntersection"] !== undefined) {
-        bindings["postgisGeometryIntersection"] =
-          postgisApi["geometryIntersection"];
-      }
-      // Administration
-      if (postgisApi["geoIndexOptimize"] !== undefined) {
-        bindings["postgisGeoIndexOptimize"] = postgisApi["geoIndexOptimize"];
-      }
-    }
-
-    // Add top-level cron aliases for convenience: pg.cronSchedule() → pg.cron.schedule()
-    const cronApi = bindings["cron"] as
-      | Record<string, (...args: unknown[]) => Promise<unknown>>
-      | undefined;
-    if (cronApi !== undefined) {
-      // Extension
-      if (cronApi["createExtension"] !== undefined) {
-        bindings["cronCreateExtension"] = cronApi["createExtension"];
-      }
-      // Scheduling
-      if (cronApi["schedule"] !== undefined) {
-        bindings["cronSchedule"] = cronApi["schedule"];
-      }
-      if (cronApi["scheduleInDatabase"] !== undefined) {
-        bindings["cronScheduleInDatabase"] = cronApi["scheduleInDatabase"];
-      }
-      if (cronApi["unschedule"] !== undefined) {
-        bindings["cronUnschedule"] = cronApi["unschedule"];
-      }
-      // Job management
-      if (cronApi["alterJob"] !== undefined) {
-        bindings["cronAlterJob"] = cronApi["alterJob"];
-      }
-      if (cronApi["listJobs"] !== undefined) {
-        bindings["cronListJobs"] = cronApi["listJobs"];
-      }
-      if (cronApi["jobRunDetails"] !== undefined) {
-        bindings["cronJobRunDetails"] = cronApi["jobRunDetails"];
-      }
-      if (cronApi["cleanupHistory"] !== undefined) {
-        bindings["cronCleanupHistory"] = cronApi["cleanupHistory"];
+    // Add all top-level aliases from the data-driven constant
+    for (const { group, bindingName, methodName } of TOP_LEVEL_ALIASES) {
+      const groupApi = bindings[group] as
+        | Record<string, (...args: unknown[]) => Promise<unknown>>
+        | undefined;
+      if (groupApi?.[methodName] !== undefined) {
+        bindings[bindingName] = groupApi[methodName];
       }
     }
 

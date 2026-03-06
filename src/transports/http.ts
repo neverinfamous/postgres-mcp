@@ -277,8 +277,12 @@ export class HttpTransport {
   /**
    * Read and parse JSON body from an incoming request.
    * Returns undefined for GET/DELETE/OPTIONS (no body expected).
+   * Enforces maxBodySize limit while streaming to prevent memory exhaustion.
    */
-  private async readBody(req: IncomingMessage): Promise<unknown> {
+  private async readBody(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): Promise<unknown> {
     if (
       req.method === "GET" ||
       req.method === "DELETE" ||
@@ -287,10 +291,35 @@ export class HttpTransport {
       return undefined;
     }
 
+    const maxBodySize = this.config.maxBodySize ?? 1048576;
+
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
-      req.on("data", (chunk: Buffer) => chunks.push(chunk));
+      let receivedBytes = 0;
+      let limitExceeded = false;
+
+      req.on("data", (chunk: Buffer) => {
+        if (limitExceeded) return;
+        receivedBytes += chunk.length;
+        if (receivedBytes > maxBodySize) {
+          limitExceeded = true;
+          req.destroy();
+          if (!res.headersSent) {
+            res.writeHead(413, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                error: "payload_too_large",
+                error_description: `Request body exceeds maximum size of ${String(maxBodySize)} bytes.`,
+              }),
+            );
+          }
+          reject(new Error("Payload too large"));
+          return;
+        }
+        chunks.push(chunk);
+      });
       req.on("end", () => {
+        if (limitExceeded) return;
         const raw = Buffer.concat(chunks).toString("utf-8");
         if (!raw) {
           resolve(undefined);
@@ -338,9 +367,8 @@ export class HttpTransport {
       return;
     }
 
-    // Check body size — two-layer enforcement:
-    // 1. Content-Length header for fast rejection of well-behaved clients
-    // 2. Streaming byte tracking for missing/spoofed headers and chunked encoding
+    // Check body size — fast rejection via Content-Length header.
+    // Streaming byte tracking for spoofed/missing headers is handled inside readBody().
     const maxBodySize = this.config.maxBodySize ?? 1048576;
     const contentLength = parseInt(req.headers["content-length"] ?? "0", 10);
     if (contentLength > maxBodySize) {
@@ -353,31 +381,6 @@ export class HttpTransport {
       );
       return;
     }
-
-    // Streaming body size enforcement — track actual received bytes
-    // Guard: only attach if req supports event listeners (real IncomingMessage)
-    let receivedBytes = 0;
-    let bodyLimitExceeded = false;
-    if (typeof req.on === "function") {
-      req.on("data", (chunk: Buffer) => {
-        receivedBytes += chunk.length;
-        if (receivedBytes > maxBodySize && !bodyLimitExceeded) {
-          bodyLimitExceeded = true;
-          req.destroy();
-          if (!res.headersSent) {
-            res.writeHead(413, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({
-                error: "payload_too_large",
-                error_description: `Request body exceeds maximum size of ${String(maxBodySize)} bytes.`,
-              }),
-            );
-          }
-        }
-      });
-    }
-
-    if (bodyLimitExceeded) return;
 
     const url = new URL(
       req.url ?? "/",
@@ -497,12 +500,18 @@ export class HttpTransport {
       return;
     }
 
-    // POST requests — pre-parse the body (required because the streaming body size
-    // enforcement listener consumes the req data stream before the SDK can read it)
+    // POST requests — pre-parse the body so the SDK receives parsed JSON
     let body: unknown;
     try {
-      body = await this.readBody(req);
-    } catch {
+      body = await this.readBody(req, res);
+    } catch (readError) {
+      // readBody rejects with "Payload too large" after sending 413 to client
+      if (
+        readError instanceof Error &&
+        readError.message === "Payload too large"
+      ) {
+        return;
+      }
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
