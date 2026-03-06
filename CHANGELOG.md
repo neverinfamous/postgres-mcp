@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `@hono/node-server`: updated to 1.19.11
   - `hono`: updated to 4.12.5
 - **CVE-2026-27904, CVE-2026-27903 (minimatch ReDoS)** — Updated `minimatch` override from `>=10.2.1` to `>=10.2.3` in `package.json` and added Dockerfile patch for npm's bundled minimatch
+- **Hardened `npm audit` CI Gate** — Removed `continue-on-error: true` from the `npm audit` step in `lint-and-test.yml` so the security-scan job now hard-fails on any fixable moderate+ vulnerability, preventing vulnerable code from passing the pipeline
 
 ### Dependencies
 
