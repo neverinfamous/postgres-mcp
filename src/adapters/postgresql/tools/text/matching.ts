@@ -54,9 +54,21 @@ export function createTrigramSimilarityTool(
       try {
         const parsed = TrigramSimilaritySchema.parse(params);
         // Coerce numeric params: wrong-type values silently default
-        const thresh = parsed.threshold ?? 0.3;
-        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
-        const limitRaw = parsed.limit;
+        const rawThresh = Number(parsed.threshold);
+        const thresh =
+          parsed.threshold === undefined
+            ? 0.3
+            : isNaN(rawThresh)
+              ? 0.3
+              : rawThresh;
+        // Coerce limit with NaN fallback (z.any() passes through strings)
+        const rawLimit = Number(parsed.limit);
+        const limitRaw =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const limitVal =
           limitRaw === 0
             ? null
@@ -75,6 +87,12 @@ export function createTrigramSimilarityTool(
           };
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        if (!parsed.column || !parsed.value) {
+          return {
+            success: false,
+            error: "column and value are required",
+          };
+        }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =
           parsed.select !== undefined && parsed.select.length > 0
@@ -126,38 +144,31 @@ export function createTrigramSimilarityTool(
 
 export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
-  const FuzzyMatchSchemaBase = z
-    .object({
-      table: z.string().optional().describe("Table name"),
-      tableName: z.string().optional().describe("Table name (alias for table)"),
-      column: z.string(),
-      value: z.string(),
-      method: z
-        .string()
-        .optional()
-        .describe(
-          "Fuzzy match method (default: levenshtein). Valid: soundex, levenshtein, metaphone",
-        ),
-      maxDistance: z.coerce
-        .number()
-        .optional()
-        .describe(
-          "Max Levenshtein distance (default: 3, use 5+ for longer strings)",
-        ),
-      select: z.array(z.string()).optional().describe("Columns to return"),
-      limit: z.coerce
-        .number()
-        .optional()
-        .describe("Max results (default: 100 to prevent large payloads)"),
-      where: z.string().optional().describe("Additional WHERE clause filter"),
-      schema: z.string().optional().describe("Schema name (default: public)"),
-    })
-    .refine(
-      (data) => data.table !== undefined || data.tableName !== undefined,
-      {
-        message: "Either 'table' or 'tableName' is required",
-      },
-    );
+  const FuzzyMatchSchemaBase = z.object({
+    table: z.string().optional().describe("Table name"),
+    tableName: z.string().optional().describe("Table name (alias for table)"),
+    column: z.string().optional(),
+    value: z.string().optional(),
+    method: z
+      .string()
+      .optional()
+      .describe(
+        "Fuzzy match method (default: levenshtein). Valid: soundex, levenshtein, metaphone",
+      ),
+    maxDistance: z
+      .any()
+      .optional()
+      .describe(
+        "Max Levenshtein distance (default: 3, use 5+ for longer strings)",
+      ),
+    select: z.array(z.string()).optional().describe("Columns to return"),
+    limit: z
+      .any()
+      .optional()
+      .describe("Max results (default: 100 to prevent large payloads)"),
+    where: z.string().optional().describe("Additional WHERE clause filter"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
+  });
 
   // Full schema with preprocess for handler parsing
   const FuzzyMatchSchema = z.preprocess(
@@ -193,9 +204,21 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         }
         const method: FuzzyMethod = rawMethod as FuzzyMethod;
 
-        const maxDist = parsed.maxDistance ?? 3;
-        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
-        const limitRaw = parsed.limit;
+        const rawMaxDist = Number(parsed.maxDistance);
+        const maxDist =
+          parsed.maxDistance === undefined
+            ? 3
+            : isNaN(rawMaxDist)
+              ? 3
+              : rawMaxDist;
+        // Coerce limit with NaN fallback (z.any() passes through strings)
+        const rawLimit = Number(parsed.limit);
+        const limitRaw =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const limitVal =
           limitRaw === 0
             ? null
@@ -214,6 +237,12 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
           };
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        if (!parsed.column || !parsed.value) {
+          return {
+            success: false,
+            error: "column and value are required",
+          };
+        }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =
           parsed.select !== undefined && parsed.select.length > 0
@@ -291,6 +320,12 @@ export function createRegexpMatchTool(
           };
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        if (!parsed.column || !parsed.pattern) {
+          return {
+            success: false,
+            error: "column and pattern are required",
+          };
+        }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =
           parsed.select !== undefined && parsed.select.length > 0
@@ -300,8 +335,14 @@ export function createRegexpMatchTool(
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
-        const limitRaw = parsed.limit;
+        // Coerce limit with NaN fallback (z.any() passes through strings)
+        const rawLimit = Number(parsed.limit);
+        const limitRaw =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const limitVal =
           limitRaw === 0
             ? null
@@ -349,30 +390,23 @@ export function createRegexpMatchTool(
 
 export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
-  const LikeSearchSchemaBase = z
-    .object({
-      table: z.string().optional().describe("Table name"),
-      tableName: z.string().optional().describe("Table name (alias for table)"),
-      column: z.string(),
-      pattern: z.string(),
-      caseSensitive: z
-        .boolean()
-        .optional()
-        .describe("Use case-sensitive LIKE (default: false, uses ILIKE)"),
-      select: z.array(z.string()).optional(),
-      limit: z.coerce
-        .number()
-        .optional()
-        .describe("Max results (default: 100 to prevent large payloads)"),
-      where: z.string().optional().describe("Additional WHERE clause filter"),
-      schema: z.string().optional().describe("Schema name (default: public)"),
-    })
-    .refine(
-      (data) => data.table !== undefined || data.tableName !== undefined,
-      {
-        message: "Either 'table' or 'tableName' is required",
-      },
-    );
+  const LikeSearchSchemaBase = z.object({
+    table: z.string().optional().describe("Table name"),
+    tableName: z.string().optional().describe("Table name (alias for table)"),
+    column: z.string().optional(),
+    pattern: z.string().optional(),
+    caseSensitive: z
+      .boolean()
+      .optional()
+      .describe("Use case-sensitive LIKE (default: false, uses ILIKE)"),
+    select: z.array(z.string()).optional(),
+    limit: z
+      .any()
+      .optional()
+      .describe("Max results (default: 100 to prevent large payloads)"),
+    where: z.string().optional().describe("Additional WHERE clause filter"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
+  });
 
   // Full schema with preprocess for handler parsing
   const LikeSearchSchema = z.preprocess(
@@ -402,6 +436,12 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
           };
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        if (!parsed.column || !parsed.pattern) {
+          return {
+            success: false,
+            error: "column and pattern are required",
+          };
+        }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =
           parsed.select !== undefined && parsed.select.length > 0
@@ -411,8 +451,14 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
-        const limitRaw = parsed.limit;
+        // Coerce limit with NaN fallback (z.any() passes through strings)
+        const rawLimit = Number(parsed.limit);
+        const limitRaw =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const limitVal =
           limitRaw === 0
             ? null

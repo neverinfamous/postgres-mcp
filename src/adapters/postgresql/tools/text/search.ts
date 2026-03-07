@@ -83,8 +83,14 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const tsvector = sanitizedCols
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
-        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
-        const limitRaw = parsed.limit;
+        // Coerce limit with NaN fallback (z.any() passes through strings)
+        const rawLimit = Number(parsed.limit);
+        const limitRaw =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const limitVal =
           limitRaw === 0
             ? null
@@ -136,28 +142,21 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
 
 export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
-  const TextRankSchemaBase = z
-    .object({
-      table: z.string().optional().describe("Table name"),
-      tableName: z.string().optional().describe("Table name (alias for table)"),
-      column: z.string().optional().describe("Single column to search"),
-      columns: z
-        .array(z.string())
-        .optional()
-        .describe("Multiple columns to search (alternative to column)"),
-      query: z.string(),
-      config: z.string().optional(),
-      normalization: z.coerce.number().optional(),
-      select: z.array(z.string()).optional().describe("Columns to return"),
-      limit: z.coerce.number().optional().describe("Max results"),
-      schema: z.string().optional().describe("Schema name (default: public)"),
-    })
-    .refine(
-      (data) => data.table !== undefined || data.tableName !== undefined,
-      {
-        message: "Either 'table' or 'tableName' is required",
-      },
-    );
+  const TextRankSchemaBase = z.object({
+    table: z.string().optional().describe("Table name"),
+    tableName: z.string().optional().describe("Table name (alias for table)"),
+    column: z.string().optional().describe("Single column to search"),
+    columns: z
+      .array(z.string())
+      .optional()
+      .describe("Multiple columns to search (alternative to column)"),
+    query: z.string().optional(),
+    config: z.string().optional(),
+    normalization: z.any().optional(),
+    select: z.array(z.string()).optional().describe("Columns to return"),
+    limit: z.any().optional().describe("Max results"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
+  });
 
   // Full schema with preprocess for handler parsing
   const TextRankSchema = z.preprocess(preprocessTextParams, TextRankSchemaBase);
@@ -175,7 +174,13 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = TextRankSchema.parse(params);
         const cfg = sanitizeFtsConfig(parsed.config ?? "english");
-        const norm = parsed.normalization ?? 0;
+        const rawNorm = Number(parsed.normalization);
+        const norm =
+          parsed.normalization === undefined
+            ? 0
+            : isNaN(rawNorm)
+              ? 0
+              : rawNorm;
 
         // Handle both column (string) and columns (array) parameters
         let cols: string[];
@@ -207,8 +212,14 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         const tsvector = sanitizedCols
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
-        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
-        const limitRaw = parsed.limit;
+        // Coerce limit with NaN fallback (z.any() passes through strings)
+        const rawLimit = Number(parsed.limit);
+        const limitRaw =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const limitVal =
           limitRaw === 0
             ? null
@@ -262,48 +273,41 @@ export function createTextHeadlineTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
-  const HeadlineSchemaBase = z
-    .object({
-      table: z.string().optional().describe("Table name"),
-      tableName: z.string().optional().describe("Table name (alias for table)"),
-      column: z.string(),
-      query: z.string(),
-      config: z.string().optional(),
-      options: z
-        .string()
-        .optional()
-        .describe(
-          'Headline options (e.g., "MaxWords=20, MinWords=5"). Note: MinWords must be < MaxWords.',
-        ),
-      startSel: z
-        .string()
-        .optional()
-        .describe("Start selection marker (default: <b>)"),
-      stopSel: z
-        .string()
-        .optional()
-        .describe("Stop selection marker (default: </b>)"),
-      maxWords: z.coerce
-        .number()
-        .optional()
-        .describe("Maximum words in headline"),
-      minWords: z.coerce
-        .number()
-        .optional()
-        .describe("Minimum words in headline"),
-      select: z
-        .array(z.string())
-        .optional()
-        .describe('Columns to return for row identification (e.g., ["id"])'),
-      limit: z.coerce.number().optional().describe("Max results"),
-      schema: z.string().optional().describe("Schema name (default: public)"),
-    })
-    .refine(
-      (data) => data.table !== undefined || data.tableName !== undefined,
-      {
-        message: "Either 'table' or 'tableName' is required",
-      },
-    );
+  const HeadlineSchemaBase = z.object({
+    table: z.string().optional().describe("Table name"),
+    tableName: z.string().optional().describe("Table name (alias for table)"),
+    column: z.string().optional(),
+    query: z.string().optional(),
+    config: z.string().optional(),
+    options: z
+      .string()
+      .optional()
+      .describe(
+        'Headline options (e.g., "MaxWords=20, MinWords=5"). Note: MinWords must be < MaxWords.',
+      ),
+    startSel: z
+      .string()
+      .optional()
+      .describe("Start selection marker (default: <b>)"),
+    stopSel: z
+      .string()
+      .optional()
+      .describe("Stop selection marker (default: </b>)"),
+    maxWords: z
+      .any()
+      .optional()
+      .describe("Maximum words in headline"),
+    minWords: z
+      .any()
+      .optional()
+      .describe("Minimum words in headline"),
+    select: z
+      .array(z.string())
+      .optional()
+      .describe('Columns to return for row identification (e.g., ["id"])'),
+    limit: z.any().optional().describe("Max results"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
+  });
 
   // Full schema with preprocess for handler parsing
   const HeadlineSchema = z.preprocess(preprocessTextParams, HeadlineSchemaBase);
@@ -330,8 +334,23 @@ export function createTextHeadlineTool(
           const optParts: string[] = [];
           optParts.push(`StartSel=${parsed.startSel ?? "<b>"}`);
           optParts.push(`StopSel=${parsed.stopSel ?? "</b>"}`);
-          optParts.push(`MaxWords=${String(parsed.maxWords ?? 35)}`);
-          optParts.push(`MinWords=${String(parsed.minWords ?? 15)}`);
+          // Coerce maxWords/minWords with NaN fallback
+          const rawMaxWords = Number(parsed.maxWords);
+          const maxWords =
+            parsed.maxWords === undefined
+              ? 35
+              : isNaN(rawMaxWords)
+                ? 35
+                : rawMaxWords;
+          const rawMinWords = Number(parsed.minWords);
+          const minWords =
+            parsed.minWords === undefined
+              ? 15
+              : isNaN(rawMinWords)
+                ? 15
+                : rawMinWords;
+          optParts.push(`MaxWords=${String(maxWords)}`);
+          optParts.push(`MinWords=${String(minWords)}`);
           opts = optParts.join(", ");
         }
 
@@ -344,14 +363,26 @@ export function createTextHeadlineTool(
           };
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        if (!parsed.column || !parsed.query) {
+          return {
+            success: false,
+            error: "column and query are required",
+          };
+        }
         const columnName = sanitizeIdentifier(parsed.column);
         // Use provided select columns, or default to * (user should specify PK for stable identification)
         const selectCols =
           parsed.select !== undefined && parsed.select.length > 0
             ? sanitizeIdentifiers(parsed.select).join(", ") + ", "
             : "";
-        // Default limit to 100 to prevent large payloads; limit: 0 means no limit
-        const limitRaw = parsed.limit;
+        // Coerce limit with NaN fallback (z.any() passes through strings)
+        const rawLimit = Number(parsed.limit);
+        const limitRaw =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const limitVal =
           limitRaw === 0
             ? null
@@ -402,25 +433,18 @@ export function createTextHeadlineTool(
 
 export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
-  const FtsIndexSchemaBase = z
-    .object({
-      table: z.string().optional().describe("Table name"),
-      tableName: z.string().optional().describe("Table name (alias for table)"),
-      column: z.string(),
-      name: z.string().optional(),
-      config: z.string().optional(),
-      ifNotExists: z
-        .boolean()
-        .optional()
-        .describe("Skip if index already exists (default: true)"),
-      schema: z.string().optional().describe("Schema name (default: public)"),
-    })
-    .refine(
-      (data) => data.table !== undefined || data.tableName !== undefined,
-      {
-        message: "Either 'table' or 'tableName' is required",
-      },
-    );
+  const FtsIndexSchemaBase = z.object({
+    table: z.string().optional().describe("Table name"),
+    tableName: z.string().optional().describe("Table name (alias for table)"),
+    column: z.string().optional(),
+    name: z.string().optional(),
+    config: z.string().optional(),
+    ifNotExists: z
+      .boolean()
+      .optional()
+      .describe("Skip if index already exists (default: true)"),
+    schema: z.string().optional().describe("Schema name (default: public)"),
+  });
 
   // Full schema with preprocess for handler parsing
   const FtsIndexSchema = z.preprocess(preprocessTextParams, FtsIndexSchemaBase);
@@ -443,6 +467,12 @@ export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
           return {
             success: false,
             error: "Either 'table' or 'tableName' is required",
+          };
+        }
+        if (!parsed.column) {
+          return {
+            success: false,
+            error: "column is required",
           };
         }
         const defaultIndexName = `idx_${resolvedTable}_${parsed.column}_fts`;

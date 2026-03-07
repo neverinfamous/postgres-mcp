@@ -1625,10 +1625,14 @@ describe("TrigramSimilaritySchema", () => {
     expect(result).toBeDefined();
   });
 
-  it("should reject when table is missing", () => {
-    expect(() =>
-      TrigramSimilaritySchema.parse({ column: "name", value: "test" }),
-    ).toThrow("Either 'table' or 'tableName' is required");
+  it("should accept input without table (validation moved to handler)", () => {
+    // Table validation moved from schema .refine() to handler for structured errors
+    const result = TrigramSimilaritySchema.parse({
+      column: "name",
+      value: "test",
+    });
+    expect(result).toBeDefined();
+    expect(result.table).toBeUndefined();
   });
 });
 
