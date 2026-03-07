@@ -238,7 +238,7 @@ export abstract class DatabaseAdapter {
           // Create context with progress support
           const context = this.createContext(
             undefined,
-            server.server,
+            server,
             progressToken,
           );
           const result = await tool.handler(args, context);
@@ -367,11 +367,12 @@ export abstract class DatabaseAdapter {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Server.prompt() is the only API for registering prompts; no non-deprecated alternative exists in SDK
-    server.prompt(
+    server.registerPrompt(
       prompt.name,
-      prompt.description,
-      zodShape,
+      {
+        description: prompt.description,
+        argsSchema: zodShape,
+      },
       async (providedArgs) => {
         const context = this.createContext();
         const args = providedArgs as Record<string, string>;

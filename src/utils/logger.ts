@@ -8,8 +8,7 @@
  * Example: [2025-12-18T01:30:00Z] [ERROR] [ADAPTER] [PG_CONNECT_FAILED] Failed to connect {"host":"localhost"}
  */
 
-// Server class is marked deprecated but McpServer.server exposes it for sendLoggingMessage()
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 /**
  * RFC 5424 syslog severity levels
@@ -83,8 +82,7 @@ interface LogEntry {
  */
 class Logger {
   private minLevel: LogLevel = "info";
-  // eslint-disable-next-line @typescript-eslint/no-deprecated -- Server class is required for sendLoggingMessage(); no non-deprecated alternative exists in SDK
-  private mcpServer: Server | null = null;
+  private mcpServer: McpServer | null = null;
   private loggerName = "postgres-mcp";
   private defaultModule: LogModule = "SERVER";
 
@@ -120,8 +118,7 @@ class Logger {
    * Set the MCP server for protocol logging
    * When set, logs will be sent to connected MCP clients
    */
-  // eslint-disable-next-line @typescript-eslint/no-deprecated -- Server class is required for sendLoggingMessage(); no non-deprecated alternative exists in SDK
-  setMcpServer(server: Server): void {
+  setMcpServer(server: McpServer): void {
     this.mcpServer = server;
   }
 

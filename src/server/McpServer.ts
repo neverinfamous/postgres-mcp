@@ -48,8 +48,7 @@ export class PostgresMcpServer {
     );
 
     // Connect the logger to the underlying MCP server for protocol logging
-    // The McpServer.server property exposes the low-level Server instance
-    logger.setMcpServer(this.mcpServer.server);
+    logger.setMcpServer(this.mcpServer);
     logger.setLoggerName(config.name);
 
     logger.info("MCP Server initialized", {
