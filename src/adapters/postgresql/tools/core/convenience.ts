@@ -125,6 +125,7 @@ export const UpsertSchemaBase = z.object({
     .describe("Alias for data"),
   conflictColumns: z
     .array(z.string())
+    .optional()
     .describe("Columns that form the unique constraint (ON CONFLICT)"),
   updateColumns: z
     .array(z.string())
@@ -153,6 +154,7 @@ const UpsertParseSchema = z.object({
     .describe("Alias for data"),
   conflictColumns: z
     .array(z.string())
+    .optional()
     .describe("Columns that form the unique constraint (ON CONFLICT)"),
   updateColumns: z
     .array(z.string())
@@ -169,6 +171,7 @@ export const UpsertSchema = z
     ...d,
     table: d.table ?? d.tableName ?? "",
     data: d.data ?? d.values ?? {},
+    conflictColumns: d.conflictColumns ?? [],
   }))
   .refine((d) => d.table !== "", {
     message:
@@ -192,6 +195,7 @@ export const BatchInsertSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   rows: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Array of row objects to insert"),
   returning: z.array(z.string()).optional().describe("Columns to return"),
 });
@@ -206,6 +210,7 @@ const BatchInsertParseSchema = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   rows: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Array of row objects to insert"),
   returning: z.array(z.string()).optional().describe("Columns to return"),
 });
@@ -215,10 +220,15 @@ export const BatchInsertSchema = z
   .transform((data) => ({
     ...data,
     table: data.table ?? data.tableName ?? "",
+    rows: data.rows ?? [],
   }))
   .refine((data) => data.table !== "", {
     message:
       'table (or tableName alias) is required. Usage: pg_batch_insert({ table: "users", rows: [{ name: "John" }, { name: "Jane" }] })',
+  })
+  .refine((data) => data.rows.length > 0, {
+    message:
+      'rows must not be empty. Provide at least one row to insert, e.g., rows: [{ column: "value" }]',
   });
 
 // MCP visibility schema - table OR tableName required

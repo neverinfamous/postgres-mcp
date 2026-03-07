@@ -31,6 +31,7 @@ interface ErrorContext {
  * - 42601: syntax_error (SQL syntax error)
  * - 42703: undefined_column (column does not exist)
  * - 23505: unique_violation (duplicate key value)
+ * - 23503: foreign_key_violation (FK constraint violated)
  * - 3F000: invalid_schema_name (schema does not exist)
  * - 3D000: invalid_catalog_name (database does not exist)
  * - 3B001: savepoint_exception (savepoint does not exist)
@@ -163,6 +164,14 @@ export function parsePostgresError(
   ) {
     throw new Error(
       `Primary key on partitioned table must include all partitioning columns. The sub-partition key column must be part of the parent table's primary key. Recreate the parent with a composite primary key that includes both the partition key and sub-partition key.`,
+      { cause: error },
+    );
+  }
+
+  // 23503 — foreign key constraint violation
+  if (pgCode === "23503" || /violates foreign key constraint/i.test(msg)) {
+    throw new Error(
+      `Foreign key constraint violated: ${msg}. Verify the referenced row exists in the parent table.`,
       { cause: error },
     );
   }

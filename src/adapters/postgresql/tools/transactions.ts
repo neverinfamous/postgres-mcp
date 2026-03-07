@@ -5,7 +5,7 @@
  * 7 tools total.
  */
 
-import { z } from "zod";
+import { type z } from "zod";
 import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { write } from "../../../utils/annotations.js";
@@ -253,15 +253,11 @@ function createTransactionExecuteTool(
       try {
         parsed = await TransactionExecuteSchema.parseAsync(params);
       } catch (error) {
-        const message =
-          error instanceof z.ZodError
-            ? error.issues.map((i) => i.message).join("; ")
-            : formatPostgresError(error, {
-                tool: "pg_transaction_execute",
-              });
         return {
           success: false,
-          error: message,
+          error: formatPostgresError(error, {
+            tool: "pg_transaction_execute",
+          }),
         };
       }
 
