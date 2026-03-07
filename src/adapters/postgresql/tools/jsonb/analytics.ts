@@ -53,7 +53,8 @@ export function createJsonbIndexSuggestTool(
         if (!table || !column) {
           return { success: false, error: "table and column are required" };
         }
-        const sample = parsed.sampleSize ?? 1000;
+        const rawSample = Number(parsed.sampleSize);
+        const sample = isNaN(rawSample) ? 1000 : rawSample;
         const whereClause = parsed.where
           ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
@@ -194,7 +195,8 @@ export function createJsonbSecurityScanTool(
         if (!table || !column) {
           return { success: false, error: "table and column are required" };
         }
-        const sample = parsed.sampleSize ?? 100;
+        const rawSample = Number(parsed.sampleSize);
+        const sample = isNaN(rawSample) ? 100 : rawSample;
         const whereClause = parsed.where
           ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
@@ -335,7 +337,8 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
         if (!table || !column) {
           return { success: false, error: "table and column are required" };
         }
-        const sample = parsed.sampleSize ?? 1000;
+        const rawSample = Number(parsed.sampleSize);
+        const sample = isNaN(rawSample) ? 1000 : rawSample;
         const whereClause = parsed.where
           ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
@@ -378,7 +381,8 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
             }
           : undefined;
 
-        const keyLimit = parsed.topKeysLimit ?? 20;
+        const rawKeyLimit = Number(parsed.topKeysLimit);
+        const keyLimit = isNaN(rawKeyLimit) ? 20 : rawKeyLimit;
         const keySql = `
                 SELECT key, COUNT(*) as frequency
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,

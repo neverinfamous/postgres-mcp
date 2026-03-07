@@ -97,8 +97,12 @@ export function createJsonbExtractTool(
         const whereClause = parsed.where
           ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
+        const rawLimit =
+          parsed.limit !== undefined ? Number(parsed.limit) : undefined;
+        const coercedLimit =
+          rawLimit !== undefined && !isNaN(rawLimit) ? rawLimit : undefined;
         const limitClause =
-          parsed.limit !== undefined ? ` LIMIT ${String(parsed.limit)}` : "";
+          coercedLimit !== undefined ? ` LIMIT ${String(coercedLimit)}` : "";
 
         // After preprocess and refine, table, column, and path are guaranteed set
         const table = parsed.table ?? parsed.tableName;
@@ -232,7 +236,12 @@ export function createJsonbContainsTool(
 
         // Apply default limit (100) to prevent large payloads
         const DEFAULT_LIMIT = 100;
-        const requestedLimit = parsed.limit;
+        const rawRequestedLimit =
+          parsed.limit !== undefined ? Number(parsed.limit) : undefined;
+        const requestedLimit =
+          rawRequestedLimit !== undefined && !isNaN(rawRequestedLimit)
+            ? rawRequestedLimit
+            : undefined;
         const effectiveLimit =
           requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
 
@@ -355,7 +364,12 @@ export function createJsonbPathQueryTool(
 
         // Apply default limit (100) to prevent large payloads
         const DEFAULT_LIMIT = 100;
-        const requestedLimit = parsed.limit;
+        const rawRequestedLimit =
+          parsed.limit !== undefined ? Number(parsed.limit) : undefined;
+        const requestedLimit =
+          rawRequestedLimit !== undefined && !isNaN(rawRequestedLimit)
+            ? rawRequestedLimit
+            : undefined;
         const effectiveLimit =
           requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
 
@@ -493,8 +507,16 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
         const orderByClause = parsed.orderBy
           ? ` ORDER BY ${parsed.orderBy}`
           : "";
+        const rawAggLimit =
+          parsed.limit !== undefined ? Number(parsed.limit) : undefined;
+        const coercedAggLimit =
+          rawAggLimit !== undefined && !isNaN(rawAggLimit)
+            ? rawAggLimit
+            : undefined;
         const limitClause =
-          parsed.limit !== undefined ? ` LIMIT ${String(parsed.limit)}` : "";
+          coercedAggLimit !== undefined
+            ? ` LIMIT ${String(coercedAggLimit)}`
+            : "";
         const hasJsonbOperator = parsed.groupBy?.includes("->") ?? false;
 
         if (parsed.groupBy) {

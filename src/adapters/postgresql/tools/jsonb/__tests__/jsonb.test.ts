@@ -1201,4 +1201,50 @@ describe("JSONB Validation and Error Paths", () => {
       expect(result.error).toMatch(/Schema 'fake_schema' does not exist/);
     });
   });
+
+  describe("wrong-type numeric param coercion", () => {
+    it("pg_jsonb_stats should coerce wrong-type sampleSize to default", async () => {
+      mockAdapter.executeQuery.mockResolvedValue({
+        rows: [
+          {
+            total_rows: 10,
+            non_null_count: 10,
+            avg_size_bytes: 50,
+            max_size_bytes: 100,
+          },
+        ],
+      });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_stats")!;
+      const result = (await tool.handler(
+        { table: "users", column: "metadata", sampleSize: "abc" },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      // Should not throw — wrong-type sampleSize is coerced to default
+      expect(result).toBeDefined();
+      expect(result.success).not.toBe(false);
+    });
+
+    it("pg_jsonb_contains should coerce wrong-type limit to default", async () => {
+      mockAdapter.executeQuery.mockResolvedValue({
+        rows: [{ id: 1, metadata: { key: "value" } }],
+      });
+
+      const tool = tools.find((t) => t.name === "pg_jsonb_contains")!;
+      const result = (await tool.handler(
+        {
+          table: "users",
+          column: "metadata",
+          value: { key: "value" },
+          limit: "abc",
+        },
+        mockContext,
+      )) as Record<string, unknown>;
+
+      // Should not throw — wrong-type limit is coerced to default (100)
+      expect(result).toBeDefined();
+      expect(result.success).not.toBe(false);
+    });
+  });
 });
