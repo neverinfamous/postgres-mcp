@@ -256,7 +256,7 @@ function createPgcryptoGenRandomUuidTool(
 ): ToolDefinition {
   // Base schema for MCP visibility (count parameter exposed to clients, relaxed)
   const GenUuidSchemaBase = z.object({
-    count: z
+    count: z.coerce
       .number()
       .optional()
       .describe("Number of UUIDs to generate (default: 1, max: 100)"),
@@ -265,7 +265,7 @@ function createPgcryptoGenRandomUuidTool(
   // Full schema with strict validation for handler parsing
   const GenUuidSchema = z
     .object({
-      count: z
+      count: z.coerce
         .number()
         .min(1)
         .max(100)

@@ -434,7 +434,7 @@ export function createVectorDimensionReduceTool(
 export function createVectorEmbedTool(): ToolDefinition {
   const EmbedSchema = z.object({
     text: z.string().describe("Text to embed"),
-    dimensions: z
+    dimensions: z.coerce
       .number()
       .optional()
       .describe("Vector dimensions (default: 384)"),

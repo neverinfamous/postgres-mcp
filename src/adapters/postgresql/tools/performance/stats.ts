@@ -73,7 +73,7 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
   const IndexStatsSchemaLocalBase = z.object({
     table: z.string().optional().describe("Table name to filter indexes"),
     schema: z.string().optional().describe("Schema name to filter indexes"),
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
@@ -175,7 +175,7 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
   const TableStatsSchemaLocalBase = z.object({
     table: z.string().optional().describe("Table name (all tables if omitted)"),
     schema: z.string().optional().describe("Schema name"),
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
@@ -284,7 +284,7 @@ export function createStatStatementsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const StatStatementsSchemaBase = z.object({
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Max statements to return (default: 20, use 0 for all)"),
@@ -428,7 +428,7 @@ export function createUnusedIndexesTool(
       .string()
       .optional()
       .describe('Minimum index size to include (e.g., "1 MB")'),
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Max indexes to return (default: 20, use 0 for all)"),
@@ -571,7 +571,7 @@ export function createDuplicateIndexesTool(
       .string()
       .optional()
       .describe("Schema to filter (default: all user schemas)"),
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
@@ -708,7 +708,7 @@ export function createVacuumStatsTool(
   const VacuumStatsSchemaBase = z.object({
     schema: z.string().optional().describe("Schema to filter"),
     table: z.string().optional().describe("Table name to filter"),
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
@@ -825,11 +825,11 @@ export function createQueryPlanStatsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const QueryPlanStatsSchemaBase = z.object({
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Number of queries to return (default: 20, use 0 for all)"),
-    truncateQuery: z
+    truncateQuery: z.coerce
       .number()
       .optional()
       .describe(

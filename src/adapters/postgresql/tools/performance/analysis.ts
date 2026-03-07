@@ -72,12 +72,12 @@ export function createSeqScanTablesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const SeqScanTablesSchemaBase = z.object({
-    minScans: z
+    minScans: z.coerce
       .number()
       .optional()
       .describe("Minimum seq scans to include (default: 10)"),
     schema: z.string().optional().describe("Schema to filter"),
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
