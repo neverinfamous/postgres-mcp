@@ -11,6 +11,12 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { PostgresAdapter } from "../PostgresAdapter.js";
+import {
+  parseColumnsArray,
+  extractIndexColumns,
+  extractIndexExpressionPart,
+  parseIndexExpressions,
+} from "../schema-operations.js";
 import type {
   DatabaseConfig,
   HealthStatus,
@@ -1307,89 +1313,70 @@ describe("PostgresAdapter", () => {
   // =========================================================================
 
   describe("Expression Index Parsing", () => {
-    // Access private methods via type casting for testing
-    const getPrivateMethods = (adapterInstance: PostgresAdapter) =>
-      adapterInstance as unknown as {
-        parseColumnsArray(columns: unknown): string[];
-        extractIndexColumns(columns: string[], definition: string): string[];
-        extractIndexExpressionPart(definition: string): string | null;
-        parseIndexExpressions(columnList: string): string[];
-      };
-
     describe("parseColumnsArray", () => {
       it("should pass through native arrays", () => {
-        const methods = getPrivateMethods(adapter);
-        expect(methods.parseColumnsArray(["col1", "col2"])).toEqual([
+        expect(parseColumnsArray(["col1", "col2"])).toEqual([
           "col1",
           "col2",
         ]);
       });
 
       it("should parse PostgreSQL string format {col1,col2}", () => {
-        const methods = getPrivateMethods(adapter);
-        expect(methods.parseColumnsArray("{col1,col2}")).toEqual([
+        expect(parseColumnsArray("{col1,col2}")).toEqual([
           "col1",
           "col2",
         ]);
       });
 
       it("should handle empty string format {}", () => {
-        const methods = getPrivateMethods(adapter);
-        expect(methods.parseColumnsArray("{}")).toEqual([]);
+        expect(parseColumnsArray("{}")).toEqual([]);
       });
 
       it("should handle quoted column names", () => {
-        const methods = getPrivateMethods(adapter);
-        expect(methods.parseColumnsArray('{"my column","other col"}')).toEqual([
+        expect(parseColumnsArray('{"my column","other col"}')).toEqual([
           "my column",
           "other col",
         ]);
       });
 
       it("should return empty array for non-string, non-array input", () => {
-        const methods = getPrivateMethods(adapter);
-        expect(methods.parseColumnsArray(42)).toEqual([]);
-        expect(methods.parseColumnsArray(null)).toEqual([]);
-        expect(methods.parseColumnsArray(undefined)).toEqual([]);
+        expect(parseColumnsArray(42)).toEqual([]);
+        expect(parseColumnsArray(null)).toEqual([]);
+        expect(parseColumnsArray(undefined)).toEqual([]);
       });
     });
 
     describe("extractIndexExpressionPart", () => {
       it("should extract expression from simple index definition", () => {
-        const methods = getPrivateMethods(adapter);
-        const result = methods.extractIndexExpressionPart(
+        const result = extractIndexExpressionPart(
           "CREATE INDEX idx ON tbl USING btree (lower(name))",
         );
         expect(result).toBe("lower(name)");
       });
 
       it("should extract multiple column expressions", () => {
-        const methods = getPrivateMethods(adapter);
-        const result = methods.extractIndexExpressionPart(
+        const result = extractIndexExpressionPart(
           "CREATE INDEX idx ON tbl USING btree (id, lower(name))",
         );
         expect(result).toBe("id, lower(name)");
       });
 
       it("should handle nested parentheses", () => {
-        const methods = getPrivateMethods(adapter);
-        const result = methods.extractIndexExpressionPart(
+        const result = extractIndexExpressionPart(
           "CREATE INDEX idx ON tbl USING btree (upper(trim(name)))",
         );
         expect(result).toBe("upper(trim(name))");
       });
 
       it("should return null when no USING clause found", () => {
-        const methods = getPrivateMethods(adapter);
-        const result = methods.extractIndexExpressionPart(
+        const result = extractIndexExpressionPart(
           "CREATE INDEX idx ON tbl (name)",
         );
         expect(result).toBeNull();
       });
 
       it("should return null for unbalanced parentheses", () => {
-        const methods = getPrivateMethods(adapter);
-        const result = methods.extractIndexExpressionPart(
+        const result = extractIndexExpressionPart(
           "CREATE INDEX idx ON tbl USING btree (lower(name)",
         );
         expect(result).toBeNull();
@@ -1398,38 +1385,33 @@ describe("PostgresAdapter", () => {
 
     describe("parseIndexExpressions", () => {
       it("should parse simple column list", () => {
-        const methods = getPrivateMethods(adapter);
-        expect(methods.parseIndexExpressions("id, name")).toEqual([
+        expect(parseIndexExpressions("id, name")).toEqual([
           "id",
           "name",
         ]);
       });
 
       it("should handle expressions with nested parentheses", () => {
-        const methods = getPrivateMethods(adapter);
         expect(
-          methods.parseIndexExpressions("LOWER(name), id, UPPER(TRIM(email))"),
+          parseIndexExpressions("LOWER(name), id, UPPER(TRIM(email))"),
         ).toEqual(["LOWER(name)", "id", "UPPER(TRIM(email))"]);
       });
 
       it("should handle single expression", () => {
-        const methods = getPrivateMethods(adapter);
-        expect(methods.parseIndexExpressions("lower(name)")).toEqual([
+        expect(parseIndexExpressions("lower(name)")).toEqual([
           "lower(name)",
         ]);
       });
 
       it("should handle empty string", () => {
-        const methods = getPrivateMethods(adapter);
-        expect(methods.parseIndexExpressions("")).toEqual([]);
+        expect(parseIndexExpressions("")).toEqual([]);
       });
     });
 
     describe("extractIndexColumns", () => {
       it("should return columns as-is when no NULL values", () => {
-        const methods = getPrivateMethods(adapter);
         expect(
-          methods.extractIndexColumns(
+          extractIndexColumns(
             ["id", "name"],
             "CREATE INDEX idx ON tbl USING btree (id, name)",
           ),
@@ -1437,27 +1419,24 @@ describe("PostgresAdapter", () => {
       });
 
       it("should replace NULL columns with parsed expressions", () => {
-        const methods = getPrivateMethods(adapter);
         const columns = [null as unknown as string, "id"];
         const definition =
           "CREATE INDEX idx ON tbl USING btree (lower(name), id)";
-        const result = methods.extractIndexColumns(columns, definition);
+        const result = extractIndexColumns(columns, definition);
         expect(result).toEqual(["lower(name)", "id"]);
       });
 
       it("should replace empty string columns with parsed expressions", () => {
-        const methods = getPrivateMethods(adapter);
         const columns = ["", "id"];
         const definition =
           "CREATE INDEX idx ON tbl USING btree (upper(email), id)";
-        const result = methods.extractIndexColumns(columns, definition);
+        const result = extractIndexColumns(columns, definition);
         expect(result).toEqual(["upper(email)", "id"]);
       });
 
       it("should return original columns when definition has no USING clause", () => {
-        const methods = getPrivateMethods(adapter);
         const columns = [null as unknown as string, "id"];
-        const result = methods.extractIndexColumns(
+        const result = extractIndexColumns(
           columns,
           "CREATE INDEX idx ON tbl (name, id)",
         );
@@ -1465,11 +1444,10 @@ describe("PostgresAdapter", () => {
       });
 
       it("should return original columns when expression count mismatches", () => {
-        const methods = getPrivateMethods(adapter);
         const columns = [null as unknown as string, "id", "extra"];
         const definition =
           "CREATE INDEX idx ON tbl USING btree (lower(name), id)";
-        const result = methods.extractIndexColumns(columns, definition);
+        const result = extractIndexColumns(columns, definition);
         // Counts don't match (3 vs 2), so original is returned
         expect(result).toEqual(columns);
       });
