@@ -296,13 +296,18 @@ export const JsonbTypeofOutputSchema = z.object({
 
 // Output schema for pg_jsonb_validate_path
 export const JsonbValidatePathOutputSchema = z.object({
-  valid: z.boolean().describe("Whether path is valid"),
+  valid: z.boolean().optional().describe("Whether path is valid"),
+  path: z.string().optional().describe("The validated path expression"),
   error: z.string().optional().describe("Error message if invalid"),
   results: z
     .array(z.unknown())
     .optional()
     .describe("Test results if testValue provided"),
-  count: z.number().optional().describe("Number of results"),
+  varsUsed: z
+    .boolean()
+    .optional()
+    .describe("Whether vars were used in the query"),
+  success: z.boolean().optional().describe("False on error"),
 });
 
 // Output schema for pg_jsonb_merge
