@@ -49,8 +49,11 @@ export function arrayPathToString(path: string[]): string {
  * Accepts both string paths and arrays with mixed string/number elements
  */
 export function normalizePathToArray(
-  path: string | (string | number)[],
+  path: string | number | (string | number)[],
 ): string[] {
+  if (typeof path === "number") {
+    return [String(path)];
+  }
   if (typeof path === "string") {
     return stringPathToArray(path);
   }
@@ -87,8 +90,11 @@ export function normalizePathForInsert(
  * Accepts both string paths and arrays with mixed string/number elements
  */
 export function normalizePathToString(
-  path: string | (string | number)[],
+  path: string | number | (string | number)[],
 ): string {
+  if (typeof path === "number") {
+    return String(path);
+  }
   if (Array.isArray(path)) {
     return path.map((p) => String(p)).join(".");
   }
@@ -171,6 +177,7 @@ export const JsonbExtractSchemaBase = z.object({
   path: z
     .union([
       z.string().describe('Path as string (e.g., "a.b.c" or "a[0].b")'),
+      z.number().describe("Array index position (e.g., 0, 1, 2)"),
       z
         .array(z.union([z.string(), z.number()]))
         .describe('Path as array (e.g., ["a", 0, "b"])'),
@@ -219,6 +226,7 @@ export const JsonbSetSchemaBase = z.object({
   path: z
     .union([
       z.string().describe('Path as string (e.g., "a.b.c" or "a[0].b")'),
+      z.number().describe("Array index position (e.g., 0, 1, 2)"),
       z
         .array(z.union([z.string(), z.number()]))
         .describe('Path as array (e.g., ["a", 0, "b"])'),
@@ -458,7 +466,7 @@ export const JsonbTypeofSchemaBase = z.object({
   column: z.string().optional().describe("JSONB column name"),
   col: z.string().optional().describe("JSONB column name (alias for column)"),
   path: z
-    .union([z.string(), z.array(z.union([z.string(), z.number()]))])
+    .union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])
     .optional()
     .describe("Path to check type of nested value (string or array format)"),
   where: z.string().optional().describe("WHERE clause"),

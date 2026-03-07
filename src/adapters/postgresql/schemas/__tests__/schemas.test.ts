@@ -1728,6 +1728,14 @@ describe("normalizePathToArray", () => {
   it("should convert mixed-type array to string array", () => {
     expect(normalizePathToArray(["a", 0, "b"])).toEqual(["a", "0", "b"]);
   });
+
+  it("should convert bare number to single-element string array", () => {
+    expect(normalizePathToArray(3)).toEqual(["3"]);
+  });
+
+  it("should convert bare negative number to single-element string array", () => {
+    expect(normalizePathToArray(-1)).toEqual(["-1"]);
+  });
 });
 
 describe("normalizePathToString", () => {
@@ -1737,6 +1745,10 @@ describe("normalizePathToString", () => {
 
   it("should return string paths unchanged", () => {
     expect(normalizePathToString("a.b.c")).toBe("a.b.c");
+  });
+
+  it("should convert bare number to string", () => {
+    expect(normalizePathToString(3)).toBe("3");
   });
 });
 
@@ -1785,6 +1797,16 @@ describe("JsonbExtractSchema", () => {
       path: "name",
     });
     expect(result).toBeDefined();
+  });
+
+  it("should accept bare numeric path for array index access", () => {
+    const result = JsonbExtractSchema.parse({
+      table: "docs",
+      column: "tags",
+      path: 3,
+    });
+    expect(result).toBeDefined();
+    expect(result.path).toBe(3);
   });
 });
 
