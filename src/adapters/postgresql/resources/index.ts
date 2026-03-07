@@ -16,7 +16,7 @@ import { createStatsResource } from "./stats.js";
 import { createActivityResource } from "./activity.js";
 import { createPoolResource } from "./pool.js";
 
-// Migrated resources from legacy postgres-mcp-server
+// Observability resources
 import { createCapabilitiesResource } from "./capabilities.js";
 import { createPerformanceResource } from "./performance.js";
 import { createHealthResource } from "./health.js";
@@ -45,7 +45,7 @@ import { createCryptoResource } from "./crypto.js";
  * - postgres://activity - Active connections and queries
  * - postgres://pool - Connection pool statistics
  *
- * Migrated from legacy server (8):
+ * Observability (8):
  * - postgres://capabilities - Server version, extensions, tool categories
  * - postgres://performance - pg_stat_statements query metrics
  * - postgres://health - Comprehensive database health status
@@ -75,7 +75,7 @@ export function getPostgresResources(
     createStatsResource(adapter),
     createActivityResource(adapter),
     createPoolResource(adapter),
-    // Migrated resources
+    // Observability resources
     createCapabilitiesResource(adapter),
     createPerformanceResource(adapter),
     createHealthResource(adapter),

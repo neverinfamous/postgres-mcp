@@ -1,7 +1,8 @@
 /**
- * postgres-mcp - CLI Arguments Parser
+ * postgres-mcp - CLI Arguments Parser (Test-Only)
  *
- * Command-line argument parsing for the PostgreSQL MCP server.
+ * Standalone (non-Commander) argument parser used exclusively by unit tests.
+ * The production entry point is `cli.ts` which uses Commander.js.
  */
 
 import type {
@@ -47,7 +48,7 @@ export interface ParsedArgs {
   shouldExit: boolean;
 }
 
-const VERSION = "0.1.0";
+import { VERSION } from "../utils/version.js";
 
 /**
  * Parse command line arguments

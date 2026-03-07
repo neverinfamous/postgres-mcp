@@ -30,8 +30,8 @@ import {
 import { logger } from "../../utils/logger.js";
 import { quoteIdentifier } from "../../utils/identifiers.js";
 import { parsePostgresError } from "./tools/core/error-helpers.js";
+import { VERSION } from "../../utils/version.js";
 
-// Import tool modules (will be created next)
 import { getCoreTools } from "./tools/core/index.js";
 import { getTransactionTools } from "./tools/transactions.js";
 import { getJsonbTools } from "./tools/jsonb/index.js";
@@ -57,9 +57,6 @@ import { getPostgresResources } from "./resources/index.js";
 import { getPostgresPrompts } from "./prompts/index.js";
 
 /**
- * PostgreSQL Database Adapter
- */
-/**
  * Metadata cache entry with TTL support
  */
 interface CacheEntry<T> {
@@ -68,7 +65,7 @@ interface CacheEntry<T> {
 }
 
 /**
- * Default cache TTL in milliseconds (configurable via CACHE_TTL_MS env var)
+ * Default cache TTL in milliseconds (configurable via METADATA_CACHE_TTL_MS env var)
  */
 const DEFAULT_CACHE_TTL_MS = parseInt(
   process.env["METADATA_CACHE_TTL_MS"] ?? "30000",
@@ -78,7 +75,7 @@ const DEFAULT_CACHE_TTL_MS = parseInt(
 export class PostgresAdapter extends DatabaseAdapter {
   readonly type = "postgresql" as const;
   readonly name = "PostgreSQL Adapter";
-  readonly version = "0.1.0";
+  readonly version = VERSION;
 
   private pool: ConnectionPool | null = null;
   private activeTransactions = new Map<string, PoolClient>();

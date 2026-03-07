@@ -24,7 +24,7 @@ import type {
   TransportType,
 } from "./types/index.js";
 
-const VERSION = "0.1.0";
+import { VERSION } from "./utils/version.js";
 
 interface CliOptions {
   postgres?: string;
@@ -374,7 +374,7 @@ async function startHttpServer(
     toolFilter,
   });
 
-  // ALWAYSS register components (tools, resources, prompts) regardless of transport
+  // ALWAYS register components (tools, resources, prompts) regardless of transport
   mcpServer.registerComponents();
 
   // Build HTTP transport config

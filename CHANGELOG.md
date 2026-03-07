@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Version SSoT via `utils/version.ts`** — Created shared `VERSION` constant that reads from `package.json` at runtime via `createRequire`. Replaced 3 hardcoded `VERSION = "0.1.0"` constants in `cli.ts`, `cli/args.ts`, and `PostgresAdapter.ts` (plus the test mock in `adapter.ts`). Version bumps now only need to update `package.json`
+
+### Fixed
+
+- **Stale tool count in `codemode/api.ts` file header** — Updated file header comment from `194 PostgreSQL tools organized by their 19 groups` to `227 PostgreSQL tools organized by their 21 groups` to match actual counts
+- **Stale legacy migration comments** — Replaced 4 `Migrated from legacy postgres-mcp-server` comments in `resources/index.ts` and `prompts/index.ts` with functional grouping labels (`Observability resources`, `DBA and extension prompts`). The migration is long complete
+- **Stale dev scaffolding note in `PostgresAdapter.ts`** — Removed `// Import tool modules (will be created next)` leftover from initial scaffolding
+- **Orphaned JSDoc in `PostgresAdapter.ts`** — Removed disconnected `/** PostgreSQL Database Adapter */` block that was separated from its target class by intervening code
+- **Env var comment mismatch in `PostgresAdapter.ts`** — Fixed `CACHE_TTL_MS` → `METADATA_CACHE_TTL_MS` to match the actual environment variable used in the code
+- **Typo in `cli.ts`** — Fixed `ALWAYSS` → `ALWAYS` in comment
+- **`cli/args.ts` missing purpose documentation** — Added file-header comment clarifying this is a test-only standalone parser (production entry point is `cli.ts` with Commander.js)
+
 - **`schema.ts` modular refactoring** — Split monolithic `schema.ts` (1083 lines, 12 tools) into `schema/objects.ts` (6 tools: schemas, sequences) and `schema/views.ts` (6 tools: views, functions, triggers, constraints). Created `schema/index.ts` barrel file aggregating exports. Updated `PostgresAdapter.ts` import path. No functional changes
 - **`monitoring.ts` modular refactoring** — Split monolithic `monitoring.ts` (941 lines, 11 tools) into `monitoring/basic.ts` (8 tools: database size, table sizes, connections, replication, version, settings, uptime, recovery) and `monitoring/analysis.ts` (3 tools: capacity planning, resource usage, alert thresholds). Created `monitoring/index.ts` barrel file aggregating exports. Updated `PostgresAdapter.ts` import path. No functional changes
 

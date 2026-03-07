@@ -1,7 +1,7 @@
 /**
  * postgres-mcp - Code Mode API
  *
- * Exposes all 194 PostgreSQL tools organized by their 19 groups
+ * Exposes all 227 PostgreSQL tools organized by their 21 groups
  * for use within the sandboxed execution environment.
  */
 
