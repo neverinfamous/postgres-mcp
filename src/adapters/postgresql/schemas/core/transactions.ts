@@ -36,7 +36,17 @@ function preprocessBeginParams(input: unknown): unknown {
   return normalized;
 }
 
+// Base schema for MCP visibility — uses z.string() so invalid values reach the
+// handler's try/catch instead of being rejected as raw MCP -32602 errors.
 export const BeginTransactionSchemaBase = z.object({
+  isolationLevel: z
+    .string()
+    .optional()
+    .describe("Transaction isolation level"),
+});
+
+// Internal schema with strict enum validation (used inside handler try/catch)
+const BeginTransactionValidationSchema = z.object({
   isolationLevel: z
     .enum([
       "READ UNCOMMITTED",
@@ -50,7 +60,7 @@ export const BeginTransactionSchemaBase = z.object({
 
 export const BeginTransactionSchema = z.preprocess(
   preprocessBeginParams,
-  BeginTransactionSchemaBase,
+  BeginTransactionValidationSchema,
 );
 
 // Base schema for MCP visibility (shows transactionId and aliases)
@@ -121,8 +131,31 @@ export const ExecuteInTransactionSchema =
     message: "transactionId (or txId/tx alias) is required",
   });
 
-// Base schema for MCP visibility (pg_transaction_execute)
+// Base schema for MCP visibility — uses z.record() for statement items and
+// z.string() for isolationLevel so invalid values reach the handler's try/catch.
 export const TransactionExecuteSchemaBase = z.object({
+  statements: z
+    .array(z.unknown())
+    .optional()
+    .describe(
+      'Statements to execute atomically. Each must be an object with {sql: "..."} format.',
+    ),
+  transactionId: z
+    .string()
+    .optional()
+    .describe(
+      "Optional: Join existing transaction from pg_transaction_begin. If omitted, creates new auto-commit transaction.",
+    ),
+  txId: z.string().optional().describe("Alias for transactionId"),
+  tx: z.string().optional().describe("Alias for transactionId"),
+  isolationLevel: z
+    .string()
+    .optional()
+    .describe("Transaction isolation level"),
+});
+
+// Internal schema with strict validation (used inside handler try/catch)
+const TransactionExecuteValidationSchema = z.object({
   statements: z
     .array(
       z.object({
@@ -158,7 +191,7 @@ export const TransactionExecuteSchemaBase = z.object({
 export const TransactionExecuteSchema = z
   .preprocess(
     (val: unknown) => preprocessBeginParams(defaultToEmpty(val)),
-    TransactionExecuteSchemaBase,
+    TransactionExecuteValidationSchema,
   )
   .transform((data) => ({
     statements: (data.statements ?? []).map((stmt) => ({
