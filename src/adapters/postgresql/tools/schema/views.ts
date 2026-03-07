@@ -56,13 +56,13 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
     inputSchema: z.object({
       schema: z.string().optional(),
       includeMaterialized: z.boolean().optional(),
-      truncateDefinition: z
+      truncateDefinition: z.coerce
         .number()
         .optional()
         .describe(
           "Max length for view definitions (default: 500). Use 0 for no truncation.",
         ),
-      limit: z
+      limit: z.coerce
         .number()
         .optional()
         .describe(

@@ -46,13 +46,19 @@ export function createVectorClusterTool(
     tableName: z.string().optional().describe("Alias for table"),
     column: z.string().optional().describe("Vector column"),
     col: z.string().optional().describe("Alias for column"),
-    k: z.number().optional().describe("Number of clusters"),
-    clusters: z
+    k: z.coerce.number().optional().describe("Number of clusters"),
+    clusters: z.coerce
       .number()
       .optional()
       .describe("Alias for k (number of clusters)"),
-    iterations: z.number().optional().describe("Max iterations (default: 10)"),
-    sampleSize: z.number().optional().describe("Sample size for large tables"),
+    iterations: z.coerce
+      .number()
+      .optional()
+      .describe("Max iterations (default: 10)"),
+    sampleSize: z.coerce
+      .number()
+      .optional()
+      .describe("Sample size for large tables"),
     schema: z.string().optional().describe("Database schema (default: public)"),
   });
 
@@ -233,11 +239,11 @@ export function createHybridSearchTool(
     textColumn: z.string().describe("Text column for FTS"),
     vector: z.array(z.number()).describe("Query vector"),
     textQuery: z.string().describe("Text search query"),
-    vectorWeight: z
+    vectorWeight: z.coerce
       .number()
       .optional()
       .describe("Weight for vector score (0-1, default: 0.5)"),
-    limit: z.number().optional().describe("Max results"),
+    limit: z.coerce.number().optional().describe("Max results"),
     select: z
       .array(z.string())
       .optional()

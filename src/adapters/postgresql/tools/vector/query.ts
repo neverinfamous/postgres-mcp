@@ -711,7 +711,10 @@ export function createVectorValidateTool(
       .array(z.number())
       .optional()
       .describe("Vector to validate dimensions"),
-    dimensions: z.number().optional().describe("Expected dimensions to check"),
+    dimensions: z.coerce
+      .number()
+      .optional()
+      .describe("Expected dimensions to check"),
     schema: z.string().optional().describe("Database schema (default: public)"),
   });
 

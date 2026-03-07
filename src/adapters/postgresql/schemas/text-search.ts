@@ -87,7 +87,7 @@ export const TextSearchSchemaBase = z
       .optional()
       .describe("Text search config (default: english)"),
     select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z.number().optional().describe("Max results"),
+    limit: z.coerce.number().optional().describe("Max results"),
     schema: z.string().optional().describe("Schema name (default: public)"),
   })
   .refine((data) => data.table !== undefined || data.tableName !== undefined, {
@@ -103,14 +103,14 @@ export const TrigramSimilaritySchemaBase = z
     tableName: z.string().optional().describe("Table name (alias for table)"),
     column: z.string().describe("Column to compare"),
     value: z.string().describe("Value to compare against"),
-    threshold: z
+    threshold: z.coerce
       .number()
       .optional()
       .describe(
         "Similarity threshold (0-1, default 0.3; use 0.1-0.2 for partial matches)",
       ),
     select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Max results (default: 100 to prevent large payloads)"),
@@ -129,7 +129,7 @@ export const RegexpMatchSchemaBase = z
     pattern: z.string().describe("POSIX regex pattern"),
     flags: z.string().optional().describe("Regex flags (i, g, etc.)"),
     select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Max results (default: 100 to prevent large payloads)"),

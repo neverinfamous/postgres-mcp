@@ -46,10 +46,8 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         .boolean()
         .optional()
         .describe("Include INSERT statements for table data"),
-      limit: z
+      limit: z.coerce
         .number()
-        .int()
-        .min(0)
         .optional()
         .describe(
           "Maximum rows to include when includeData is true (default: 500, use 0 for all rows)",

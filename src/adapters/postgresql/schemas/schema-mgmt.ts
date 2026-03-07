@@ -24,11 +24,11 @@ export const CreateSequenceSchemaBase = z.object({
   name: z.string().optional().describe("Sequence name"),
   sequenceName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
-  start: z.number().optional().describe("Start value"),
-  increment: z.number().optional().describe("Increment by (default: 1)"),
-  minValue: z.number().optional().describe("Minimum value"),
-  maxValue: z.number().optional().describe("Maximum value"),
-  cache: z
+  start: z.coerce.number().optional().describe("Start value"),
+  increment: z.coerce.number().optional().describe("Increment by (default: 1)"),
+  minValue: z.coerce.number().optional().describe("Minimum value"),
+  maxValue: z.coerce.number().optional().describe("Maximum value"),
+  cache: z.coerce
     .number()
     .optional()
     .describe("Number of sequence values to pre-allocate (default: 1)"),
@@ -266,7 +266,7 @@ export const ListFunctionsSchemaBase = z.object({
     .string()
     .optional()
     .describe('Filter by language (e.g., "plpgsql", "sql", "c")'),
-  limit: z
+  limit: z.coerce
     .number()
     .optional()
     .describe(

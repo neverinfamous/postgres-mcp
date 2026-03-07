@@ -363,7 +363,7 @@ or active status. Only specify the parameters you want to change.`,
 function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
   const ListJobsSchema = z.object({
     active: z.boolean().optional().describe("Filter by active status"),
-    limit: z
+    limit: z.coerce
       .number()
       .optional()
       .describe("Maximum jobs to return (default: 50, use 0 for all)"),
@@ -404,7 +404,8 @@ function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
       sql += " ORDER BY jobid";
 
       // Get total count first if we're limiting
-      const limitVal = parsed.limit === 0 ? null : (parsed.limit ?? 50);
+      const limitRaw = parsed.limit;
+      const limitVal = limitRaw === 0 ? null : (limitRaw ?? 50);
       let totalCount: number | undefined;
 
       if (limitVal !== null) {
@@ -472,7 +473,13 @@ Useful for monitoring and debugging scheduled jobs.`,
     icons: getToolIcons("cron", readOnly("Cron Job Run Details")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { jobId, status, limit } = CronJobRunDetailsSchema.parse(params);
+        const { jobId, status, limit } = CronJobRunDetailsSchema.parse(
+          params,
+        ) as {
+          jobId?: number;
+          status?: string;
+          limit?: number;
+        };
 
         // Handler-level validation for status (relaxed from z.enum to z.string for structured errors)
         const VALID_STATUSES = ["running", "succeeded", "failed"];
@@ -614,8 +621,14 @@ from growing too large. By default, removes records older than 7 days.`,
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Use transformed schema for validation with alias support
-        const { olderThanDays, jobId } = CronCleanupHistorySchema.parse(params);
+        const { olderThanDays, jobId } = CronCleanupHistorySchema.parse(
+          params,
+        ) as {
+          olderThanDays?: number;
+          jobId?: number;
+        };
 
+        // Default to 7 days
         const days = olderThanDays ?? 7;
 
         // Handler-level validation for negative days (relaxed from z.min for structured errors)

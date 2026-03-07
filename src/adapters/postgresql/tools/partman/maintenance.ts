@@ -324,7 +324,7 @@ stale maintenance, and retention configuration.`,
           const raw = input as {
             table?: string;
             parentTable?: string;
-            limit?: number;
+            limit?: unknown;
           };
           const result = { ...raw };
 
@@ -345,7 +345,7 @@ stale maintenance, and retention configuration.`,
             .string()
             .optional()
             .describe("Specific parent table to analyze (all if omitted)"),
-          limit: z
+          limit: z.coerce
             .number()
             .optional()
             .describe(
@@ -366,7 +366,7 @@ stale maintenance, and retention configuration.`,
               const raw = input as {
                 table?: string;
                 parentTable?: string;
-                limit?: number;
+                limit?: unknown;
               };
               const result = { ...raw };
 
@@ -384,7 +384,7 @@ stale maintenance, and retention configuration.`,
             },
             z.object({
               parentTable: z.string().optional(),
-              limit: z.number().optional(),
+              limit: z.coerce.number().optional(),
             }),
           )
           .default({});

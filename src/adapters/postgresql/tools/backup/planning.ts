@@ -32,7 +32,7 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
         .enum(["hourly", "daily", "weekly"])
         .optional()
         .describe("Backup frequency (default: daily)"),
-      retention: z
+      retention: z.coerce
         .number()
         .optional()
         .describe("Number of backups to retain (default: 7)"),
@@ -45,7 +45,7 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
         // Parse params through schema to validate enum values
         const schema = z.object({
           frequency: z.enum(["hourly", "daily", "weekly"]).optional(),
-          retention: z.number().optional(),
+          retention: z.coerce.number().optional(),
         });
         const parsed = schema.parse(params);
         const freq = parsed.frequency ?? "daily";
@@ -227,7 +227,7 @@ export function createPhysicalBackupTool(
         .enum(["fast", "spread"])
         .optional()
         .describe("Checkpoint mode"),
-      compress: z.number().optional().describe("Compression level 0-9"),
+      compress: z.coerce.number().optional().describe("Compression level 0-9"),
     }),
     outputSchema: PhysicalBackupOutputSchema,
     annotations: readOnly("Physical Backup"),
@@ -241,7 +241,7 @@ export function createPhysicalBackupTool(
               targetDir: z.string().optional(),
               format: z.enum(["plain", "tar"]).optional(),
               checkpoint: z.enum(["fast", "spread"]).optional(),
-              compress: z.number().optional(),
+              compress: z.coerce.number().optional(),
             });
             const parsed = schema.parse(params);
 

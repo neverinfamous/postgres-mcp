@@ -1203,34 +1203,19 @@ describe("JSONB Validation and Error Paths", () => {
   });
 
   describe("wrong-type numeric param coercion", () => {
-    it("pg_jsonb_stats should coerce wrong-type sampleSize to default", async () => {
-      mockAdapter.executeQuery.mockResolvedValue({
-        rows: [
-          {
-            total_rows: 10,
-            non_null_count: 10,
-            avg_size_bytes: 50,
-            max_size_bytes: 100,
-          },
-        ],
-      });
-
+    it("pg_jsonb_stats should reject non-numeric sampleSize with validation error", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_stats")!;
       const result = (await tool.handler(
         { table: "users", column: "metadata", sampleSize: "abc" },
         mockContext,
       )) as Record<string, unknown>;
 
-      // Should not throw — wrong-type sampleSize is coerced to default
+      // z.coerce.number() rejects non-numeric strings with a structured validation error
       expect(result).toBeDefined();
-      expect(result.success).not.toBe(false);
+      expect(result.success).toBe(false);
     });
 
-    it("pg_jsonb_contains should coerce wrong-type limit to default", async () => {
-      mockAdapter.executeQuery.mockResolvedValue({
-        rows: [{ id: 1, metadata: { key: "value" } }],
-      });
-
+    it("pg_jsonb_contains should reject non-numeric limit with validation error", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_contains")!;
       const result = (await tool.handler(
         {
@@ -1242,9 +1227,9 @@ describe("JSONB Validation and Error Paths", () => {
         mockContext,
       )) as Record<string, unknown>;
 
-      // Should not throw — wrong-type limit is coerced to default (100)
+      // z.coerce.number() rejects non-numeric strings with a structured validation error
       expect(result).toBeDefined();
-      expect(result.success).not.toBe(false);
+      expect(result.success).toBe(false);
     });
   });
 });

@@ -505,7 +505,10 @@ export const ListPartitionsSchemaBase = z
     parentTable: z.string().optional().describe("Alias for table"),
     name: z.string().optional().describe("Alias for table"),
     schema: z.string().optional().describe("Schema name"),
-    limit: z.number().optional().describe("Maximum partitions to return"),
+    limit: z.coerce
+      .number()
+      .optional()
+      .describe("Maximum partitions to return"),
   })
   .refine(
     (data) =>

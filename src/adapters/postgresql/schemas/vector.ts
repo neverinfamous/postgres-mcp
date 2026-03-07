@@ -40,7 +40,7 @@ export const VectorSearchSchemaBase = z.object({
     .enum(["l2", "cosine", "inner_product"])
     .optional()
     .describe("Distance metric"),
-  limit: z.number().optional().describe("Number of results"),
+  limit: z.coerce.number().optional().describe("Number of results"),
   select: z
     .array(z.string())
     .optional()
@@ -94,9 +94,9 @@ export const VectorCreateIndexSchemaBase = z.object({
     .boolean()
     .optional()
     .describe("Skip if index already exists (default: false)"),
-  lists: z.number().optional().describe("Number of lists for IVFFlat"),
-  m: z.number().optional().describe("HNSW m parameter"),
-  efConstruction: z
+  lists: z.coerce.number().optional().describe("Number of lists for IVFFlat"),
+  m: z.coerce.number().optional().describe("HNSW m parameter"),
+  efConstruction: z.coerce
     .number()
     .optional()
     .describe("HNSW ef_construction parameter"),

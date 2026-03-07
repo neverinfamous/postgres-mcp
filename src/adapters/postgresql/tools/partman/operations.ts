@@ -211,7 +211,11 @@ Creates new partitions if needed for the data being moved.`,
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { parentTable, batchSize, lockWaitSeconds } =
-          PartmanPartitionDataSchema.parse(params);
+          PartmanPartitionDataSchema.parse(params) as {
+            parentTable?: string;
+            batchSize?: number;
+            lockWaitSeconds?: number;
+          };
 
         // parentTable is required - provide clear error if missing
         if (!parentTable) {

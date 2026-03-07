@@ -114,7 +114,16 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
           templateTable,
           epochType,
           defaultPartition,
-        } = PartmanCreateParentSchema.parse(params);
+        } = PartmanCreateParentSchema.parse(params) as {
+          parentTable?: string;
+          controlColumn?: string;
+          interval?: string;
+          premake?: number;
+          startPartition?: string;
+          templateTable?: string;
+          epochType?: string;
+          defaultPartition?: boolean;
+        };
 
         // Validate required parameters with clear error messages
         if (!parentTable || !controlColumn || !interval) {
@@ -520,10 +529,14 @@ export function createPartmanShowPartitionsTool(
     icons: getToolIcons("partman", readOnly("Show Partman Partitions")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = PartmanShowPartitionsSchema.parse(params);
+        const parsed = PartmanShowPartitionsSchema.parse(params) as {
+          parentTable?: string;
+          includeDefault?: boolean;
+          order?: string;
+          limit?: number;
+        };
         const { parentTable, includeDefault, order } = parsed;
-        const limit =
-          (parsed as { limit?: number }).limit ?? DEFAULT_PARTITION_LIMIT;
+        const limit = parsed.limit ?? DEFAULT_PARTITION_LIMIT;
 
         // parentTable is required - provide clear error if missing
         if (!parentTable) {

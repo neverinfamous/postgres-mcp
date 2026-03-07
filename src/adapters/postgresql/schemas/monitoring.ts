@@ -24,7 +24,7 @@ export const DatabaseSizeSchema = z.preprocess(
 
 export const TableSizesSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
-  limit: z.number().optional().describe("Max tables to return"),
+  limit: z.coerce.number().optional().describe("Max tables to return"),
 });
 
 export const TableSizesSchema = z.preprocess(
@@ -45,7 +45,7 @@ export const ShowSettingsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Alias for pattern - setting name or pattern"),
-  limit: z
+  limit: z.coerce
     .number()
     .optional()
     .describe("Max settings to return (default: 50 when no pattern specified)"),

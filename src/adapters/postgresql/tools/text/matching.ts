@@ -53,13 +53,15 @@ export function createTrigramSimilarityTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = TrigramSimilaritySchema.parse(params);
+        // Coerce numeric params: wrong-type values silently default
         const thresh = parsed.threshold ?? 0.3;
         // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitRaw = parsed.limit;
         const limitVal =
-          parsed.limit === 0
+          limitRaw === 0
             ? null
-            : parsed.limit !== undefined && parsed.limit > 0
-              ? parsed.limit
+            : limitRaw !== undefined && limitRaw > 0
+              ? limitRaw
               : 100;
         const limitClause =
           limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
@@ -136,14 +138,14 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         .describe(
           "Fuzzy match method (default: levenshtein). Valid: soundex, levenshtein, metaphone",
         ),
-      maxDistance: z
+      maxDistance: z.coerce
         .number()
         .optional()
         .describe(
           "Max Levenshtein distance (default: 3, use 5+ for longer strings)",
         ),
       select: z.array(z.string()).optional().describe("Columns to return"),
-      limit: z
+      limit: z.coerce
         .number()
         .optional()
         .describe("Max results (default: 100 to prevent large payloads)"),
@@ -193,11 +195,12 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
 
         const maxDist = parsed.maxDistance ?? 3;
         // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitRaw = parsed.limit;
         const limitVal =
-          parsed.limit === 0
+          limitRaw === 0
             ? null
-            : parsed.limit !== undefined && parsed.limit > 0
-              ? parsed.limit
+            : limitRaw !== undefined && limitRaw > 0
+              ? limitRaw
               : 100;
         const limitClause =
           limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
@@ -298,11 +301,12 @@ export function createRegexpMatchTool(
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
         // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitRaw = parsed.limit;
         const limitVal =
-          parsed.limit === 0
+          limitRaw === 0
             ? null
-            : parsed.limit !== undefined && parsed.limit > 0
-              ? parsed.limit
+            : limitRaw !== undefined && limitRaw > 0
+              ? limitRaw
               : 100;
         const limitClause =
           limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
@@ -356,7 +360,7 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         .optional()
         .describe("Use case-sensitive LIKE (default: false, uses ILIKE)"),
       select: z.array(z.string()).optional(),
-      limit: z
+      limit: z.coerce
         .number()
         .optional()
         .describe("Max results (default: 100 to prevent large payloads)"),
@@ -408,11 +412,12 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
         // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitRaw = parsed.limit;
         const limitVal =
-          parsed.limit === 0
+          limitRaw === 0
             ? null
-            : parsed.limit !== undefined && parsed.limit > 0
-              ? parsed.limit
+            : limitRaw !== undefined && limitRaw > 0
+              ? limitRaw
               : 100;
         const limitClause =
           limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";

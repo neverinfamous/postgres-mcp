@@ -132,7 +132,7 @@ export const PartmanCreateParentSchemaBase = z.object({
     .describe(
       'Partition interval using PostgreSQL syntax (e.g., "1 month", "1 day", "1 week", "10000" for integer). Required.',
     ),
-  premake: z
+  premake: z.coerce
     .number()
     .optional()
     .describe("Number of partitions to create in advance (default: 4)"),
@@ -196,7 +196,7 @@ export const PartmanShowPartitionsSchemaBase = z.object({
     .enum(["asc", "desc"])
     .optional()
     .describe("Order of partitions by boundary"),
-  limit: z
+  limit: z.coerce
     .number()
     .optional()
     .describe(
@@ -217,7 +217,7 @@ export const PartmanShowConfigSchemaBase = z.object({
     .string()
     .optional()
     .describe("Parent table name (all configs if omitted)"),
-  limit: z
+  limit: z.coerce
     .number()
     .optional()
     .describe(
@@ -257,11 +257,11 @@ export const PartmanPartitionDataSchemaBase = z.object({
     .describe(
       "Parent table name (schema.table format). Required - specify table to partition data.",
     ),
-  batchSize: z
+  batchSize: z.coerce
     .number()
     .optional()
     .describe("Rows to move per batch (default: varies by function)"),
-  lockWaitSeconds: z
+  lockWaitSeconds: z.coerce
     .number()
     .optional()
     .describe("Lock wait timeout in seconds"),
@@ -314,7 +314,7 @@ export const PartmanUndoPartitionSchemaBase = z.object({
     .describe(
       "Target table for consolidated data. Must exist before calling. Alias: target. Required.",
     ),
-  batchSize: z.number().optional().describe("Rows to move per batch"),
+  batchSize: z.coerce.number().optional().describe("Rows to move per batch"),
   keepTable: z
     .boolean()
     .optional()

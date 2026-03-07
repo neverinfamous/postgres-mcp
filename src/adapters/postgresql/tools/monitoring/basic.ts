@@ -89,7 +89,10 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Table Sizes"),
     icons: getToolIcons("monitoring", readOnly("Table Sizes")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { schema, limit } = TableSizesSchema.parse(params);
+      const { schema, limit } = TableSizesSchema.parse(params) as {
+        schema?: string;
+        limit?: number;
+      };
 
       // P154: Validate schema existence before querying
       if (schema) {
@@ -319,7 +322,10 @@ export function createShowSettingsTool(
     annotations: readOnly("Show Settings"),
     icons: getToolIcons("monitoring", readOnly("Show Settings")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { pattern, limit } = ShowSettingsSchema.parse(params);
+      const { pattern, limit } = ShowSettingsSchema.parse(params) as {
+        pattern?: string;
+        limit?: number;
+      };
 
       // Auto-detect if user passed exact name vs LIKE pattern
       // If no wildcards, try exact match first, fall back to LIKE with wildcards

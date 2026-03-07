@@ -467,10 +467,23 @@ export function createMigrationRollbackTool(
           };
         }
 
+        // Coerce id: functional param, return error on wrong type
+        let coercedId: number | undefined;
+        if (parsed.id !== undefined) {
+          const num = parsed.id;
+          if (isNaN(num)) {
+            return {
+              success: false,
+              error: `Invalid migration id: expected a number, got "${String(parsed.id)}"`,
+            };
+          }
+          coercedId = num;
+        }
+
         // Find the migration
         const whereClause =
-          parsed.id !== undefined ? "id = $1" : "version = $1";
-        const whereValue = parsed.id ?? parsed.version;
+          coercedId !== undefined ? "id = $1" : "version = $1";
+        const whereValue = coercedId ?? parsed.version;
 
         const findResult = await adapter.executeQuery(
           `SELECT * FROM ${TRACKING_TABLE} WHERE ${whereClause} ORDER BY id DESC LIMIT 1`,
@@ -480,8 +493,8 @@ export function createMigrationRollbackTool(
         const findRows = findResult.rows ?? [];
         if (findRows.length === 0) {
           const identifier =
-            parsed.id !== undefined
-              ? `id ${String(parsed.id)}`
+            coercedId !== undefined
+              ? `id ${String(coercedId)}`
               : `version "${parsed.version ?? ""}"`;
           return {
             success: false,
@@ -580,6 +593,7 @@ export function createMigrationHistoryTool(
         const parsed = MigrationHistorySchema.parse(params);
         await ensureTrackingTable(adapter);
 
+        // Coerce limit/offset: wrong-type values silently default
         const limit = parsed.limit ?? 50;
         const offset = parsed.offset ?? 0;
 

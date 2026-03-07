@@ -84,11 +84,12 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
         // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitRaw = parsed.limit;
         const limitVal =
-          parsed.limit === 0
+          limitRaw === 0
             ? null
-            : parsed.limit !== undefined && parsed.limit > 0
-              ? parsed.limit
+            : limitRaw !== undefined && limitRaw > 0
+              ? limitRaw
               : 100;
         const limitClause =
           limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
@@ -146,9 +147,9 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         .describe("Multiple columns to search (alternative to column)"),
       query: z.string(),
       config: z.string().optional(),
-      normalization: z.number().optional(),
+      normalization: z.coerce.number().optional(),
       select: z.array(z.string()).optional().describe("Columns to return"),
-      limit: z.number().optional().describe("Max results"),
+      limit: z.coerce.number().optional().describe("Max results"),
       schema: z.string().optional().describe("Schema name (default: public)"),
     })
     .refine(
@@ -207,11 +208,12 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
         // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitRaw = parsed.limit;
         const limitVal =
-          parsed.limit === 0
+          limitRaw === 0
             ? null
-            : parsed.limit !== undefined && parsed.limit > 0
-              ? parsed.limit
+            : limitRaw !== undefined && limitRaw > 0
+              ? limitRaw
               : 100;
         const limitClause =
           limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
@@ -281,13 +283,19 @@ export function createTextHeadlineTool(
         .string()
         .optional()
         .describe("Stop selection marker (default: </b>)"),
-      maxWords: z.number().optional().describe("Maximum words in headline"),
-      minWords: z.number().optional().describe("Minimum words in headline"),
+      maxWords: z.coerce
+        .number()
+        .optional()
+        .describe("Maximum words in headline"),
+      minWords: z.coerce
+        .number()
+        .optional()
+        .describe("Minimum words in headline"),
       select: z
         .array(z.string())
         .optional()
         .describe('Columns to return for row identification (e.g., ["id"])'),
-      limit: z.number().optional().describe("Max results"),
+      limit: z.coerce.number().optional().describe("Max results"),
       schema: z.string().optional().describe("Schema name (default: public)"),
     })
     .refine(
@@ -343,11 +351,12 @@ export function createTextHeadlineTool(
             ? sanitizeIdentifiers(parsed.select).join(", ") + ", "
             : "";
         // Default limit to 100 to prevent large payloads; limit: 0 means no limit
+        const limitRaw = parsed.limit;
         const limitVal =
-          parsed.limit === 0
+          limitRaw === 0
             ? null
-            : parsed.limit !== undefined && parsed.limit > 0
-              ? parsed.limit
+            : limitRaw !== undefined && limitRaw > 0
+              ? limitRaw
               : 100;
         const limitClause =
           limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";

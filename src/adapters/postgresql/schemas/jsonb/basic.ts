@@ -194,7 +194,10 @@ export const JsonbExtractSchemaBase = z.object({
     ),
   where: z.string().optional().describe("WHERE clause"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.any().optional().describe("Maximum number of rows to return"),
+  limit: z.coerce
+    .number()
+    .optional()
+    .describe("Maximum number of rows to return"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
@@ -296,8 +299,8 @@ export const JsonbContainsSchemaBase = z.object({
     .describe("Columns to select in result"),
   where: z.string().optional().describe("Additional WHERE clause filter"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z
-    .any()
+  limit: z.coerce
+    .number()
     .optional()
     .describe(
       "Maximum number of rows to return (default: 100). Use 0 for all rows.",
@@ -338,8 +341,8 @@ export const JsonbPathQuerySchemaBase = z.object({
     .describe("Variables for JSONPath (access with $var_name)"),
   where: z.string().optional().describe("WHERE clause"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z
-    .any()
+  limit: z.coerce
+    .number()
     .optional()
     .describe(
       "Maximum number of results to return (default: 100). Use 0 for all results.",
@@ -567,7 +570,10 @@ export const JsonbAggSchemaBase = z.object({
     .string()
     .optional()
     .describe('ORDER BY clause (e.g., "id DESC", "name ASC")'),
-  limit: z.any().optional().describe("Maximum number of rows to aggregate"),
+  limit: z.coerce
+    .number()
+    .optional()
+    .describe("Maximum number of rows to aggregate"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 

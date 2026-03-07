@@ -196,7 +196,7 @@ export function createListSequencesTool(
     inputSchema: z
       .object({
         schema: z.string().optional(),
-        limit: z
+        limit: z.coerce
           .number()
           .optional()
           .describe(

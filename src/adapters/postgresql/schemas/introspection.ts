@@ -277,7 +277,7 @@ export const MigrationApplySchema = MigrationRecordParseSchema;
  * pg_migration_rollback input
  */
 export const MigrationRollbackSchemaBase = z.object({
-  id: z.number().optional().describe("Migration ID to roll back"),
+  id: z.coerce.number().optional().describe("Migration ID to roll back"),
   version: z
     .string()
     .optional()
@@ -301,11 +301,14 @@ export const MigrationHistorySchemaBase = z.object({
     .optional()
     .describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
-  limit: z
+  limit: z.coerce
     .number()
     .optional()
     .describe("Maximum records to return (default: 50)"),
-  offset: z.number().optional().describe("Offset for pagination (default: 0)"),
+  offset: z.coerce
+    .number()
+    .optional()
+    .describe("Offset for pagination (default: 0)"),
 });
 
 export const MigrationHistorySchema = MigrationHistorySchemaBase.default({});
