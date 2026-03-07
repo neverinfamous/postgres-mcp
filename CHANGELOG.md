@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Env var comment mismatch in `PostgresAdapter.ts`** — Fixed `CACHE_TTL_MS` → `METADATA_CACHE_TTL_MS` to match the actual environment variable used in the code
 - **Typo in `cli.ts`** — Fixed `ALWAYSS` → `ALWAYS` in comment
 - **`cli/args.ts` missing purpose documentation** — Added file-header comment clarifying this is a test-only standalone parser (production entry point is `cli.ts` with Commander.js)
+- **Stale protocol version in `http.ts` root endpoint** — Fixed `MCP 2025-03-26` → `MCP 2025-11-25` in the root info JSON response to match the actual protocol version used by the Streamable HTTP transport
+- **Duplicate console serialization in `sandbox.ts`** — Extracted shared `formatConsoleArgs()` helper to replace 4× identical `args.map(a => typeof a === "object" ...` blocks in `console.log`/`warn`/`error`/`info` handlers
+- **`http.ts` `maxBodySize` magic number fallbacks** — Replaced 2× redundant `?? 1048576` fallbacks with `?? HttpTransport.DEFAULT_MAX_BODY_SIZE` named constant. The constructor already guarantees `maxBodySize` is set, but the fallbacks remain for type safety
 
 - **`schema.ts` modular refactoring** — Split monolithic `schema.ts` (1083 lines, 12 tools) into `schema/objects.ts` (6 tools: schemas, sequences) and `schema/views.ts` (6 tools: views, functions, triggers, constraints). Created `schema/index.ts` barrel file aggregating exports. Updated `PostgresAdapter.ts` import path. No functional changes
 - **`monitoring.ts` modular refactoring** — Split monolithic `monitoring.ts` (941 lines, 11 tools) into `monitoring/basic.ts` (8 tools: database size, table sizes, connections, replication, version, settings, uptime, recovery) and `monitoring/analysis.ts` (3 tools: capacity planning, resource usage, alert thresholds). Created `monitoring/index.ts` barrel file aggregating exports. Updated `PostgresAdapter.ts` import path. No functional changes
@@ -70,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hardened TruffleHog CI Workflow** — Modified `secrets-scanning.yml` by removing `continue-on-error: true` (making it a hard gate), removing the `--only-verified` flag to catch unverified but real leaks, and pinning the action to a specific version (`v3.88.10`) instead of `@main` to mitigate supply chain risks.
 - **`introspection` Scope Mapping** — Updated the `introspection` tool group in `scopes.ts` to require `SCOPES.READ` instead of `SCOPES.WRITE` to correctly align with its read-only analysis definition.
 - **Query Validation Documentation** — Added explanatory documentation to `validateQuery` in `DatabaseAdapter.ts` detailing the deliberate separation of concerns and differential strictness between full-query validation and `where-clause.ts` fragment validation.
+- **`Referrer-Policy` security header** — Added `Referrer-Policy: no-referrer` to the HTTP transport's security headers, preventing referrer leakage from API responses. Consistent with the March 2026 security standard established in db-mcp
 - **NPM Audit Remediation** — Patched high severity vulnerabilities in transitive dependencies
   - `@hono/node-server`: updated to 1.19.11
   - `hono`: updated to 4.12.5

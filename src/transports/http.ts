@@ -291,7 +291,8 @@ export class HttpTransport {
       return undefined;
     }
 
-    const maxBodySize = this.config.maxBodySize ?? 1048576;
+    const maxBodySize =
+      this.config.maxBodySize ?? HttpTransport.DEFAULT_MAX_BODY_SIZE;
 
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
@@ -369,7 +370,8 @@ export class HttpTransport {
 
     // Check body size — fast rejection via Content-Length header.
     // Streaming byte tracking for spoofed/missing headers is handled inside readBody().
-    const maxBodySize = this.config.maxBodySize ?? 1048576;
+    const maxBodySize =
+      this.config.maxBodySize ?? HttpTransport.DEFAULT_MAX_BODY_SIZE;
     const contentLength = parseInt(req.headers["content-length"] ?? "0", 10);
     if (contentLength > maxBodySize) {
       res.writeHead(413, { "Content-Type": "application/json" });
@@ -708,7 +710,7 @@ export class HttpTransport {
         name: "postgres-mcp",
         description: "PostgreSQL MCP Server with dual HTTP transport",
         endpoints: {
-          "POST /mcp": "JSON-RPC requests (Streamable HTTP, MCP 2025-03-26)",
+          "POST /mcp": "JSON-RPC requests (Streamable HTTP, MCP 2025-11-25)",
           "GET /mcp": "SSE stream for server-to-client notifications",
           "DELETE /mcp": "Session termination",
           "GET /sse": "Legacy SSE connection (MCP 2024-11-05)",
@@ -744,6 +746,8 @@ export class HttpTransport {
       "Permissions-Policy",
       "camera=(), microphone=(), geolocation=()",
     );
+    // Prevent referrer leakage — API server does not need referrers
+    res.setHeader("Referrer-Policy", "no-referrer");
 
     // HTTP Strict Transport Security (for HTTPS deployments)
     if (this.config.enableHSTS) {

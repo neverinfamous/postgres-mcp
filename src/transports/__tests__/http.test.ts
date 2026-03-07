@@ -688,6 +688,10 @@ describe("HttpTransport", () => {
         "nosniff",
       );
       expect(res.setHeader).toHaveBeenCalledWith("X-Frame-Options", "DENY");
+      expect(res.setHeader).toHaveBeenCalledWith(
+        "Referrer-Policy",
+        "no-referrer",
+      );
     });
   });
 

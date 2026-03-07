@@ -61,53 +61,25 @@ export class CodeModeSandbox {
     // Create a shared log buffer that will be used by both sandbox console and instance
     const sharedLogBuffer: string[] = [];
 
+    // Serialize console arguments: objects → JSON, primitives → String
+    const formatConsoleArgs = (args: unknown[]): string =>
+      args
+        .map((a) =>
+          typeof a === "object" && a !== null ? JSON.stringify(a) : String(a),
+        )
+        .join(" ");
+
     // Create a minimal sandbox context
     const sandbox = {
       console: {
-        log: (...args: unknown[]) => {
-          sharedLogBuffer.push(
-            args
-              .map((a) =>
-                typeof a === "object" && a !== null
-                  ? JSON.stringify(a)
-                  : String(a),
-              )
-              .join(" "),
-          );
-        },
+        log: (...args: unknown[]) =>
+          sharedLogBuffer.push(formatConsoleArgs(args)),
         warn: (...args: unknown[]) =>
-          sharedLogBuffer.push(
-            "[WARN] " +
-              args
-                .map((a) =>
-                  typeof a === "object" && a !== null
-                    ? JSON.stringify(a)
-                    : String(a),
-                )
-                .join(" "),
-          ),
+          sharedLogBuffer.push("[WARN] " + formatConsoleArgs(args)),
         error: (...args: unknown[]) =>
-          sharedLogBuffer.push(
-            "[ERROR] " +
-              args
-                .map((a) =>
-                  typeof a === "object" && a !== null
-                    ? JSON.stringify(a)
-                    : String(a),
-                )
-                .join(" "),
-          ),
+          sharedLogBuffer.push("[ERROR] " + formatConsoleArgs(args)),
         info: (...args: unknown[]) =>
-          sharedLogBuffer.push(
-            "[INFO] " +
-              args
-                .map((a) =>
-                  typeof a === "object" && a !== null
-                    ? JSON.stringify(a)
-                    : String(a),
-                )
-                .join(" "),
-          ),
+          sharedLogBuffer.push("[INFO] " + formatConsoleArgs(args)),
       },
       // No access to Node.js globals
       require: undefined,
