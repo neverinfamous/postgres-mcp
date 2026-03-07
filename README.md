@@ -163,9 +163,6 @@ This exposes just `pg_execute_code`. The agent writes JavaScript against the typ
 >
 > For maximum savings, use `--tool-filter codemode` to run with Code Mode as your only tool. See the [Code Mode wiki](https://github.com/neverinfamous/postgres-mcp/wiki/Code-Mode) for full API documentation.
 
-> [!NOTE]
-> **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage in AntiGravity, manually provide the contents of [`src/constants/ServerInstructions.ts`](src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
-
 #### Disabling Code Mode (Non-Admin Users)
 
 If you don't have admin access or prefer individual tool calls, exclude codemode:

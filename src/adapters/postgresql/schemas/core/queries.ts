@@ -243,6 +243,7 @@ export const CreateTableSchemaBase = z.object({
           ),
       }),
     )
+    .optional()
     .describe("Column definitions"),
   primaryKey: z
     .array(z.string())
@@ -324,7 +325,7 @@ export const CreateTableSchema = z
   .transform((data) => ({
     name: data.table ?? data.tableName ?? data.name ?? "",
     schema: data.schema,
-    columns: data.columns.map((col) => {
+    columns: (data.columns ?? []).map((col) => {
       // Parse string references like 'users(id)' → {table: 'users', column: 'id'}
       type RefType =
         | {
@@ -417,7 +418,7 @@ export const CreateTableSchema = z
   .refine((data) => data.name !== "", {
     message: "name (or table alias) is required",
   })
-  .refine((data) => data.columns.length > 0, {
+  .refine((data) => data.columns !== undefined && data.columns.length > 0, {
     message: "columns must not be empty",
   });
 

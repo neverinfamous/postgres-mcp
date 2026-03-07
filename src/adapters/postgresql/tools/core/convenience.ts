@@ -439,98 +439,111 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Upsert"),
     icons: getToolIcons("core", write("Upsert")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = UpsertSchema.parse(params);
-      const schemaName = parsed.schema ?? "public";
-      const validationError = await validateTableExists(
-        adapter,
-        parsed.table,
-        schemaName,
-      );
-      if (validationError) {
-        return { success: false, error: validationError };
-      }
-      const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
-
-      const columns = Object.keys(parsed.data);
-      const values = Object.values(parsed.data);
-
-      // Build INSERT clause
-      const columnList = columns.map((c) => `"${c}"`).join(", ");
-      const placeholders = columns
-        .map((_, i) => `$${String(i + 1)}`)
-        .join(", ");
-
-      // Build ON CONFLICT clause
-      const conflictCols = parsed.conflictColumns
-        .map((c) => `"${c}"`)
-        .join(", ");
-
-      // Determine columns to update (default: all except conflict columns)
-      const updateCols =
-        parsed.updateColumns ??
-        columns.filter((c) => !parsed.conflictColumns.includes(c));
-
-      let conflictAction: string;
-      if (updateCols.length === 0) {
-        // No columns to update, just do nothing
-        conflictAction = "DO NOTHING";
-      } else {
-        const updateSet = updateCols
-          .map((c) => `"${c}" = EXCLUDED."${c}"`)
-          .join(", ");
-        conflictAction = `DO UPDATE SET ${updateSet}`;
-      }
-
-      // Build RETURNING clause - always include xmax to detect insert vs update
-      const returningCols = parsed.returning ?? [];
-      const hasReturning = returningCols.length > 0;
-      // Always add xmax to detect if it was insert (xmax=0) or update (xmax>0)
-      const xmaxClause = "xmax::text::int as _xmax";
-      const returningClause = hasReturning
-        ? ` RETURNING ${returningCols.map((c) => `"${c}"`).join(", ")}, ${xmaxClause}`
-        : ` RETURNING ${xmaxClause}`;
-
-      const sql = `INSERT INTO ${qualifiedTable} (${columnList}) VALUES (${placeholders}) ON CONFLICT (${conflictCols}) ${conflictAction}${returningClause}`;
-
       try {
-        const result = await adapter.executeQuery(sql, values);
-        // Determine if it was an insert or update from xmax
-        // xmax = 0 means INSERT, xmax > 0 means UPDATE
-        const firstRow = result.rows?.[0];
-        const xmaxValue = Number(firstRow?.["_xmax"] ?? 0);
-        const operation = xmaxValue === 0 ? "insert" : "update";
-
-        // Remove _xmax from returned rows if not explicitly requested
-        const cleanedRows = result.rows?.map((row) => {
-          return Object.fromEntries(
-            Object.entries(row).filter(([key]) => key !== "_xmax"),
-          );
-        });
-
-        return {
-          success: true,
-          operation, // 'insert' or 'update'
-          rowsAffected: result.rowsAffected ?? 0,
-          affectedRows: result.rowsAffected ?? 0, // Alias for common API naming
-          rowCount: 1, // Upsert always affects one row
-          // Only include rows when RETURNING clause was explicitly requested
-          ...(hasReturning &&
-            cleanedRows &&
-            cleanedRows.length > 0 && { rows: cleanedRows }),
-        };
-      } catch (error: unknown) {
-        // Provide clearer error message for constraint issues
-        if (error instanceof Error) {
-          const msg = error.message.toLowerCase();
-          if (msg.includes("no unique or exclusion constraint")) {
-            throw new Error(
-              `conflictColumns [${parsed.conflictColumns.join(", ")}] must reference columns with a UNIQUE constraint or PRIMARY KEY. ` +
-                `Create a unique constraint first: ALTER TABLE ${qualifiedTable} ADD CONSTRAINT unique_name UNIQUE (${conflictCols})`,
-              { cause: error },
-            );
-          }
+        const parsed = UpsertSchema.parse(params);
+        const schemaName = parsed.schema ?? "public";
+        const validationError = await validateTableExists(
+          adapter,
+          parsed.table,
+          schemaName,
+        );
+        if (validationError) {
+          return { success: false, error: validationError };
         }
-        throw error;
+        const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
+
+        const columns = Object.keys(parsed.data);
+        const values = Object.values(parsed.data);
+
+        // Build INSERT clause
+        const columnList = columns.map((c) => `"${c}"`).join(", ");
+        const placeholders = columns
+          .map((_, i) => `$${String(i + 1)}`)
+          .join(", ");
+
+        // Build ON CONFLICT clause
+        const conflictCols = parsed.conflictColumns
+          .map((c) => `"${c}"`)
+          .join(", ");
+
+        // Determine columns to update (default: all except conflict columns)
+        const updateCols =
+          parsed.updateColumns ??
+          columns.filter((c) => !parsed.conflictColumns.includes(c));
+
+        let conflictAction: string;
+        if (updateCols.length === 0) {
+          // No columns to update, just do nothing
+          conflictAction = "DO NOTHING";
+        } else {
+          const updateSet = updateCols
+            .map((c) => `"${c}" = EXCLUDED."${c}"`)
+            .join(", ");
+          conflictAction = `DO UPDATE SET ${updateSet}`;
+        }
+
+        // Build RETURNING clause - always include xmax to detect insert vs update
+        const returningCols = parsed.returning ?? [];
+        const hasReturning = returningCols.length > 0;
+        // Always add xmax to detect if it was insert (xmax=0) or update (xmax>0)
+        const xmaxClause = "xmax::text::int as _xmax";
+        const returningClause = hasReturning
+          ? ` RETURNING ${returningCols.map((c) => `"${c}"`).join(", ")}, ${xmaxClause}`
+          : ` RETURNING ${xmaxClause}`;
+
+        const sql = `INSERT INTO ${qualifiedTable} (${columnList}) VALUES (${placeholders}) ON CONFLICT (${conflictCols}) ${conflictAction}${returningClause}`;
+
+        try {
+          const result = await adapter.executeQuery(sql, values);
+          // Determine if it was an insert or update from xmax
+          // xmax = 0 means INSERT, xmax > 0 means UPDATE
+          const firstRow = result.rows?.[0];
+          const xmaxValue = Number(firstRow?.["_xmax"] ?? 0);
+          const operation = xmaxValue === 0 ? "insert" : "update";
+
+          // Remove _xmax from returned rows if not explicitly requested
+          const cleanedRows = result.rows?.map((row) => {
+            return Object.fromEntries(
+              Object.entries(row).filter(([key]) => key !== "_xmax"),
+            );
+          });
+
+          return {
+            success: true,
+            operation, // 'insert' or 'update'
+            rowsAffected: result.rowsAffected ?? 0,
+            affectedRows: result.rowsAffected ?? 0, // Alias for common API naming
+            rowCount: 1, // Upsert always affects one row
+            // Only include rows when RETURNING clause was explicitly requested
+            ...(hasReturning &&
+              cleanedRows &&
+              cleanedRows.length > 0 && { rows: cleanedRows }),
+          };
+        } catch (error: unknown) {
+          // Provide clearer error message for constraint issues
+          if (error instanceof Error) {
+            const msg = error.message.toLowerCase();
+            if (msg.includes("no unique or exclusion constraint")) {
+              return {
+                success: false,
+                error:
+                  `conflictColumns [${parsed.conflictColumns.join(", ")}] must reference columns with a UNIQUE constraint or PRIMARY KEY. ` +
+                  `Create a unique constraint first: ALTER TABLE ${qualifiedTable} ADD CONSTRAINT unique_name UNIQUE (${conflictCols})`,
+              };
+            }
+          }
+          return {
+            success: false,
+            error: formatPostgresError(error, {
+              tool: "pg_upsert",
+              table: parsed.table,
+              schema: schemaName,
+            }),
+          };
+        }
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { success: false, error: message };
       }
     },
   };

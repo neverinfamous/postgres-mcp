@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`schema.ts` modular refactoring** — Split monolithic `schema.ts` (1083 lines, 12 tools) into `schema/objects.ts` (6 tools: schemas, sequences) and `schema/views.ts` (6 tools: views, functions, triggers, constraints). Created `schema/index.ts` barrel file aggregating exports. Updated `PostgresAdapter.ts` import path. No functional changes
 - **`monitoring.ts` modular refactoring** — Split monolithic `monitoring.ts` (941 lines, 11 tools) into `monitoring/basic.ts` (8 tools: database size, table sizes, connections, replication, version, settings, uptime, recovery) and `monitoring/analysis.ts` (3 tools: capacity planning, resource usage, alert thresholds). Created `monitoring/index.ts` barrel file aggregating exports. Updated `PostgresAdapter.ts` import path. No functional changes
 
+### Fixed
+
+- **`pg_create_table({})` raw MCP -32602 Zod error** — `pg_create_table({})` now returns `{success: false, error: "columns must not be empty"}` (structured handler response) instead of a raw MCP `-32602` Zod validation error. Root cause: `CreateTableSchemaBase` had `columns` as a required `z.array(...)` field, causing MCP framework input validation to reject `{}` before the handler's `try/catch` could intercept. Made `columns` optional in the base schema; the handler's `.refine()` still enforces that columns are provided and non-empty. Updated transform to use `?? []` fallback for the optional field
+- **`pg_list_objects({type: "invalid_type"})` raw MCP output validation error** — `pg_list_objects({type: "invalid_type"})` now returns `{success: false, error: "..."}` (structured handler response) instead of a raw MCP `-32602` output validation error. Root cause: `ObjectListOutputSchema` had `objects` and `count` as required fields without `success`/`error` fields, so when the handler's `catch` block returned `{success: false, error: "..."}`, the MCP SDK's output validation rejected it. Made `objects` and `count` optional, added `success`, `error`, and `byType` fields to match the handler's actual return shapes
+
 ### Performance
 
 - **`logger.ts` `writeToStderr` optimization** — Replaced O(n) char-by-char taint-breaking loop (array alloc + N pushes + join) with `slice(0)` which breaks the CodeQL taint chain without per-character allocation
