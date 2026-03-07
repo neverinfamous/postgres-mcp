@@ -99,15 +99,18 @@ export function createJsonbExtractTool(
           : "";
         const limitClause =
           parsed.limit !== undefined ? ` LIMIT ${String(parsed.limit)}` : "";
-        // Use normalizePathToArray for PostgreSQL #> operator
-        const pathArray = normalizePathToArray(parsed.path);
 
-        // After preprocess and refine, table and column are guaranteed set
+        // After preprocess and refine, table, column, and path are guaranteed set
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
         if (!table || !column) {
           return { success: false, error: "table and column are required" };
         }
+        if (parsed.path === undefined) {
+          return { success: false, error: "path is required" };
+        }
+        // Use normalizePathToArray for PostgreSQL #> operator
+        const pathArray = normalizePathToArray(parsed.path);
 
         // Validate schema and build qualified table name
         const [qualifiedTable, tableError] = await resolveJsonbTable(

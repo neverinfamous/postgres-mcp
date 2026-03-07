@@ -11,130 +11,134 @@ import { preprocessJsonbParams } from "./basic.js";
 
 // ============== NORMALIZE SCHEMA ==============
 // Base schema (for MCP inputSchema visibility - no preprocess)
-export const JsonbNormalizeSchemaBase = z
-  .object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional().describe("JSONB column"),
-    col: z.string().optional().describe("JSONB column (alias for column)"),
-    mode: z
-      .enum(["keys", "array", "pairs", "flatten"])
-      .optional()
-      .describe(
-        "keys: text values (all converted to string). pairs: JSONB types preserved. array: for arrays. flatten: recursive.",
-      ),
-    where: z.string().optional().describe("WHERE clause"),
-    filter: z.string().optional().describe("WHERE clause (alias for where)"),
-    idColumn: z
-      .string()
-      .optional()
-      .describe(
-        'Column to use for row identification (e.g., "id"). If omitted, defaults to "id" if it exists, else uses ctid.',
-      ),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  })
-  .refine((data) => data.table !== undefined || data.tableName !== undefined, {
-    message: "Either 'table' or 'tableName' is required",
-  })
-  .refine((data) => data.column !== undefined || data.col !== undefined, {
-    message: "Either 'column' or 'col' is required",
-  });
+export const JsonbNormalizeSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional().describe("JSONB column"),
+  col: z.string().optional().describe("JSONB column (alias for column)"),
+  mode: z
+    .enum(["keys", "array", "pairs", "flatten"])
+    .optional()
+    .describe(
+      "keys: text values (all converted to string). pairs: JSONB types preserved. array: for arrays. flatten: recursive.",
+    ),
+  where: z.string().optional().describe("WHERE clause"),
+  filter: z.string().optional().describe("WHERE clause (alias for where)"),
+  idColumn: z
+    .string()
+    .optional()
+    .describe(
+      'Column to use for row identification (e.g., "id"). If omitted, defaults to "id" if it exists, else uses ctid.',
+    ),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+// Internal schema with refine (for handler validation)
+const JsonbNormalizeSchemaRefined = JsonbNormalizeSchemaBase.refine(
+  (data) => data.table !== undefined || data.tableName !== undefined,
+  { message: "Either 'table' or 'tableName' is required" },
+).refine((data) => data.column !== undefined || data.col !== undefined, {
+  message: "Either 'column' or 'col' is required",
+});
 
 // Full schema with preprocess (for handler parsing)
 export const JsonbNormalizeSchema = z.preprocess(
   preprocessJsonbParams,
-  JsonbNormalizeSchemaBase,
+  JsonbNormalizeSchemaRefined,
 );
 
 // ============== STATS SCHEMA ==============
 // Base schema (for MCP inputSchema visibility - no preprocess)
-export const JsonbStatsSchemaBase = z
-  .object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional().describe("JSONB column"),
-    col: z.string().optional().describe("JSONB column (alias for column)"),
-    sampleSize: z.number().optional().describe("Sample rows to analyze"),
-    where: z.string().optional().describe("WHERE clause to filter rows"),
-    filter: z
-      .string()
-      .optional()
-      .describe("WHERE clause to filter rows (alias for where)"),
-    topKeysLimit: z
-      .number()
-      .optional()
-      .describe("Maximum number of top keys to return (default: 20)"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  })
-  .refine((data) => data.table !== undefined || data.tableName !== undefined, {
-    message: "Either 'table' or 'tableName' is required",
-  })
-  .refine((data) => data.column !== undefined || data.col !== undefined, {
-    message: "Either 'column' or 'col' is required",
-  });
+export const JsonbStatsSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional().describe("JSONB column"),
+  col: z.string().optional().describe("JSONB column (alias for column)"),
+  sampleSize: z.number().optional().describe("Sample rows to analyze"),
+  where: z.string().optional().describe("WHERE clause to filter rows"),
+  filter: z
+    .string()
+    .optional()
+    .describe("WHERE clause to filter rows (alias for where)"),
+  topKeysLimit: z
+    .number()
+    .optional()
+    .describe("Maximum number of top keys to return (default: 20)"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+// Internal schema with refine (for handler validation)
+const JsonbStatsSchemaRefined = JsonbStatsSchemaBase.refine(
+  (data) => data.table !== undefined || data.tableName !== undefined,
+  { message: "Either 'table' or 'tableName' is required" },
+).refine((data) => data.column !== undefined || data.col !== undefined, {
+  message: "Either 'column' or 'col' is required",
+});
 
 // Full schema with preprocess (for handler parsing)
 export const JsonbStatsSchema = z.preprocess(
   preprocessJsonbParams,
-  JsonbStatsSchemaBase,
+  JsonbStatsSchemaRefined,
 );
 
 // ============== INDEX SUGGEST SCHEMA ==============
 // Base schema (for MCP inputSchema visibility - no preprocess)
-export const JsonbIndexSuggestSchemaBase = z
-  .object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional().describe("JSONB column"),
-    col: z.string().optional().describe("JSONB column (alias for column)"),
-    sampleSize: z.number().optional().describe("Sample rows to analyze"),
-    where: z.string().optional().describe("WHERE clause to filter rows"),
-    filter: z
-      .string()
-      .optional()
-      .describe("WHERE clause to filter rows (alias for where)"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  })
-  .refine((data) => data.table !== undefined || data.tableName !== undefined, {
-    message: "Either 'table' or 'tableName' is required",
-  })
-  .refine((data) => data.column !== undefined || data.col !== undefined, {
-    message: "Either 'column' or 'col' is required",
-  });
+export const JsonbIndexSuggestSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional().describe("JSONB column"),
+  col: z.string().optional().describe("JSONB column (alias for column)"),
+  sampleSize: z.number().optional().describe("Sample rows to analyze"),
+  where: z.string().optional().describe("WHERE clause to filter rows"),
+  filter: z
+    .string()
+    .optional()
+    .describe("WHERE clause to filter rows (alias for where)"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+// Internal schema with refine (for handler validation)
+const JsonbIndexSuggestSchemaRefined = JsonbIndexSuggestSchemaBase.refine(
+  (data) => data.table !== undefined || data.tableName !== undefined,
+  { message: "Either 'table' or 'tableName' is required" },
+).refine((data) => data.column !== undefined || data.col !== undefined, {
+  message: "Either 'column' or 'col' is required",
+});
 
 // Full schema with preprocess (for handler parsing)
 export const JsonbIndexSuggestSchema = z.preprocess(
   preprocessJsonbParams,
-  JsonbIndexSuggestSchemaBase,
+  JsonbIndexSuggestSchemaRefined,
 );
 
 // ============== SECURITY SCAN SCHEMA ==============
 // Base schema (for MCP inputSchema visibility - no preprocess)
-export const JsonbSecurityScanSchemaBase = z
-  .object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional().describe("JSONB column"),
-    col: z.string().optional().describe("JSONB column (alias for column)"),
-    sampleSize: z.number().optional().describe("Sample rows to scan"),
-    where: z.string().optional().describe("WHERE clause to filter rows"),
-    filter: z
-      .string()
-      .optional()
-      .describe("WHERE clause to filter rows (alias for where)"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  })
-  .refine((data) => data.table !== undefined || data.tableName !== undefined, {
-    message: "Either 'table' or 'tableName' is required",
-  })
-  .refine((data) => data.column !== undefined || data.col !== undefined, {
-    message: "Either 'column' or 'col' is required",
-  });
+export const JsonbSecurityScanSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional().describe("JSONB column"),
+  col: z.string().optional().describe("JSONB column (alias for column)"),
+  sampleSize: z.number().optional().describe("Sample rows to scan"),
+  where: z.string().optional().describe("WHERE clause to filter rows"),
+  filter: z
+    .string()
+    .optional()
+    .describe("WHERE clause to filter rows (alias for where)"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+// Internal schema with refine (for handler validation)
+const JsonbSecurityScanSchemaRefined = JsonbSecurityScanSchemaBase.refine(
+  (data) => data.table !== undefined || data.tableName !== undefined,
+  { message: "Either 'table' or 'tableName' is required" },
+).refine((data) => data.column !== undefined || data.col !== undefined, {
+  message: "Either 'column' or 'col' is required",
+});
 
 // Full schema with preprocess (for handler parsing)
 export const JsonbSecurityScanSchema = z.preprocess(
   preprocessJsonbParams,
-  JsonbSecurityScanSchemaBase,
+  JsonbSecurityScanSchemaRefined,
 );
 
 // ============== OUTPUT SCHEMAS (MCP 2025-11-25 structuredContent) ==============

@@ -64,6 +64,9 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
         if (tableError) return tableError;
 
         // Normalize path to array format
+        if (parsed.path === undefined) {
+          return { success: false, error: "path is required" };
+        }
         const path = normalizePathToArray(parsed.path);
 
         // Validate required 'where' parameter
@@ -177,6 +180,9 @@ export function createJsonbInsertTool(
         if (tableError) return tableError;
 
         // Normalize path - convert numeric segments to numbers for PostgreSQL
+        if (parsed.path === undefined) {
+          return { success: false, error: "path is required" };
+        }
         const path = normalizePathForInsert(parsed.path);
 
         // Validate required 'where' parameter
@@ -311,6 +317,9 @@ export function createJsonbDeleteTool(
         }
 
         // Validate path is not empty
+        if (parsed.path === undefined) {
+          return { success: false, error: "path is required" };
+        }
         if (
           parsed.path === "" ||
           (Array.isArray(parsed.path) && parsed.path.length === 0)
