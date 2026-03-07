@@ -1203,19 +1203,36 @@ describe("JSONB Validation and Error Paths", () => {
   });
 
   describe("wrong-type numeric param coercion", () => {
-    it("pg_jsonb_stats should reject non-numeric sampleSize with validation error", async () => {
+    it("pg_jsonb_stats should silently ignore non-numeric sampleSize and use default", async () => {
+      // Mock successful query responses for stats tool
+      mockAdapter.executeQuery.mockResolvedValue({
+        rows: [
+          {
+            total_rows: 5,
+            non_null_count: 5,
+            avg_size_bytes: 100,
+            max_size_bytes: 200,
+          },
+        ],
+      });
+
       const tool = tools.find((t) => t.name === "pg_jsonb_stats")!;
       const result = (await tool.handler(
         { table: "users", column: "metadata", sampleSize: "abc" },
         mockContext,
       )) as Record<string, unknown>;
 
-      // z.coerce.number() rejects non-numeric strings with a structured validation error
+      // z.any() passes "abc" through; handler Number("abc") → NaN → falls back to default 1000
       expect(result).toBeDefined();
-      expect(result.success).toBe(false);
+      expect(result.success).toBeUndefined(); // no error — handler succeeded
+      expect(result.basics).toBeDefined();
     });
 
-    it("pg_jsonb_contains should reject non-numeric limit with validation error", async () => {
+    it("pg_jsonb_contains should silently ignore non-numeric limit and use default", async () => {
+      mockAdapter.executeQuery.mockResolvedValue({
+        rows: [{ id: 1 }],
+      });
+
       const tool = tools.find((t) => t.name === "pg_jsonb_contains")!;
       const result = (await tool.handler(
         {
@@ -1227,9 +1244,10 @@ describe("JSONB Validation and Error Paths", () => {
         mockContext,
       )) as Record<string, unknown>;
 
-      // z.coerce.number() rejects non-numeric strings with a structured validation error
+      // z.any() passes "abc" through; handler Number("abc") → NaN → falls back to default 100
       expect(result).toBeDefined();
-      expect(result.success).toBe(false);
+      expect(result.success).toBeUndefined(); // no error — handler succeeded
+      expect(result.rows).toBeDefined();
     });
   });
 });

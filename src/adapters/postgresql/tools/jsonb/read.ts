@@ -94,11 +94,18 @@ export function createJsonbExtractTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = JsonbExtractSchema.parse(params);
+        const rawLimit = Number(parsed.limit);
+        const limit =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const whereClause = parsed.where
           ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
         const limitClause =
-          parsed.limit !== undefined ? ` LIMIT ${String(parsed.limit)}` : "";
+          limit !== undefined ? ` LIMIT ${String(limit)}` : "";
 
         // After preprocess and refine, table, column, and path are guaranteed set
         const table = parsed.table ?? parsed.tableName;
@@ -232,8 +239,13 @@ export function createJsonbContainsTool(
 
         // Apply default limit (100) to prevent large payloads
         const DEFAULT_LIMIT = 100;
-        const rawRequestedLimit = parsed.limit;
-        const requestedLimit = rawRequestedLimit;
+        const rawLimit = Number(parsed.limit);
+        const requestedLimit =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const effectiveLimit =
           requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
 
@@ -356,8 +368,13 @@ export function createJsonbPathQueryTool(
 
         // Apply default limit (100) to prevent large payloads
         const DEFAULT_LIMIT = 100;
-        const rawRequestedLimit = parsed.limit;
-        const requestedLimit = rawRequestedLimit;
+        const rawLimit = Number(parsed.limit);
+        const requestedLimit =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const effectiveLimit =
           requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
 
@@ -495,8 +512,15 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
         const orderByClause = parsed.orderBy
           ? ` ORDER BY ${parsed.orderBy}`
           : "";
+        const rawLimit = Number(parsed.limit);
+        const limit =
+          parsed.limit === undefined
+            ? undefined
+            : isNaN(rawLimit)
+              ? undefined
+              : rawLimit;
         const limitClause =
-          parsed.limit !== undefined ? ` LIMIT ${String(parsed.limit)}` : "";
+          limit !== undefined ? ` LIMIT ${String(limit)}` : "";
         const hasJsonbOperator = parsed.groupBy?.includes("->") ?? false;
 
         if (parsed.groupBy) {
