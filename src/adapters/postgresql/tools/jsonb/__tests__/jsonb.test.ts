@@ -783,7 +783,7 @@ describe("JSONB Validation and Error Paths", () => {
         mockContext,
       )) as { success: boolean; error: string };
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/validation error/);
+      expect(result.error).toMatch(/validation error/i);
     });
   });
 

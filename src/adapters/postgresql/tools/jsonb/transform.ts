@@ -49,7 +49,7 @@ export function createJsonbValidatePathTool(
       "Validate a JSONPath expression and test it against sample data. Supports vars for parameterized paths.",
     group: "jsonb",
     inputSchema: z.object({
-      path: z.string().describe("JSONPath expression to validate"),
+      path: z.string().optional().describe("JSONPath expression to validate"),
       testValue: z
         .unknown()
         .optional()
@@ -64,12 +64,23 @@ export function createJsonbValidatePathTool(
     icons: getToolIcons("jsonb", readOnly("JSONB Validate Path")),
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = params as {
-        path: string;
+        path?: string;
         testValue?: unknown;
         vars?: Record<string, unknown>;
       };
 
       try {
+        if (
+          !parsed.path ||
+          typeof parsed.path !== "string" ||
+          parsed.path.trim() === ""
+        ) {
+          return {
+            success: false,
+            error:
+              "Validation error: path is required and must be a non-empty string",
+          };
+        }
         if (parsed.testValue !== undefined) {
           const varsJson = parsed.vars ? JSON.stringify(parsed.vars) : "{}";
           const sql = `SELECT jsonb_path_query($1::jsonb, $2::jsonpath, $3::jsonb) as result`;
@@ -430,6 +441,19 @@ export function createJsonbNormalizeTool(
  * Note: Uses jsonb_each() which requires object inputs, not arrays or primitives
  */
 // Schema for pg_jsonb_diff - requires objects (not arrays or primitives)
+// Base schema for MCP visibility (optional params to avoid MCP framework Zod rejection)
+const JsonbDiffSchemaBase = z.object({
+  doc1: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe("First JSONB object to compare"),
+  doc2: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe("Second JSONB object to compare"),
+});
+
+// Internal schema for handler validation (required fields)
 const JsonbDiffSchema = z.object({
   doc1: z
     .record(z.string(), z.unknown())
@@ -445,7 +469,7 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Compare two JSONB objects. Returns top-level key differences only (shallow comparison, not recursive).",
     group: "jsonb",
-    inputSchema: JsonbDiffSchema,
+    inputSchema: JsonbDiffSchemaBase,
     outputSchema: JsonbDiffOutputSchema,
     annotations: readOnly("JSONB Diff"),
     icons: getToolIcons("jsonb", readOnly("JSONB Diff")),

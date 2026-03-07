@@ -443,18 +443,14 @@ export function createJsonbObjectTool(
   };
 }
 
-// Schema for pg_jsonb_array - accepts values or elements (alias)
-const JsonbArraySchema = z
-  .object({
-    values: z.array(z.unknown()).optional().describe("Array elements to build"),
-    elements: z
-      .array(z.unknown())
-      .optional()
-      .describe("Array elements (alias for values)"),
-  })
-  .refine((data) => data.values !== undefined || data.elements !== undefined, {
-    message: "Either 'values' or 'elements' must be provided",
-  });
+// Base schema for MCP visibility (no refine - avoids MCP framework Zod rejection)
+const JsonbArraySchemaBase = z.object({
+  values: z.array(z.unknown()).optional().describe("Array elements to build"),
+  elements: z
+    .array(z.unknown())
+    .optional()
+    .describe("Array elements (alias for values)"),
+});
 
 export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
   return {
@@ -462,7 +458,7 @@ export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Build a JSONB array from values. Accepts {values: [...]} or {elements: [...]}. Returns {array: [...]}.",
     group: "jsonb",
-    inputSchema: JsonbArraySchema,
+    inputSchema: JsonbArraySchemaBase,
     outputSchema: JsonbArrayOutputSchema,
     annotations: readOnly("JSONB Array"),
     icons: getToolIcons("jsonb", readOnly("JSONB Array")),
@@ -470,7 +466,14 @@ export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = params as { values?: unknown[]; elements?: unknown[] };
         // Support both 'values' and 'elements' parameter names
-        const values = parsed.values ?? parsed.elements ?? [];
+        const values = parsed.values ?? parsed.elements;
+        if (values === undefined) {
+          return {
+            success: false,
+            error:
+              "Validation error: Either 'values' or 'elements' must be provided",
+          };
+        }
         if (values.length === 0) {
           return { array: [] };
         }
@@ -519,7 +522,7 @@ export function createJsonbStripNullsTool(
             const messages = error.issues.map((i) => i.message).join("; ");
             return {
               success: false,
-              error: `pg_jsonb_strip_nulls validation error: ${messages}`,
+              error: `Validation error: ${messages}`,
             };
           }
           throw error;
