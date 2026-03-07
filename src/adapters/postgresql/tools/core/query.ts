@@ -90,8 +90,10 @@ export function createReadQueryTool(adapter: PostgresAdapter): ToolDefinition {
           executionTimeMs: result.executionTimeMs,
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_read_query" }),
+        };
       }
     },
   };
@@ -176,8 +178,10 @@ export function createWriteQueryTool(adapter: PostgresAdapter): ToolDefinition {
           ...(result.rows && result.rows.length > 0 && { rows: result.rows }),
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_write_query" }),
+        };
       }
     },
   };

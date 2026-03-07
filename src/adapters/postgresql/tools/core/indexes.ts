@@ -99,8 +99,10 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
           table: `${schemaName}.${table}`,
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_get_indexes" }),
+        };
       }
     },
   };
@@ -228,8 +230,10 @@ export function createCreateIndexTool(
           };
         }
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_create_index" }),
+        };
       }
     },
   };
@@ -352,8 +356,10 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
           sql,
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_drop_index" }),
+        };
       }
     },
   };

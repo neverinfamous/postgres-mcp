@@ -534,8 +534,12 @@ export function createAnalyzeQueryIndexesTool(
           hint: "Use verbosity: 'full' to include complete plan with all metrics",
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_analyze_query_indexes",
+          }),
+        };
       }
     },
   };

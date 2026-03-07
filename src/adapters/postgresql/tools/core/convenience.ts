@@ -542,8 +542,10 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
           };
         }
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_batch_insert" }),
+        };
       }
     },
   };

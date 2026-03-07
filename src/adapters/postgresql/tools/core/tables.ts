@@ -76,8 +76,10 @@ export function createListTablesTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_list_tables" }),
+        };
       }
     },
   };
@@ -150,8 +152,10 @@ export function createDescribeTableTool(
 
         return await adapter.describeTable(table, schemaName);
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_describe_table" }),
+        };
       }
     },
   };
@@ -283,8 +287,10 @@ export function createCreateTableTool(
           }),
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_create_table" }),
+        };
       }
     },
   };
@@ -340,8 +346,10 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
           existed,
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_drop_table" }),
+        };
       }
     },
   };

@@ -92,8 +92,10 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
         const count = Number(result.rows?.[0]?.["count"]) || 0;
         return { count };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_count" }),
+        };
       }
     },
   };
@@ -148,8 +150,10 @@ export function createExistsTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_exists" }),
+        };
       }
     },
   };
@@ -200,8 +204,10 @@ export function createTruncateTool(adapter: PostgresAdapter): ToolDefinition {
           restartIdentity: parsed.restartIdentity ?? false,
         };
       } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        return { success: false, error: message };
+        return {
+          success: false,
+          error: formatPostgresError(error, { tool: "pg_truncate" }),
+        };
       }
     },
   };
