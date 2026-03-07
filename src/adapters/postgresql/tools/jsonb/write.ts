@@ -9,7 +9,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
@@ -513,20 +513,7 @@ export function createJsonbStripNullsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
-        // Wrap in try-catch to intercept Zod .refine() errors (e.g., missing WHERE)
-        let parsed;
-        try {
-          parsed = JsonbStripNullsSchema.parse(params);
-        } catch (error) {
-          if (error instanceof ZodError) {
-            const messages = error.issues.map((i) => i.message).join("; ");
-            return {
-              success: false,
-              error: `Validation error: ${messages}`,
-            };
-          }
-          throw error;
-        }
+        const parsed = JsonbStripNullsSchema.parse(params);
         const table = parsed.table;
         const column = parsed.column;
         const whereClause = parsed.where;
