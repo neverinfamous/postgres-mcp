@@ -287,8 +287,9 @@ export function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("schema", destructive("Drop View")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { name, schema, materialized, ifExists, cascade } =
+        const { name: rawName, schema, materialized, ifExists, cascade } =
           DropViewSchema.parse(params);
+        const name = rawName ?? "";
 
         const schemaName = schema ?? "public";
 
@@ -577,8 +578,11 @@ export function createListConstraintsTool(
       table: z.string().optional(),
       schema: z.string().optional(),
       type: z
-        .enum(["primary_key", "foreign_key", "unique", "check"])
-        .optional(),
+        .string()
+        .optional()
+        .describe(
+          "Constraint type filter: 'primary_key', 'foreign_key', 'unique', 'check'",
+        ),
     }),
     outputSchema: ListConstraintsOutputSchema,
     annotations: readOnly("List Constraints"),
@@ -590,6 +594,23 @@ export function createListConstraintsTool(
           schema?: string;
           type?: string;
         };
+
+        // Validate type enum value if provided
+        const validTypes = [
+          "primary_key",
+          "foreign_key",
+          "unique",
+          "check",
+        ] as const;
+        if (
+          parsed.type !== undefined &&
+          !validTypes.includes(parsed.type as (typeof validTypes)[number])
+        ) {
+          return {
+            success: false,
+            error: `Validation error: type must be one of: ${validTypes.join(", ")}`,
+          };
+        }
 
         // Parse schema.table format
         if (

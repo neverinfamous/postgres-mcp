@@ -211,7 +211,9 @@ export {
 
 // Schema management schemas
 export {
+  CreateSchemaSchemaBase,
   CreateSchemaSchema,
+  DropSchemaSchemaBase,
   DropSchemaSchema,
   // Sequence schemas - Split Schema pattern for MCP visibility
   CreateSequenceSchemaBase,

@@ -1596,3 +1596,63 @@ describe("Structured Error Responses", () => {
     }
   });
 });
+
+// =============================================================================
+// Error-Path Tests: Empty params / Zod validation (Split Schema pattern)
+// =============================================================================
+
+describe("schema tools — empty param error paths", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getSchemaTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getSchemaTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_create_schema({}) should return structured handler error", async () => {
+    const tool = tools.find((t) => t.name === "pg_create_schema")!;
+    const result = (await tool.handler({}, mockContext)) as any;
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("name");
+  });
+
+  it("pg_drop_schema({}) should return structured handler error", async () => {
+    const tool = tools.find((t) => t.name === "pg_drop_schema")!;
+    const result = (await tool.handler({}, mockContext)) as any;
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("name");
+  });
+
+  it("pg_drop_view({}) should return structured handler error", async () => {
+    const tool = tools.find((t) => t.name === "pg_drop_view")!;
+    const result = (await tool.handler({}, mockContext)) as any;
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("name");
+  });
+
+  it("pg_drop_sequence({}) should return structured handler error", async () => {
+    const tool = tools.find((t) => t.name === "pg_drop_sequence")!;
+    const result = (await tool.handler({}, mockContext)) as any;
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("name");
+  });
+
+  it("pg_list_constraints({type: 'invalid'}) should return structured handler error", async () => {
+    const tool = tools.find((t) => t.name === "pg_list_constraints")!;
+    const result = (await tool.handler(
+      { type: "invalid_type" },
+      mockContext,
+    )) as any;
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("type must be one of");
+  });
+});

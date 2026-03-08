@@ -16,7 +16,9 @@ import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import { formatPostgresError } from "../core/error-helpers.js";
 import {
+  CreateSchemaSchemaBase,
   CreateSchemaSchema,
+  DropSchemaSchemaBase,
   DropSchemaSchema,
   CreateSequenceSchemaBase,
   CreateSequenceSchema,
@@ -64,14 +66,15 @@ export function createCreateSchemaTool(
     name: "pg_create_schema",
     description: "Create a new schema.",
     group: "schema",
-    inputSchema: CreateSchemaSchema,
+    inputSchema: CreateSchemaSchemaBase,
     outputSchema: CreateSchemaOutputSchema,
     annotations: write("Create Schema"),
     icons: getToolIcons("schema", write("Create Schema")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { name, authorization, ifNotExists } =
+        const { name: rawName, authorization, ifNotExists } =
           CreateSchemaSchema.parse(params);
+        const name = rawName ?? "";
 
         // Check if schema already exists when ifNotExists is true
         let alreadyExisted: boolean | undefined;
@@ -130,13 +133,14 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_drop_schema",
     description: "Drop a schema (optionally with all objects).",
     group: "schema",
-    inputSchema: DropSchemaSchema,
+    inputSchema: DropSchemaSchemaBase,
     outputSchema: DropSchemaOutputSchema,
     annotations: destructive("Drop Schema"),
     icons: getToolIcons("schema", destructive("Drop Schema")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { name, cascade, ifExists } = DropSchemaSchema.parse(params);
+        const { name: rawName, cascade, ifExists } = DropSchemaSchema.parse(params);
+        const name = rawName ?? "";
 
         // Check if schema exists before dropping (for accurate response)
         const existsResult = await adapter.executeQuery(
@@ -426,8 +430,9 @@ export function createDropSequenceTool(
     icons: getToolIcons("schema", destructive("Drop Sequence")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { name, schema, ifExists, cascade } =
+        const { name: rawName, schema, ifExists, cascade } =
           DropSequenceSchema.parse(params);
+        const name = rawName ?? "";
 
         const schemaName = schema ?? "public";
 
