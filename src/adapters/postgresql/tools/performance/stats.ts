@@ -73,8 +73,7 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
   const IndexStatsSchemaLocalBase = z.object({
     table: z.string().optional().describe("Table name to filter indexes"),
     schema: z.string().optional().describe("Schema name to filter indexes"),
-    limit: z.coerce
-      .number()
+    limit: z.any()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
   });
@@ -102,7 +101,10 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
           schema = schema ?? parts[0];
           table = parts[1] ?? table;
         }
-        const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
+        const rawLimit = Number(parsed.limit);
+        const limit = parsed.limit === undefined
+          ? 50
+          : isNaN(rawLimit) ? 50 : rawLimit === 0 ? null : rawLimit;
 
         // P154: Validate table/schema existence before querying
         const validationError = await validatePerformanceTableExists(
@@ -175,8 +177,7 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
   const TableStatsSchemaLocalBase = z.object({
     table: z.string().optional().describe("Table name (all tables if omitted)"),
     schema: z.string().optional().describe("Schema name"),
-    limit: z.coerce
-      .number()
+    limit: z.any()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
   });
@@ -204,7 +205,10 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
           schema = schema ?? parts[0];
           table = parts[1] ?? table;
         }
-        const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
+        const rawLimit = Number(parsed.limit);
+        const limit = parsed.limit === undefined
+          ? 50
+          : isNaN(rawLimit) ? 50 : rawLimit === 0 ? null : rawLimit;
 
         // P154: Validate table/schema existence before querying
         const validationError = await validatePerformanceTableExists(
@@ -284,8 +288,7 @@ export function createStatStatementsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const StatStatementsSchemaBase = z.object({
-    limit: z.coerce
-      .number()
+    limit: z.any()
       .optional()
       .describe("Max statements to return (default: 20, use 0 for all)"),
     orderBy: z
@@ -311,7 +314,10 @@ export function createStatStatementsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = StatStatementsSchema.parse(params);
-        const limit = parsed.limit === 0 ? null : (parsed.limit ?? 20);
+        const rawLimit = Number(parsed.limit);
+        const limit = parsed.limit === undefined
+          ? 20
+          : isNaN(rawLimit) ? 20 : rawLimit === 0 ? null : rawLimit;
         const orderBy = parsed.orderBy ?? "total_time";
 
         const sql = `SELECT query, calls, total_exec_time as total_time,
@@ -428,8 +434,7 @@ export function createUnusedIndexesTool(
       .string()
       .optional()
       .describe('Minimum index size to include (e.g., "1 MB")'),
-    limit: z.coerce
-      .number()
+    limit: z.any()
       .optional()
       .describe("Max indexes to return (default: 20, use 0 for all)"),
     summary: z
@@ -455,7 +460,10 @@ export function createUnusedIndexesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = UnusedIndexesSchema.parse(params);
-        const limit = parsed.limit === 0 ? null : (parsed.limit ?? 20);
+        const rawLimit = Number(parsed.limit);
+        const limit = parsed.limit === undefined
+          ? 20
+          : isNaN(rawLimit) ? 20 : rawLimit === 0 ? null : rawLimit;
 
         // P154: Validate schema existence before querying
         if (parsed.schema !== undefined) {
@@ -571,8 +579,7 @@ export function createDuplicateIndexesTool(
       .string()
       .optional()
       .describe("Schema to filter (default: all user schemas)"),
-    limit: z.coerce
-      .number()
+    limit: z.any()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
   });
@@ -594,7 +601,10 @@ export function createDuplicateIndexesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = DuplicateIndexesSchema.parse(params);
-        const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
+        const rawLimit = Number(parsed.limit);
+        const limit = parsed.limit === undefined
+          ? 50
+          : isNaN(rawLimit) ? 50 : rawLimit === 0 ? null : rawLimit;
 
         // P154: Validate schema existence before querying
         if (parsed.schema !== undefined) {
@@ -708,8 +718,7 @@ export function createVacuumStatsTool(
   const VacuumStatsSchemaBase = z.object({
     schema: z.string().optional().describe("Schema to filter"),
     table: z.string().optional().describe("Table name to filter"),
-    limit: z.coerce
-      .number()
+    limit: z.any()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
   });
@@ -736,7 +745,10 @@ export function createVacuumStatsTool(
           schema = schema ?? parts[0];
           table = parts[1] ?? table;
         }
-        const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
+        const rawLimit = Number(parsed.limit);
+        const limit = parsed.limit === undefined
+          ? 50
+          : isNaN(rawLimit) ? 50 : rawLimit === 0 ? null : rawLimit;
         let whereClause =
           "schemaname NOT IN ('pg_catalog', 'information_schema')";
         const queryParams: string[] = [];
@@ -825,12 +837,10 @@ export function createQueryPlanStatsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const QueryPlanStatsSchemaBase = z.object({
-    limit: z.coerce
-      .number()
+    limit: z.any()
       .optional()
       .describe("Number of queries to return (default: 20, use 0 for all)"),
-    truncateQuery: z.coerce
-      .number()
+    truncateQuery: z.any()
       .optional()
       .describe(
         "Max query length in chars (default: 100, use 0 for full text)",
@@ -854,9 +864,14 @@ export function createQueryPlanStatsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = QueryPlanStatsSchema.parse(params);
-        const limit = parsed.limit === 0 ? null : (parsed.limit ?? 20);
-        const truncateLen =
-          parsed.truncateQuery === 0 ? null : (parsed.truncateQuery ?? 100);
+        const rawLimit = Number(parsed.limit);
+        const limit = parsed.limit === undefined
+          ? 20
+          : isNaN(rawLimit) ? 20 : rawLimit === 0 ? null : rawLimit;
+        const rawTruncate = Number(parsed.truncateQuery);
+        const truncateLen = parsed.truncateQuery === undefined
+          ? 100
+          : isNaN(rawTruncate) ? 100 : rawTruncate === 0 ? null : rawTruncate;
 
         // Check if pg_stat_statements is available with planning time columns
         const sql = `SELECT

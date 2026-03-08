@@ -72,13 +72,11 @@ export function createSeqScanTablesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const SeqScanTablesSchemaBase = z.object({
-    minScans: z.coerce
-      .number()
+    minScans: z.any()
       .optional()
       .describe("Minimum seq scans to include (default: 10)"),
     schema: z.string().optional().describe("Schema to filter"),
-    limit: z.coerce
-      .number()
+    limit: z.any()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
   });
@@ -100,8 +98,14 @@ export function createSeqScanTablesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = SeqScanTablesSchema.parse(params);
-        const minScans = parsed.minScans ?? 10; // Default to 10 for better testing visibility
-        const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
+        const rawMinScans = Number(parsed.minScans);
+        const minScans = parsed.minScans === undefined
+          ? 10
+          : isNaN(rawMinScans) ? 10 : rawMinScans;
+        const rawLimit = Number(parsed.limit);
+        const limit = parsed.limit === undefined
+          ? 50
+          : isNaN(rawLimit) ? 50 : rawLimit === 0 ? null : rawLimit;
 
         let whereClause = `seq_scan > ${String(minScans)}`;
         const queryParams: string[] = [];
@@ -519,8 +523,8 @@ export function createQueryPlanCompareTool(
 ): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
   const QueryPlanCompareSchemaBase = z.object({
-    query1: z.string().describe("First SQL query"),
-    query2: z.string().describe("Second SQL query"),
+    query1: z.string().optional().describe("First SQL query"),
+    query2: z.string().optional().describe("Second SQL query"),
     params1: z
       .array(z.unknown())
       .optional()
@@ -562,6 +566,15 @@ export function createQueryPlanCompareTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = QueryPlanCompareSchema.parse(params);
+
+        // Validate required parameters
+        if (!parsed.query1 || !parsed.query2) {
+          return {
+            success: false as const,
+            error: "Missing required parameters: both query1 and query2 are required",
+          };
+        }
+
         const explainType =
           parsed.analyze === true
             ? "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)"

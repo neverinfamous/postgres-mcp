@@ -64,14 +64,14 @@ export function createPerformanceBaselineTool(
       const [cacheHit, tableStats, indexStats, connections, dbSize] =
         await Promise.all([
           adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         sum(heap_blks_hit) as heap_hits,
                         sum(heap_blks_read) as heap_reads,
                         round(100.0 * sum(heap_blks_hit) / NULLIF(sum(heap_blks_hit) + sum(heap_blks_read), 0), 2) as cache_hit_ratio
                     FROM pg_statio_user_tables
                 `),
           adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         sum(seq_scan) as total_seq_scans,
                         sum(idx_scan) as total_idx_scans,
                         sum(n_tup_ins) as total_inserts,
@@ -82,13 +82,13 @@ export function createPerformanceBaselineTool(
                     FROM pg_stat_user_tables
                 `),
           adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         count(*) as total_indexes,
                         sum(idx_scan) as total_index_scans
                     FROM pg_stat_user_indexes
                 `),
           adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         count(*) as total_connections,
                         count(*) FILTER (WHERE state = 'active') as active_connections,
                         count(*) FILTER (WHERE state = 'idle') as idle_connections
@@ -142,7 +142,7 @@ export function createConnectionPoolOptimizeTool(
     handler: async (_params: unknown, _context: RequestContext) => {
       const [connStats, settings, waitEvents] = await Promise.all([
         adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         count(*) as total_connections,
                         count(*) FILTER (WHERE state = 'active') as active,
                         count(*) FILTER (WHERE state = 'idle') as idle,
@@ -154,7 +154,7 @@ export function createConnectionPoolOptimizeTool(
                     WHERE backend_type = 'client backend'
                 `),
         adapter.executeQuery(`
-                    SELECT 
+                    SELECT
                         current_setting('max_connections')::int as max_connections,
                         current_setting('superuser_reserved_connections')::int as reserved_connections
                 `),
@@ -250,7 +250,7 @@ export function createPartitionStrategySuggestTool(
 ): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
   const PartitionStrategySchemaBase = z.object({
-    table: z.string().describe("Table to analyze"),
+    table: z.string().optional().describe("Table to analyze"),
     schema: z.string().optional().describe("Schema name"),
   });
 
@@ -272,6 +272,14 @@ export function createPartitionStrategySuggestTool(
       try {
         const parsed = PartitionStrategySchema.parse(params);
 
+        // Validate required parameter
+        if (!parsed.table) {
+          return {
+            success: false as const,
+            error: "Missing required parameter: table is required",
+          };
+        }
+
         // Parse schema from table if it contains a dot (e.g., 'public.users')
         let schemaName = parsed.schema ?? "public";
         let tableName = parsed.table;
@@ -284,7 +292,7 @@ export function createPartitionStrategySuggestTool(
         const [tableInfo, columnInfo, tableSize] = await Promise.all([
           adapter.executeQuery(
             `
-                    SELECT 
+                    SELECT
                         relname, n_live_tup, n_dead_tup,
                         seq_scan, idx_scan
                     FROM pg_stat_user_tables
@@ -294,7 +302,7 @@ export function createPartitionStrategySuggestTool(
           ),
           adapter.executeQuery(
             `
-                    SELECT 
+                    SELECT
                         a.attname as column_name,
                         t.typname as data_type,
                         s.n_distinct,
@@ -303,8 +311,8 @@ export function createPartitionStrategySuggestTool(
                     JOIN pg_class c ON a.attrelid = c.oid
                     JOIN pg_namespace n ON c.relnamespace = n.oid
                     JOIN pg_type t ON a.atttypid = t.oid
-                    LEFT JOIN pg_stats s ON s.tablename = c.relname 
-                        AND s.attname = a.attname 
+                    LEFT JOIN pg_stats s ON s.tablename = c.relname
+                        AND s.attname = a.attname
                         AND s.schemaname = n.nspname
                     WHERE c.relname = $1 AND n.nspname = $2
                         AND a.attnum > 0 AND NOT a.attisdropped
