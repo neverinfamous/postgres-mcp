@@ -652,8 +652,9 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
         const semanticCheck = await adapter.executeQuery(
           `SELECT indexname FROM pg_indexes
            WHERE schemaname = $1 AND tablename = $2
-             AND indexdef ILIKE '%using gist%' AND indexdef ILIKE $3`,
-          [schemaName, table, `%"${column}"%`],
+             AND indexdef ILIKE '%using gist%'
+             AND (indexdef ILIKE $3 OR indexdef ILIKE $4)`,
+          [schemaName, table, `%(${column})%`, `%("${column}")%`],
         );
         if (semanticCheck.rows && semanticCheck.rows.length > 0) {
           const existingName = semanticCheck.rows[0]?.["indexname"] as string;
