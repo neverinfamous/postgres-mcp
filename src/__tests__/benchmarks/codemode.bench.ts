@@ -122,7 +122,7 @@ describe("Sandbox Execution", () => {
     async () => {
       await sandbox.execute("return 42;", {});
     },
-    { iterations: 30, warmupIterations: 3, time: 5000 },
+    { iterations: 100, warmupIterations: 10, time: 5000 },
   );
 
   bench(
@@ -163,7 +163,7 @@ describe("Sandbox Execution", () => {
         apiBindings,
       );
     },
-    { iterations: 20, warmupIterations: 3, time: 5000 },
+    { iterations: 100, warmupIterations: 10, time: 5000 },
   );
 
   bench(
@@ -175,7 +175,7 @@ describe("Sandbox Execution", () => {
       );
       sandbox.clearConsoleOutput();
     },
-    { iterations: 30, warmupIterations: 3, time: 5000 },
+    { iterations: 100, warmupIterations: 10, time: 5000 },
   );
 });
 

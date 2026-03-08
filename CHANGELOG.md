@@ -14,6 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Trivy scan added as defense-in-depth** — Added `aquasecurity/trivy-action` step in `docker-publish.yml` security-scan job, scanning the local image for all fixable CVEs (CRITICAL through LOW). Uploads SARIF results to the GitHub Security tab. The prior workflow referenced Trivy as a fallback in comments but never implemented it
 - **Docker Scout silent fallthrough removed** — Unexpected Docker Scout exit codes now hard-fail the job (`exit 1`) instead of printing a warning and continuing the build. Previously, non-2/non-124 exit codes fell through with "will rely on Trivy for security validation" — which didn't exist
 
+### Performance
+
+- **Benchmark infrastructure: eliminated double-running** — Added `exclude: ["dist/**"]` to `vitest.config.ts` bench config. Previously, benchmarks ran twice (once from `src/` TypeScript, once from `dist/` compiled JS), doubling total bench suite time
+- **Benchmark infrastructure: fixed NaN summaries** — Increased async benchmark iterations (20–30 → 100) and warmup (3 → 10) in `codemode.bench.ts` and `connection-pool.bench.ts`. Low iteration counts caused tinybench to produce `NaN` comparison ratios in summary output
+- **Benchmark infrastructure: stabilized high-RME benchmarks** — Increased warmup iterations for Zod schema parsing benchmarks with RME > 8% (`schema-parsing.bench.ts`): `ReadQuerySchema` 50→100, `CreateTableSchema` 10→50, `TransactionExecuteSchema` (3 stmts) 20→50, `TransactionExecuteSchema` (100 stmts) 5→20. Allows V8 JIT tiers to stabilize before measurement
+- **`identifiers.ts` removed no-op regex allocation** — Removed `name.replace(/"/g, '""')` from `sanitizeIdentifier()` and `quoteIdentifier()`. Since `validateIdentifier()` / `IDENTIFIER_PATTERN` guarantees no double-quote characters can pass validation, the `replace()` was always a no-op that still allocated a new string
+
 ### Removed
 
 - **Dead code cleanup** — Removed dead exports, functions, types, and one entire file that were only consumed by tests/benchmarks, not production code. Reduces bundle size and maintenance surface:

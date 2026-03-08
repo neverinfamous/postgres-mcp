@@ -26,6 +26,7 @@ export default defineConfig({
   },
   bench: {
     include: ["src/__tests__/benchmarks/**/*.bench.ts"],
+    exclude: ["dist/**"],
     reporters: ["default"],
   },
 });

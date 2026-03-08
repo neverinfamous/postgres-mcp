@@ -109,7 +109,7 @@ describe("Simple Schema Parsing", () => {
     () => {
       ReadQuerySchema.parse(simpleReadPayload);
     },
-    { iterations: 5000, warmupIterations: 50 },
+    { iterations: 5000, warmupIterations: 100 },
   );
 
   bench(
@@ -170,7 +170,7 @@ describe("Complex Schema Parsing", () => {
     () => {
       CreateTableSchema.parse(createTablePayload);
     },
-    { iterations: 1000, warmupIterations: 10 },
+    { iterations: 1000, warmupIterations: 50 },
   );
 
   bench(
@@ -186,7 +186,7 @@ describe("Complex Schema Parsing", () => {
     () => {
       TransactionExecuteSchema.parse(transactionExecutePayload);
     },
-    { iterations: 2000, warmupIterations: 20 },
+    { iterations: 2000, warmupIterations: 50 },
   );
 });
 
@@ -199,7 +199,7 @@ describe("Large Payload Parsing", () => {
     () => {
       TransactionExecuteSchema.parse({ statements: largeBatchRows });
     },
-    { iterations: 200, warmupIterations: 5 },
+    { iterations: 200, warmupIterations: 20 },
   );
 });
 

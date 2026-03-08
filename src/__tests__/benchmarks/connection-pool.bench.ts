@@ -118,7 +118,7 @@ describe("Connection Pool Benchmarks", () => {
     async () => {
       await pool.query("SELECT 1");
     },
-    { iterations: 1000, warmupIterations: 20 },
+    { iterations: 5000, warmupIterations: 50 },
   );
 
   // -------------------------------------------------------------------------
@@ -130,7 +130,7 @@ describe("Connection Pool Benchmarks", () => {
       const client = await pool.getConnection();
       pool.releaseConnection(client);
     },
-    { iterations: 1000, warmupIterations: 20 },
+    { iterations: 5000, warmupIterations: 50 },
   );
 
   // -------------------------------------------------------------------------
@@ -141,7 +141,7 @@ describe("Connection Pool Benchmarks", () => {
     async () => {
       await pool.checkHealth();
     },
-    { iterations: 500, warmupIterations: 10 },
+    { iterations: 2000, warmupIterations: 30 },
   );
 
   // -------------------------------------------------------------------------
