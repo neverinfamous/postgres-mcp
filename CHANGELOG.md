@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **3 cron tools raw MCP `-32602` error for wrong-type numeric params** — `pg_cron_cleanup_history({days: "abc"})`, `pg_cron_list_jobs({limit: "abc"})`, and `pg_cron_job_run_details({limit: "abc"})` now silently fall back to their default values instead of leaking raw MCP `-32602` Zod validation errors. Root cause: `z.coerce.number()` in `CronCleanupHistorySchemaBase`, `CronJobRunDetailsSchemaBase`, and the inline `ListJobsSchema` converted `"abc"` to `NaN`, which Zod rejected at the MCP framework level. Changed to `z.any().optional()` in Base schemas (MCP visibility) with `z.coerce.number()` in handler-side schemas. For `cleanup_history`, added safe `Number()` coercion with `isNaN` → `undefined` fallback in the `CronCleanupHistorySchema` transform. Also wrapped `createCronListJobsTool` handler in try/catch with `ZodError` interception for structured error returns
+
 ### Changed
 
 - **Version SSoT via `utils/version.ts`** — Created shared `VERSION` constant that reads from `package.json` at runtime via `createRequire`. Replaced 3 hardcoded `VERSION = "0.1.0"` constants in `cli.ts`, `cli/args.ts`, and `PostgresAdapter.ts` (plus the test mock in `adapter.ts`). Version bumps now only need to update `package.json`
