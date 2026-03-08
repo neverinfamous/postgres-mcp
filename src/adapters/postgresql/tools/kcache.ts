@@ -410,12 +410,24 @@ which represent actual disk access (not just shared buffer hits).`,
         })();
         const parsed = z
           .object({
-            type: z.enum(["reads", "writes", "both"]).optional(),
+            type: z.string().optional(),
             limit: z.coerce.number().optional(),
             queryPreviewLength: z.coerce.number().optional(),
           })
           .parse(preprocessed);
-        const ioType = parsed.type ?? "both";
+
+        // Validate ioType inside handler for structured error response
+        const VALID_IO_TYPES = ["reads", "writes", "both"] as const;
+        const rawIoType = parsed.type ?? "both";
+        if (
+          !VALID_IO_TYPES.includes(rawIoType as (typeof VALID_IO_TYPES)[number])
+        ) {
+          return {
+            success: false,
+            error: `Invalid type/ioType value "${rawIoType}". Valid options: ${VALID_IO_TYPES.join(", ")}`,
+          };
+        }
+        const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
         const DEFAULT_LIMIT = 10;
         // limit: 0 means "no limit" (return all rows), undefined means use default
         const limitVal =

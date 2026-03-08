@@ -74,11 +74,11 @@ export const KcacheTopCpuSchemaBase = z.object({
  */
 export const KcacheTopIoSchemaBase = z.object({
   type: z
-    .enum(["reads", "writes", "both"])
+    .string()
     .optional()
     .describe("I/O type to rank by (default: both)"),
   ioType: z
-    .enum(["reads", "writes", "both"])
+    .string()
     .optional()
     .describe("Alias for type"),
   limit: z
