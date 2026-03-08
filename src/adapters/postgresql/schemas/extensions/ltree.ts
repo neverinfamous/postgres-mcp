@@ -65,6 +65,7 @@ export const LtreeQuerySchemaBase = z.object({
   col: z.string().optional().describe("Alias for column"),
   path: z
     .string()
+    .optional()
     .describe('ltree path to query (e.g., "Top.Science.Astronomy")'),
   pattern: z.string().optional().describe("Alias for path"),
   mode: z
@@ -83,7 +84,7 @@ export const LtreeQuerySchemaBase = z.object({
  * Base schema for MCP visibility - shows all parameters including aliases.
  */
 export const LtreeSubpathSchemaBase = z.object({
-  path: z.string().describe('ltree path (e.g., "Top.Science.Astronomy.Stars")'),
+  path: z.string().optional().describe('ltree path (e.g., "Top.Science.Astronomy.Stars")'),
   offset: z
     .number()
     .optional()
@@ -237,6 +238,7 @@ export const LtreeSubpathSchema = z.preprocess(
 export const LtreeLcaSchemaBase = z.object({
   paths: z
     .array(z.string())
+    .optional()
     .describe("Array of ltree paths to find common ancestor (minimum 2)"),
 });
 

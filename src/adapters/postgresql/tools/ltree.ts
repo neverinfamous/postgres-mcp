@@ -632,6 +632,7 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
           };
         }
 
+        // Check for existing index by name
         const idxCheck = await adapter.executeQuery(
           `SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE schemaname = $1 AND indexname = $2) as exists`,
           [schemaName, idxName],
@@ -646,6 +647,26 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
             indexType: "gist",
             alreadyExists: true,
           };
+
+        // Check for existing GiST index on same table+column (semantic duplicate)
+        const semanticCheck = await adapter.executeQuery(
+          `SELECT indexname FROM pg_indexes
+           WHERE schemaname = $1 AND tablename = $2
+             AND indexdef ILIKE '%using gist%' AND indexdef ILIKE $3`,
+          [schemaName, table, `%"${column}"%`],
+        );
+        if (semanticCheck.rows && semanticCheck.rows.length > 0) {
+          const existingName = semanticCheck.rows[0]?.["indexname"] as string;
+          return {
+            success: true,
+            message: `GiST index already exists on column "${column}" as "${existingName}"`,
+            indexName: existingName,
+            table: qualifiedTable,
+            column,
+            indexType: "gist",
+            alreadyExists: true,
+          };
+        }
         await adapter.executeQuery(
           `CREATE INDEX "${idxName}" ON ${qualifiedTable} USING GIST ("${column}")`,
         );
