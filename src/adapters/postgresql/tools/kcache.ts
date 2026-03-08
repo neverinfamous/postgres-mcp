@@ -20,13 +20,11 @@ import { getToolIcons } from "../../../utils/icons.js";
 import { formatPostgresError } from "./core/error-helpers.js";
 import {
   KcacheQueryStatsSchemaBase,
-  KcacheQueryStatsSchema,
   KcacheTopCpuSchemaBase,
   KcacheTopIoSchemaBase,
   KcacheDatabaseStatsSchemaBase,
   KcacheDatabaseStatsSchema,
   KcacheResourceAnalysisSchemaBase,
-  KcacheResourceAnalysisSchema,
   // Output schemas
   KcacheCreateExtensionOutputSchema,
   KcacheQueryStatsOutputSchema,
@@ -158,8 +156,19 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
     icons: getToolIcons("kcache", readOnly("Kcache Query Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { limit, orderBy, minCalls, queryPreviewLength } =
-          KcacheQueryStatsSchema.parse(params);
+        const parsed = z
+          .object({
+            limit: z.coerce.number().optional(),
+            orderBy: z.string().optional(),
+            minCalls: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
+          })
+          .parse(params ?? {});
+
+        const limit = parsed.limit !== undefined && !isNaN(parsed.limit) ? parsed.limit : undefined;
+        const orderBy = parsed.orderBy;
+        const minCalls = parsed.minCalls !== undefined && !isNaN(parsed.minCalls) ? parsed.minCalls : undefined;
+        const queryPreviewLength = parsed.queryPreviewLength !== undefined && !isNaN(parsed.queryPreviewLength) ? parsed.queryPreviewLength : undefined;
 
         // Validate orderBy inside handler for structured error response
         const VALID_ORDER_BY = [
@@ -296,12 +305,19 @@ in user CPU (application code) vs system CPU (kernel operations).`,
         const DEFAULT_LIMIT = 10;
         // limit: 0 means "no limit" (return all rows), undefined means use default
         const limitVal =
-          parsed.limit === 0 ? null : (parsed.limit ?? DEFAULT_LIMIT);
+          parsed.limit === 0 || (parsed.limit !== undefined && isNaN(parsed.limit))
+            ? (parsed.limit !== undefined && isNaN(parsed.limit) ? DEFAULT_LIMIT : null)
+            : (parsed.limit ?? DEFAULT_LIMIT);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
             ? 10000
-            : Math.min(parsed.queryPreviewLength ?? 100, 500);
+            : Math.min(
+                (parsed.queryPreviewLength !== undefined && !isNaN(parsed.queryPreviewLength))
+                  ? parsed.queryPreviewLength
+                  : 100,
+                500,
+              );
         const cols = await getKcacheColumnNames(adapter);
 
         // Get total count first for truncation indicator
@@ -403,12 +419,19 @@ which represent actual disk access (not just shared buffer hits).`,
         const DEFAULT_LIMIT = 10;
         // limit: 0 means "no limit" (return all rows), undefined means use default
         const limitVal =
-          parsed.limit === 0 ? null : (parsed.limit ?? DEFAULT_LIMIT);
+          parsed.limit === 0 || (parsed.limit !== undefined && isNaN(parsed.limit))
+            ? (parsed.limit !== undefined && isNaN(parsed.limit) ? DEFAULT_LIMIT : null)
+            : (parsed.limit ?? DEFAULT_LIMIT);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
             ? 10000
-            : Math.min(parsed.queryPreviewLength ?? 100, 500);
+            : Math.min(
+                (parsed.queryPreviewLength !== undefined && !isNaN(parsed.queryPreviewLength))
+                  ? parsed.queryPreviewLength
+                  : 100,
+                500,
+              );
         const cols = await getKcacheColumnNames(adapter);
 
         const orderColumn =
@@ -582,8 +605,22 @@ Helps identify the root cause of performance issues - is the query computation-h
     icons: getToolIcons("kcache", readOnly("Kcache Resource Analysis")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { queryId, threshold, limit, minCalls, queryPreviewLength } =
-          KcacheResourceAnalysisSchema.parse(params);
+        const parsed = z
+          .object({
+            queryId: z.string().optional(),
+            threshold: z.coerce.number().optional(),
+            limit: z.coerce.number().optional(),
+            minCalls: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
+          })
+          .parse(params ?? {});
+
+        const queryId = parsed.queryId;
+        const threshold = parsed.threshold !== undefined && !isNaN(parsed.threshold) ? parsed.threshold : undefined;
+        const limit = parsed.limit !== undefined && !isNaN(parsed.limit) ? parsed.limit : undefined;
+        const minCalls = parsed.minCalls !== undefined && !isNaN(parsed.minCalls) ? parsed.minCalls : undefined;
+        const queryPreviewLength = parsed.queryPreviewLength !== undefined && !isNaN(parsed.queryPreviewLength) ? parsed.queryPreviewLength : undefined;
+
         const thresholdVal = threshold ?? 0.5;
         const DEFAULT_LIMIT = 20;
         // limit: 0 means "no limit" (return all rows), undefined means use default

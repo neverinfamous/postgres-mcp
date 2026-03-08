@@ -17,7 +17,7 @@ import { normalizeOptionalParams } from "./shared.js";
  */
 export const KcacheQueryStatsSchemaBase = z.object({
   limit: z
-    .number()
+    .any()
     .optional()
     .describe("Maximum number of queries to return (default: 20)"),
   orderBy: z
@@ -26,9 +26,9 @@ export const KcacheQueryStatsSchemaBase = z.object({
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
-  minCalls: z.number().optional().describe("Minimum call count to include"),
+  minCalls: z.any().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
-    .number()
+    .any()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
@@ -58,11 +58,11 @@ export const KcacheTopConsumersSchema = z.object({
  */
 export const KcacheTopCpuSchemaBase = z.object({
   limit: z
-    .number()
+    .any()
     .optional()
     .describe("Number of top queries to return (default: 10)"),
   queryPreviewLength: z
-    .number()
+    .any()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
@@ -82,11 +82,11 @@ export const KcacheTopIoSchemaBase = z.object({
     .optional()
     .describe("Alias for type"),
   limit: z
-    .number()
+    .any()
     .optional()
     .describe("Number of top queries to return (default: 10)"),
   queryPreviewLength: z
-    .number()
+    .any()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
@@ -117,16 +117,16 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .optional()
     .describe("Specific query ID to analyze (all if omitted)"),
   threshold: z
-    .number()
+    .any()
     .optional()
     .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
   limit: z
-    .number()
+    .any()
     .optional()
     .describe("Maximum number of queries to return (default: 20)"),
-  minCalls: z.number().optional().describe("Minimum call count to include"),
+  minCalls: z.any().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
-    .number()
+    .any()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
