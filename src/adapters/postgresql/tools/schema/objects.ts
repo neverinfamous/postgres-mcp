@@ -196,8 +196,8 @@ export function createListSequencesTool(
     inputSchema: z
       .object({
         schema: z.string().optional(),
-        limit: z.coerce
-          .number()
+        limit: z
+          .any()
           .optional()
           .describe(
             "Maximum number of sequences to return (default: 50). Use 0 for all.",
@@ -210,7 +210,7 @@ export function createListSequencesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       const parsed = (params ?? {}) as {
         schema?: string;
-        limit?: number;
+        limit?: unknown;
       };
       const queryParams: unknown[] = [];
 
@@ -233,8 +233,9 @@ export function createListSequencesTool(
           `AND n.nspname = $${String(queryParams.length)}`)
         : "";
 
-      // Default limit: 50, 0 = no limit
-      const limitVal = parsed.limit ?? 50;
+      // Default limit: 50, 0 = no limit (safe coercion)
+      const rawLimit = Number(parsed.limit);
+      const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
       const limitClause = limitVal > 0 ? `LIMIT ${String(limitVal + 1)}` : "";
 
       // Use subquery for owned_by to avoid duplicate rows from JOINs

@@ -24,14 +24,11 @@ export const CreateSequenceSchemaBase = z.object({
   name: z.string().optional().describe("Sequence name"),
   sequenceName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
-  start: z.coerce.number().optional().describe("Start value"),
-  increment: z.coerce.number().optional().describe("Increment by (default: 1)"),
-  minValue: z.coerce.number().optional().describe("Minimum value"),
-  maxValue: z.coerce.number().optional().describe("Maximum value"),
-  cache: z.coerce
-    .number()
-    .optional()
-    .describe("Number of sequence values to pre-allocate (default: 1)"),
+  start: z.any().optional().describe("Start value"),
+  increment: z.any().optional().describe("Increment by (default: 1)"),
+  minValue: z.any().optional().describe("Minimum value"),
+  maxValue: z.any().optional().describe("Maximum value"),
+  cache: z.any().optional().describe("Number of sequence values to pre-allocate (default: 1)"),
   cycle: z
     .boolean()
     .optional()
@@ -73,16 +70,25 @@ function preprocessCreateSequenceParams(input: unknown): unknown {
 }
 
 // Transformed schema with alias resolution and schema.name preprocessing
+/**
+ * Safely coerce an optional numeric param: returns a finite number or undefined.
+ */
+function safeCoerceNumber(val: unknown): number | undefined {
+  if (val === undefined || val === null) return undefined;
+  const n = Number(val);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 export const CreateSequenceSchema = z.preprocess(
   preprocessCreateSequenceParams,
   CreateSequenceSchemaBase.transform((data) => ({
     name: data.name ?? data.sequenceName ?? "",
     schema: data.schema,
-    start: data.start,
-    increment: data.increment,
-    minValue: data.minValue,
-    maxValue: data.maxValue,
-    cache: data.cache,
+    start: safeCoerceNumber(data.start),
+    increment: safeCoerceNumber(data.increment),
+    minValue: safeCoerceNumber(data.minValue),
+    maxValue: safeCoerceNumber(data.maxValue),
+    cache: safeCoerceNumber(data.cache),
     cycle: data.cycle,
     ownedBy: data.ownedBy,
     ifNotExists: data.ifNotExists,
@@ -266,8 +272,8 @@ export const ListFunctionsSchemaBase = z.object({
     .string()
     .optional()
     .describe('Filter by language (e.g., "plpgsql", "sql", "c")'),
-  limit: z.coerce
-    .number()
+  limit: z
+    .any()
     .optional()
     .describe(
       "Max results (default: 500). Increase for databases with many extensions.",

@@ -56,14 +56,14 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
     inputSchema: z.object({
       schema: z.string().optional(),
       includeMaterialized: z.boolean().optional(),
-      truncateDefinition: z.coerce
-        .number()
+      truncateDefinition: z
+        .any()
         .optional()
         .describe(
           "Max length for view definitions (default: 500). Use 0 for no truncation.",
         ),
-      limit: z.coerce
-        .number()
+      limit: z
+        .any()
         .optional()
         .describe(
           "Maximum number of views to return (default: 50). Use 0 for all views.",
@@ -76,8 +76,8 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
       const parsed = (params ?? {}) as {
         schema?: string;
         includeMaterialized?: boolean;
-        truncateDefinition?: number;
-        limit?: number;
+        truncateDefinition?: unknown;
+        limit?: unknown;
       };
       const queryParams: unknown[] = [];
 
@@ -102,11 +102,13 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
       const kindClause =
         parsed.includeMaterialized !== false ? "IN ('v', 'm')" : "= 'v'";
 
-      // Default truncation: 500 chars, 0 = no truncation
-      const truncateLimit = parsed.truncateDefinition ?? 500;
+      // Default truncation: 500 chars, 0 = no truncation (safe coercion)
+      const rawTruncate = Number(parsed.truncateDefinition);
+      const truncateLimit = Number.isFinite(rawTruncate) ? rawTruncate : 500;
 
-      // Default limit: 50, 0 = no limit
-      const limitVal = parsed.limit ?? 50;
+      // Default limit: 50, 0 = no limit (safe coercion)
+      const rawLimit = Number(parsed.limit);
+      const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
       const limitClause = limitVal > 0 ? `LIMIT ${String(limitVal + 1)}` : "";
 
       const sql = `SELECT n.nspname as schema, c.relname as name,
@@ -407,7 +409,9 @@ export function createListFunctionsTool(
           conditions.push(`l.lanname = $${String(queryParams.length)}`);
         }
 
-        const limitVal = parsed.limit ?? 500;
+        // Safe coercion for limit (z.any() in base schema)
+        const rawLimit = Number(parsed.limit);
+        const limitVal = Number.isFinite(rawLimit) ? rawLimit : 500;
 
         const sql = `SELECT n.nspname as schema, p.proname as name,
                           pg_get_function_arguments(p.oid) as arguments,
