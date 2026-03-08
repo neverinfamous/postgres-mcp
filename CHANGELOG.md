@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`pg_vector_create_index({})` doubled `"Validation error:"` prefix** — `pg_vector_create_index({})` now returns `{error: "Validation error: type (or method alias) is required"}` instead of `{error: "Validation error: Validation error: type (or method alias) is required"}`. Root cause: the `.refine()` message in `VectorCreateIndexSchema` already included the `"Validation error: "` prefix, and `formatPostgresError` added it again. Removed the prefix from the `.refine()` message so it is applied exactly once
+
 ## [2.1.0] - 2026-03-08
 
 ### Fixed

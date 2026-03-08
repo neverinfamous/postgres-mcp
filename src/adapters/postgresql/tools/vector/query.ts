@@ -238,6 +238,14 @@ export function createVectorCreateIndexTool(
             requiredParams: ["table", "column", "type"],
           };
         }
+        // Refine guarantees type is defined, but TypeScript can't narrow through .refine()
+        if (type === undefined) {
+          return {
+            success: false,
+            error: "type (or method alias) is required",
+            requiredParams: ["table", "column", "type"],
+          };
+        }
 
         // P154: Verify table and column exist before attempting index creation
         const existenceError = await checkTableAndColumn(

@@ -554,7 +554,7 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
       } catch (error: unknown) {
         return {
           success: false,
-          error: formatPostgresError(error, { tool: "pg_batch_insert" }),
+          error: formatPostgresError(error, { tool: "pg_upsert" }),
         };
       }
     },

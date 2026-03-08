@@ -423,8 +423,9 @@ function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
         const limitRaw =
           coercedLimit !== undefined &&
           !isNaN(coercedLimit) &&
-          isFinite(coercedLimit)
-            ? coercedLimit
+          isFinite(coercedLimit) &&
+          coercedLimit >= 0
+            ? Math.floor(coercedLimit)
             : undefined;
         // Get total count first if we're limiting
         const limitVal = limitRaw === 0 ? null : (limitRaw ?? 50);
@@ -529,8 +530,9 @@ Useful for monitoring and debugging scheduled jobs.`,
         const limit =
           coercedLimit !== undefined &&
           !isNaN(coercedLimit) &&
-          isFinite(coercedLimit)
-            ? coercedLimit
+          isFinite(coercedLimit) &&
+          coercedLimit >= 0
+            ? Math.floor(coercedLimit)
             : undefined;
 
         // Handler-level validation for status (relaxed from z.enum to z.string for structured errors)

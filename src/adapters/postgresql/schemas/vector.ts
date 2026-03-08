@@ -107,13 +107,9 @@ export const VectorCreateIndexSchemaBase = z.object({
 });
 
 // Transformed schema with alias resolution
-export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
-  (data) => {
-    // Resolve type from type or method alias
+export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase
+  .transform((data) => {
     const resolvedType = data.type ?? data.method;
-    if (!resolvedType) {
-      throw new Error("Validation error: type (or method alias) is required");
-    }
     return {
       table: data.table ?? data.tableName ?? "",
       column: data.column ?? data.col ?? "",
@@ -125,8 +121,10 @@ export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
       efConstruction: data.efConstruction,
       schema: data.schema,
     };
-  },
-);
+  })
+  .refine((d) => d.type !== undefined, {
+    message: "type (or method alias) is required",
+  });
 
 // ============================================================================
 // OUTPUT SCHEMAS - For MCP 2025-11-25 structured content compliance
