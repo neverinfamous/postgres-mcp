@@ -132,6 +132,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`security-update.yml` Trivy workflow** — Removed the dedicated Trivy security scanning workflow. Docker Scout in `docker-publish.yml` already provides container security scanning as a gate before pushing images, making Trivy redundant. The Trivy Action (`aquasecurity/trivy-action@0.34.1`) was also experiencing transient binary installation failures blocking unrelated PRs
 
+### CI/CD
+
+- **TruffleHog `--only-verified` flag restored** — Re-added `--only-verified` to the TruffleHog step in `secrets-scanning.yml`. Without this flag, TruffleHog flagged example/documentation `postgres://user:pass@...` connection strings as unverified secrets, causing CI failures on every PR. Gitleaks remains the primary hard-gate scanner without `--only-verified`
+
 ## [2.0.0] - 2026-03-02
 
 ### Added
