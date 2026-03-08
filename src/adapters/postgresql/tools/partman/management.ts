@@ -162,7 +162,9 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
           `p_interval := '${validatedInterval}'`,
         ];
 
-        if (premake !== undefined) {
+        // premake is passed directly to pg_partman create_parent
+        // Guard against NaN from z.coerce.number("abc")
+        if (premake !== undefined && !isNaN(premake)) {
           args.push(`p_premake := ${String(premake)}`);
         }
         if (startPartition !== undefined) {
@@ -294,7 +296,7 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
           parentTable: validatedParentTable,
           controlColumn: validatedControlColumn,
           interval: validatedInterval,
-          premake: premake ?? 4,
+          premake: premake !== undefined && !isNaN(premake) ? premake : 4,
           maintenanceRan,
           // Suppress raw maintenanceError - the message/hint explains the situation clearly
           message: maintenanceRan
@@ -536,7 +538,8 @@ export function createPartmanShowPartitionsTool(
           limit?: number;
         };
         const { parentTable, includeDefault, order } = parsed;
-        const limit = parsed.limit ?? DEFAULT_PARTITION_LIMIT;
+        const rawLimit = parsed.limit ?? DEFAULT_PARTITION_LIMIT;
+        const limit = isNaN(rawLimit) ? DEFAULT_PARTITION_LIMIT : rawLimit;
 
         // parentTable is required - provide clear error if missing
         if (!parentTable) {
@@ -681,7 +684,8 @@ export function createPartmanShowConfigTool(
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
         // Apply limit (default 50, 0 means no limit)
-        const limit = parsed.limit ?? 50;
+        const rawLimit = (parsed.limit as number | undefined) ?? 50;
+        const limit = isNaN(rawLimit) ? 50 : rawLimit;
         const applyLimit = limit > 0;
 
         let sql = `SELECT ${columns.join(", ")} FROM ${partmanSchema}.part_config`;

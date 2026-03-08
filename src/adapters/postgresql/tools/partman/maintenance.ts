@@ -195,7 +195,12 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { parentTable, targetTable, batchSize, keepTable } =
-          PartmanUndoPartitionSchema.parse(params);
+          PartmanUndoPartitionSchema.parse(params) as {
+            parentTable?: string;
+            targetTable?: string;
+            batchSize?: number;
+            keepTable?: boolean;
+          };
 
         // Validate required parameters with clear error messages
         if (!parentTable || !targetTable) {
@@ -251,7 +256,7 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
           `p_target_table := '${validatedTargetTable}'`,
         ];
 
-        if (batchSize !== undefined) {
+        if (batchSize !== undefined && !isNaN(batchSize)) {
           args.push(`p_loop_count := ${String(batchSize)}`);
         }
         if (keepTable !== undefined) {
@@ -345,8 +350,8 @@ stale maintenance, and retention configuration.`,
             .string()
             .optional()
             .describe("Specific parent table to analyze (all if omitted)"),
-          limit: z.coerce
-            .number()
+          limit: z
+            .any()
             .optional()
             .describe(
               "Maximum number of partition sets to analyze (default: 50, use 0 for all)",
@@ -403,7 +408,8 @@ stale maintenance, and retention configuration.`,
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
         // Apply limit (default 50, 0 means no limit)
-        const limit = parsed.limit ?? 50;
+        const rawLimit = parsed.limit ?? 50;
+        const limit = isNaN(rawLimit) ? 50 : rawLimit;
         const applyLimit = limit > 0;
 
         let configSql = `

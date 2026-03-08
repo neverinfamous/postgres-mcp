@@ -132,8 +132,8 @@ export const PartmanCreateParentSchemaBase = z.object({
     .describe(
       'Partition interval using PostgreSQL syntax (e.g., "1 month", "1 day", "1 week", "10000" for integer). Required.',
     ),
-  premake: z.coerce
-    .number()
+  premake: z
+    .any()
     .optional()
     .describe("Number of partitions to create in advance (default: 4)"),
   startPartition: z
@@ -196,8 +196,8 @@ export const PartmanShowPartitionsSchemaBase = z.object({
     .enum(["asc", "desc"])
     .optional()
     .describe("Order of partitions by boundary"),
-  limit: z.coerce
-    .number()
+  limit: z
+    .any()
     .optional()
     .describe(
       "Maximum number of partitions to return (default: 50, use 0 for all)",
@@ -217,8 +217,8 @@ export const PartmanShowConfigSchemaBase = z.object({
     .string()
     .optional()
     .describe("Parent table name (all configs if omitted)"),
-  limit: z.coerce
-    .number()
+  limit: z
+    .any()
     .optional()
     .describe(
       "Maximum number of configs to return (default: 50, use 0 for all)",
@@ -257,12 +257,12 @@ export const PartmanPartitionDataSchemaBase = z.object({
     .describe(
       "Parent table name (schema.table format). Required - specify table to partition data.",
     ),
-  batchSize: z.coerce
-    .number()
+  batchSize: z
+    .any()
     .optional()
     .describe("Rows to move per batch (default: varies by function)"),
-  lockWaitSeconds: z.coerce
-    .number()
+  lockWaitSeconds: z
+    .any()
     .optional()
     .describe("Lock wait timeout in seconds"),
 });
@@ -314,7 +314,7 @@ export const PartmanUndoPartitionSchemaBase = z.object({
     .describe(
       "Target table for consolidated data. Must exist before calling. Alias: target. Required.",
     ),
-  batchSize: z.coerce.number().optional().describe("Rows to move per batch"),
+  batchSize: z.any().optional().describe("Rows to move per batch"),
   keepTable: z
     .boolean()
     .optional()
@@ -541,6 +541,8 @@ export const PartmanUndoPartitionOutputSchema = z
  */
 export const PartmanAnalyzeHealthOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
     partitionSets: z
       .array(
         z.object({
@@ -553,6 +555,7 @@ export const PartmanAnalyzeHealthOutputSchema = z
           hasDataInDefault: z.boolean().describe("Data in default"),
         }),
       )
+      .optional()
       .describe("Health check results"),
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total partition sets"),

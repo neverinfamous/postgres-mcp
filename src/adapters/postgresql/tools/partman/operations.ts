@@ -229,10 +229,10 @@ Creates new partitions if needed for the data being moved.`,
 
         const args: string[] = [`p_parent_table := '${parentTable}'`];
 
-        if (batchSize !== undefined) {
+        if (batchSize !== undefined && !isNaN(batchSize)) {
           args.push(`p_loop_count := ${String(batchSize)}`);
         }
-        if (lockWaitSeconds !== undefined) {
+        if (lockWaitSeconds !== undefined && !isNaN(lockWaitSeconds)) {
           args.push(`p_lock_wait := ${String(lockWaitSeconds)}`);
         }
 
