@@ -130,18 +130,14 @@ export function createListPartitionsTool(
       );
       if (tableStatus === "not_found") {
         return {
-          partitions: [],
-          count: 0,
-          truncated: false,
-          warning: `Table '${schemaName}.${resolvedTable}' does not exist.`,
+          success: false,
+          error: `Table "${schemaName}.${resolvedTable}" does not exist`,
         };
       }
       if (tableStatus === "not_partitioned") {
         return {
-          partitions: [],
-          count: 0,
-          truncated: false,
-          warning: `Table '${schemaName}.${resolvedTable}' exists but is not partitioned. Use pg_create_partitioned_table to create a partitioned table.`,
+          success: false,
+          error: `Table "${schemaName}.${resolvedTable}" exists but is not partitioned. Use pg_create_partitioned_table to create a partitioned table.`,
         };
       }
 

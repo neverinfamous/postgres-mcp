@@ -118,7 +118,7 @@ describe("pg_list_partitions", () => {
     );
   });
 
-  it("should return warning for non-partitioned table", async () => {
+  it("should return structured error for non-partitioned table", async () => {
     // checkTablePartitionStatus returns regular table
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ relkind: "r" }],
@@ -131,21 +131,17 @@ describe("pg_list_partitions", () => {
       },
       mockContext,
     )) as {
-      partitions: unknown[];
-      count: number;
-      truncated: boolean;
-      warning: string;
+      success: boolean;
+      error: string;
     };
 
-    expect(result.count).toBe(0);
-    expect(result.partitions).toHaveLength(0);
-    expect(result.warning).toContain("exists but is not partitioned");
-    expect(result.warning).toContain("regular_table");
-    expect(result.truncated).toBe(false);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("exists but is not partitioned");
+    expect(result.error).toContain("regular_table");
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
   });
 
-  it("should return warning for non-existent table", async () => {
+  it("should return structured error for non-existent table", async () => {
     // checkTablePartitionStatus returns not found
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -156,17 +152,13 @@ describe("pg_list_partitions", () => {
       },
       mockContext,
     )) as {
-      partitions: unknown[];
-      count: number;
-      truncated: boolean;
-      warning: string;
+      success: boolean;
+      error: string;
     };
 
-    expect(result.count).toBe(0);
-    expect(result.partitions).toHaveLength(0);
-    expect(result.warning).toContain("does not exist");
-    expect(result.warning).toContain("nonexistent_table");
-    expect(result.truncated).toBe(false);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+    expect(result.error).toContain("nonexistent_table");
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
   });
 
@@ -1177,7 +1169,7 @@ describe("pg_partition_info", () => {
     expect(result.partitions[0]?.approx_rows).toBe(0);
   });
 
-  it("should return warning for non-partitioned table", async () => {
+  it("should return structured error for non-partitioned table", async () => {
     // checkTablePartitionStatus returns regular table
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ relkind: "r" }],
@@ -1190,21 +1182,17 @@ describe("pg_partition_info", () => {
       },
       mockContext,
     )) as {
-      tableInfo: unknown;
-      partitions: unknown[];
-      totalSizeBytes: number;
-      warning: string;
+      success: boolean;
+      error: string;
     };
 
-    expect(result.tableInfo).toBeNull();
-    expect(result.partitions).toHaveLength(0);
-    expect(result.totalSizeBytes).toBe(0);
-    expect(result.warning).toContain("exists but is not partitioned");
-    expect(result.warning).toContain("regular_table");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("exists but is not partitioned");
+    expect(result.error).toContain("regular_table");
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
   });
 
-  it("should return warning for non-existent table", async () => {
+  it("should return structured error for non-existent table", async () => {
     // checkTablePartitionStatus returns not found
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -1215,17 +1203,13 @@ describe("pg_partition_info", () => {
       },
       mockContext,
     )) as {
-      tableInfo: unknown;
-      partitions: unknown[];
-      totalSizeBytes: number;
-      warning: string;
+      success: boolean;
+      error: string;
     };
 
-    expect(result.tableInfo).toBeNull();
-    expect(result.partitions).toHaveLength(0);
-    expect(result.totalSizeBytes).toBe(0);
-    expect(result.warning).toContain("does not exist");
-    expect(result.warning).toContain("nonexistent_table");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+    expect(result.error).toContain("nonexistent_table");
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
   });
 });
