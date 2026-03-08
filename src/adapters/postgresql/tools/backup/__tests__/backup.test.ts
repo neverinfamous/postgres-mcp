@@ -725,12 +725,15 @@ describe("pg_copy_import — format extensions and options", () => {
     expect(result.command).toContain('"products"');
   });
 
-  it("should return error when no table provided", async () => {
+  it("should return structured error when no table provided", async () => {
     const tool = tools.find((t) => t.name === "pg_copy_import")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
-      "table parameter is required",
-    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table parameter is required");
   });
 
   it("should use custom filePath", async () => {
