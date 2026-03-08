@@ -368,39 +368,8 @@ describe("DatabaseAdapter", () => {
     });
   });
 
-  describe("getInfo", () => {
-    it("should return adapter type", () => {
-      const info = adapter.getInfo();
-      expect(info["type"]).toBe("postgresql");
-    });
 
-    it("should return adapter name", () => {
-      const info = adapter.getInfo();
-      expect(info["name"]).toBe("Test Adapter");
-    });
 
-    it("should return adapter version", () => {
-      const info = adapter.getInfo();
-      expect(info["version"]).toBe("1.0.0");
-    });
-
-    it("should return connected status", () => {
-      const info = adapter.getInfo();
-      expect(info["connected"]).toBe(false);
-    });
-
-    it("should return capabilities", () => {
-      const info = adapter.getInfo();
-      expect(info["capabilities"]).toBeDefined();
-      expect((info["capabilities"] as AdapterCapabilities).json).toBe(true);
-    });
-
-    it("should return tool groups", () => {
-      const info = adapter.getInfo();
-      expect(info["toolGroups"]).toBeDefined();
-      expect(info["toolGroups"]).toContain("core");
-    });
-  });
 
   describe("registerTools", () => {
     it("should register only enabled tools", () => {

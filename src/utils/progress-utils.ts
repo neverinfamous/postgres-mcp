@@ -8,15 +8,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestContext } from "../types/index.js";
 
-/** Progress token from client request _meta */
-export type ProgressToken = string | number;
+
 
 /** Context required to send progress notifications */
 export interface ProgressContext {
   /** MCP Server instance for sending notifications */
   server: McpServer;
   /** Progress token from request _meta (if client requested progress) */
-  progressToken?: ProgressToken;
+  progressToken?: string | number;
 }
 
 /**
@@ -76,26 +75,4 @@ export async function sendProgress(
   }
 }
 
-/**
- * Create a progress reporter function for batch operations.
- *
- * @param ctx - Progress context
- * @param total - Total number of items to process
- * @param throttle - Report every N items (default: 10)
- * @returns Async function to call on each item processed
- */
-export function createBatchProgressReporter(
-  ctx: ProgressContext | undefined,
-  total: number,
-  throttle = 10,
-): (current: number, message?: string) => Promise<void> {
-  let lastReported = 0;
 
-  return async (current: number, message?: string) => {
-    // Report progress at throttle intervals or at completion
-    if (current - lastReported >= throttle || current === total) {
-      await sendProgress(ctx, current, total, message);
-      lastReported = current;
-    }
-  };
-}

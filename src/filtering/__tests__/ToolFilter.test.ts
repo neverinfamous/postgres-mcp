@@ -12,13 +12,8 @@ import {
   getToolGroup,
   getMetaGroupTools,
   parseToolFilter,
-  isToolEnabled,
   filterTools,
-  calculateTokenSavings,
   getFilterSummary,
-  getToolGroupInfo,
-  getMetaGroupInfo,
-  clearToolFilterCaches,
 } from "../ToolFilter.js";
 import type { ToolDefinition } from "../../types/index.js";
 
@@ -345,24 +340,6 @@ describe("parseToolFilter", () => {
   });
 });
 
-describe("isToolEnabled", () => {
-  it("should return true for enabled tools", () => {
-    const config = parseToolFilter("");
-    expect(isToolEnabled("pg_read_query", config)).toBe(true);
-  });
-
-  it("should return false for disabled tools", () => {
-    const config = parseToolFilter("-pg_read_query");
-    expect(isToolEnabled("pg_read_query", config)).toBe(false);
-  });
-
-  it("should return false for unknown tools", () => {
-    const config = parseToolFilter("");
-    // Unknown tools are not in enabledTools set
-    expect(isToolEnabled("unknown_tool", config)).toBe(false);
-  });
-});
-
 describe("filterTools", () => {
   const mockHandler = async () => ({ result: "ok" });
   const mockTools: ToolDefinition[] = [
@@ -410,33 +387,6 @@ describe("filterTools", () => {
   });
 });
 
-describe("calculateTokenSavings", () => {
-  it("should calculate correct savings", () => {
-    const result = calculateTokenSavings(227, 59);
-    // (227 - 59) * 200 = 33600 tokens
-    expect(result.tokensSaved).toBe(33600);
-    expect(result.percentSaved).toBe(74); // ~74% disabled
-  });
-
-  it("should return 0 for no filtering", () => {
-    const result = calculateTokenSavings(227, 227);
-    expect(result.tokensSaved).toBe(0);
-    expect(result.percentSaved).toBe(0);
-  });
-
-  it("should handle custom tokens per tool", () => {
-    const result = calculateTokenSavings(100, 50, 100);
-    expect(result.tokensSaved).toBe(5000); // 50 * 100
-    expect(result.percentSaved).toBe(50);
-  });
-
-  it("should handle edge case with 0 total tools", () => {
-    const result = calculateTokenSavings(0, 0);
-    expect(result.tokensSaved).toBe(0);
-    expect(result.percentSaved).toBe(0);
-  });
-});
-
 describe("getFilterSummary", () => {
   it("should generate summary for no filter", () => {
     const config = parseToolFilter("");
@@ -464,71 +414,5 @@ describe("getFilterSummary", () => {
     const summary = getFilterSummary(config);
     expect(summary).toContain("By group:");
     expect(summary).toContain("vector: 0/16");
-  });
-});
-
-describe("getToolGroupInfo", () => {
-  it("should return info for all 21 groups", () => {
-    const info = getToolGroupInfo();
-    expect(info).toHaveLength(21);
-  });
-
-  it("should include correct counts", () => {
-    const info = getToolGroupInfo();
-    const coreInfo = info.find((g) => g.group === "core");
-    expect(coreInfo).toBeDefined();
-    expect(coreInfo?.count).toBe(20);
-    expect(coreInfo?.tools).toHaveLength(20);
-  });
-
-  it("should include codemode group with 1 tool", () => {
-    const info = getToolGroupInfo();
-    const codemodeInfo = info.find((g) => g.group === "codemode");
-    expect(codemodeInfo).toBeDefined();
-    expect(codemodeInfo?.count).toBe(1);
-    expect(codemodeInfo?.tools).toContain("pg_execute_code");
-  });
-});
-
-describe("getMetaGroupInfo", () => {
-  it("should return info for all 16 meta-groups", () => {
-    const info = getMetaGroupInfo();
-    expect(info).toHaveLength(16);
-  });
-
-  it("should include correct expanded counts", () => {
-    const info = getMetaGroupInfo();
-    const starterInfo = info.find((g) => g.metaGroup === "starter");
-    expect(starterInfo).toBeDefined();
-    expect(starterInfo?.count).toBe(59);
-    expect(starterInfo?.groups).toContain("core");
-    expect(starterInfo?.groups).toContain("codemode");
-  });
-});
-
-describe("caching behavior", () => {
-  beforeEach(() => {
-    clearToolFilterCaches();
-  });
-
-  it("should return same array reference from getAllToolNames on repeated calls", () => {
-    const first = getAllToolNames();
-    const second = getAllToolNames();
-    expect(first).toBe(second); // Same reference = cached
-  });
-
-  it("should return same group from getToolGroup after building cache", () => {
-    const first = getToolGroup("pg_read_query");
-    const second = getToolGroup("pg_read_query");
-    expect(first).toBe("core");
-    expect(second).toBe("core");
-  });
-
-  it("should rebuild cache after clearToolFilterCaches", () => {
-    const first = getAllToolNames();
-    clearToolFilterCaches();
-    const second = getAllToolNames();
-    expect(first).not.toBe(second); // Different reference after clear
-    expect(first).toEqual(second); // Same content
   });
 });

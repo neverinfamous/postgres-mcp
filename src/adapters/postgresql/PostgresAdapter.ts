@@ -116,12 +116,6 @@ export class PostgresAdapter extends DatabaseAdapter {
     this.metadataCache.set(key, { data, timestamp: Date.now() });
   }
 
-  /**
-   * Clear all cached metadata (useful after schema changes)
-   */
-  clearMetadataCache(): void {
-    this.metadataCache.clear();
-  }
 
   // =========================================================================
   // Connection Lifecycle
