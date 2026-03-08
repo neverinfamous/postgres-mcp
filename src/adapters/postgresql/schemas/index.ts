@@ -427,6 +427,8 @@ export {
   KcacheResourceAnalysisOutputSchema,
   KcacheResetOutputSchema,
   // citext
+  CitextCompareSchemaBase,
+  CitextCompareSchema,
   CitextConvertColumnSchema,
   CitextConvertColumnSchemaBase,
   CitextListColumnsSchemaBase,

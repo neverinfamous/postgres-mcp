@@ -8,6 +8,31 @@ import { z } from "zod";
 import { normalizeOptionalParams } from "./shared.js";
 
 // =============================================================================
+// Compare Schema
+// =============================================================================
+
+/**
+ * Base schema for MCP visibility - shows parameters with optional types for framework passthrough.
+ */
+export const CitextCompareSchemaBase = z.object({
+  value1: z.string().optional().describe("First value to compare"),
+  value2: z.string().optional().describe("Second value to compare"),
+});
+
+/**
+ * Handler-side schema for compare tool.
+ * Validates required fields within try/catch.
+ */
+export const CitextCompareSchema = z
+  .preprocess(normalizeOptionalParams, CitextCompareSchemaBase)
+  .refine((data) => typeof data.value1 === "string" && data.value1.length > 0, {
+    message: "value1 is required",
+  })
+  .refine((data) => typeof data.value2 === "string" && data.value2.length > 0, {
+    message: "value2 is required",
+  });
+
+// =============================================================================
 // Preprocessors
 // =============================================================================
 
@@ -56,7 +81,7 @@ export function preprocessCitextTableParams(input: unknown): unknown {
  * Base schema for MCP visibility (shows all parameters including aliases).
  */
 export const CitextConvertColumnSchemaBase = z.object({
-  table: z.string().describe("Table name"),
+  table: z.string().optional().describe("Table name"),
   column: z.string().optional().describe("Text column to convert to citext"),
   col: z.string().optional().describe("Alias for column"),
   schema: z.string().optional().describe("Schema name (default: public)"),
@@ -69,10 +94,13 @@ export const CitextConvertColumnSchemaBase = z.object({
 export const CitextConvertColumnSchema = z
   .preprocess(preprocessCitextTableParams, CitextConvertColumnSchemaBase)
   .transform((data) => ({
-    table: data.table,
+    table: data.table ?? "",
     column: data.column ?? data.col ?? "",
     schema: data.schema,
   }))
+  .refine((data) => data.table !== "", {
+    message: "table is required",
+  })
   .refine((data) => data.column !== "", {
     message: "column (or col alias) is required",
   });
@@ -86,7 +114,7 @@ export const CitextListColumnsSchemaBase = z.object({
     .optional()
     .describe("Schema name to filter (all schemas if omitted)"),
   limit: z
-    .number()
+    .any()
     .optional()
     .describe("Maximum number of columns to return (default: 100, 0 for all)"),
 });
@@ -116,7 +144,7 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
     .optional()
     .describe("Table name to filter (analyzes single table)"),
   limit: z
-    .number()
+    .any()
     .optional()
     .describe("Maximum number of candidates to return"),
   excludeSystemSchemas: z

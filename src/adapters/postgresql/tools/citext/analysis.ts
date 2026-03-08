@@ -9,7 +9,6 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
@@ -18,6 +17,8 @@ import {
   CitextListColumnsSchemaBase,
   CitextAnalyzeCandidatesSchema,
   CitextAnalyzeCandidatesSchemaBase,
+  CitextCompareSchemaBase,
+  CitextCompareSchema,
   CitextSchemaAdvisorSchema,
   CitextSchemaAdvisorSchemaBase,
   CitextListColumnsOutputSchema,
@@ -44,9 +45,18 @@ Useful for auditing case-insensitive columns.`,
       try {
         const parsed = CitextListColumnsSchema.parse(params) as {
           schema?: string;
-          limit?: number;
+          limit?: unknown;
         };
-        const { schema, limit: userLimit } = parsed;
+        const { schema } = parsed;
+        const rawLimit = parsed.limit;
+        const userLimit =
+          rawLimit === undefined
+            ? undefined
+            : typeof rawLimit === "number"
+              ? rawLimit
+              : Number(rawLimit);
+        const safeLimit =
+          userLimit !== undefined && isNaN(userLimit) ? undefined : userLimit;
 
         // Validate schema existence when specified
         if (schema !== undefined) {
@@ -66,7 +76,7 @@ Useful for auditing case-insensitive columns.`,
         // Default limit of 100 to prevent large payloads
         const DEFAULT_LIMIT = 100;
         const effectiveLimit =
-          userLimit === 0 ? undefined : (userLimit ?? DEFAULT_LIMIT);
+          safeLimit === 0 ? undefined : (safeLimit ?? DEFAULT_LIMIT);
 
         const conditions: string[] = [
           "udt_name = 'citext'",
@@ -151,19 +161,28 @@ Looks for common patterns like email, username, name, slug, etc.`,
     annotations: readOnly("Analyze Citext Candidates"),
     icons: getToolIcons("citext", readOnly("Analyze Citext Candidates")),
     handler: async (params: unknown, _context: RequestContext) => {
+      const parsed = CitextAnalyzeCandidatesSchema.parse(params) as {
+        patterns?: string[];
+        schema?: string;
+        table?: string;
+        limit?: unknown;
+        excludeSystemSchemas?: boolean;
+      };
       const {
         patterns,
         schema,
         table,
-        limit: userLimit,
         excludeSystemSchemas: userExcludeSystemSchemas,
-      } = CitextAnalyzeCandidatesSchema.parse(params) as {
-        patterns?: string[];
-        schema?: string;
-        table?: string;
-        limit?: number;
-        excludeSystemSchemas?: boolean;
-      };
+      } = parsed;
+      const rawLimit = parsed.limit;
+      const userLimit =
+        rawLimit === undefined
+          ? undefined
+          : typeof rawLimit === "number"
+            ? rawLimit
+            : Number(rawLimit);
+      const safeLimit =
+        userLimit !== undefined && isNaN(userLimit) ? undefined : userLimit;
 
       // Validate table/schema existence before querying
       if (table !== undefined) {
@@ -197,7 +216,7 @@ Looks for common patterns like email, username, name, slug, etc.`,
       // Default limit of 50 to prevent large payloads and transport truncation
       const DEFAULT_LIMIT = 50;
       const effectiveLimit =
-        userLimit === 0 ? undefined : (userLimit ?? DEFAULT_LIMIT);
+        safeLimit === 0 ? undefined : (safeLimit ?? DEFAULT_LIMIT);
 
       // Exclude system schemas by default when no table filter is specified
       const excludeSystemSchemas = userExcludeSystemSchemas ?? true;
@@ -358,21 +377,16 @@ export function createCitextCompareTool(
     description: `Compare two values using case-insensitive semantics.
 Useful for testing citext behavior before converting columns.`,
     group: "citext",
-    inputSchema: z.object({
-      value1: z.string().describe("First value to compare"),
-      value2: z.string().describe("Second value to compare"),
-    }),
+    inputSchema: CitextCompareSchemaBase,
     outputSchema: CitextCompareOutputSchema,
     annotations: readOnly("Compare Citext Values"),
     icons: getToolIcons("citext", readOnly("Compare Citext Values")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        // Use the schema for proper validation
-        const schema = z.object({
-          value1: z.string(),
-          value2: z.string(),
-        });
-        const { value1, value2 } = schema.parse(params);
+        const { value1, value2 } = CitextCompareSchema.parse(params) as {
+          value1: string;
+          value2: string;
+        };
 
         const extCheck = await adapter.executeQuery(`
                 SELECT EXISTS(
