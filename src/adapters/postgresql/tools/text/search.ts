@@ -530,6 +530,10 @@ export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
 export function createTextNormalizeTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const NormalizeSchemaBase = z.object({
+    text: z.string().optional().describe("Text to remove accent marks from"),
+  });
+
   const NormalizeSchema = z.object({
     text: z.string().describe("Text to remove accent marks from"),
   });
@@ -539,7 +543,7 @@ export function createTextNormalizeTool(
     description:
       "Remove accent marks (diacritics) from text using PostgreSQL unaccent extension. Note: Does NOT lowercase or trim—use LOWER()/TRIM() in a query for those operations.",
     group: "text",
-    inputSchema: NormalizeSchema,
+    inputSchema: NormalizeSchemaBase,
     outputSchema: TextNormalizeOutputSchema,
     annotations: readOnly("Text Normalize"),
     icons: getToolIcons("text", readOnly("Text Normalize")),
@@ -580,6 +584,14 @@ export function createTextNormalizeTool(
 export function createTextToVectorTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const ToVectorSchemaBase = z.object({
+    text: z.string().optional().describe("Text to convert to tsvector"),
+    config: z
+      .string()
+      .optional()
+      .describe("Text search configuration (default: english)"),
+  });
+
   const ToVectorSchema = z.object({
     text: z.string().describe("Text to convert to tsvector"),
     config: z
@@ -593,7 +605,7 @@ export function createTextToVectorTool(
     description:
       "Convert text to tsvector representation for full-text search operations.",
     group: "text",
-    inputSchema: ToVectorSchema,
+    inputSchema: ToVectorSchemaBase,
     outputSchema: TextToVectorOutputSchema,
     annotations: readOnly("Text to Vector"),
     icons: getToolIcons("text", readOnly("Text to Vector")),
@@ -632,6 +644,20 @@ export function createTextToVectorTool(
 export function createTextToQueryTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const ToQuerySchemaBase = z.object({
+    text: z.string().optional().describe("Text to convert to tsquery"),
+    config: z
+      .string()
+      .optional()
+      .describe("Text search configuration (default: english)"),
+    mode: z
+      .string()
+      .optional()
+      .describe(
+        "Query parsing mode: plain (default), phrase (proximity), websearch (Google-like)",
+      ),
+  });
+
   const ToQuerySchema = z.object({
     text: z.string().describe("Text to convert to tsquery"),
     config: z
@@ -651,7 +677,7 @@ export function createTextToQueryTool(
     description:
       "Convert text to tsquery for full-text search. Modes: plain (default), phrase (proximity matching), websearch (Google-like syntax with AND/OR/-).",
     group: "text",
-    inputSchema: ToQuerySchema,
+    inputSchema: ToQuerySchemaBase,
     outputSchema: TextToQueryOutputSchema,
     annotations: readOnly("Text to Query"),
     icons: getToolIcons("text", readOnly("Text to Query")),

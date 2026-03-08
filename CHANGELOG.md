@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **4 standalone text tools raw MCP -32602 error for empty params** — `pg_text_normalize({})`, `pg_text_to_vector({})`, `pg_text_to_query({})`, and `pg_text_sentiment({})` now return `{success: false, error: "... validation error: Required"}` instead of raw MCP `-32602` Zod validation errors. Root cause: these standalone tools used their full schemas (with required `text: z.string()`) as `inputSchema`, causing the MCP framework to reject empty params before the handler's `try/catch` could intercept. Applied Split Schema pattern: created `*Base` schemas with `text: z.string().optional()` for MCP `inputSchema` visibility, keeping strict schemas inside handlers. For `pg_text_to_query`, also relaxed `mode` from `z.enum()` to `z.string().optional()` in the Base schema
+
+### Fixed
+
 - **Stale tool count in `codemode/api.ts` file header** — Updated file header comment from `194 PostgreSQL tools organized by their 19 groups` to `227 PostgreSQL tools organized by their 21 groups` to match actual counts
 - **Stale legacy migration comments** — Replaced 4 `Migrated from legacy postgres-mcp-server` comments in `resources/index.ts` and `prompts/index.ts` with functional grouping labels (`Observability resources`, `DBA and extension prompts`). The migration is long complete
 - **Stale dev scaffolding note in `PostgresAdapter.ts`** — Removed `// Import tool modules (will be created next)` leftover from initial scaffolding

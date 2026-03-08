@@ -510,6 +510,14 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
 export function createTextSentimentTool(
   _adapter: PostgresAdapter,
 ): ToolDefinition {
+  const SentimentSchemaBase = z.object({
+    text: z.string().optional().describe("Text to analyze"),
+    returnWords: z
+      .boolean()
+      .optional()
+      .describe("Return matched sentiment words"),
+  });
+
   const SentimentSchema = z.object({
     text: z.string().describe("Text to analyze"),
     returnWords: z
@@ -523,7 +531,7 @@ export function createTextSentimentTool(
     description:
       "Perform basic sentiment analysis on text using keyword matching.",
     group: "text",
-    inputSchema: SentimentSchema,
+    inputSchema: SentimentSchemaBase,
     outputSchema: TextSentimentOutputSchema,
     annotations: readOnly("Text Sentiment"),
     icons: getToolIcons("text", readOnly("Text Sentiment")),
