@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`pg_cron_job_run_details` / `pg_cron_cleanup_history` raw MCP `-32602` error for invalid `jobId`** — `pg_cron_job_run_details({jobId: "abc"})` and `pg_cron_cleanup_history({jobId: "abc"})` now return structured `{success: false, error: "Invalid job ID format"}` instead of raw MCP `-32602` Zod validation errors. Root cause: `CronJobRunDetailsSchemaBase` and `CronCleanupHistorySchemaBase` used `CoercibleJobId` (with `.regex()` validation) in their Base schemas, causing the MCP framework to reject invalid `jobId` values before the handler's `try/catch`. Changed to `z.any().optional()` in both Base schemas. Added explicit `CoercibleJobId.safeParse()` coercion in `CronCleanupHistorySchema` transform for type safety. `CronAlterJobSchemaBase` already used the correct pattern (`z.union([z.number(), z.string()])`)
 - **`pg_vector_create_index({})` doubled `"Validation error:"` prefix** — `pg_vector_create_index({})` now returns `{error: "Validation error: type (or method alias) is required"}` instead of `{error: "Validation error: Validation error: type (or method alias) is required"}`. Root cause: the `.refine()` message in `VectorCreateIndexSchema` already included the `"Validation error: "` prefix, and `formatPostgresError` added it again. Removed the prefix from the `.refine()` message so it is applied exactly once
 
 ## [2.1.0] - 2026-03-08
