@@ -40,7 +40,7 @@ export const VectorSearchSchemaBase = z.object({
     .enum(["l2", "cosine", "inner_product"])
     .optional()
     .describe("Distance metric"),
-  limit: z.coerce.number().optional().describe("Number of results"),
+  limit: z.unknown().optional().describe("Number of results"),
   select: z
     .array(z.string())
     .optional()
@@ -65,12 +65,15 @@ export const VectorSearchSchema = VectorSearchSchemaBase.transform((data) => {
     resolvedTable = parts[1] ?? resolvedTable;
   }
 
-  return {
+    const rawLimit = Number(data.limit);
+    const limit =
+      Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : undefined;
+    return {
     table: resolvedTable,
     column: data.column ?? data.col ?? "",
     vector: data.vector,
     metric: data.metric,
-    limit: data.limit,
+    limit,
     select: data.select,
     where: data.where ?? data.filter,
     schema: resolvedSchema,
@@ -109,13 +112,9 @@ export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
     // Resolve type from type or method alias
     const resolvedType = data.type ?? data.method;
     if (!resolvedType) {
-      throw new z.ZodError([
-        {
-          code: "custom",
-          path: [],
-          message: "type (or method alias) is required",
-        },
-      ]);
+      throw new Error(
+        "Validation error: type (or method alias) is required",
+      );
     }
     return {
       table: data.table ?? data.tableName ?? "",

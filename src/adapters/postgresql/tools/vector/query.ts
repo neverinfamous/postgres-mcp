@@ -108,7 +108,7 @@ export function createVectorSearchTool(
           };
         }
         const vectorStr = `[${vector.join(",")}]`;
-        const limitVal = limit !== undefined && limit > 0 ? limit : 10;
+        const limitVal = limit ?? 10;
         const selectCols =
           select !== undefined && select.length > 0
             ? select.map((c) => sanitizeIdentifier(c)).join(", ") + ", "
@@ -366,9 +366,10 @@ export function createVectorCreateIndexTool(
 export function createVectorDistanceTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const DistanceSchema = z.object({
-    vector1: z.array(z.number()),
-    vector2: z.array(z.number()),
+  // Base schema for MCP visibility — arrays optional to prevent MCP -32602 rejection
+  const DistanceSchemaBase = z.object({
+    vector1: z.array(z.number()).optional(),
+    vector2: z.array(z.number()).optional(),
     metric: z.enum(["l2", "cosine", "inner_product"]).optional(),
   });
 
@@ -377,13 +378,23 @@ export function createVectorDistanceTool(
     description:
       "Calculate distance between two vectors. Valid metrics: l2 (default), cosine, inner_product.",
     group: "vector",
-    inputSchema: DistanceSchema,
+    inputSchema: DistanceSchemaBase,
     outputSchema: VectorDistanceOutputSchema,
     annotations: readOnly("Vector Distance"),
     icons: getToolIcons("vector", readOnly("Vector Distance")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = DistanceSchema.parse(params);
+        const parsed = DistanceSchemaBase.parse(params ?? {});
+
+        // Validate required params
+        if (!parsed.vector1 || !parsed.vector2) {
+          return {
+            success: false,
+            error:
+              "Validation error: vector1 and vector2 are required",
+            suggestion: "Provide two vectors to calculate distance between them",
+          };
+        }
 
         // Validate dimension match before query
         if (parsed.vector1.length !== parsed.vector2.length) {
@@ -425,21 +436,35 @@ export function createVectorDistanceTool(
 }
 
 export function createVectorNormalizeTool(): ToolDefinition {
-  const NormalizeSchema = z.object({
-    vector: z.array(z.number()).describe("Vector to normalize to unit length"),
+  // Base schema for MCP visibility — array optional to prevent MCP -32602 rejection
+  const NormalizeSchemaBase = z.object({
+    vector: z
+      .array(z.number())
+      .optional()
+      .describe("Vector to normalize to unit length"),
   });
 
   return {
     name: "pg_vector_normalize",
     description: "Normalize a vector to unit length.",
     group: "vector",
-    inputSchema: NormalizeSchema,
+    inputSchema: NormalizeSchemaBase,
     outputSchema: VectorNormalizeOutputSchema,
     annotations: readOnly("Normalize Vector"),
     icons: getToolIcons("vector", readOnly("Normalize Vector")),
     handler: (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = NormalizeSchema.parse(params ?? {});
+        const parsed = NormalizeSchemaBase.parse(params ?? {});
+
+        // Validate required param
+        if (!parsed.vector) {
+          return Promise.resolve({
+            success: false,
+            error: "Validation error: vector is required",
+            suggestion:
+              "Provide a vector array to normalize, e.g., [3, 4]",
+          });
+        }
 
         const magnitude = Math.sqrt(
           parsed.vector.reduce((sum, x) => sum + x * x, 0),
@@ -766,6 +791,21 @@ export function createVectorValidateTool(
             }
           }
           throw error;
+        }
+
+        // Validate that at least one meaningful input is provided
+        const hasVector = parsed.vector !== undefined;
+        const hasTableColumn = parsed.table !== "" && parsed.column !== "";
+        const hasDimensions = parsed.dimensions !== undefined;
+
+        if (!hasVector && !hasTableColumn && !hasDimensions) {
+          return {
+            valid: false,
+            error:
+              "Validation error: at least one of vector, table+column, or dimensions is required",
+            suggestion:
+              "Provide a vector to validate, or table+column to check column dimensions, or dimensions to compare against",
+          };
         }
 
         // Get column dimensions if table/column specified

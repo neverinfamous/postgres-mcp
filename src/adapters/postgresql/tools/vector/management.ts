@@ -432,8 +432,9 @@ export function createVectorDimensionReduceTool(
 }
 
 export function createVectorEmbedTool(): ToolDefinition {
-  const EmbedSchema = z.object({
-    text: z.string().describe("Text to embed"),
+  // Base schema for MCP visibility — text optional to prevent MCP -32602 rejection
+  const EmbedSchemaBase = z.object({
+    text: z.string().optional().describe("Text to embed"),
     dimensions: z.coerce
       .number()
       .optional()
@@ -449,19 +450,19 @@ export function createVectorEmbedTool(): ToolDefinition {
     description:
       "Generate text embeddings. Returns a simple hash-based embedding for demos (use external APIs for production).",
     group: "vector",
-    inputSchema: EmbedSchema,
+    inputSchema: EmbedSchemaBase,
     outputSchema: VectorEmbedOutputSchema,
     annotations: readOnly("Vector Embed"),
     icons: getToolIcons("vector", readOnly("Vector Embed")),
     handler: (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = EmbedSchema.parse(params ?? {});
+        const parsed = EmbedSchemaBase.parse(params ?? {});
 
-        // Validate non-empty text
-        if (parsed.text === undefined || parsed.text === "") {
+        // Validate required text parameter
+        if (!parsed.text || parsed.text === "") {
           return Promise.resolve({
             success: false,
-            error: "text parameter is required and must be non-empty",
+            error: "Validation error: text parameter is required and must be non-empty",
             suggestion: "Provide text content to generate an embedding",
           });
         }
