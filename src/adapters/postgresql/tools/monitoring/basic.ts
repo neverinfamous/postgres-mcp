@@ -198,55 +198,62 @@ export function createConnectionStatsTool(
     annotations: readOnly("Connection Stats"),
     icons: getToolIcons("monitoring", readOnly("Connection Stats")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const sql = `SELECT datname, state, count(*) as connections
-                        FROM pg_stat_activity
-                        WHERE pid != pg_backend_pid()
-                        GROUP BY datname, state
-                        ORDER BY datname, state`;
+      try {
+        const sql = `SELECT datname, state, count(*) as connections
+                          FROM pg_stat_activity
+                          WHERE pid != pg_backend_pid()
+                          GROUP BY datname, state
+                          ORDER BY datname, state`;
 
-      const result = await adapter.executeQuery(sql);
+        const result = await adapter.executeQuery(sql);
 
-      const maxResult = await adapter.executeQuery(`SHOW max_connections`);
-      const maxConnections = maxResult.rows?.[0]?.["max_connections"];
+        const maxResult = await adapter.executeQuery(`SHOW max_connections`);
+        const maxConnections = maxResult.rows?.[0]?.["max_connections"];
 
-      const totalResult = await adapter.executeQuery(
-        `SELECT count(*) as total FROM pg_stat_activity`,
-      );
+        const totalResult = await adapter.executeQuery(
+          `SELECT count(*) as total FROM pg_stat_activity`,
+        );
 
-      // Coerce connection counts to numbers
-      const byDatabaseAndState = (result.rows ?? []).map(
-        (row: Record<string, unknown>) => {
-          const connCount = row["connections"];
-          return {
-            ...row,
-            connections:
-              typeof connCount === "number"
-                ? connCount
-                : typeof connCount === "string"
-                  ? parseInt(connCount, 10)
-                  : 0,
-          };
-        },
-      );
+        // Coerce connection counts to numbers
+        const byDatabaseAndState = (result.rows ?? []).map(
+          (row: Record<string, unknown>) => {
+            const connCount = row["connections"];
+            return {
+              ...row,
+              connections:
+                typeof connCount === "number"
+                  ? connCount
+                  : typeof connCount === "string"
+                    ? parseInt(connCount, 10)
+                    : 0,
+            };
+          },
+        );
 
-      const totalRaw = totalResult.rows?.[0]?.["total"];
-      const maxRaw = maxConnections;
+        const totalRaw = totalResult.rows?.[0]?.["total"];
+        const maxRaw = maxConnections;
 
-      return {
-        byDatabaseAndState,
-        totalConnections:
-          typeof totalRaw === "number"
-            ? totalRaw
-            : typeof totalRaw === "string"
-              ? parseInt(totalRaw, 10)
-              : 0,
-        maxConnections:
-          typeof maxRaw === "number"
-            ? maxRaw
-            : typeof maxRaw === "string"
-              ? parseInt(maxRaw, 10)
-              : 0,
-      };
+        return {
+          byDatabaseAndState,
+          totalConnections:
+            typeof totalRaw === "number"
+              ? totalRaw
+              : typeof totalRaw === "string"
+                ? parseInt(totalRaw, 10)
+                : 0,
+          maxConnections:
+            typeof maxRaw === "number"
+              ? maxRaw
+              : typeof maxRaw === "string"
+                ? parseInt(maxRaw, 10)
+                : 0,
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_connection_stats" }),
+        };
+      }
     },
   };
 }
@@ -267,24 +274,31 @@ export function createReplicationStatusTool(
     annotations: readOnly("Replication Status"),
     icons: getToolIcons("monitoring", readOnly("Replication Status")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const recoveryResult = await adapter.executeQuery(
-        `SELECT pg_is_in_recovery() as is_replica`,
-      );
-      const isReplica = recoveryResult.rows?.[0]?.["is_replica"];
+      try {
+        const recoveryResult = await adapter.executeQuery(
+          `SELECT pg_is_in_recovery() as is_replica`,
+        );
+        const isReplica = recoveryResult.rows?.[0]?.["is_replica"];
 
-      if (isReplica === true) {
-        const sql = `SELECT
-                            now() - pg_last_xact_replay_timestamp() as replay_lag,
-                            pg_last_wal_receive_lsn() as receive_lsn,
-                            pg_last_wal_replay_lsn() as replay_lsn`;
-        const result = await adapter.executeQuery(sql);
-        return { role: "replica", ...result.rows?.[0] };
-      } else {
-        const sql = `SELECT client_addr, state, sent_lsn, write_lsn, flush_lsn, replay_lsn,
-                            now() - backend_start as connection_duration
-                            FROM pg_stat_replication`;
-        const result = await adapter.executeQuery(sql);
-        return { role: "primary", replicas: result.rows };
+        if (isReplica === true) {
+          const sql = `SELECT
+                              now() - pg_last_xact_replay_timestamp() as replay_lag,
+                              pg_last_wal_receive_lsn() as receive_lsn,
+                              pg_last_wal_replay_lsn() as replay_lsn`;
+          const result = await adapter.executeQuery(sql);
+          return { role: "replica", ...result.rows?.[0] };
+        } else {
+          const sql = `SELECT client_addr, state, sent_lsn, write_lsn, flush_lsn, replay_lsn,
+                              now() - backend_start as connection_duration
+                              FROM pg_stat_replication`;
+          const result = await adapter.executeQuery(sql);
+          return { role: "primary", replicas: result.rows };
+        }
+      } catch (err) {
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_replication_status" }),
+        };
       }
     },
   };
@@ -306,18 +320,25 @@ export function createServerVersionTool(
     annotations: readOnly("Server Version"),
     icons: getToolIcons("monitoring", readOnly("Server Version")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const sql = `SELECT version() as full_version,
-                        current_setting('server_version') as version,
-                        current_setting('server_version_num') as version_num`;
-      const result = await adapter.executeQuery(sql);
-      const row = result.rows?.[0] as
-        | { full_version: string; version: string; version_num: string }
-        | undefined;
-      if (!row) return row;
-      return {
-        ...row,
-        version_num: parseInt(row.version_num, 10),
-      };
+      try {
+        const sql = `SELECT version() as full_version,
+                          current_setting('server_version') as version,
+                          current_setting('server_version_num') as version_num`;
+        const result = await adapter.executeQuery(sql);
+        const row = result.rows?.[0] as
+          | { full_version: string; version: string; version_num: string }
+          | undefined;
+        if (!row) return row;
+        return {
+          ...row,
+          version_num: parseInt(row.version_num, 10),
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_server_version" }),
+        };
+      }
     },
   };
 }
@@ -426,33 +447,40 @@ export function createUptimeTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Server Uptime"),
     icons: getToolIcons("monitoring", readOnly("Server Uptime")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const sql = `SELECT
-                        pg_postmaster_start_time() as start_time,
-                        EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time())) as total_seconds`;
-      const result = await adapter.executeQuery(sql);
-      const row = result.rows?.[0] as
-        | { start_time: string; total_seconds: string | number }
-        | undefined;
-      if (!row) return row;
+      try {
+        const sql = `SELECT
+                          pg_postmaster_start_time() as start_time,
+                          EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time())) as total_seconds`;
+        const result = await adapter.executeQuery(sql);
+        const row = result.rows?.[0] as
+          | { start_time: string; total_seconds: string | number }
+          | undefined;
+        if (!row) return row;
 
-      // Parse total seconds into components
-      const totalSeconds = Number(row.total_seconds);
-      const days = Math.floor(totalSeconds / 86400);
-      const hours = Math.floor((totalSeconds % 86400) / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = Math.floor(totalSeconds % 60);
-      const milliseconds = parseFloat(((totalSeconds % 1) * 1000).toFixed(3));
+        // Parse total seconds into components
+        const totalSeconds = Number(row.total_seconds);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+        const milliseconds = parseFloat(((totalSeconds % 1) * 1000).toFixed(3));
 
-      return {
-        start_time: row.start_time,
-        uptime: {
-          days,
-          hours,
-          minutes,
-          seconds,
-          milliseconds,
-        },
-      };
+        return {
+          start_time: row.start_time,
+          uptime: {
+            days,
+            hours,
+            minutes,
+            seconds,
+            milliseconds,
+          },
+        };
+      } catch (err) {
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_uptime" }),
+        };
+      }
     },
   };
 }
@@ -473,13 +501,20 @@ export function createRecoveryStatusTool(
     annotations: readOnly("Recovery Status"),
     icons: getToolIcons("monitoring", readOnly("Recovery Status")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const sql = `SELECT pg_is_in_recovery() as in_recovery,
-                        CASE WHEN pg_is_in_recovery()
-                            THEN pg_last_xact_replay_timestamp()
-                            ELSE NULL
-                        END as last_replay_timestamp`;
-      const result = await adapter.executeQuery(sql);
-      return result.rows?.[0];
+      try {
+        const sql = `SELECT pg_is_in_recovery() as in_recovery,
+                          CASE WHEN pg_is_in_recovery()
+                              THEN pg_last_xact_replay_timestamp()
+                              ELSE NULL
+                          END as last_replay_timestamp`;
+        const result = await adapter.executeQuery(sql);
+        return result.rows?.[0];
+      } catch (err) {
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_recovery_status" }),
+        };
+      }
     },
   };
 }
