@@ -76,7 +76,7 @@ export const TOOL_GROUP_SCOPES: Record<ToolGroup, StandardScope> = {
   pgcrypto: SCOPES.READ,
 
   // Introspection (read-only analysis tools)
-  introspection: SCOPES.WRITE,
+  introspection: SCOPES.READ,
 
   // Code Mode (requires admin - can execute arbitrary operations)
   codemode: SCOPES.ADMIN,

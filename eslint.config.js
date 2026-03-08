@@ -64,6 +64,14 @@ export default tseslint.config(
       "no-console": ["error", { allow: ["error", "warn"] }],
     },
   },
+  // http.ts intentionally uses deprecated SSEServerTransport for backward
+  // compatibility with legacy MCP SSE clients (protocol 2024-11-05).
+  {
+    files: ["src/transports/http.ts"],
+    rules: {
+      "@typescript-eslint/no-deprecated": "off",
+    },
+  },
   // Test files configuration - use simpler parsing without projectService
   {
     files: ["src/**/*.test.ts", "src/**/*.spec.ts"],

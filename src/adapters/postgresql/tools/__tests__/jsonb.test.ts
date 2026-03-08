@@ -764,3 +764,474 @@ describe("JSONB Tools", () => {
     expect(toolNames).toContain("pg_jsonb_stats");
   });
 });
+
+// =============================================================================
+// jsonb/analytics.ts & jsonb/transform.ts - uncovered branches
+// =============================================================================
+
+describe("jsonb analytics uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+  let tools: ReturnType<typeof getJsonbTools>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+    tools = getJsonbTools(mockAdapter as unknown as PostgresAdapter);
+  });
+
+  const findTool = (name: string) => tools.find((t) => t.name === name);
+
+  // analytics.ts L53-54: missing table/column
+  it("should return error for pg_jsonb_index_suggest without table/column", async () => {
+    const tool = findTool("pg_jsonb_index_suggest")!;
+    const result = (await tool.handler(
+      { table: "users" }, // missing column
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // analytics.ts L64-74: non-public schema validation
+  it("should validate non-public schema in pg_jsonb_index_suggest", async () => {
+    const tool = findTool("pg_jsonb_index_suggest")!;
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // schema doesn't exist
+    const result = (await tool.handler(
+      { table: "users", column: "data", schema: "nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent");
+  });
+
+  // analytics.ts L138-148: hint branches (existing indexes, empty keys, low frequency)
+  it("should show hint when existing indexes cover column", async () => {
+    const tool = findTool("pg_jsonb_index_suggest")!;
+    // First: keyResult returns keys but low frequency
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ key: "name", frequency: 10, value_type: "string" }],
+    });
+    // Second: existing indexes found
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ indexname: "idx_data", indexdef: "CREATE INDEX..." }],
+    });
+
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { hint: string; recommendations: string[] };
+    expect(result.recommendations).toHaveLength(0);
+    expect(result.hint).toContain("existing indexes");
+  });
+
+  it("should show hint when table is empty (no keys)", async () => {
+    const tool = findTool("pg_jsonb_index_suggest")!;
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // no keys
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // no indexes
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { hint: string };
+    expect(result.hint).toContain("empty");
+  });
+
+  it("should show hint when no keys exceed 50% frequency", async () => {
+    const tool = findTool("pg_jsonb_index_suggest")!;
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ key: "name", frequency: 100, value_type: "string" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // no indexes
+    // 100 < 1000 * 0.5, so no per-key index suggestion, but GIN suggestion added
+    // This hits the branch where recommendations > 0 (GIN index)
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { recommendations: string[] };
+    expect(result.recommendations.length).toBeGreaterThan(0);
+  });
+
+  // analytics.ts L152-162: jsonb_each error (array column)
+  it("should return structured error for jsonb_each failure in index_suggest", async () => {
+    const tool = findTool("pg_jsonb_index_suggest")!;
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("cannot call jsonb_each on an array"),
+    );
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("arrays");
+  });
+
+  // analytics.ts L163-168: general error catch
+  it("should return formatted error for general failure in index_suggest", async () => {
+    const tool = findTool("pg_jsonb_index_suggest")!;
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // analytics.ts L195-196: missing table/column in security_scan
+  it("should return error for pg_jsonb_security_scan without table/column", async () => {
+    const tool = findTool("pg_jsonb_security_scan")!;
+    const result = (await tool.handler(
+      { column: "data" }, // missing table
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  // analytics.ts L208-218: non-public schema in security_scan
+  it("should validate schema in pg_jsonb_security_scan", async () => {
+    const tool = findTool("pg_jsonb_security_scan")!;
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // schema doesn't exist
+    const result = (await tool.handler(
+      { table: "users", column: "data", schema: "bad" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("bad");
+  });
+
+  // analytics.ts L296-306: jsonb_each_text error in security_scan
+  it("should handle jsonb_each_text error in security_scan", async () => {
+    const tool = findTool("pg_jsonb_security_scan")!;
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("cannot call jsonb_each_text on an array"),
+    );
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("JSONB objects");
+  });
+
+  // analytics.ts L337-338: missing table/column in stats
+  it("should return error for pg_jsonb_stats without table/column", async () => {
+    const tool = findTool("pg_jsonb_stats")!;
+    const result = (await tool.handler(
+      {}, // missing both
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // analytics.ts L348-358: non-public schema in stats
+  it("should validate schema in pg_jsonb_stats", async () => {
+    const tool = findTool("pg_jsonb_stats")!;
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const result = (await tool.handler(
+      { table: "users", column: "data", schema: "missing" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("missing");
+  });
+
+  // analytics.ts L404-413: jsonb_object_keys error in stats (array column)
+  it("should handle array column gracefully in pg_jsonb_stats", async () => {
+    const tool = findTool("pg_jsonb_stats")!;
+    // basic stats query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          total_rows: 10,
+          non_null_count: 10,
+          avg_size_bytes: 50,
+          max_size_bytes: 100,
+        },
+      ],
+    });
+    // key query fails (array column)
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("cannot call jsonb_object_keys on an array"),
+    );
+    // type distribution query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ type: "array", count: 10 }],
+    });
+
+    const result = (await tool.handler(
+      { table: "users", column: "tags" },
+      mockContext,
+    )) as { topKeys: unknown[]; hint: string };
+    expect(result.topKeys).toHaveLength(0);
+    expect(result.hint).toContain("array");
+  });
+
+  // analytics.ts L436-438: SQL NULL hint in stats
+  it("should show SQL NULL hint in pg_jsonb_stats", async () => {
+    const tool = findTool("pg_jsonb_stats")!;
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          total_rows: 10,
+          non_null_count: 8,
+          avg_size_bytes: 50,
+          max_size_bytes: 100,
+        },
+      ],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // keys
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { type: null, count: 2 },
+        { type: "object", count: 8 },
+      ],
+    });
+
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { hint: string };
+    expect(result.hint).toContain("SQL NULL");
+  });
+
+  // analytics.ts L451-457: general error in stats
+  it("should return formatted error for general failure in stats", async () => {
+    const tool = findTool("pg_jsonb_stats")!;
+    mockAdapter.executeQuery.mockRejectedValueOnce(new Error("db error"));
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe("jsonb transform uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+  let tools: ReturnType<typeof getJsonbTools>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+    tools = getJsonbTools(mockAdapter as unknown as PostgresAdapter);
+  });
+
+  const findTool = (name: string) => tools.find((t) => t.name === name);
+
+  // transform.ts L206-210: merge missing base/overlay
+  it("should return error for pg_jsonb_merge with base as primitive", async () => {
+    const tool = findTool("pg_jsonb_merge")!;
+    const result = (await tool.handler(
+      { base: "hello", overlay: { a: 1 } },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("object");
+  });
+
+  it("should return error for pg_jsonb_merge with overlay as array", async () => {
+    const tool = findTool("pg_jsonb_merge")!;
+    const result = (await tool.handler(
+      { base: { a: 1 }, overlay: [1, 2, 3] },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("overlay must be an object");
+  });
+
+  // transform.ts L258-264: shallow merge (deep=false)
+  it("should use shallow merge when deep=false", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ result: { a: 1, b: 2 } }],
+    });
+    const tool = findTool("pg_jsonb_merge")!;
+    const result = (await tool.handler(
+      { base: { a: 1 }, overlay: { b: 2 }, deep: false },
+      mockContext,
+    )) as { deep: boolean; merged: unknown };
+    expect(result.deep).toBe(false);
+    expect(mockAdapter.executeQuery).toHaveBeenCalled();
+  });
+
+  // transform.ts L299-300: normalize missing table/column
+  it("should return error for pg_jsonb_normalize without table/column", async () => {
+    const tool = findTool("pg_jsonb_normalize")!;
+    const result = (await tool.handler(
+      { table: "users" }, // missing column
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // transform.ts L308-314: invalid mode
+  it("should return error for invalid normalize mode", async () => {
+    const tool = findTool("pg_jsonb_normalize")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data", mode: "invalid" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // transform.ts L318-328: non-public schema validation in normalize
+  it("should validate schema in pg_jsonb_normalize", async () => {
+    const tool = findTool("pg_jsonb_normalize")!;
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const result = (await tool.handler(
+      { table: "users", column: "data", schema: "bad" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("bad");
+  });
+
+  // transform.ts L358: array mode
+  it("should use array mode in normalize", async () => {
+    // idColumn check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
+    // actual query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ source_id: 1, element: { a: 1 } }],
+    });
+    const tool = findTool("pg_jsonb_normalize")!;
+    const result = (await tool.handler(
+      { table: "users", column: "tags", mode: "array" },
+      mockContext,
+    )) as { mode: string; rows: unknown[] };
+    expect(result.mode).toBe("array");
+  });
+
+  // transform.ts L389-390: pairs mode
+  it("should use pairs mode in normalize", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ source_id: 1, key: "name", value: '"test"' }],
+    });
+    const tool = findTool("pg_jsonb_normalize")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data", mode: "pairs" },
+      mockContext,
+    )) as { mode: string };
+    expect(result.mode).toBe("pairs");
+  });
+
+  // transform.ts L397-405: flatten mode with empty results on array column
+  it("should detect flatten on array column when results empty", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // flatten returns empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ type: "array" }],
+    }); // type check
+    const tool = findTool("pg_jsonb_normalize")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data", mode: "flatten" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("array");
+  });
+
+  // transform.ts L410-417: jsonb_each error in normalize
+  it("should handle jsonb_each error in normalize", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("cannot call jsonb_each on an array"),
+    );
+    const tool = findTool("pg_jsonb_normalize")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("object columns");
+  });
+
+  // transform.ts L419-427: cannot extract elements error
+  it("should handle cannot extract elements error in normalize", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("cannot extract elements from an object"),
+    );
+    const tool = findTool("pg_jsonb_normalize")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data", mode: "array" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("array columns");
+  });
+
+  // transform.ts L481: diff inner catch (invalid doc format)
+  it("should return error for pg_jsonb_diff with invalid format", async () => {
+    const tool = findTool("pg_jsonb_diff")!;
+    const result = (await tool.handler(
+      { doc1: "not an object", doc2: { a: 1 } },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("objects");
+  });
+
+  // transform.ts L518-524: diff general error
+  it("should return formatted error for pg_jsonb_diff DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(new Error("db error"));
+    const tool = findTool("pg_jsonb_diff")!;
+    const result = (await tool.handler(
+      { doc1: { a: 1 }, doc2: { b: 2 } },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // transform.ts L337: idColumn parameter in normalize
+  it("should use custom idColumn in normalize", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ user_id: 1, key: "name", value: "test" }],
+    });
+    const tool = findTool("pg_jsonb_normalize")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data", idColumn: "user_id" },
+      mockContext,
+    )) as { rows: unknown[]; mode: string };
+    expect(result.mode).toBe("keys");
+  });
+
+  // transform.ts L351-354: id column check falls back to ctid
+  it("should fall back to ctid when id column check fails", async () => {
+    // id column check throws
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
+    // actual query still works with ctid
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ source_ctid: "(0,1)", key: "name", value: "test" }],
+    });
+    const tool = findTool("pg_jsonb_normalize")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { rows: unknown[] };
+    expect(result.rows).toBeDefined();
+  });
+});

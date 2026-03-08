@@ -5,12 +5,12 @@
  * 7 tools total.
  */
 
-import { z } from "zod";
+import { type z } from "zod";
 import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
-import { parsePostgresError } from "./core/error-helpers.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import {
   BeginTransactionSchemaBase,
   BeginTransactionSchema,
@@ -26,18 +26,6 @@ import {
   SavepointResultOutputSchema,
   TransactionExecuteOutputSchema,
 } from "../schemas/index.js";
-
-/**
- * Extract a structured error message from parsePostgresError.
- * parsePostgresError always throws — this helper captures and returns the message string.
- */
-function getStructuredError(error: unknown, context: { tool: string }): string {
-  try {
-    throw parsePostgresError(error, context);
-  } catch (parsed) {
-    return parsed instanceof Error ? parsed.message : String(parsed);
-  }
-}
 
 /**
  * Get all transaction tools
@@ -79,7 +67,7 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
       } catch (error) {
         return {
           success: false,
-          error: getStructuredError(error, {
+          error: formatPostgresError(error, {
             tool: "pg_transaction_begin",
           }),
         };
@@ -109,7 +97,7 @@ function createCommitTransactionTool(adapter: PostgresAdapter): ToolDefinition {
       } catch (error) {
         return {
           success: false,
-          error: getStructuredError(error, {
+          error: formatPostgresError(error, {
             tool: "pg_transaction_commit",
           }),
         };
@@ -141,7 +129,7 @@ function createRollbackTransactionTool(
       } catch (error) {
         return {
           success: false,
-          error: getStructuredError(error, {
+          error: formatPostgresError(error, {
             tool: "pg_transaction_rollback",
           }),
         };
@@ -173,7 +161,7 @@ function createSavepointTool(adapter: PostgresAdapter): ToolDefinition {
       } catch (error) {
         return {
           success: false,
-          error: getStructuredError(error, {
+          error: formatPostgresError(error, {
             tool: "pg_transaction_savepoint",
           }),
         };
@@ -205,7 +193,7 @@ function createReleaseSavepointTool(adapter: PostgresAdapter): ToolDefinition {
       } catch (error) {
         return {
           success: false,
-          error: getStructuredError(error, {
+          error: formatPostgresError(error, {
             tool: "pg_transaction_release",
           }),
         };
@@ -238,7 +226,7 @@ function createRollbackToSavepointTool(
       } catch (error) {
         return {
           success: false,
-          error: getStructuredError(error, {
+          error: formatPostgresError(error, {
             tool: "pg_transaction_rollback_to",
           }),
         };
@@ -265,15 +253,11 @@ function createTransactionExecuteTool(
       try {
         parsed = await TransactionExecuteSchema.parseAsync(params);
       } catch (error) {
-        const message =
-          error instanceof z.ZodError
-            ? error.issues.map((i) => i.message).join("; ")
-            : getStructuredError(error, {
-                tool: "pg_transaction_execute",
-              });
         return {
           success: false,
-          error: message,
+          error: formatPostgresError(error, {
+            tool: "pg_transaction_execute",
+          }),
         };
       }
 
@@ -341,7 +325,7 @@ function createTransactionExecuteTool(
         }
 
         // Build structured error response with partial results and rollback context
-        const errMsg = getStructuredError(error, {
+        const errMsg = formatPostgresError(error, {
           tool: "pg_transaction_execute",
         });
 

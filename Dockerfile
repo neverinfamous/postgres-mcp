@@ -28,13 +28,13 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.8
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.10
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.8 && \
+    npm pack tar@7.5.10 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.8.tgz && \
+    tar -xzf tar-7.5.10.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.8.tgz
+    rm tar-7.5.10.tgz
 
 # Copy package files first for better layer caching
 COPY package*.json ./
@@ -80,13 +80,13 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.8
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.10
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.8 && \
+    npm pack tar@7.5.10 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.8.tgz && \
+    tar -xzf tar-7.5.10.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.8.tgz
+    rm tar-7.5.10.tgz
 
 # Fix CVE-2026-27904, CVE-2026-27903: Manually update npm's bundled minimatch to 10.2.3+
 RUN cd /usr/local/lib/node_modules/npm && \
@@ -127,12 +127,12 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
         node -e "console.log('healthy')" || exit 1; \
     fi
 
-# Run the MCP server (default: stdio transport)
-CMD ["node", "dist/cli.js"]
+# Run the MCP server
+ENTRYPOINT ["node", "dist/cli.js"]
 
 # Labels for Docker Hub
 LABEL maintainer="Adamic.tech"
 LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 227 tools, 20 resources, 19 prompts"
-LABEL version="2.0.0"
+LABEL version="2.1.0"
 LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgres-mcp"
 LABEL io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp"

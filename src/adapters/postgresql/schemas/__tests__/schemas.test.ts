@@ -24,7 +24,7 @@ import {
   BufferSchema,
   GeocodeSchema,
   GeoTransformSchema,
-} from "../postgis.js";
+} from "../postgis/index.js";
 
 // Schema management schemas
 import {
@@ -682,7 +682,7 @@ import {
   StatsRegressionSchema,
   StatsHypothesisSchema,
   StatsTimeSeriesSchema,
-} from "../stats.js";
+} from "../stats/index.js";
 
 describe("StatsPercentilesSchema", () => {
   it("should normalize percentiles from 0-100 to 0-1 format", () => {
@@ -869,7 +869,7 @@ import {
   parseJsonbValue,
   normalizePathToArray,
   normalizePathToString,
-} from "../jsonb.js";
+} from "../jsonb/index.js";
 
 describe("stringPathToArray", () => {
   it("should convert simple dot notation", () => {
@@ -1054,7 +1054,7 @@ import {
   SavepointSchema,
   TransactionExecuteSchema,
   ListTablesSchema,
-} from "../core.js";
+} from "../core/index.js";
 
 describe("ReadQuerySchema", () => {
   it("should resolve query alias to sql", () => {
@@ -1625,10 +1625,14 @@ describe("TrigramSimilaritySchema", () => {
     expect(result).toBeDefined();
   });
 
-  it("should reject when table is missing", () => {
-    expect(() =>
-      TrigramSimilaritySchema.parse({ column: "name", value: "test" }),
-    ).toThrow("Either 'table' or 'tableName' is required");
+  it("should accept input without table (validation moved to handler)", () => {
+    // Table validation moved from schema .refine() to handler for structured errors
+    const result = TrigramSimilaritySchema.parse({
+      column: "name",
+      value: "test",
+    });
+    expect(result).toBeDefined();
+    expect(result.table).toBeUndefined();
   });
 });
 
@@ -1659,7 +1663,7 @@ import {
   JsonbInsertSchema,
   JsonbDeleteSchema,
   JsonbAggSchema,
-} from "../jsonb.js";
+} from "../jsonb/index.js";
 
 describe("preprocessJsonbParams", () => {
   it("should pass through non-objects", () => {
@@ -1728,6 +1732,14 @@ describe("normalizePathToArray", () => {
   it("should convert mixed-type array to string array", () => {
     expect(normalizePathToArray(["a", 0, "b"])).toEqual(["a", "0", "b"]);
   });
+
+  it("should convert bare number to single-element string array", () => {
+    expect(normalizePathToArray(3)).toEqual(["3"]);
+  });
+
+  it("should convert bare negative number to single-element string array", () => {
+    expect(normalizePathToArray(-1)).toEqual(["-1"]);
+  });
 });
 
 describe("normalizePathToString", () => {
@@ -1737,6 +1749,10 @@ describe("normalizePathToString", () => {
 
   it("should return string paths unchanged", () => {
     expect(normalizePathToString("a.b.c")).toBe("a.b.c");
+  });
+
+  it("should convert bare number to string", () => {
+    expect(normalizePathToString(3)).toBe("3");
   });
 });
 
@@ -1785,6 +1801,16 @@ describe("JsonbExtractSchema", () => {
       path: "name",
     });
     expect(result).toBeDefined();
+  });
+
+  it("should accept bare numeric path for array index access", () => {
+    const result = JsonbExtractSchema.parse({
+      table: "docs",
+      column: "tags",
+      path: 3,
+    });
+    expect(result).toBeDefined();
+    expect(result.path).toBe(3);
   });
 });
 
@@ -1871,7 +1897,7 @@ import {
   LtreeIndexSchema,
   PgcryptoEncryptSchema,
   PgcryptoDecryptSchema,
-} from "../extensions.js";
+} from "../extensions/index.js";
 
 describe("CitextConvertColumnSchema", () => {
   it("should resolve col alias to column", () => {
@@ -2742,7 +2768,7 @@ import {
   GeoTransformSchema,
   GeometryTransformSchema,
   GeometryBufferSchema,
-} from "../postgis.js";
+} from "../postgis/index.js";
 
 describe("preprocessPostgisParams", () => {
   it("should pass through non-objects", () => {
@@ -3219,7 +3245,7 @@ import {
   StatsDistributionSchema,
   StatsHypothesisSchema,
   StatsSamplingSchema,
-} from "../stats.js";
+} from "../stats/index.js";
 
 describe("StatsDescriptiveSchema (preprocessBasicStatsParams)", () => {
   it("should resolve tableName alias to table", () => {
@@ -3854,7 +3880,7 @@ import {
   StatsSamplingSchema,
   StatsPercentilesSchema,
   StatsCorrelationSchema,
-} from "../stats.js";
+} from "../stats/index.js";
 
 describe("StatsRegressionSchema", () => {
   it("should resolve tableName alias", () => {

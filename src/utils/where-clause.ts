@@ -112,11 +112,26 @@ const DANGEROUS_PATTERNS: { pattern: RegExp; reason: string }[] = [
 ];
 
 /**
+ * Pre-compiled combined regex for fast-path validation.
+ * If this pattern does NOT match, the clause is guaranteed safe
+ * without testing any individual patterns. Built from all
+ * DANGEROUS_PATTERNS sources joined with alternation.
+ */
+const COMBINED_FAST_CHECK = new RegExp(
+  DANGEROUS_PATTERNS.map((p) => p.pattern.source).join("|"),
+  "i",
+);
+
+/**
  * Validates a WHERE clause for dangerous SQL patterns.
  *
  * This function uses a blocklist approach to detect and reject
  * common SQL injection patterns. It allows legitimate complex
  * conditions while blocking obvious attack vectors.
+ *
+ * Uses a two-phase approach for performance:
+ * 1. Fast path: single combined regex test (covers 99%+ of safe queries)
+ * 2. Slow path: individual pattern iteration for specific error messages
  *
  * @param where - The WHERE clause to validate
  * @throws UnsafeWhereClauseError if a dangerous pattern is detected
@@ -132,6 +147,12 @@ export function validateWhereClause(where: string): void {
     throw new UnsafeWhereClauseError("WHERE clause must be a non-empty string");
   }
 
+  // Fast path: single combined regex test — if no match, clause is safe
+  if (!COMBINED_FAST_CHECK.test(where)) {
+    return;
+  }
+
+  // Slow path: identify the specific dangerous pattern for the error message
   for (const { pattern, reason } of DANGEROUS_PATTERNS) {
     if (pattern.test(where)) {
       throw new UnsafeWhereClauseError(reason);

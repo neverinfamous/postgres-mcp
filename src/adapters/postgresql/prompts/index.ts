@@ -42,7 +42,7 @@ export function getPostgresPrompts(
     createToolIndexPrompt(allToolDefinitions),
     createQuickQueryPrompt(),
     createQuickSchemaPrompt(),
-    // Migrated prompts from legacy postgres-mcp-server
+    // DBA and extension prompts
     createDatabaseHealthCheckPrompt(),
     createBackupStrategyPrompt(),
     createIndexTuningPrompt(),

@@ -361,10 +361,20 @@ or active status. Only specify the parameters you want to change.`,
  * List all scheduled jobs
  */
 function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
+  // Base schema uses z.any() for limit to avoid MCP framework rejection of wrong-type values
+  const ListJobsSchemaBase = z.object({
+    active: z.boolean().optional().describe("Filter by active status"),
+    limit: z
+      .any()
+      .optional()
+      .describe("Maximum jobs to return (default: 50, use 0 for all)"),
+  });
+
+  // Handler-side schema — uses z.any() for limit so wrong-type values silently fall back to default
   const ListJobsSchema = z.object({
     active: z.boolean().optional().describe("Filter by active status"),
     limit: z
-      .number()
+      .any()
       .optional()
       .describe("Maximum jobs to return (default: 50, use 0 for all)"),
   });
@@ -374,14 +384,15 @@ function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "List all scheduled cron jobs. Shows job ID, name, schedule, command, and status. Jobs without names (jobname: null) must be referenced by jobId. Default limit: 50 rows.",
     group: "cron",
-    inputSchema: ListJobsSchema,
+    inputSchema: ListJobsSchemaBase,
     outputSchema: CronListJobsOutputSchema,
     annotations: readOnly("List Cron Jobs"),
     icons: getToolIcons("cron", readOnly("List Cron Jobs")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = ListJobsSchema.parse(params ?? {});
+      try {
+        const parsed = ListJobsSchema.parse(params ?? {});
 
-      let sql = `
+        let sql = `
                 SELECT
                     jobid,
                     jobname,
@@ -395,64 +406,93 @@ function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
                 FROM cron.job
             `;
 
-      const queryParams: unknown[] = [];
-      if (parsed.active !== undefined) {
-        sql += " WHERE active = $1";
-        queryParams.push(parsed.active);
-      }
-
-      sql += " ORDER BY jobid";
-
-      // Get total count first if we're limiting
-      const limitVal = parsed.limit === 0 ? null : (parsed.limit ?? 50);
-      let totalCount: number | undefined;
-
-      if (limitVal !== null) {
-        let countSql = "SELECT COUNT(*)::int as total FROM cron.job";
+        const queryParams: unknown[] = [];
         if (parsed.active !== undefined) {
-          countSql += " WHERE active = $1";
+          sql += " WHERE active = $1";
+          queryParams.push(parsed.active);
         }
-        const countResult = await adapter.executeQuery(
-          countSql,
-          parsed.active !== undefined ? [parsed.active] : [],
+
+        sql += " ORDER BY jobid";
+
+        // Safely coerce limit — NaN/non-finite → undefined (falls back to default 50)
+        const rawLimit = parsed.limit as unknown;
+        const coercedLimit =
+          rawLimit !== undefined && rawLimit !== null
+            ? Number(rawLimit)
+            : undefined;
+        const limitRaw =
+          coercedLimit !== undefined &&
+          !isNaN(coercedLimit) &&
+          isFinite(coercedLimit) &&
+          coercedLimit >= 0
+            ? Math.floor(coercedLimit)
+            : undefined;
+        // Get total count first if we're limiting
+        const limitVal = limitRaw === 0 ? null : (limitRaw ?? 50);
+        let totalCount: number | undefined;
+
+        if (limitVal !== null) {
+          let countSql = "SELECT COUNT(*)::int as total FROM cron.job";
+          if (parsed.active !== undefined) {
+            countSql += " WHERE active = $1";
+          }
+          const countResult = await adapter.executeQuery(
+            countSql,
+            parsed.active !== undefined ? [parsed.active] : [],
+          );
+          totalCount = (countResult.rows?.[0] as { total: number } | undefined)
+            ?.total;
+
+          sql += ` LIMIT ${String(limitVal)}`;
+        }
+
+        const result = await adapter.executeQuery(sql, queryParams);
+
+        // Normalize jobid to number (PostgreSQL BIGINT may return as string)
+        const jobs = (result.rows ?? []).map(
+          (row: Record<string, unknown>) => ({
+            ...row,
+            jobid:
+              row["jobid"] !== null && row["jobid"] !== undefined
+                ? Number(row["jobid"])
+                : null,
+          }),
         );
-        totalCount = (countResult.rows?.[0] as { total: number } | undefined)
-          ?.total;
 
-        sql += ` LIMIT ${String(limitVal)}`;
+        // Count unnamed jobs for hint
+        const unnamedCount = jobs.filter(
+          (j) => (j as Record<string, unknown>)["jobname"] === null,
+        ).length;
+
+        // Determine if results were truncated
+        const truncated =
+          limitVal !== null &&
+          totalCount !== undefined &&
+          jobs.length < totalCount;
+
+        return {
+          jobs,
+          count: jobs.length,
+          ...(truncated ? { truncated: true, totalCount } : {}),
+          hint:
+            unnamedCount > 0
+              ? `${String(unnamedCount)} job(s) have no name. Use jobId to reference them with alterJob or unschedule.`
+              : undefined,
+        };
+      } catch (error: unknown) {
+        if (error instanceof ZodError) {
+          return {
+            jobs: [],
+            count: 0,
+            error: error.issues.map((e) => e.message).join("; "),
+          };
+        }
+        return {
+          jobs: [],
+          count: 0,
+          error: formatPostgresError(error, { tool: "pg_cron_list_jobs" }),
+        };
       }
-
-      const result = await adapter.executeQuery(sql, queryParams);
-
-      // Normalize jobid to number (PostgreSQL BIGINT may return as string)
-      const jobs = (result.rows ?? []).map((row: Record<string, unknown>) => ({
-        ...row,
-        jobid:
-          row["jobid"] !== null && row["jobid"] !== undefined
-            ? Number(row["jobid"])
-            : null,
-      }));
-
-      // Count unnamed jobs for hint
-      const unnamedCount = jobs.filter(
-        (j) => (j as Record<string, unknown>)["jobname"] === null,
-      ).length;
-
-      // Determine if results were truncated
-      const truncated =
-        limitVal !== null &&
-        totalCount !== undefined &&
-        jobs.length < totalCount;
-
-      return {
-        jobs,
-        count: jobs.length,
-        ...(truncated ? { truncated: true, totalCount } : {}),
-        hint:
-          unnamedCount > 0
-            ? `${String(unnamedCount)} job(s) have no name. Use jobId to reference them with alterJob or unschedule.`
-            : undefined,
-      };
     },
   };
 }
@@ -472,7 +512,28 @@ Useful for monitoring and debugging scheduled jobs.`,
     icons: getToolIcons("cron", readOnly("Cron Job Run Details")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { jobId, status, limit } = CronJobRunDetailsSchema.parse(params);
+        const {
+          jobId,
+          status,
+          limit: rawLimitValue,
+        } = CronJobRunDetailsSchema.parse(params) as {
+          jobId?: number;
+          status?: string;
+          limit?: unknown;
+        };
+
+        // Safely coerce limit — NaN/non-finite → undefined (falls back to default 50)
+        const coercedLimit =
+          rawLimitValue !== undefined && rawLimitValue !== null
+            ? Number(rawLimitValue)
+            : undefined;
+        const limit =
+          coercedLimit !== undefined &&
+          !isNaN(coercedLimit) &&
+          isFinite(coercedLimit) &&
+          coercedLimit >= 0
+            ? Math.floor(coercedLimit)
+            : undefined;
 
         // Handler-level validation for status (relaxed from z.enum to z.string for structured errors)
         const VALID_STATUSES = ["running", "succeeded", "failed"];
@@ -614,8 +675,14 @@ from growing too large. By default, removes records older than 7 days.`,
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Use transformed schema for validation with alias support
-        const { olderThanDays, jobId } = CronCleanupHistorySchema.parse(params);
+        const { olderThanDays, jobId } = CronCleanupHistorySchema.parse(
+          params,
+        ) as {
+          olderThanDays?: number;
+          jobId?: number;
+        };
 
+        // Default to 7 days
         const days = olderThanDays ?? 7;
 
         // Handler-level validation for negative days (relaxed from z.min for structured errors)

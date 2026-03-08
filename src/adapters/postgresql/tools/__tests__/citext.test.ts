@@ -10,7 +10,7 @@ import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
-import { getCitextTools } from "../citext.js";
+import { getCitextTools } from "../citext/index.js";
 
 describe("Citext Tools", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
@@ -513,17 +513,18 @@ describe("Citext Tools", () => {
       expect(result.hint).toBeDefined();
     });
 
-    it("should throw validation error when value2 is missing", async () => {
+    it("should return structured error when value2 is missing", async () => {
       const tool = findTool("pg_citext_compare");
-      await expect(
-        tool!.handler(
-          {
-            value1: "HELLO",
-            // value2 is missing
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow();
+      const result = (await tool!.handler(
+        {
+          value1: "HELLO",
+          // value2 is missing
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 
@@ -637,5 +638,180 @@ describe("Citext Tools", () => {
     expect(toolNames).toContain("pg_citext_compare");
     expect(toolNames).toContain("pg_citext_schema_advisor");
     expect(tools).toHaveLength(6);
+  });
+
+  // =========================================================================
+  // Additional Coverage: uncovered branches in citext/setup.ts
+  // =========================================================================
+
+  describe("citext/setup.ts uncovered branches", () => {
+    // setup.ts L47-54: create_extension error path
+    it("should return structured error when create_extension fails", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("permission denied to create extension"),
+      );
+
+      const tool = findTool("pg_citext_create_extension");
+      const result = (await tool!.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("permission denied");
+    });
+
+    // setup.ts L152-160: non-text column type validation
+    it("should reject conversion of non-text column types", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ installed: true }] }) // ext check
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
+        .mockResolvedValueOnce({
+          rows: [{ data_type: "integer", udt_name: "int4" }],
+        }); // column is integer
+
+      const tool = findTool("pg_citext_convert_column");
+      const result = (await tool!.handler(
+        {
+          table: "users",
+          column: "age",
+        },
+        mockContext,
+      )) as {
+        success: boolean;
+        error: string;
+        currentType: string;
+        allowedTypes: string[];
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not a text-based type");
+      expect(result.currentType).toBe("integer");
+      expect(result.allowedTypes).toEqual([
+        "text",
+        "varchar",
+        "character varying",
+      ]);
+    });
+
+    // setup.ts L185-196: dependent views blocking conversion
+    it("should return error when dependent views exist", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ installed: true }] }) // ext check
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
+        .mockResolvedValueOnce({
+          rows: [{ data_type: "text", udt_name: "text" }],
+        }) // column type
+        .mockResolvedValueOnce({
+          rows: [
+            { dependent_view: "user_emails_view", view_schema: "public" },
+            { dependent_view: "active_users_view", view_schema: "app" },
+          ],
+        }); // dependent views
+
+      const tool = findTool("pg_citext_convert_column");
+      const result = (await tool!.handler(
+        {
+          table: "users",
+          column: "email",
+        },
+        mockContext,
+      )) as {
+        success: boolean;
+        error: string;
+        dependentViews: string[];
+        hint: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("dependent views");
+      expect(result.dependentViews).toEqual([
+        "public.user_emails_view",
+        "app.active_users_view",
+      ]);
+      expect(result.hint).toContain("Drop the listed views");
+    });
+
+    // setup.ts L217-232: ALTER TABLE conversion failure
+    it("should handle ALTER TABLE failure during conversion", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ installed: true }] }) // ext check
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
+        .mockResolvedValueOnce({
+          rows: [{ data_type: "character varying", udt_name: "varchar" }],
+        }) // column type
+        .mockResolvedValueOnce({ rows: [] }) // no dependent views
+        .mockRejectedValueOnce(
+          new Error("cannot alter type of a column used by a view"),
+        ); // ALTER fails
+
+      const tool = findTool("pg_citext_convert_column");
+      const result = (await tool!.handler(
+        {
+          table: "users",
+          column: "email",
+        },
+        mockContext,
+      )) as {
+        success: boolean;
+        error: string;
+        hint: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Failed to convert column");
+      expect(result.hint).toContain("views depend on this column");
+    });
+
+    // setup.ts L233-239: outer catch block for unexpected errors
+    it("should handle unexpected errors in convert_column", async () => {
+      const pgError = new Error(
+        'relation "nonexistent" does not exist',
+      ) as Error & { code: string };
+      (pgError as unknown as Record<string, unknown>)["code"] = "42P01";
+      mockAdapter.executeQuery.mockRejectedValueOnce(pgError); // ext check itself fails
+
+      const tool = findTool("pg_citext_convert_column");
+      const result = (await tool!.handler(
+        {
+          table: "users",
+          column: "email",
+        },
+        mockContext,
+      )) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    // setup.ts: convert varchar column to citext
+    it("should convert varchar column to citext successfully", async () => {
+      mockAdapter.executeQuery
+        .mockResolvedValueOnce({ rows: [{ installed: true }] }) // ext check
+        .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
+        .mockResolvedValueOnce({
+          rows: [{ data_type: "character varying", udt_name: "varchar" }],
+        }) // column type
+        .mockResolvedValueOnce({ rows: [] }) // no dependent views
+        .mockResolvedValueOnce({ rows: [] }); // ALTER succeeds
+
+      const tool = findTool("pg_citext_convert_column");
+      const result = (await tool!.handler(
+        {
+          table: "users",
+          column: "email",
+        },
+        mockContext,
+      )) as {
+        success: boolean;
+        previousType: string;
+      };
+
+      expect(result.success).toBe(true);
+      expect(result.previousType).toBe("character varying");
+    });
   });
 });

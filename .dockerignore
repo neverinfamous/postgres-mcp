@@ -79,6 +79,9 @@ __tests__/
 *.test.ts
 *.spec.ts
 vitest.config.ts
+playwright.config.ts
+playwright-report/
+test-results/
 scripts/
 
 # Logs

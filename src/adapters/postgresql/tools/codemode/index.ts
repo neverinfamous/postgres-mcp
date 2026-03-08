@@ -10,7 +10,7 @@ import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 import { SandboxPool } from "../../../../codemode/sandbox.js";
 import { CodeModeSecurityManager } from "../../../../codemode/security.js";
-import { createPgApi } from "../../../../codemode/api.js";
+import { createPgApi } from "../../../../codemode/api/index.js";
 import type { ExecuteCodeOptions } from "../../../../codemode/types.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 

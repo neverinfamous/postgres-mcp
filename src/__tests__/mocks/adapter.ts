@@ -15,6 +15,7 @@ import type {
   HealthStatus,
   ColumnInfo,
 } from "../../types/index.js";
+import { VERSION } from "../../utils/version.js";
 
 /**
  * Create a mock query result
@@ -140,7 +141,7 @@ export function createMockPostgresAdapter(): Partial<PostgresAdapter> & {
   return {
     type: "postgresql" as const,
     name: "PostgreSQL Adapter",
-    version: "0.1.0",
+    version: VERSION,
 
     // Connection methods
     connect: vi.fn().mockResolvedValue(undefined),

@@ -8,7 +8,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
-import { parsePostgresError } from "./core/error-helpers.js";
+import { formatPostgresError } from "./core/error-helpers.js";
 import {
   PgcryptoHashSchema,
   PgcryptoHashSchemaBase,
@@ -22,6 +22,7 @@ import {
   PgcryptoRandomBytesSchemaBase,
   PgcryptoGenSaltSchema,
   PgcryptoGenSaltSchemaBase,
+  PgcryptoCryptSchemaBase,
   PgcryptoCryptSchema,
   // Output schemas
   PgcryptoCreateExtensionOutputSchema,
@@ -101,16 +102,12 @@ function createPgcryptoHashTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        let errorMessage =
-          error instanceof Error ? error.message : String(error);
-        try {
-          errorMessage = parsePostgresError(error, {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
             tool: "pg_pgcrypto_hash",
-          }).message;
-        } catch {
-          // parsePostgresError re-throws unrecognized errors; use original message
-        }
-        return { success: false, error: errorMessage };
+          }),
+        };
       }
     },
   };
@@ -151,16 +148,12 @@ function createPgcryptoHmacTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        let errorMessage =
-          error instanceof Error ? error.message : String(error);
-        try {
-          errorMessage = parsePostgresError(error, {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
             tool: "pg_pgcrypto_hmac",
-          }).message;
-        } catch {
-          // parsePostgresError re-throws unrecognized errors; use original message
-        }
-        return { success: false, error: errorMessage };
+          }),
+        };
       }
     },
   };
@@ -198,16 +191,12 @@ function createPgcryptoEncryptTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        let errorMessage =
-          error instanceof Error ? error.message : String(error);
-        try {
-          errorMessage = parsePostgresError(error, {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
             tool: "pg_pgcrypto_encrypt",
-          }).message;
-        } catch {
-          // parsePostgresError re-throws unrecognized errors; use original message
-        }
-        return { success: false, error: errorMessage };
+          }),
+        };
       }
     },
   };
@@ -252,16 +241,12 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        let errorMessage =
-          error instanceof Error ? error.message : String(error);
-        try {
-          errorMessage = parsePostgresError(error, {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
             tool: "pg_pgcrypto_decrypt",
-          }).message;
-        } catch {
-          // parsePostgresError re-throws unrecognized errors; use original message
-        }
-        return { success: false, error: errorMessage };
+          }),
+        };
       }
     },
   };
@@ -272,7 +257,7 @@ function createPgcryptoGenRandomUuidTool(
 ): ToolDefinition {
   // Base schema for MCP visibility (count parameter exposed to clients, relaxed)
   const GenUuidSchemaBase = z.object({
-    count: z
+    count: z.coerce
       .number()
       .optional()
       .describe("Number of UUIDs to generate (default: 1, max: 100)"),
@@ -281,7 +266,7 @@ function createPgcryptoGenRandomUuidTool(
   // Full schema with strict validation for handler parsing
   const GenUuidSchema = z
     .object({
-      count: z
+      count: z.coerce
         .number()
         .min(1)
         .max(100)
@@ -325,16 +310,12 @@ function createPgcryptoGenRandomUuidTool(
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        let errorMessage =
-          error instanceof Error ? error.message : String(error);
-        try {
-          errorMessage = parsePostgresError(error, {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
             tool: "pg_pgcrypto_gen_random_uuid",
-          }).message;
-        } catch {
-          // parsePostgresError re-throws unrecognized errors; use original message
-        }
-        return { success: false, error: errorMessage };
+          }),
+        };
       }
     },
   };
@@ -373,16 +354,12 @@ function createPgcryptoGenRandomBytesTool(
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        let errorMessage =
-          error instanceof Error ? error.message : String(error);
-        try {
-          errorMessage = parsePostgresError(error, {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
             tool: "pg_pgcrypto_gen_random_bytes",
-          }).message;
-        } catch {
-          // parsePostgresError re-throws unrecognized errors; use original message
-        }
-        return { success: false, error: errorMessage };
+          }),
+        };
       }
     },
   };
@@ -419,16 +396,12 @@ function createPgcryptoGenSaltTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        let errorMessage =
-          error instanceof Error ? error.message : String(error);
-        try {
-          errorMessage = parsePostgresError(error, {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
             tool: "pg_pgcrypto_gen_salt",
-          }).message;
-        } catch {
-          // parsePostgresError re-throws unrecognized errors; use original message
-        }
-        return { success: false, error: errorMessage };
+          }),
+        };
       }
     },
   };
@@ -439,7 +412,7 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_pgcrypto_crypt",
     description: "Hash a password using crypt() with a salt from gen_salt().",
     group: "pgcrypto",
-    inputSchema: PgcryptoCryptSchema,
+    inputSchema: PgcryptoCryptSchemaBase,
     outputSchema: PgcryptoCryptOutputSchema,
     annotations: readOnly("Crypt Password"),
     icons: getToolIcons("pgcrypto", readOnly("Crypt Password")),
@@ -467,16 +440,12 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        let errorMessage =
-          error instanceof Error ? error.message : String(error);
-        try {
-          errorMessage = parsePostgresError(error, {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
             tool: "pg_pgcrypto_crypt",
-          }).message;
-        } catch {
-          // parsePostgresError re-throws unrecognized errors; use original message
-        }
-        return { success: false, error: errorMessage };
+          }),
+        };
       }
     },
   };

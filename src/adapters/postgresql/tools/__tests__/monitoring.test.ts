@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getMonitoringTools } from "../monitoring.js";
+import { getMonitoringTools } from "../monitoring/index.js";
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import {
   createMockPostgresAdapter,
@@ -256,6 +256,23 @@ describe("pg_connection_stats", () => {
     expect(result.byDatabaseAndState).toHaveLength(2);
     expect(result.maxConnections).toBe(100);
   });
+
+  it("should return structured error on query failure", async () => {
+    const pgError = new Error("connection refused") as Error & {
+      code: string;
+    };
+    pgError.code = "08001";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_connection_stats")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("connection refused");
+  });
 });
 
 describe("pg_server_version", () => {
@@ -289,6 +306,23 @@ describe("pg_server_version", () => {
 
     expect(result.version).toBe("16.1");
     expect(result.version_num).toBe(160001);
+  });
+
+  it("should return structured error on query failure", async () => {
+    const pgError = new Error("connection refused") as Error & {
+      code: string;
+    };
+    pgError.code = "08001";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_server_version")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("connection refused");
   });
 });
 
@@ -338,6 +372,23 @@ describe("pg_uptime", () => {
     expect(result.uptime.minutes).toBe(7);
     expect(result.uptime.seconds).toBe(36);
     expect(result.uptime.milliseconds).toBe(789);
+  });
+
+  it("should return structured error on query failure", async () => {
+    const pgError = new Error("connection refused") as Error & {
+      code: string;
+    };
+    pgError.code = "08001";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_uptime")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("connection refused");
   });
 });
 
@@ -398,6 +449,23 @@ describe("pg_replication_status", () => {
     expect(result.role).toBe("replica");
     expect(result).toHaveProperty("replay_lag");
   });
+
+  it("should return structured error on query failure", async () => {
+    const pgError = new Error("connection refused") as Error & {
+      code: string;
+    };
+    pgError.code = "08001";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_replication_status")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("connection refused");
+  });
 });
 
 describe("pg_recovery_status", () => {
@@ -438,6 +506,23 @@ describe("pg_recovery_status", () => {
     };
 
     expect(result.in_recovery).toBe(true);
+  });
+
+  it("should return structured error on query failure", async () => {
+    const pgError = new Error("connection refused") as Error & {
+      code: string;
+    };
+    pgError.code = "08001";
+    mockAdapter.executeQuery.mockRejectedValueOnce(pgError);
+
+    const tool = tools.find((t) => t.name === "pg_recovery_status")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("connection refused");
   });
 });
 

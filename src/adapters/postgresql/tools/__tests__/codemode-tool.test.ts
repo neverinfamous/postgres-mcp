@@ -12,37 +12,46 @@ import {
 } from "../codemode/index.js";
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 
-// Mock the dependencies
+// Shared mock instances — controllable per-test
+const mockPoolInstance = {
+  initialize: vi.fn(),
+  execute: vi.fn().mockResolvedValue({
+    success: true,
+    result: { test: "result" },
+    metrics: { wallTimeMs: 10, cpuTimeMs: 8, memoryUsedMb: 1 },
+  }),
+  dispose: vi.fn(),
+  getStats: vi.fn().mockReturnValue({ available: 5, inUse: 0, max: 5 }),
+};
+
+const mockSecurityInstance = {
+  validateCode: vi.fn().mockReturnValue({ valid: true, errors: [] }),
+  checkRateLimit: vi.fn().mockReturnValue(true),
+  sanitizeResult: vi.fn((result: unknown) => result),
+  createExecutionRecord: vi.fn().mockReturnValue({}),
+  auditLog: vi.fn(),
+};
+
+const mockCreatePgApi = vi.fn().mockReturnValue({
+  createSandboxBindings: vi
+    .fn()
+    .mockReturnValue({ core: { listTables: () => [] } }),
+});
+
+// Mock the dependencies using shared instances
 vi.mock("../../../codemode/sandbox.js", () => ({
   CodeModeSandbox: {},
-  SandboxPool: vi.fn().mockImplementation(() => ({
-    initialize: vi.fn(),
-    execute: vi.fn().mockResolvedValue({
-      success: true,
-      result: { test: "result" },
-      metrics: { wallTimeMs: 10, cpuTimeMs: 8, memoryUsedMb: 1 },
-    }),
-    dispose: vi.fn(),
-    getStats: vi.fn().mockReturnValue({ available: 5, inUse: 0, max: 5 }),
-  })),
+  SandboxPool: vi.fn().mockImplementation(() => mockPoolInstance),
 }));
 
 vi.mock("../../../codemode/security.js", () => ({
-  CodeModeSecurityManager: vi.fn().mockImplementation(() => ({
-    validateCode: vi.fn().mockReturnValue({ valid: true, errors: [] }),
-    checkRateLimit: vi.fn().mockReturnValue(true),
-    sanitizeResult: vi.fn((result: unknown) => result),
-    createExecutionRecord: vi.fn().mockReturnValue({}),
-    auditLog: vi.fn(),
-  })),
+  CodeModeSecurityManager: vi
+    .fn()
+    .mockImplementation(() => mockSecurityInstance),
 }));
 
 vi.mock("../../../codemode/api.js", () => ({
-  createPgApi: vi.fn().mockReturnValue({
-    createSandboxBindings: vi
-      .fn()
-      .mockReturnValue({ core: { listTables: () => [] } }),
-  }),
+  createPgApi: mockCreatePgApi,
 }));
 
 vi.mock("../../../utils/icons.js", () => ({
@@ -90,6 +99,23 @@ describe("Code Mode Tool", () => {
     // Clear any existing singleton state
     cleanupCodeMode();
     vi.clearAllMocks();
+
+    // Restore default mock behaviors
+    mockPoolInstance.execute.mockResolvedValue({
+      success: true,
+      result: { test: "result" },
+      metrics: { wallTimeMs: 10, cpuTimeMs: 8, memoryUsedMb: 1 },
+    });
+    mockSecurityInstance.validateCode.mockReturnValue({
+      valid: true,
+      errors: [],
+    });
+    mockSecurityInstance.checkRateLimit.mockReturnValue(true);
+    mockCreatePgApi.mockReturnValue({
+      createSandboxBindings: vi
+        .fn()
+        .mockReturnValue({ core: { listTables: () => [] } }),
+    });
   });
 
   afterEach(() => {
@@ -192,6 +218,72 @@ describe("Code Mode Tool", () => {
       );
 
       expect(result).toHaveProperty("success");
+    });
+
+    it("should include hint in successful response", async () => {
+      const tool = createExecuteCodeTool(mockAdapter as PostgresAdapter);
+      const result = (await tool.handler(
+        { code: "return 42" },
+        { timestamp: new Date(), requestId: "test" },
+      )) as { hint: string };
+
+      expect(result.hint).toContain("pg.help()");
+    });
+
+    it("should return error when code validation fails", async () => {
+      mockSecurityInstance.validateCode.mockReturnValueOnce({
+        valid: false,
+        errors: ["Forbidden import detected", "eval() is not allowed"],
+      });
+
+      const tool = createExecuteCodeTool(mockAdapter as PostgresAdapter);
+      const result = (await tool.handler(
+        { code: "import fs from 'fs'; eval('bad')" },
+        { timestamp: new Date(), requestId: "test" },
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Code validation failed");
+    });
+
+    it("should cleanup orphaned transactions on execution failure", async () => {
+      const getActiveIds = mockAdapter.getActiveTransactionIds as ReturnType<
+        typeof vi.fn
+      >;
+      // Before execution: no active transactions
+      getActiveIds.mockReturnValueOnce([]);
+      // After failed execution: orphaned transactions
+      getActiveIds.mockReturnValueOnce(["tx-orphan-1", "tx-orphan-2"]);
+
+      mockPoolInstance.execute.mockResolvedValueOnce({
+        success: false,
+        error: "Runtime error",
+        metrics: { wallTimeMs: 5, cpuTimeMs: 3, memoryUsedMb: 0.5 },
+      });
+
+      const tool = createExecuteCodeTool(mockAdapter as PostgresAdapter);
+      const result = (await tool.handler(
+        { code: "throw new Error('fail')" },
+        { timestamp: new Date(), requestId: "test" },
+      )) as { success: boolean };
+
+      expect(result.success).toBe(false);
+      expect(mockAdapter.cleanupTransaction).toHaveBeenCalledWith(
+        "tx-orphan-1",
+      );
+      expect(mockAdapter.cleanupTransaction).toHaveBeenCalledWith(
+        "tx-orphan-2",
+      );
+    });
+
+    it("should not cleanup transactions on successful execution", async () => {
+      const tool = createExecuteCodeTool(mockAdapter as PostgresAdapter);
+      await tool.handler(
+        { code: "return 1" },
+        { timestamp: new Date(), requestId: "test" },
+      );
+
+      expect(mockAdapter.cleanupTransaction).not.toHaveBeenCalled();
     });
   });
 });

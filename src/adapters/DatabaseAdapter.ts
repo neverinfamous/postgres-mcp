@@ -236,11 +236,7 @@ export abstract class DatabaseAdapter {
           const progressToken = extraMeta?._meta?.progressToken;
 
           // Create context with progress support
-          const context = this.createContext(
-            undefined,
-            server.server,
-            progressToken,
-          );
+          const context = this.createContext(undefined, server, progressToken);
           const result = await tool.handler(args, context);
 
           // MCP 2025-11-25: Return structuredContent if outputSchema present
@@ -367,11 +363,12 @@ export abstract class DatabaseAdapter {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Server.prompt() is the only API for registering prompts; no non-deprecated alternative exists in SDK
-    server.prompt(
+    server.registerPrompt(
       prompt.name,
-      prompt.description,
-      zodShape,
+      {
+        description: prompt.description,
+        argsSchema: zodShape,
+      },
       async (providedArgs) => {
         const context = this.createContext();
         const args = providedArgs as Record<string, string>;
@@ -394,12 +391,13 @@ export abstract class DatabaseAdapter {
     );
   }
 
-  // =========================================================================
-  // Query Validation
-  // =========================================================================
-
   /**
-   * Validate query for safety (SQL injection prevention)
+   * Validate full query for safety (SQL statement injection prevention)
+   * Note: This intentionally uses a less restrictive blocklist than
+   * `where-clause.ts` because full queries legitimately contain constructs
+   * (like UNION, SELECT, file ops) that are dangerous in a WHERE fragment.
+   * Parameterized queries provide the primary defense against data-level injection.
+   *
    * @param sql - SQL query to validate
    * @param isReadOnly - Whether to enforce read-only restrictions
    */

@@ -129,6 +129,31 @@ describe("parsePostgresError", () => {
     );
   });
 
+  it("should throw index already exists for pg_vector_create_index", () => {
+    const err = makePgError(
+      'relation "idx_temp_vec_hnsw" already exists',
+      "42P07",
+    );
+    expect(() =>
+      parsePostgresError(err, {
+        tool: "pg_vector_create_index",
+      }),
+    ).toThrow(
+      "Index 'idx_temp_vec_hnsw' already exists. Use ifNotExists: true to skip if it exists.",
+    );
+  });
+
+  it("should infer index from idx_ prefix even without tool context", () => {
+    const err = makePgError('relation "idx_my_index" already exists', "42P07");
+    expect(() =>
+      parsePostgresError(err, {
+        tool: "pg_something",
+      }),
+    ).toThrow(
+      "Index 'idx_my_index' already exists. Use ifNotExists: true to skip if it exists.",
+    );
+  });
+
   it("should throw table already exists for pg_create_table", () => {
     const err = makePgError('relation "users" already exists', "42P07");
     expect(() =>

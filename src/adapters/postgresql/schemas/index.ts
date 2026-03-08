@@ -36,7 +36,7 @@ export {
   TransactionResultOutputSchema,
   SavepointResultOutputSchema,
   TransactionExecuteOutputSchema,
-} from "./core.js";
+} from "./core/index.js";
 
 // JSONB operation schemas
 export {
@@ -99,7 +99,7 @@ export {
   JsonbIndexSuggestOutputSchema,
   JsonbSecurityScanOutputSchema,
   JsonbStatsOutputSchema,
-} from "./jsonb.js";
+} from "./jsonb/index.js";
 
 // Text search schemas
 export {
@@ -211,7 +211,9 @@ export {
 
 // Schema management schemas
 export {
+  CreateSchemaSchemaBase,
   CreateSchemaSchema,
+  DropSchemaSchemaBase,
   DropSchemaSchema,
   // Sequence schemas - Split Schema pattern for MCP visibility
   CreateSequenceSchemaBase,
@@ -319,7 +321,7 @@ export {
   GeometryBufferOutputSchema,
   GeometryIntersectionOutputSchema,
   GeometryTransformOutputSchema,
-} from "./postgis.js";
+} from "./postgis/index.js";
 
 // Partitioning schemas
 export {
@@ -425,6 +427,8 @@ export {
   KcacheResourceAnalysisOutputSchema,
   KcacheResetOutputSchema,
   // citext
+  CitextCompareSchemaBase,
+  CitextCompareSchema,
   CitextConvertColumnSchema,
   CitextConvertColumnSchemaBase,
   CitextListColumnsSchemaBase,
@@ -478,6 +482,7 @@ export {
   PgcryptoDecryptSchemaBase,
   PgcryptoRandomBytesSchema,
   PgcryptoGenSaltSchema,
+  PgcryptoCryptSchemaBase,
   PgcryptoCryptSchema,
   // Pgcrypto output schemas
   PgcryptoCreateExtensionOutputSchema,
@@ -489,7 +494,7 @@ export {
   PgcryptoGenRandomBytesOutputSchema,
   PgcryptoGenSaltOutputSchema,
   PgcryptoCryptOutputSchema,
-} from "./extensions.js";
+} from "./extensions/index.js";
 
 // Stats schemas
 export {
@@ -520,7 +525,7 @@ export {
   DistributionOutputSchema,
   HypothesisOutputSchema,
   SamplingOutputSchema,
-} from "./stats.js";
+} from "./stats/index.js";
 
 // Introspection schemas (agent-optimized database analysis)
 export {

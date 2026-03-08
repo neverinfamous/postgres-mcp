@@ -40,7 +40,7 @@ export const VectorSearchSchemaBase = z.object({
     .enum(["l2", "cosine", "inner_product"])
     .optional()
     .describe("Distance metric"),
-  limit: z.number().optional().describe("Number of results"),
+  limit: z.unknown().optional().describe("Number of results"),
   select: z
     .array(z.string())
     .optional()
@@ -65,12 +65,15 @@ export const VectorSearchSchema = VectorSearchSchemaBase.transform((data) => {
     resolvedTable = parts[1] ?? resolvedTable;
   }
 
+  const rawLimit = Number(data.limit);
+  const limit =
+    Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : undefined;
   return {
     table: resolvedTable,
     column: data.column ?? data.col ?? "",
     vector: data.vector,
     metric: data.metric,
-    limit: data.limit,
+    limit,
     select: data.select,
     where: data.where ?? data.filter,
     schema: resolvedSchema,
@@ -94,9 +97,9 @@ export const VectorCreateIndexSchemaBase = z.object({
     .boolean()
     .optional()
     .describe("Skip if index already exists (default: false)"),
-  lists: z.number().optional().describe("Number of lists for IVFFlat"),
-  m: z.number().optional().describe("HNSW m parameter"),
-  efConstruction: z
+  lists: z.coerce.number().optional().describe("Number of lists for IVFFlat"),
+  m: z.coerce.number().optional().describe("HNSW m parameter"),
+  efConstruction: z.coerce
     .number()
     .optional()
     .describe("HNSW ef_construction parameter"),
@@ -104,19 +107,9 @@ export const VectorCreateIndexSchemaBase = z.object({
 });
 
 // Transformed schema with alias resolution
-export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
-  (data) => {
-    // Resolve type from type or method alias
+export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase
+  .transform((data) => {
     const resolvedType = data.type ?? data.method;
-    if (!resolvedType) {
-      throw new z.ZodError([
-        {
-          code: "custom",
-          path: [],
-          message: "type (or method alias) is required",
-        },
-      ]);
-    }
     return {
       table: data.table ?? data.tableName ?? "",
       column: data.column ?? data.col ?? "",
@@ -128,8 +121,10 @@ export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
       efConstruction: data.efConstruction,
       schema: data.schema,
     };
-  },
-);
+  })
+  .refine((d) => d.type !== undefined, {
+    message: "type (or method alias) is required",
+  });
 
 // ============================================================================
 // OUTPUT SCHEMAS - For MCP 2025-11-25 structured content compliance

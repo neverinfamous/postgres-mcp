@@ -1,6 +1,6 @@
 # postgres-mcp
 
-**Last Updated March 2, 2026**
+**Last Updated March 8, 2026**
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 227 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection and migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
@@ -15,8 +15,9 @@
 [![Security](https://img.shields.io/badge/Security-Enhanced-green.svg)](https://github.com/neverinfamous/postgres-mcp/blob/main/SECURITY.md)
 ![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgres-mcp)
-[![Tests](https://img.shields.io/badge/Tests-3176_passed-success.svg)](https://github.com/neverinfamous/postgres-mcp)
-[![Coverage](https://img.shields.io/badge/Coverage-93.58%25-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp)
+[![Tests](https://img.shields.io/badge/Tests-3448_passed-success.svg)](https://github.com/neverinfamous/postgres-mcp)
+[![E2E](https://github.com/neverinfamous/postgres-mcp/actions/workflows/e2e.yml/badge.svg)](https://github.com/neverinfamous/postgres-mcp/actions/workflows/e2e.yml)
+[![Coverage](https://img.shields.io/badge/Coverage-95.08%25-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp)
 
 **[GitHub](https://github.com/neverinfamous/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Changelog](https://github.com/neverinfamous/postgres-mcp/blob/main/CHANGELOG.md)**
 
@@ -30,13 +31,13 @@
 | **Code Mode (Massive Token Savings)**  | Execute complex database operations locally in a secure sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, AI agents use a single `pg_execute_code` execution to eliminate up to 90% of token overhead while reasoning faster. |
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                 |
 | **Smart Tool Filtering**               | 21 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                          |
-| **HTTP Streaming Transport**           | SSE-based streaming with `/mcp`, and `/health` endpoints for remote deployments                                                                                                                                                                            |
+| **Dual HTTP Transport**                | Streamable HTTP (`/mcp`) for modern clients + legacy SSE (`/sse`) for backward compatibility — both protocols supported simultaneously                                                                                                                     |
 | **High-Performance Pooling**           | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                   |
 | **8 Extension Ecosystems**             | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                                                                                |
 | **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools that let AI assistants reason about schema changes before executing them                        |
 | **Deterministic Error Handling**       | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes                                                              |
 | **Production-Ready Security**          | SQL injection protection, parameterized queries, input validation, sandboxed code execution, SSL certificate verification by default, and HTTP body size enforcement                                                                                       |
-| **Strict TypeScript**                  | 100% type-safe codebase with 3176 tests and 93.58% coverage                                                                                                                                                                                                |
+| **Strict TypeScript**                  | 100% type-safe codebase with 3448 tests and 95.09% coverage                                                                                                                                                                                                |
 | **MCP 2025-11-25 Compliant**           | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                                                                              |
 
 ### Deployment Options
@@ -211,19 +212,6 @@ This exposes just `pg_execute_code`. The agent writes JavaScript against the typ
 >
 > For maximum savings, use `--tool-filter codemode` to run with Code Mode as your only tool. See the [Code Mode wiki](https://github.com/neverinfamous/postgres-mcp/wiki/Code-Mode) for full API documentation.
 
-> [!NOTE]
-> **AntiGravity Users:** Server instructions are automatically sent to MCP clients during initialization. However, AntiGravity does not currently support MCP server instructions. For optimal Code Mode usage, manually provide the contents of [`src/constants/ServerInstructions.ts`](https://github.com/neverinfamous/postgres-mcp/blob/main/src/constants/ServerInstructions.ts) to the agent in your prompt or user rules.
-
----
-
-## ⚡ Install to Cursor IDE
-
-### One-Click Installation
-
-Click the button below to install directly into Cursor:
-
-[![Install to Cursor](https://img.shields.io/badge/Install%20to%20Cursor-Click%20Here-blue?style=for-the-badge)](cursor://anysphere.cursor-deeplink/mcp/install?name=PostgreSQL%20MCP&config=eyJwb3N0Z3Jlcy1tY3AiOnsiYXJncyI6WyJydW4iLCItLXJtIiwiLWkiLCItZSIsIlBPU1RHUkVTX0hPU1QiLCItZSIsIlBPU1RHUkVTX1BPUlQiLCItZSIsIlBPU1RHUkVTX1VTRVIiLCItZSIsIlBPU1RHUkVTX1BBU1NXT1JEIiwiLWUiLCJQT1NUR1JFU19EQVRBQkFTRSIsIndyaXRlbm90ZW5vdy9wb3N0Z3Jlcy1tY3A6bGF0ZXN0IiwiLS10b29sLWZpbHRlciIsInN0YXJ0ZXIiXSwiY29tbWFuZCI6ImRvY2tlciIsImVudiI6eyJQT1NUR1JFU19IT1NUIjoibG9jYWxob3N0IiwiUE9TVEdSRVNfUE9SVCI6IjU0MzIiLCJQT1NUR1JFU19VU0VSIjoieW91cl91c2VybmFtZSIsIlBPU1RHUkVTX1BBU1NXT1JEIjoieW91cl9wYXNzd29yZCIsIlBPU1RHUkVTX0RBVEFCQVNFIjoieW91cl9kYXRhYmFzZSJ9fX0=)
-
 ### Prerequisites
 
 - ✅ Docker installed and running
@@ -355,12 +343,34 @@ docker run --rm -p 3000:3000 \
   --transport http --port 3000
 ```
 
-**Endpoints:**
+The server supports **two MCP transport protocols simultaneously**, enabling both modern and legacy clients to connect:
 
-- `POST /mcp` — JSON-RPC requests
-- `GET /mcp` — SSE stream for notifications
-- `DELETE /mcp` — Session termination
-- `GET /health` — Health check
+### Streamable HTTP (Recommended)
+
+Modern protocol (MCP 2025-03-26) — single endpoint, session-based:
+
+| Method   | Endpoint | Purpose                                          |
+| -------- | -------- | ------------------------------------------------ |
+| `POST`   | `/mcp`   | JSON-RPC requests (initialize, tools/list, etc.) |
+| `GET`    | `/mcp`   | SSE stream for server notifications              |
+| `DELETE` | `/mcp`   | Session termination                              |
+
+Sessions are managed via the `Mcp-Session-Id` header.
+
+### Legacy SSE (Backward Compatibility)
+
+Legacy protocol (MCP 2024-11-05) — for clients like Python `mcp.client.sse`:
+
+| Method | Endpoint                   | Purpose                                                       |
+| ------ | -------------------------- | ------------------------------------------------------------- |
+| `GET`  | `/sse`                     | Opens SSE stream, returns `/messages?sessionId=<id>` endpoint |
+| `POST` | `/messages?sessionId=<id>` | Send JSON-RPC messages to the session                         |
+
+### Utility Endpoints
+
+| Method | Endpoint  | Purpose                              |
+| ------ | --------- | ------------------------------------ |
+| `GET`  | `/health` | Health check (database connectivity) |
 
 **Docker Health Check:** The built-in `HEALTHCHECK` is transport-aware. When running with `--transport http` or `--transport sse`, it uses `curl` to verify the `/health` endpoint (confirming both HTTP server and database connectivity). In stdio mode (default), it falls back to a Node.js process check since no HTTP endpoint is available.
 

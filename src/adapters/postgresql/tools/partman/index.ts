@@ -20,14 +20,18 @@ import {
   createPartmanShowConfigTool,
 } from "./management.js";
 
-// Operations tools
+// Operations tools (check default, partition data)
 import {
   createPartmanCheckDefaultTool,
   createPartmanPartitionDataTool,
+} from "./operations.js";
+
+// Maintenance tools (retention, undo, analyze health)
+import {
   createPartmanSetRetentionTool,
   createPartmanUndoPartitionTool,
   createPartmanAnalyzeHealthTool,
-} from "./operations.js";
+} from "./maintenance.js";
 
 /**
  * Get all pg_partman tools

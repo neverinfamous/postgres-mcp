@@ -417,11 +417,20 @@ const DatabaseObjectSchema = z.object({
 
 // Output schema for pg_list_objects
 export const ObjectListOutputSchema = z.object({
-  objects: z.array(DatabaseObjectSchema).describe("List of database objects"),
-  count: z.number().describe("Number of objects returned"),
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  objects: z
+    .array(DatabaseObjectSchema)
+    .optional()
+    .describe("List of database objects"),
+  count: z.number().optional().describe("Number of objects returned"),
   totalCount: z.number().optional().describe("Total count before truncation"),
+  byType: z
+    .record(z.string(), z.number())
+    .optional()
+    .describe("Object counts grouped by type"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   hint: z.string().optional().describe("Additional information"),
+  error: z.string().optional().describe("Error message if operation failed"),
 });
 
 // Output schema for pg_object_details - flexible due to different object types

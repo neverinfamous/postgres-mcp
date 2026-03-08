@@ -46,10 +46,8 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         .boolean()
         .optional()
         .describe("Include INSERT statements for table data"),
-      limit: z
+      limit: z.coerce
         .number()
-        .int()
-        .min(0)
         .optional()
         .describe(
           "Maximum rows to include when includeData is true (default: 500, use 0 for all rows)",
@@ -388,43 +386,50 @@ export function createDumpSchemaTool(
     annotations: readOnly("Dump Schema"),
     icons: getToolIcons("backup", readOnly("Dump Schema")),
     handler: (params: unknown, _context: RequestContext) => {
-      const { table, schema, filename } = DumpSchemaSchema.parse(params);
+      try {
+        const { table, schema, filename } = DumpSchemaSchema.parse(params);
 
-      let command = "pg_dump";
-      command += " --format=custom";
-      command += " --verbose";
+        let command = "pg_dump";
+        command += " --format=custom";
+        command += " --verbose";
 
-      if (schema) {
-        command += ` --schema="${schema}"`;
+        if (schema) {
+          command += ` --schema="${schema}"`;
+        }
+        if (table) {
+          command += ` --table="${table}"`;
+        }
+
+        // Warn if filename ends with .sql since custom format is binary
+        const outputFilename = filename ?? "backup.dump";
+        const sqlExtWarning = outputFilename.endsWith(".sql")
+          ? "Warning: Using .sql extension with --format=custom produces binary output. Use .dump extension or --format=plain for SQL text output."
+          : undefined;
+
+        command += ` --file="${outputFilename}"`;
+        command += " $POSTGRES_CONNECTION_STRING";
+
+        return Promise.resolve({
+          command,
+          ...(schema !== undefined &&
+            table !== undefined && {
+              warning:
+                "Both --schema and --table specified. The --table flag may match tables in other schemas if not schema-qualified.",
+            }),
+          ...(sqlExtWarning !== undefined && { formatWarning: sqlExtWarning }),
+          notes: [
+            "Replace $POSTGRES_CONNECTION_STRING with your connection string",
+            "Use --format=plain for SQL output (recommended for .sql extension)",
+            "Add --data-only to exclude schema",
+            "Add --schema-only to exclude data",
+          ],
+        });
+      } catch (error: unknown) {
+        return Promise.resolve({
+          success: false as const,
+          error: formatPostgresError(error, { tool: "pg_dump_schema" }),
+        });
       }
-      if (table) {
-        command += ` --table="${table}"`;
-      }
-
-      // Warn if filename ends with .sql since custom format is binary
-      const outputFilename = filename ?? "backup.dump";
-      const sqlExtWarning = outputFilename.endsWith(".sql")
-        ? "Warning: Using .sql extension with --format=custom produces binary output. Use .dump extension or --format=plain for SQL text output."
-        : undefined;
-
-      command += ` --file="${outputFilename}"`;
-      command += " $POSTGRES_CONNECTION_STRING";
-
-      return Promise.resolve({
-        command,
-        ...(schema !== undefined &&
-          table !== undefined && {
-            warning:
-              "Both --schema and --table specified. The --table flag may match tables in other schemas if not schema-qualified.",
-          }),
-        ...(sqlExtWarning !== undefined && { formatWarning: sqlExtWarning }),
-        notes: [
-          "Replace $POSTGRES_CONNECTION_STRING with your connection string",
-          "Use --format=plain for SQL output (recommended for .sql extension)",
-          "Add --data-only to exclude schema",
-          "Add --schema-only to exclude data",
-        ],
-      });
     },
   };
 }
@@ -648,69 +653,82 @@ export function createCopyImportTool(
     annotations: write("Copy Import"),
     icons: getToolIcons("backup", write("Copy Import")),
     handler: (params: unknown, _context: RequestContext) => {
-      return Promise.resolve().then(() => {
-        const rawParams = params as {
-          table?: string;
-          tableName?: string; // Alias for table
-          schema?: string;
-          filePath?: string;
-          format?: string;
-          header?: boolean;
-          delimiter?: string;
-          columns?: string[];
-        };
+      try {
+        return Promise.resolve()
+          .then(() => {
+            const rawParams = params as {
+              table?: string;
+              tableName?: string; // Alias for table
+              schema?: string;
+              filePath?: string;
+              format?: string;
+              header?: boolean;
+              delimiter?: string;
+              columns?: string[];
+            };
 
-        // Resolve tableName alias to table
-        const tableValue = rawParams.table ?? rawParams.tableName;
-        if (!tableValue) {
-          throw new Error("table parameter is required");
-        }
+            // Resolve tableName alias to table
+            const tableValue = rawParams.table ?? rawParams.tableName;
+            if (!tableValue) {
+              throw new Error("table parameter is required");
+            }
 
-        const parsed = {
-          ...rawParams,
-          table: tableValue,
-        };
+            const parsed = {
+              ...rawParams,
+              table: tableValue,
+            };
 
-        // Parse schema.table format (e.g., 'public.users' -> schema='public', table='users')
-        // If table contains a dot, always parse it as schema.table (embedded schema takes priority)
-        let tableNamePart = parsed.table;
-        let schemaNamePart = parsed.schema;
+            // Parse schema.table format (e.g., 'public.users' -> schema='public', table='users')
+            // If table contains a dot, always parse it as schema.table (embedded schema takes priority)
+            let tableNamePart = parsed.table;
+            let schemaNamePart = parsed.schema;
 
-        if (parsed.table.includes(".")) {
-          const parts = parsed.table.split(".");
-          if (parts.length === 2 && parts[0] && parts[1]) {
-            schemaNamePart = parts[0];
-            tableNamePart = parts[1];
-          }
-        }
+            if (parsed.table.includes(".")) {
+              const parts = parsed.table.split(".");
+              if (parts.length === 2 && parts[0] && parts[1]) {
+                schemaNamePart = parts[0];
+                tableNamePart = parts[1];
+              }
+            }
 
-        const tableName = sanitizeTableName(tableNamePart, schemaNamePart);
+            const tableName = sanitizeTableName(tableNamePart, schemaNamePart);
 
-        const columnClause =
-          parsed.columns !== undefined && parsed.columns.length > 0
-            ? ` (${sanitizeIdentifiers(parsed.columns).join(", ")})`
-            : "";
+            const columnClause =
+              parsed.columns !== undefined && parsed.columns.length > 0
+                ? ` (${sanitizeIdentifiers(parsed.columns).join(", ")})`
+                : "";
 
-        const options: string[] = [];
-        options.push(`FORMAT ${parsed.format ?? "csv"}`);
-        if (parsed.header) options.push("HEADER");
-        if (parsed.delimiter) options.push(`DELIMITER '${parsed.delimiter}'`);
+            const options: string[] = [];
+            options.push(`FORMAT ${parsed.format ?? "csv"}`);
+            if (parsed.header) options.push("HEADER");
+            if (parsed.delimiter)
+              options.push(`DELIMITER '${parsed.delimiter}'`);
 
-        // Use provided filePath or generate placeholder with appropriate extension
-        const ext =
-          parsed.format === "text"
-            ? "txt"
-            : parsed.format === "binary"
-              ? "bin"
-              : "csv";
-        const filePath = parsed.filePath ?? `/path/to/file.${ext}`;
+            // Use provided filePath or generate placeholder with appropriate extension
+            const ext =
+              parsed.format === "text"
+                ? "txt"
+                : parsed.format === "binary"
+                  ? "bin"
+                  : "csv";
+            const filePath = parsed.filePath ?? `/path/to/file.${ext}`;
 
-        return {
-          command: `COPY ${tableName}${columnClause} FROM '${filePath}' WITH (${options.join(", ")})`,
-          stdinCommand: `COPY ${tableName}${columnClause} FROM STDIN WITH (${options.join(", ")})`,
-          notes: "Use \\copy in psql for client-side files",
-        };
-      });
+            return {
+              command: `COPY ${tableName}${columnClause} FROM '${filePath}' WITH (${options.join(", ")})`,
+              stdinCommand: `COPY ${tableName}${columnClause} FROM STDIN WITH (${options.join(", ")})`,
+              notes: "Use \\copy in psql for client-side files",
+            };
+          })
+          .catch((error: unknown) => ({
+            success: false as const,
+            error: formatPostgresError(error, { tool: "pg_copy_import" }),
+          }));
+      } catch (error: unknown) {
+        return Promise.resolve({
+          success: false as const,
+          error: formatPostgresError(error, { tool: "pg_copy_import" }),
+        });
+      }
     },
   };
 }

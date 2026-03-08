@@ -2396,7 +2396,7 @@ describe("pg_upsert", () => {
     expect(sql).toContain('"archive"."events"');
   });
 
-  it("should throw helpful error for missing unique constraint", async () => {
+  it("should return structured error for missing unique constraint", async () => {
     // Schema check passes, table check passes, then the actual upsert throws
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
@@ -2407,31 +2407,33 @@ describe("pg_upsert", () => {
 
     const tool = tools.find((t) => t.name === "pg_upsert")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "users",
-          data: { email: "test@test.com" },
-          conflictColumns: ["email"],
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow(/UNIQUE constraint/);
+    const result = (await tool.handler(
+      {
+        table: "users",
+        data: { email: "test@test.com" },
+        conflictColumns: ["email"],
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/UNIQUE constraint/);
   });
 
-  it("should require conflictColumns to be non-empty", async () => {
+  it("should return structured error for empty conflictColumns", async () => {
     const tool = tools.find((t) => t.name === "pg_upsert")!;
 
-    await expect(
-      tool.handler(
-        {
-          table: "users",
-          data: { name: "Test" },
-          conflictColumns: [],
-        },
-        mockContext,
-      ),
-    ).rejects.toThrow(/conflictColumns must not be empty/);
+    const result = (await tool.handler(
+      {
+        table: "users",
+        data: { name: "Test" },
+        conflictColumns: [],
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/conflictColumns must not be empty/);
   });
 });
 

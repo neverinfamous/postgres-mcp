@@ -688,6 +688,10 @@ describe("HttpTransport", () => {
         "nosniff",
       );
       expect(res.setHeader).toHaveBeenCalledWith("X-Frame-Options", "DENY");
+      expect(res.setHeader).toHaveBeenCalledWith(
+        "Referrer-Policy",
+        "no-referrer",
+      );
     });
   });
 
@@ -780,105 +784,145 @@ describe("HttpTransport", () => {
     });
   });
 
-  describe("handleMessageRequest", () => {
-    it("should return 400 when no transport is connected", async () => {
+  describe("handleLegacyMessageRequest", () => {
+    it("should return 400 when sessionId is missing", async () => {
       const transport = new HttpTransport({ port: 3000 });
       const req = createMockRequest({ method: "POST", url: "/messages" });
       const res = createMockResponse();
+      const url = new URL("http://localhost:3000/messages");
 
-      const handleMessageRequest = (
+      const handleLegacyMessageRequest = (
         transport as unknown as {
-          handleMessageRequest: (
+          handleLegacyMessageRequest: (
             req: IncomingMessage,
             res: ServerResponse,
+            url: URL,
           ) => Promise<void>;
         }
-      ).handleMessageRequest.bind(transport);
+      ).handleLegacyMessageRequest.bind(transport);
 
-      await handleMessageRequest(req, res);
+      await handleLegacyMessageRequest(req, res, url);
 
       expect(res._statusCode).toBe(400);
-      expect(res._body).toContain("No active connection");
+      expect(res._body).toContain("Missing sessionId parameter");
     });
 
-    it("should forward request to transport when active", async () => {
+    it("should return 404 when sessionId not found in transports", async () => {
       const transport = new HttpTransport({ port: 3000 });
-      const mockTransport = {
-        handleRequest: vi.fn().mockResolvedValue(undefined),
-        start: vi.fn().mockResolvedValue(undefined),
-      };
-
-      // Set the internal transport directly
-      (transport as unknown as { transport: typeof mockTransport }).transport =
-        mockTransport;
-
-      const req = createMockRequest({ method: "POST", url: "/messages" });
+      const req = createMockRequest({
+        method: "POST",
+        url: "/messages?sessionId=unknown",
+      });
       const res = createMockResponse();
+      const url = new URL("http://localhost:3000/messages?sessionId=unknown");
 
-      const handleMessageRequest = (
+      const handleLegacyMessageRequest = (
         transport as unknown as {
-          handleMessageRequest: (
+          handleLegacyMessageRequest: (
             req: IncomingMessage,
             res: ServerResponse,
+            url: URL,
           ) => Promise<void>;
         }
-      ).handleMessageRequest.bind(transport);
+      ).handleLegacyMessageRequest.bind(transport);
 
-      await handleMessageRequest(req, res);
+      await handleLegacyMessageRequest(req, res, url);
 
-      expect(mockTransport.handleRequest).toHaveBeenCalledWith(req, res);
+      expect(res._statusCode).toBe(404);
+      expect(res._body).toContain("No transport found for sessionId");
+    });
+
+    it("should forward request to SSE transport when session exists", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const mockSSETransport = {
+        handlePostMessage: vi.fn().mockResolvedValue(undefined),
+        sessionId: "test-session",
+      };
+
+      // Inject a mock transport into the transports map
+      const transportsMap = transport.getTransports();
+      // Use Object.create to make instanceof checks work
+      const { SSEServerTransport: SSEClass } =
+        await import("@modelcontextprotocol/sdk/server/sse.js");
+      Object.setPrototypeOf(mockSSETransport, SSEClass.prototype);
+      transportsMap.set(
+        "test-session",
+        mockSSETransport as unknown as InstanceType<typeof SSEClass>,
+      );
+
+      const req = createMockRequest({
+        method: "POST",
+        url: "/messages?sessionId=test-session",
+      });
+      const res = createMockResponse();
+      const url = new URL(
+        "http://localhost:3000/messages?sessionId=test-session",
+      );
+
+      const handleLegacyMessageRequest = (
+        transport as unknown as {
+          handleLegacyMessageRequest: (
+            req: IncomingMessage,
+            res: ServerResponse,
+            url: URL,
+          ) => Promise<void>;
+        }
+      ).handleLegacyMessageRequest.bind(transport);
+
+      await handleLegacyMessageRequest(req, res, url);
+
+      expect(mockSSETransport.handlePostMessage).toHaveBeenCalledWith(req, res);
     });
   });
 
-  describe("handleSSERequest", () => {
-    it("should create transport and call onConnect callback", async () => {
+  describe("handleLegacySSERequest", () => {
+    it("should call onConnect callback with SSE transport", async () => {
       const onConnect = vi.fn();
       const transport = new HttpTransport({ port: 3000 }, onConnect);
       const req = createMockRequest({ method: "GET", url: "/sse" });
       const res = createMockResponse();
 
-      const handleSSERequest = (
+      const handleLegacySSERequest = (
         transport as unknown as {
-          handleSSERequest: (
+          handleLegacySSERequest: (
             req: IncomingMessage,
             res: ServerResponse,
           ) => Promise<void>;
         }
-      ).handleSSERequest.bind(transport);
+      ).handleLegacySSERequest.bind(transport);
 
-      // StreamableHTTPServerTransport will be created internally
-      // The test verifies the onConnect callback pattern
       try {
-        await handleSSERequest(req, res);
-        // If it completes successfully, transport should be set
-        expect(transport.getTransport()).not.toBeNull();
+        await handleLegacySSERequest(req, res);
+        // onConnect should be called with the SSE transport
         expect(onConnect).toHaveBeenCalled();
+        // Transport should be registered in the transports map
+        expect(transport.getTransports().size).toBeGreaterThan(0);
       } catch {
         // May fail in unit test environment without full HTTP context
       }
     });
 
-    it("should set internal transport after successful SSE connection", async () => {
+    it("should register transport in transports map", async () => {
       const transport = new HttpTransport({ port: 3000 });
       const req = createMockRequest({ method: "GET", url: "/sse" });
       const res = createMockResponse();
 
-      // Initially null
-      expect(transport.getTransport()).toBeNull();
+      // Initially empty
+      expect(transport.getTransports().size).toBe(0);
 
-      const handleSSERequest = (
+      const handleLegacySSERequest = (
         transport as unknown as {
-          handleSSERequest: (
+          handleLegacySSERequest: (
             req: IncomingMessage,
             res: ServerResponse,
           ) => Promise<void>;
         }
-      ).handleSSERequest.bind(transport);
+      ).handleLegacySSERequest.bind(transport);
 
       try {
-        await handleSSERequest(req, res);
-        // After SSE request, transport should be set
-        expect(transport.getTransport()).not.toBeNull();
+        await handleLegacySSERequest(req, res);
+        // After SSE request, a transport should be registered
+        expect(transport.getTransports().size).toBe(1);
       } catch {
         // Expected in unit test without proper HTTP stream
       }
@@ -933,11 +977,11 @@ describe("HttpTransport", () => {
     });
   });
 
-  describe("getTransport", () => {
-    it("should return null when not connected", () => {
+  describe("getTransports", () => {
+    it("should return empty map when no sessions exist", () => {
       const transport = new HttpTransport({ port: 3000 });
 
-      expect(transport.getTransport()).toBeNull();
+      expect(transport.getTransports().size).toBe(0);
     });
   });
 
@@ -1054,7 +1098,7 @@ describe("HttpTransport", () => {
   });
 
   describe("SSE Request Handling", () => {
-    it("should route /sse to SSE handler", async () => {
+    it("should route /sse to legacy SSE handler", async () => {
       const onConnect = vi.fn();
       const transport = new HttpTransport({ port: 3000 }, onConnect);
       const req = createMockRequest({
@@ -1073,12 +1117,13 @@ describe("HttpTransport", () => {
         }
       ).handleRequest.bind(transport);
 
-      // This will attempt to create a StreamableHTTPServerTransport
-      // In unit tests this may fail but we verify the path is routed correctly
+      // Legacy SSE creates SSEServerTransport which calls res.writeHead for SSE stream
       try {
         await handleRequest(req, res);
         // If it succeeds, onConnect should be called
         expect(onConnect).toHaveBeenCalled();
+        // Transport should be registered in the transports map
+        expect(transport.getTransports().size).toBeGreaterThan(0);
       } catch {
         // Expected in unit test without proper transport setup
       }
@@ -1324,6 +1369,454 @@ describe("HttpTransport", () => {
 
       const transport = createHttpTransport({ port: 3000 });
       expect(transport).toBeInstanceOf(HttpTransport);
+    });
+  });
+
+  // ==========================================================================
+  // readBody — JSON body parsing
+  // ==========================================================================
+  describe("readBody", () => {
+    function getReadBody(transport: HttpTransport) {
+      return (
+        transport as unknown as {
+          readBody: (req: IncomingMessage) => Promise<unknown>;
+        }
+      ).readBody.bind(transport);
+    }
+
+    /** Create a mock request that emits body data */
+    function createStreamingRequest(
+      body: string,
+      overrides: Partial<IncomingMessage> = {},
+    ): IncomingMessage {
+      const { EventEmitter } = require("node:events");
+      const emitter = new EventEmitter();
+      Object.assign(emitter, {
+        method: "POST",
+        url: "/test",
+        headers: {},
+        socket: { remoteAddress: "127.0.0.1" },
+        ...overrides,
+      });
+      // Emit body data asynchronously
+      process.nextTick(() => {
+        if (body) emitter.emit("data", Buffer.from(body));
+        emitter.emit("end");
+      });
+      return emitter as unknown as IncomingMessage;
+    }
+
+    it("should return undefined for GET requests", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const readBody = getReadBody(transport);
+      const req = createMockRequest({ method: "GET" });
+      const result = await readBody(req);
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined for DELETE requests", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const readBody = getReadBody(transport);
+      const req = createMockRequest({ method: "DELETE" });
+      const result = await readBody(req);
+      expect(result).toBeUndefined();
+    });
+
+    it("should return undefined for OPTIONS requests", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const readBody = getReadBody(transport);
+      const req = createMockRequest({ method: "OPTIONS" });
+      const result = await readBody(req);
+      expect(result).toBeUndefined();
+    });
+
+    it("should parse valid JSON body", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const readBody = getReadBody(transport);
+      const req = createStreamingRequest(
+        JSON.stringify({ jsonrpc: "2.0", method: "test" }),
+      );
+      const result = await readBody(req);
+      expect(result).toEqual({ jsonrpc: "2.0", method: "test" });
+    });
+
+    it("should return undefined for empty body", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const readBody = getReadBody(transport);
+      const req = createStreamingRequest("");
+      const result = await readBody(req);
+      expect(result).toBeUndefined();
+    });
+
+    it("should reject invalid JSON body", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const readBody = getReadBody(transport);
+      const req = createStreamingRequest("not valid json{{{");
+      await expect(readBody(req)).rejects.toThrow("Invalid JSON");
+    });
+  });
+
+  // ==========================================================================
+  // handleStreamableRequest — /mcp endpoint routing
+  // ==========================================================================
+  describe("handleStreamableRequest", () => {
+    function getHandleStreamable(transport: HttpTransport) {
+      return (
+        transport as unknown as {
+          handleStreamableRequest: (
+            req: IncomingMessage,
+            res: ServerResponse,
+          ) => Promise<void>;
+        }
+      ).handleStreamableRequest.bind(transport);
+    }
+
+    /** Create a mock request with a readable body stream */
+    function createBodyRequest(
+      body: string | object,
+      overrides: Partial<IncomingMessage> = {},
+    ): IncomingMessage {
+      const { EventEmitter } = require("node:events");
+      const emitter = new EventEmitter();
+      const raw = typeof body === "string" ? body : JSON.stringify(body);
+      Object.assign(emitter, {
+        method: "POST",
+        url: "/mcp",
+        headers: { "content-type": "application/json" },
+        socket: { remoteAddress: "127.0.0.1" },
+        ...overrides,
+      });
+      process.nextTick(() => {
+        if (raw) emitter.emit("data", Buffer.from(raw));
+        emitter.emit("end");
+      });
+      return emitter as unknown as IncomingMessage;
+    }
+
+    it("should return 400 for non-POST without session ID", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleStreamable(transport);
+
+      const req = createMockRequest({
+        method: "GET",
+        url: "/mcp",
+        headers: {},
+      });
+      const res = createMockResponse();
+
+      await handle(req, res);
+
+      expect(res._statusCode).toBe(400);
+      expect(res._body).toContain("No valid session ID provided");
+    });
+
+    it("should return 400 for non-POST with unknown session ID", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleStreamable(transport);
+
+      const req = createMockRequest({
+        method: "DELETE",
+        url: "/mcp",
+        headers: { "mcp-session-id": "nonexistent" },
+      });
+      const res = createMockResponse();
+
+      await handle(req, res);
+
+      expect(res._statusCode).toBe(400);
+      expect(res._body).toContain("No valid session ID provided");
+    });
+
+    it("should return Parse error for invalid JSON body", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleStreamable(transport);
+
+      const req = createBodyRequest("not json{{{");
+      const res = createMockResponse();
+
+      await handle(req, res);
+
+      expect(res._statusCode).toBe(400);
+      expect(res._body).toContain("Parse error");
+    });
+
+    it("should return 400 for POST without session ID and non-initialize body", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleStreamable(transport);
+
+      const req = createBodyRequest({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/list",
+      });
+      const res = createMockResponse();
+
+      await handle(req, res);
+
+      expect(res._statusCode).toBe(400);
+      expect(res._body).toContain("No valid session ID provided");
+    });
+
+    it("should return 400 when session uses legacy SSE transport", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleStreamable(transport);
+
+      // Inject a non-StreamableHTTPServerTransport into the map
+      const { SSEServerTransport: SSEClass } =
+        await import("@modelcontextprotocol/sdk/server/sse.js");
+      const mockSSE = Object.create(SSEClass.prototype);
+      transport.getTransports().set("sse-session", mockSSE);
+
+      const req = createBodyRequest(
+        { jsonrpc: "2.0", id: 1, method: "tools/list" },
+        { headers: { "mcp-session-id": "sse-session" } },
+      );
+      const res = createMockResponse();
+
+      await handle(req, res);
+
+      expect(res._statusCode).toBe(400);
+      expect(res._body).toContain("different transport protocol");
+    });
+
+    it("should route to existing StreamableHTTP transport when session exists", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleStreamable(transport);
+
+      // Create a mock StreamableHTTPServerTransport
+      const { StreamableHTTPServerTransport: StreamClass } =
+        await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
+      const mockStreamable = Object.create(StreamClass.prototype);
+      mockStreamable.handleRequest = vi.fn().mockResolvedValue(undefined);
+      transport.getTransports().set("stream-session", mockStreamable);
+
+      const req = createBodyRequest(
+        { jsonrpc: "2.0", id: 1, method: "tools/list" },
+        { headers: { "mcp-session-id": "stream-session" } },
+      );
+      const res = createMockResponse();
+
+      await handle(req, res);
+
+      // Should delegate to the transport's handleRequest with the pre-parsed body
+      expect(mockStreamable.handleRequest).toHaveBeenCalledWith(
+        req,
+        res,
+        expect.objectContaining({ jsonrpc: "2.0", method: "tools/list" }),
+      );
+    });
+
+    it("should call onConnect and create transport for initialize request", async () => {
+      const onConnect = vi.fn().mockResolvedValue(undefined);
+      const transport = new HttpTransport({ port: 3000 }, onConnect);
+      const handle = getHandleStreamable(transport);
+
+      const initBody = {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "test", version: "1.0" },
+        },
+      };
+      const req = createBodyRequest(initBody);
+      const res = createMockResponse();
+
+      try {
+        await handle(req, res);
+      } catch {
+        // StreamableHTTPServerTransport.handleRequest may throw
+        // in unit test without full HTTP context
+      }
+
+      // onConnect should be called with the new transport
+      expect(onConnect).toHaveBeenCalled();
+    });
+
+    it("should delegate non-POST with valid streamable session to transport", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleStreamable(transport);
+
+      const { StreamableHTTPServerTransport: StreamClass } =
+        await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
+      const mockStreamable = Object.create(StreamClass.prototype);
+      mockStreamable.handleRequest = vi.fn().mockResolvedValue(undefined);
+      transport.getTransports().set("del-session", mockStreamable);
+
+      const req = createMockRequest({
+        method: "DELETE",
+        url: "/mcp",
+        headers: { "mcp-session-id": "del-session" },
+      });
+      const res = createMockResponse();
+
+      await handle(req, res);
+
+      expect(mockStreamable.handleRequest).toHaveBeenCalledWith(req, res);
+    });
+  });
+
+  // ==========================================================================
+  // stop — transport cleanup
+  // ==========================================================================
+  describe("stop", () => {
+    it("should close all active transports and clear the map", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const mockTransport1 = { close: vi.fn().mockResolvedValue(undefined) };
+      const mockTransport2 = { close: vi.fn().mockResolvedValue(undefined) };
+
+      transport
+        .getTransports()
+        .set("s1", mockTransport1 as unknown as SSEServerTransport);
+      transport
+        .getTransports()
+        .set("s2", mockTransport2 as unknown as SSEServerTransport);
+
+      expect(transport.getTransports().size).toBe(2);
+
+      await transport.stop();
+
+      expect(mockTransport1.close).toHaveBeenCalled();
+      expect(mockTransport2.close).toHaveBeenCalled();
+      expect(transport.getTransports().size).toBe(0);
+    });
+
+    it("should handle transport close errors gracefully", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const mockTransport = {
+        close: vi.fn().mockRejectedValue(new Error("close failed")),
+      };
+      transport
+        .getTransports()
+        .set("err-session", mockTransport as unknown as SSEServerTransport);
+
+      // Should not throw even if transport.close() rejects
+      await expect(transport.stop()).resolves.toBeUndefined();
+      expect(transport.getTransports().size).toBe(0);
+    });
+  });
+
+  // ==========================================================================
+  // Legacy /messages — wrong transport type
+  // ==========================================================================
+  describe("handleLegacyMessageRequest — cross-protocol", () => {
+    it("should return 400 when session uses StreamableHTTP transport", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+
+      // Inject a StreamableHTTPServerTransport into the map
+      const { StreamableHTTPServerTransport: StreamClass } =
+        await import("@modelcontextprotocol/sdk/server/streamableHttp.js");
+      const mockStreamable = Object.create(StreamClass.prototype);
+      transport.getTransports().set("stream-session", mockStreamable);
+
+      const req = createMockRequest({
+        method: "POST",
+        url: "/messages?sessionId=stream-session",
+      });
+      const res = createMockResponse();
+      const url = new URL(
+        "http://localhost:3000/messages?sessionId=stream-session",
+      );
+
+      const handleLegacyMessageRequest = (
+        transport as unknown as {
+          handleLegacyMessageRequest: (
+            req: IncomingMessage,
+            res: ServerResponse,
+            url: URL,
+          ) => Promise<void>;
+        }
+      ).handleLegacyMessageRequest.bind(transport);
+
+      await handleLegacyMessageRequest(req, res, url);
+
+      expect(res._statusCode).toBe(400);
+      expect(res._body).toContain("different transport protocol");
+    });
+  });
+
+  // ==========================================================================
+  // Dispatch routing — /mcp and /messages paths
+  // ==========================================================================
+  describe("Dispatch routing", () => {
+    function getHandleRequest(transport: HttpTransport) {
+      return (
+        transport as unknown as {
+          handleRequest: (
+            req: IncomingMessage,
+            res: ServerResponse,
+          ) => Promise<void>;
+        }
+      ).handleRequest.bind(transport);
+    }
+
+    it("should route POST /mcp to streamable handler", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleRequest(transport);
+
+      // POST /mcp without session ID and non-initialize body should get 400
+      // (proves it reached the streamable handler, not 404)
+      const { EventEmitter } = require("node:events");
+      const emitter = new EventEmitter();
+      Object.assign(emitter, {
+        method: "POST",
+        url: "/mcp",
+        headers: {
+          host: "localhost:3000",
+          "content-type": "application/json",
+          "content-length": "2",
+        },
+        socket: { remoteAddress: "127.0.0.1" },
+      });
+      process.nextTick(() => {
+        emitter.emit("data", Buffer.from("{}"));
+        emitter.emit("end");
+      });
+
+      const res = createMockResponse();
+      await handle(emitter as unknown as IncomingMessage, res);
+
+      // Should reach the streamable handler (400 = "No valid session ID")
+      // and NOT return 404
+      expect(res._statusCode).toBe(400);
+      expect(res._body).toContain("No valid session ID");
+    });
+
+    it("should route POST /messages to legacy handler", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleRequest(transport);
+
+      const req = createMockRequest({
+        method: "POST",
+        url: "/messages",
+        headers: { host: "localhost:3000" },
+      });
+      const res = createMockResponse();
+
+      await handle(req, res);
+
+      // Should reach the legacy handler (400 = "Missing sessionId")
+      expect(res._statusCode).toBe(400);
+      expect(res._body).toContain("Missing sessionId");
+    });
+
+    it("should return 404 for unknown paths", async () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const handle = getHandleRequest(transport);
+
+      const req = createMockRequest({
+        method: "GET",
+        url: "/unknown-path",
+        headers: { host: "localhost:3000" },
+      });
+      const res = createMockResponse();
+
+      await handle(req, res);
+
+      expect(res._statusCode).toBe(404);
+      expect(res._body).toContain("Not found");
     });
   });
 });

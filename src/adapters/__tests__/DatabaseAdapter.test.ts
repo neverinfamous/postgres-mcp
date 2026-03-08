@@ -633,7 +633,7 @@ describe("DatabaseAdapter", () => {
   describe("registerPrompts", () => {
     it("should register all prompts", () => {
       const mockServer = {
-        prompt: vi.fn(),
+        registerPrompt: vi.fn(),
       };
 
       const prompts: PromptDefinition[] = [
@@ -646,14 +646,14 @@ describe("DatabaseAdapter", () => {
         mockServer as unknown as Parameters<typeof adapter.registerPrompts>[0],
       );
 
-      expect(mockServer.prompt).toHaveBeenCalledTimes(2);
+      expect(mockServer.registerPrompt).toHaveBeenCalledTimes(2);
     });
   });
 
   describe("registerPrompt", () => {
     it("should register prompt with correct name and description", () => {
       const mockServer = {
-        prompt: vi.fn(),
+        registerPrompt: vi.fn(),
       };
 
       const prompt: PromptDefinition = {
@@ -664,17 +664,16 @@ describe("DatabaseAdapter", () => {
 
       adapter.testRegisterPrompt(mockServer, prompt);
 
-      expect(mockServer.prompt).toHaveBeenCalledWith(
+      expect(mockServer.registerPrompt).toHaveBeenCalledWith(
         "test_prompt",
-        "A test prompt",
-        expect.anything(),
+        expect.objectContaining({ description: "A test prompt" }),
         expect.any(Function),
       );
     });
 
     it("should build Zod schema from prompt arguments", () => {
       const mockServer = {
-        prompt: vi.fn(),
+        registerPrompt: vi.fn(),
       };
 
       const prompt: PromptDefinition = {
@@ -689,17 +688,18 @@ describe("DatabaseAdapter", () => {
 
       adapter.testRegisterPrompt(mockServer, prompt);
 
-      const zodShape = mockServer.prompt.mock.calls[0]?.[2] as Record<
+      const options = mockServer.registerPrompt.mock.calls[0]?.[1] as Record<
         string,
         unknown
       >;
+      const zodShape = options["argsSchema"] as Record<string, unknown>;
       expect(zodShape).toHaveProperty("tableName");
       expect(zodShape).toHaveProperty("limit");
     });
 
     it("should invoke prompt handler and return result as message", async () => {
       const mockServer = {
-        prompt: vi.fn(),
+        registerPrompt: vi.fn(),
       };
 
       const mockHandler = vi
@@ -714,10 +714,9 @@ describe("DatabaseAdapter", () => {
 
       adapter.testRegisterPrompt(mockServer, prompt);
 
-      // Get the handler that was passed to server.prompt
-      const registeredHandler = mockServer.prompt.mock.calls[0]?.[3] as (
-        args: Record<string, string>,
-      ) => Promise<unknown>;
+      // Get the handler that was passed to server.registerPrompt
+      const registeredHandler = mockServer.registerPrompt.mock
+        .calls[0]?.[2] as (args: Record<string, string>) => Promise<unknown>;
       const result = await registeredHandler({ arg1: "value1" });
 
       expect(mockHandler).toHaveBeenCalled();
@@ -726,7 +725,7 @@ describe("DatabaseAdapter", () => {
 
     it("should invoke prompt handler returning string result", async () => {
       const mockServer = {
-        prompt: vi.fn(),
+        registerPrompt: vi.fn(),
       };
 
       const mockHandler = vi.fn().mockResolvedValue("plain string result");
@@ -738,9 +737,8 @@ describe("DatabaseAdapter", () => {
 
       adapter.testRegisterPrompt(mockServer, prompt);
 
-      const registeredHandler = mockServer.prompt.mock.calls[0]?.[3] as (
-        args: Record<string, string>,
-      ) => Promise<unknown>;
+      const registeredHandler = mockServer.registerPrompt.mock
+        .calls[0]?.[2] as (args: Record<string, string>) => Promise<unknown>;
       const result = await registeredHandler({});
 
       expect(result).toHaveProperty("messages");

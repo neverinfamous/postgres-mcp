@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getTextTools } from "../text.js";
+import { getTextTools } from "../text/index.js";
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import {
   createMockPostgresAdapter,
@@ -1656,5 +1656,434 @@ describe("text.ts branch coverage", () => {
       mockContext,
     )) as Record<string, unknown>;
     expect(result.truncated).toBe(true);
+  });
+});
+
+// =============================================================================
+// Text Tools - uncovered error paths
+// =============================================================================
+
+describe("text tools uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getTextTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getTextTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  // search.ts L61-66: pg_text_search missing both column and columns
+  it("should return error for pg_text_search without column or columns", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_search")!;
+    const result = (await tool.handler(
+      { table: "users", query: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // search.ts L71-76: pg_text_search missing table
+  it("should return error for pg_text_search without table or tableName", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_search")!;
+    const result = (await tool.handler(
+      { column: "name", query: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  // search.ts L128-133: pg_text_search DB error
+  it("should return structured error for pg_text_search DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("relation does not exist"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_text_search")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "name", query: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // search.ts L191-196: pg_text_rank missing column/columns
+  it("should return error for pg_text_rank without column or columns", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_rank")!;
+    const result = (await tool.handler(
+      { table: "users", query: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // search.ts L200-205: pg_text_rank missing table
+  it("should return error for pg_text_rank without table", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_rank")!;
+    const result = (await tool.handler(
+      { column: "name", query: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  // search.ts L257-263: pg_text_rank DB error
+  it("should return structured error for pg_text_rank DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("relation does not exist"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_text_rank")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "name", query: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // search.ts L359-364: pg_text_headline missing table
+  it("should return error for pg_text_headline without table", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_headline")!;
+    const result = (await tool.handler(
+      { column: "content", query: "match" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  // search.ts L366-371: pg_text_headline missing column or query
+  it("should return error for pg_text_headline without column", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_headline")!;
+    const result = (await tool.handler(
+      { table: "articles", query: "match" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // search.ts L413-418: pg_text_headline ZodError
+  it("should return structured error for pg_text_headline DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("relation does not exist"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_text_headline")!;
+    const result = (await tool.handler(
+      { table: "articles", column: "content", query: "match" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // search.ts L466-471: pg_create_fts_index missing table
+  it("should return error for pg_create_fts_index without table", async () => {
+    const tool = tools.find((t) => t.name === "pg_create_fts_index")!;
+    const result = (await tool.handler({ column: "name" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  // search.ts L472-477: pg_create_fts_index missing column
+  it("should return error for pg_create_fts_index without column", async () => {
+    const tool = tools.find((t) => t.name === "pg_create_fts_index")!;
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // search.ts L508-521: pg_create_fts_index DB error
+  it("should return structured error for pg_create_fts_index DB failure", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] }) // index doesn't exist
+      .mockRejectedValueOnce(new Error("permission denied"));
+
+    const tool = tools.find((t) => t.name === "pg_create_fts_index")!;
+    const result = (await tool.handler(
+      { table: "users", column: "name" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("permission denied");
+  });
+
+  // search.ts L563-569: pg_text_normalize ZodError/DB error
+  it("should return structured error for pg_text_normalize failure", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_normalize")!;
+    const result = (await tool.handler(
+      {}, // missing text
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // search.ts L623-629: pg_text_to_vector ZodError
+  it("should return structured error for pg_text_to_vector validation failure", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_to_vector")!;
+    const result = (await tool.handler(
+      {}, // missing text
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // search.ts L708-714: pg_text_to_query ZodError
+  it("should return structured error for pg_text_to_query validation failure", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_to_query")!;
+    const result = (await tool.handler(
+      {}, // missing text
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // search.ts L757: pg_text_search_config DB error
+  it("should return structured error for pg_text_search_config DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_text_search_config")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("permission denied");
+  });
+});
+
+// =============================================================================
+// text/matching.ts - uncovered error paths
+// =============================================================================
+
+describe("text matching uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getTextTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getTextTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  // matching.ts L83-88: trigram_similarity missing table
+  it("should return error for pg_trigram_similarity without table", async () => {
+    const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      { column: "name", value: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  // matching.ts L90-94: trigram_similarity missing column/value
+  it("should return error for pg_trigram_similarity without column/value", async () => {
+    const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      { table: "users", value: "test" }, // missing column
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // matching.ts L123-128: trigram_similarity ZodError
+  it("should return structured error for pg_trigram_similarity ZodError", async () => {
+    const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
+    // Pass something that makes the preprocess schema reject
+    const result = (await tool.handler(null, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // matching.ts L130-135: trigram_similarity DB error
+  it("should return structured error for pg_trigram_similarity DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("extension not found"),
+    );
+    const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
+    const result = (await tool.handler(
+      { table: "users", column: "name", value: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // matching.ts L232-237: fuzzy_match missing table
+  it("should return error for pg_fuzzy_match without table", async () => {
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    const result = (await tool.handler(
+      { column: "name", value: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  // matching.ts L240-244: fuzzy_match missing column/value
+  it("should return error for pg_fuzzy_match without column/value", async () => {
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    const result = (await tool.handler(
+      { table: "users" }, // missing column and value
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // matching.ts L278-282: fuzzy_match ZodError
+  it("should return structured error for pg_fuzzy_match ZodError", async () => {
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    const result = (await tool.handler(null, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // matching.ts L284-289: fuzzy_match DB error
+  it("should return structured error for pg_fuzzy_match DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("extension not found"),
+    );
+    const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
+    const result = (await tool.handler(
+      { table: "users", column: "name", value: "test" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // matching.ts L316-320: regexp_match missing table
+  it("should return error for pg_regexp_match without table", async () => {
+    const tool = tools.find((t) => t.name === "pg_regexp_match")!;
+    const result = (await tool.handler(
+      { column: "name", pattern: "test.*" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  // matching.ts L323-327: regexp_match missing column/pattern
+  it("should return error for pg_regexp_match without column/pattern", async () => {
+    const tool = tools.find((t) => t.name === "pg_regexp_match")!;
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // matching.ts L370-374: regexp_match ZodError
+  it("should return structured error for pg_regexp_match ZodError", async () => {
+    const tool = tools.find((t) => t.name === "pg_regexp_match")!;
+    const result = (await tool.handler(null, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // matching.ts L432-436: like_search missing table
+  it("should return error for pg_like_search without table", async () => {
+    const tool = tools.find((t) => t.name === "pg_like_search")!;
+    const result = (await tool.handler(
+      { column: "name", pattern: "%test%" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+
+  // matching.ts L439-443: like_search missing column/pattern
+  it("should return error for pg_like_search without column/pattern", async () => {
+    const tool = tools.find((t) => t.name === "pg_like_search")!;
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("column");
+  });
+
+  // matching.ts L486-490: like_search ZodError
+  it("should return structured error for pg_like_search ZodError", async () => {
+    const tool = tools.find((t) => t.name === "pg_like_search")!;
+    const result = (await tool.handler(null, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // matching.ts L642-648: sentiment ZodError (missing text)
+  it("should return structured error for pg_text_sentiment validation failure", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_sentiment")!;
+    const result = (await tool.handler(
+      {}, // missing text
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // matching.ts L648-652: sentiment general error
+  it("should return error for pg_text_sentiment non-Zod error", async () => {
+    const tool = tools.find((t) => t.name === "pg_text_sentiment")!;
+    const result = (await tool.handler(
+      { text: null }, // triggers error in handler
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 });

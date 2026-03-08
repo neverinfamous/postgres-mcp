@@ -31,7 +31,7 @@ import {
   createAnalyzeWorkloadIndexesTool,
   createAnalyzeQueryIndexesTool,
 } from "./health.js";
-import { getConvenienceTools } from "./convenience.js";
+import { getConvenienceTools } from "./utility.js";
 
 // Re-export schemas from core tools (moved to schemas dir)
 export {
@@ -43,13 +43,8 @@ export {
   AnalyzeQueryIndexesSchema,
   AnalyzeQueryIndexesSchemaBase,
 } from "./schemas.js";
-export {
-  UpsertSchema,
-  BatchInsertSchema,
-  CountSchema,
-  ExistsSchema,
-  TruncateSchema,
-} from "./convenience.js";
+export { UpsertSchema, BatchInsertSchema } from "./convenience.js";
+export { CountSchema, ExistsSchema, TruncateSchema } from "./utility.js";
 
 /**
  * Get all core database tools

@@ -69,76 +69,61 @@ export function preprocessTextParams(input: unknown): unknown {
 // Base Schemas (for MCP inputSchema visibility - no preprocess)
 // =============================================================================
 
-export const TextSearchSchemaBase = z
-  .object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    columns: z
-      .array(z.string())
-      .optional()
-      .describe("Text columns to search (array)"),
-    column: z
-      .string()
-      .optional()
-      .describe("Text column to search (singular, alias for columns)"),
-    query: z.string().describe("Search query"),
-    config: z
-      .string()
-      .optional()
-      .describe("Text search config (default: english)"),
-    select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z.number().optional().describe("Max results"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  })
-  .refine((data) => data.table !== undefined || data.tableName !== undefined, {
-    message: "Either 'table' or 'tableName' is required",
-  })
-  .refine((data) => data.columns !== undefined || data.column !== undefined, {
-    message: "Either 'columns' (array) or 'column' (string) is required",
-  });
+export const TextSearchSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  columns: z
+    .array(z.string())
+    .optional()
+    .describe("Text columns to search (array)"),
+  column: z
+    .string()
+    .optional()
+    .describe("Text column to search (singular, alias for columns)"),
+  query: z.string().optional().describe("Search query"),
+  config: z
+    .string()
+    .optional()
+    .describe("Text search config (default: english)"),
+  select: z.array(z.string()).optional().describe("Columns to return"),
+  limit: z.any().optional().describe("Max results"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
 
-export const TrigramSimilaritySchemaBase = z
-  .object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().describe("Column to compare"),
-    value: z.string().describe("Value to compare against"),
-    threshold: z
-      .number()
-      .optional()
-      .describe(
-        "Similarity threshold (0-1, default 0.3; use 0.1-0.2 for partial matches)",
-      ),
-    select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Max results (default: 100 to prevent large payloads)"),
-    where: z.string().optional().describe("Additional WHERE clause filter"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  })
-  .refine((data) => data.table !== undefined || data.tableName !== undefined, {
-    message: "Either 'table' or 'tableName' is required",
-  });
+export const TrigramSimilaritySchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional().describe("Column to compare"),
+  value: z.string().optional().describe("Value to compare against"),
+  threshold: z
+    .any()
+    .optional()
+    .describe(
+      "Similarity threshold (0-1, default 0.3; use 0.1-0.2 for partial matches)",
+    ),
+  select: z.array(z.string()).optional().describe("Columns to return"),
+  limit: z
+    .any()
+    .optional()
+    .describe("Max results (default: 100 to prevent large payloads)"),
+  where: z.string().optional().describe("Additional WHERE clause filter"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
 
-export const RegexpMatchSchemaBase = z
-  .object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().describe("Column to match"),
-    pattern: z.string().describe("POSIX regex pattern"),
-    flags: z.string().optional().describe("Regex flags (i, g, etc.)"),
-    select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Max results (default: 100 to prevent large payloads)"),
-    where: z.string().optional().describe("Additional WHERE clause filter"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  })
-  .refine((data) => data.table !== undefined || data.tableName !== undefined, {
-    message: "Either 'table' or 'tableName' is required",
-  });
+export const RegexpMatchSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Table name (alias for table)"),
+  column: z.string().optional().describe("Column to match"),
+  pattern: z.string().optional().describe("POSIX regex pattern"),
+  flags: z.string().optional().describe("Regex flags (i, g, etc.)"),
+  select: z.array(z.string()).optional().describe("Columns to return"),
+  limit: z
+    .any()
+    .optional()
+    .describe("Max results (default: 100 to prevent large payloads)"),
+  where: z.string().optional().describe("Additional WHERE clause filter"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
 
 // =============================================================================
 // Full Schemas (with preprocess - for handler parsing)

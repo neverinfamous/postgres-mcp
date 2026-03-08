@@ -73,12 +73,12 @@ export function createSeqScanTablesTool(
 ): ToolDefinition {
   const SeqScanTablesSchemaBase = z.object({
     minScans: z
-      .number()
+      .any()
       .optional()
       .describe("Minimum seq scans to include (default: 10)"),
     schema: z.string().optional().describe("Schema to filter"),
     limit: z
-      .number()
+      .any()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
   });
@@ -98,27 +98,42 @@ export function createSeqScanTablesTool(
     annotations: readOnly("Sequential Scan Tables"),
     icons: getToolIcons("performance", readOnly("Sequential Scan Tables")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = SeqScanTablesSchema.parse(params);
-      const minScans = parsed.minScans ?? 10; // Default to 10 for better testing visibility
-      const limit = parsed.limit === 0 ? null : (parsed.limit ?? 50);
+      try {
+        const parsed = SeqScanTablesSchema.parse(params);
+        const rawMinScans = Number(parsed.minScans);
+        const minScans =
+          parsed.minScans === undefined
+            ? 10
+            : isNaN(rawMinScans)
+              ? 10
+              : rawMinScans;
+        const rawLimit = Number(parsed.limit);
+        const limit =
+          parsed.limit === undefined
+            ? 50
+            : isNaN(rawLimit)
+              ? 50
+              : rawLimit === 0
+                ? null
+                : rawLimit;
 
-      let whereClause = `seq_scan > ${String(minScans)}`;
-      const queryParams: string[] = [];
-      if (parsed.schema !== undefined) {
-        queryParams.push(parsed.schema);
-        whereClause += ` AND schemaname = $${String(queryParams.length)}`;
-      }
+        let whereClause = `seq_scan > ${String(minScans)}`;
+        const queryParams: string[] = [];
+        if (parsed.schema !== undefined) {
+          queryParams.push(parsed.schema);
+          whereClause += ` AND schemaname = $${String(queryParams.length)}`;
+        }
 
-      // P154: Validate schema existence when filtering by schema
-      const schemaError = await validatePerformanceSchemaExists(
-        adapter,
-        parsed.schema,
-      );
-      if (schemaError !== null) {
-        return { success: false, error: schemaError };
-      }
+        // P154: Validate schema existence when filtering by schema
+        const schemaError = await validatePerformanceSchemaExists(
+          adapter,
+          parsed.schema,
+        );
+        if (schemaError !== null) {
+          return { success: false, error: schemaError };
+        }
 
-      const sql = `SELECT schemaname, relname as table_name,
+        const sql = `SELECT schemaname, relname as table_name,
                         seq_scan, seq_tup_read,
                         idx_scan, idx_tup_fetch,
                         CASE WHEN idx_scan > 0 THEN round((100.0 * seq_scan / (seq_scan + idx_scan))::numeric, 2) ELSE 100 END as seq_scan_pct
@@ -127,34 +142,40 @@ export function createSeqScanTablesTool(
                         ORDER BY seq_scan DESC
                         ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
-      const result = await adapter.executeQuery(sql, queryParams);
-      // Coerce numeric fields to JavaScript numbers
-      const tables = (result.rows ?? []).map(
-        (row: Record<string, unknown>) => ({
-          ...row,
-          seq_scan: toNum(row["seq_scan"]),
-          seq_tup_read: toNum(row["seq_tup_read"]),
-          idx_scan: toNum(row["idx_scan"]),
-          idx_tup_fetch: toNum(row["idx_tup_fetch"]),
-          seq_scan_pct: toNum(row["seq_scan_pct"]),
-        }),
-      );
+        const result = await adapter.executeQuery(sql, queryParams);
+        // Coerce numeric fields to JavaScript numbers
+        const tables = (result.rows ?? []).map(
+          (row: Record<string, unknown>) => ({
+            ...row,
+            seq_scan: toNum(row["seq_scan"]),
+            seq_tup_read: toNum(row["seq_tup_read"]),
+            idx_scan: toNum(row["idx_scan"]),
+            idx_tup_fetch: toNum(row["idx_tup_fetch"]),
+            seq_scan_pct: toNum(row["seq_scan_pct"]),
+          }),
+        );
 
-      const response: Record<string, unknown> = {
-        tables,
-        count: tables.length,
-        minScans,
-        hint: "High seq_scan_pct indicates tables that could benefit from indexes.",
-      };
+        const response: Record<string, unknown> = {
+          tables,
+          count: tables.length,
+          minScans,
+          hint: "High seq_scan_pct indicates tables that could benefit from indexes.",
+        };
 
-      // Add totalCount if results were limited
-      if (limit !== null && tables.length === limit) {
-        const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_tables WHERE ${whereClause}`;
-        const countResult = await adapter.executeQuery(countSql, queryParams);
-        response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
-        response["truncated"] = true;
+        // Add totalCount if results were limited
+        if (limit !== null && tables.length === limit) {
+          const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_tables WHERE ${whereClause}`;
+          const countResult = await adapter.executeQuery(countSql, queryParams);
+          response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
+          response["truncated"] = true;
+        }
+        return response;
+      } catch (error: unknown) {
+        return {
+          success: false as const,
+          error: formatPostgresError(error, { tool: "pg_seq_scan_tables" }),
+        };
       }
-      return response;
     },
   };
 }
@@ -512,8 +533,8 @@ export function createQueryPlanCompareTool(
 ): ToolDefinition {
   // Base schema for MCP visibility (no preprocess)
   const QueryPlanCompareSchemaBase = z.object({
-    query1: z.string().describe("First SQL query"),
-    query2: z.string().describe("Second SQL query"),
+    query1: z.string().optional().describe("First SQL query"),
+    query2: z.string().optional().describe("Second SQL query"),
     params1: z
       .array(z.unknown())
       .optional()
@@ -555,6 +576,16 @@ export function createQueryPlanCompareTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = QueryPlanCompareSchema.parse(params);
+
+        // Validate required parameters
+        if (!parsed.query1 || !parsed.query2) {
+          return {
+            success: false as const,
+            error:
+              "Missing required parameters: both query1 and query2 are required",
+          };
+        }
+
         const explainType =
           parsed.analyze === true
             ? "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)"

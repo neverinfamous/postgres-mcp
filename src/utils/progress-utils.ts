@@ -5,7 +5,7 @@
  * Follows MCP 2025-11-25 specification for notifications/progress.
  */
 
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestContext } from "../types/index.js";
 
 /** Progress token from client request _meta */
@@ -14,8 +14,7 @@ export type ProgressToken = string | number;
 /** Context required to send progress notifications */
 export interface ProgressContext {
   /** MCP Server instance for sending notifications */
-  // eslint-disable-next-line @typescript-eslint/no-deprecated -- Server class is required for sendLoggingMessage(); no non-deprecated alternative exists in SDK
-  server: Server;
+  server: McpServer;
   /** Progress token from request _meta (if client requested progress) */
   progressToken?: ProgressToken;
 }
@@ -31,8 +30,7 @@ export function buildProgressContext(
     return undefined;
   }
   return {
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Server class is required for progress notifications; no non-deprecated alternative exists in SDK
-    server: ctx.server as Server,
+    server: ctx.server as McpServer,
     progressToken: ctx.progressToken,
   };
 }
@@ -70,8 +68,8 @@ export async function sendProgress(
       },
     };
 
-    // Send via server's notification method
-    await ctx.server.notification(notification);
+    // Send via server's internal notification method
+    await ctx.server.server.notification(notification);
   } catch {
     // Non-critical: progress notifications are best-effort
     // Don't let notification failures break the operation

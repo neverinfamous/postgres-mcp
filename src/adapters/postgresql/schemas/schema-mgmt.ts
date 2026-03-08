@@ -6,17 +6,34 @@
 
 import { z } from "zod";
 
-export const CreateSchemaSchema = z.object({
-  name: z.string().describe("Schema name"),
+// Base schema for MCP visibility — name is optional so MCP framework
+// doesn't reject {} calls; handler validates via the full schema.
+export const CreateSchemaSchemaBase = z.object({
+  name: z.string().optional().describe("Schema name"),
   authorization: z.string().optional().describe("Owner role"),
   ifNotExists: z.boolean().optional().describe("Use IF NOT EXISTS"),
 });
 
-export const DropSchemaSchema = z.object({
-  name: z.string().describe("Schema name"),
+// Full schema parsed inside the handler
+export const CreateSchemaSchema = z
+  .preprocess((val: unknown) => val ?? {}, CreateSchemaSchemaBase)
+  .refine((data) => typeof data.name === "string" && data.name.length > 0, {
+    message: "name is required",
+  });
+
+// Base schema for MCP visibility — name is optional
+export const DropSchemaSchemaBase = z.object({
+  name: z.string().optional().describe("Schema name"),
   cascade: z.boolean().optional().describe("Drop objects in schema"),
   ifExists: z.boolean().optional().describe("Use IF EXISTS"),
 });
+
+// Full schema parsed inside the handler
+export const DropSchemaSchema = z
+  .preprocess((val: unknown) => val ?? {}, DropSchemaSchemaBase)
+  .refine((data) => typeof data.name === "string" && data.name.length > 0, {
+    message: "name is required",
+  });
 
 // Base schema for MCP visibility (shows both name and sequenceName)
 // Exported so MCP Direct Tool Calls can show parameter schema
@@ -24,12 +41,12 @@ export const CreateSequenceSchemaBase = z.object({
   name: z.string().optional().describe("Sequence name"),
   sequenceName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
-  start: z.number().optional().describe("Start value"),
-  increment: z.number().optional().describe("Increment by (default: 1)"),
-  minValue: z.number().optional().describe("Minimum value"),
-  maxValue: z.number().optional().describe("Maximum value"),
+  start: z.any().optional().describe("Start value"),
+  increment: z.any().optional().describe("Increment by (default: 1)"),
+  minValue: z.any().optional().describe("Minimum value"),
+  maxValue: z.any().optional().describe("Maximum value"),
   cache: z
-    .number()
+    .any()
     .optional()
     .describe("Number of sequence values to pre-allocate (default: 1)"),
   cycle: z
@@ -73,16 +90,25 @@ function preprocessCreateSequenceParams(input: unknown): unknown {
 }
 
 // Transformed schema with alias resolution and schema.name preprocessing
+/**
+ * Safely coerce an optional numeric param: returns a finite number or undefined.
+ */
+function safeCoerceNumber(val: unknown): number | undefined {
+  if (val === undefined || val === null) return undefined;
+  const n = Number(val);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 export const CreateSequenceSchema = z.preprocess(
   preprocessCreateSequenceParams,
   CreateSequenceSchemaBase.transform((data) => ({
     name: data.name ?? data.sequenceName ?? "",
     schema: data.schema,
-    start: data.start,
-    increment: data.increment,
-    minValue: data.minValue,
-    maxValue: data.maxValue,
-    cache: data.cache,
+    start: safeCoerceNumber(data.start),
+    increment: safeCoerceNumber(data.increment),
+    minValue: safeCoerceNumber(data.minValue),
+    maxValue: safeCoerceNumber(data.maxValue),
+    cache: safeCoerceNumber(data.cache),
     cycle: data.cycle,
     ownedBy: data.ownedBy,
     ifNotExists: data.ifNotExists,
@@ -164,7 +190,10 @@ export const CreateViewSchema = z
  * Base schema for dropping sequences - used for MCP inputSchema visibility.
  */
 export const DropSequenceSchemaBase = z.object({
-  name: z.string().describe("Sequence name (supports schema.name format)"),
+  name: z
+    .string()
+    .optional()
+    .describe("Sequence name (supports schema.name format)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   ifExists: z.boolean().optional().describe("Use IF EXISTS to avoid errors"),
   cascade: z.boolean().optional().describe("Drop dependent objects"),
@@ -196,16 +225,20 @@ function preprocessDropSequenceParams(input: unknown): unknown {
 /**
  * Full schema with preprocessing for alias support.
  */
-export const DropSequenceSchema = z.preprocess(
-  preprocessDropSequenceParams,
-  DropSequenceSchemaBase,
-);
+export const DropSequenceSchema = z
+  .preprocess(preprocessDropSequenceParams, DropSequenceSchemaBase)
+  .refine((data) => typeof data.name === "string" && data.name.length > 0, {
+    message: "name is required",
+  });
 
 /**
  * Base schema for dropping views - used for MCP inputSchema visibility.
  */
 export const DropViewSchemaBase = z.object({
-  name: z.string().describe("View name (supports schema.name format)"),
+  name: z
+    .string()
+    .optional()
+    .describe("View name (supports schema.name format)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   materialized: z
     .boolean()
@@ -241,10 +274,11 @@ function preprocessDropViewParams(input: unknown): unknown {
 /**
  * Full schema with preprocessing for alias support.
  */
-export const DropViewSchema = z.preprocess(
-  preprocessDropViewParams,
-  DropViewSchemaBase,
-);
+export const DropViewSchema = z
+  .preprocess(preprocessDropViewParams, DropViewSchemaBase)
+  .refine((data) => typeof data.name === "string" && data.name.length > 0, {
+    message: "name is required",
+  });
 
 // =============================================================================
 // List Functions Schema - Split Schema pattern for MCP visibility
@@ -267,7 +301,7 @@ export const ListFunctionsSchemaBase = z.object({
     .optional()
     .describe('Filter by language (e.g., "plpgsql", "sql", "c")'),
   limit: z
-    .number()
+    .any()
     .optional()
     .describe(
       "Max results (default: 500). Increase for databases with many extensions.",

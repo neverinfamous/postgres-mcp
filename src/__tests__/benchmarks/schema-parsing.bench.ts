@@ -21,7 +21,7 @@ import {
   CreateIndexSchema,
   BeginTransactionSchema,
   TransactionExecuteSchema,
-} from "../../adapters/postgresql/schemas/core.js";
+} from "../../adapters/postgresql/schemas/core/index.js";
 
 // Suppress logger output
 vi.mock("../../utils/logger.js", () => ({

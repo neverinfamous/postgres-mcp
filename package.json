@@ -1,6 +1,6 @@
 {
   "name": "@neverinfamous/postgres-mcp",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "mcpName": "io.github.neverinfamous/postgres-mcp",
   "description": "PostgreSQL MCP server with connection pooling, tool filtering, and full extension support",
   "type": "module",
@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
     "bench": "vitest bench --run",
     "bench:verbose": "vitest bench --run --reporter=verbose",
     "check": "npm run lint && npm run typecheck",
@@ -51,11 +52,12 @@
     "@modelcontextprotocol/sdk": "^1.27.1",
     "commander": "^14.0.3",
     "jose": "^6.0.0",
-    "pg": "^8.19.0",
+    "pg": "^8.20.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^25.3.3",
     "@types/pg": "^8.18.0",
     "@vitest/coverage-v8": "^4.0.18",
@@ -67,6 +69,6 @@
   },
   "overrides": {
     "minimatch": ">=10.2.3",
-    "tar": ">=7.5.8"
+    "tar": ">=7.5.10"
   }
 }

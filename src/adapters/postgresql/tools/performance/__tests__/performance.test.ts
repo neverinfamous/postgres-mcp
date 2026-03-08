@@ -3351,3 +3351,151 @@ describe("P154 pre-checks", () => {
     expect(result.error).toContain("fake_schema");
   });
 });
+
+// =============================================================================
+// Wrong-type numeric param tests — limit: "abc" falls back to default
+// =============================================================================
+
+describe("wrong-type limit param fallback", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_table_stats should fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_table_stats")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      tables: unknown[];
+    };
+
+    expect(result).toBeDefined();
+    expect(result.tables).toBeDefined();
+  });
+
+  it("pg_index_stats should fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_index_stats")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      indexes: unknown[];
+    };
+
+    expect(result).toBeDefined();
+    expect(result.indexes).toBeDefined();
+  });
+
+  it("pg_stat_statements should fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_stat_statements")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      statements: unknown[];
+    };
+
+    expect(result).toBeDefined();
+  });
+
+  it("pg_unused_indexes should fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_unused_indexes")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      indexes: unknown[];
+    };
+
+    expect(result).toBeDefined();
+  });
+
+  it("pg_duplicate_indexes should fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_duplicate_indexes")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      duplicates: unknown[];
+    };
+
+    expect(result).toBeDefined();
+  });
+
+  it("pg_vacuum_stats should fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      tables: unknown[];
+    };
+
+    expect(result).toBeDefined();
+    expect(result.tables).toBeDefined();
+  });
+
+  it("pg_seq_scan_tables should fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_seq_scan_tables")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      tables: unknown[];
+    };
+
+    expect(result).toBeDefined();
+  });
+
+  it("pg_query_plan_stats should fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_query_plan_stats")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      queryPlanStats: unknown[];
+    };
+
+    expect(result).toBeDefined();
+  });
+});
+
+// =============================================================================
+// Empty params validation — structured error responses
+// =============================================================================
+
+describe("empty params structured errors", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_query_plan_compare should return structured error for empty params", async () => {
+    const tool = tools.find((t) => t.name === "pg_query_plan_compare")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("query1");
+    expect(result.error).toContain("query2");
+  });
+
+  it("pg_partition_strategy_suggest should return structured error for empty params", async () => {
+    const tool = tools.find((t) => t.name === "pg_partition_strategy_suggest")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table");
+  });
+});

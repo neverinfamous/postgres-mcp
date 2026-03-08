@@ -12,7 +12,6 @@ import { PostgresMcpServer } from "./server/McpServer.js";
 import { parseToolFilter, getFilterSummary } from "./filtering/ToolFilter.js";
 import { logger } from "./utils/logger.js";
 import { HttpTransport, type HttpTransportConfig } from "./transports/http.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   OAuthResourceServer,
   TokenValidator,
@@ -25,7 +24,7 @@ import type {
   TransportType,
 } from "./types/index.js";
 
-const VERSION = "0.1.0";
+import { VERSION } from "./utils/version.js";
 
 interface CliOptions {
   postgres?: string;
@@ -375,6 +374,9 @@ async function startHttpServer(
     toolFilter,
   });
 
+  // ALWAYS register components (tools, resources, prompts) regardless of transport
+  mcpServer.registerComponents();
+
   // Build HTTP transport config
   const transportConfig: HttpTransportConfig = {
     port,
@@ -385,10 +387,17 @@ async function startHttpServer(
   if (tokenValidator) transportConfig.tokenValidator = tokenValidator;
 
   // Create HTTP transport with OAuth
-  const httpTransport = new HttpTransport(transportConfig, (transport) => {
-    // Connect MCP server to the transport when client connects
-    void mcpServer.getMcpServer().connect(transport as Transport);
-  });
+  const httpTransport = new HttpTransport(
+    transportConfig,
+    async (transport) => {
+      const server = mcpServer.getMcpServer();
+      // Close any existing transport before connecting (SDK throws if already connected)
+      if (server.isConnected()) {
+        await server.close();
+      }
+      await server.connect(transport);
+    },
+  );
 
   // Handle shutdown
   const shutdown = (): void => {

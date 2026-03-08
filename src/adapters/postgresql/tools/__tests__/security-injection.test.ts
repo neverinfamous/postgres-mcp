@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getTextTools } from "../text.js";
+import { getTextTools } from "../text/index.js";
 import { getVectorTools } from "../vector/index.js";
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import {
@@ -434,17 +434,17 @@ describe("Vector Tools WHERE Clause Injection", () => {
         .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] }); // type check
 
       const tool = vectorTools.find((t) => t.name === "pg_vector_search")!;
-      await expect(
-        tool.handler(
-          {
-            table: "test_embeddings",
-            column: "embedding",
-            vector: Array(384).fill(0.1),
-            where: "1=1; DROP TABLE test_embeddings;--",
-          },
-          mockContext,
-        ),
-      ).rejects.toThrow("Unsafe WHERE clause");
+      const result = (await tool.handler(
+        {
+          table: "test_embeddings",
+          column: "embedding",
+          vector: Array(384).fill(0.1),
+          where: "1=1; DROP TABLE test_embeddings;--",
+        },
+        mockContext,
+      )) as { success: boolean; error: string };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Unsafe WHERE clause");
     });
   });
 });

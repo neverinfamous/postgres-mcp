@@ -268,34 +268,65 @@ export const CronAlterJobSchema = z
   );
 
 export const CronJobRunDetailsSchemaBase = z.object({
-  jobId: CoercibleJobId.optional().describe("Filter by job ID"),
+  jobId: z.any().optional().describe("Filter by job ID"),
   status: z
     .string()
     .optional()
     .describe("Filter by status (running, succeeded, failed)"),
-  limit: z
-    .number()
-    .optional()
-    .describe("Maximum records to return (default: 50)"),
+  limit: z.any().optional().describe("Maximum records to return (default: 50)"),
 });
 
-export const CronJobRunDetailsSchema = CronJobRunDetailsSchemaBase.default({});
+export const CronJobRunDetailsSchema = z
+  .object({
+    jobId: CoercibleJobId.optional().describe("Filter by job ID"),
+    status: z
+      .string()
+      .optional()
+      .describe("Filter by status (running, succeeded, failed)"),
+    limit: z
+      .any()
+      .optional()
+      .describe("Maximum records to return (default: 50)"),
+  })
+  .default({});
 
 export const CronCleanupHistorySchemaBase = z.object({
   olderThanDays: z
-    .number()
+    .any()
     .optional()
     .describe("Delete records older than N days (default: 7)"),
-  days: z.number().optional().describe("Alias for olderThanDays"),
-  jobId: CoercibleJobId.optional().describe("Clean up only for specific job"),
+  days: z.any().optional().describe("Alias for olderThanDays"),
+  jobId: z.any().optional().describe("Clean up only for specific job"),
 });
 
 export const CronCleanupHistorySchema = z.preprocess(
   (input) => preprocessCronParams(input ?? {}),
-  CronCleanupHistorySchemaBase.transform((data) => ({
-    olderThanDays: data.olderThanDays,
-    jobId: data.jobId,
-  })),
+  CronCleanupHistorySchemaBase.transform((data) => {
+    const rawDays = data.olderThanDays as unknown;
+    const coercedDays =
+      rawDays !== undefined && rawDays !== null ? Number(rawDays) : undefined;
+
+    // Coerce jobId through CoercibleJobId for type safety (Base uses z.any())
+    const rawJobId = data.jobId as unknown;
+    let parsedJobId: number | undefined;
+    if (rawJobId !== undefined && rawJobId !== null) {
+      const coerced = CoercibleJobId.safeParse(rawJobId);
+      if (coerced.success) {
+        parsedJobId = coerced.data;
+      } else {
+        // Invalid jobId format — will surface as structured error in handler
+        throw coerced.error;
+      }
+    }
+
+    return {
+      olderThanDays:
+        coercedDays !== undefined && !isNaN(coercedDays)
+          ? coercedDays
+          : undefined,
+      jobId: parsedJobId,
+    };
+  }),
 );
 
 // ============================================================================
