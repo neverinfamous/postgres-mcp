@@ -66,7 +66,7 @@ export const PgcryptoHmacSchema = z.object({
  * Uses base schema for MCP exposure and transform schema for validation.
  */
 export const PgcryptoEncryptSchemaBase = z.object({
-  data: z.string().describe("Data to encrypt"),
+  data: z.string().optional().describe("Data to encrypt"),
   password: z.string().optional().describe("Encryption password"),
   key: z.string().optional().describe("Alias for password"),
   options: z
@@ -84,9 +84,13 @@ export const PgcryptoEncryptSchema = PgcryptoEncryptSchemaBase.transform(
       password: resolvedPassword,
     };
   },
-).refine((data) => data.password !== undefined, {
-  message: "password (or key alias) is required",
-});
+)
+  .refine((data) => data.data !== undefined, {
+    message: "data is required",
+  })
+  .refine((data) => data.password !== undefined, {
+    message: "password (or key alias) is required",
+  });
 
 /**
  * Schema for PGP symmetric decryption.
