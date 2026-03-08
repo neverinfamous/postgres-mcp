@@ -60,23 +60,23 @@ jobs:
           docker images local-scan:latest
           echo "🔍 Running Docker Scout security scan for local-scan:latest"
 
-          echo "⏱️ Running Docker Scout scan for FIXABLE vulnerabilities..."
+          echo "⏱️ Running Docker Scout scan for ALL FIXABLE vulnerabilities..."
 
           # Use --only-fixed to find CVEs that HAVE fixes available
-          # This ensures we block on things we CAN fix while allowing unfixable upstream CVEs
-          if timeout 480 docker scout cves local-scan:latest --only-fixed --only-severity critical,high > scout_fixable.txt 2>&1; then
+          # Scan all severities to catch medium/low CVEs (e.g. zlib) that have available fixes
+          if timeout 480 docker scout cves local-scan:latest --only-fixed --only-severity critical,high,medium,low > scout_fixable.txt 2>&1; then
             echo "📊 Scan completed"
 
-            # Check if any fixable critical/high CVEs were found
-            if grep -qE "(CRITICAL|HIGH)" scout_fixable.txt 2>/dev/null; then
-              echo "❌ Fixable CRITICAL/HIGH CVEs detected - blocking deploy"
+            # Check if any fixable CVEs were found at any severity
+            if grep -qE "(CRITICAL|HIGH|MEDIUM|LOW)" scout_fixable.txt 2>/dev/null; then
+              echo "❌ Fixable CVEs detected - blocking deploy"
               cat scout_fixable.txt
               echo ""
               echo "🚨 Deploy blocked: These vulnerabilities have available fixes."
               echo "   Update dependencies or Dockerfile to resolve."
               exit 1
             else
-              echo "✅ No fixable critical/high CVEs found"
+              echo "✅ No fixable CVEs found"
             fi
           else
             exit_code=$?
@@ -89,12 +89,41 @@ jobs:
               echo "⚠️ Docker Scout scan timed out"
               echo "🔄 Continuing build - scan timeout is not a security failure"
             else
-              echo "⚠️ Docker Scout scan failed with exit code $exit_code"
-              echo "🔄 Continuing build - will rely on Trivy for security validation"
+              echo "❌ Docker Scout scan failed with exit code $exit_code"
+              cat scout_fixable.txt 2>/dev/null || true
+              exit 1
             fi
           fi
 
-          echo "✅ Security gate passed - images will now be built and pushed"
+          echo "✅ Docker Scout security gate passed"
+
+      - name: Trivy security scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: local-scan:latest
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          timeout: 10m
+
+      - name: Trivy SARIF upload
+        if: always()
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: local-scan:latest
+          format: sarif
+          output: trivy-results.sarif
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          timeout: 10m
+
+      - name: Upload Trivy results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-docker-scan
 
   # Build each platform on native architecture (only runs if security scan passes)
   build-platform:

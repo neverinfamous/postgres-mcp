@@ -6,7 +6,8 @@ WORKDIR /app
 
 # Upgrade packages for security and install curl from edge for CVE fixes
 RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main curl && \
-    apk upgrade --no-cache
+    apk upgrade --no-cache && \
+    apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main 'zlib>=1.3.2-r0'
 
 # Upgrade npm globally to get fixed versions of bundled packages
 RUN npm install -g npm@latest --force && npm cache clean --force
@@ -61,6 +62,7 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates && \
     apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main curl && \
     apk upgrade --no-cache && \
+    apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main 'zlib>=1.3.2-r0' && \
     npm install -g npm@latest --force && npm cache clean --force
 
 # Fix GHSA-73rr-hh4g-fpgx: Manually update npm's bundled diff@8.0.2 to 8.0.3
