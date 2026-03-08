@@ -84,7 +84,10 @@ export const LtreeQuerySchemaBase = z.object({
  * Base schema for MCP visibility - shows all parameters including aliases.
  */
 export const LtreeSubpathSchemaBase = z.object({
-  path: z.string().optional().describe('ltree path (e.g., "Top.Science.Astronomy.Stars")'),
+  path: z
+    .string()
+    .optional()
+    .describe('ltree path (e.g., "Top.Science.Astronomy.Stars")'),
   offset: z
     .number()
     .optional()

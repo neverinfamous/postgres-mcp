@@ -208,10 +208,7 @@ export function createVectorDimensionReduceTool(
       .any()
       .optional()
       .describe("Target number of dimensions"),
-    dimensions: z
-      .any()
-      .optional()
-      .describe("Alias for targetDimensions"),
+    dimensions: z.any().optional().describe("Alias for targetDimensions"),
     seed: z.any().optional().describe("Random seed for reproducibility"),
     summarize: z
       .boolean()
@@ -232,8 +229,7 @@ export function createVectorDimensionReduceTool(
         ...data,
         table: data.table ?? data.tableName,
         column: data.column ?? data.col,
-        targetDimensions:
-          rawTarget != null ? Number(rawTarget) : undefined,
+        targetDimensions: rawTarget != null ? Number(rawTarget) : undefined,
         limit: rawLimit != null ? Number(rawLimit) : undefined,
         seed: rawSeed != null ? Number(rawSeed) : undefined,
       };
@@ -291,7 +287,8 @@ export function createVectorDimensionReduceTool(
           return {
             success: false,
             error: `Validation error: targetDimensions must be a valid number, received "${String(parsed.targetDimensions)}"`,
-            suggestion: "Provide a numeric value for targetDimensions (e.g., 128, 256)",
+            suggestion:
+              "Provide a numeric value for targetDimensions (e.g., 128, 256)",
           };
         }
         const seed = parsed.seed ?? 42;
@@ -441,10 +438,7 @@ export function createVectorEmbedTool(): ToolDefinition {
   // Base schema for MCP visibility — text optional to prevent MCP -32602 rejection
   const EmbedSchemaBase = z.object({
     text: z.string().optional().describe("Text to embed"),
-    dimensions: z
-      .any()
-      .optional()
-      .describe("Vector dimensions (default: 384)"),
+    dimensions: z.any().optional().describe("Vector dimensions (default: 384)"),
     summarize: z
       .boolean()
       .optional()
@@ -468,7 +462,8 @@ export function createVectorEmbedTool(): ToolDefinition {
         if (!parsed.text || parsed.text === "") {
           return Promise.resolve({
             success: false,
-            error: "Validation error: text parameter is required and must be non-empty",
+            error:
+              "Validation error: text parameter is required and must be non-empty",
             suggestion: "Provide text content to generate an embedding",
           });
         }
@@ -480,7 +475,8 @@ export function createVectorEmbedTool(): ToolDefinition {
           return Promise.resolve({
             success: false,
             error: `Validation error: dimensions must be a valid number, received "${String(parsed.dimensions)}"`,
-            suggestion: "Provide a numeric value for dimensions (e.g., 384, 768, 1536)",
+            suggestion:
+              "Provide a numeric value for dimensions (e.g., 384, 768, 1536)",
           });
         }
         const shouldSummarize = parsed.summarize ?? true;

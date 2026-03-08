@@ -289,25 +289,27 @@ export const CreatePartitionedTableSchema = z.preprocess(
       message: "name (or table alias) is required",
       path: ["name"],
     },
-  ).refine(
-    (data) => Array.isArray(data.columns) && data.columns.length > 0,
-    {
+  )
+    .refine((data) => Array.isArray(data.columns) && data.columns.length > 0, {
       message: "columns must not be empty",
       path: ["columns"],
-    },
-  ).refine(
-    (data) => typeof data.partitionBy === "string" && data.partitionBy.length > 0,
-    {
-      message: "partitionBy is required (range, list, or hash)",
-      path: ["partitionBy"],
-    },
-  ).refine(
-    (data) => typeof data.partitionKey === "string" && data.partitionKey.length > 0,
-    {
-      message: "partitionKey is required",
-      path: ["partitionKey"],
-    },
-  ),
+    })
+    .refine(
+      (data) =>
+        typeof data.partitionBy === "string" && data.partitionBy.length > 0,
+      {
+        message: "partitionBy is required (range, list, or hash)",
+        path: ["partitionBy"],
+      },
+    )
+    .refine(
+      (data) =>
+        typeof data.partitionKey === "string" && data.partitionKey.length > 0,
+      {
+        message: "partitionKey is required",
+        path: ["partitionKey"],
+      },
+    ),
 );
 
 // Base schema for MCP visibility (with alias parameters for Split Schema compliance)
@@ -350,22 +352,20 @@ export const CreatePartitionSchemaBase = z.object({
 // Preprocessed schema for handler parsing (with alias support)
 export const CreatePartitionSchema = z.preprocess(
   preprocessPartitionParams,
-  CreatePartitionSchemaBase
-    .refine(
-      (data) =>
-        data.parent !== undefined ||
-        data.parentTable !== undefined ||
-        data.table !== undefined,
-      {
-        message: "One of parent, parentTable, or table is required",
-        path: ["parent"],
-      },
-    )
-    .refine((data) => data.forValues !== undefined || data.isDefault === true, {
-      message:
-        "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
-      path: ["forValues"],
-    }),
+  CreatePartitionSchemaBase.refine(
+    (data) =>
+      data.parent !== undefined ||
+      data.parentTable !== undefined ||
+      data.table !== undefined,
+    {
+      message: "One of parent, parentTable, or table is required",
+      path: ["parent"],
+    },
+  ).refine((data) => data.forValues !== undefined || data.isDefault === true, {
+    message:
+      "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
+    path: ["forValues"],
+  }),
 );
 
 // Base schema for MCP visibility (with alias parameters for Split Schema compliance)
@@ -403,17 +403,16 @@ export const AttachPartitionSchemaBase = z.object({
 // Preprocessed schema for handler parsing (with alias support)
 export const AttachPartitionSchema = z.preprocess(
   preprocessPartitionParams,
-  AttachPartitionSchemaBase
-    .refine(
-      (data) =>
-        data.parent !== undefined ||
-        data.parentTable !== undefined ||
-        data.table !== undefined,
-      {
-        message: "One of parent, parentTable, or table is required",
-        path: ["parent"],
-      },
-    )
+  AttachPartitionSchemaBase.refine(
+    (data) =>
+      data.parent !== undefined ||
+      data.parentTable !== undefined ||
+      data.table !== undefined,
+    {
+      message: "One of parent, parentTable, or table is required",
+      path: ["parent"],
+    },
+  )
     .refine(
       (data) =>
         data.partition !== undefined ||
@@ -425,14 +424,11 @@ export const AttachPartitionSchema = z.preprocess(
         path: ["partition"],
       },
     )
-    .refine(
-      (data) => data.forValues !== undefined || data.isDefault === true,
-      {
-        message:
-          "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
-        path: ["forValues"],
-      },
-    ),
+    .refine((data) => data.forValues !== undefined || data.isDefault === true, {
+      message:
+        "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
+      path: ["forValues"],
+    }),
 );
 
 // Base schema for MCP visibility (with alias parameters for Split Schema compliance)
@@ -468,28 +464,25 @@ export const DetachPartitionSchemaBase = z.object({
 // Preprocessed schema for handler parsing (with alias support)
 export const DetachPartitionSchema = z.preprocess(
   preprocessPartitionParams,
-  DetachPartitionSchemaBase
-    .refine(
-      (data) =>
-        data.parent !== undefined ||
-        data.parentTable !== undefined ||
-        data.table !== undefined,
-      {
-        message: "One of parent, parentTable, or table is required",
-        path: ["parent"],
-      },
-    )
-    .refine(
-      (data) =>
-        data.partition !== undefined ||
-        data.partitionTable !== undefined ||
-        data.partitionName !== undefined,
-      {
-        message:
-          "One of partition, partitionTable, or partitionName is required",
-        path: ["partition"],
-      },
-    ),
+  DetachPartitionSchemaBase.refine(
+    (data) =>
+      data.parent !== undefined ||
+      data.parentTable !== undefined ||
+      data.table !== undefined,
+    {
+      message: "One of parent, parentTable, or table is required",
+      path: ["parent"],
+    },
+  ).refine(
+    (data) =>
+      data.partition !== undefined ||
+      data.partitionTable !== undefined ||
+      data.partitionName !== undefined,
+    {
+      message: "One of partition, partitionTable, or partitionName is required",
+      path: ["partition"],
+    },
+  ),
 );
 
 /**
@@ -547,10 +540,7 @@ export const ListPartitionsSchemaBase = z.object({
   parentTable: z.string().optional().describe("Alias for table"),
   name: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z
-    .any()
-    .optional()
-    .describe("Maximum partitions to return"),
+  limit: z.any().optional().describe("Maximum partitions to return"),
 });
 
 // Preprocessed schema for handler parsing (with alias support)

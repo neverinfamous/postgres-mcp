@@ -3372,10 +3372,9 @@ describe("wrong-type limit param fallback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_table_stats")!;
-    const result = (await tool.handler(
-      { limit: "abc" },
-      mockContext,
-    )) as { tables: unknown[] };
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      tables: unknown[];
+    };
 
     expect(result).toBeDefined();
     expect(result.tables).toBeDefined();
@@ -3385,10 +3384,9 @@ describe("wrong-type limit param fallback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_index_stats")!;
-    const result = (await tool.handler(
-      { limit: "abc" },
-      mockContext,
-    )) as { indexes: unknown[] };
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      indexes: unknown[];
+    };
 
     expect(result).toBeDefined();
     expect(result.indexes).toBeDefined();
@@ -3398,10 +3396,9 @@ describe("wrong-type limit param fallback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_stat_statements")!;
-    const result = (await tool.handler(
-      { limit: "abc" },
-      mockContext,
-    )) as { statements: unknown[] };
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      statements: unknown[];
+    };
 
     expect(result).toBeDefined();
   });
@@ -3410,10 +3407,9 @@ describe("wrong-type limit param fallback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_unused_indexes")!;
-    const result = (await tool.handler(
-      { limit: "abc" },
-      mockContext,
-    )) as { indexes: unknown[] };
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      indexes: unknown[];
+    };
 
     expect(result).toBeDefined();
   });
@@ -3422,10 +3418,9 @@ describe("wrong-type limit param fallback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_duplicate_indexes")!;
-    const result = (await tool.handler(
-      { limit: "abc" },
-      mockContext,
-    )) as { duplicates: unknown[] };
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      duplicates: unknown[];
+    };
 
     expect(result).toBeDefined();
   });
@@ -3434,10 +3429,9 @@ describe("wrong-type limit param fallback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
-    const result = (await tool.handler(
-      { limit: "abc" },
-      mockContext,
-    )) as { tables: unknown[] };
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      tables: unknown[];
+    };
 
     expect(result).toBeDefined();
     expect(result.tables).toBeDefined();
@@ -3447,10 +3441,9 @@ describe("wrong-type limit param fallback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_seq_scan_tables")!;
-    const result = (await tool.handler(
-      { limit: "abc" },
-      mockContext,
-    )) as { tables: unknown[] };
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      tables: unknown[];
+    };
 
     expect(result).toBeDefined();
   });
@@ -3459,10 +3452,9 @@ describe("wrong-type limit param fallback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_query_plan_stats")!;
-    const result = (await tool.handler(
-      { limit: "abc" },
-      mockContext,
-    )) as { queryPlanStats: unknown[] };
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      queryPlanStats: unknown[];
+    };
 
     expect(result).toBeDefined();
   });
@@ -3497,9 +3489,7 @@ describe("empty params structured errors", () => {
   });
 
   it("pg_partition_strategy_suggest should return structured error for empty params", async () => {
-    const tool = tools.find(
-      (t) => t.name === "pg_partition_strategy_suggest",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_partition_strategy_suggest")!;
     const result = (await tool.handler({}, mockContext)) as {
       success: boolean;
       error: string;

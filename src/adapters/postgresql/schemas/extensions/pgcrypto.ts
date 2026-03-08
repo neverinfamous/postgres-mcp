@@ -130,7 +130,10 @@ export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
  * Base schema for MCP visibility — shows all parameters with relaxed validation.
  */
 export const PgcryptoRandomBytesSchemaBase = z.object({
-  length: z.coerce.number().optional().describe("Number of random bytes to generate (1-1024)"),
+  length: z.coerce
+    .number()
+    .optional()
+    .describe("Number of random bytes to generate (1-1024)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 

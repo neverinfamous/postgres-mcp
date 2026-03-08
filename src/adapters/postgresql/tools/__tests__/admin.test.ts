@@ -1242,9 +1242,7 @@ describe("admin.ts uncovered branches", () => {
 
   // admin.ts L370-375: reload_conf error path
   it("should handle error in pg_reload_conf", async () => {
-    mockAdapter.executeQuery.mockRejectedValueOnce(
-      new Error("reload failed"),
-    );
+    mockAdapter.executeQuery.mockRejectedValueOnce(new Error("reload failed"));
 
     const tool = tools.find((t) => t.name === "pg_reload_conf")!;
     const result = (await tool.handler({}, mockContext)) as {

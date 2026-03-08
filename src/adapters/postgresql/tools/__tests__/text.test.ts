@@ -1798,10 +1798,10 @@ describe("text tools uncovered branches", () => {
   // search.ts L466-471: pg_create_fts_index missing table
   it("should return error for pg_create_fts_index without table", async () => {
     const tool = tools.find((t) => t.name === "pg_create_fts_index")!;
-    const result = (await tool.handler(
-      { column: "name" },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ column: "name" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("table");
@@ -1810,10 +1810,10 @@ describe("text tools uncovered branches", () => {
   // search.ts L472-477: pg_create_fts_index missing column
   it("should return error for pg_create_fts_index without column", async () => {
     const tool = tools.find((t) => t.name === "pg_create_fts_index")!;
-    const result = (await tool.handler(
-      { table: "users" },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("column");
@@ -1878,10 +1878,10 @@ describe("text tools uncovered branches", () => {
     );
 
     const tool = tools.find((t) => t.name === "pg_text_search_config")!;
-    const result = (await tool.handler(
-      {},
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("permission denied");
@@ -1930,17 +1930,19 @@ describe("text matching uncovered branches", () => {
   it("should return structured error for pg_trigram_similarity ZodError", async () => {
     const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
     // Pass something that makes the preprocess schema reject
-    const result = (await tool.handler(
-      null,
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler(null, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
   });
 
   // matching.ts L130-135: trigram_similarity DB error
   it("should return structured error for pg_trigram_similarity DB failure", async () => {
-    mockAdapter.executeQuery.mockRejectedValueOnce(new Error("extension not found"));
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("extension not found"),
+    );
     const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
     const result = (await tool.handler(
       { table: "users", column: "name", value: "test" },
@@ -1975,17 +1977,19 @@ describe("text matching uncovered branches", () => {
   // matching.ts L278-282: fuzzy_match ZodError
   it("should return structured error for pg_fuzzy_match ZodError", async () => {
     const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
-    const result = (await tool.handler(
-      null,
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler(null, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
   });
 
   // matching.ts L284-289: fuzzy_match DB error
   it("should return structured error for pg_fuzzy_match DB failure", async () => {
-    mockAdapter.executeQuery.mockRejectedValueOnce(new Error("extension not found"));
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("extension not found"),
+    );
     const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
     const result = (await tool.handler(
       { table: "users", column: "name", value: "test" },
@@ -2009,10 +2013,10 @@ describe("text matching uncovered branches", () => {
   // matching.ts L323-327: regexp_match missing column/pattern
   it("should return error for pg_regexp_match without column/pattern", async () => {
     const tool = tools.find((t) => t.name === "pg_regexp_match")!;
-    const result = (await tool.handler(
-      { table: "users" },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toContain("column");
   });
@@ -2020,10 +2024,10 @@ describe("text matching uncovered branches", () => {
   // matching.ts L370-374: regexp_match ZodError
   it("should return structured error for pg_regexp_match ZodError", async () => {
     const tool = tools.find((t) => t.name === "pg_regexp_match")!;
-    const result = (await tool.handler(
-      null,
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler(null, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
   });
@@ -2042,10 +2046,10 @@ describe("text matching uncovered branches", () => {
   // matching.ts L439-443: like_search missing column/pattern
   it("should return error for pg_like_search without column/pattern", async () => {
     const tool = tools.find((t) => t.name === "pg_like_search")!;
-    const result = (await tool.handler(
-      { table: "users" },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ table: "users" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toContain("column");
   });
@@ -2053,10 +2057,10 @@ describe("text matching uncovered branches", () => {
   // matching.ts L486-490: like_search ZodError
   it("should return structured error for pg_like_search ZodError", async () => {
     const tool = tools.find((t) => t.name === "pg_like_search")!;
-    const result = (await tool.handler(
-      null,
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler(null, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
   });

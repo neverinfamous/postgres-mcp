@@ -502,7 +502,9 @@ export class PostgresAdapter extends DatabaseAdapter {
   private get cacheHelpers(): CacheHelpers {
     return {
       getCached: (key: string) => this.getCached(key),
-      setCache: (key: string, data: unknown) => { this.setCache(key, data); },
+      setCache: (key: string, data: unknown) => {
+        this.setCache(key, data);
+      },
     };
   }
 

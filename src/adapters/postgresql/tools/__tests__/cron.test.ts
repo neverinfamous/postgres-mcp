@@ -880,10 +880,10 @@ describe("cron.ts uncovered branches", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_cron_unschedule")!;
-    const result = (await tool.handler(
-      { jobId: 5 },
-      mockContext,
-    )) as { success: boolean; jobId: number | null };
+    const result = (await tool.handler({ jobId: 5 }, mockContext)) as {
+      success: boolean;
+      jobId: number | null;
+    };
 
     expect(result.success).toBe(true);
     expect(result.jobId).toBe(5); // Falls back to provided jobId
@@ -929,10 +929,11 @@ describe("cron.ts uncovered branches", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
-    const result = (await tool.handler(
-      { active: true },
-      mockContext,
-    )) as { count: number; truncated: boolean; totalCount: number };
+    const result = (await tool.handler({ active: true }, mockContext)) as {
+      count: number;
+      truncated: boolean;
+      totalCount: number;
+    };
 
     // COUNT query should include WHERE active = $1
     const countSql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
@@ -975,10 +976,10 @@ describe("cron.ts uncovered branches", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
-    const result = (await tool.handler(
-      { limit: 0 },
-      mockContext,
-    )) as { count: number; truncated?: boolean };
+    const result = (await tool.handler({ limit: 0 }, mockContext)) as {
+      count: number;
+      truncated?: boolean;
+    };
 
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
     expect(sql).not.toContain("LIMIT");
@@ -989,10 +990,7 @@ describe("cron.ts uncovered branches", () => {
   // cron.ts L681: cleanup_history negative days validation
   it("should return error for negative days in cleanup_history", async () => {
     const tool = tools.find((t) => t.name === "pg_cron_cleanup_history")!;
-    const result = (await tool.handler(
-      { olderThanDays: -1 },
-      mockContext,
-    )) as {
+    const result = (await tool.handler({ olderThanDays: -1 }, mockContext)) as {
       success: boolean;
       message: string;
       olderThanDays: number;
@@ -1012,10 +1010,7 @@ describe("cron.ts uncovered branches", () => {
     );
 
     const tool = tools.find((t) => t.name === "pg_cron_cleanup_history")!;
-    const result = (await tool.handler(
-      { olderThanDays: 7 },
-      mockContext,
-    )) as {
+    const result = (await tool.handler({ olderThanDays: 7 }, mockContext)) as {
       success: boolean;
       message: string;
       deletedCount: number;
@@ -1054,10 +1049,7 @@ describe("cron.ts uncovered branches", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_cron_job_run_details")!;
-    const result = (await tool.handler(
-      { limit: 0 },
-      mockContext,
-    )) as {
+    const result = (await tool.handler({ limit: 0 }, mockContext)) as {
       count: number;
       truncated?: boolean;
       summary: { succeeded: number; failed: number };

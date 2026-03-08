@@ -287,8 +287,13 @@ export function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("schema", destructive("Drop View")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { name: rawName, schema, materialized, ifExists, cascade } =
-          DropViewSchema.parse(params);
+        const {
+          name: rawName,
+          schema,
+          materialized,
+          ifExists,
+          cascade,
+        } = DropViewSchema.parse(params);
         const name = rawName ?? "";
 
         const schemaName = schema ?? "public";

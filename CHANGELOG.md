@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-03-08
+
 ### Fixed
 
 - **`pg_pgcrypto_encrypt({})` raw MCP `-32602` Zod validation error** — `pg_pgcrypto_encrypt({})` now returns `{success: false, error: "Validation error: data is required, password (or key alias) is required"}` instead of a raw MCP `-32602` error. Root cause: `PgcryptoEncryptSchemaBase` had `data: z.string()` (required) instead of `.optional()`, causing the MCP framework to reject empty params before the handler's `try/catch`. Made `data` optional in the base schema and added `.refine()` for `data` in `PgcryptoEncryptSchema`

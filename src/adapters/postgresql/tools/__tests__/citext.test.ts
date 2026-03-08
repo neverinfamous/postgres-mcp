@@ -687,7 +687,11 @@ describe("Citext Tools", () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain("not a text-based type");
       expect(result.currentType).toBe("integer");
-      expect(result.allowedTypes).toEqual(["text", "varchar", "character varying"]);
+      expect(result.allowedTypes).toEqual([
+        "text",
+        "varchar",
+        "character varying",
+      ]);
     });
 
     // setup.ts L185-196: dependent views blocking conversion

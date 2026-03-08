@@ -144,10 +144,7 @@ describe("parsePostgresError", () => {
   });
 
   it("should infer index from idx_ prefix even without tool context", () => {
-    const err = makePgError(
-      'relation "idx_my_index" already exists',
-      "42P07",
-    );
+    const err = makePgError('relation "idx_my_index" already exists', "42P07");
     expect(() =>
       parsePostgresError(err, {
         tool: "pg_something",

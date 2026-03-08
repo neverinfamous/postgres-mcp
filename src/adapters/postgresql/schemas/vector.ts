@@ -65,10 +65,10 @@ export const VectorSearchSchema = VectorSearchSchemaBase.transform((data) => {
     resolvedTable = parts[1] ?? resolvedTable;
   }
 
-    const rawLimit = Number(data.limit);
-    const limit =
-      Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : undefined;
-    return {
+  const rawLimit = Number(data.limit);
+  const limit =
+    Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : undefined;
+  return {
     table: resolvedTable,
     column: data.column ?? data.col ?? "",
     vector: data.vector,
@@ -112,9 +112,7 @@ export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
     // Resolve type from type or method alias
     const resolvedType = data.type ?? data.method;
     if (!resolvedType) {
-      throw new Error(
-        "Validation error: type (or method alias) is required",
-      );
+      throw new Error("Validation error: type (or method alias) is required");
     }
     return {
       table: data.table ?? data.tableName ?? "",

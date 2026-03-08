@@ -1766,9 +1766,7 @@ describe("Error Path - Empty Params Validation", () => {
   });
 
   it("pg_create_partitioned_table should return structured error for empty params", async () => {
-    const tool = tools.find(
-      (t) => t.name === "pg_create_partitioned_table",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
     const result = (await tool.handler({}, mockContext)) as {
       success: boolean;
       error: string;

@@ -73,14 +73,8 @@ export const KcacheTopCpuSchemaBase = z.object({
  * Base schema for MCP visibility - pg_kcache_top_io parameters.
  */
 export const KcacheTopIoSchemaBase = z.object({
-  type: z
-    .string()
-    .optional()
-    .describe("I/O type to rank by (default: both)"),
-  ioType: z
-    .string()
-    .optional()
-    .describe("Alias for type"),
+  type: z.string().optional().describe("I/O type to rank by (default: both)"),
+  ioType: z.string().optional().describe("Alias for type"),
   limit: z
     .any()
     .optional()

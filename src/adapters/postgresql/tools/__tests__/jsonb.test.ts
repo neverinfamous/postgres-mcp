@@ -945,7 +945,14 @@ describe("jsonb analytics uncovered branches", () => {
     const tool = findTool("pg_jsonb_stats")!;
     // basic stats query
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ total_rows: 10, non_null_count: 10, avg_size_bytes: 50, max_size_bytes: 100 }],
+      rows: [
+        {
+          total_rows: 10,
+          non_null_count: 10,
+          avg_size_bytes: 50,
+          max_size_bytes: 100,
+        },
+      ],
     });
     // key query fails (array column)
     mockAdapter.executeQuery.mockRejectedValueOnce(
@@ -968,11 +975,21 @@ describe("jsonb analytics uncovered branches", () => {
   it("should show SQL NULL hint in pg_jsonb_stats", async () => {
     const tool = findTool("pg_jsonb_stats")!;
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ total_rows: 10, non_null_count: 8, avg_size_bytes: 50, max_size_bytes: 100 }],
+      rows: [
+        {
+          total_rows: 10,
+          non_null_count: 8,
+          avg_size_bytes: 50,
+          max_size_bytes: 100,
+        },
+      ],
     });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // keys
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ type: null, count: 2 }, { type: "object", count: 8 }],
+      rows: [
+        { type: null, count: 2 },
+        { type: "object", count: 8 },
+      ],
     });
 
     const result = (await tool.handler(
@@ -1081,7 +1098,9 @@ describe("jsonb transform uncovered branches", () => {
   // transform.ts L358: array mode
   it("should use array mode in normalize", async () => {
     // idColumn check
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ column_name: "id" }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
     // actual query
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ source_id: 1, element: { a: 1 } }],
@@ -1096,7 +1115,9 @@ describe("jsonb transform uncovered branches", () => {
 
   // transform.ts L389-390: pairs mode
   it("should use pairs mode in normalize", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ column_name: "id" }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ source_id: 1, key: "name", value: '"test"' }],
     });
@@ -1110,9 +1131,13 @@ describe("jsonb transform uncovered branches", () => {
 
   // transform.ts L397-405: flatten mode with empty results on array column
   it("should detect flatten on array column when results empty", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ column_name: "id" }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // flatten returns empty
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ type: "array" }] }); // type check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ type: "array" }],
+    }); // type check
     const tool = findTool("pg_jsonb_normalize")!;
     const result = (await tool.handler(
       { table: "users", column: "data", mode: "flatten" },
@@ -1124,7 +1149,9 @@ describe("jsonb transform uncovered branches", () => {
 
   // transform.ts L410-417: jsonb_each error in normalize
   it("should handle jsonb_each error in normalize", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ column_name: "id" }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("cannot call jsonb_each on an array"),
     );
@@ -1139,7 +1166,9 @@ describe("jsonb transform uncovered branches", () => {
 
   // transform.ts L419-427: cannot extract elements error
   it("should handle cannot extract elements error in normalize", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ column_name: "id" }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "id" }],
+    });
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("cannot extract elements from an object"),
     );
@@ -1191,7 +1220,9 @@ describe("jsonb transform uncovered branches", () => {
   // transform.ts L351-354: id column check falls back to ctid
   it("should fall back to ctid when id column check fails", async () => {
     // id column check throws
-    mockAdapter.executeQuery.mockRejectedValueOnce(new Error("permission denied"));
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
     // actual query still works with ctid
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ source_ctid: "(0,1)", key: "name", value: "test" }],
@@ -1204,4 +1235,3 @@ describe("jsonb transform uncovered branches", () => {
     expect(result.rows).toBeDefined();
   });
 });
-

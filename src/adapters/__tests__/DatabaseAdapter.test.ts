@@ -715,9 +715,8 @@ describe("DatabaseAdapter", () => {
       adapter.testRegisterPrompt(mockServer, prompt);
 
       // Get the handler that was passed to server.registerPrompt
-      const registeredHandler = mockServer.registerPrompt.mock.calls[0]?.[2] as (
-        args: Record<string, string>,
-      ) => Promise<unknown>;
+      const registeredHandler = mockServer.registerPrompt.mock
+        .calls[0]?.[2] as (args: Record<string, string>) => Promise<unknown>;
       const result = await registeredHandler({ arg1: "value1" });
 
       expect(mockHandler).toHaveBeenCalled();
@@ -738,9 +737,8 @@ describe("DatabaseAdapter", () => {
 
       adapter.testRegisterPrompt(mockServer, prompt);
 
-      const registeredHandler = mockServer.registerPrompt.mock.calls[0]?.[2] as (
-        args: Record<string, string>,
-      ) => Promise<unknown>;
+      const registeredHandler = mockServer.registerPrompt.mock
+        .calls[0]?.[2] as (args: Record<string, string>) => Promise<unknown>;
       const result = await registeredHandler({});
 
       expect(result).toHaveProperty("messages");

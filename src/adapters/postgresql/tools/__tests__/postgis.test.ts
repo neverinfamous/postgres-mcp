@@ -1142,9 +1142,7 @@ describe("PostGIS standalone tools uncovered branches", () => {
 
   // standalone.ts L254-261: pg_geometry_transform DB error (inner)
   it("should return structured error for pg_geometry_transform DB failure", async () => {
-    mockAdapter.executeQuery.mockRejectedValueOnce(
-      new Error("invalid SRID"),
-    );
+    mockAdapter.executeQuery.mockRejectedValueOnce(new Error("invalid SRID"));
 
     const tool = findTool("pg_geometry_transform");
     const result = (await tool!.handler(

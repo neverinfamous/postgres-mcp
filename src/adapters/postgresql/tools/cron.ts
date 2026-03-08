@@ -416,12 +416,16 @@ function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Safely coerce limit — NaN/non-finite → undefined (falls back to default 50)
         const rawLimit = parsed.limit as unknown;
-        const coercedLimit = rawLimit !== undefined && rawLimit !== null
-          ? Number(rawLimit)
-          : undefined;
-        const limitRaw = coercedLimit !== undefined && !isNaN(coercedLimit) && isFinite(coercedLimit)
-          ? coercedLimit
-          : undefined;
+        const coercedLimit =
+          rawLimit !== undefined && rawLimit !== null
+            ? Number(rawLimit)
+            : undefined;
+        const limitRaw =
+          coercedLimit !== undefined &&
+          !isNaN(coercedLimit) &&
+          isFinite(coercedLimit)
+            ? coercedLimit
+            : undefined;
         // Get total count first if we're limiting
         const limitVal = limitRaw === 0 ? null : (limitRaw ?? 50);
         let totalCount: number | undefined;
@@ -507,12 +511,15 @@ Useful for monitoring and debugging scheduled jobs.`,
     icons: getToolIcons("cron", readOnly("Cron Job Run Details")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { jobId, status, limit: rawLimitValue } =
-          CronJobRunDetailsSchema.parse(params) as {
-            jobId?: number;
-            status?: string;
-            limit?: unknown;
-          };
+        const {
+          jobId,
+          status,
+          limit: rawLimitValue,
+        } = CronJobRunDetailsSchema.parse(params) as {
+          jobId?: number;
+          status?: string;
+          limit?: unknown;
+        };
 
         // Safely coerce limit — NaN/non-finite → undefined (falls back to default 50)
         const coercedLimit =

@@ -236,11 +236,7 @@ export abstract class DatabaseAdapter {
           const progressToken = extraMeta?._meta?.progressToken;
 
           // Create context with progress support
-          const context = this.createContext(
-            undefined,
-            server,
-            progressToken,
-          );
+          const context = this.createContext(undefined, server, progressToken);
           const result = await tool.handler(args, context);
 
           // MCP 2025-11-25: Return structuredContent if outputSchema present

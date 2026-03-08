@@ -176,11 +176,7 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         const cfg = sanitizeFtsConfig(parsed.config ?? "english");
         const rawNorm = Number(parsed.normalization);
         const norm =
-          parsed.normalization === undefined
-            ? 0
-            : isNaN(rawNorm)
-              ? 0
-              : rawNorm;
+          parsed.normalization === undefined ? 0 : isNaN(rawNorm) ? 0 : rawNorm;
 
         // Handle both column (string) and columns (array) parameters
         let cols: string[];
@@ -293,14 +289,8 @@ export function createTextHeadlineTool(
       .string()
       .optional()
       .describe("Stop selection marker (default: </b>)"),
-    maxWords: z
-      .any()
-      .optional()
-      .describe("Maximum words in headline"),
-    minWords: z
-      .any()
-      .optional()
-      .describe("Minimum words in headline"),
+    maxWords: z.any().optional().describe("Maximum words in headline"),
+    minWords: z.any().optional().describe("Minimum words in headline"),
     select: z
       .array(z.string())
       .optional()

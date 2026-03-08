@@ -390,9 +390,9 @@ export function createVectorDistanceTool(
         if (!parsed.vector1 || !parsed.vector2) {
           return {
             success: false,
-            error:
-              "Validation error: vector1 and vector2 are required",
-            suggestion: "Provide two vectors to calculate distance between them",
+            error: "Validation error: vector1 and vector2 are required",
+            suggestion:
+              "Provide two vectors to calculate distance between them",
           };
         }
 
@@ -461,8 +461,7 @@ export function createVectorNormalizeTool(): ToolDefinition {
           return Promise.resolve({
             success: false,
             error: "Validation error: vector is required",
-            suggestion:
-              "Provide a vector array to normalize, e.g., [3, 4]",
+            suggestion: "Provide a vector array to normalize, e.g., [3, 4]",
           });
         }
 

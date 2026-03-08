@@ -283,7 +283,10 @@ export const CronJobRunDetailsSchema = z
       .string()
       .optional()
       .describe("Filter by status (running, succeeded, failed)"),
-    limit: z.any().optional().describe("Maximum records to return (default: 50)"),
+    limit: z
+      .any()
+      .optional()
+      .describe("Maximum records to return (default: 50)"),
   })
   .default({});
 
@@ -301,9 +304,7 @@ export const CronCleanupHistorySchema = z.preprocess(
   CronCleanupHistorySchemaBase.transform((data) => {
     const rawDays = data.olderThanDays as unknown;
     const coercedDays =
-      rawDays !== undefined && rawDays !== null
-        ? Number(rawDays)
-        : undefined;
+      rawDays !== undefined && rawDays !== null ? Number(rawDays) : undefined;
     return {
       olderThanDays:
         coercedDays !== undefined && !isNaN(coercedDays)

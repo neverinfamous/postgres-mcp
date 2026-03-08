@@ -72,8 +72,11 @@ export function createCreateSchemaTool(
     icons: getToolIcons("schema", write("Create Schema")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { name: rawName, authorization, ifNotExists } =
-          CreateSchemaSchema.parse(params);
+        const {
+          name: rawName,
+          authorization,
+          ifNotExists,
+        } = CreateSchemaSchema.parse(params);
         const name = rawName ?? "";
 
         // Check if schema already exists when ifNotExists is true
@@ -139,7 +142,11 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("schema", destructive("Drop Schema")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { name: rawName, cascade, ifExists } = DropSchemaSchema.parse(params);
+        const {
+          name: rawName,
+          cascade,
+          ifExists,
+        } = DropSchemaSchema.parse(params);
         const name = rawName ?? "";
 
         // Check if schema exists before dropping (for accurate response)
@@ -430,8 +437,12 @@ export function createDropSequenceTool(
     icons: getToolIcons("schema", destructive("Drop Sequence")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { name: rawName, schema, ifExists, cascade } =
-          DropSequenceSchema.parse(params);
+        const {
+          name: rawName,
+          schema,
+          ifExists,
+          cascade,
+        } = DropSequenceSchema.parse(params);
         const name = rawName ?? "";
 
         const schemaName = schema ?? "public";

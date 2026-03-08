@@ -130,9 +130,9 @@ describe("sendProgress", () => {
 
   it("should silently swallow notification errors", async () => {
     const server = createMockServer();
-    (server.server.notification as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new Error("transport closed"),
-    );
+    (
+      server.server.notification as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(new Error("transport closed"));
 
     const ctx: ProgressContext = { server, progressToken: "tok-1" };
     await expect(sendProgress(ctx, 1, 10)).resolves.toBeUndefined();

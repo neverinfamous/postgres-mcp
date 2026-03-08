@@ -1315,17 +1315,11 @@ describe("PostgresAdapter", () => {
   describe("Expression Index Parsing", () => {
     describe("parseColumnsArray", () => {
       it("should pass through native arrays", () => {
-        expect(parseColumnsArray(["col1", "col2"])).toEqual([
-          "col1",
-          "col2",
-        ]);
+        expect(parseColumnsArray(["col1", "col2"])).toEqual(["col1", "col2"]);
       });
 
       it("should parse PostgreSQL string format {col1,col2}", () => {
-        expect(parseColumnsArray("{col1,col2}")).toEqual([
-          "col1",
-          "col2",
-        ]);
+        expect(parseColumnsArray("{col1,col2}")).toEqual(["col1", "col2"]);
       });
 
       it("should handle empty string format {}", () => {
@@ -1385,10 +1379,7 @@ describe("PostgresAdapter", () => {
 
     describe("parseIndexExpressions", () => {
       it("should parse simple column list", () => {
-        expect(parseIndexExpressions("id, name")).toEqual([
-          "id",
-          "name",
-        ]);
+        expect(parseIndexExpressions("id, name")).toEqual(["id", "name"]);
       });
 
       it("should handle expressions with nested parentheses", () => {
@@ -1398,9 +1389,7 @@ describe("PostgresAdapter", () => {
       });
 
       it("should handle single expression", () => {
-        expect(parseIndexExpressions("lower(name)")).toEqual([
-          "lower(name)",
-        ]);
+        expect(parseIndexExpressions("lower(name)")).toEqual(["lower(name)"]);
       });
 
       it("should handle empty string", () => {

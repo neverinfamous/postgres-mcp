@@ -39,10 +39,7 @@ function preprocessBeginParams(input: unknown): unknown {
 // Base schema for MCP visibility — uses z.string() so invalid values reach the
 // handler's try/catch instead of being rejected as raw MCP -32602 errors.
 export const BeginTransactionSchemaBase = z.object({
-  isolationLevel: z
-    .string()
-    .optional()
-    .describe("Transaction isolation level"),
+  isolationLevel: z.string().optional().describe("Transaction isolation level"),
 });
 
 // Internal schema with strict enum validation (used inside handler try/catch)
@@ -148,10 +145,7 @@ export const TransactionExecuteSchemaBase = z.object({
     ),
   txId: z.string().optional().describe("Alias for transactionId"),
   tx: z.string().optional().describe("Alias for transactionId"),
-  isolationLevel: z
-    .string()
-    .optional()
-    .describe("Transaction isolation level"),
+  isolationLevel: z.string().optional().describe("Transaction isolation level"),
 });
 
 // Internal schema with strict validation (used inside handler try/catch)

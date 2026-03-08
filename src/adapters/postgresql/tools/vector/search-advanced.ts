@@ -49,10 +49,7 @@ export function createVectorClusterTool(
     k: z.any().optional().describe("Number of clusters"),
     clusters: z.any().optional().describe("Alias for k (number of clusters)"),
     iterations: z.any().optional().describe("Max iterations (default: 10)"),
-    sampleSize: z
-      .any()
-      .optional()
-      .describe("Sample size for large tables"),
+    sampleSize: z.any().optional().describe("Sample size for large tables"),
     schema: z.string().optional().describe("Database schema (default: public)"),
   });
 

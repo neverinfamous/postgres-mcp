@@ -261,10 +261,7 @@ export const PartmanPartitionDataSchemaBase = z.object({
     .any()
     .optional()
     .describe("Rows to move per batch (default: varies by function)"),
-  lockWaitSeconds: z
-    .any()
-    .optional()
-    .describe("Lock wait timeout in seconds"),
+  lockWaitSeconds: z.any().optional().describe("Lock wait timeout in seconds"),
 });
 
 export const PartmanPartitionDataSchema = z

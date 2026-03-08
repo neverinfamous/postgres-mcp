@@ -16,10 +16,7 @@ export const CreateSchemaSchemaBase = z.object({
 
 // Full schema parsed inside the handler
 export const CreateSchemaSchema = z
-  .preprocess(
-    (val: unknown) => val ?? {},
-    CreateSchemaSchemaBase,
-  )
+  .preprocess((val: unknown) => val ?? {}, CreateSchemaSchemaBase)
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
     message: "name is required",
   });
@@ -33,10 +30,7 @@ export const DropSchemaSchemaBase = z.object({
 
 // Full schema parsed inside the handler
 export const DropSchemaSchema = z
-  .preprocess(
-    (val: unknown) => val ?? {},
-    DropSchemaSchemaBase,
-  )
+  .preprocess((val: unknown) => val ?? {}, DropSchemaSchemaBase)
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
     message: "name is required",
   });
@@ -51,7 +45,10 @@ export const CreateSequenceSchemaBase = z.object({
   increment: z.any().optional().describe("Increment by (default: 1)"),
   minValue: z.any().optional().describe("Minimum value"),
   maxValue: z.any().optional().describe("Maximum value"),
-  cache: z.any().optional().describe("Number of sequence values to pre-allocate (default: 1)"),
+  cache: z
+    .any()
+    .optional()
+    .describe("Number of sequence values to pre-allocate (default: 1)"),
   cycle: z
     .boolean()
     .optional()
@@ -193,7 +190,10 @@ export const CreateViewSchema = z
  * Base schema for dropping sequences - used for MCP inputSchema visibility.
  */
 export const DropSequenceSchemaBase = z.object({
-  name: z.string().optional().describe("Sequence name (supports schema.name format)"),
+  name: z
+    .string()
+    .optional()
+    .describe("Sequence name (supports schema.name format)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   ifExists: z.boolean().optional().describe("Use IF EXISTS to avoid errors"),
   cascade: z.boolean().optional().describe("Drop dependent objects"),
@@ -235,7 +235,10 @@ export const DropSequenceSchema = z
  * Base schema for dropping views - used for MCP inputSchema visibility.
  */
 export const DropViewSchemaBase = z.object({
-  name: z.string().optional().describe("View name (supports schema.name format)"),
+  name: z
+    .string()
+    .optional()
+    .describe("View name (supports schema.name format)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   materialized: z
     .boolean()

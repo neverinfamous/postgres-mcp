@@ -143,10 +143,7 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
     .string()
     .optional()
     .describe("Table name to filter (analyzes single table)"),
-  limit: z
-    .any()
-    .optional()
-    .describe("Maximum number of candidates to return"),
+  limit: z.any().optional().describe("Maximum number of candidates to return"),
   excludeSystemSchemas: z
     .boolean()
     .optional()

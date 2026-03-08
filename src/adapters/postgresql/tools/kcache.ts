@@ -165,10 +165,20 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
           })
           .parse(params ?? {});
 
-        const limit = parsed.limit !== undefined && !isNaN(parsed.limit) ? parsed.limit : undefined;
+        const limit =
+          parsed.limit !== undefined && !isNaN(parsed.limit)
+            ? parsed.limit
+            : undefined;
         const orderBy = parsed.orderBy;
-        const minCalls = parsed.minCalls !== undefined && !isNaN(parsed.minCalls) ? parsed.minCalls : undefined;
-        const queryPreviewLength = parsed.queryPreviewLength !== undefined && !isNaN(parsed.queryPreviewLength) ? parsed.queryPreviewLength : undefined;
+        const minCalls =
+          parsed.minCalls !== undefined && !isNaN(parsed.minCalls)
+            ? parsed.minCalls
+            : undefined;
+        const queryPreviewLength =
+          parsed.queryPreviewLength !== undefined &&
+          !isNaN(parsed.queryPreviewLength)
+            ? parsed.queryPreviewLength
+            : undefined;
 
         // Validate orderBy inside handler for structured error response
         const VALID_ORDER_BY = [
@@ -305,15 +315,19 @@ in user CPU (application code) vs system CPU (kernel operations).`,
         const DEFAULT_LIMIT = 10;
         // limit: 0 means "no limit" (return all rows), undefined means use default
         const limitVal =
-          parsed.limit === 0 || (parsed.limit !== undefined && isNaN(parsed.limit))
-            ? (parsed.limit !== undefined && isNaN(parsed.limit) ? DEFAULT_LIMIT : null)
+          parsed.limit === 0 ||
+          (parsed.limit !== undefined && isNaN(parsed.limit))
+            ? parsed.limit !== undefined && isNaN(parsed.limit)
+              ? DEFAULT_LIMIT
+              : null
             : (parsed.limit ?? DEFAULT_LIMIT);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
             ? 10000
             : Math.min(
-                (parsed.queryPreviewLength !== undefined && !isNaN(parsed.queryPreviewLength))
+                parsed.queryPreviewLength !== undefined &&
+                  !isNaN(parsed.queryPreviewLength)
                   ? parsed.queryPreviewLength
                   : 100,
                 500,
@@ -431,15 +445,19 @@ which represent actual disk access (not just shared buffer hits).`,
         const DEFAULT_LIMIT = 10;
         // limit: 0 means "no limit" (return all rows), undefined means use default
         const limitVal =
-          parsed.limit === 0 || (parsed.limit !== undefined && isNaN(parsed.limit))
-            ? (parsed.limit !== undefined && isNaN(parsed.limit) ? DEFAULT_LIMIT : null)
+          parsed.limit === 0 ||
+          (parsed.limit !== undefined && isNaN(parsed.limit))
+            ? parsed.limit !== undefined && isNaN(parsed.limit)
+              ? DEFAULT_LIMIT
+              : null
             : (parsed.limit ?? DEFAULT_LIMIT);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
             ? 10000
             : Math.min(
-                (parsed.queryPreviewLength !== undefined && !isNaN(parsed.queryPreviewLength))
+                parsed.queryPreviewLength !== undefined &&
+                  !isNaN(parsed.queryPreviewLength)
                   ? parsed.queryPreviewLength
                   : 100,
                 500,
@@ -628,10 +646,23 @@ Helps identify the root cause of performance issues - is the query computation-h
           .parse(params ?? {});
 
         const queryId = parsed.queryId;
-        const threshold = parsed.threshold !== undefined && !isNaN(parsed.threshold) ? parsed.threshold : undefined;
-        const limit = parsed.limit !== undefined && !isNaN(parsed.limit) ? parsed.limit : undefined;
-        const minCalls = parsed.minCalls !== undefined && !isNaN(parsed.minCalls) ? parsed.minCalls : undefined;
-        const queryPreviewLength = parsed.queryPreviewLength !== undefined && !isNaN(parsed.queryPreviewLength) ? parsed.queryPreviewLength : undefined;
+        const threshold =
+          parsed.threshold !== undefined && !isNaN(parsed.threshold)
+            ? parsed.threshold
+            : undefined;
+        const limit =
+          parsed.limit !== undefined && !isNaN(parsed.limit)
+            ? parsed.limit
+            : undefined;
+        const minCalls =
+          parsed.minCalls !== undefined && !isNaN(parsed.minCalls)
+            ? parsed.minCalls
+            : undefined;
+        const queryPreviewLength =
+          parsed.queryPreviewLength !== undefined &&
+          !isNaN(parsed.queryPreviewLength)
+            ? parsed.queryPreviewLength
+            : undefined;
 
         const thresholdVal = threshold ?? 0.5;
         const DEFAULT_LIMIT = 20;
