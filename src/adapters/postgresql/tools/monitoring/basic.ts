@@ -89,10 +89,27 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Table Sizes"),
     icons: getToolIcons("monitoring", readOnly("Table Sizes")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { schema, limit } = TableSizesSchema.parse(params) as {
-        schema?: string;
-        limit?: number;
-      };
+      let schema: string | undefined;
+      let limit: number | undefined;
+      try {
+        const parsed = TableSizesSchema.parse(params) as {
+          schema?: string;
+          limit?: number;
+        };
+        schema = parsed.schema;
+        limit = parsed.limit;
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          return {
+            success: false,
+            error: err.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_table_sizes" }),
+        };
+      }
 
       // P154: Validate schema existence before querying
       if (schema) {
@@ -322,10 +339,27 @@ export function createShowSettingsTool(
     annotations: readOnly("Show Settings"),
     icons: getToolIcons("monitoring", readOnly("Show Settings")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { pattern, limit } = ShowSettingsSchema.parse(params) as {
-        pattern?: string;
-        limit?: number;
-      };
+      let pattern: string | undefined;
+      let limit: number | undefined;
+      try {
+        const parsed = ShowSettingsSchema.parse(params) as {
+          pattern?: string;
+          limit?: number;
+        };
+        pattern = parsed.pattern;
+        limit = parsed.limit;
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          return {
+            success: false,
+            error: err.issues.map((i) => i.message).join("; "),
+          };
+        }
+        return {
+          success: false,
+          error: formatPostgresError(err, { tool: "pg_show_settings" }),
+        };
+      }
 
       // Auto-detect if user passed exact name vs LIKE pattern
       // If no wildcards, try exact match first, fall back to LIKE with wildcards
