@@ -1737,3 +1737,97 @@ describe("Parameter Smoothing", () => {
     });
   });
 });
+
+/**
+ * Error Path Tests - Empty Params Validation
+ *
+ * These tests verify that all partitioning tools return structured handler
+ * errors ({success: false, error: "..."}) instead of throwing raw Zod errors
+ * when called with empty parameters.
+ */
+describe("Error Path - Empty Params Validation", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPartitioningTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPartitioningTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("pg_list_partitions should return structured error for empty params", async () => {
+    const tool = tools.find((t) => t.name === "pg_list_partitions")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe("string");
+    expect(result.error.length).toBeGreaterThan(0);
+  });
+
+  it("pg_partition_info should return structured error for empty params", async () => {
+    const tool = tools.find((t) => t.name === "pg_partition_info")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe("string");
+    expect(result.error.length).toBeGreaterThan(0);
+  });
+
+  it("pg_create_partitioned_table should return structured error for empty params", async () => {
+    const tool = tools.find(
+      (t) => t.name === "pg_create_partitioned_table",
+    )!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe("string");
+    expect(result.error.length).toBeGreaterThan(0);
+  });
+
+  it("pg_create_partition should return structured error for empty params", async () => {
+    const tool = tools.find((t) => t.name === "pg_create_partition")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe("string");
+    expect(result.error.length).toBeGreaterThan(0);
+  });
+
+  it("pg_attach_partition should return structured error for empty params", async () => {
+    const tool = tools.find((t) => t.name === "pg_attach_partition")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe("string");
+    expect(result.error.length).toBeGreaterThan(0);
+  });
+
+  it("pg_detach_partition should return structured error for empty params", async () => {
+    const tool = tools.find((t) => t.name === "pg_detach_partition")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(typeof result.error).toBe("string");
+    expect(result.error.length).toBeGreaterThan(0);
+  });
+});

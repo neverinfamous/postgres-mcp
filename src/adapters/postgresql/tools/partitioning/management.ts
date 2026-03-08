@@ -96,11 +96,21 @@ export function createListPartitionsTool(
     icons: getToolIcons("partitioning", readOnly("List Partitions")),
     handler: async (params: unknown, _context: RequestContext) => {
       // Use preprocessed schema for alias resolution
-      const parsed = ListPartitionsSchema.parse(params) as {
-        table: string;
-        schema?: string;
-        limit?: number;
-      };
+      let parsed;
+      try {
+        parsed = ListPartitionsSchema.parse(params) as {
+          table: string;
+          schema?: string;
+          limit?: number;
+        };
+      } catch (zodError: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(zodError, {
+            tool: "pg_list_partitions",
+          }),
+        };
+      }
 
       // Parse schema.table format if present
       let tableName = parsed.table;
@@ -231,8 +241,9 @@ export function createPartitionedTableTool(
       } catch (zodError: unknown) {
         return {
           success: false,
-          error:
-            zodError instanceof Error ? zodError.message : String(zodError),
+          error: formatPostgresError(zodError, {
+            tool: "pg_create_partitioned_table",
+          }),
         };
       }
       const { name, schema, columns, partitionBy, partitionKey, primaryKey } =
@@ -380,14 +391,24 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("partitioning", write("Create Partition")),
     handler: async (params: unknown, _context: RequestContext) => {
       // Preprocessing resolves parent from parent/parentTable/table aliases
-      const parsed = CreatePartitionSchema.parse(params) as {
-        parent: string;
-        name: string;
-        schema?: string;
-        forValues: string;
-        subpartitionBy?: "range" | "list" | "hash";
-        subpartitionKey?: string;
-      };
+      let parsed;
+      try {
+        parsed = CreatePartitionSchema.parse(params) as {
+          parent: string;
+          name: string;
+          schema?: string;
+          forValues: string;
+          subpartitionBy?: "range" | "list" | "hash";
+          subpartitionKey?: string;
+        };
+      } catch (zodError: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(zodError, {
+            tool: "pg_create_partition",
+          }),
+        };
+      }
       const {
         parent,
         name,

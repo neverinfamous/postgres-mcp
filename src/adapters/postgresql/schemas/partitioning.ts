@@ -238,8 +238,10 @@ function preprocessCreatePartitionedTable(input: unknown): unknown {
 }
 
 // Base schema for MCP visibility (no preprocessing)
+// All fields optional in Base to prevent MCP-level Zod errors.
+// Validation enforced via .refine() on the preprocessed Schema (handler-side try/catch).
 export const CreatePartitionedTableSchemaBase = z.object({
-  name: z.string().describe("Table name"),
+  name: z.string().optional().describe("Table name"),
   schema: z.string().optional().describe("Schema name"),
   columns: z
     .array(
@@ -262,9 +264,14 @@ export const CreatePartitionedTableSchemaBase = z.object({
           .describe("Default value"),
       }),
     )
+    .optional()
+    .default([])
     .describe("Column definitions"),
-  partitionBy: z.string().describe("Partition strategy (range, list, or hash)"),
-  partitionKey: z.string().describe("Partition key column(s)"),
+  partitionBy: z
+    .string()
+    .optional()
+    .describe("Partition strategy (range, list, or hash)"),
+  partitionKey: z.string().optional().describe("Partition key column(s)"),
   primaryKey: z
     .array(z.string())
     .optional()
@@ -276,187 +283,213 @@ export const CreatePartitionedTableSchemaBase = z.object({
 // Preprocessed schema for handler parsing (with alias support)
 export const CreatePartitionedTableSchema = z.preprocess(
   preprocessCreatePartitionedTable,
-  CreatePartitionedTableSchemaBase,
+  CreatePartitionedTableSchemaBase.refine(
+    (data) => typeof data.name === "string" && data.name.length > 0,
+    {
+      message: "name (or table alias) is required",
+      path: ["name"],
+    },
+  ).refine(
+    (data) => Array.isArray(data.columns) && data.columns.length > 0,
+    {
+      message: "columns must not be empty",
+      path: ["columns"],
+    },
+  ).refine(
+    (data) => typeof data.partitionBy === "string" && data.partitionBy.length > 0,
+    {
+      message: "partitionBy is required (range, list, or hash)",
+      path: ["partitionBy"],
+    },
+  ).refine(
+    (data) => typeof data.partitionKey === "string" && data.partitionKey.length > 0,
+    {
+      message: "partitionKey is required",
+      path: ["partitionKey"],
+    },
+  ),
 );
 
 // Base schema for MCP visibility (with alias parameters for Split Schema compliance)
-export const CreatePartitionSchemaBase = z
-  .object({
-    parent: z
-      .string()
-      .optional()
-      .describe("Parent table name (aliases: parentTable, table)"),
-    parentTable: z.string().optional().describe("Alias for parent"),
-    table: z.string().optional().describe("Alias for parent"),
-    name: z.string().describe("Partition name (alias: partitionName)"),
-    schema: z.string().optional().describe("Schema name"),
-    forValues: z
-      .string()
-      .optional()
-      .describe(
-        "Raw SQL partition bounds string (REQUIRED). Examples: \"FROM ('2024-01-01') TO ('2024-07-01')\", \"IN ('US', 'CA')\", \"WITH (MODULUS 4, REMAINDER 0)\". For DEFAULT partitions, use isDefault: true instead",
-      ),
-    isDefault: z
-      .boolean()
-      .optional()
-      .describe(
-        "Create DEFAULT partition. Use instead of forValues for default partitions.",
-      ),
-    // Sub-partitioning support for multi-level partitions
-    subpartitionBy: z
-      .enum(["range", "list", "hash"])
-      .optional()
-      .describe(
-        "Make this partition itself partitionable. For multi-level partitioning.",
-      ),
-    subpartitionKey: z
-      .string()
-      .optional()
-      .describe(
-        "Column(s) to partition sub-partitions by. Required if subpartitionBy is set.",
-      ),
-  })
-  .refine(
-    (data) =>
-      data.parent !== undefined ||
-      data.parentTable !== undefined ||
-      data.table !== undefined,
-    {
-      message: "One of parent, parentTable, or table is required",
-      path: ["parent"],
-    },
-  )
-  .refine((data) => data.forValues !== undefined || data.isDefault === true, {
-    message:
-      "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
-    path: ["forValues"],
-  });
+export const CreatePartitionSchemaBase = z.object({
+  parent: z
+    .string()
+    .optional()
+    .describe("Parent table name (aliases: parentTable, table)"),
+  parentTable: z.string().optional().describe("Alias for parent"),
+  table: z.string().optional().describe("Alias for parent"),
+  name: z.string().optional().describe("Partition name (alias: partitionName)"),
+  schema: z.string().optional().describe("Schema name"),
+  forValues: z
+    .string()
+    .optional()
+    .describe(
+      "Raw SQL partition bounds string (REQUIRED). Examples: \"FROM ('2024-01-01') TO ('2024-07-01')\", \"IN ('US', 'CA')\", \"WITH (MODULUS 4, REMAINDER 0)\". For DEFAULT partitions, use isDefault: true instead",
+    ),
+  isDefault: z
+    .boolean()
+    .optional()
+    .describe(
+      "Create DEFAULT partition. Use instead of forValues for default partitions.",
+    ),
+  // Sub-partitioning support for multi-level partitions
+  subpartitionBy: z
+    .enum(["range", "list", "hash"])
+    .optional()
+    .describe(
+      "Make this partition itself partitionable. For multi-level partitioning.",
+    ),
+  subpartitionKey: z
+    .string()
+    .optional()
+    .describe(
+      "Column(s) to partition sub-partitions by. Required if subpartitionBy is set.",
+    ),
+});
 
 // Preprocessed schema for handler parsing (with alias support)
 export const CreatePartitionSchema = z.preprocess(
   preprocessPartitionParams,
-  CreatePartitionSchemaBase,
+  CreatePartitionSchemaBase
+    .refine(
+      (data) =>
+        data.parent !== undefined ||
+        data.parentTable !== undefined ||
+        data.table !== undefined,
+      {
+        message: "One of parent, parentTable, or table is required",
+        path: ["parent"],
+      },
+    )
+    .refine((data) => data.forValues !== undefined || data.isDefault === true, {
+      message:
+        "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
+      path: ["forValues"],
+    }),
 );
 
 // Base schema for MCP visibility (with alias parameters for Split Schema compliance)
-export const AttachPartitionSchemaBase = z
-  .object({
-    parent: z
-      .string()
-      .optional()
-      .describe("Parent table name (aliases: parentTable, table)"),
-    parentTable: z.string().optional().describe("Alias for parent"),
-    table: z.string().optional().describe("Alias for parent"),
-    partition: z
-      .string()
-      .optional()
-      .describe("Table to attach (aliases: partitionTable, partitionName)"),
-    partitionTable: z.string().optional().describe("Alias for partition"),
-    partitionName: z.string().optional().describe("Alias for partition"),
-    schema: z
-      .string()
-      .optional()
-      .describe("Schema name (auto-parsed from schema.table format)"),
-    forValues: z
-      .string()
-      .optional()
-      .describe(
-        "Raw SQL partition bounds string (REQUIRED). Examples: \"FROM ('2024-01-01') TO ('2024-07-01')\", \"IN ('US', 'CA')\", \"WITH (MODULUS 4, REMAINDER 0)\". For DEFAULT partitions, use isDefault: true instead",
-      ),
-    isDefault: z
-      .boolean()
-      .optional()
-      .describe(
-        "Attach as DEFAULT partition. Use instead of forValues for default partitions.",
-      ),
-  })
-  .refine(
-    (data) =>
-      data.parent !== undefined ||
-      data.parentTable !== undefined ||
-      data.table !== undefined,
-    {
-      message: "One of parent, parentTable, or table is required",
-      path: ["parent"],
-    },
-  )
-  .refine(
-    (data) =>
-      data.partition !== undefined ||
-      data.partitionTable !== undefined ||
-      data.partitionName !== undefined,
-    {
-      message: "One of partition, partitionTable, or partitionName is required",
-      path: ["partition"],
-    },
-  )
-  .refine((data) => data.forValues !== undefined || data.isDefault === true, {
-    message:
-      "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
-    path: ["forValues"],
-  });
+export const AttachPartitionSchemaBase = z.object({
+  parent: z
+    .string()
+    .optional()
+    .describe("Parent table name (aliases: parentTable, table)"),
+  parentTable: z.string().optional().describe("Alias for parent"),
+  table: z.string().optional().describe("Alias for parent"),
+  partition: z
+    .string()
+    .optional()
+    .describe("Table to attach (aliases: partitionTable, partitionName)"),
+  partitionTable: z.string().optional().describe("Alias for partition"),
+  partitionName: z.string().optional().describe("Alias for partition"),
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema name (auto-parsed from schema.table format)"),
+  forValues: z
+    .string()
+    .optional()
+    .describe(
+      "Raw SQL partition bounds string (REQUIRED). Examples: \"FROM ('2024-01-01') TO ('2024-07-01')\", \"IN ('US', 'CA')\", \"WITH (MODULUS 4, REMAINDER 0)\". For DEFAULT partitions, use isDefault: true instead",
+    ),
+  isDefault: z
+    .boolean()
+    .optional()
+    .describe(
+      "Attach as DEFAULT partition. Use instead of forValues for default partitions.",
+    ),
+});
 
 // Preprocessed schema for handler parsing (with alias support)
 export const AttachPartitionSchema = z.preprocess(
   preprocessPartitionParams,
-  AttachPartitionSchemaBase,
+  AttachPartitionSchemaBase
+    .refine(
+      (data) =>
+        data.parent !== undefined ||
+        data.parentTable !== undefined ||
+        data.table !== undefined,
+      {
+        message: "One of parent, parentTable, or table is required",
+        path: ["parent"],
+      },
+    )
+    .refine(
+      (data) =>
+        data.partition !== undefined ||
+        data.partitionTable !== undefined ||
+        data.partitionName !== undefined,
+      {
+        message:
+          "One of partition, partitionTable, or partitionName is required",
+        path: ["partition"],
+      },
+    )
+    .refine(
+      (data) => data.forValues !== undefined || data.isDefault === true,
+      {
+        message:
+          "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
+        path: ["forValues"],
+      },
+    ),
 );
 
 // Base schema for MCP visibility (with alias parameters for Split Schema compliance)
-export const DetachPartitionSchemaBase = z
-  .object({
-    parent: z
-      .string()
-      .optional()
-      .describe("Parent table name (aliases: parentTable, table)"),
-    parentTable: z.string().optional().describe("Alias for parent"),
-    table: z.string().optional().describe("Alias for parent"),
-    partition: z
-      .string()
-      .optional()
-      .describe("Partition to detach (aliases: partitionTable, partitionName)"),
-    partitionTable: z.string().optional().describe("Alias for partition"),
-    partitionName: z.string().optional().describe("Alias for partition"),
-    schema: z
-      .string()
-      .optional()
-      .describe("Schema name (auto-parsed from schema.table format)"),
-    concurrently: z
-      .boolean()
-      .optional()
-      .describe("Detach concurrently (non-blocking)"),
-    finalize: z
-      .boolean()
-      .optional()
-      .describe(
-        "Complete an interrupted CONCURRENTLY detach. Only use after a prior CONCURRENTLY detach was interrupted.",
-      ),
-  })
-  .refine(
-    (data) =>
-      data.parent !== undefined ||
-      data.parentTable !== undefined ||
-      data.table !== undefined,
-    {
-      message: "One of parent, parentTable, or table is required",
-      path: ["parent"],
-    },
-  )
-  .refine(
-    (data) =>
-      data.partition !== undefined ||
-      data.partitionTable !== undefined ||
-      data.partitionName !== undefined,
-    {
-      message: "One of partition, partitionTable, or partitionName is required",
-      path: ["partition"],
-    },
-  );
+export const DetachPartitionSchemaBase = z.object({
+  parent: z
+    .string()
+    .optional()
+    .describe("Parent table name (aliases: parentTable, table)"),
+  parentTable: z.string().optional().describe("Alias for parent"),
+  table: z.string().optional().describe("Alias for parent"),
+  partition: z
+    .string()
+    .optional()
+    .describe("Partition to detach (aliases: partitionTable, partitionName)"),
+  partitionTable: z.string().optional().describe("Alias for partition"),
+  partitionName: z.string().optional().describe("Alias for partition"),
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema name (auto-parsed from schema.table format)"),
+  concurrently: z
+    .boolean()
+    .optional()
+    .describe("Detach concurrently (non-blocking)"),
+  finalize: z
+    .boolean()
+    .optional()
+    .describe(
+      "Complete an interrupted CONCURRENTLY detach. Only use after a prior CONCURRENTLY detach was interrupted.",
+    ),
+});
 
 // Preprocessed schema for handler parsing (with alias support)
 export const DetachPartitionSchema = z.preprocess(
   preprocessPartitionParams,
-  DetachPartitionSchemaBase,
+  DetachPartitionSchemaBase
+    .refine(
+      (data) =>
+        data.parent !== undefined ||
+        data.parentTable !== undefined ||
+        data.table !== undefined,
+      {
+        message: "One of parent, parentTable, or table is required",
+        path: ["parent"],
+      },
+    )
+    .refine(
+      (data) =>
+        data.partition !== undefined ||
+        data.partitionTable !== undefined ||
+        data.partitionName !== undefined,
+      {
+        message:
+          "One of partition, partitionTable, or partitionName is required",
+        path: ["partition"],
+      },
+    ),
 );
 
 /**
@@ -498,46 +531,22 @@ function preprocessListInfoParams(input: unknown): unknown {
 }
 
 // Base schema for MCP visibility (with alias parameters for Split Schema compliance)
-export const ListPartitionsSchemaBase = z
-  .object({
-    table: z.string().optional().describe("Table name"),
-    parent: z.string().optional().describe("Alias for table"),
-    parentTable: z.string().optional().describe("Alias for table"),
-    name: z.string().optional().describe("Alias for table"),
-    schema: z.string().optional().describe("Schema name"),
-    limit: z.coerce
-      .number()
-      .optional()
-      .describe("Maximum partitions to return"),
-  })
-  .refine(
-    (data) =>
-      data.table !== undefined ||
-      data.parent !== undefined ||
-      data.parentTable !== undefined ||
-      data.name !== undefined,
-    {
-      message: "One of table, parent, parentTable, or name is required",
-      path: ["table"],
-    },
-  );
+export const ListPartitionsSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  parent: z.string().optional().describe("Alias for table"),
+  parentTable: z.string().optional().describe("Alias for table"),
+  name: z.string().optional().describe("Alias for table"),
+  schema: z.string().optional().describe("Schema name"),
+  limit: z.coerce
+    .number()
+    .optional()
+    .describe("Maximum partitions to return"),
+});
 
 // Preprocessed schema for handler parsing (with alias support)
 export const ListPartitionsSchema = z.preprocess(
   preprocessListInfoParams,
-  ListPartitionsSchemaBase,
-);
-
-// Base schema for MCP visibility (with alias parameters for Split Schema compliance)
-export const PartitionInfoSchemaBase = z
-  .object({
-    table: z.string().optional().describe("Table name"),
-    parent: z.string().optional().describe("Alias for table"),
-    parentTable: z.string().optional().describe("Alias for table"),
-    name: z.string().optional().describe("Alias for table"),
-    schema: z.string().optional().describe("Schema name"),
-  })
-  .refine(
+  ListPartitionsSchemaBase.refine(
     (data) =>
       data.table !== undefined ||
       data.parent !== undefined ||
@@ -547,12 +556,32 @@ export const PartitionInfoSchemaBase = z
       message: "One of table, parent, parentTable, or name is required",
       path: ["table"],
     },
-  );
+  ),
+);
+
+// Base schema for MCP visibility (with alias parameters for Split Schema compliance)
+export const PartitionInfoSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  parent: z.string().optional().describe("Alias for table"),
+  parentTable: z.string().optional().describe("Alias for table"),
+  name: z.string().optional().describe("Alias for table"),
+  schema: z.string().optional().describe("Schema name"),
+});
 
 // Preprocessed schema for handler parsing (with alias support)
 export const PartitionInfoSchema = z.preprocess(
   preprocessListInfoParams,
-  PartitionInfoSchemaBase,
+  PartitionInfoSchemaBase.refine(
+    (data) =>
+      data.table !== undefined ||
+      data.parent !== undefined ||
+      data.parentTable !== undefined ||
+      data.name !== undefined,
+    {
+      message: "One of table, parent, parentTable, or name is required",
+      path: ["table"],
+    },
+  ),
 );
 
 // ============================================================================

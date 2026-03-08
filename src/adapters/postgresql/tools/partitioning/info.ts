@@ -42,13 +42,23 @@ export function createAttachPartitionTool(
     annotations: write("Attach Partition"),
     icons: getToolIcons("partitioning", write("Attach Partition")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { parent, partition, forValues, schema } =
-        AttachPartitionSchema.parse(params) as {
+      let parsed;
+      try {
+        parsed = AttachPartitionSchema.parse(params) as {
           parent: string;
           partition: string;
           forValues: string;
           schema?: string;
         };
+      } catch (zodError: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(zodError, {
+            tool: "pg_attach_partition",
+          }),
+        };
+      }
+      const { parent, partition, forValues, schema } = parsed;
 
       // Check parent table existence and partition status before SQL execution
       const parsedParentCheck = parseSchemaTable(parent, schema);
@@ -154,14 +164,24 @@ export function createDetachPartitionTool(
     annotations: destructive("Detach Partition"),
     icons: getToolIcons("partitioning", destructive("Detach Partition")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { parent, partition, concurrently, finalize, schema } =
-        DetachPartitionSchema.parse(params) as {
+      let parsed;
+      try {
+        parsed = DetachPartitionSchema.parse(params) as {
           parent: string;
           partition: string;
           concurrently?: boolean;
           finalize?: boolean;
           schema?: string;
         };
+      } catch (zodError: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(zodError, {
+            tool: "pg_detach_partition",
+          }),
+        };
+      }
+      const { parent, partition, concurrently, finalize, schema } = parsed;
 
       // Check parent table existence and partition status before SQL execution
       const parsedParentCheck = parseSchemaTable(parent, schema);
@@ -261,10 +281,20 @@ export function createPartitionInfoTool(
     icons: getToolIcons("partitioning", readOnly("Partition Info")),
     handler: async (params: unknown, _context: RequestContext) => {
       // Use preprocessed schema for alias resolution
-      const parsed = PartitionInfoSchema.parse(params) as {
-        table: string;
-        schema?: string;
-      };
+      let parsed;
+      try {
+        parsed = PartitionInfoSchema.parse(params) as {
+          table: string;
+          schema?: string;
+        };
+      } catch (zodError: unknown) {
+        return {
+          success: false,
+          error: formatPostgresError(zodError, {
+            tool: "pg_partition_info",
+          }),
+        };
+      }
 
       // Parse schema.table format if present
       let tableName = parsed.table;
