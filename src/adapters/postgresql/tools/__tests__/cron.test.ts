@@ -851,3 +851,241 @@ describe("pg_cron error handling", () => {
     expect(result.error).toMatch(/Job.*not found/);
   });
 });
+
+// =============================================================================
+// Additional Coverage: uncovered branches in cron.ts
+// =============================================================================
+
+describe("cron.ts uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getCronTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getCronTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  // cron.ts L245-246: unschedule lookup query failure (catch block)
+  it("should handle unschedule lookup failure gracefully", async () => {
+    // Mock lookup query failing
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("cron.job does not exist"),
+    );
+    // Mock unschedule query succeeding
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ removed: true }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cron_unschedule")!;
+    const result = (await tool.handler(
+      { jobId: 5 },
+      mockContext,
+    )) as { success: boolean; jobId: number | null };
+
+    expect(result.success).toBe(true);
+    expect(result.jobId).toBe(5); // Falls back to provided jobId
+  });
+
+  // cron.ts L419-424: list_jobs limit coercion with NaN value
+  it("should fallback to default limit when limit is NaN", async () => {
+    // Mock COUNT query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: 2 }],
+    });
+    // Mock main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { jobid: 1, jobname: "test", schedule: "* * * * *", active: true },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
+    const result = (await tool.handler(
+      { limit: "not_a_number" },
+      mockContext,
+    )) as { count: number };
+
+    // Should fallback to default limit 50
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
+    expect(sql).toContain("LIMIT 50");
+    expect(result.count).toBe(1);
+  });
+
+  // cron.ts L437: list_jobs active filter in COUNT query
+  it("should include active filter in COUNT query when active is set", async () => {
+    // Mock COUNT query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: 3 }],
+    });
+    // Mock main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { jobid: 1, jobname: "test", schedule: "* * * * *", active: true },
+        { jobid: 2, jobname: "test2", schedule: "0 * * * *", active: true },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
+    const result = (await tool.handler(
+      { active: true },
+      mockContext,
+    )) as { count: number; truncated: boolean; totalCount: number };
+
+    // COUNT query should include WHERE active = $1
+    const countSql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    expect(countSql).toContain("WHERE active = $1");
+    expect(result.truncated).toBe(true);
+    expect(result.totalCount).toBe(3);
+  });
+
+  // cron.ts list_jobs with unnamed jobs hint
+  it("should include unnamed jobs hint in list_jobs response", async () => {
+    // Mock COUNT query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: 2 }],
+    });
+    // Mock main query with unnamed jobs
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { jobid: 1, jobname: null, schedule: "* * * * *", active: true },
+        { jobid: 2, jobname: null, schedule: "0 * * * *", active: true },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      hint: string;
+    };
+
+    expect(result.hint).toContain("2 job(s) have no name");
+    expect(result.hint).toContain("jobId");
+  });
+
+  // cron.ts L419-424: list_jobs with limit=0 (unlimited)
+  it("should return all jobs when limit is 0", async () => {
+    // No COUNT query needed when unlimited
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { jobid: 1, jobname: "a", schedule: "* * * * *", active: true },
+        { jobid: 2, jobname: "b", schedule: "0 * * * *", active: true },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
+    const result = (await tool.handler(
+      { limit: 0 },
+      mockContext,
+    )) as { count: number; truncated?: boolean };
+
+    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    expect(sql).not.toContain("LIMIT");
+    expect(result.count).toBe(2);
+    expect(result.truncated).toBeUndefined();
+  });
+
+  // cron.ts L681: cleanup_history negative days validation
+  it("should return error for negative days in cleanup_history", async () => {
+    const tool = tools.find((t) => t.name === "pg_cron_cleanup_history")!;
+    const result = (await tool.handler(
+      { olderThanDays: -1 },
+      mockContext,
+    )) as {
+      success: boolean;
+      message: string;
+      olderThanDays: number;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("non-negative");
+    expect(result.olderThanDays).toBe(-1);
+  });
+
+  // cron.ts L715-724: cleanup_history ZodError catch path
+  // This would fire if the schema parse itself throws, but since we relaxed
+  // validation, we'll test the general DB error path instead
+  it("should handle DB error in cleanup_history", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("cron.job_run_details does not exist"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_cron_cleanup_history")!;
+    const result = (await tool.handler(
+      { olderThanDays: 7 },
+      mockContext,
+    )) as {
+      success: boolean;
+      message: string;
+      deletedCount: number;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.deletedCount).toBe(0);
+    expect(result.message).toContain("does not exist");
+  });
+
+  // cron.ts list_jobs DB error path
+  it("should handle DB error in list_jobs", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("cron.job does not exist"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      jobs: unknown[];
+      count: number;
+      error: string;
+    };
+
+    expect(result.jobs).toEqual([]);
+    expect(result.count).toBe(0);
+    expect(result.error).toContain("does not exist");
+  });
+
+  // cron.ts job_run_details with limit=0 (unlimited)
+  it("should return all run details when limit is 0", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { runid: 1, jobid: 1, status: "succeeded" },
+        { runid: 2, jobid: 1, status: "failed" },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cron_job_run_details")!;
+    const result = (await tool.handler(
+      { limit: 0 },
+      mockContext,
+    )) as {
+      count: number;
+      truncated?: boolean;
+      summary: { succeeded: number; failed: number };
+    };
+
+    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    expect(sql).not.toContain("LIMIT");
+    expect(result.count).toBe(2);
+    expect(result.summary.succeeded).toBe(1);
+    expect(result.summary.failed).toBe(1);
+    expect(result.truncated).toBeUndefined();
+  });
+
+  // cron.ts job_run_details DB error path
+  it("should handle DB error in job_run_details", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("relation does not exist"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_cron_job_run_details")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      runs: unknown[];
+      count: number;
+      error: string;
+    };
+
+    expect(result.runs).toEqual([]);
+    expect(result.count).toBe(0);
+    expect(result.error).toContain("does not exist");
+  });
+});

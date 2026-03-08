@@ -1050,3 +1050,161 @@ describe("PostGIS Tools", () => {
     expect(toolNames).toContain("pg_geometry_transform");
   });
 });
+
+// =============================================================================
+// Standalone Geometry Tools - uncovered ZodError/error catch blocks
+// =============================================================================
+
+describe("PostGIS standalone tools uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+  let tools: ReturnType<typeof getPostgisTools>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+    tools = getPostgisTools(mockAdapter as unknown as PostgresAdapter);
+  });
+
+  const findTool = (name: string) => tools.find((t) => t.name === name);
+
+  // standalone.ts L134-140: pg_geometry_buffer ZodError catch
+  it("should return structured error for pg_geometry_buffer validation failure", async () => {
+    const tool = findTool("pg_geometry_buffer");
+    const result = (await tool!.handler(
+      { geometry: "POINT(0 0)" }, // missing required 'distance'
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // standalone.ts L103-110: pg_geometry_buffer DB error catch (inner)
+  it("should return structured error for pg_geometry_buffer DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("PostGIS extension not available"),
+    );
+
+    const tool = findTool("pg_geometry_buffer");
+    const result = (await tool!.handler(
+      { geometry: "POINT(0 0)", distance: 100 },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("PostGIS");
+  });
+
+  // standalone.ts L206-212: pg_geometry_intersection ZodError catch
+  it("should return structured error for pg_geometry_intersection validation failure", async () => {
+    const tool = findTool("pg_geometry_intersection");
+    const result = (await tool!.handler(
+      { geometry1: "POINT(0 0)" }, // missing geometry2
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // standalone.ts L191-198: pg_geometry_intersection DB error (inner)
+  it("should return structured error for pg_geometry_intersection DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("PostGIS extension not available"),
+    );
+
+    const tool = findTool("pg_geometry_intersection");
+    const result = (await tool!.handler(
+      {
+        geometry1: "POINT(0 0)",
+        geometry2: "POINT(1 1)",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("PostGIS");
+  });
+
+  // standalone.ts L269-275: pg_geometry_transform ZodError catch
+  it("should return structured error for pg_geometry_transform validation failure", async () => {
+    const tool = findTool("pg_geometry_transform");
+    const result = (await tool!.handler(
+      { geometry: "POINT(0 0)" }, // missing fromSrid, toSrid
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // standalone.ts L254-261: pg_geometry_transform DB error (inner)
+  it("should return structured error for pg_geometry_transform DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("invalid SRID"),
+    );
+
+    const tool = findTool("pg_geometry_transform");
+    const result = (await tool!.handler(
+      { geometry: "POINT(0 0)", fromSrid: 4326, toSrid: 9999 },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("invalid SRID");
+  });
+
+  // standalone.ts L118-130: pg_geometry_buffer simplification
+  it("should include simplification info in pg_geometry_buffer response", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          buffer_geojson: '{"type":"Polygon"}',
+          buffer_wkt: "POLYGON(...)",
+          distance_meters: 100,
+          srid: 4326,
+        },
+      ],
+    });
+
+    const tool = findTool("pg_geometry_buffer");
+    const result = (await tool!.handler(
+      { geometry: "POINT(0 0)", distance: 100, simplify: 50 },
+      mockContext,
+    )) as {
+      simplified: boolean;
+      simplifyTolerance: number;
+    };
+
+    expect(result.simplified).toBe(true);
+    expect(result.simplifyTolerance).toBe(50);
+  });
+
+  // standalone.ts L123-129: simplification causing null geometry collapse
+  it("should warn when simplification causes geometry collapse", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          buffer_geojson: null, // collapsed
+          buffer_wkt: null,
+          distance_meters: 10,
+          srid: 4326,
+        },
+      ],
+    });
+
+    const tool = findTool("pg_geometry_buffer");
+    const result = (await tool!.handler(
+      { geometry: "POINT(0 0)", distance: 10, simplify: 10000 },
+      mockContext,
+    )) as {
+      simplified: boolean;
+      warning: string;
+    };
+
+    expect(result.simplified).toBe(true);
+    expect(result.warning).toContain("collapsed to null");
+  });
+});

@@ -1043,3 +1043,248 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     expect(result.error).not.toContain("ifExists");
   });
 });
+
+// =============================================================================
+// Additional Coverage: uncovered branches
+// =============================================================================
+
+describe("admin.ts uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getAdminTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  // admin.ts L98: verbose hint in pg_vacuum_analyze response
+  it("should include verbose hint in pg_vacuum_analyze response", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_vacuum_analyze")!;
+    const result = (await tool.handler(
+      { verbose: true, table: "users", schema: "public" },
+      mockContext,
+    )) as {
+      success: boolean;
+      hint: string;
+      table: string;
+      schema: string;
+    };
+
+    expect(result.hint).toBe(
+      "Verbose output written to PostgreSQL server logs",
+    );
+    expect(result.table).toBe("users");
+    expect(result.schema).toBe("public");
+  });
+
+  // admin.ts L248-253: reindex database when current_database returns empty rows
+  it("should return error when reindex database gets no current_database result", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [], // empty result - no current_database value
+    });
+
+    const tool = tools.find((t) => t.name === "pg_reindex")!;
+    const result = (await tool.handler(
+      { target: "database" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
+
+    // effectiveName becomes "" → sanitizeIdentifier("") throws
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid identifier");
+  });
+
+  // admin.ts L390,394: set_config "param" and "setting" aliases
+  it("should use param alias for name in pg_set_config", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ set_config: "256MB" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_set_config")!;
+    const result = (await tool.handler(
+      {
+        param: "work_mem", // alias for name
+        value: "256MB",
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      parameter: string;
+      value: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.parameter).toBe("work_mem");
+    expect(result.value).toBe("256MB");
+  });
+
+  it("should use setting alias for name in pg_set_config", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ set_config: "off" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_set_config")!;
+    const result = (await tool.handler(
+      {
+        setting: "enable_seqscan", // alias for name
+        value: "off",
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      parameter: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.parameter).toBe("enable_seqscan");
+  });
+
+  // admin.ts L488-489: cluster preprocessor null/non-object input
+  it("should handle null input in cluster preprocessor", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+    const result = (await tool.handler(null, mockContext)) as {
+      success: boolean;
+      message: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Re-clustered");
+  });
+
+  // admin.ts L493-510: cluster tableName/indexName aliases and schema.table parsing
+  it("should use tableName and indexName aliases in pg_cluster", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+    const result = (await tool.handler(
+      {
+        tableName: "users",
+        indexName: "idx_users_created",
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+      table: string;
+      index: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.table).toBe("users");
+    expect(result.index).toBe("idx_users_created");
+  });
+
+  it("should parse schema.table format in cluster preprocessor", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+    const result = (await tool.handler(
+      {
+        table: "myschema.users",
+        index: "idx_users_email",
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+    };
+
+    expect(result.success).toBe(true);
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      'CLUSTER "myschema"."users" USING "idx_users_email"',
+    );
+  });
+
+  it("should not override explicit schema in cluster preprocessor", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
+    const result = (await tool.handler(
+      {
+        table: "other.users",
+        index: "idx_users_email",
+        schema: "explicit",
+      },
+      mockContext,
+    )) as {
+      success: boolean;
+    };
+
+    expect(result.success).toBe(true);
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      'CLUSTER "explicit"."users" USING "idx_users_email"',
+    );
+  });
+
+  // admin.ts L471-476: reset_stats error path
+  it("should handle error in pg_reset_stats", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_reset_stats")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("permission denied");
+  });
+
+  // admin.ts L370-375: reload_conf error path
+  it("should handle error in pg_reload_conf", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("reload failed"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_reload_conf")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("reload failed");
+  });
+
+  // admin.ts L309-316: terminate_backend error path
+  it("should handle error in pg_terminate_backend", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("insufficient privilege"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_terminate_backend")!;
+    const result = (await tool.handler({ pid: 12345 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("insufficient privilege");
+  });
+
+  // admin.ts L341-348: cancel_backend error path
+  it("should handle error in pg_cancel_backend", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("insufficient privilege"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_cancel_backend")!;
+    const result = (await tool.handler({ pid: 12345 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("insufficient privilege");
+  });
+});

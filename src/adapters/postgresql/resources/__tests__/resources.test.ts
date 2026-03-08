@@ -5593,3 +5593,224 @@ describe("Pool Resource", () => {
     expect(result.stats.total).toBe(5);
   });
 });
+
+// =============================================================================
+// Activity Resource - toStr helper branches (L18-20)
+// =============================================================================
+
+describe("Activity Resource toStr helper branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+  });
+
+  it("should handle number and object values in blocking relationship fields", async () => {
+    // Main connections query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { pid: 1, state: "active", query: "SELECT 1" },
+        { pid: 2, state: "active", query: "SELECT 2" },
+      ],
+    });
+    // Counts query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ state: "active", count: 2 }],
+    });
+    // Blocking relationships query - uses number and object values to exercise toStr branches
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          blocker_pid: 1,
+          blocker_query: 42, // number value triggers L18 branch
+          blocked_pid: 2,
+          blocked_query: { detail: "locked" }, // object value triggers L19 branch
+          blocked_duration: 30, // number value triggers L18 branch
+        },
+      ],
+    });
+
+    const resource = createActivityResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://activity",
+      mockContext,
+    )) as {
+      blockingRelationships: Array<{
+        blockerQuery: string;
+        blockedQuery: string;
+        blockedDuration: string;
+      }>;
+      blockingCount: number;
+      blockedCount: number;
+      summary: string;
+    };
+
+    // Verify toStr converted number and object correctly
+    expect(result.blockingRelationships[0].blockerQuery).toBe("42");
+    expect(result.blockingRelationships[0].blockedQuery).toBe(
+      '{"detail":"locked"}',
+    );
+    expect(result.blockingRelationships[0].blockedDuration).toBe("30");
+    expect(result.blockingCount).toBe(1);
+    expect(result.blockedCount).toBe(1);
+    expect(result.summary).toContain("blocked");
+  });
+
+  it("should handle null and undefined values in blocking fields", async () => {
+    // Main connections query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ pid: 1, state: "active", query: "SELECT 1" }],
+    });
+    // Counts query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ state: "active", count: 1 }],
+    });
+    // Blocking relationships query with null values
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          blocker_pid: 1,
+          blocker_query: null, // null triggers L17 branch
+          blocked_pid: 2,
+          blocked_query: undefined, // undefined triggers L17 branch
+          blocked_duration: true, // boolean triggers L20 fallback
+        },
+      ],
+    });
+
+    const resource = createActivityResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://activity",
+      mockContext,
+    )) as {
+      blockingRelationships: Array<{
+        blockerQuery: string;
+        blockedQuery: string;
+        blockedDuration: string;
+      }>;
+    };
+
+    expect(result.blockingRelationships[0].blockerQuery).toBe("");
+    expect(result.blockingRelationships[0].blockedQuery).toBe("");
+    expect(result.blockingRelationships[0].blockedDuration).toBe("");
+  });
+});
+
+// =============================================================================
+// Stats Resource - toStr/toNum helper branches (L43-44)
+// =============================================================================
+
+describe("Stats Resource toStr/toNum helper branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+  });
+
+  it("should handle numeric string values in stats data (toNum string branch)", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            schemaname: "public",
+            table_name: "users",
+            live_tuples: "5000", // string value for toNum
+            n_mod_since_analyze: "250", // string value for toNum
+            percent_modified_since_analyze: "5", // string value for toNum
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ cache_hit_ratio: "98.5" }] }); // string value
+
+    const resource = createStatsResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://stats",
+      mockContext,
+    )) as {
+      tableStats: Array<{
+        live_tuples: number;
+        n_mod_since_analyze: number;
+      }>;
+    };
+
+    // Should have properly converted string to number
+    expect(result.tableStats).toBeDefined();
+    expect(result.tableStats.length).toBe(1);
+    expect(typeof result.tableStats[0].live_tuples).toBe("number");
+  });
+
+  it("should handle null/undefined in toNum (fallback to 0)", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            schemaname: "public",
+            table_name: "empty_table",
+            live_tuples: null, // null for toNum fallback
+            n_mod_since_analyze: undefined, // undefined for toNum fallback
+            percent_modified_since_analyze: null,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ cache_hit_ratio: 99 }] });
+
+    const resource = createStatsResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://stats",
+      mockContext,
+    )) as {
+      tableStats: Array<{
+        live_tuples: number;
+      }>;
+    };
+
+    expect(result.tableStats).toBeDefined();
+    expect(result.tableStats.length).toBe(1);
+    // Null should be converted to 0 by toNum
+    expect(result.tableStats[0].live_tuples).toBe(0);
+  });
+
+  it("should handle number values in string fields (toStr number branch)", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            schemaname: 123, // number where string expected - triggers toStr(number) branch
+            table_name: "users",
+            live_tuples: 1000,
+            n_mod_since_analyze: 0,
+            percent_modified_since_analyze: 0,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [{ cache_hit_ratio: 99 }] });
+
+    const resource = createStatsResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://stats",
+      mockContext,
+    )) as {
+      tableStats: Array<Record<string, unknown>>;
+    };
+
+    // Should have converted number to string for schema
+    expect(result.tableStats).toBeDefined();
+    expect(result.tableStats.length).toBe(1);
+  });
+});

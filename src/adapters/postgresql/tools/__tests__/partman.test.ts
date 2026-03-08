@@ -2284,3 +2284,98 @@ describe("pg_partman_analyze_partition_health", () => {
     expect(result.partitionSets[1]?.parentTable).toBe("public.logs");
   });
 });
+
+// =============================================================================
+// partman/helpers.ts uncovered branches
+// =============================================================================
+
+describe("partman helpers uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+  let tools: ReturnType<typeof getPartmanTools>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+    tools = getPartmanTools(mockAdapter as unknown as PostgresAdapter);
+  });
+
+  // helpers.ts L39-52: ensurePartmanSchemaAlias error catch block
+  // When schema is 'public', callPartmanProcedure calls ensurePartmanSchemaAlias.
+  // If CREATE SCHEMA fails, the error is swallowed (catch block L49-52) and the actual CALL proceeds.
+  // undo_partition sequence: getPartmanSchema → table exists → callPartmanProcedure
+  it("should handle schema alias creation failure gracefully via undo_partition", async () => {
+    mockAdapter.executeQuery
+      // 1. getPartmanSchema → returns 'public' (triggers alias path)
+      .mockResolvedValueOnce({ rows: [{ table_schema: "public" }] })
+      // 2. table exists check
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      // 3. callPartmanProcedure → ensurePartmanSchemaAlias → CREATE SCHEMA fails
+      .mockRejectedValueOnce(new Error("permission denied"))
+      // 4. The actual CALL proceeds after the catch
+      .mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_partman_undo_partition")!;
+    const result = (await tool.handler(
+      { parentTable: "public.events", targetTable: "public.events_archive" },
+      mockContext,
+    )) as { success: boolean };
+
+    // Should still succeed because ensurePartmanSchemaAlias catch swallows the error
+    expect(result.success).toBe(true);
+  });
+
+  // helpers.ts L65-66: callPartmanProcedure when partmanSchema === "public"
+  // This triggers ensurePartmanSchemaAlias (CREATE SCHEMA + CREATE FUNCTION)
+  it("should call ensurePartmanSchemaAlias when schema is public via undo_partition", async () => {
+    mockAdapter.executeQuery
+      // 1. getPartmanSchema → returns 'public'
+      .mockResolvedValueOnce({ rows: [{ table_schema: "public" }] })
+      // 2. table exists check
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      // 3. CREATE SCHEMA IF NOT EXISTS partman (ensurePartmanSchemaAlias)
+      .mockResolvedValueOnce({ rows: [] })
+      // 4. CREATE OR REPLACE FUNCTION partman.check_control_type
+      .mockResolvedValueOnce({ rows: [] })
+      // 5. The actual CALL
+      .mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_partman_undo_partition")!;
+    const result = (await tool.handler(
+      { parentTable: "public.events", targetTable: "public.events_archive" },
+      mockContext,
+    )) as { success: boolean };
+
+    expect(result.success).toBe(true);
+    // Verify that ensurePartmanSchemaAlias was called
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      "CREATE SCHEMA IF NOT EXISTS partman",
+    );
+  });
+
+  // helpers.ts L21: getPartmanSchema when schema is NOT found → defaults to 'partman'
+  // When schema is 'partman' (not 'public'), callPartmanProcedure skips alias creation
+  it("should default to partman schema and skip alias when part_config not found", async () => {
+    mockAdapter.executeQuery
+      // 1. getPartmanSchema → returns no rows → defaults to 'partman'
+      .mockResolvedValueOnce({ rows: [] })
+      // 2. table exists check
+      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
+      // 3. The actual CALL (no alias needed since schema != 'public')
+      .mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_partman_undo_partition")!;
+    const result = (await tool.handler(
+      { parentTable: "public.events", targetTable: "public.events_archive" },
+      mockContext,
+    )) as { success: boolean };
+
+    expect(result.success).toBe(true);
+    // Should NOT have called ensurePartmanSchemaAlias
+    expect(mockAdapter.executeQuery).not.toHaveBeenCalledWith(
+      "CREATE SCHEMA IF NOT EXISTS partman",
+    );
+  });
+});
+
