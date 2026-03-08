@@ -511,11 +511,15 @@ function preprocessListInfoParams(input: unknown): unknown {
     limit?: number | undefined;
   }
 
-  const raw = input as ListInfoInput;
-  const result: ListInfoInput = { ...raw };
+  const raw = input as Record<string, unknown>;
+  const result: ListInfoInput = { ...(raw as ListInfoInput) };
 
   // Resolve table from aliases
-  const resolvedTable = raw.table ?? raw.parent ?? raw.parentTable ?? raw.name;
+  const resolvedTable =
+    (raw["table"] as string) ??
+    (raw["parent"] as string) ??
+    (raw["parentTable"] as string) ??
+    (raw["name"] as string);
   if (resolvedTable !== undefined) {
     result.table = resolvedTable;
   }
@@ -525,6 +529,12 @@ function preprocessListInfoParams(input: unknown): unknown {
     const parts = result.table.split(".");
     result.schema ??= parts[0];
     result.table = parts[1] ?? result.table;
+  }
+
+  // Safe numeric coercion for limit (Optional Numeric Param Relaxation Pattern)
+  if (raw["limit"] !== undefined) {
+    const n = Number(raw["limit"]);
+    result.limit = Number.isFinite(n) ? n : undefined;
   }
 
   return result;
@@ -537,8 +547,8 @@ export const ListPartitionsSchemaBase = z.object({
   parentTable: z.string().optional().describe("Alias for table"),
   name: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z.coerce
-    .number()
+  limit: z
+    .any()
     .optional()
     .describe("Maximum partitions to return"),
 });
