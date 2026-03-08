@@ -44,11 +44,15 @@ test.describe("E2E Tool Execution (via MCP SDK Client)", () => {
 
       expect(response.isError).toBeUndefined();
       expect(Array.isArray(response.content)).toBe(true);
-      if (response.content.length > 0) {
-        expect(response.content[0].type).toBe("text");
-        const textOutput = (response.content[0] as any).text as string;
-        expect(textOutput).toContain("test_");
-      }
+      expect(response.content.length).toBeGreaterThan(0);
+      expect(response.content[0].type).toBe("text");
+      const textOutput = (response.content[0] as any).text as string;
+      // Verify structured response format (works with both seeded and empty databases)
+      const parsed = JSON.parse(textOutput);
+      expect(parsed).toHaveProperty("tables");
+      expect(Array.isArray(parsed.tables)).toBe(true);
+      expect(parsed).toHaveProperty("count");
+      expect(typeof parsed.count).toBe("number");
     } finally {
       await client.close();
     }
