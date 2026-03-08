@@ -15,8 +15,8 @@ import { z } from "zod";
  * Valid algorithm values described in text for MCP clients.
  */
 export const PgcryptoHashSchemaBase = z.object({
-  data: z.string().describe("Data to hash"),
-  algorithm: z.string().describe("Hash algorithm"),
+  data: z.string().optional().describe("Data to hash"),
+  algorithm: z.string().optional().describe("Hash algorithm"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 
@@ -38,9 +38,9 @@ export const PgcryptoHashSchema = z.object({
  * Base schema for MCP visibility — shows all parameters with relaxed validation.
  */
 export const PgcryptoHmacSchemaBase = z.object({
-  data: z.string().describe("Data to authenticate"),
-  key: z.string().describe("Secret key for HMAC"),
-  algorithm: z.string().describe("Hash algorithm"),
+  data: z.string().optional().describe("Data to authenticate"),
+  key: z.string().optional().describe("Secret key for HMAC"),
+  algorithm: z.string().optional().describe("Hash algorithm"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 
@@ -126,7 +126,7 @@ export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
  * Base schema for MCP visibility — shows all parameters with relaxed validation.
  */
 export const PgcryptoRandomBytesSchemaBase = z.object({
-  length: z.number().describe("Number of random bytes to generate (1-1024)"),
+  length: z.coerce.number().optional().describe("Number of random bytes to generate (1-1024)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
 
@@ -151,8 +151,9 @@ export const PgcryptoRandomBytesSchema = z.object({
 export const PgcryptoGenSaltSchemaBase = z.object({
   type: z
     .string()
+    .optional()
     .describe("Salt type: bf (bcrypt, recommended), md5, xdes, or des"),
-  iterations: z
+  iterations: z.coerce
     .number()
     .optional()
     .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
@@ -169,6 +170,17 @@ export const PgcryptoGenSaltSchema = z.object({
     .number()
     .optional()
     .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
+});
+
+/**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ */
+export const PgcryptoCryptSchemaBase = z.object({
+  password: z.string().optional().describe("Password to hash or verify"),
+  salt: z
+    .string()
+    .optional()
+    .describe("Salt from gen_salt() or stored hash for verification"),
 });
 
 /**

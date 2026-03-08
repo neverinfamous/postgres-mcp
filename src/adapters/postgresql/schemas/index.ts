@@ -482,6 +482,7 @@ export {
   PgcryptoDecryptSchemaBase,
   PgcryptoRandomBytesSchema,
   PgcryptoGenSaltSchema,
+  PgcryptoCryptSchemaBase,
   PgcryptoCryptSchema,
   // Pgcrypto output schemas
   PgcryptoCreateExtensionOutputSchema,

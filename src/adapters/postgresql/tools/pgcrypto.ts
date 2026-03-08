@@ -22,6 +22,7 @@ import {
   PgcryptoRandomBytesSchemaBase,
   PgcryptoGenSaltSchema,
   PgcryptoGenSaltSchemaBase,
+  PgcryptoCryptSchemaBase,
   PgcryptoCryptSchema,
   // Output schemas
   PgcryptoCreateExtensionOutputSchema,
@@ -411,7 +412,7 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_pgcrypto_crypt",
     description: "Hash a password using crypt() with a salt from gen_salt().",
     group: "pgcrypto",
-    inputSchema: PgcryptoCryptSchema,
+    inputSchema: PgcryptoCryptSchemaBase,
     outputSchema: PgcryptoCryptOutputSchema,
     annotations: readOnly("Crypt Password"),
     icons: getToolIcons("pgcrypto", readOnly("Crypt Password")),
