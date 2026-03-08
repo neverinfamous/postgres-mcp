@@ -202,23 +202,17 @@ export function createVectorDimensionReduceTool(
       .string()
       .optional()
       .describe("ID column to include in results (default: id)"),
-    limit: z.coerce
-      .number()
-      .optional()
-      .describe("Max rows to process (default: 100)"),
+    limit: z.any().optional().describe("Max rows to process (default: 100)"),
     // Common parameters - targetDimensions is required
-    targetDimensions: z.coerce
-      .number()
+    targetDimensions: z
+      .any()
       .optional()
       .describe("Target number of dimensions"),
-    dimensions: z.coerce
-      .number()
+    dimensions: z
+      .any()
       .optional()
       .describe("Alias for targetDimensions"),
-    seed: z.coerce
-      .number()
-      .optional()
-      .describe("Random seed for reproducibility"),
+    seed: z.any().optional().describe("Random seed for reproducibility"),
     summarize: z
       .boolean()
       .optional()
@@ -231,12 +225,17 @@ export function createVectorDimensionReduceTool(
   const VectorDimensionReduceSchema = VectorDimensionReduceSchemaBase.transform(
     (data) => {
       // Handle aliases: dimensions -> targetDimensions, tableName -> table, col -> column
-      const resolvedTargetDimensions = data.targetDimensions ?? data.dimensions;
+      const rawTarget = (data.targetDimensions ?? data.dimensions) as unknown;
+      const rawLimit = data.limit as unknown;
+      const rawSeed = data.seed as unknown;
       return {
         ...data,
         table: data.table ?? data.tableName,
         column: data.column ?? data.col,
-        targetDimensions: resolvedTargetDimensions,
+        targetDimensions:
+          rawTarget != null ? Number(rawTarget) : undefined,
+        limit: rawLimit != null ? Number(rawLimit) : undefined,
+        seed: rawSeed != null ? Number(rawSeed) : undefined,
       };
     },
   ).refine((data) => data.targetDimensions !== undefined, {
@@ -287,6 +286,13 @@ export function createVectorDimensionReduceTool(
         const targetDim = parsed.targetDimensions;
         if (targetDim === undefined) {
           throw new Error("targetDimensions (or dimensions alias) is required");
+        }
+        if (isNaN(targetDim)) {
+          return {
+            success: false,
+            error: `Validation error: targetDimensions must be a valid number, received "${String(parsed.targetDimensions)}"`,
+            suggestion: "Provide a numeric value for targetDimensions (e.g., 128, 256)",
+          };
         }
         const seed = parsed.seed ?? 42;
 
@@ -435,8 +441,8 @@ export function createVectorEmbedTool(): ToolDefinition {
   // Base schema for MCP visibility — text optional to prevent MCP -32602 rejection
   const EmbedSchemaBase = z.object({
     text: z.string().optional().describe("Text to embed"),
-    dimensions: z.coerce
-      .number()
+    dimensions: z
+      .any()
       .optional()
       .describe("Vector dimensions (default: 384)"),
     summarize: z
@@ -467,7 +473,16 @@ export function createVectorEmbedTool(): ToolDefinition {
           });
         }
 
-        const dims = parsed.dimensions ?? 384;
+        const dims =
+          parsed.dimensions != null ? Number(parsed.dimensions) : 384;
+
+        if (isNaN(dims)) {
+          return Promise.resolve({
+            success: false,
+            error: `Validation error: dimensions must be a valid number, received "${String(parsed.dimensions)}"`,
+            suggestion: "Provide a numeric value for dimensions (e.g., 384, 768, 1536)",
+          });
+        }
         const shouldSummarize = parsed.summarize ?? true;
 
         const vector: number[] = [];

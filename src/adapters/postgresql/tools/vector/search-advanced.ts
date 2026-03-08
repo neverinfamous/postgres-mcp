@@ -46,30 +46,29 @@ export function createVectorClusterTool(
     tableName: z.string().optional().describe("Alias for table"),
     column: z.string().optional().describe("Vector column"),
     col: z.string().optional().describe("Alias for column"),
-    k: z.coerce.number().optional().describe("Number of clusters"),
-    clusters: z.coerce
-      .number()
-      .optional()
-      .describe("Alias for k (number of clusters)"),
-    iterations: z.coerce
-      .number()
-      .optional()
-      .describe("Max iterations (default: 10)"),
-    sampleSize: z.coerce
-      .number()
+    k: z.any().optional().describe("Number of clusters"),
+    clusters: z.any().optional().describe("Alias for k (number of clusters)"),
+    iterations: z.any().optional().describe("Max iterations (default: 10)"),
+    sampleSize: z
+      .any()
       .optional()
       .describe("Sample size for large tables"),
     schema: z.string().optional().describe("Database schema (default: public)"),
   });
 
-  const ClusterSchema = ClusterSchemaBase.transform((data) => ({
-    table: data.table ?? data.tableName ?? "",
-    column: data.column ?? data.col ?? "",
-    k: data.k ?? data.clusters,
-    iterations: data.iterations,
-    sampleSize: data.sampleSize,
-    schema: data.schema,
-  })).refine((data) => data.k !== undefined, {
+  const ClusterSchema = ClusterSchemaBase.transform((data) => {
+    const rawK = (data.k ?? data.clusters) as unknown;
+    const rawIterations = data.iterations as unknown;
+    const rawSampleSize = data.sampleSize as unknown;
+    return {
+      table: data.table ?? data.tableName ?? "",
+      column: data.column ?? data.col ?? "",
+      k: rawK != null ? Number(rawK) : undefined,
+      iterations: rawIterations != null ? Number(rawIterations) : undefined,
+      sampleSize: rawSampleSize != null ? Number(rawSampleSize) : undefined,
+      schema: data.schema,
+    };
+  }).refine((data) => data.k !== undefined, {
     message: "k (or clusters alias) is required",
   });
 
@@ -89,6 +88,13 @@ export function createVectorClusterTool(
         const k = parsed.k;
         if (k === undefined) {
           throw new Error("k (or clusters alias) is required");
+        }
+        if (isNaN(k)) {
+          return {
+            success: false,
+            error: `Validation error: k must be a valid number, received "${String(parsed.k)}"`,
+            suggestion: "Provide a numeric value for k (e.g., 3, 5, 10)",
+          };
         }
         if (k < 1) {
           return {
