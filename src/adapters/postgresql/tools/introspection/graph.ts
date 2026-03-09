@@ -639,6 +639,7 @@ export function createCascadeSimulatorTool(
         // Check if source table exists
         if (!tableMap.has(sourceQName)) {
           return {
+            success: false as const,
             sourceTable: sourceQName,
             operation,
             affectedTables: [],

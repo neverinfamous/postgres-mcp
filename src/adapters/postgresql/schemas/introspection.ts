@@ -62,6 +62,7 @@ export const TopologicalSortSchema = TopologicalSortSchemaBase.default({});
 export const CascadeSimulatorSchemaBase = z.object({
   table: z
     .string()
+    .optional()
     .describe("Table name to simulate deletion from (supports schema.table)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   operation: z
@@ -87,7 +88,7 @@ export const CascadeSimulatorSchema = z.preprocess((input: unknown) => {
     }
   }
   return input;
-}, CascadeSimulatorSchemaBase);
+}, CascadeSimulatorSchemaBase.required({ table: true }));
 
 /**
  * pg_schema_snapshot input
@@ -189,6 +190,7 @@ export const ConstraintAnalysisSchema = z.preprocess((input: unknown) => {
 export const MigrationRisksSchemaBase = z.object({
   statements: z
     .array(z.string())
+    .optional()
     .describe("Array of DDL statements to analyze for risks"),
   schema: z
     .string()
@@ -196,7 +198,16 @@ export const MigrationRisksSchemaBase = z.object({
     .describe("Target schema context (default: public)"),
 });
 
-export const MigrationRisksSchema = MigrationRisksSchemaBase;
+export const MigrationRisksSchema = z.preprocess((input: unknown) => {
+  if (typeof input === "object" && input !== null) {
+    const obj = input as Record<string, unknown>;
+    // Accept statement/sql aliases
+    if (obj["statement"] !== undefined && obj["statements"] === undefined) {
+      return { ...obj, statements: [obj["statement"]] };
+    }
+  }
+  return input;
+}, MigrationRisksSchemaBase.required({ statements: true }));
 
 // =============================================================================
 // Migration Tracking Input Schemas (Phase 2: Schema Version Tracking)
