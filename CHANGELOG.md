@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`pg_migration_risks` raw Zod JSON array leak for invalid params** — `pg_migration_risks({})` and `pg_migration_risks({statements: "not_an_array"})` now return `{success: false, error: "Validation error: ..."}` instead of leaking raw Zod JSON arrays as MCP error messages. Root cause: the handler used `Promise.resolve().then(...)` without a `.catch()` block, so `MigrationRisksSchema.parse()` Zod errors propagated as unhandled rejections. Added `.catch()` with `formatPostgresError`, matching the error handling pattern used by all other introspection tools
+
 ### Security
 
 - **CVE fix: Alpine zlib 1.3.1-r2 → ≥1.3.2-r0** — Added explicit `apk add 'zlib>=1.3.2-r0'` from Alpine edge in both Dockerfile stages (builder and production). `apk upgrade --no-cache` alone did not force-install the newer zlib when the base image already satisfied the dependency at 1.3.1-r2. Fixes CVSS 4.6 (MEDIUM) and CVSS 2.9 (LOW) zlib CVEs
