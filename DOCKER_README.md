@@ -2,9 +2,9 @@
 
 **Last Updated March 9, 2026**
 
-**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 231 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
+**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 232 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**231 Specialized Tools** · **20 Resources** · **19 AI-Powered Prompts**
+**232 Specialized Tools** · **20 Resources** · **19 AI-Powered Prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
@@ -25,7 +25,7 @@
 
 | Feature                                | Description                                                                                                                                                                                                                                                |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **231 Specialized Tools**              | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, migration tracking, and 8 extension ecosystems                                                    |
+| **232 Specialized Tools**              | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, migration tracking, and 8 extension ecosystems                                                    |
 | **20 Observability Resources**         | Real-time schema, performance metrics, connection pool status, replication lag, vacuum stats, lock contention, and extension diagnostics                                                                                                                   |
 | **19 AI-Powered Prompts**              | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                                                                                |
 | **Code Mode (Massive Token Savings)**  | Execute complex database operations locally in a secure sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, AI agents use a single `pg_execute_code` execution to eliminate up to 90% of token overhead while reasoning faster. |
@@ -167,7 +167,7 @@ Code executes in a **sandboxed VM context** with multiple layers of security. Al
 
 ### ⚡ Code Mode Only (Maximum Token Savings)
 
-If you control your own setup, you can run with **only Code Mode enabled** — a single tool that provides access to all 231 tools' worth of capability through the `pg.*` API:
+If you control your own setup, you can run with **only Code Mode enabled** — a single tool that provides access to all 232 tools' worth of capability through the `pg.*` API:
 
 ```json
 {
@@ -261,26 +261,26 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 
 | Filter Pattern   | Example                   | Tools | Description               |
 | ---------------- | ------------------------- | ----- | ------------------------- |
-| Shortcut only    | `starter`                 | 59    | Use a predefined bundle   |
-| Groups only      | `core,jsonb,transactions` | 47    | Combine individual groups |
-| Shortcut + Group | `starter,+text`           | 72    | Extend a shortcut         |
-| Shortcut - Tool  | `starter,-pg_drop_table`  | 58    | Remove specific tools     |
+| Shortcut only    | `starter`                 | 60    | Use a predefined bundle   |
+| Groups only      | `core,jsonb,transactions` | 48    | Combine individual groups |
+| Shortcut + Group | `starter,+text`           | 73    | Extend a shortcut         |
+| Shortcut - Tool  | `starter,-pg_drop_table`  | 59    | Remove specific tools     |
 
 ### Shortcuts (Predefined Bundles)
 
 | Shortcut        | Tools  | Use Case                 | What's Included                                          |
 | --------------- | ------ | ------------------------ | -------------------------------------------------------- |
-| `starter`       | 59     | Standard Package         | Core, trans, JSONB, schema, codemode                     |
-| `essential`     | 47     | Minimal footprint        | Core, trans, JSONB, codemode                             |
-| `dev-schema`    | 52     | Dev Schema & Migrations  | Core, trans, schema, introspection, migration, codemode  |
-| `dev-analytics` | 42     | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
-| `ai-data`       | 60     | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
-| `ai-vector`     | 50     | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
-| `dba-monitor`   | 63     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
+| `starter`       | 60     | Standard Package         | Core, trans, JSONB, schema, codemode                     |
+| `essential`     | 48     | Minimal footprint        | Core, trans, JSONB, codemode                             |
+| `dev-schema`    | 53     | Dev Schema & Migrations  | Core, trans, schema, introspection, migration, codemode  |
+| `dev-analytics` | 43     | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
+| `ai-data`       | 61     | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
+| `ai-vector`     | 51     | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
+| `dba-monitor`   | 64     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
 | `dba-schema`    | 45     | DBA Schema & Migrations  | Core, schema, introspection, migration, codemode         |
 | `dba-infra`     | 46     | DBA Infrastructure       | Core, admin, backup, partitioning, codemode              |
-| `dba-stats`     | 57     | DBA Stats                | Core, admin, monitoring, trans, stats, codemode          |
-| `geo`           | 43     | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
+| `dba-stats`     | 58     | DBA Stats                | Core, admin, monitoring, trans, stats, codemode          |
+| `geo`           | 44     | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
 | `base-ops`      | 51     | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
 | `ext-ai`        | 26     | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
 | `ext-geo`       | 24     | Extension: Spatial       | PostGIS, ltree, codemode                                 |
