@@ -658,9 +658,11 @@ describe("pg_cascade_simulator", () => {
     const result = (await tool.handler(
       { table: "app.users" },
       mockContext,
-    )) as { sourceTable: string };
+    )) as { success: false; error: string };
 
-    expect(result.sourceTable).toBe("app.users");
+    // Table doesn't exist in mock — verify error uses the schema-qualified name
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("app.users");
   });
 
   it("should rate DROP operation with cascades as critical severity", async () => {
@@ -716,12 +718,10 @@ describe("pg_cascade_simulator", () => {
     const result = (await tool.handler(
       { table: "nonexistent_xyz" },
       mockContext,
-    )) as { error?: string; severity: string; affectedTables: unknown[] };
+    )) as { success: false; error: string };
 
-    expect(result.error).toBeDefined();
+    expect(result.success).toBe(false);
     expect(result.error).toContain("not found");
-    expect(result.affectedTables).toHaveLength(0);
-    expect(result.severity).toBe("low");
   });
 
   it("should preserve NO ACTION label (not conflate with RESTRICT)", async () => {

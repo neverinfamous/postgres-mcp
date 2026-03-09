@@ -5,7 +5,7 @@
  * in the core tool group.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { parsePostgresError } from "../core/error-helpers.js";
 
 /**
@@ -423,9 +423,8 @@ describe("core/convenience.ts — uncovered branches", () => {
     const result = (await tool.handler(
       { name: "users" },
       mockContext,
-    )) as { success: boolean; count: number };
+    )) as { count: number };
 
-    expect(result.success).toBe(true);
     expect(result.count).toBe(42);
   });
 
@@ -440,9 +439,8 @@ describe("core/convenience.ts — uncovered branches", () => {
     const result = (await tool.handler(
       { table: "users", condition: "active = true" },
       mockContext,
-    )) as { success: boolean; count: number };
+    )) as { count: number };
 
-    expect(result.success).toBe(true);
     expect(result.count).toBe(10);
   });
 
@@ -457,9 +455,8 @@ describe("core/convenience.ts — uncovered branches", () => {
     const result = (await tool.handler(
       { table: "users", filter: "status = 'active'" },
       mockContext,
-    )) as { success: boolean; count: number };
+    )) as { count: number };
 
-    expect(result.success).toBe(true);
     expect(result.count).toBe(5);
   });
 
@@ -474,9 +471,9 @@ describe("core/convenience.ts — uncovered branches", () => {
     const result = (await tool.handler(
       { table: "myschema.users" },
       mockContext,
-    )) as { success: boolean; count: number };
+    )) as { count: number };
 
-    expect(result.success).toBe(true);
+    expect(result.count).toBe(100);
   });
 
   it("pg_exists should resolve 'condition' alias for where", async () => {
@@ -490,10 +487,10 @@ describe("core/convenience.ts — uncovered branches", () => {
     const result = (await tool.handler(
       { table: "users", condition: "id = 1" },
       mockContext,
-    )) as { success: boolean; exists: boolean };
+    )) as { exists: boolean; mode: string };
 
-    expect(result.success).toBe(true);
     expect(result.exists).toBe(true);
+    expect(result.mode).toBe("filtered");
   });
 
   it("pg_upsert should use DO NOTHING when all data columns are conflict columns", async () => {

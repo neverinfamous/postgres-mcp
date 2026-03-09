@@ -669,17 +669,6 @@ export function createCascadeSimulatorTool(
         if (!tableMap.has(sourceQName)) {
           return {
             success: false as const,
-            sourceTable: sourceQName,
-            operation,
-            affectedTables: [],
-            severity: "low" as const,
-            stats: {
-              totalTablesAffected: 0,
-              cascadeActions: 0,
-              blockingActions: 0,
-              setNullActions: 0,
-              maxDepth: 0,
-            },
             error: `Table '${sourceQName}' not found. Use pg_list_tables to verify.`,
           };
         }
