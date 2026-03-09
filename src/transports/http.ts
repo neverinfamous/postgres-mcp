@@ -89,6 +89,13 @@ export interface HttpTransportConfig {
    * HSTS max-age in seconds (default: 31536000 = 1 year)
    */
   hstsMaxAge?: number;
+
+  /**
+   * Trust proxy headers for client IP extraction (default: false)
+   * When enabled, uses the leftmost IP from X-Forwarded-For for rate limiting.
+   * Only enable when running behind a trusted reverse proxy.
+   */
+  trustProxy?: boolean;
 }
 
 /**
@@ -144,6 +151,7 @@ export class HttpTransport {
       maxBodySize: config.maxBodySize ?? HttpTransport.DEFAULT_MAX_BODY_SIZE,
       enableHSTS: config.enableHSTS ?? false,
       hstsMaxAge: config.hstsMaxAge ?? HttpTransport.DEFAULT_HSTS_MAX_AGE,
+      trustProxy: config.trustProxy ?? false,
     };
     if (onConnect) {
       this.onConnect = onConnect;
@@ -247,7 +255,7 @@ export class HttpTransport {
       return true;
     }
 
-    const clientIp = req.socket.remoteAddress ?? "unknown";
+    const clientIp = this.getClientIp(req);
     const now = Date.now();
     const windowMs =
       this.config.rateLimitWindowMs ??
@@ -272,6 +280,22 @@ export class HttpTransport {
 
     entry.count++;
     return true;
+  }
+
+  /**
+   * Extract the client IP address from the request.
+   * When trustProxy is enabled, uses the leftmost IP from X-Forwarded-For.
+   * Falls back to req.socket.remoteAddress.
+   */
+  private getClientIp(req: IncomingMessage): string {
+    if (this.config.trustProxy) {
+      const forwarded = req.headers["x-forwarded-for"];
+      if (typeof forwarded === "string") {
+        const firstIp = forwarded.split(",")[0]?.trim();
+        if (firstIp) return firstIp;
+      }
+    }
+    return req.socket.remoteAddress ?? "unknown";
   }
 
   /**
@@ -696,6 +720,7 @@ export class HttpTransport {
       JSON.stringify({
         status: "healthy",
         timestamp: new Date().toISOString(),
+        oauthEnabled: !!this.config.resourceServer,
       }),
     );
   }

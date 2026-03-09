@@ -53,6 +53,7 @@ interface CliOptions {
   oauthAudience?: string;
   oauthJwksUri?: string;
   oauthClockTolerance?: number;
+  trustProxy?: boolean;
 }
 
 interface ListToolsOptions {
@@ -124,6 +125,10 @@ program
     "Clock tolerance in seconds (default: 60)",
     parseInt,
   )
+  .option(
+    "--trust-proxy",
+    "Trust X-Forwarded-For header for client IP (enable behind reverse proxy)",
+  )
   .action(async (options: CliOptions) => {
     // Set log level
     const logLevel =
@@ -168,6 +173,12 @@ program
         "stdio") as TransportType;
 
       if (transport === "http" || transport === "sse") {
+        if (!oauthConfig?.enabled) {
+          logger.warn(
+            "HTTP transport started WITHOUT OAuth authentication — all clients have unrestricted access. " +
+              "Enable OAuth with --oauth-enabled for production deployments.",
+          );
+        }
         // Start with HTTP transport
         await startHttpServer(adapter, toolFilter, oauthConfig, options);
       } else {
@@ -382,6 +393,7 @@ async function startHttpServer(
     port,
     host,
     publicPaths: oauthConfig?.publicPaths ?? ["/health", "/.well-known/*"],
+    trustProxy: options.trustProxy ?? process.env["TRUST_PROXY"] === "true",
   };
   if (resourceServer) transportConfig.resourceServer = resourceServer;
   if (tokenValidator) transportConfig.tokenValidator = tokenValidator;

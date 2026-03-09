@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Expanded security best practices: pool `min: 2` for IAM auth, CI SHA-pinning, proxy-layer rate limiting, explicit `--ssl`/`--enableHSTS` flags
   - Updated DOCKER_README.md OAuth section label from "With OAuth 2.1" to "With OAuth 2.1 (recommended for production)"
   - Added pool tuning for IAM auth note to README.md Performance Tuning section
+- **AUTH-A1: HTTP-without-OAuth startup warning** — `logger.warn()` emitted when server starts with `--transport http` or `--transport sse` without `--oauth-enabled`. Also added `oauthEnabled` field to `/health` endpoint response for programmatic monitoring. Vitest + Playwright E2E test coverage
+- **HTTP-A1: Trust-proxy IP extraction for rate limiting** — Added `--trust-proxy` CLI flag and `TRUST_PROXY` env var. When enabled, rate limiting uses the leftmost IP from `X-Forwarded-For` instead of `req.socket.remoteAddress`. Default: `false` (safe — ignores forwarded headers). 4 Vitest unit tests + 1 Playwright E2E test
+- **DOCKER-A1: Removed `curl` from production Docker image** — Replaced `curl`-based HEALTHCHECK with native `node -e "fetch(...)"` (Node 24 supports fetch natively). Reduces installed packages and attack surface. `curl` remains in the builder stage only
+- **CI-A1: SHA-pinned all GitHub Actions** — Pinned all 37 `uses:` references across 7 CI/CD workflows to full commit SHAs with version comments (e.g., `actions/checkout@de0fac2e...4f8d5 # v6`). Prevents supply-chain attacks from compromised action tags. Dependabot continues to propose SHA bumps for new versions
 
 ### Performance
 
@@ -47,7 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.1.0] - 2026-03-08
 
 ### Fixed
-
 
 - **`pg_cron_job_run_details` / `pg_cron_cleanup_history` raw MCP `-32602` error for invalid `jobId`** — `pg_cron_job_run_details({jobId: "abc"})` and `pg_cron_cleanup_history({jobId: "abc"})` now return structured `{success: false, error: "Invalid job ID format"}` instead of raw MCP `-32602` Zod validation errors. Root cause: `CronJobRunDetailsSchemaBase` and `CronCleanupHistorySchemaBase` used `CoercibleJobId` (with `.regex()` validation) in their Base schemas, causing the MCP framework to reject invalid `jobId` values before the handler's `try/catch`. Changed to `z.any().optional()` in both Base schemas. Added explicit `CoercibleJobId.safeParse()` coercion in `CronCleanupHistorySchema` transform for type safety. `CronAlterJobSchemaBase` already used the correct pattern (`z.union([z.number(), z.string()])`)
 - **`pg_vector_create_index({})` doubled `"Validation error:"` prefix** — `pg_vector_create_index({})` now returns `{error: "Validation error: type (or method alias) is required"}` instead of `{error: "Validation error: Validation error: type (or method alias) is required"}`. Root cause: the `.refine()` message in `VectorCreateIndexSchema` already included the `"Validation error: "` prefix, and `formatPostgresError` added it again. Removed the prefix from the `.refine()` message so it is applied exactly once

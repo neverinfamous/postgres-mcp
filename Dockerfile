@@ -58,9 +58,8 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Install runtime dependencies with security fixes
+# Install runtime dependencies with security fixes (curl intentionally excluded — reduces attack surface)
 RUN apk add --no-cache ca-certificates && \
-    apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main curl && \
     apk upgrade --no-cache && \
     apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main 'zlib>=1.3.2-r0' && \
     npm install -g npm@latest --force && npm cache clean --force
@@ -120,11 +119,11 @@ USER appuser
 EXPOSE 3000
 
 # Health check — transport-aware:
-# HTTP/SSE: curl the /health endpoint (verifies HTTP server + DB connectivity)
+# HTTP/SSE: fetch the /health endpoint via Node.js (curl intentionally excluded from production image)
 # stdio:    verify Node.js runtime is alive (no HTTP endpoint available)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD if [ "$MCP_TRANSPORT" = "http" ] || [ "$MCP_TRANSPORT" = "sse" ]; then \
-        curl -sf http://localhost:${PORT:-3000}/health || exit 1; \
+        node -e "fetch('http://localhost:' + (process.env.PORT || '3000') + '/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))" || exit 1; \
     else \
         node -e "console.log('healthy')" || exit 1; \
     fi
