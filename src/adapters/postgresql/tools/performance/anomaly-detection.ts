@@ -20,6 +20,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import { validateIdentifier } from "../../../../utils/identifiers.js";
 
 // =============================================================================
 // Shared Helpers
@@ -237,9 +238,13 @@ export function createDetectBloatRiskTool(
 
         const { schema, minRows } = parsed.data;
 
-        const schemaFilter = schema
-          ? `AND schemaname = '${schema.replace(/'/g, "''")}'`
-          : `AND schemaname NOT IN ('pg_catalog', 'information_schema', 'cron', 'topology', 'tiger', 'tiger_data')`;
+        let schemaFilter: string;
+        if (schema) {
+          validateIdentifier(schema);
+          schemaFilter = `AND schemaname = '${schema}'`;
+        } else {
+          schemaFilter = `AND schemaname NOT IN ('pg_catalog', 'information_schema', 'cron', 'topology', 'tiger', 'tiger_data')`;
+        }
 
         const result = await adapter.executeQuery(`
           SELECT

@@ -16,7 +16,7 @@
 ![Status](https://img.shields.io/badge/status-Production%2FStable-brightgreen)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-blue.svg)](https://github.com/neverinfamous/postgres-mcp)
 [![E2E](https://github.com/neverinfamous/postgres-mcp/actions/workflows/e2e.yml/badge.svg)](https://github.com/neverinfamous/postgres-mcp/actions/workflows/e2e.yml)
-[![Tests](https://img.shields.io/badge/Tests-3558_passed-success.svg)](https://github.com/neverinfamous/postgres-mcp)
+[![Tests](https://img.shields.io/badge/Tests-3575_passed-success.svg)](https://github.com/neverinfamous/postgres-mcp)
 [![Coverage](https://img.shields.io/badge/Coverage-95.54%25-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp)
 
 **[GitHub](https://github.com/neverinfamous/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Tool Reference](https://github.com/neverinfamous/postgres-mcp/wiki/Tool-Reference)** •**[Changelog](https://github.com/neverinfamous/postgres-mcp/blob/main/CHANGELOG.md)**
@@ -253,7 +253,7 @@ This exposes just `pg_execute_code`. The agent writes JavaScript against the typ
 ### 🛠️ Tool Filtering
 
 > [!IMPORTANT]
-> AI IDEs like Cursor have tool limits. With 227 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
+> AI IDEs like Cursor have tool limits. With 231 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
 
 ### What Can You Filter?
 

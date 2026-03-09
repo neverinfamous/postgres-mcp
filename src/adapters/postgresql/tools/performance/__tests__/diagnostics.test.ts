@@ -770,13 +770,19 @@ describe("pg_diagnose_database_performance", () => {
     );
   });
 
-  it("should handle schema escaping in top tables filter", async () => {
+  it("should reject schema names with invalid characters in top tables filter", async () => {
     setupHealthyDefaults(mockAdapter);
 
     const tool = findTool(tools, "pg_diagnose_database_performance");
-    await tool.handler({ schema: "test'schema" }, mockContext);
+    const result = (await tool.handler(
+      { schema: "test'schema" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
 
-    const sizeQuery = mockAdapter.executeQuery.mock.calls[6]?.[0] as string;
-    expect(sizeQuery).toContain("test''schema");
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 });

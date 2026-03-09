@@ -172,7 +172,7 @@ export function createMigrationInitTool(
     inputSchema: MigrationInitSchemaBase,
     outputSchema: MigrationInitOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationInitSchema.parse(params);
@@ -245,7 +245,7 @@ export function createMigrationRecordTool(
     inputSchema: MigrationRecordSchemaBase,
     outputSchema: MigrationRecordOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationRecordSchema.parse(params);
@@ -316,7 +316,7 @@ export function createMigrationApplyTool(
     inputSchema: MigrationApplySchemaBase,
     outputSchema: MigrationApplyOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationApplySchema.parse(params);
@@ -428,7 +428,7 @@ export function createMigrationRollbackTool(
     inputSchema: MigrationRollbackSchemaBase,
     outputSchema: MigrationRollbackOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationRollbackSchema.parse(params);
@@ -562,7 +562,7 @@ export function createMigrationHistoryTool(
     inputSchema: MigrationHistorySchemaBase,
     outputSchema: MigrationHistoryOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationHistorySchema.parse(params);
@@ -650,7 +650,7 @@ export function createMigrationStatusTool(
     inputSchema: MigrationStatusSchemaBase,
     outputSchema: MigrationStatusOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationStatusSchema.parse(params);

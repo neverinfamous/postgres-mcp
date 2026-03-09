@@ -609,14 +609,18 @@ describe("pg_detect_bloat_risk", () => {
     );
   });
 
-  it("should escape single quotes in schema name", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("should reject schema names with invalid characters", async () => {
     const tool = findTool(tools, "pg_detect_bloat_risk");
-    await tool.handler({ schema: "test'schema" }, mockContext);
+    const result = (await tool.handler(
+      { schema: "test'schema" },
+      mockContext,
+    )) as {
+      success: boolean;
+      error: string;
+    };
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
-    expect(sql).toContain("test''schema");
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 
   it("should handle adapter error gracefully", async () => {

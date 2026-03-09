@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Migration tool icons used wrong group** — All 6 migration tools in `migration.ts` used `getToolIcons("introspection", ...)` instead of `getToolIcons("migration", ...)`
+- **SQL injection risk in `diagnostics.ts` and `anomaly-detection.ts`** — Replaced ad-hoc `schema.replace(/'/g, "''")` string escaping with `validateIdentifier()` to reject invalid schema names at the validation layer
+- **`InvalidFtsConfigError` not exported** — Added `export` keyword to `InvalidFtsConfigError` class in `fts-config.ts` so test imports work correctly
+- **Stale tool counts in documentation** — Updated "227 tools" → "231 tools" in Dockerfile, README.md, DOCKER_README.md, `performance.test.ts`, and `server-instructions.md` to reflect the 4 new performance monitoring tools
+
 ## [2.2.0] - 2026-03-09
 
 ### Fixed

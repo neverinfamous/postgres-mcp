@@ -133,7 +133,7 @@
 
 ## Performance Tools
 
-Core (21 methods): `explain()`, `explainAnalyze()`, `explainBuffers()`, `indexStats()`, `tableStats()`, `statStatements()`, `statActivity()`, `locks()`, `bloatCheck()`, `cacheHitRatio()`, `seqScanTables()`, `indexRecommendations()`, `queryPlanCompare()`, `baseline()`, `connectionPoolOptimize()`, `partitionStrategySuggest()`, `unusedIndexes()`, `duplicateIndexes()`, `vacuumStats()`, `queryPlanStats()`, `diagnoseDatabasePerformance()`
+Core (24 methods): `explain()`, `explainAnalyze()`, `explainBuffers()`, `indexStats()`, `tableStats()`, `statStatements()`, `statActivity()`, `locks()`, `bloatCheck()`, `cacheHitRatio()`, `seqScanTables()`, `indexRecommendations()`, `queryPlanCompare()`, `baseline()`, `connectionPoolOptimize()`, `partitionStrategySuggest()`, `unusedIndexes()`, `duplicateIndexes()`, `vacuumStats()`, `queryPlanStats()`, `diagnoseDatabasePerformance()`, `detectQueryAnomalies()`, `detectBloatRisk()`, `detectConnectionSpike()`
 
 Wrappers (3): `blockingQueries()`→`locks({showBlocked:true})`, `longRunningQueries({ seconds | minDuration }?)` filters by duration (returns `{longRunningQueries, count, threshold}`), `analyzeTable({ table })` runs ANALYZE (accepts `schema.table` format)
 
@@ -158,7 +158,7 @@ Aliases: `cacheStats`→`cacheHitRatio`, `queryStats`→`statStatements`, `activ
 
 📍 **Code Mode Note**: `pg_performance_baseline` → `pg.performance.baseline()` (not `performanceBaseline`). `indexRecommendations` accepts `query` alias for `sql`
 
-**Top-Level Aliases**: `pg.explain()`, `pg.explainAnalyze()`, `pg.cacheHitRatio()`, `pg.indexStats()`, `pg.tableStats()`, `pg.indexRecommendations()`, `pg.bloatCheck()`, `pg.vacuumStats()`, `pg.unusedIndexes()`, `pg.duplicateIndexes()`, `pg.seqScanTables()`
+**Top-Level Aliases**: `pg.explain()`, `pg.explainAnalyze()`, `pg.cacheHitRatio()`, `pg.indexStats()`, `pg.tableStats()`, `pg.indexRecommendations()`, `pg.bloatCheck()`, `pg.vacuumStats()`, `pg.unusedIndexes()`, `pg.duplicateIndexes()`, `pg.seqScanTables()`, `pg.diagnoseDatabasePerformance()`, `pg.detectQueryAnomalies()`, `pg.detectBloatRisk()`, `pg.detectConnectionSpike()`
 
 ## Monitoring Tools
 
