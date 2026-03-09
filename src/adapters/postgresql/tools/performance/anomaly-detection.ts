@@ -34,6 +34,13 @@ const toNum = (val: unknown): number =>
 const toStr = (val: unknown, fallback = ""): string =>
   typeof val === "string" ? val : fallback;
 
+/** Parse numeric param with NaN fallback to default */
+const safeNum = (val: unknown, defaultVal: number): number => {
+  if (val == null) return defaultVal;
+  const n = Number(val);
+  return Number.isNaN(n) ? defaultVal : n;
+};
+
 function riskFromScore(score: number): RiskLevel {
   if (score >= 80) return "critical";
   if (score >= 60) return "high";
@@ -59,8 +66,8 @@ const QueryAnomaliesInputBase = z.object({
 });
 
 const QueryAnomaliesInput = QueryAnomaliesInputBase.transform((data) => ({
-  threshold: Math.max(0.5, Math.min(10, data.threshold != null ? Number(data.threshold) : 2.0)),
-  minCalls: Math.max(1, Math.min(10000, data.minCalls != null ? Number(data.minCalls) : 10)),
+  threshold: Math.max(0.5, Math.min(10, safeNum(data.threshold, 2.0))),
+  minCalls: Math.max(1, Math.min(10000, safeNum(data.minCalls, 10))),
 }));
 
 export function createDetectQueryAnomaliesTool(
@@ -204,7 +211,7 @@ const BloatRiskInputBase = z.object({
 
 const BloatRiskInput = BloatRiskInputBase.transform((data) => ({
   schema: data.schema,
-  minRows: Math.max(0, Math.min(1000000, data.minRows != null ? Number(data.minRows) : 1000)),
+  minRows: Math.max(0, Math.min(1000000, safeNum(data.minRows, 1000))),
 }));
 
 export function createDetectBloatRiskTool(
@@ -421,10 +428,7 @@ const ConnectionSpikeInputBase = z.object({
 });
 
 const ConnectionSpikeInput = ConnectionSpikeInputBase.transform((data) => ({
-  warningPercent: Math.max(
-    10,
-    Math.min(100, data.warningPercent != null ? Number(data.warningPercent) : 70),
-  ),
+  warningPercent: Math.max(10, Math.min(100, safeNum(data.warningPercent, 70))),
 }));
 
 interface ConnectionConcentration {

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **3 anomaly detection tools NaN coercion for wrong-type numeric params** — `pg_detect_query_anomalies({threshold: "abc"})`, `pg_detect_query_anomalies({minCalls: "abc"})`, `pg_detect_bloat_risk({minRows: "abc"})`, and `pg_detect_connection_spike({warningPercent: "abc"})` now silently fall back to their default values instead of producing raw MCP `-32602` Output validation errors. Root cause: `Number("abc")` → `NaN` propagated through `Math.max()`/`Math.min()` into SQL queries (for query anomalies and bloat risk) causing PostgreSQL errors; handlers returned `{success: false}` but the output Zod schema only accepted the success-path shape. Added `safeNum()` helper that falls back to the default value when `Number()` produces `NaN`
 - **Migration tool icons used wrong group** — All 6 migration tools in `migration.ts` used `getToolIcons("introspection", ...)` instead of `getToolIcons("migration", ...)`
 - **SQL injection risk in `diagnostics.ts` and `anomaly-detection.ts`** — Replaced ad-hoc `schema.replace(/'/g, "''")` string escaping with `validateIdentifier()` to reject invalid schema names at the validation layer
 - **`InvalidFtsConfigError` not exported** — Added `export` keyword to `InvalidFtsConfigError` class in `fts-config.ts` so test imports work correctly
