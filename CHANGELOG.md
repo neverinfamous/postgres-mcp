@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_transaction_status` tool** — New read-only tool in the `transactions` group that checks the state of an active managed transaction without modifying it. Probes the connection with `SELECT 1` (same technique used in `commitTransaction` for aborted-state detection). Returns `{status, transactionId, active, message}` where `status` is `"active"` (ready for operations), `"aborted"` (needs rollback), or `"not_found"` (already committed/rolled back/expired). Accepts `transactionId`/`tx`/`txId` aliases. Exposed in Code Mode as `pg.transactions.status()`. Transaction tools: 7 → 8
 
+### Changed
+
+- **Dependency Updates**
+  - `jose`: 6.2.0 → 6.2.1
+  - Dockerfile: bumped npm-bundled `tar` patch from 7.5.10 → 7.5.11 and `minimatch` to 10.2.4
+  - `package.json` overrides: exactly pinned `tar` to 7.5.11 and `minimatch` to 10.2.4
+
 ## [2.2.0] - 2026-03-09
 
 ### Fixed

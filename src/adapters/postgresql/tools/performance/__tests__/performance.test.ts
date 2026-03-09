@@ -3503,3 +3503,214 @@ describe("empty params structured errors", () => {
     expect(result.error).toContain("table");
   });
 });
+
+// =============================================================================
+// performance/monitoring.ts and stats.ts — uncovered catch/error branches
+// =============================================================================
+
+describe("performance/monitoring.ts — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  const findTool = (name: string) => tools.find((t) => t.name === name)!;
+
+  // monitoring.ts L97-101: pg_locks DB error catch
+  it("pg_locks should return error on DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection refused"),
+    );
+    const tool = findTool("pg_locks");
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // monitoring.ts L41-42: pg_bloat_check schema validation
+  it("pg_bloat_check should return error for nonexistent schema", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    const tool = findTool("pg_bloat_check");
+    const result = (await tool.handler(
+      { schema: "nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+  });
+
+  // monitoring.ts L185-189: pg_bloat_check DB error catch
+  it("pg_bloat_check should return error on DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection refused"),
+    );
+    const tool = findTool("pg_bloat_check");
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+  });
+
+  // monitoring.ts L224-228: pg_cache_hit_ratio DB error catch
+  it("pg_cache_hit_ratio should return error on DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection refused"),
+    );
+    const tool = findTool("pg_cache_hit_ratio");
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("performance/stats.ts — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPerformanceTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPerformanceTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  const findTool = (name: string) => tools.find((t) => t.name === name)!;
+
+  // stats.ts L162-166: pg_index_stats truncation when results hit limit
+  it("pg_index_stats should indicate truncation when results hit limit", async () => {
+    const rows = Array(50).fill({
+      schemaname: "public",
+      relname: "users",
+      indexrelname: "idx_users_id",
+      idx_scan: "100",
+      idx_tup_read: "1000",
+      idx_tup_fetch: "500",
+    });
+    // P154 table check (no schema specified = only table check)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "1": 1 }] });
+    // Main query returns exactly 50 rows (default limit)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows });
+    // Count query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: "200" }],
+    });
+
+    const tool = findTool("pg_index_stats");
+    const result = (await tool.handler(
+      { table: "users" },
+      mockContext,
+    )) as Record<string, unknown>;
+    expect(result["truncated"]).toBe(true);
+    expect(result["totalCount"]).toBe(200);
+  });
+
+  // stats.ts L172-176: pg_index_stats DB error catch
+  it("pg_index_stats should return error on DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection refused"),
+    );
+    const tool = findTool("pg_index_stats");
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+  });
+
+  // stats.ts L279-283: pg_table_stats truncation
+  it("pg_table_stats should indicate truncation when results hit limit", async () => {
+    const rows = Array(50).fill({
+      schemaname: "public",
+      relname: "users",
+      seq_scan: "10",
+      idx_scan: "100",
+      n_live_tup: "5000",
+      n_dead_tup: "50",
+      last_vacuum: null,
+      last_autovacuum: null,
+      last_analyze: null,
+    });
+    // Main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows });
+    // Count query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: "150" }],
+    });
+
+    const tool = findTool("pg_table_stats");
+    const result = (await tool.handler({}, mockContext)) as Record<
+      string,
+      unknown
+    >;
+    expect(result["truncated"]).toBe(true);
+    expect(result["totalCount"]).toBe(150);
+  });
+
+  // stats.ts L289-293: pg_table_stats DB error catch
+  it("pg_table_stats should return error on DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection refused"),
+    );
+    const tool = findTool("pg_table_stats");
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+  });
+
+  // stats.ts L366-370: pg_stat_statements truncation (default limit is 20)
+  it("pg_stat_statements should indicate truncation when results hit limit", async () => {
+    const rows = Array(20).fill({
+      queryid: "12345",
+      query: "SELECT 1",
+      calls: "100",
+      total_exec_time: "500",
+      mean_exec_time: "5",
+      min_exec_time: "1",
+      max_exec_time: "20",
+      rows: "100",
+    });
+    // Main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows });
+    // Count query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: "300" }],
+    });
+
+    const tool = findTool("pg_stat_statements");
+    const result = (await tool.handler({}, mockContext)) as Record<
+      string,
+      unknown
+    >;
+    expect(result["truncated"]).toBe(true);
+    expect(result["totalCount"]).toBe(300);
+  });
+
+  // stats.ts L373-377: pg_stat_statements DB error catch
+  it("pg_stat_statements should return error on DB failure", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection refused"),
+    );
+    const tool = findTool("pg_stat_statements");
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+    expect(result.success).toBe(false);
+  });
+});
+

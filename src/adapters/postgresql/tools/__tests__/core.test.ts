@@ -595,3 +595,172 @@ describe("core/convenience.ts — uncovered branches", () => {
     expect(result.error).toContain("does not exist");
   });
 });
+
+// =============================================================================
+// parsePostgresError — uncovered branches
+// =============================================================================
+
+describe("parsePostgresError — uncovered branches", () => {
+  // error-helpers.ts L57-58: idempotency guard — error with cause but no pgCode
+  it("should re-throw error with cause but no pgCode unchanged", () => {
+    const inner = new Error("inner");
+    const outer = new Error("already processed", { cause: inner });
+    expect(() =>
+      parsePostgresError(outer, { tool: "pg_test" }),
+    ).toThrow(outer);
+  });
+
+  // error-helpers.ts L174-178: foreign key violation
+  it("should throw actionable error for FK violation", () => {
+    const err = new Error("violates foreign key constraint");
+    expect(() =>
+      parsePostgresError(err, { tool: "pg_write_query" }),
+    ).toThrow(/Foreign key constraint violated/);
+  });
+
+  // error-helpers.ts L174-178: FK violation via pgCode 23503
+  it("should throw actionable error for FK violation via pgCode", () => {
+    const err = new Error("insert or update on table violates FK");
+    (err as unknown as Record<string, unknown>)["code"] = "23503";
+    expect(() =>
+      parsePostgresError(err, { tool: "pg_write_query" }),
+    ).toThrow(/Foreign key constraint violated/);
+  });
+
+  // error-helpers.ts L312-318: pg_cron_alter_job context
+  it("should throw cron job not found for pg_cron_alter_job", () => {
+    const err = new Error("something does not exist");
+    (err as unknown as Record<string, unknown>)["code"] = "42704";
+    expect(() =>
+      parsePostgresError(err, { tool: "pg_cron_alter_job", target: "99" }),
+    ).toThrow(/Job 99 not found/);
+  });
+
+  // error-helpers.ts L319-326: pg_cron_schedule_in_database context
+  it("should throw database not found for pg_cron_schedule_in_database", () => {
+    // Use pgCode 42704 to enter the 42704 block, and a message with 'database "X"'
+    // but NOT matching 3D000's `database "..." does not exist` text regex
+    const err = new Error('database "testdb" is not accessible');
+    (err as unknown as Record<string, unknown>)["code"] = "42704";
+    expect(() =>
+      parsePostgresError(err, {
+        tool: "pg_cron_schedule_in_database",
+        target: "testdb",
+      }),
+    ).toThrow(/Database 'testdb' not found/);
+  });
+
+  // error-helpers.ts L327-331: generic cron fallback
+  it("should throw generic cron error for other pg_cron_ tools", () => {
+    const err = new Error("some cron thing does not exist");
+    (err as unknown as Record<string, unknown>)["code"] = "42704";
+    expect(() =>
+      parsePostgresError(err, { tool: "pg_cron_list_jobs" }),
+    ).toThrow(/Cron operation failed/);
+  });
+
+  // error-helpers.ts L300-306: tsvector function does not exist
+  it("should throw tsvector guidance for function tsvector error", () => {
+    const err = new Error(
+      'function to_tsvector(unknown, tsvector) does not exist',
+    );
+    (err as unknown as Record<string, unknown>)["code"] = "42704";
+    expect(() =>
+      parsePostgresError(err, { tool: "pg_text_search" }),
+    ).toThrow(/tsvector type/);
+  });
+
+  // error-helpers.ts L292-298: pg_drop_table table not found
+  it("should throw table not found for pg_drop_table", () => {
+    const err = new Error("something does not exist");
+    (err as unknown as Record<string, unknown>)["code"] = "42704";
+    expect(() =>
+      parsePostgresError(err, { tool: "pg_drop_table", table: "mytable" }),
+    ).toThrow(/Table 'public.mytable' not found/);
+  });
+});
+
+// =============================================================================
+// core/query.ts — uncovered transaction error paths
+// =============================================================================
+
+describe("core/query.ts — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getCoreTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getCoreTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  const findTool = (name: string) => {
+    return tools.find((t) => t.name === name)!;
+  };
+
+  // query.ts L59-66: pg_read_query transaction connection error
+  it("pg_read_query should return error when transaction query fails", async () => {
+    const mockClient = {};
+    mockAdapter.getTransactionConnection = vi
+      .fn()
+      .mockReturnValue(mockClient);
+    mockAdapter.executeOnConnection = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('relation "foo" does not exist'));
+
+    const tool = findTool("pg_read_query");
+    const result = (await tool.handler(
+      { sql: "SELECT * FROM foo", transactionId: "tx-1" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
+  });
+
+  // query.ts L148-155: pg_write_query transaction connection error
+  it("pg_write_query should return error when transaction query fails", async () => {
+    const mockClient = {};
+    mockAdapter.getTransactionConnection = vi
+      .fn()
+      .mockReturnValue(mockClient);
+    mockAdapter.executeOnConnection = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("permission denied"));
+
+    const tool = findTool("pg_write_query");
+    const result = (await tool.handler(
+      { sql: "DELETE FROM foo", transactionId: "tx-1" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("permission denied");
+  });
+
+  // query.ts L180-184: pg_write_query outer catch (Zod validation)
+  it("pg_write_query should return error for missing sql param", async () => {
+    const tool = findTool("pg_write_query");
+    const result = (await tool.handler(
+      {}, // missing sql
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  // query.ts L92-96: pg_read_query outer catch (Zod validation)
+  it("pg_read_query should return error for missing sql param", async () => {
+    const tool = findTool("pg_read_query");
+    const result = (await tool.handler(
+      {}, // missing sql
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
