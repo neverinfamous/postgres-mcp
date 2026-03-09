@@ -180,21 +180,24 @@ describe("pg_dependency_graph", () => {
   });
 
   it("should filter by schema", async () => {
+    // Schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+    // FK and table queries
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_dependency_graph")!;
     await tool.handler({ schema: "app" }, mockContext);
 
+    // Second call (FK query) should use schema filter
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("$1"),
       ["app"],
     );
   });
 
-  it("should return hint for nonexistent schema", async () => {
-    // Mock FK and table queries returning empty for unknown schema
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("should return structured error for nonexistent schema", async () => {
+    // Schema existence check returns no rows
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_dependency_graph")!;
@@ -202,15 +205,13 @@ describe("pg_dependency_graph", () => {
       { schema: "nonexistent_schema_xyz" },
       mockContext,
     )) as {
-      nodes: unknown[];
-      edges: unknown[];
-      hint?: string;
+      success: false;
+      error: string;
     };
 
-    expect(result.nodes).toHaveLength(0);
-    expect(result.edges).toHaveLength(0);
-    expect(result.hint).toBeDefined();
-    expect(result.hint).toContain("nonexistent_schema_xyz");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema_xyz");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should exclude extension schemas by default", async () => {
@@ -510,9 +511,8 @@ describe("pg_topological_sort", () => {
     expect(projIdx).toBeLessThan(deptIdx);
   });
 
-  it("should return hint for nonexistent schema", async () => {
-    // Mock FK and table queries returning empty for unknown schema
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("should return structured error for nonexistent schema", async () => {
+    // Schema existence check returns no rows
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_topological_sort")!;
@@ -520,13 +520,13 @@ describe("pg_topological_sort", () => {
       { schema: "nonexistent_schema_xyz" },
       mockContext,
     )) as {
-      order: unknown[];
-      hint?: string;
+      success: false;
+      error: string;
     };
 
-    expect(result.order).toHaveLength(0);
-    expect(result.hint).toBeDefined();
-    expect(result.hint).toContain("nonexistent_schema_xyz");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema_xyz");
+    expect(result.error).toContain("does not exist");
   });
 });
 
@@ -919,29 +919,29 @@ describe("pg_schema_snapshot", () => {
     expect(tablesSql).toContain("deptype = 'e'");
   });
 
-  it("should return hint for empty schema filter", async () => {
-    // Mock 8 section queries returning empty (no extensions query when schema filter is set)
-    for (let i = 0; i < 8; i++) {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    }
+  it("should return error for nonexistent schema filter", async () => {
+    // Schema existence check returns no rows
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
     const result = (await tool.handler(
       { schema: "nonexistent_schema_xyz" },
       mockContext,
     )) as {
-      snapshot: Record<string, unknown>;
-      stats: Record<string, number>;
-      hint?: string;
+      success: boolean;
+      error: string;
     };
 
-    expect(result.hint).toBeDefined();
-    expect(result.hint).toContain("nonexistent_schema_xyz");
-    expect(result.stats["extensions"]).toBe(0);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema_xyz");
+    expect(result.error).toContain("does not exist");
+    // Only the schema existence check query should have been called
+    expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
   });
 
   it("should omit extensions when schema filter is set", async () => {
-    // Mock 8 section queries (NOT 9 — extensions query should be skipped)
+    // Mock schema existence check + 8 section queries (NOT 9 — extensions query should be skipped)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ x: 1 }] }); // schema exists
     for (let i = 0; i < 8; i++) {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ name: `item_${i}` }],
@@ -956,7 +956,7 @@ describe("pg_schema_snapshot", () => {
 
     // Extensions should be 0 with no extensions query fired
     expect(result.stats["extensions"]).toBe(0);
-    // Verify no call contained the extensions query
+    // Verify no call contained the extensions query (skip first call which is schema check)
     const allSqlCalls = mockAdapter.executeQuery.mock.calls.map(
       (call) => call[0] as string,
     );
@@ -964,8 +964,8 @@ describe("pg_schema_snapshot", () => {
       sql.includes("pg_extension"),
     );
     expect(extensionCall).toBeUndefined();
-    // Only 8 queries, not 9
-    expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(8);
+    // 1 schema check + 8 section queries = 9 total
+    expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(9);
   });
 
   it("should omit columns from tables when compact is true", async () => {

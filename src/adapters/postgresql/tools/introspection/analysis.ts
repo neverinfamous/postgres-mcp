@@ -13,7 +13,11 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
-import { parseArrayColumn, qualifiedName } from "./graph.js";
+import {
+  parseArrayColumn,
+  qualifiedName,
+  checkSchemaExists,
+} from "./graph.js";
 import {
   SchemaSnapshotSchemaBase,
   SchemaSnapshotSchema,
@@ -46,6 +50,11 @@ export function createSchemaSnapshotTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = SchemaSnapshotSchema.parse(params);
+
+        // Validate schema existence when filtering by schema
+        const schemaError = await checkSchemaExists(adapter, parsed.schema);
+        if (schemaError) return schemaError;
+
         const includeAll = !parsed.sections || parsed.sections.length === 0;
         const sections = new Set(parsed.sections ?? []);
 
@@ -320,19 +329,11 @@ export function createSchemaSnapshotTool(
           stats.extensions = extResult.rows?.length ?? 0;
         }
 
-        // Add hint for nonexistent/empty schema
-        const allEmpty = Object.values(stats).every((v) => v === 0);
-        const hint =
-          parsed.schema !== undefined && allEmpty
-            ? `Schema '${parsed.schema}' returned no tables. Verify the schema exists with pg_list_schemas.`
-            : undefined;
-
         return {
           snapshot,
           stats,
           generatedAt: new Date().toISOString(),
           ...(parsed.compact && { compact: true }),
-          ...(hint !== undefined && { hint }),
         };
       } catch (error: unknown) {
         return {
@@ -365,6 +366,11 @@ export function createConstraintAnalysisTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = ConstraintAnalysisSchema.parse(params);
+
+        // Validate schema existence when filtering by schema
+        const schemaError = await checkSchemaExists(adapter, parsed.schema);
+        if (schemaError) return schemaError;
+
         const runAll = !parsed.checks || parsed.checks.length === 0;
         const checks = new Set(parsed.checks ?? []);
 
