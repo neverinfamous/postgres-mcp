@@ -1313,6 +1313,40 @@ describe("pg_migration_init", () => {
     expect(result.tableCreated).toBe(false);
     expect(result.existingRecords).toBe(3);
   });
+
+  it("should create tracking table in custom schema", async () => {
+    // Table does not exist in custom schema
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: false }],
+    });
+    // CREATE TABLE IF NOT EXISTS in custom schema
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // COUNT query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ count: 0 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_migration_init")!;
+    const result = (await tool.handler(
+      { schema: "app" },
+      mockContext,
+    )) as {
+      success: boolean;
+      tableCreated: boolean;
+      tableName: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.tableCreated).toBe(true);
+    // Verify schema-qualified name uses sanitized identifier
+    expect(result.tableName).toContain('"app"');
+    expect(result.tableName).toContain('_mcp_schema_versions');
+
+    // Verify CREATE TABLE SQL references the custom schema
+    const createCall = mockAdapter.executeQuery.mock.calls[1]![0] as string;
+    expect(createCall).toContain('"app"');
+    expect(createCall).toContain('CREATE TABLE IF NOT EXISTS');
+  });
 });
 
 // =============================================================================
@@ -1585,6 +1619,41 @@ describe("pg_migration_apply", () => {
     expect(result.error).toBeDefined();
     expect(result.error).toContain("Validation error");
   });
+
+  it("should still return migration error when failed-record INSERT also throws", async () => {
+    // ensureTrackingTable: exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Duplicate check: no duplicates
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // BEGIN
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Execute migration SQL — FAILS
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("syntax error at or near \"CRATE\""),
+    );
+    // ROLLBACK
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // INSERT failed record — ALSO FAILS (best-effort path)
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection lost"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_migration_apply")!;
+    const result = (await tool.handler(
+      {
+        version: "1.0.0",
+        migrationSql: "CRATE TABLE users (id INT)",
+      },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    // Original migration error should still be returned
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("CRATE");
+    expect(result.error).toContain("rolled back");
+  });
 });
 
 // =============================================================================
@@ -1674,6 +1743,164 @@ describe("pg_migration_rollback", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Either");
+  });
+
+  it("should execute rollback SQL and update status in transaction", async () => {
+    // ensureTrackingTable: exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Find migration
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 5,
+          version: "1.0.0",
+          description: "Add users",
+          applied_at: new Date("2026-01-01T00:00:00Z"),
+          applied_by: "agent",
+          migration_hash: "abc123",
+          source_system: "agent",
+          rollback_sql: "DROP TABLE users",
+          status: "applied",
+        },
+      ],
+    });
+    // BEGIN
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Execute rollback SQL
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // UPDATE status
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // COMMIT
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
+    const result = (await tool.handler(
+      { version: "1.0.0" },
+      mockContext,
+    )) as {
+      success: boolean;
+      dryRun: boolean;
+      rollbackSql: string;
+      record: { status: string };
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.dryRun).toBe(false);
+    expect(result.rollbackSql).toBe("DROP TABLE users");
+    expect(result.record.status).toBe("rolled_back");
+
+    // Verify transaction sequence
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("BEGIN");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("DROP TABLE users");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("COMMIT");
+  });
+
+  it("should reject already-rolled-back migration", async () => {
+    // ensureTrackingTable: exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Find migration: status is rolled_back
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 5,
+          version: "1.0.0",
+          description: "Add users",
+          applied_at: new Date("2026-01-01T00:00:00Z"),
+          applied_by: "agent",
+          migration_hash: "abc123",
+          source_system: "agent",
+          rollback_sql: "DROP TABLE users",
+          status: "rolled_back",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
+    const result = (await tool.handler(
+      { version: "1.0.0" },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("already been rolled back");
+  });
+
+  it("should return error when rollback_sql is null", async () => {
+    // ensureTrackingTable: exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Find migration: no rollback_sql
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 5,
+          version: "1.0.0",
+          description: "Add users",
+          applied_at: new Date("2026-01-01T00:00:00Z"),
+          applied_by: "agent",
+          migration_hash: "abc123",
+          source_system: "agent",
+          rollback_sql: null,
+          status: "applied",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
+    const result = (await tool.handler(
+      { version: "1.0.0" },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("no rollback SQL");
+  });
+
+  it("should rollback transaction and return error on rollback SQL failure", async () => {
+    // ensureTrackingTable: exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Find migration
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 5,
+          version: "1.0.0",
+          description: "Add users",
+          applied_at: new Date("2026-01-01T00:00:00Z"),
+          applied_by: "agent",
+          migration_hash: "abc123",
+          source_system: "agent",
+          rollback_sql: "DROP TABLE users",
+          status: "applied",
+        },
+      ],
+    });
+    // BEGIN
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Execute rollback SQL — FAILS
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error('table "users" does not exist'),
+    );
+    // ROLLBACK
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
+    const result = (await tool.handler(
+      { version: "1.0.0" },
+      mockContext,
+    )) as { success: boolean; error?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Rollback failed");
+    expect(result.error).toContain('table "users" does not exist');
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("ROLLBACK");
   });
 });
 

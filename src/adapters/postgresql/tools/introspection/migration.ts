@@ -43,8 +43,15 @@ import {
 
 const TRACKING_TABLE = "_mcp_schema_versions";
 
-const CREATE_TRACKING_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS ${TRACKING_TABLE} (
+/**
+ * Build the CREATE TABLE DDL for the tracking table.
+ * Accepts a pre-computed qualified table name (e.g. `_mcp_schema_versions`
+ * or `"custom_schema"."_mcp_schema_versions"`) so the caller controls
+ * schema qualification without fragile string replacement.
+ */
+function buildCreateTrackingTableSql(qualifiedTable: string): string {
+  return `
+CREATE TABLE IF NOT EXISTS ${qualifiedTable} (
   id SERIAL PRIMARY KEY,
   version VARCHAR(50) NOT NULL,
   description TEXT,
@@ -57,9 +64,10 @@ CREATE TABLE IF NOT EXISTS ${TRACKING_TABLE} (
   status VARCHAR(20) NOT NULL DEFAULT 'applied',
   CONSTRAINT valid_status CHECK (status IN ('applied', 'rolled_back', 'failed'))
 )`;
+}
 
 /**
- * Ensure the _mcp_schema_versions table exists.
+ * Ensure the _mcp_schema_versions table exists in the public schema.
  * Returns true if the table was newly created, false if it already existed.
  */
 async function ensureTrackingTable(adapter: PostgresAdapter): Promise<boolean> {
@@ -74,7 +82,7 @@ async function ensureTrackingTable(adapter: PostgresAdapter): Promise<boolean> {
   const existed = firstRow?.["table_exists"] === true;
 
   if (!existed) {
-    await adapter.executeQuery(CREATE_TRACKING_TABLE_SQL);
+    await adapter.executeQuery(buildCreateTrackingTableSql(TRACKING_TABLE));
   }
   return !existed;
 }
@@ -138,14 +146,11 @@ export function createMigrationInitTool(
         // Sanitize schema to prevent SQL injection via identifier interpolation
         const sanitizedSchema = sanitizeIdentifier(targetSchema);
 
-        // Create table in target schema
-        const createSql =
+        // Compute qualified table name once, reuse for DDL and queries
+        const qualifiedTable =
           targetSchema === "public"
-            ? CREATE_TRACKING_TABLE_SQL
-            : CREATE_TRACKING_TABLE_SQL.replace(
-                TRACKING_TABLE,
-                `${sanitizedSchema}."${TRACKING_TABLE}"`,
-              );
+            ? TRACKING_TABLE
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         const check = await adapter.executeQuery(
           `SELECT EXISTS (
@@ -158,13 +163,8 @@ export function createMigrationInitTool(
         const existed = firstRow?.["table_exists"] === true;
 
         if (!existed) {
-          await adapter.executeQuery(createSql);
+          await adapter.executeQuery(buildCreateTrackingTableSql(qualifiedTable));
         }
-
-        const qualifiedTable =
-          targetSchema === "public"
-            ? TRACKING_TABLE
-            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         const countResult = await adapter.executeQuery(
           `SELECT COUNT(*)::int AS count FROM ${qualifiedTable}`,

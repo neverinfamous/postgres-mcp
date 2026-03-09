@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **`pg_migration_init` DDL template hardening** — Replaced fragile `.replace(TRACKING_TABLE, ...)` string substitution with an explicit `buildCreateTrackingTableSql()` builder function. The qualified table name is now computed once and passed to the builder, eliminating risk of substituting the wrong occurrence if the DDL template changes. `ensureTrackingTable()` updated to use the same builder
 - **`pg_migration_init` / `pg_migration_status` SQL injection in schema parameter** — The `schema` parameter was interpolated directly into SQL strings without sanitization. Applied `sanitizeIdentifier()` to both tools, matching the defense-in-depth pattern used across all other schema-accepting tools
 - **CVE fix: Alpine zlib 1.3.1-r2 → ≥1.3.2-r0** — Added explicit `apk add 'zlib>=1.3.2-r0'` from Alpine edge in both Dockerfile stages (builder and production). `apk upgrade --no-cache` alone did not force-install the newer zlib when the base image already satisfied the dependency at 1.3.1-r2. Fixes CVSS 4.6 (MEDIUM) and CVSS 2.9 (LOW) zlib CVEs
 - **Docker Scout severity filter expanded to all fixable CVEs** — Changed `--only-severity critical,high` to `--only-severity critical,high,medium,low` in `docker-publish.yml`. The narrow filter was the primary reason the zlib CVEs (MEDIUM/LOW) slipped through the CI security gate
@@ -54,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **6 migration edge-case unit tests** — Added handler-level tests for previously uncovered paths: `pg_migration_rollback` actual execution with transaction verification, already-rolled-back rejection, missing rollback_sql error, rollback SQL failure with ROLLBACK; `pg_migration_init` custom schema parameter; `pg_migration_apply` best-effort failed-record insertion failure (double-error path)
 - **Introspection/migration schema parsing benchmarks** — 18 new Vitest bench scenarios in `introspection-migration.bench.ts` covering `MigrationInitSchema`, `MigrationRecordSchema`, `SchemaSnapshotSchema`, `TopologicalSortSchema`, `ConstraintAnalysisSchema`, and `CascadeSimulatorSchema` parse performance including required fields, transforms, defaults, and error paths. Total benchmark suite: 10 files, 93+ scenarios
 - **`pg_diagnose_database_performance` tool** — New read-only performance diagnostics tool that consolidates 7 parallel queries into a single actionable report: slow queries, blocking locks, connection pressure, cache hit ratio, disk usage, and top tables by size/activity. Returns per-section health ratings (`healthy`/`warning`/`critical`), actionable recommendations, and an overall health score (0–100). Part of the `performance` tool group
 - **Anomaly detection tools** — 3 new read-only tools in the `performance` group for proactive database monitoring:
