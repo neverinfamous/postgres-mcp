@@ -1,10 +1,10 @@
 /**
  * PostgreSQL Introspection Tools
  *
- * Agent-optimized database analysis tools for dependency graphs,
- * cascade simulation, schema snapshots, migration risk analysis,
- * and schema version tracking.
- * 12 tools total (6 read-only + 6 migration tracking).
+ * Agent-optimized read-only database analysis tools for dependency graphs,
+ * cascade simulation, schema snapshots, constraint analysis, and
+ * migration risk analysis.
+ * 6 tools total.
  */
 
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
@@ -24,18 +24,8 @@ import {
   createMigrationRisksTool,
 } from "./analysis.js";
 
-// Migration tracking tools
-import {
-  createMigrationInitTool,
-  createMigrationRecordTool,
-  createMigrationApplyTool,
-  createMigrationRollbackTool,
-  createMigrationHistoryTool,
-  createMigrationStatusTool,
-} from "./migration.js";
-
 /**
- * Get all introspection tools
+ * Get all introspection tools (read-only analysis)
  */
 export function getIntrospectionTools(
   adapter: PostgresAdapter,
@@ -47,12 +37,6 @@ export function getIntrospectionTools(
     createSchemaSnapshotTool(adapter),
     createConstraintAnalysisTool(adapter),
     createMigrationRisksTool(adapter),
-    createMigrationInitTool(adapter),
-    createMigrationRecordTool(adapter),
-    createMigrationApplyTool(adapter),
-    createMigrationRollbackTool(adapter),
-    createMigrationHistoryTool(adapter),
-    createMigrationStatusTool(adapter),
   ];
 }
 
@@ -64,10 +48,5 @@ export {
   createSchemaSnapshotTool,
   createConstraintAnalysisTool,
   createMigrationRisksTool,
-  createMigrationInitTool,
-  createMigrationRecordTool,
-  createMigrationApplyTool,
-  createMigrationRollbackTool,
-  createMigrationHistoryTool,
-  createMigrationStatusTool,
 };
+

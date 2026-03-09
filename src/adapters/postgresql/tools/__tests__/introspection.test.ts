@@ -8,6 +8,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getIntrospectionTools } from "../introspection/index.js";
+import { getMigrationTools } from "../migration/index.js";
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import {
   createMockPostgresAdapter,
@@ -24,8 +25,8 @@ describe("getIntrospectionTools", () => {
     tools = getIntrospectionTools(adapter);
   });
 
-  it("should return 12 introspection tools", () => {
-    expect(tools).toHaveLength(12);
+  it("should return 6 introspection tools", () => {
+    expect(tools).toHaveLength(6);
   });
 
   it("should have all expected tool names", () => {
@@ -36,12 +37,6 @@ describe("getIntrospectionTools", () => {
     expect(toolNames).toContain("pg_schema_snapshot");
     expect(toolNames).toContain("pg_constraint_analysis");
     expect(toolNames).toContain("pg_migration_risks");
-    expect(toolNames).toContain("pg_migration_init");
-    expect(toolNames).toContain("pg_migration_record");
-    expect(toolNames).toContain("pg_migration_apply");
-    expect(toolNames).toContain("pg_migration_rollback");
-    expect(toolNames).toContain("pg_migration_history");
-    expect(toolNames).toContain("pg_migration_status");
   });
 
   it("should have group set to introspection for all tools", () => {
@@ -1263,13 +1258,13 @@ describe("pg_migration_risks", () => {
 
 describe("pg_migration_init", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
-  let tools: ReturnType<typeof getIntrospectionTools>;
+  let tools: ReturnType<typeof getMigrationTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockAdapter = createMockPostgresAdapter();
-    tools = getIntrospectionTools(mockAdapter as unknown as PostgresAdapter);
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
     mockContext = createMockRequestContext();
   });
 
@@ -1326,13 +1321,13 @@ describe("pg_migration_init", () => {
 
 describe("pg_migration_record", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
-  let tools: ReturnType<typeof getIntrospectionTools>;
+  let tools: ReturnType<typeof getMigrationTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockAdapter = createMockPostgresAdapter();
-    tools = getIntrospectionTools(mockAdapter as unknown as PostgresAdapter);
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
     mockContext = createMockRequestContext();
   });
 
@@ -1433,13 +1428,13 @@ describe("pg_migration_record", () => {
 
 describe("pg_migration_apply", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
-  let tools: ReturnType<typeof getIntrospectionTools>;
+  let tools: ReturnType<typeof getMigrationTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockAdapter = createMockPostgresAdapter();
-    tools = getIntrospectionTools(mockAdapter as unknown as PostgresAdapter);
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
     mockContext = createMockRequestContext();
   });
 
@@ -1598,13 +1593,13 @@ describe("pg_migration_apply", () => {
 
 describe("pg_migration_rollback", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
-  let tools: ReturnType<typeof getIntrospectionTools>;
+  let tools: ReturnType<typeof getMigrationTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockAdapter = createMockPostgresAdapter();
-    tools = getIntrospectionTools(mockAdapter as unknown as PostgresAdapter);
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
     mockContext = createMockRequestContext();
   });
 
@@ -1688,13 +1683,13 @@ describe("pg_migration_rollback", () => {
 
 describe("pg_migration_history", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
-  let tools: ReturnType<typeof getIntrospectionTools>;
+  let tools: ReturnType<typeof getMigrationTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockAdapter = createMockPostgresAdapter();
-    tools = getIntrospectionTools(mockAdapter as unknown as PostgresAdapter);
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
     mockContext = createMockRequestContext();
   });
 
@@ -1824,13 +1819,13 @@ describe("pg_migration_history", () => {
 
 describe("pg_migration_status", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
-  let tools: ReturnType<typeof getIntrospectionTools>;
+  let tools: ReturnType<typeof getMigrationTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockAdapter = createMockPostgresAdapter();
-    tools = getIntrospectionTools(mockAdapter as unknown as PostgresAdapter);
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
     mockContext = createMockRequestContext();
   });
 

@@ -133,7 +133,7 @@
 
 ## Performance Tools
 
-Core (20 methods): `explain()`, `explainAnalyze()`, `explainBuffers()`, `indexStats()`, `tableStats()`, `statStatements()`, `statActivity()`, `locks()`, `bloatCheck()`, `cacheHitRatio()`, `seqScanTables()`, `indexRecommendations()`, `queryPlanCompare()`, `baseline()`, `connectionPoolOptimize()`, `partitionStrategySuggest()`, `unusedIndexes()`, `duplicateIndexes()`, `vacuumStats()`, `queryPlanStats()`
+Core (21 methods): `explain()`, `explainAnalyze()`, `explainBuffers()`, `indexStats()`, `tableStats()`, `statStatements()`, `statActivity()`, `locks()`, `bloatCheck()`, `cacheHitRatio()`, `seqScanTables()`, `indexRecommendations()`, `queryPlanCompare()`, `baseline()`, `connectionPoolOptimize()`, `partitionStrategySuggest()`, `unusedIndexes()`, `duplicateIndexes()`, `vacuumStats()`, `queryPlanStats()`, `diagnoseDatabasePerformance()`
 
 Wrappers (3): `blockingQueries()`→`locks({showBlocked:true})`, `longRunningQueries({ seconds | minDuration }?)` filters by duration (returns `{longRunningQueries, count, threshold}`), `analyzeTable({ table })` runs ANALYZE (accepts `schema.table` format)
 
@@ -460,8 +460,8 @@ Core: `begin()`, `commit()`, `rollback()`, `savepoint()`, `rollbackTo()`, `relea
 
 ## Introspection Tools
 
-Code Mode: `pg.introspection.*` — 12 tools for schema analysis and migration tracking.
-Core: `dependencyGraph()`, `topologicalSort()`, `cascadeSimulator()`, `schemaSnapshot()`, `constraintAnalysis()`, `migrationRisks()`, `migrationInit()`, `migrationRecord()`, `migrationApply()`, `migrationRollback()`, `migrationHistory()`, `migrationStatus()`
+Code Mode: `pg.introspection.*` — 6 read-only tools for schema analysis.
+Core: `dependencyGraph()`, `topologicalSort()`, `cascadeSimulator()`, `schemaSnapshot()`, `constraintAnalysis()`, `migrationRisks()`
 
 **Schema Analysis (6 tools):**
 
@@ -472,7 +472,12 @@ Core: `dependencyGraph()`, `topologicalSort()`, `cascadeSimulator()`, `schemaSna
 - `pg_constraint_analysis`: Identifies constraint issues. `checks?`: `['redundant','missing_fk','missing_not_null','missing_pk','unindexed_fk']`. Returns `{findings, summary}`
 - `pg_migration_risks`: Static DDL risk assessment. ⚠️ Does NOT validate object existence—analyzes SQL patterns only. Returns `{risks, summary}`
 
-**Migration Tracking (6 tools):**
+**Discovery**: `pg.introspection.help()` returns `{methods, methodAliases, examples}`
+
+## Migration Tools
+
+Code Mode: `pg.migration.*` — 6 tools for schema migration tracking and management.
+Core: `migrationInit()`, `migrationRecord()`, `migrationApply()`, `migrationRollback()`, `migrationHistory()`, `migrationStatus()`
 
 - `pg_migration_init`: Initialize/verify `_mcp_schema_versions` tracking table (idempotent). Returns `{success, tableCreated, tableName, existingRecords}`
 - `pg_migration_record`: Record a migration with SHA-256 hash dedup. ⚠️ Records metadata only—does NOT execute the SQL. Use `pg_migration_apply` instead for complete migrations. Params: `version`, `description?`, `migrationSql`, `rollbackSql?`, `sourceSystem?`. Returns `{success, record}`
@@ -481,4 +486,4 @@ Core: `dependencyGraph()`, `topologicalSort()`, `cascadeSimulator()`, `schemaSna
 - `pg_migration_history`: Query migration history with `status?` ('applied'|'rolled_back'|'failed'), `sourceSystem?`, `limit?`, `offset?`. Returns `{records, total, limit, offset}`
 - `pg_migration_status`: Aggregate dashboard. Returns `{initialized, latestVersion, counts, sourceSystems}`
 
-**Discovery**: `pg.introspection.help()` returns `{methods, methodAliases, examples}`
+**Discovery**: `pg.migration.help()` returns `{methods, methodAliases, examples}`

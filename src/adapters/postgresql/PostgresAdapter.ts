@@ -61,6 +61,7 @@ import { getCitextTools } from "./tools/citext/index.js";
 import { getLtreeTools } from "./tools/ltree.js";
 import { getPgcryptoTools } from "./tools/pgcrypto.js";
 import { getIntrospectionTools } from "./tools/introspection/index.js";
+import { getMigrationTools } from "./tools/migration/index.js";
 import { getCodeModeTools } from "./tools/codemode/index.js";
 import { getPostgresResources } from "./resources/index.js";
 import { getPostgresPrompts } from "./prompts/index.js";
@@ -645,6 +646,7 @@ export class PostgresAdapter extends DatabaseAdapter {
       ...getLtreeTools(this),
       ...getPgcryptoTools(this),
       ...getIntrospectionTools(this),
+      ...getMigrationTools(this),
       ...getCodeModeTools(this),
     ];
 

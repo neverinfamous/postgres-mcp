@@ -45,7 +45,7 @@ describe("Performance Benchmarks", () => {
       expect(secondDuration).toBeLessThan(firstDuration); // Cache is faster
     });
 
-    it("should generate 226 tool definitions across 20 groups", () => {
+    it("should generate 227 tool definitions across 21 groups", () => {
       // Verify the tool count matches documentation (tool-groups-list.md)
       // These are raw group counts; pg_execute_code (codemode) is auto-injected separately
       const toolGroups = {
@@ -53,7 +53,7 @@ describe("Performance Benchmarks", () => {
         transactions: 7,
         jsonb: 19,
         text: 13,
-        performance: 20,
+        performance: 21,
         admin: 10,
         monitoring: 11,
         backup: 9,
@@ -68,11 +68,12 @@ describe("Performance Benchmarks", () => {
         citext: 6,
         ltree: 8,
         pgcrypto: 9,
-        introspection: 12,
+        introspection: 6,
+        migration: 6,
       };
 
       const total = Object.values(toolGroups).reduce((a, b) => a + b, 0);
-      expect(total).toBe(226);
+      expect(total).toBe(227);
     });
   });
 

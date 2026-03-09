@@ -35,6 +35,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Benchmark infrastructure: stabilized high-RME benchmarks** — Increased warmup iterations for Zod schema parsing benchmarks with RME > 8% (`schema-parsing.bench.ts`): `ReadQuerySchema` 50→100, `CreateTableSchema` 10→50, `TransactionExecuteSchema` (3 stmts) 20→50, `TransactionExecuteSchema` (100 stmts) 5→20. Allows V8 JIT tiers to stabilize before measurement
 - **`identifiers.ts` removed no-op regex allocation** — Removed `name.replace(/"/g, '""')` from `sanitizeIdentifier()` and `quoteIdentifier()`. Since `validateIdentifier()` / `IDENTIFIER_PATTERN` guarantees no double-quote characters can pass validation, the `replace()` was always a no-op that still allocated a new string
 
+### Added
+
+- **`pg_diagnose_database_performance` tool** — New read-only performance diagnostics tool that consolidates 7 parallel queries into a single actionable report: slow queries, blocking locks, connection pressure, cache hit ratio, disk usage, and top tables by size/activity. Returns per-section health ratings (`healthy`/`warning`/`critical`), actionable recommendations, and an overall health score (0–100). Part of the `performance` tool group
+- **`migration` tool group** — New dedicated tool group for schema migration tracking (6 tools: `pg_migration_init`, `pg_migration_record`, `pg_migration_apply`, `pg_migration_rollback`, `pg_migration_history`, `pg_migration_status`). Requires `WRITE` OAuth scope. Previously bundled in the `introspection` group alongside read-only tools
+
+### Changed
+
+- **`introspection` group split** — Separated the 12-tool `introspection` group into read-only `introspection` (6 tools) and write `migration` (6 tools) groups. The `introspection` group now contains only read-only schema analysis tools (`pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`, `pg_schema_snapshot`, `pg_constraint_analysis`, `pg_migration_risks`). Total tool groups: 21 → 22. Total tools: 227 → 228
+- **Meta-group shortcuts updated** — `dev-schema` and `dba-schema` now include both `introspection` and `migration` groups (same total tool count). `dba-monitor` tool count 59 → 60, `ext-perf` tool count 28 → 29 (due to new diagnostics tool in `performance` group)
+
 ### Removed
 
 - **Dead code cleanup** — Removed dead exports, functions, types, and one entire file that were only consumed by tests/benchmarks, not production code. Reduces bundle size and maintenance surface:
