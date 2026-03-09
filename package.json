@@ -1,6 +1,6 @@
 {
   "name": "@neverinfamous/postgres-mcp",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "mcpName": "io.github.neverinfamous/postgres-mcp",
   "description": "PostgreSQL MCP server with connection pooling, tool filtering, and full extension support",
   "type": "module",
@@ -68,7 +68,7 @@
     "vitest": "^4.0.18"
   },
   "overrides": {
-    "minimatch": ">=10.2.3",
-    "tar": ">=7.5.10"
+    "minimatch": "10.2.4",
+    "tar": "7.5.11"
   }
 }

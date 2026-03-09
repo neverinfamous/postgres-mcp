@@ -29,13 +29,13 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.10
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.11
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.10 && \
+    npm pack tar@7.5.11 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.10.tgz && \
+    tar -xzf tar-7.5.11.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.10.tgz
+    rm tar-7.5.11.tgz
 
 # Copy package files first for better layer caching
 COPY package*.json ./
@@ -81,21 +81,21 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.10
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.11
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.10 && \
+    npm pack tar@7.5.11 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.10.tgz && \
+    tar -xzf tar-7.5.11.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.10.tgz
+    rm tar-7.5.11.tgz
 
-# Fix CVE-2026-27904, CVE-2026-27903: Manually update npm's bundled minimatch to 10.2.3+
+# Fix CVE-2026-27904, CVE-2026-27903: Manually update npm's bundled minimatch to 10.2.4
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack minimatch@latest && \
+    npm pack minimatch@10.2.4 && \
     rm -rf node_modules/minimatch && \
-    tar -xzf minimatch-*.tgz && \
+    tar -xzf minimatch-10.2.4.tgz && \
     mv package node_modules/minimatch && \
-    rm minimatch-*.tgz
+    rm minimatch-10.2.4.tgz
 
 # Copy built artifacts and production dependencies
 COPY --from=builder /app/dist ./dist
@@ -133,7 +133,7 @@ ENTRYPOINT ["node", "dist/cli.js"]
 
 # Labels for Docker Hub
 LABEL maintainer="Adamic.tech"
-LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 227 tools, 20 resources, 19 prompts"
-LABEL version="2.2.0"
+LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 232 tools, 20 resources, 19 prompts"
+LABEL version="2.3.0"
 LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgres-mcp"
 LABEL io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp"

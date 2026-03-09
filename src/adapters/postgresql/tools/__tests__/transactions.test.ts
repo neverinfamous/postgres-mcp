@@ -24,13 +24,14 @@ describe("getTransactionTools", () => {
     tools = getTransactionTools(adapter);
   });
 
-  it("should return 7 transaction tools", () => {
-    expect(tools).toHaveLength(7);
+  it("should return 8 transaction tools", () => {
+    expect(tools).toHaveLength(8);
   });
 
   it("should have all expected tool names", () => {
     const toolNames = tools.map((t) => t.name);
     expect(toolNames).toContain("pg_transaction_begin");
+    expect(toolNames).toContain("pg_transaction_status");
     expect(toolNames).toContain("pg_transaction_commit");
     expect(toolNames).toContain("pg_transaction_rollback");
     expect(toolNames).toContain("pg_transaction_savepoint");
@@ -61,9 +62,13 @@ describe("Tool Annotations", () => {
     );
   });
 
-  it("all transaction tools should be write operations", () => {
+  it("all transaction tools except status should be write operations", () => {
     for (const tool of tools) {
-      expect(tool.annotations?.readOnlyHint).toBe(false);
+      if (tool.name === "pg_transaction_status") {
+        expect(tool.annotations?.readOnlyHint).toBe(true);
+      } else {
+        expect(tool.annotations?.readOnlyHint).toBe(false);
+      }
     }
   });
 });
@@ -111,6 +116,133 @@ describe("pg_transaction_begin", () => {
 
     expect(mockAdapter.beginTransaction).toHaveBeenCalledWith("SERIALIZABLE");
     expect(result.isolationLevel).toBe("SERIALIZABLE");
+  });
+});
+
+describe("pg_transaction_status", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getTransactionTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getTransactionTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return active status for live transaction", async () => {
+    const mockClient = { query: vi.fn() };
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(mockClient);
+    (
+      mockAdapter.executeOnConnection as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
+    const tool = tools.find((t) => t.name === "pg_transaction_status")!;
+    const result = (await tool.handler(
+      { transactionId: "txn-12345" },
+      mockContext,
+    )) as { status: string; transactionId: string; active: boolean };
+
+    expect(result.status).toBe("active");
+    expect(result.transactionId).toBe("txn-12345");
+    expect(result.active).toBe(true);
+  });
+
+  it("should return aborted status for failed transaction", async () => {
+    const mockClient = { query: vi.fn() };
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(mockClient);
+    const abortedError = new Error(
+      "current transaction is aborted, commands ignored",
+    ) as Error & { code: string };
+    abortedError.code = "25P02";
+    (
+      mockAdapter.executeOnConnection as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(abortedError);
+
+    const tool = tools.find((t) => t.name === "pg_transaction_status")!;
+    const result = (await tool.handler(
+      { transactionId: "txn-aborted" },
+      mockContext,
+    )) as { status: string; transactionId: string; active: boolean };
+
+    expect(result.status).toBe("aborted");
+    expect(result.transactionId).toBe("txn-aborted");
+    expect(result.active).toBe(true);
+  });
+
+  it("should return not_found for unknown transaction ID", async () => {
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(undefined);
+
+    const tool = tools.find((t) => t.name === "pg_transaction_status")!;
+    const result = (await tool.handler(
+      { transactionId: "txn-unknown" },
+      mockContext,
+    )) as { status: string; transactionId: string; active: boolean };
+
+    expect(result.status).toBe("not_found");
+    expect(result.transactionId).toBe("txn-unknown");
+    expect(result.active).toBe(false);
+  });
+
+  it("should accept txId alias", async () => {
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(undefined);
+
+    const tool = tools.find((t) => t.name === "pg_transaction_status")!;
+    const result = (await tool.handler({ txId: "txn-alias" }, mockContext)) as {
+      status: string;
+      transactionId: string;
+    };
+
+    expect(result.status).toBe("not_found");
+    expect(result.transactionId).toBe("txn-alias");
+  });
+
+  it("should accept tx alias", async () => {
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(undefined);
+
+    const tool = tools.find((t) => t.name === "pg_transaction_status")!;
+    const result = (await tool.handler({ tx: "txn-short" }, mockContext)) as {
+      status: string;
+      transactionId: string;
+    };
+
+    expect(result.status).toBe("not_found");
+    expect(result.transactionId).toBe("txn-short");
+  });
+
+  it("should return structured error on unexpected probe failure", async () => {
+    const mockClient = { query: vi.fn() };
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(mockClient);
+    (
+      mockAdapter.executeOnConnection as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(new Error("Connection reset"));
+
+    const tool = tools.find((t) => t.name === "pg_transaction_status")!;
+    const result = (await tool.handler(
+      { transactionId: "txn-broken" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Connection reset");
+  });
+
+  it("should have readOnlyHint annotation", () => {
+    const tool = tools.find((t) => t.name === "pg_transaction_status")!;
+    expect(tool.annotations?.readOnlyHint).toBe(true);
   });
 });
 

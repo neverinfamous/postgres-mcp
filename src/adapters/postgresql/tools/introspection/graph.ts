@@ -190,6 +190,54 @@ export function qualifiedName(schema: string, table: string): string {
   return `${schema}.${table}`;
 }
 
+/**
+ * Check if a schema exists in the database.
+ * Returns null if schema exists or no filter specified, or error response if nonexistent.
+ */
+export async function checkSchemaExists(
+  adapter: PostgresAdapter,
+  schemaFilter?: string,
+): Promise<{ success: false; error: string } | null> {
+  if (!schemaFilter) return null;
+  const result = await adapter.executeQuery(
+    `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+    [schemaFilter],
+  );
+  if ((result.rows?.length ?? 0) === 0) {
+    return {
+      success: false as const,
+      error: `Schema '${schemaFilter}' does not exist. Use pg_list_schemas to see available schemas.`,
+    };
+  }
+  return null;
+}
+
+/**
+ * Check if a table exists in the database.
+ * Returns null if table exists or no filter specified, or error response if nonexistent.
+ */
+export async function checkTableExists(
+  adapter: PostgresAdapter,
+  tableFilter?: string,
+  schemaFilter?: string,
+): Promise<{ success: false; error: string } | null> {
+  if (!tableFilter) return null;
+  const schema = schemaFilter ?? "public";
+  const result = await adapter.executeQuery(
+    `SELECT 1 FROM pg_class c
+     JOIN pg_namespace n ON n.oid = c.relnamespace
+     WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind IN ('r', 'p')`,
+    [tableFilter, schema],
+  );
+  if ((result.rows?.length ?? 0) === 0) {
+    return {
+      success: false as const,
+      error: `Table '${schema}.${tableFilter}' does not exist. Use pg_list_tables to verify.`,
+    };
+  }
+  return null;
+}
+
 // =============================================================================
 // Graph algorithms
 // =============================================================================
@@ -338,6 +386,11 @@ export function createDependencyGraphTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = DependencyGraphSchema.parse(params);
+
+        // Validate schema existence when filtering by schema
+        const schemaError = await checkSchemaExists(adapter, parsed.schema);
+        if (schemaError) return schemaError;
+
         const includeRowCounts = parsed.includeRowCounts !== false;
 
         const excludeExt = parsed.excludeExtensionSchemas;
@@ -419,12 +472,6 @@ export function createDependencyGraphTool(
           onUpdate: fk.onUpdate,
         }));
 
-        // Add hint for nonexistent/empty schema
-        const hint =
-          parsed.schema !== undefined && allNodes.size === 0
-            ? `Schema '${parsed.schema}' returned no tables. Verify the schema exists with pg_list_schemas.`
-            : undefined;
-
         return {
           nodes,
           edges,
@@ -436,7 +483,6 @@ export function createDependencyGraphTool(
             rootTables,
             leafTables,
           },
-          ...(hint !== undefined && { hint }),
         };
       } catch (error: unknown) {
         return {
@@ -469,6 +515,11 @@ export function createTopologicalSortTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = TopologicalSortSchema.parse(params);
+
+        // Validate schema existence when filtering by schema
+        const schemaError = await checkSchemaExists(adapter, parsed.schema);
+        if (schemaError) return schemaError;
+
         const direction = parsed.direction ?? "create";
 
         const excludeExt = parsed.excludeExtensionSchemas;
@@ -563,18 +614,11 @@ export function createTopologicalSortTool(
           };
         });
 
-        // Add hint for nonexistent/empty schema
-        const hint =
-          parsed.schema !== undefined && allNodes.size === 0
-            ? `Schema '${parsed.schema}' returned no tables. Verify the schema exists with pg_list_schemas.`
-            : undefined;
-
         return {
           order,
           direction,
           hasCycles: sorted === null,
           ...(cycles.length > 0 ? { cycles } : {}),
-          ...(hint !== undefined && { hint }),
         };
       } catch (error: unknown) {
         return {
@@ -625,17 +669,6 @@ export function createCascadeSimulatorTool(
         if (!tableMap.has(sourceQName)) {
           return {
             success: false as const,
-            sourceTable: sourceQName,
-            operation,
-            affectedTables: [],
-            severity: "low" as const,
-            stats: {
-              totalTablesAffected: 0,
-              cascadeActions: 0,
-              blockingActions: 0,
-              setNullActions: 0,
-              maxDepth: 0,
-            },
             error: `Table '${sourceQName}' not found. Use pg_list_tables to verify.`,
           };
         }

@@ -117,6 +117,7 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     release: "transactionRelease",
     rollbackTo: "transactionRollbackTo",
     execute: "transactionExecute",
+    status: "transactionStatus",
   },
   // Stats: pg_stats_descriptive → descriptive, but agent might try statsDescriptive
   stats: {
@@ -450,6 +451,7 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   // ============ TRANSACTION GROUP ============
   transactionCommit: "transactionId",
   transactionRollback: "transactionId",
+  transactionStatus: "transactionId",
   transactionSavepoint: ["transactionId", "name"],
   transactionRelease: ["transactionId", "name"],
   transactionRollbackTo: ["transactionId", "name"],
@@ -457,6 +459,7 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   // Short aliases
   commit: "transactionId",
   rollback: "transactionId",
+  status: "transactionId",
   savepoint: ["transactionId", "name"],
   release: ["transactionId", "name"],
   rollbackTo: ["transactionId", "name"],

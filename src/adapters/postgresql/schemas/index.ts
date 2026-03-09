@@ -34,6 +34,7 @@ export {
   // Transaction output schemas
   TransactionBeginOutputSchema,
   TransactionResultOutputSchema,
+  TransactionStatusOutputSchema,
   SavepointResultOutputSchema,
   TransactionExecuteOutputSchema,
 } from "./core/index.js";

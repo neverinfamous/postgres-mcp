@@ -342,7 +342,7 @@ export const MigrationRollbackSchema = MigrationRollbackSchemaBase;
  */
 export const MigrationHistorySchemaBase = z.object({
   status: z
-    .enum(["applied", "rolled_back", "failed"])
+    .enum(["applied", "recorded", "rolled_back", "failed"])
     .optional()
     .describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
@@ -353,7 +353,7 @@ export const MigrationHistorySchemaBase = z.object({
 // Internal parse schema — coerces limit/offset types to prevent Zod leaks
 export const MigrationHistorySchema = z
   .object({
-    status: z.enum(["applied", "rolled_back", "failed"]).optional(),
+    status: z.enum(["applied", "recorded", "rolled_back", "failed"]).optional(),
     sourceSystem: z.string().optional(),
     limit: z.coerce.number().optional(),
     offset: z.coerce.number().optional(),
@@ -590,6 +590,7 @@ export const MigrationStatusOutputSchema = z.object({
     .object({
       total: z.number(),
       applied: z.number(),
+      recorded: z.number(),
       rolledBack: z.number(),
       failed: z.number(),
     })

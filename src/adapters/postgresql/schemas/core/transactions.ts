@@ -234,6 +234,27 @@ export const TransactionResultOutputSchema = z.object({
   message: z.string().optional().describe("Result message"),
 });
 
+// Output schema for pg_transaction_status
+export const TransactionStatusOutputSchema = z.object({
+  success: z
+    .boolean()
+    .optional()
+    .describe("False when the operation failed (omitted on success)"),
+  error: z.string().optional().describe("Error message when success is false"),
+  status: z
+    .enum(["active", "aborted", "not_found"])
+    .optional()
+    .describe(
+      "Transaction state: active (ready for ops), aborted (needs rollback), or not_found (already ended)",
+    ),
+  transactionId: z.string().optional().describe("Transaction ID queried"),
+  active: z
+    .boolean()
+    .optional()
+    .describe("Whether the transaction connection still exists"),
+  message: z.string().optional().describe("Human-readable status description"),
+});
+
 // Output schema for pg_transaction_savepoint, pg_transaction_release, pg_transaction_rollback_to
 export const SavepointResultOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),

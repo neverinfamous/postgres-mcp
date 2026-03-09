@@ -20,6 +20,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import { validateIdentifier } from "../../../../utils/identifiers.js";
 
 // =============================================================================
 // Shared Helpers
@@ -32,6 +33,13 @@ const toNum = (val: unknown): number =>
 
 const toStr = (val: unknown, fallback = ""): string =>
   typeof val === "string" ? val : fallback;
+
+/** Parse numeric param with NaN fallback to default */
+const safeNum = (val: unknown, defaultVal: number): number => {
+  if (val == null) return defaultVal;
+  const n = Number(val);
+  return Number.isNaN(n) ? defaultVal : n;
+};
 
 function riskFromScore(score: number): RiskLevel {
   if (score >= 80) return "critical";
@@ -58,8 +66,8 @@ const QueryAnomaliesInputBase = z.object({
 });
 
 const QueryAnomaliesInput = QueryAnomaliesInputBase.transform((data) => ({
-  threshold: Math.max(0.5, Math.min(10, Number(data.threshold) || 2.0)),
-  minCalls: Math.max(1, Math.min(10000, Number(data.minCalls) || 10)),
+  threshold: Math.max(0.5, Math.min(10, safeNum(data.threshold, 2.0))),
+  minCalls: Math.max(1, Math.min(10000, safeNum(data.minCalls, 10))),
 }));
 
 export function createDetectQueryAnomaliesTool(
@@ -203,7 +211,7 @@ const BloatRiskInputBase = z.object({
 
 const BloatRiskInput = BloatRiskInputBase.transform((data) => ({
   schema: data.schema,
-  minRows: Math.max(0, Math.min(1000000, Number(data.minRows) || 1000)),
+  minRows: Math.max(0, Math.min(1000000, safeNum(data.minRows, 1000))),
 }));
 
 export function createDetectBloatRiskTool(
@@ -237,9 +245,13 @@ export function createDetectBloatRiskTool(
 
         const { schema, minRows } = parsed.data;
 
-        const schemaFilter = schema
-          ? `AND schemaname = '${schema.replace(/'/g, "''")}'`
-          : `AND schemaname NOT IN ('pg_catalog', 'information_schema', 'cron', 'topology', 'tiger', 'tiger_data')`;
+        let schemaFilter: string;
+        if (schema) {
+          validateIdentifier(schema);
+          schemaFilter = `AND schemaname = '${schema}'`;
+        } else {
+          schemaFilter = `AND schemaname NOT IN ('pg_catalog', 'information_schema', 'cron', 'topology', 'tiger', 'tiger_data')`;
+        }
 
         const result = await adapter.executeQuery(`
           SELECT
@@ -416,10 +428,7 @@ const ConnectionSpikeInputBase = z.object({
 });
 
 const ConnectionSpikeInput = ConnectionSpikeInputBase.transform((data) => ({
-  warningPercent: Math.max(
-    10,
-    Math.min(100, Number(data.warningPercent) || 70),
-  ),
+  warningPercent: Math.max(10, Math.min(100, safeNum(data.warningPercent, 70))),
 }));
 
 interface ConnectionConcentration {

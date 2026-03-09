@@ -15,6 +15,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import { validateIdentifier } from "../../../../utils/identifiers.js";
 
 // =============================================================================
 // Schemas
@@ -31,10 +32,14 @@ const DiagnoseInputSchemaBase = z.object({
     .describe("Number of top tables to return (default: 10)"),
 });
 
-const DiagnoseInputSchema = DiagnoseInputSchemaBase.transform((data) => ({
-  schema: data.schema,
-  topN: Math.max(1, Math.min(100, Number(data.topN) || 10)),
-}));
+const DiagnoseInputSchema = DiagnoseInputSchemaBase.transform((data) => {
+  const raw = data.topN != null ? Number(data.topN) : 10;
+  const topN = Number.isFinite(raw) ? raw : 10;
+  return {
+    schema: data.schema,
+    topN: Math.max(1, Math.min(100, topN)),
+  };
+});
 
 // =============================================================================
 // Health Rating Helpers
@@ -288,9 +293,13 @@ async function diagnoseTopTables(
     byActivity: Record<string, unknown>[];
   }>
 > {
-  const schemaFilter = schema
-    ? `AND schemaname = '${schema.replace(/'/g, "''")}'`
-    : `AND schemaname NOT IN ('pg_catalog', 'information_schema', 'cron', 'topology', 'tiger', 'tiger_data')`;
+  let schemaFilter: string;
+  if (schema) {
+    validateIdentifier(schema);
+    schemaFilter = `AND schemaname = '${schema}'`;
+  } else {
+    schemaFilter = `AND schemaname NOT IN ('pg_catalog', 'information_schema', 'cron', 'topology', 'tiger', 'tiger_data')`;
+  }
 
   const [sizeResult, activityResult] = await Promise.all([
     adapter.executeQuery(`

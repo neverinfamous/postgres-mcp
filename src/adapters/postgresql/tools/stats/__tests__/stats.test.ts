@@ -3116,3 +3116,139 @@ describe("pg_stats_regression groupBy + edges", () => {
     );
   });
 });
+
+// =============================================================================
+// stats/math-utils.ts — uncovered branches (L123: negative t, L228: table not
+// found, L236: non-numeric column, L260: validateTableExists)
+// =============================================================================
+describe("math-utils.ts — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  // L123: negative t-statistic triggers the else path in tDistributionCDF
+  it("pg_stats_hypothesis should handle negative t-statistic (mean < hypothesized)", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ data_type: "integer" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ n: 50, mean: 80, stddev: 15 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_hypothesis")!;
+    const result = (await tool.handler(
+      {
+        table: "scores",
+        column: "value",
+        testType: "t_test",
+        hypothesizedMean: 100,
+      },
+      mockContext,
+    )) as {
+      results: { testStatistic: number; pValue: number };
+    };
+
+    // mean=80 < hypothesized=100, so t should be negative
+    expect(result.results.testStatistic).toBeLessThan(0);
+    expect(result.results.pValue).toBeGreaterThanOrEqual(0);
+    expect(result.results.pValue).toBeLessThanOrEqual(1);
+  });
+
+  // L228: validateNumericColumn — table not found
+  it("pg_stats_descriptive should error for nonexistent table", async () => {
+    // Column type check returns no rows
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Table existence check also returns no rows
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_stats_descriptive")!;
+    const result = (await tool.handler(
+      { table: "nonexistent", column: "val" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
+  });
+
+  // L230-232: validateNumericColumn — column not found (but table exists)
+  it("pg_stats_descriptive should error for nonexistent column", async () => {
+    // Column type check returns no rows
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "1": 1 }] });
+
+    const tool = tools.find((t) => t.name === "pg_stats_descriptive")!;
+    const result = (await tool.handler(
+      { table: "users", column: "nonexistent" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not found");
+    expect(result.error).toContain("nonexistent");
+  });
+
+  // L235-239: validateNumericColumn — non-numeric column
+  it("pg_stats_descriptive should error for non-numeric column type", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ data_type: "text" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_descriptive")!;
+    const result = (await tool.handler(
+      { table: "users", column: "name" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("numeric type");
+  });
+
+  // L259-261: validateTableExists — table not found
+  it("pg_stats_sampling should error for nonexistent table via validateTableExists", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error('relation "missing_table" does not exist'),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_stats_sampling")!;
+    const result = (await tool.handler(
+      { table: "missing_table" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+  });
+
+  // incompleteBeta boundary: x=0 and x=1
+  it("pg_stats_hypothesis z_test should produce valid p-value for large z", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ data_type: "integer" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ n: 100, mean: 200, stddev: 10 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_hypothesis")!;
+    const result = (await tool.handler(
+      {
+        table: "metrics",
+        column: "value",
+        testType: "z_test",
+        hypothesizedMean: 100,
+      },
+      mockContext,
+    )) as { results: { pValue: number } };
+
+    // z = (200-100)/(10/sqrt(100)) = 100, extreme value
+    expect(result.results.pValue).toBeGreaterThanOrEqual(0);
+    expect(result.results.pValue).toBeLessThanOrEqual(1);
+  });
+});

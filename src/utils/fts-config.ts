@@ -8,7 +8,7 @@
 /**
  * Error thrown when an invalid FTS configuration is provided
  */
-class InvalidFtsConfigError extends Error {
+export class InvalidFtsConfigError extends Error {
   constructor(config: string) {
     super(`Invalid FTS configuration name: "${config}"`);
     this.name = "InvalidFtsConfigError";

@@ -180,21 +180,26 @@ describe("pg_dependency_graph", () => {
   });
 
   it("should filter by schema", async () => {
+    // Schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // FK and table queries
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_dependency_graph")!;
     await tool.handler({ schema: "app" }, mockContext);
 
+    // Second call (FK query) should use schema filter
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("$1"),
       ["app"],
     );
   });
 
-  it("should return hint for nonexistent schema", async () => {
-    // Mock FK and table queries returning empty for unknown schema
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("should return structured error for nonexistent schema", async () => {
+    // Schema existence check returns no rows
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_dependency_graph")!;
@@ -202,15 +207,13 @@ describe("pg_dependency_graph", () => {
       { schema: "nonexistent_schema_xyz" },
       mockContext,
     )) as {
-      nodes: unknown[];
-      edges: unknown[];
-      hint?: string;
+      success: false;
+      error: string;
     };
 
-    expect(result.nodes).toHaveLength(0);
-    expect(result.edges).toHaveLength(0);
-    expect(result.hint).toBeDefined();
-    expect(result.hint).toContain("nonexistent_schema_xyz");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema_xyz");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should exclude extension schemas by default", async () => {
@@ -510,9 +513,8 @@ describe("pg_topological_sort", () => {
     expect(projIdx).toBeLessThan(deptIdx);
   });
 
-  it("should return hint for nonexistent schema", async () => {
-    // Mock FK and table queries returning empty for unknown schema
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("should return structured error for nonexistent schema", async () => {
+    // Schema existence check returns no rows
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_topological_sort")!;
@@ -520,13 +522,13 @@ describe("pg_topological_sort", () => {
       { schema: "nonexistent_schema_xyz" },
       mockContext,
     )) as {
-      order: unknown[];
-      hint?: string;
+      success: false;
+      error: string;
     };
 
-    expect(result.order).toHaveLength(0);
-    expect(result.hint).toBeDefined();
-    expect(result.hint).toContain("nonexistent_schema_xyz");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema_xyz");
+    expect(result.error).toContain("does not exist");
   });
 });
 
@@ -658,9 +660,11 @@ describe("pg_cascade_simulator", () => {
     const result = (await tool.handler(
       { table: "app.users" },
       mockContext,
-    )) as { sourceTable: string };
+    )) as { success: false; error: string };
 
-    expect(result.sourceTable).toBe("app.users");
+    // Table doesn't exist in mock — verify error uses the schema-qualified name
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("app.users");
   });
 
   it("should rate DROP operation with cascades as critical severity", async () => {
@@ -716,12 +720,10 @@ describe("pg_cascade_simulator", () => {
     const result = (await tool.handler(
       { table: "nonexistent_xyz" },
       mockContext,
-    )) as { error?: string; severity: string; affectedTables: unknown[] };
+    )) as { success: false; error: string };
 
-    expect(result.error).toBeDefined();
+    expect(result.success).toBe(false);
     expect(result.error).toContain("not found");
-    expect(result.affectedTables).toHaveLength(0);
-    expect(result.severity).toBe("low");
   });
 
   it("should preserve NO ACTION label (not conflate with RESTRICT)", async () => {
@@ -919,29 +921,29 @@ describe("pg_schema_snapshot", () => {
     expect(tablesSql).toContain("deptype = 'e'");
   });
 
-  it("should return hint for empty schema filter", async () => {
-    // Mock 8 section queries returning empty (no extensions query when schema filter is set)
-    for (let i = 0; i < 8; i++) {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    }
+  it("should return error for nonexistent schema filter", async () => {
+    // Schema existence check returns no rows
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
     const result = (await tool.handler(
       { schema: "nonexistent_schema_xyz" },
       mockContext,
     )) as {
-      snapshot: Record<string, unknown>;
-      stats: Record<string, number>;
-      hint?: string;
+      success: boolean;
+      error: string;
     };
 
-    expect(result.hint).toBeDefined();
-    expect(result.hint).toContain("nonexistent_schema_xyz");
-    expect(result.stats["extensions"]).toBe(0);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_schema_xyz");
+    expect(result.error).toContain("does not exist");
+    // Only the schema existence check query should have been called
+    expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
   });
 
   it("should omit extensions when schema filter is set", async () => {
-    // Mock 8 section queries (NOT 9 — extensions query should be skipped)
+    // Mock schema existence check + 8 section queries (NOT 9 — extensions query should be skipped)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ x: 1 }] }); // schema exists
     for (let i = 0; i < 8; i++) {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ name: `item_${i}` }],
@@ -956,7 +958,7 @@ describe("pg_schema_snapshot", () => {
 
     // Extensions should be 0 with no extensions query fired
     expect(result.stats["extensions"]).toBe(0);
-    // Verify no call contained the extensions query
+    // Verify no call contained the extensions query (skip first call which is schema check)
     const allSqlCalls = mockAdapter.executeQuery.mock.calls.map(
       (call) => call[0] as string,
     );
@@ -964,8 +966,8 @@ describe("pg_schema_snapshot", () => {
       sql.includes("pg_extension"),
     );
     expect(extensionCall).toBeUndefined();
-    // Only 8 queries, not 9
-    expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(8);
+    // 1 schema check + 8 section queries = 9 total
+    expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(9);
   });
 
   it("should omit columns from tables when compact is true", async () => {
@@ -1108,10 +1110,8 @@ describe("pg_constraint_analysis", () => {
     }
   });
 
-  it("should return hint for nonexistent table", async () => {
-    // Mock all 3 check queries returning empty
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("should return error for nonexistent table", async () => {
+    // Table existence check returns no rows → table doesn't exist
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_constraint_analysis")!;
@@ -1119,15 +1119,15 @@ describe("pg_constraint_analysis", () => {
       { table: "nonexistent_table_xyz" },
       mockContext,
     )) as {
-      findings: unknown[];
-      summary: { totalFindings: number };
-      hint?: string;
+      success: boolean;
+      error: string;
     };
 
-    expect(result.findings).toHaveLength(0);
-    expect(result.summary.totalFindings).toBe(0);
-    expect(result.hint).toBeDefined();
-    expect(result.hint).toContain("nonexistent_table_xyz");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent_table_xyz");
+    expect(result.error).toContain("does not exist");
+    // Only the table existence check query should have been called
+    expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1362,7 +1362,7 @@ describe("pg_migration_record", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should record a migration successfully", async () => {
+  it("should record a migration successfully with status 'recorded'", async () => {
     // ensureTrackingTable: exists
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ table_exists: true }],
@@ -1380,7 +1380,7 @@ describe("pg_migration_record", () => {
           applied_by: "agent",
           migration_hash: "abc123",
           source_system: "agent",
-          status: "applied",
+          status: "recorded",
         },
       ],
     });
@@ -1394,11 +1394,16 @@ describe("pg_migration_record", () => {
         sourceSystem: "agent",
       },
       mockContext,
-    )) as { success: boolean; record?: { version: string } };
+    )) as { success: boolean; record?: { version: string; status: string } };
 
     expect(result.success).toBe(true);
     expect(result.record).toBeDefined();
     expect(result.record!.version).toBe("1.0.0");
+    expect(result.record!.status).toBe("recorded");
+
+    // Verify INSERT SQL uses 'recorded' status
+    const insertCall = mockAdapter.executeQuery.mock.calls[2]![0] as string;
+    expect(insertCall).toContain("'recorded'");
   });
 
   it("should detect duplicate migration by hash", async () => {
@@ -2110,5 +2115,372 @@ describe("pg_migration_status", () => {
     expect(result.counts.applied).toBe(4);
     expect(result.counts.rolledBack).toBe(1);
     expect(result.sourceSystems).toEqual(["agent", "manual"]);
+  });
+});
+
+// ==========================================================================
+// Coverage-targeted tests for migration.ts uncovered branches
+// ==========================================================================
+
+describe("pg_migration_init — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMigrationTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should handle outer error gracefully", async () => {
+    // pg_tables check throws
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection refused"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_migration_init")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("connection refused");
+  });
+});
+
+describe("pg_migration_record — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMigrationTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return error when INSERT RETURNING returns empty rows", async () => {
+    // ensureTrackingTable: table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // checkDuplicateHash: no duplicate
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // INSERT RETURNING: empty (edge case)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_migration_record")!;
+    const result = (await tool.handler(
+      {
+        version: "1.0.0",
+        migrationSql: "CREATE TABLE foo (id int)",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Failed to insert");
+  });
+});
+
+describe("pg_migration_apply — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMigrationTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return error when INSERT RETURNING is empty after COMMIT", async () => {
+    // ensureTrackingTable: table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // checkDuplicateHash: no duplicate
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // BEGIN
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Execute migration SQL
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // INSERT RETURNING: empty
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // COMMIT
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_migration_apply")!;
+    const result = (await tool.handler(
+      {
+        version: "1.0.0",
+        migrationSql: "CREATE TABLE bar (id int)",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("failed to insert tracking record");
+  });
+
+  it("should record failed entry and rollback on SQL error", async () => {
+    // ensureTrackingTable: table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // checkDuplicateHash: no duplicate
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // BEGIN
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Migration SQL fails
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("syntax error at position 42"),
+    );
+    // ROLLBACK
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Record failed entry
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_migration_apply")!;
+    const result = (await tool.handler(
+      {
+        version: "1.0.0",
+        migrationSql: "INVALID SQL STATEMENT;",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("syntax error");
+    expect(result.error).toContain("rolled back");
+    // Verify ROLLBACK was called
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("ROLLBACK");
+  });
+});
+
+describe("pg_migration_rollback — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMigrationTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return error when id is NaN (caught by Zod validation)", async () => {
+    const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
+    const result = (await tool.handler({ id: NaN }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    // NaN is caught by Zod validation before reaching the handler's isNaN check
+    expect(result.error).toContain("Invalid input");
+  });
+
+  it("should return error when migration is already rolled back", async () => {
+    // ensureTrackingTable: table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Find migration
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 1,
+          version: "1.0.0",
+          status: "rolled_back",
+          rollback_sql: "DROP TABLE foo",
+          applied_at: "2026-01-01",
+          migration_hash: "abc",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
+    const result = (await tool.handler({ id: 1 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("already been rolled back");
+  });
+
+  it("should return error when no rollback SQL is stored", async () => {
+    // ensureTrackingTable: table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Find migration - no rollback_sql
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 2,
+          version: "2.0.0",
+          status: "applied",
+          rollback_sql: null,
+          applied_at: "2026-01-01",
+          migration_hash: "def",
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
+    const result = (await tool.handler({ id: 2 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("no rollback SQL stored");
+  });
+
+  it("should handle rollback SQL execution failure", async () => {
+    // ensureTrackingTable: table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Find migration
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 3,
+          version: "3.0.0",
+          status: "applied",
+          rollback_sql: "DROP TABLE foo CASCADE",
+          applied_at: "2026-01-01",
+          migration_hash: "ghi",
+        },
+      ],
+    });
+    // BEGIN
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // Rollback SQL fails
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("table does not exist"),
+    );
+    // ROLLBACK
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
+    const result = (await tool.handler({ id: 3 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Rollback failed");
+    expect(result.error).toContain("table does not exist");
+  });
+
+  it("should handle outer error gracefully", async () => {
+    // ensureTrackingTable fails
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection timeout"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
+    const result = (await tool.handler({ version: "1.0.0" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("connection timeout");
+  });
+});
+
+describe("pg_migration_history — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMigrationTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should handle outer error gracefully", async () => {
+    // ensureTrackingTable fails
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("database offline"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_migration_history")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("database offline");
+  });
+});
+
+describe("pg_migration_status — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMigrationTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMigrationTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should handle outer error gracefully", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_migration_status")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("permission denied");
+  });
+
+  it("should handle string applied_at (non-Date) in latest result", async () => {
+    // Table exists
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_exists: true }],
+    });
+    // Stats query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: 1, applied: 1, recorded: 0, rolled_back: 0, failed: 0 }],
+    });
+    // Latest query with string applied_at (not Date object)
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ version: "1.0.0", applied_at: "2026-01-15T12:00:00Z" }],
+    });
+    // Source systems query
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_migration_status")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      initialized: boolean;
+      latestVersion: string;
+      latestAppliedAt: string;
+    };
+
+    expect(result.initialized).toBe(true);
+    expect(result.latestVersion).toBe("1.0.0");
+    expect(result.latestAppliedAt).toBe("2026-01-15T12:00:00Z");
   });
 });

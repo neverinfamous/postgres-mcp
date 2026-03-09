@@ -8,7 +8,7 @@
 import { type z } from "zod";
 import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
-import { write } from "../../../utils/annotations.js";
+import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { formatPostgresError } from "./core/error-helpers.js";
 import {
@@ -23,6 +23,7 @@ import {
   // Output schemas
   TransactionBeginOutputSchema,
   TransactionResultOutputSchema,
+  TransactionStatusOutputSchema,
   SavepointResultOutputSchema,
   TransactionExecuteOutputSchema,
 } from "../schemas/index.js";
@@ -35,6 +36,7 @@ export function getTransactionTools(
 ): ToolDefinition[] {
   return [
     createBeginTransactionTool(adapter),
+    createTransactionStatusTool(adapter),
     createCommitTransactionTool(adapter),
     createRollbackTransactionTool(adapter),
     createSavepointTool(adapter),
@@ -69,6 +71,78 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
           success: false,
           error: formatPostgresError(error, {
             tool: "pg_transaction_begin",
+          }),
+        };
+      }
+    },
+  };
+}
+
+function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
+  return {
+    name: "pg_transaction_status",
+    description:
+      "Check the status of an active transaction without modifying it. " +
+      "Returns whether the transaction is active, aborted (needs rollback), or not found.",
+    group: "transactions",
+    inputSchema: TransactionIdSchemaBase,
+    outputSchema: TransactionStatusOutputSchema,
+    annotations: readOnly("Transaction Status"),
+    icons: getToolIcons("transactions", readOnly("Transaction Status")),
+    handler: async (params: unknown, _context: RequestContext) => {
+      try {
+        const { transactionId } = TransactionIdSchema.parse(params);
+        const client = adapter.getTransactionConnection(transactionId);
+
+        if (!client) {
+          return {
+            status: "not_found",
+            transactionId,
+            active: false,
+            message:
+              "Transaction not found — it may have been committed, rolled back, or expired.",
+          };
+        }
+
+        // Probe the connection to determine if the transaction is healthy
+        // or in an aborted state (same technique used in commitTransaction).
+        try {
+          await adapter.executeOnConnection(client, "SELECT 1");
+          return {
+            status: "active",
+            transactionId,
+            active: true,
+            message: "Transaction is active and ready for operations.",
+          };
+        } catch (probeError) {
+          const pgCode = (probeError as Record<string, unknown>)["code"] as
+            | string
+            | undefined;
+          if (
+            pgCode === "25P02" ||
+            (probeError instanceof Error &&
+              /current transaction is aborted/i.test(probeError.message))
+          ) {
+            return {
+              status: "aborted",
+              transactionId,
+              active: true,
+              message:
+                "Transaction is in an aborted state — only ROLLBACK or ROLLBACK TO SAVEPOINT commands are accepted.",
+            };
+          }
+          return {
+            success: false,
+            error: formatPostgresError(probeError, {
+              tool: "pg_transaction_status",
+            }),
+          };
+        }
+      } catch (error) {
+        return {
+          success: false,
+          error: formatPostgresError(error, {
+            tool: "pg_transaction_status",
           }),
         };
       }

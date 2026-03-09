@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS ${qualifiedTable} (
   source_system VARCHAR(50),
   rollback_sql TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'applied',
-  CONSTRAINT valid_status CHECK (status IN ('applied', 'rolled_back', 'failed'))
+  CONSTRAINT valid_status CHECK (status IN ('applied', 'recorded', 'rolled_back', 'failed'))
 )`;
 }
 
@@ -172,7 +172,7 @@ export function createMigrationInitTool(
     inputSchema: MigrationInitSchemaBase,
     outputSchema: MigrationInitOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationInitSchema.parse(params);
@@ -238,14 +238,15 @@ export function createMigrationRecordTool(
   return {
     name: "pg_migration_record",
     description:
-      "Record a migration in the schema version tracking table. " +
+      "Record a migration in the schema version tracking table with status 'recorded' (metadata only, SQL not executed). " +
+      "Use pg_migration_apply instead to execute SQL and record with status 'applied'. " +
       "Auto-provisions the tracking table on first use. " +
       "Computes SHA-256 hash for idempotency detection.",
     group: "migration",
     inputSchema: MigrationRecordSchemaBase,
     outputSchema: MigrationRecordOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationRecordSchema.parse(params);
@@ -259,8 +260,8 @@ export function createMigrationRecordTool(
 
         const result = await adapter.executeQuery(
           `INSERT INTO ${TRACKING_TABLE}
-         (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'recorded')
          RETURNING *`,
           [
             parsed.version,
@@ -316,7 +317,7 @@ export function createMigrationApplyTool(
     inputSchema: MigrationApplySchemaBase,
     outputSchema: MigrationApplyOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationApplySchema.parse(params);
@@ -428,7 +429,7 @@ export function createMigrationRollbackTool(
     inputSchema: MigrationRollbackSchemaBase,
     outputSchema: MigrationRollbackOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationRollbackSchema.parse(params);
@@ -562,7 +563,7 @@ export function createMigrationHistoryTool(
     inputSchema: MigrationHistorySchemaBase,
     outputSchema: MigrationHistoryOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationHistorySchema.parse(params);
@@ -650,7 +651,7 @@ export function createMigrationStatusTool(
     inputSchema: MigrationStatusSchemaBase,
     outputSchema: MigrationStatusOutputSchema,
     annotations,
-    icons: getToolIcons("introspection", annotations),
+    icons: getToolIcons("migration", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationStatusSchema.parse(params);
@@ -690,6 +691,7 @@ export function createMigrationStatusTool(
           `SELECT
           COUNT(*)::int AS total,
           COUNT(*) FILTER (WHERE status = 'applied')::int AS applied,
+          COUNT(*) FILTER (WHERE status = 'recorded')::int AS recorded,
           COUNT(*) FILTER (WHERE status = 'rolled_back')::int AS rolled_back,
           COUNT(*) FILTER (WHERE status = 'failed')::int AS failed
         FROM ${qualifiedTable}`,
@@ -731,6 +733,7 @@ export function createMigrationStatusTool(
           counts: {
             total: statsRow["total"] as number,
             applied: statsRow["applied"] as number,
+            recorded: (statsRow["recorded"] as number | null) ?? 0,
             rolledBack: statsRow["rolled_back"] as number,
             failed: statsRow["failed"] as number,
           },

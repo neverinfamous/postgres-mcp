@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-03-09
+
+### Fixed
+
+- **3 introspection tools silent empty result for nonexistent schema** — `pg_dependency_graph({schema: "nonexistent"})`, `pg_topological_sort({schema: "nonexistent"})`, and `pg_constraint_analysis({schema: "nonexistent"})` now return `{success: false, error: "Schema '...' does not exist. Use pg_list_schemas to see available schemas."}` instead of silently returning empty results (empty graph, empty order, empty findings). Extracted shared `checkSchemaExists()` helper from the existing inline validation in `pg_schema_snapshot` and applied it to all three tools. Refactored `pg_schema_snapshot` to use the shared helper. Updated 3 unit tests
+- **`pg_constraint_analysis` silent empty result for nonexistent table** — `pg_constraint_analysis({table: "nonexistent"})` now returns `{success: false, error: "Table 'public.nonexistent' does not exist. Use pg_list_tables to verify."}` instead of returning empty findings with a `hint` field. Added shared `checkTableExists()` helper to `graph.ts` mirroring the `checkSchemaExists()` pattern. Removed the hint-based fallback. Updated 1 unit test
+- **`pg_cascade_simulator` mixed error response for nonexistent tables** — `pg_cascade_simulator({table: "nonexistent"})` now returns clean `{success: false, error: "..."}` instead of mixing error and success fields (`sourceTable`, `affectedTables: []`, `severity: "low"`, `stats: {...}`). Consistent with the structured error pattern used by all other introspection tools. Updated 2 unit tests
+
+- **`pg_migration_record` status incorrectly set to `'applied'`** — `pg_migration_record` now explicitly inserts with `status: 'recorded'` instead of relying on the column default of `'applied'`. This distinguishes metadata-only records (recorded but not executed) from actually-executed migrations (applied via `pg_migration_apply`). Added `'recorded'` to the `valid_status` CHECK constraint on `_mcp_schema_versions`, to the `MigrationHistorySchema` status enum (enabling `status: 'recorded'` filter in `pg_migration_history`), and to the `pg_migration_status` dashboard counts. Updated `ServerInstructions.ts` and `server-instructions.md` docs. Updated 1 unit test
+- **3 anomaly detection tools NaN coercion for wrong-type numeric params** — `pg_detect_query_anomalies({threshold: "abc"})`, `pg_detect_query_anomalies({minCalls: "abc"})`, `pg_detect_bloat_risk({minRows: "abc"})`, and `pg_detect_connection_spike({warningPercent: "abc"})` now silently fall back to their default values instead of producing raw MCP `-32602` Output validation errors. Root cause: `Number("abc")` → `NaN` propagated through `Math.max()`/`Math.min()` into SQL queries (for query anomalies and bloat risk) causing PostgreSQL errors; handlers returned `{success: false}` but the output Zod schema only accepted the success-path shape. Added `safeNum()` helper that falls back to the default value when `Number()` produces `NaN`
+- **Migration tool icons used wrong group** — All 6 migration tools in `migration.ts` used `getToolIcons("introspection", ...)` instead of `getToolIcons("migration", ...)`
+- **SQL injection risk in `diagnostics.ts` and `anomaly-detection.ts`** — Replaced ad-hoc `schema.replace(/'/g, "''")` string escaping with `validateIdentifier()` to reject invalid schema names at the validation layer
+- **`InvalidFtsConfigError` not exported** — Added `export` keyword to `InvalidFtsConfigError` class in `fts-config.ts` so test imports work correctly
+- **Stale tool counts in documentation** — Updated "227 tools" → "231 tools" in Dockerfile, README.md, DOCKER_README.md, `performance.test.ts`, and `server-instructions.md` to reflect the 4 new performance monitoring tools
+
+### Added
+
+- **`pg_transaction_status` tool** — New read-only tool in the `transactions` group that checks the state of an active managed transaction without modifying it. Probes the connection with `SELECT 1` (same technique used in `commitTransaction` for aborted-state detection). Returns `{status, transactionId, active, message}` where `status` is `"active"` (ready for operations), `"aborted"` (needs rollback), or `"not_found"` (already committed/rolled back/expired). Accepts `transactionId`/`tx`/`txId` aliases. Exposed in Code Mode as `pg.transactions.status()`. Transaction tools: 7 → 8
+
+### Changed
+
+- **Dependency Updates**
+  - `jose`: 6.2.0 → 6.2.1
+  - Dockerfile: bumped npm-bundled `tar` patch from 7.5.10 → 7.5.11 and `minimatch` to 10.2.4
+  - `package.json` overrides: exactly pinned `tar` to 7.5.11 and `minimatch` to 10.2.4
+
 ## [2.2.0] - 2026-03-09
 
 ### Fixed
@@ -379,7 +405,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pg_topological_sort` silent empty result for nonexistent schema** — `pg_topological_sort({ schema: "nonexistent" })` now returns a `hint` field (`"Schema 'nonexistent' returned no tables. Verify the schema exists with pg_list_schemas."`) alongside the empty `order` array. Previously returned an empty order with `hasCycles: false` and no indication that the schema might not exist. Added `hint` optional field to `TopologicalSortOutputSchema`. Added 1 unit test
 
-- **`pg_constraint_analysis` silent empty result for nonexistent table** — `pg_constraint_analysis({ table: "nonexistent" })` now returns a `hint` field (`"No findings for table 'public.nonexistent'. Verify the table exists with pg_list_tables."`) alongside the empty findings. Previously returned `{findings: [], summary: {totalFindings: 0}}` with no indication that the table might not exist. Added `hint` optional field to `ConstraintAnalysisOutputSchema`. Added 1 unit test
+- **`pg_constraint_analysis` hint-based nonexistent table response upgraded to `{success: false}`** — `pg_constraint_analysis({ table: "nonexistent" })` now returns `{success: false, error: "Table 'public.nonexistent' does not exist. Use pg_list_tables to verify."}` instead of a `hint` field alongside empty findings. Superseded by the `checkTableExists()` pre-check added in `[Unreleased]`
 
 - **`test-tools.md` cascade simulator scenario inaccuracy** — Updated `pg_cascade_simulator` test scenario to include the NO ACTION block from `test_audit_log` (via the `test_employees` cascade path), which was missing from the original prompt
 

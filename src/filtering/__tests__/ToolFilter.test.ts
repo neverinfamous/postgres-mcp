@@ -52,7 +52,7 @@ describe("TOOL_GROUPS", () => {
 
   it("should have correct tool counts per group", () => {
     expect(TOOL_GROUPS.core).toHaveLength(20);
-    expect(TOOL_GROUPS.transactions).toHaveLength(7);
+    expect(TOOL_GROUPS.transactions).toHaveLength(8);
     expect(TOOL_GROUPS.jsonb).toHaveLength(19);
     expect(TOOL_GROUPS.text).toHaveLength(13);
     expect(TOOL_GROUPS.performance).toHaveLength(24);
@@ -75,9 +75,9 @@ describe("TOOL_GROUPS", () => {
     expect(TOOL_GROUPS.codemode).toHaveLength(1);
   });
 
-  it("should total 231 tools across all groups", () => {
+  it("should total 232 tools across all groups", () => {
     const totalTools = Object.values(TOOL_GROUPS).flat().length;
-    expect(totalTools).toBe(231);
+    expect(totalTools).toBe(232);
   });
 });
 
@@ -131,9 +131,9 @@ describe("META_GROUPS", () => {
 });
 
 describe("getAllToolNames", () => {
-  it("should return all 231 tool names", () => {
+  it("should return all 232 tool names", () => {
     const tools = getAllToolNames();
-    expect(tools).toHaveLength(231);
+    expect(tools).toHaveLength(232);
   });
 
   it("should return unique tool names", () => {
@@ -171,14 +171,14 @@ describe("getToolGroup", () => {
 describe("getMetaGroupTools", () => {
   it("should return all tools for starter meta-group", () => {
     const tools = getMetaGroupTools("starter");
-    // starter = core(20) + transactions(7) + jsonb(19) + schema(12) + codemode(1) = 59
-    expect(tools).toHaveLength(59);
+    // starter = core(20) + transactions(8) + jsonb(19) + schema(12) + codemode(1) = 60
+    expect(tools).toHaveLength(60);
   });
 
   it("should return all tools for essential meta-group", () => {
     const tools = getMetaGroupTools("essential");
-    // essential = core(20) + transactions(7) + jsonb(19) + codemode(1) = 47
-    expect(tools).toHaveLength(47);
+    // essential = core(20) + transactions(8) + jsonb(19) + codemode(1) = 48
+    expect(tools).toHaveLength(48);
   });
 
   it("should return correct tools for ext-ai meta-group", () => {
@@ -189,14 +189,14 @@ describe("getMetaGroupTools", () => {
 
   it("should return correct tools for dev-schema meta-group", () => {
     const tools = getMetaGroupTools("dev-schema");
-    // dev-schema = core(20) + transactions(7) + schema(12) + introspection(6) + migration(6) + codemode(1) = 52
-    expect(tools).toHaveLength(52);
+    // dev-schema = core(20) + transactions(8) + schema(12) + introspection(6) + migration(6) + codemode(1) = 53
+    expect(tools).toHaveLength(53);
   });
 
   it("should return correct tools for dev-analytics meta-group", () => {
     const tools = getMetaGroupTools("dev-analytics");
-    // dev-analytics = core(20) + transactions(7) + stats(8) + partitioning(6) + codemode(1) = 42
-    expect(tools).toHaveLength(42);
+    // dev-analytics = core(20) + transactions(8) + stats(8) + partitioning(6) + codemode(1) = 43
+    expect(tools).toHaveLength(43);
   });
 
   it("should return correct tools for base-ops meta-group", () => {
@@ -207,8 +207,8 @@ describe("getMetaGroupTools", () => {
 
   it("should return correct tools for dba-monitor meta-group", () => {
     const tools = getMetaGroupTools("dba-monitor");
-    // dba-monitor = core(20) + monitoring(11) + performance(24) + transactions(7) + codemode(1) = 63
-    expect(tools).toHaveLength(63);
+    // dba-monitor = core(20) + monitoring(11) + performance(24) + transactions(8) + codemode(1) = 64
+    expect(tools).toHaveLength(64);
   });
 
   it("should return correct tools for dba-schema meta-group", () => {
@@ -225,42 +225,42 @@ describe("getMetaGroupTools", () => {
 
   it("should return correct tools for dba-stats meta-group", () => {
     const tools = getMetaGroupTools("dba-stats");
-    // dba-stats = core(20) + admin(10) + monitoring(11) + transactions(7) + stats(8) + codemode(1) = 57
-    expect(tools).toHaveLength(57);
+    // dba-stats = core(20) + admin(10) + monitoring(11) + transactions(8) + stats(8) + codemode(1) = 58
+    expect(tools).toHaveLength(58);
   });
 });
 
 describe("parseToolFilter", () => {
-  it("should return all 231 tools enabled for empty filter", () => {
+  it("should return all 232 tools enabled for empty filter", () => {
     const config = parseToolFilter("");
-    expect(config.enabledTools.size).toBe(231);
+    expect(config.enabledTools.size).toBe(232);
     expect(config.rules).toHaveLength(0);
     expect(config.enabledTools.has("pg_read_query")).toBe(true);
   });
 
-  it("should return all 231 tools enabled for undefined filter", () => {
+  it("should return all 232 tools enabled for undefined filter", () => {
     const config = parseToolFilter(undefined);
-    expect(config.enabledTools.size).toBe(231);
+    expect(config.enabledTools.size).toBe(232);
     expect(config.rules).toHaveLength(0);
   });
 
   it("should disable a single tool", () => {
     const config = parseToolFilter("-pg_read_query");
-    expect(config.enabledTools.size).toBe(230); // 231 - 1
+    expect(config.enabledTools.size).toBe(231); // 232 - 1
     expect(config.enabledTools.has("pg_read_query")).toBe(false);
     expect(config.enabledTools.has("pg_write_query")).toBe(true);
   });
 
   it("should disable a tool group", () => {
     const config = parseToolFilter("-core");
-    expect(config.enabledTools.size).toBe(211); // 231 - 20
+    expect(config.enabledTools.size).toBe(212); // 232 - 20
     expect(config.enabledTools.has("pg_read_query")).toBe(false);
     expect(config.enabledTools.has("pg_jsonb_extract")).toBe(true);
   });
 
   it("should disable a meta-group", () => {
     const config = parseToolFilter("-starter");
-    expect(config.enabledTools.size).toBe(172); // 231 - 59
+    expect(config.enabledTools.size).toBe(172); // 232 - 60
     expect(config.enabledTools.has("pg_read_query")).toBe(false);
     expect(config.enabledTools.has("pg_jsonb_extract")).toBe(false);
     expect(config.enabledTools.has("pg_vector_search")).toBe(true);
@@ -275,18 +275,18 @@ describe("parseToolFilter", () => {
 
   it("should handle whitelist with a meta-group", () => {
     const config = parseToolFilter("starter");
-    expect(config.enabledTools.size).toBe(59); // starter has 59 tools
+    expect(config.enabledTools.size).toBe(60); // starter has 60 tools
   });
 
   it("should handle explicit whitelist syntax (+group)", () => {
     const config = parseToolFilter("+starter");
-    expect(config.enabledTools.size).toBe(59);
+    expect(config.enabledTools.size).toBe(60);
   });
 
   it("should handle whitelist with exclusion (starter,-jsonb)", () => {
-    // starter(59) - jsonb(19) = 40
+    // starter(60) - jsonb(19) = 41
     const config = parseToolFilter("starter,-jsonb");
-    expect(config.enabledTools.size).toBe(40);
+    expect(config.enabledTools.size).toBe(41);
   });
 
   it("should process rules left-to-right", () => {
@@ -332,13 +332,13 @@ describe("parseToolFilter", () => {
   it("should include codemode in blacklist mode by default", () => {
     const config = parseToolFilter("-vector");
     expect(config.enabledTools.has("pg_execute_code")).toBe(true);
-    expect(config.enabledTools.size).toBe(215); // 231 - 16
+    expect(config.enabledTools.size).toBe(216); // 232 - 16
   });
 
   it("should allow excluding codemode in blacklist mode", () => {
     const config = parseToolFilter("-codemode");
     expect(config.enabledTools.has("pg_execute_code")).toBe(false);
-    expect(config.enabledTools.size).toBe(230); // 231 - 1
+    expect(config.enabledTools.size).toBe(231); // 232 - 1
   });
 });
 
@@ -393,7 +393,7 @@ describe("getFilterSummary", () => {
   it("should generate summary for no filter", () => {
     const config = parseToolFilter("");
     const summary = getFilterSummary(config);
-    expect(summary).toContain("231");
+    expect(summary).toContain("232");
     expect(summary).toContain("Enabled");
   });
 

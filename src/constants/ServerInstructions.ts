@@ -148,7 +148,7 @@ export const SERVER_INSTRUCTIONS = `# postgres-mcp Code Mode
 
 ## Performance Tools
 
-Core (20 methods): \`explain()\`, \`explainAnalyze()\`, \`explainBuffers()\`, \`indexStats()\`, \`tableStats()\`, \`statStatements()\`, \`statActivity()\`, \`locks()\`, \`bloatCheck()\`, \`cacheHitRatio()\`, \`seqScanTables()\`, \`indexRecommendations()\`, \`queryPlanCompare()\`, \`baseline()\`, \`connectionPoolOptimize()\`, \`partitionStrategySuggest()\`, \`unusedIndexes()\`, \`duplicateIndexes()\`, \`vacuumStats()\`, \`queryPlanStats()\`
+Core (24 methods): \`explain()\`, \`explainAnalyze()\`, \`explainBuffers()\`, \`indexStats()\`, \`tableStats()\`, \`statStatements()\`, \`statActivity()\`, \`locks()\`, \`bloatCheck()\`, \`cacheHitRatio()\`, \`seqScanTables()\`, \`indexRecommendations()\`, \`queryPlanCompare()\`, \`baseline()\`, \`connectionPoolOptimize()\`, \`partitionStrategySuggest()\`, \`unusedIndexes()\`, \`duplicateIndexes()\`, \`vacuumStats()\`, \`queryPlanStats()\`, \`diagnoseDatabasePerformance()\`, \`detectQueryAnomalies()\`, \`detectBloatRisk()\`, \`detectConnectionSpike()\`
 
 Wrappers (3): \`blockingQueries()\`→\`locks({showBlocked:true})\`, \`longRunningQueries({ seconds | minDuration }?)\` filters by duration (returns \`{longRunningQueries, count, threshold}\`), \`analyzeTable({ table })\` runs ANALYZE (accepts \`schema.table\` format)
 
@@ -173,7 +173,7 @@ Aliases: \`cacheStats\`→\`cacheHitRatio\`, \`queryStats\`→\`statStatements\`
 
 📍 **Code Mode Note**: \`pg_performance_baseline\` → \`pg.performance.baseline()\` (not \`performanceBaseline\`). \`indexRecommendations\` accepts \`query\` alias for \`sql\`
 
-**Top-Level Aliases**: \`pg.explain()\`, \`pg.explainAnalyze()\`, \`pg.cacheHitRatio()\`, \`pg.indexStats()\`, \`pg.tableStats()\`, \`pg.indexRecommendations()\`, \`pg.bloatCheck()\`, \`pg.vacuumStats()\`, \`pg.unusedIndexes()\`, \`pg.duplicateIndexes()\`, \`pg.seqScanTables()\`
+**Top-Level Aliases**: \`pg.explain()\`, \`pg.explainAnalyze()\`, \`pg.cacheHitRatio()\`, \`pg.indexStats()\`, \`pg.tableStats()\`, \`pg.indexRecommendations()\`, \`pg.bloatCheck()\`, \`pg.vacuumStats()\`, \`pg.unusedIndexes()\`, \`pg.duplicateIndexes()\`, \`pg.seqScanTables()\`, \`pg.diagnoseDatabasePerformance()\`, \`pg.detectQueryAnomalies()\`, \`pg.detectBloatRisk()\`, \`pg.detectConnectionSpike()\`
 
 ## Monitoring Tools
 
@@ -434,11 +434,12 @@ No \`setTimeout\`, \`setInterval\`, \`fetch\`, or network access. Use \`pg.core.
 
 ## Transactions
 
-Core: \`begin()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, \`rollbackTo()\`, \`release()\`, \`execute()\`
+Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, \`rollbackTo()\`, \`release()\`, \`execute()\`
 
 **Transaction Lifecycle:**
 
 - \`pg_transaction_begin\`: Start new transaction. Returns \`{transactionId, isolationLevel, message}\`. Use \`transactionId\` for subsequent operations
+- \`pg_transaction_status\`: Check transaction state without modifying it. Returns \`{status, transactionId, active, message}\`. \`status\` is \`"active"\` (ready), \`"aborted"\` (needs rollback), or \`"not_found"\` (already ended). Read-only — does not alter transaction state. \`transactionId\`/\`tx\`/\`txId\` aliases
 - \`pg_transaction_commit\`: Commit transaction, making all changes permanent. \`transactionId\`/\`tx\`/\`txId\` aliases
 - \`pg_transaction_rollback\`: Rollback transaction, discarding all changes. \`transactionId\`/\`tx\`/\`txId\` aliases
 
@@ -467,6 +468,7 @@ Core: \`begin()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, \`rollbackTo()
 **Response Structures:**
 
 - \`begin\`: \`{transactionId, isolationLevel: 'READ COMMITTED', message}\`
+- \`status\`: \`{status: 'active'|'aborted'|'not_found', transactionId, active, message}\`
 - \`commit/rollback\`: \`{success, transactionId, message}\`
 - \`savepoint/release/rollbackTo\`: \`{success, transactionId, savepoint, message}\`
 - \`execute\`: \`{success, statementsExecuted, results: [{sql, rowsAffected, rowCount, rows?}], transactionId?}\`
@@ -475,8 +477,8 @@ Core: \`begin()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, \`rollbackTo()
 
 ## Introspection Tools
 
-Code Mode: \`pg.introspection.*\` — 12 tools for schema analysis and migration tracking.
-Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`schemaSnapshot()\`, \`constraintAnalysis()\`, \`migrationRisks()\`, \`migrationInit()\`, \`migrationRecord()\`, \`migrationApply()\`, \`migrationRollback()\`, \`migrationHistory()\`, \`migrationStatus()\`
+Code Mode: \`pg.introspection.*\` — 6 read-only tools for schema analysis.
+Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`schemaSnapshot()\`, \`constraintAnalysis()\`, \`migrationRisks()\`
 
 **Schema Analysis (6 tools):**
 
@@ -487,14 +489,19 @@ Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`sc
 - \`pg_constraint_analysis\`: Identifies constraint issues. \`checks?\`: \`['redundant','missing_fk','missing_not_null','missing_pk','unindexed_fk']\`. Returns \`{findings, summary}\`
 - \`pg_migration_risks\`: Static DDL risk assessment. ⚠️ Does NOT validate object existence—analyzes SQL patterns only. Returns \`{risks, summary}\`
 
-**Migration Tracking (6 tools):**
+**Discovery**: \`pg.introspection.help()\` returns \`{methods, methodAliases, examples}\`
+
+## Migration Tools
+
+Code Mode: \`pg.migration.*\` — 6 tools for schema migration tracking and management.
+Core: \`init()\`, \`record()\`, \`apply()\`, \`rollback()\`, \`history()\`, \`status()\`
 
 - \`pg_migration_init\`: Initialize/verify \`_mcp_schema_versions\` tracking table (idempotent). Returns \`{success, tableCreated, tableName, existingRecords}\`
-- \`pg_migration_record\`: Record a migration with SHA-256 hash dedup. ⚠️ Records metadata only—does NOT execute the SQL. Use \`pg_migration_apply\` instead for complete migrations. Params: \`version\`, \`description?\`, \`migrationSql\`, \`rollbackSql?\`, \`sourceSystem?\`. Returns \`{success, record}\`
+- \`pg_migration_record\`: Record a migration with SHA-256 hash dedup. ⚠️ Records metadata only—does NOT execute the SQL (status: 'recorded'). Use \`pg_migration_apply\` instead for complete migrations (status: 'applied'). Params: \`version\`, \`description?\`, \`migrationSql\`, \`rollbackSql?\`, \`sourceSystem?\`. Returns \`{success, record}\`
 - \`pg_migration_apply\`: Execute migration SQL and record it atomically in a single transaction. On failure, rolls back and records status as 'failed'. Same params as \`pg_migration_record\`. Returns \`{success, record}\` or \`{success: false, error}\`
 - \`pg_migration_rollback\`: Execute stored rollback SQL in a transaction. \`dryRun: true\` previews without executing (default: \`false\` — executes immediately). Lookup by \`id\` or \`version\`. Returns \`{success, dryRun, rollbackSql, record}\`
-- \`pg_migration_history\`: Query migration history with \`status?\` ('applied'|'rolled_back'|'failed'), \`sourceSystem?\`, \`limit?\`, \`offset?\`. Returns \`{records, total, limit, offset}\`
+- \`pg_migration_history\`: Query migration history with \`status?\` ('applied'|'recorded'|'rolled_back'|'failed'), \`sourceSystem?\`, \`limit?\`, \`offset?\`. Returns \`{records, total, limit, offset}\`
 - \`pg_migration_status\`: Aggregate dashboard. Returns \`{initialized, latestVersion, counts, sourceSystems}\`
 
-**Discovery**: \`pg.introspection.help()\` returns \`{methods, methodAliases, examples}\`
+**Discovery**: \`pg.migration.help()\` returns \`{methods, methodAliases, examples}\`
 `;

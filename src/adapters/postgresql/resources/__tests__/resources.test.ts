@@ -1216,6 +1216,7 @@ describe("Cron Resource", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "cleanup_job",
             schedule: "*/5 * * * *",
             command: "SELECT cleanup()",
             nodename: "localhost",
@@ -1233,6 +1234,7 @@ describe("Cron Resource", () => {
           { status: "failed", count: 2 },
         ],
       })
+      .mockResolvedValueOnce({ rows: [] }) // last run per job
       .mockResolvedValueOnce({ rows: [] }) // failed jobs
       .mockResolvedValueOnce({ rows: [{ old_count: 100 }] }); // history check
 
@@ -1252,6 +1254,7 @@ describe("Cron Resource", () => {
     expect(result.extensionVersion).toBe("1.6");
     expect(result.jobCount).toBe(1);
     expect(result.activeJobCount).toBe(1);
+    expect(result.jobs[0].jobname).toBe("cleanup_job");
     expect(result.recentRuns.successful).toBe(50);
     expect(result.recentRuns.failed).toBe(2);
   });
@@ -1306,6 +1309,7 @@ describe("Cron Resource", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "test_job_1",
             schedule: "*/5 * * * *",
             command: "SELECT 1",
             nodename: "",
@@ -1316,6 +1320,7 @@ describe("Cron Resource", () => {
           },
           {
             jobid: 2,
+            jobname: "test_job_2",
             schedule: "0 0 * * *",
             command: "SELECT 2",
             nodename: "",
@@ -1355,6 +1360,7 @@ describe("Cron Resource", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "test_job",
             schedule: "*/5 * * * *",
             command: "SELECT 1",
             nodename: "",
@@ -3481,6 +3487,7 @@ describe("pg_cron Resource (Branch Coverage)", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "vacuum_job",
             schedule: "0 * * * *",
             command: "VACUUM",
             nodename: "localhost",
@@ -3541,6 +3548,7 @@ describe("pg_cron Resource (Branch Coverage)", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "vacuum_job",
             schedule: "0 * * * *",
             command: "VACUUM",
             nodename: "localhost",
@@ -3551,6 +3559,7 @@ describe("pg_cron Resource (Branch Coverage)", () => {
           },
           {
             jobid: 2,
+            jobname: "analyze_job",
             schedule: "0 0 * * *",
             command: "ANALYZE",
             nodename: "localhost",
@@ -5812,5 +5821,343 @@ describe("Stats Resource toStr/toNum helper branches", () => {
     // Should have converted number to string for schema
     expect(result.tableStats).toBeDefined();
     expect(result.tableStats.length).toBe(1);
+  });
+});
+
+// =============================================================================
+// VACUUM RESOURCE — uncovered branches (L105-133: wraparound thresholds,
+// empty table skip, dead tuple >20% warning)
+// =============================================================================
+describe("Vacuum Resource — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+  });
+
+  it("should emit CRITICAL warning when wraparound >75%", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] }) // vacuum stats
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            datname: "test",
+            xid_age: 1700000000,
+            xids_until_wraparound: 447483648,
+            percent_toward_wraparound: 79.2,
+          },
+        ],
+      });
+
+    const resource = createVacuumResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://vacuum",
+      mockContext,
+    )) as {
+      warnings: Array<{ severity: string; message: string }>;
+    };
+
+    expect(result.warnings[0].severity).toBe("CRITICAL");
+    expect(result.warnings[0].message).toContain("79.2");
+  });
+
+  it("should emit HIGH warning when wraparound >50% but <75%", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            datname: "test",
+            xid_age: 1200000000,
+            xids_until_wraparound: 947483648,
+            percent_toward_wraparound: 55.8,
+          },
+        ],
+      });
+
+    const resource = createVacuumResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://vacuum",
+      mockContext,
+    )) as {
+      warnings: Array<{ severity: string; message: string }>;
+    };
+
+    expect(result.warnings[0].severity).toBe("HIGH");
+  });
+
+  it("should emit MEDIUM warning for tables with >20% dead tuples", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            schemaname: "public",
+            relname: "bloated",
+            n_dead_tup: 5000,
+            n_live_tup: 10000,
+            dead_tuple_percent: 50,
+            vacuum_count: 0,
+            autovacuum_count: 0,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            datname: "test",
+            xid_age: 100,
+            xids_until_wraparound: 2147483548,
+            percent_toward_wraparound: 0.01,
+          },
+        ],
+      });
+
+    const resource = createVacuumResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://vacuum",
+      mockContext,
+    )) as {
+      warnings: Array<{ severity: string; table?: string }>;
+    };
+
+    const tableWarning = result.warnings.find(
+      (w) => w.table === "public.bloated",
+    );
+    expect(tableWarning).toBeDefined();
+    expect(tableWarning!.severity).toBe("MEDIUM");
+  });
+
+  it("should skip empty tables (live=0, dead=0) in warnings", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            schemaname: "public",
+            relname: "empty",
+            n_dead_tup: 0,
+            n_live_tup: 0,
+            dead_tuple_percent: 0,
+            vacuum_count: 0,
+            autovacuum_count: 0,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            datname: "test",
+            xid_age: 100,
+            xids_until_wraparound: 2147483548,
+            percent_toward_wraparound: 0.01,
+          },
+        ],
+      });
+
+    const resource = createVacuumResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://vacuum",
+      mockContext,
+    )) as {
+      warnings: Array<{ severity: string; table?: string }>;
+    };
+
+    // Empty table should NOT generate a warning; should fall through to INFO
+    expect(result.warnings.some((w) => w.table === "public.empty")).toBe(false);
+    expect(result.warnings[0].severity).toBe("INFO");
+  });
+});
+
+// =============================================================================
+// REPLICATION RESOURCE — uncovered branches (L46-101: role detection paths,
+// L112-128: replica delay type handling)
+// =============================================================================
+describe("Replication Resource — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+  });
+
+  it("should detect replica role and fetch replication delay", async () => {
+    // pg_is_in_recovery => true
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ is_replica: true }],
+    });
+    // Replication delay
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ replication_delay: "00:00:05" }],
+    });
+    // WAL status
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("not available on replica"),
+    );
+
+    const resource = createReplicationResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://replication",
+      mockContext,
+    )) as {
+      role: string;
+      replicationDelay?: string;
+      walStatus: Record<string, unknown>;
+    };
+
+    expect(result.role).toBe("replica");
+    expect(result.replicationDelay).toBe("00:00:05");
+    expect(result.walStatus).toHaveProperty("note");
+  });
+
+  it("should handle object-type delay (interval)", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ is_replica: true }],
+    });
+    // Delay as object (pg interval type)
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ replication_delay: { hours: 0, minutes: 0, seconds: 5 } }],
+    });
+    // WAL status
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ current_wal_lsn: "0/1234", current_wal_file: "000001" }],
+    });
+
+    const resource = createReplicationResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://replication",
+      mockContext,
+    )) as {
+      replicationDelay?: string;
+    };
+
+    expect(result.replicationDelay).toContain("seconds");
+  });
+
+  it("should handle null delay on replica", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ is_replica: true }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ replication_delay: null }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ current_wal_lsn: "0/5678" }],
+    });
+
+    const resource = createReplicationResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://replication",
+      mockContext,
+    )) as {
+      replicationDelay?: string;
+    };
+
+    expect(result.replicationDelay).toBe("Unknown");
+  });
+
+  it("should detect primary with connected replicas", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ is_replica: false }],
+    });
+    // Replication slots
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ slot_name: "slot1", active: true }],
+    });
+    // Replication stats (connected replicas)
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ client_addr: "10.0.0.2", state: "streaming", replay_lag: null }],
+    });
+    // WAL status
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ current_wal_lsn: "0/ABCD" }],
+    });
+
+    const resource = createReplicationResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://replication",
+      mockContext,
+    )) as {
+      role: string;
+      statusMessage: string;
+    };
+
+    expect(result.role).toBe("primary");
+    expect(result.statusMessage).toContain("1 connected replica");
+  });
+
+  it("should detect primary with inactive slots but no replicas", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ is_replica: false }],
+    });
+    // Slots exist but inactive
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ slot_name: "slot1", active: false }],
+    });
+    // No connected replicas
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // WAL
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ current_wal_lsn: "0/EF01" }],
+    });
+
+    const resource = createReplicationResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://replication",
+      mockContext,
+    )) as {
+      role: string;
+      statusMessage: string;
+    };
+
+    expect(result.role).toBe("primary");
+    expect(result.statusMessage).toContain("no connected replicas");
+  });
+
+  it("should handle numeric delay type on replica", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ is_replica: true }],
+    });
+    // Delay as number
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ replication_delay: 12345 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ current_wal_lsn: "0/9999" }],
+    });
+
+    const resource = createReplicationResource(
+      mockAdapter as unknown as PostgresAdapter,
+    );
+    const result = (await resource.handler(
+      "postgres://replication",
+      mockContext,
+    )) as {
+      replicationDelay?: string;
+    };
+
+    // numeric non-null non-string non-object → JSON.stringify
+    expect(result.replicationDelay).toBe("12345");
   });
 });

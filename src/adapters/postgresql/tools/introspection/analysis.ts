@@ -13,7 +13,12 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
-import { parseArrayColumn, qualifiedName } from "./graph.js";
+import {
+  parseArrayColumn,
+  qualifiedName,
+  checkSchemaExists,
+  checkTableExists,
+} from "./graph.js";
 import {
   SchemaSnapshotSchemaBase,
   SchemaSnapshotSchema,
@@ -46,6 +51,11 @@ export function createSchemaSnapshotTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = SchemaSnapshotSchema.parse(params);
+
+        // Validate schema existence when filtering by schema
+        const schemaError = await checkSchemaExists(adapter, parsed.schema);
+        if (schemaError) return schemaError;
+
         const includeAll = !parsed.sections || parsed.sections.length === 0;
         const sections = new Set(parsed.sections ?? []);
 
@@ -320,19 +330,11 @@ export function createSchemaSnapshotTool(
           stats.extensions = extResult.rows?.length ?? 0;
         }
 
-        // Add hint for nonexistent/empty schema
-        const allEmpty = Object.values(stats).every((v) => v === 0);
-        const hint =
-          parsed.schema !== undefined && allEmpty
-            ? `Schema '${parsed.schema}' returned no tables. Verify the schema exists with pg_list_schemas.`
-            : undefined;
-
         return {
           snapshot,
           stats,
           generatedAt: new Date().toISOString(),
           ...(parsed.compact && { compact: true }),
-          ...(hint !== undefined && { hint }),
         };
       } catch (error: unknown) {
         return {
@@ -365,6 +367,19 @@ export function createConstraintAnalysisTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = ConstraintAnalysisSchema.parse(params);
+
+        // Validate schema existence when filtering by schema
+        const schemaError = await checkSchemaExists(adapter, parsed.schema);
+        if (schemaError) return schemaError;
+
+        // Validate table existence when filtering by table
+        const tableError = await checkTableExists(
+          adapter,
+          parsed.table,
+          parsed.schema,
+        );
+        if (tableError) return tableError;
+
         const runAll = !parsed.checks || parsed.checks.length === 0;
         const checks = new Set(parsed.checks ?? []);
 
@@ -514,12 +529,6 @@ export function createConstraintAnalysisTool(
           bySeverity[f.severity] = (bySeverity[f.severity] ?? 0) + 1;
         }
 
-        // Add hint for nonexistent table
-        const hint =
-          parsed.table !== undefined && findings.length === 0
-            ? `No findings for table '${parsed.schema ? parsed.schema + "." : "public."}${parsed.table}'. Verify the table exists with pg_list_tables.`
-            : undefined;
-
         return {
           findings,
           summary: {
@@ -527,7 +536,6 @@ export function createConstraintAnalysisTool(
             byType,
             bySeverity,
           },
-          ...(hint !== undefined && { hint }),
         };
       } catch (error: unknown) {
         return {

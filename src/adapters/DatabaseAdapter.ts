@@ -6,7 +6,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import type { z } from "zod";
 import { logger } from "../utils/logger.js";
 import type {
   DatabaseType,
@@ -353,25 +353,21 @@ export abstract class DatabaseAdapter {
    * Register a single prompt with the MCP server
    */
   protected registerPrompt(server: McpServer, prompt: PromptDefinition): void {
-    // Build Zod schema from prompt.arguments definitions
-    const zodShape: Record<string, z.ZodType> = {};
-    if (prompt.arguments) {
-      for (const arg of prompt.arguments) {
-        zodShape[arg.name] = arg.required
-          ? z.string().describe(arg.description)
-          : z.string().optional().describe(arg.description);
-      }
-    }
-
+    // Never set argsSchema on prompts.
+    //
+    // SDK gotcha: argsSchema triggers z.object(shape).parse(request.params.arguments)
+    // which rejects `undefined`. Current MCP clients (AntiGravity/Go) always send
+    // `undefined` for the arguments field in prompts/get requests, even when the user
+    // provides args inline (e.g., `/pg_query_builder tables:users operation:JOIN`).
+    // Without argsSchema, the SDK uses the no-args callback path: cb(extra).
+    //
+    // All prompt handlers already gracefully default missing args via ?? "".
     server.registerPrompt(
       prompt.name,
-      {
-        description: prompt.description,
-        argsSchema: zodShape,
-      },
+      { description: prompt.description },
       async (providedArgs) => {
         const context = this.createContext();
-        const args = providedArgs as Record<string, string>;
+        const args = (providedArgs ?? {}) as Record<string, string>;
         const result = await prompt.handler(args, context);
         return {
           messages: [

@@ -2002,3 +2002,306 @@ describe("pg_create_partitioned_table — PK validation and edge cases", () => {
     expect(result.error).toContain("permission denied");
   });
 });
+
+// ==========================================================================
+// Coverage-targeted tests for info.ts uncovered branches
+// ==========================================================================
+
+describe("pg_attach_partition — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPartitioningTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPartitioningTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error when parent exists but is not partitioned", async () => {
+    // checkTablePartitionStatus returns regular table (relkind 'r')
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "r" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_attach_partition")!;
+    const result = (await tool.handler(
+      {
+        parent: "regular_table",
+        partition: "legacy_events",
+        forValues: "FROM ('2020-01-01') TO ('2021-01-01')",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not partitioned");
+    expect(result.error).toContain("regular_table");
+  });
+
+  it("should attach DEFAULT partition via __DEFAULT__ forValues", async () => {
+    // checkTablePartitionStatus - partitioned parent
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // partition existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // SQL execution
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_attach_partition")!;
+    const result = (await tool.handler(
+      {
+        parent: "events",
+        partition: "events_default",
+        forValues: "__DEFAULT__",
+      },
+      mockContext,
+    )) as { success: boolean; bounds: string };
+
+    expect(result.success).toBe(true);
+    expect(result.bounds).toBe("DEFAULT");
+    const call = mockAdapter.executeQuery.mock.calls[2][0] as string;
+    expect(call).toContain("DEFAULT");
+    expect(call).not.toContain("FOR VALUES");
+  });
+
+  it("should attach DEFAULT partition via explicit DEFAULT forValues", async () => {
+    // checkTablePartitionStatus - partitioned parent
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // partition existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // SQL execution
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_attach_partition")!;
+    const result = (await tool.handler(
+      {
+        parent: "events",
+        partition: "events_default",
+        forValues: "DEFAULT",
+      },
+      mockContext,
+    )) as { success: boolean; bounds: string };
+
+    expect(result.success).toBe(true);
+    expect(result.bounds).toBe("DEFAULT");
+  });
+
+  it("should resolve partition schema from parent when no explicit schema", async () => {
+    // checkTablePartitionStatus - partitioned parent in custom schema
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // partition existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // SQL execution
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_attach_partition")!;
+    const result = (await tool.handler(
+      {
+        parent: "analytics.events",
+        partition: "events_2024",
+        forValues: "FROM ('2024-01-01') TO ('2025-01-01')",
+      },
+      mockContext,
+    )) as { success: boolean; parent: string; partition: string };
+
+    expect(result.success).toBe(true);
+    expect(result.parent).toBe("events");
+  });
+});
+
+describe("pg_detach_partition — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPartitioningTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPartitioningTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return structured error when parent exists but is not partitioned", async () => {
+    // checkTablePartitionStatus returns regular table
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "r" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_detach_partition")!;
+    const result = (await tool.handler(
+      {
+        parent: "regular_table",
+        partition: "events_2020",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not partitioned");
+  });
+
+  it("should use FINALIZE clause when finalize is true", async () => {
+    // checkTablePartitionStatus - partitioned parent
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // partition existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // SQL execution
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_detach_partition")!;
+    const result = (await tool.handler(
+      {
+        parent: "events",
+        partition: "events_2020",
+        finalize: true,
+      },
+      mockContext,
+    )) as { success: boolean };
+
+    expect(result.success).toBe(true);
+    const call = mockAdapter.executeQuery.mock.calls[2][0] as string;
+    expect(call).toContain("FINALIZE");
+    expect(call).not.toContain("CONCURRENTLY");
+  });
+
+  it("should return error when partition does not exist", async () => {
+    // checkTablePartitionStatus - partitioned parent
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // partition existence check - not found
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_detach_partition")!;
+    const result = (await tool.handler(
+      {
+        parent: "events",
+        partition: "nonexistent_partition",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+    expect(result.error).toContain("nonexistent_partition");
+  });
+});
+
+describe("pg_partition_info — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPartitioningTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPartitioningTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should parse schema.table format in table parameter", async () => {
+    // checkTablePartitionStatus - partitioned
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // partition info query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          table_name: "events",
+          partition_strategy: "RANGE",
+          partition_key: "event_date",
+          partition_count: 3,
+        },
+      ],
+    });
+    // partitions listing query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          partition_name: "events_2024",
+          bounds: "FOR VALUES FROM ('2024-01-01') TO ('2025-01-01')",
+          size_bytes: 8192,
+          approx_rows: 100,
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_partition_info")!;
+    const result = (await tool.handler(
+      { table: "analytics.events" },
+      mockContext,
+    )) as {
+      tableInfo: Record<string, unknown>;
+      partitions: unknown[];
+    };
+
+    expect(result.tableInfo).toBeDefined();
+    expect(result.partitions).toHaveLength(1);
+    // Verify it parsed the schema from the table name
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("relkind"),
+      ["events", "analytics"],
+    );
+  });
+
+  it("should return error when table exists but is not partitioned", async () => {
+    // checkTablePartitionStatus - regular table
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "r" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_partition_info")!;
+    const result = (await tool.handler(
+      { table: "regular_table" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("not partitioned");
+    expect(result.error).toContain("regular_table");
+  });
+
+  it("should handle null tableInfo when partInfo returns empty rows", async () => {
+    // checkTablePartitionStatus - partitioned
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // partition info query - empty (edge case)
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+    // partitions listing query
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_partition_info")!;
+    const result = (await tool.handler(
+      { table: "empty_partitioned" },
+      mockContext,
+    )) as {
+      tableInfo: null;
+      partitions: unknown[];
+      totalSizeBytes: number;
+    };
+
+    expect(result.tableInfo).toBeNull();
+    expect(result.partitions).toHaveLength(0);
+    expect(result.totalSizeBytes).toBe(0);
+  });
+});
