@@ -704,7 +704,7 @@ export function createMigrationRisksTool(
     handler: (params: unknown, _context: RequestContext) =>
       Promise.resolve()
         .then(() => {
-          // adapter is available for future enhancements (e.g., checking table existence)
+          // Suppress unused-var — adapter captured by closure per tool factory pattern
           void adapter;
           const parsed = MigrationRisksSchema.parse(params);
 

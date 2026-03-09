@@ -611,6 +611,7 @@ export class PostgresAdapter extends DatabaseAdapter {
       "ltree",
       "pgcrypto",
       "introspection",
+      "migration",
       "codemode",
     ];
   }

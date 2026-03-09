@@ -30,7 +30,7 @@ import {
 // Internal types
 // =============================================================================
 
-export interface FkEdge {
+interface FkEdge {
   constraintName: string;
   fromSchema: string;
   fromTable: string;

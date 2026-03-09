@@ -1,5 +1,5 @@
 /**
- * PostgreSQL Introspection Tools - Migration Tracking
+ * PostgreSQL Migration Tools — Schema Version Tracking
  *
  * Migration init, record, apply, rollback, history, and status tools.
  * 6 tools total.
@@ -91,6 +91,38 @@ function hashMigrationSql(sql: string): string {
   return createHash("sha256").update(sql).digest("hex");
 }
 
+/**
+ * Check for an already-applied migration with the same SQL hash.
+ * Returns an error result object if duplicate found, or null if clear.
+ */
+async function checkDuplicateHash(
+  adapter: PostgresAdapter,
+  migrationSql: string,
+): Promise<{ migrationHash: string; duplicateError: null | { success: false; error: string } }> {
+  const migrationHash = hashMigrationSql(migrationSql);
+  const dupCheck = await adapter.executeQuery(
+    `SELECT id, version, status FROM ${TRACKING_TABLE}
+     WHERE migration_hash = $1 AND status = 'applied'`,
+    [migrationHash],
+  );
+  const dupRows = dupCheck.rows ?? [];
+  if (dupRows.length > 0) {
+    const dup = dupRows[0] ?? {};
+    const dupId = dup["id"] as number;
+    const dupVersion = dup["version"] as string;
+    return {
+      migrationHash,
+      duplicateError: {
+        success: false,
+        error:
+          `Duplicate migration detected: version "${dupVersion}" (id: ${String(dupId)}) has the same SQL hash. ` +
+          `Use a different migration SQL or roll back the existing one first.`,
+      },
+    };
+  }
+  return { migrationHash, duplicateError: null };
+}
+
 interface FormattedRecord {
   id: number;
   version: string;
@@ -133,7 +165,7 @@ export function createMigrationInitTool(
     description:
       "Initialize or verify the schema version tracking table (_mcp_schema_versions). " +
       "Idempotent — safe to call repeatedly. Returns current tracking state.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationInitSchemaBase,
     outputSchema: MigrationInitOutputSchema,
     annotations,
@@ -204,7 +236,7 @@ export function createMigrationRecordTool(
       "Record a migration in the schema version tracking table. " +
       "Auto-provisions the tracking table on first use. " +
       "Computes SHA-256 hash for idempotency detection.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationRecordSchemaBase,
     outputSchema: MigrationRecordOutputSchema,
     annotations,
@@ -214,26 +246,8 @@ export function createMigrationRecordTool(
         const parsed = MigrationRecordSchema.parse(params);
         await ensureTrackingTable(adapter);
 
-        const migrationHash = hashMigrationSql(parsed.migrationSql);
-
-        // Check for duplicate hash
-        const dupCheck = await adapter.executeQuery(
-          `SELECT id, version, status FROM ${TRACKING_TABLE}
-         WHERE migration_hash = $1 AND status = 'applied'`,
-          [migrationHash],
-        );
-        const dupRows = dupCheck.rows ?? [];
-        if (dupRows.length > 0) {
-          const dup = dupRows[0] ?? {};
-          const dupId = dup["id"] as number;
-          const dupVersion = dup["version"] as string;
-          return {
-            success: false,
-            error:
-              `Duplicate migration detected: version "${dupVersion}" (id: ${String(dupId)}) has the same SQL hash. ` +
-              `Use a different migration SQL or roll back the existing one first.`,
-          };
-        }
+        const { migrationHash, duplicateError } = await checkDuplicateHash(adapter, parsed.migrationSql);
+        if (duplicateError) return duplicateError;
 
         const result = await adapter.executeQuery(
           `INSERT INTO ${TRACKING_TABLE}
@@ -290,7 +304,7 @@ export function createMigrationApplyTool(
       "Auto-provisions the tracking table on first use. " +
       "On failure, rolls back and records a 'failed' entry. " +
       "Use pg_migration_record instead if you only need to log an already-applied migration.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationApplySchemaBase,
     outputSchema: MigrationApplyOutputSchema,
     annotations,
@@ -300,26 +314,8 @@ export function createMigrationApplyTool(
         const parsed = MigrationApplySchema.parse(params);
         await ensureTrackingTable(adapter);
 
-        const migrationHash = hashMigrationSql(parsed.migrationSql);
-
-        // Check for duplicate hash
-        const dupCheck = await adapter.executeQuery(
-          `SELECT id, version, status FROM ${TRACKING_TABLE}
-         WHERE migration_hash = $1 AND status = 'applied'`,
-          [migrationHash],
-        );
-        const dupRows = dupCheck.rows ?? [];
-        if (dupRows.length > 0) {
-          const dup = dupRows[0] ?? {};
-          const dupId = dup["id"] as number;
-          const dupVersion = dup["version"] as string;
-          return {
-            success: false,
-            error:
-              `Duplicate migration detected: version "${dupVersion}" (id: ${String(dupId)}) has the same SQL hash. ` +
-              `Use a different migration SQL or roll back the existing one first.`,
-          };
-        }
+        const { migrationHash, duplicateError } = await checkDuplicateHash(adapter, parsed.migrationSql);
+        if (duplicateError) return duplicateError;
 
         // Execute migration SQL and record atomically
         try {
@@ -417,7 +413,7 @@ export function createMigrationRollbackTool(
       "Roll back a specific migration by ID or version. " +
       "Executes the stored rollback_sql in a transaction and updates status to 'rolled_back'. " +
       "Use dryRun: true to preview the rollback SQL without executing.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationRollbackSchemaBase,
     outputSchema: MigrationRollbackOutputSchema,
     annotations,
@@ -551,7 +547,7 @@ export function createMigrationHistoryTool(
     description:
       "Query migration history with optional filtering by status and source system. " +
       "Returns paginated results ordered by applied_at descending.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationHistorySchemaBase,
     outputSchema: MigrationHistoryOutputSchema,
     annotations,
@@ -639,7 +635,7 @@ export function createMigrationStatusTool(
     description:
       "Get current migration tracking status: latest version, counts by status, " +
       "and list of source systems. Returns initialized: false if tracking table doesn't exist.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationStatusSchemaBase,
     outputSchema: MigrationStatusOutputSchema,
     annotations,

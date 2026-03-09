@@ -30,7 +30,7 @@ export function getMigrationTools(
     createMigrationRollbackTool(adapter),
     createMigrationHistoryTool(adapter),
     createMigrationStatusTool(adapter),
-  ].map((tool) => ({ ...tool, group: "migration" as const }));
+  ];
 }
 
 // Re-export individual tool creators for direct imports
