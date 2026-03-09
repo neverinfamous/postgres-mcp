@@ -117,6 +117,7 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     release: "transactionRelease",
     rollbackTo: "transactionRollbackTo",
     execute: "transactionExecute",
+    status: "transactionStatus",
   },
   // Stats: pg_stats_descriptive → descriptive, but agent might try statsDescriptive
   stats: {

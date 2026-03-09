@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`InvalidFtsConfigError` not exported** — Added `export` keyword to `InvalidFtsConfigError` class in `fts-config.ts` so test imports work correctly
 - **Stale tool counts in documentation** — Updated "227 tools" → "231 tools" in Dockerfile, README.md, DOCKER_README.md, `performance.test.ts`, and `server-instructions.md` to reflect the 4 new performance monitoring tools
 
+### Added
+
+- **`pg_transaction_status` tool** — New read-only tool in the `transactions` group that checks the state of an active managed transaction without modifying it. Probes the connection with `SELECT 1` (same technique used in `commitTransaction` for aborted-state detection). Returns `{status, transactionId, active, message}` where `status` is `"active"` (ready for operations), `"aborted"` (needs rollback), or `"not_found"` (already committed/rolled back/expired). Accepts `transactionId`/`tx`/`txId` aliases. Exposed in Code Mode as `pg.transactions.status()`. Transaction tools: 7 → 8
+
 ## [2.2.0] - 2026-03-09
 
 ### Fixed

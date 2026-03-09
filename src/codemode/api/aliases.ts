@@ -231,6 +231,11 @@ export const TOP_LEVEL_ALIASES: readonly {
     bindingName: "transactionExecute",
     methodName: "transactionExecute",
   },
+  {
+    group: "transactions",
+    bindingName: "transactionStatus",
+    methodName: "transactionStatus",
+  },
   // performance
   {
     group: "performance",

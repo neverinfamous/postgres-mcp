@@ -1310,6 +1310,7 @@ describe("createSandboxBindings — full group coverage", () => {
       // Transactions group
       ...[
         "pg_transaction_begin",
+        "pg_transaction_status",
         "pg_transaction_commit",
         "pg_transaction_rollback",
         "pg_transaction_savepoint",
@@ -1752,6 +1753,7 @@ describe("createSandboxBindings — full group coverage", () => {
 
     // Top-level transaction aliases
     expect(bindings).toHaveProperty("transactionBegin");
+    expect(bindings).toHaveProperty("transactionStatus");
     expect(bindings).toHaveProperty("transactionCommit");
     expect(bindings).toHaveProperty("transactionRollback");
     expect(bindings).toHaveProperty("transactionSavepoint");

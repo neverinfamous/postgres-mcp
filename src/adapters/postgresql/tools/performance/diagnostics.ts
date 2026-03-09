@@ -34,7 +34,7 @@ const DiagnoseInputSchemaBase = z.object({
 
 const DiagnoseInputSchema = DiagnoseInputSchemaBase.transform((data) => ({
   schema: data.schema,
-  topN: Math.max(1, Math.min(100, Number(data.topN) || 10)),
+  topN: Math.max(1, Math.min(100, data.topN != null ? Number(data.topN) : 10)),
 }));
 
 // =============================================================================

@@ -384,6 +384,17 @@ describe("pg_detect_bloat_risk", () => {
     expect(sql).toContain("0"); // clamped to 0
   });
 
+  it("should use minRows: 0 when explicitly passed (not coerce to default)", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = findTool(tools, "pg_detect_bloat_risk");
+    await tool.handler({ minRows: 0 }, mockContext);
+
+    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    expect(sql).toContain(">= 0");
+    expect(sql).not.toContain(">= 1000");
+  });
+
   it("should calculate high risk for table with severe bloat", async () => {
     // Table with: >50% dead tuples, never vacuumed with dead tuples, >1GB, autovacuum never ran
     mockAdapter.executeQuery.mockResolvedValueOnce({
