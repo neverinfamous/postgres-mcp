@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
-- **Benchmark infrastructure: eliminated double-running** — Added `exclude: ["dist/**"]` to `vitest.config.ts` bench config. Previously, benchmarks ran twice (once from `src/` TypeScript, once from `dist/` compiled JS), doubling total bench suite time
+- **Benchmark infrastructure: eliminated double-running** — Moved bench config from invalid top-level `bench` key to `test.benchmark` in `vitest.config.ts` and added `exclude: ["**/dist/**"]`. Previously, benchmarks ran twice (once from `src/` TypeScript, once from `dist/` compiled JS), doubling total bench suite time
 - **Benchmark infrastructure: fixed NaN summaries** — Increased async benchmark iterations (20–30 → 100) and warmup (3 → 10) in `codemode.bench.ts` and `connection-pool.bench.ts`. Low iteration counts caused tinybench to produce `NaN` comparison ratios in summary output
 - **Benchmark infrastructure: stabilized high-RME benchmarks** — Increased warmup iterations for Zod schema parsing benchmarks with RME > 8% (`schema-parsing.bench.ts`): `ReadQuerySchema` 50→100, `CreateTableSchema` 10→50, `TransactionExecuteSchema` (3 stmts) 20→50, `TransactionExecuteSchema` (100 stmts) 5→20. Allows V8 JIT tiers to stabilize before measurement
 - **`identifiers.ts` removed no-op regex allocation** — Removed `name.replace(/"/g, '""')` from `sanitizeIdentifier()` and `quoteIdentifier()`. Since `validateIdentifier()` / `IDENTIFIER_PATTERN` guarantees no double-quote characters can pass validation, the `replace()` was always a no-op that still allocated a new string

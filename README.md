@@ -39,7 +39,7 @@
 | **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools that let AI assistants reason about schema changes before executing them                                                                          |
 | **Deterministic Error Handling**       | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes                                                                                                                |
 | **Production-Ready Security**          | SQL injection protection, parameterized queries, input validation, sandboxed code execution, SSL certificate verification by default, and HTTP body size enforcement                                                                                                                                         |
-| **Benchmarked Performance**            | 75+ [Vitest benchmarks](https://github.com/neverinfamous/postgres-mcp/wiki/Performance) across 9 domains: tool dispatch at 3.7M ops/sec, WHERE validation at 2.3M ops/sec, auth checks at 3.7M ops/sec, and logger no-op path at 3.9M ops/sec                                                                |
+| **Benchmarked Performance**            | 75+ [Vitest benchmarks](https://github.com/neverinfamous/postgres-mcp/wiki/Performance) across 9 domains: tool dispatch at 7.0M ops/sec, identifier sanitization at 5.9M ops/sec, auth checks at 4.5M ops/sec, and logger no-op path at 4.4M ops/sec                                                        |
 | **Strict TypeScript**                  | 100% type-safe codebase with 3448 tests and 95.09% coverage                                                                                                                                                                                                                                                  |
 | **MCP 2025-11-25 Compliant**           | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                                                                                                                                |
 
@@ -196,16 +196,16 @@ Run `npm run bench` to execute the performance benchmark suite (9 files, 75+ sce
 
 | Area                        | Benchmark                                | Throughput    |
 | --------------------------- | ---------------------------------------- | ------------- |
-| **Tool Dispatch**           | Map.get() single tool lookup             | ~3.7M ops/sec |
-| **WHERE Validation**        | Simple clause (combined regex fast-path) | ~2.3M ops/sec |
-| **Identifier Sanitization** | validateIdentifier()                     | ~2.5M ops/sec |
-| **Auth — Token Extraction** | extractBearerToken()                     | ~2.0M ops/sec |
-| **Auth — Scope Checking**   | hasAnyScope()                            | ~3.7M ops/sec |
-| **Rate Limiting**           | Single IP check                          | ~1.8M ops/sec |
-| **Logger**                  | Filtered debug (no-op path)              | ~3.9M ops/sec |
-| **Schema Parsing**          | ReadQuerySchema.parse()                  | ~260K ops/sec |
-| **Metadata Cache**          | Cache hit + miss pattern                 | ~1.8M ops/sec |
-| **Sandbox Creation**        | CodeModeSandbox.create() cold start      | ~550 ops/sec  |
+| **Tool Dispatch**           | Map.get() single tool lookup             | ~7.0M ops/sec |
+| **WHERE Validation**        | Simple clause (combined regex fast-path) | ~3.7M ops/sec |
+| **Identifier Sanitization** | quoteIdentifier()                        | ~5.9M ops/sec |
+| **Auth — Token Extraction** | extractBearerToken()                     | ~2.8M ops/sec |
+| **Auth — Scope Checking**   | hasScope()                               | ~4.5M ops/sec |
+| **Rate Limiting**           | Single IP check                          | ~2.0M ops/sec |
+| **Logger**                  | Filtered debug (no-op path)              | ~4.4M ops/sec |
+| **Schema Parsing**          | ReadQuerySchema.parse()                  | ~640K ops/sec |
+| **Metadata Cache**          | Cache hit + miss pattern                 | ~3.6M ops/sec |
+| **Sandbox Creation**        | CodeModeSandbox.create() cold start      | ~520 ops/sec  |
 
 > Full benchmark results and methodology are available on the [Performance wiki page](https://github.com/neverinfamous/postgres-mcp/wiki/Performance).
 
