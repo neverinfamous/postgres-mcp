@@ -343,17 +343,25 @@ export const MigrationHistorySchemaBase = z.object({
     .optional()
     .describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
-  limit: z.coerce
-    .number()
+  limit: z
+    .any()
     .optional()
     .describe("Maximum records to return (default: 50)"),
-  offset: z.coerce
-    .number()
+  offset: z
+    .any()
     .optional()
     .describe("Offset for pagination (default: 0)"),
 });
 
-export const MigrationHistorySchema = MigrationHistorySchemaBase.default({});
+// Internal parse schema — coerces limit/offset types to prevent Zod leaks
+export const MigrationHistorySchema = z
+  .object({
+    status: z.enum(["applied", "rolled_back", "failed"]).optional(),
+    sourceSystem: z.string().optional(),
+    limit: z.coerce.number().optional(),
+    offset: z.coerce.number().optional(),
+  })
+  .default({});
 
 /**
  * pg_migration_status input

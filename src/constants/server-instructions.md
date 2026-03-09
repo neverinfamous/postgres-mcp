@@ -477,7 +477,7 @@ Core: `dependencyGraph()`, `topologicalSort()`, `cascadeSimulator()`, `schemaSna
 ## Migration Tools
 
 Code Mode: `pg.migration.*` — 6 tools for schema migration tracking and management.
-Core: `migrationInit()`, `migrationRecord()`, `migrationApply()`, `migrationRollback()`, `migrationHistory()`, `migrationStatus()`
+Core: `init()`, `record()`, `apply()`, `rollback()`, `history()`, `status()`
 
 - `pg_migration_init`: Initialize/verify `_mcp_schema_versions` tracking table (idempotent). Returns `{success, tableCreated, tableName, existingRecords}`
 - `pg_migration_record`: Record a migration with SHA-256 hash dedup. ⚠️ Records metadata only—does NOT execute the SQL. Use `pg_migration_apply` instead for complete migrations. Params: `version`, `description?`, `migrationSql`, `rollbackSql?`, `sourceSystem?`. Returns `{success, record}`

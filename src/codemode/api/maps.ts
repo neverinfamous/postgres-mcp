@@ -222,12 +222,16 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     snapshot: "schemaSnapshot", // snapshot() → schemaSnapshot()
     constraints: "constraintAnalysis", // constraints() → constraintAnalysis()
     risks: "migrationRisks", // risks() → migrationRisks()
-    init: "migrationInit", // init() → migrationInit()
-    record: "migrationRecord", // record() → migrationRecord()
-    apply: "migrationApply", // apply() → migrationApply()
-    rollback: "migrationRollback", // rollback() → migrationRollback()
-    history: "migrationHistory", // history() → migrationHistory()
-    status: "migrationStatus", // status() → migrationStatus()
+  },
+  // Migration: shorthand aliases for migration tracking
+  migration: {
+    initialize: "init", // initialize() → init()
+    log: "record", // log() → record()
+    run: "apply", // run() → apply()
+    execute: "apply", // execute() → apply()
+    undo: "rollback", // undo() → rollback()
+    list: "history", // list() → history()
+    dashboard: "status", // dashboard() → status()
   },
 };
 
@@ -368,12 +372,14 @@ export const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.introspection.schemaSnapshot({ sections: ['tables', 'constraints'] })",
     "pg.introspection.constraintAnalysis({ checks: ['unindexed_fk', 'missing_pk'] })",
     "pg.introspection.migrationRisks({ statements: ['ALTER TABLE users DROP COLUMN email'] })",
-    "pg.introspection.migrationInit()",
-    "pg.introspection.migrationRecord({ version: '1.0.0', migrationSql: 'ALTER TABLE...', rollbackSql: 'ALTER TABLE...' })",
-    "pg.introspection.migrationApply({ version: '2.0.0', migrationSql: 'CREATE TABLE orders (...)', rollbackSql: 'DROP TABLE orders' })",
-    "pg.introspection.migrationRollback({ version: '1.0.0', dryRun: true })",
-    "pg.introspection.migrationHistory({ status: 'applied' })",
-    "pg.introspection.migrationStatus()",
+  ],
+  migration: [
+    "pg.migration.init()",
+    "pg.migration.record({ version: '1.0.0', migrationSql: 'ALTER TABLE...', rollbackSql: 'ALTER TABLE...' })",
+    "pg.migration.apply({ version: '2.0.0', migrationSql: 'CREATE TABLE orders (...)', rollbackSql: 'DROP TABLE orders' })",
+    "pg.migration.rollback({ version: '1.0.0', dryRun: true })",
+    "pg.migration.history({ status: 'applied' })",
+    "pg.migration.status()",
   ],
 };
 
