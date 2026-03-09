@@ -37,6 +37,7 @@
 | **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools that let AI assistants reason about schema changes before executing them                        |
 | **Deterministic Error Handling**       | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes                                                              |
 | **Production-Ready Security**          | SQL injection protection, parameterized queries, input validation, sandboxed code execution, SSL certificate verification by default, and HTTP body size enforcement                                                                                       |
+| **Benchmarked Performance**            | 75+ [Vitest benchmarks](https://github.com/neverinfamous/postgres-mcp/wiki/Performance) across 9 domains: tool dispatch at 11M ops/sec, identifier sanitization at 6.5M ops/sec, auth checks at 7.3M ops/sec, and logger no-op path at 6.9M ops/sec
 | **Strict TypeScript**                  | 100% type-safe codebase with 3448 tests and 95.09% coverage                                                                                                                                                                                                |
 | **MCP 2025-11-25 Compliant**           | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                                                                              |
 
@@ -331,7 +332,7 @@ docker run --rm -p 3000:3000 \
   --transport http --port 3000
 ```
 
-**With OAuth 2.1:**
+**With OAuth 2.1 (recommended for production):**
 
 ```bash
 docker run --rm -p 3000:3000 \
@@ -342,6 +343,8 @@ docker run --rm -p 3000:3000 \
   writenotenow/postgres-mcp:latest \
   --transport http --port 3000
 ```
+
+> **⚠️ Security:** When using `--transport http` without OAuth, all clients have full unrestricted access. Always enable OAuth for production HTTP deployments.
 
 The server supports **two MCP transport protocols simultaneously**, enabling both modern and legacy clients to connect:
 

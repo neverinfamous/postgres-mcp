@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docker Scout severity filter expanded to all fixable CVEs** — Changed `--only-severity critical,high` to `--only-severity critical,high,medium,low` in `docker-publish.yml`. The narrow filter was the primary reason the zlib CVEs (MEDIUM/LOW) slipped through the CI security gate
 - **Trivy scan added as defense-in-depth** — Added `aquasecurity/trivy-action` step in `docker-publish.yml` security-scan job, scanning the local image for all fixable CVEs (CRITICAL through LOW). Uploads SARIF results to the GitHub Security tab. The prior workflow referenced Trivy as a fallback in comments but never implemented it
 - **Docker Scout silent fallthrough removed** — Unexpected Docker Scout exit codes now hard-fail the job (`exit 1`) instead of printing a warning and continuing the build. Previously, non-2/non-124 exit codes fell through with "will rely on Trivy for security validation" — which didn't exist
+- **Security audit documentation hardening** — Applied recommendations from exhaustive security audit across `SECURITY.md`, `README.md`, and `DOCKER_README.md`:
+  - Added v2.x.x to supported versions table
+  - Expanded Code Mode sandbox boundaries with `Proxy` blocking detail, bypass vector documentation (fragmented `constructor` chain on exposed Error types), `Reflect.*`/`Symbol.*` blocked patterns, configurable timeout, and `isolated-vm` alternative recommendation
+  - Added reverse-proxy rate limiting caveat (`req.socket.remoteAddress` limitation)
+  - Added HTTP-without-OAuth warning (⚠️) to all three READMEs and SECURITY.md
+  - Updated `Content-Security-Policy` documentation to include `frame-ancestors 'none'`; added `Referrer-Policy: no-referrer`
+  - Added JWKS cache TTL detail and `AsyncLocalStorage` context threading to OAuth section
+  - Expanded security best practices: pool `min: 2` for IAM auth, CI SHA-pinning, proxy-layer rate limiting, explicit `--ssl`/`--enableHSTS` flags
+  - Updated DOCKER_README.md OAuth section label from "With OAuth 2.1" to "With OAuth 2.1 (recommended for production)"
+  - Added pool tuning for IAM auth note to README.md Performance Tuning section
 
 ### Performance
 

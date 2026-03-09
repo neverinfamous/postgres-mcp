@@ -550,6 +550,9 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 > [!NOTE]
 > **Per-tool scope enforcement:** Scopes are enforced at the tool level — each tool group maps to a required scope (`read`, `write`, or `admin`). When OAuth is enabled, every tool invocation checks the calling token's scopes before execution. When OAuth is not configured, scope checks are skipped entirely.
 
+> [!WARNING]
+> **HTTP without OAuth:** When using `--transport http` without enabling OAuth, all clients have full unrestricted access. Always enable OAuth for production HTTP deployments. See [SECURITY.md](SECURITY.md) for details.
+
 ---
 
 ## ⚡ Performance Tuning
@@ -561,6 +564,8 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `LOG_LEVEL`             | `info`      | Log verbosity: `debug`, `info`, `warning`, `error` |
 
 > **Tip:** Lower `METADATA_CACHE_TTL_MS` for development (e.g., `5000`), or increase it for production with stable schemas (e.g., `300000` = 5 min).
+
+> **Pool Tuning for IAM Auth:** For cloud-managed databases with IAM authentication (e.g., AWS RDS, Google Cloud SQL), set `POSTGRES_POOL_MIN=2` to keep warm connections and reduce authentication latency.
 
 ---
 

@@ -4,6 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 2.x.x   | :white_check_mark: |
 | 1.x.x   | :white_check_mark: |
 | < 1.0   | :x:                |
 
@@ -65,6 +66,8 @@ Key functions:
 - Configurable via `rateLimitMaxRequests` and `rateLimitWindowMs`
 - Returns `429 Too Many Requests` when exceeded
 
+> **Reverse Proxy Note:** Rate limiting uses `req.socket.remoteAddress`. Behind a reverse proxy (e.g., nginx, Cloudflare Tunnel), all requests may share the same source IP. Ensure your proxy forwards distinct client IPs, or apply rate limiting at the proxy layer instead.
+
 **Request Body Limits**
 
 - Maximum 1MB request body (configurable via `maxBodySize`)
@@ -75,8 +78,9 @@ Key functions:
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
 - `Cache-Control: no-store, no-cache, must-revalidate`
-- `Content-Security-Policy: default-src 'none'`
+- `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- `Referrer-Policy: no-referrer`
 
 **HSTS Support**
 
@@ -93,21 +97,26 @@ Key functions:
 
 - RFC 9728 Protected Resource Metadata at `/.well-known/oauth-protected-resource`
 - RFC 8414 Authorization Server Metadata discovery
-- JWT token validation with JWKS caching
+- JWT token validation with JWKS caching (TTL: 1 hour, configurable)
 - PostgreSQL-specific scopes: `read`, `write`, `admin`, `full`, `db:{name}`, `schema:{name}`, `table:{schema}:{table}`
+- Per-tool scope enforcement via `AsyncLocalStorage` context threading
+
+> **⚠️ HTTP without OAuth:** When OAuth is not configured, all scope checks are bypassed. If you expose the HTTP transport without enabling OAuth, any client has full unrestricted access. Always enable OAuth for production HTTP deployments.
 
 ### Code Mode Sandbox Boundaries
 
 Code Mode executes user-provided JavaScript in a Node.js `vm` context. The `vm` module provides **script isolation, not security isolation** — it is not designed to resist a determined attacker with direct access. The following defense-in-depth mitigations significantly reduce risk within the intended **trusted AI agent** threat model:
 
-- **Blocked globals** — `require`, `process`, `global`, `globalThis`, `module`, `exports`, `setTimeout`, `setInterval`, `setImmediate` set to `undefined`
-- **Blocked patterns** — Static validation rejects code containing `require()`, `import()`, `eval()`, `Function()`, `__proto__`, `constructor.constructor`, and filesystem/network/child_process references
-- **Execution limits** — 30s timeout, 50KB code input, 10MB result output
+- **Blocked globals** — `require`, `process`, `global`, `globalThis`, `module`, `exports`, `setTimeout`, `setInterval`, `setImmediate`, `Proxy` set to `undefined`
+- **Blocked patterns** — 17 static regex rules reject code containing `require()`, `import()`, `eval()`, `Function()`, `__proto__`, `constructor.constructor`, `Reflect.*`, `Symbol.*`, `new Proxy()`, and filesystem/network/child_process references
+- **Execution limits** — 30s timeout (configurable), 50KB code input, 10MB result output
 - **Rate limiting** — 60 executions per minute per client
-- **Audit logging** — Every execution logged with ID, metrics, and code preview
+- **Audit logging** — Every execution logged with UUID, client ID, metrics, and code preview (truncated to 200 chars)
 - **Admin scope** — Code Mode requires `admin` scope when OAuth is enabled
 
-> **Note:** Code Mode is designed for use by trusted AI agents, not for executing arbitrary untrusted code from end users. If your deployment exposes Code Mode to untrusted input, consider process-level sandboxing (containers, `isolate-vm`, etc.).
+> **⚠️ Threat Model:** Code Mode is designed for use by **trusted AI agents**, not for executing arbitrary untrusted code from end users. The `vm` module does not provide a true security boundary — a sufficiently determined attacker with direct access could potentially escape the sandbox (e.g., via fragmented `constructor` chain access on exposed built-in Error types). Static pattern blocking catches the known literal forms (`constructor.constructor`) but not dynamically constructed variants.
+>
+> **For untrusted input deployments:** Use process-level sandboxing such as running the container with `--cap-drop=ALL`, or replace `vm` with `isolated-vm` for V8 isolate-level separation.
 
 ### Logging Security
 
@@ -128,8 +137,11 @@ When using postgres-mcp:
 - Never commit database credentials to version control
 - Use environment variables for sensitive configuration
 - Restrict database user permissions to minimum required
-- Keep dependencies updated
-- Enable SSL for database connections in production
-- Use OAuth 2.1 authentication for HTTP transport in production
-- Enable HSTS when running over HTTPS
+- Keep dependencies updated (Dependabot is configured for weekly npm and GitHub Actions updates)
+- Enable SSL for database connections in production (`--ssl` or `ssl=true` in connection string)
+- Use OAuth 2.1 authentication for HTTP transport in production — never expose HTTP transport without OAuth
+- Enable HSTS when running over HTTPS (`--enableHSTS`)
 - Configure CORS origins explicitly (avoid wildcards)
+- For cloud-managed databases with IAM authentication (e.g., AWS RDS), set `POSTGRES_POOL_MIN=2` to reduce connection establishment latency
+- Consider SHA-pinning critical GitHub Actions in CI workflows for supply-chain defense-in-depth
+- When deploying behind a reverse proxy, apply rate limiting at the proxy layer rather than relying solely on the built-in per-IP rate limiter
