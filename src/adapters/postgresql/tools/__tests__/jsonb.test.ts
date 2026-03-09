@@ -1488,7 +1488,7 @@ describe("jsonb/read.ts — uncovered branches", () => {
     });
 
     const tool = findTool("pg_jsonb_extract")!;
-    const result = (await tool.handler(
+    await tool.handler(
       {
         table: "users",
         column: "data",
@@ -1496,7 +1496,7 @@ describe("jsonb/read.ts — uncovered branches", () => {
         select: ["id", "data->>'status'"],
       },
       mockContext,
-    )) as { rows: Record<string, unknown>[] };
+    );
 
     // id should be quoted, but data->>'status' should not be quoted (expression)
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
