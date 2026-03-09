@@ -32,10 +32,14 @@ const DiagnoseInputSchemaBase = z.object({
     .describe("Number of top tables to return (default: 10)"),
 });
 
-const DiagnoseInputSchema = DiagnoseInputSchemaBase.transform((data) => ({
-  schema: data.schema,
-  topN: Math.max(1, Math.min(100, data.topN != null ? Number(data.topN) : 10)),
-}));
+const DiagnoseInputSchema = DiagnoseInputSchemaBase.transform((data) => {
+  const raw = data.topN != null ? Number(data.topN) : 10;
+  const topN = Number.isFinite(raw) ? raw : 10;
+  return {
+    schema: data.schema,
+    topN: Math.max(1, Math.min(100, topN)),
+  };
+});
 
 // =============================================================================
 // Health Rating Helpers

@@ -365,9 +365,10 @@ export abstract class DatabaseAdapter {
     server.registerPrompt(
       prompt.name,
       { description: prompt.description },
-      async () => {
+      async (providedArgs) => {
         const context = this.createContext();
-        const result = await prompt.handler({}, context);
+        const args = (providedArgs ?? {}) as Record<string, string>;
+        const result = await prompt.handler(args, context);
         return {
           messages: [
             {
