@@ -368,9 +368,6 @@ describe("DatabaseAdapter", () => {
     });
   });
 
-
-
-
   describe("registerTools", () => {
     it("should register only enabled tools", () => {
       const mockServer = {

@@ -74,8 +74,6 @@ export function getToolGroup(toolName: string): ToolGroup | undefined {
   return getToolToGroupMap().get(toolName);
 }
 
-
-
 /**
  * Check if a name is a valid tool group
  */
@@ -243,7 +241,6 @@ export function parseToolFilter(
   };
 }
 
-
 /**
  * Filter a list of tool definitions based on filter configuration
  */
@@ -264,7 +261,6 @@ export function getToolFilterFromEnv(): ToolFilterConfig {
     process.env["TOOL_FILTER"];
   return parseToolFilter(filterString);
 }
-
 
 /**
  * Generate a summary of the current filter configuration
@@ -307,5 +303,3 @@ export function getFilterSummary(config: ToolFilterConfig): string {
 
   return lines.join("\n");
 }
-
-

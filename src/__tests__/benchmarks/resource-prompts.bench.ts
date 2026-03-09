@@ -9,7 +9,6 @@
 
 import { describe, bench, vi } from "vitest";
 
-
 // Suppress logger output
 vi.mock("../../utils/logger.js", () => ({
   logger: {
@@ -26,7 +25,6 @@ vi.mock("../../utils/logger.js", () => ({
     setMcpServer: vi.fn(),
   },
 }));
-
 
 // Resource URI templates (same pattern as postgres-mcp)
 const resourceTemplates = [
@@ -95,7 +93,6 @@ describe("Resource URI Matching", () => {
     { iterations: 10000, warmupIterations: 100 },
   );
 });
-
 
 // ---------------------------------------------------------------------------
 // 3. Prompt Message Assembly

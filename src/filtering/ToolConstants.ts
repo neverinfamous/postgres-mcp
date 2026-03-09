@@ -342,7 +342,14 @@ export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
   essential: ["core", "transactions", "jsonb", "codemode"], // 47
 
   // 2. Developer Workloads
-  "dev-schema": ["core", "transactions", "schema", "introspection", "migration", "codemode"], // 52
+  "dev-schema": [
+    "core",
+    "transactions",
+    "schema",
+    "introspection",
+    "migration",
+    "codemode",
+  ], // 52
   "dev-analytics": [
     "core",
     "transactions",

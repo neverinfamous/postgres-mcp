@@ -1896,9 +1896,7 @@ describe("pg_create_partitioned_table — PK validation and edge cases", () => {
   });
 
   it("should reject table-level PK missing partition key columns", async () => {
-    const tool = tools.find(
-      (t) => t.name === "pg_create_partitioned_table",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
     const result = (await tool.handler(
       {
         name: "events",
@@ -1914,14 +1912,14 @@ describe("pg_create_partitioned_table — PK validation and edge cases", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("Primary key must include all partition key columns");
+    expect(result.error).toContain(
+      "Primary key must include all partition key columns",
+    );
     expect(result.error).toContain("event_date");
   });
 
   it("should reject column-level PK missing partition key columns", async () => {
-    const tool = tools.find(
-      (t) => t.name === "pg_create_partitioned_table",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
     const result = (await tool.handler(
       {
         name: "events",
@@ -1937,15 +1935,15 @@ describe("pg_create_partitioned_table — PK validation and edge cases", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("Primary key must include all partition key columns");
+    expect(result.error).toContain(
+      "Primary key must include all partition key columns",
+    );
   });
 
   it("should include table-level PRIMARY KEY constraint", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
-    const tool = tools.find(
-      (t) => t.name === "pg_create_partitioned_table",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
     const result = (await tool.handler(
       {
         name: "events",
@@ -1969,15 +1967,11 @@ describe("pg_create_partitioned_table — PK validation and edge cases", () => {
   it("should handle DEFAULT NULL column default", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
-    const tool = tools.find(
-      (t) => t.name === "pg_create_partitioned_table",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
     await tool.handler(
       {
         name: "data",
-        columns: [
-          { name: "notes", type: "text", default: null },
-        ],
+        columns: [{ name: "notes", type: "text", default: null }],
         partitionBy: "hash",
         partitionKey: "id",
       },
@@ -1993,9 +1987,7 @@ describe("pg_create_partitioned_table — PK validation and edge cases", () => {
       new Error("permission denied"),
     );
 
-    const tool = tools.find(
-      (t) => t.name === "pg_create_partitioned_table",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
     const result = (await tool.handler(
       {
         name: "events",
@@ -2010,4 +2002,3 @@ describe("pg_create_partitioned_table — PK validation and edge cases", () => {
     expect(result.error).toContain("permission denied");
   });
 });
-

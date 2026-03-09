@@ -27,7 +27,7 @@
 
 | Feature                                | Description                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **231 Specialized Tools**              | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, migration tracking, and 8 extension ecosystems                                                                                                 |
+| **231 Specialized Tools**              | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, migration tracking, and 8 extension ecosystems                                                                                                      |
 | **20 Observability Resources**         | Real-time schema, performance metrics, connection pool status, replication lag, vacuum stats, lock contention, and extension diagnostics                                                                                                                                                                     |
 | **19 AI-Powered Prompts**              | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                                                                                                                                  |
 | **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, Code Mode exposes all 231 capabilities locally, reducing token overhead by up to 90% and supercharging AI agent reasoning. |
@@ -36,10 +36,10 @@
 | **Dual HTTP Transport**                | Streamable HTTP (`/mcp`) for modern clients + legacy SSE (`/sse`) for backward compatibility — both protocols supported simultaneously                                                                                                                                                                       |
 | **High-Performance Pooling**           | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                                                                     |
 | **8 Extension Ecosystems**             | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                                                                                                                                  |
-| **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools split into read-only analysis and migration management groups                                                                                    |
+| **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools split into read-only analysis and migration management groups                                                                                     |
 | **Deterministic Error Handling**       | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes                                                                                                                |
 | **Production-Ready Security**          | SQL injection protection, parameterized queries, input validation, sandboxed code execution, SSL certificate verification by default, and HTTP body size enforcement                                                                                                                                         |
-| **Benchmarked Performance**            | 93+ [Vitest benchmarks](https://github.com/neverinfamous/postgres-mcp/wiki/Performance) across 10 domains: tool dispatch at 6.9M ops/sec, identifier sanitization at 4.4M ops/sec, auth checks at 5.3M ops/sec, and schema parsing at 2.1M ops/sec                                                              |
+| **Benchmarked Performance**            | 93+ [Vitest benchmarks](https://github.com/neverinfamous/postgres-mcp/wiki/Performance) across 10 domains: tool dispatch at 6.9M ops/sec, identifier sanitization at 4.4M ops/sec, auth checks at 5.3M ops/sec, and schema parsing at 2.1M ops/sec                                                           |
 | **Strict TypeScript**                  | 100% type-safe codebase with 3448 tests and 95.09% coverage                                                                                                                                                                                                                                                  |
 | **MCP 2025-11-25 Compliant**           | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                                                                                                                                |
 
@@ -194,18 +194,18 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 
 **Performance Highlights** (Node.js 24, Windows 11):
 
-| Area                        | Benchmark                                | Throughput     |
-| --------------------------- | ---------------------------------------- | -------------- |
-| **Tool Dispatch**           | Map.get() single tool lookup             | ~6.9M ops/sec  |
-| **WHERE Validation**        | Simple clause (combined regex fast-path) | ~3.7M ops/sec  |
-| **Identifier Sanitization** | validateIdentifier()                     | ~4.4M ops/sec  |
-| **Auth — Token Extraction** | extractBearerToken()                     | ~2.7M ops/sec  |
-| **Auth — Scope Checking**   | hasScope()                               | ~5.3M ops/sec  |
-| **Rate Limiting**           | Single IP check                          | ~2.3M ops/sec  |
-| **Logger**                  | Filtered debug (no-op path)              | ~5.4M ops/sec  |
-| **Schema Parsing**          | MigrationInitSchema.parse()              | ~2.1M ops/sec  |
-| **Metadata Cache**          | Cache hit + miss pattern                 | ~1.7M ops/sec  |
-| **Sandbox Creation**        | CodeModeSandbox.create() cold start      | ~863 ops/sec   |
+| Area                        | Benchmark                                | Throughput    |
+| --------------------------- | ---------------------------------------- | ------------- |
+| **Tool Dispatch**           | Map.get() single tool lookup             | ~6.9M ops/sec |
+| **WHERE Validation**        | Simple clause (combined regex fast-path) | ~3.7M ops/sec |
+| **Identifier Sanitization** | validateIdentifier()                     | ~4.4M ops/sec |
+| **Auth — Token Extraction** | extractBearerToken()                     | ~2.7M ops/sec |
+| **Auth — Scope Checking**   | hasScope()                               | ~5.3M ops/sec |
+| **Rate Limiting**           | Single IP check                          | ~2.3M ops/sec |
+| **Logger**                  | Filtered debug (no-op path)              | ~5.4M ops/sec |
+| **Schema Parsing**          | MigrationInitSchema.parse()              | ~2.1M ops/sec |
+| **Metadata Cache**          | Cache hit + miss pattern                 | ~1.7M ops/sec |
+| **Sandbox Creation**        | CodeModeSandbox.create() cold start      | ~863 ops/sec  |
 
 > Full benchmark results and methodology are available on the [Performance wiki page](https://github.com/neverinfamous/postgres-mcp/wiki/Performance).
 
@@ -324,30 +324,30 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 
 > Tool counts include Code Mode (`pg_execute_code`) which is added to all groups by default.
 
-| Group           | Tools | Description                                                 |
-| --------------- | ----- | ----------------------------------------------------------- |
-| `codemode`      | 1     | Code Mode (sandboxed code execution)                        |
-| `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools |
-| `transactions`  | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                         |
-| `jsonb`         | 20    | JSONB manipulation and queries                              |
-| `text`          | 14    | Full-text search, fuzzy matching                            |
+| Group           | Tools | Description                                                           |
+| --------------- | ----- | --------------------------------------------------------------------- |
+| `codemode`      | 1     | Code Mode (sandboxed code execution)                                  |
+| `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools           |
+| `transactions`  | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                                   |
+| `jsonb`         | 20    | JSONB manipulation and queries                                        |
+| `text`          | 14    | Full-text search, fuzzy matching                                      |
 | `performance`   | 25    | EXPLAIN, query analysis, optimization, diagnostics, anomaly detection |
-| `admin`         | 11    | VACUUM, ANALYZE, REINDEX                                    |
-| `monitoring`    | 12    | Database sizes, connections, status                         |
-| `backup`        | 10    | pg_dump, COPY, restore                                      |
-| `schema`        | 13    | Schemas, views, sequences, functions, triggers              |
-| `introspection` | 7     | Dependency graphs, cascade simulation, schema analysis      |
-| `migration`     | 7     | Schema migration tracking and management                    |
-| `partitioning`  | 7     | Native partition management                                 |
-| `stats`         | 9     | Statistical analysis                                        |
-| `vector`        | 17    | pgvector (AI/ML similarity search)                          |
-| `postgis`       | 16    | PostGIS (geospatial)                                        |
-| `cron`          | 9     | pg_cron (job scheduling)                                    |
-| `partman`       | 11    | pg_partman (auto-partitioning)                              |
-| `kcache`        | 8     | pg_stat_kcache (OS-level stats)                             |
-| `citext`        | 7     | citext (case-insensitive text)                              |
-| `ltree`         | 9     | ltree (hierarchical data)                                   |
-| `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                |
+| `admin`         | 11    | VACUUM, ANALYZE, REINDEX                                              |
+| `monitoring`    | 12    | Database sizes, connections, status                                   |
+| `backup`        | 10    | pg_dump, COPY, restore                                                |
+| `schema`        | 13    | Schemas, views, sequences, functions, triggers                        |
+| `introspection` | 7     | Dependency graphs, cascade simulation, schema analysis                |
+| `migration`     | 7     | Schema migration tracking and management                              |
+| `partitioning`  | 7     | Native partition management                                           |
+| `stats`         | 9     | Statistical analysis                                                  |
+| `vector`        | 17    | pgvector (AI/ML similarity search)                                    |
+| `postgis`       | 16    | PostGIS (geospatial)                                                  |
+| `cron`          | 9     | pg_cron (job scheduling)                                              |
+| `partman`       | 11    | pg_partman (auto-partitioning)                                        |
+| `kcache`        | 8     | pg_stat_kcache (OS-level stats)                                       |
+| `citext`        | 7     | citext (case-insensitive text)                                        |
+| `ltree`         | 9     | ltree (hierarchical data)                                             |
+| `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                          |
 
 ---
 

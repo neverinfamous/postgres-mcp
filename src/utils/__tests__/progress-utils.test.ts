@@ -6,10 +6,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import {
-  buildProgressContext,
-  sendProgress,
-} from "../progress-utils.js";
+import { buildProgressContext, sendProgress } from "../progress-utils.js";
 import type { ProgressContext } from "../progress-utils.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -137,5 +134,3 @@ describe("sendProgress", () => {
     await expect(sendProgress(ctx, 1, 10)).resolves.toBeUndefined();
   });
 });
-
-

@@ -117,7 +117,7 @@ export function createSchemaSnapshotTool(
           extResult,
         ] = await Promise.all([
           // Tables + columns (or compact mode without columns)
-          (includeAll || sections.has("tables"))
+          includeAll || sections.has("tables")
             ? adapter.executeQuery(
                 `SELECT
                 n.nspname AS schema, c.relname AS name,
@@ -136,7 +136,7 @@ export function createSchemaSnapshotTool(
             : null,
 
           // Views
-          (includeAll || sections.has("views"))
+          includeAll || sections.has("views")
             ? adapter.executeQuery(
                 `SELECT
                 n.nspname AS schema, c.relname AS name,
@@ -152,7 +152,7 @@ export function createSchemaSnapshotTool(
             : null,
 
           // Indexes
-          (includeAll || sections.has("indexes"))
+          includeAll || sections.has("indexes")
             ? adapter.executeQuery(
                 `SELECT
                 i.relname AS name, t.relname AS table_name, n.nspname AS schema,
@@ -172,7 +172,7 @@ export function createSchemaSnapshotTool(
             : null,
 
           // Constraints
-          (includeAll || sections.has("constraints"))
+          includeAll || sections.has("constraints")
             ? adapter.executeQuery(
                 `SELECT
                 c.conname AS name, t.relname AS table_name, n.nspname AS schema,
@@ -190,7 +190,7 @@ export function createSchemaSnapshotTool(
             : null,
 
           // Functions
-          (includeAll || sections.has("functions"))
+          includeAll || sections.has("functions")
             ? adapter.executeQuery(
                 `SELECT
                 n.nspname AS schema, p.proname AS name,
@@ -208,7 +208,7 @@ export function createSchemaSnapshotTool(
             : null,
 
           // Triggers
-          (includeAll || sections.has("triggers"))
+          includeAll || sections.has("triggers")
             ? adapter.executeQuery(
                 `SELECT
                 t.tgname AS name, c.relname AS table_name, n.nspname AS schema,
@@ -232,7 +232,7 @@ export function createSchemaSnapshotTool(
             : null,
 
           // Sequences
-          (includeAll || sections.has("sequences"))
+          includeAll || sections.has("sequences")
             ? adapter.executeQuery(
                 `SELECT
                 n.nspname AS schema, c.relname AS name,
@@ -252,7 +252,7 @@ export function createSchemaSnapshotTool(
             : null,
 
           // Custom types
-          (includeAll || sections.has("types"))
+          includeAll || sections.has("types")
             ? adapter.executeQuery(
                 `SELECT
                 n.nspname AS schema, t.typname AS name,

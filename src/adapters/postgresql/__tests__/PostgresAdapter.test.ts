@@ -359,7 +359,6 @@ describe("PostgresAdapter", () => {
       await adapter.connect(mockConfig);
     });
 
-
     it("listTables should return cached results on second call", async () => {
       const mockTablesResult: QueryResult = {
         rows: [
@@ -515,8 +514,6 @@ describe("PostgresAdapter", () => {
       const result = await adapter.describeTable("fresh_table", "public");
       expect(result.rowCount).toBe(5); // Falls back to live_row_estimate
     });
-
-
   });
 
   describe("Tool Registration", () => {

@@ -18,7 +18,6 @@ import {
 import { getMetaGroupTools } from "../../filtering/ToolFilter.js";
 import type { ToolGroup, MetaGroup } from "../../types/index.js";
 
-
 // Suppress logger output
 vi.mock("../../utils/logger.js", () => ({
   logger: {

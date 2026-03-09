@@ -47,10 +47,7 @@ export class PgApi {
     string,
     (...args: unknown[]) => Promise<unknown>
   >;
-  readonly migration: Record<
-    string,
-    (...args: unknown[]) => Promise<unknown>
-  >;
+  readonly migration: Record<string, (...args: unknown[]) => Promise<unknown>>;
 
   private readonly toolsByGroup: Map<string, ToolDefinition[]>;
 

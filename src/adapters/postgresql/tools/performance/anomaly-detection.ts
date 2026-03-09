@@ -307,8 +307,10 @@ export function createDetectBloatRiskTool(
           // Factor 3: Table size blast radius (15% weight)
           let sizeScore = 0;
           const sizeMB = totalBytes / (1024 * 1024);
-          if (sizeMB >= 10000) sizeScore = 100; // > 10 GB
-          else if (sizeMB >= 1000) sizeScore = 70; // > 1 GB
+          if (sizeMB >= 10000)
+            sizeScore = 100; // > 10 GB
+          else if (sizeMB >= 1000)
+            sizeScore = 70; // > 1 GB
           else if (sizeMB >= 100) sizeScore = 40; // > 100 MB
 
           // Factor 4: Autovacuum effectiveness (25% weight)
@@ -371,10 +373,8 @@ export function createDetectBloatRiskTool(
 
         // Sort by risk score descending
         tables.sort(
-          (
-            a: { riskScore: number },
-            b: { riskScore: number },
-          ) => b.riskScore - a.riskScore,
+          (a: { riskScore: number }, b: { riskScore: number }) =>
+            b.riskScore - a.riskScore,
         );
 
         const highRiskCount = tables.filter(
@@ -412,9 +412,7 @@ const ConnectionSpikeInputBase = z.object({
   warningPercent: z
     .any()
     .optional()
-    .describe(
-      "Percentage threshold for flagging concentration (default: 70)",
-    ),
+    .describe("Percentage threshold for flagging concentration (default: 70)"),
 });
 
 const ConnectionSpikeInput = ConnectionSpikeInputBase.transform((data) => ({
@@ -512,18 +510,13 @@ export function createDetectConnectionSpikeTool(
 
         const byState = stateResult.rows ?? [];
         const totalConnections = byState.reduce(
-          (sum: number, r: Record<string, unknown>) =>
-            sum + toNum(r["count"]),
+          (sum: number, r: Record<string, unknown>) => sum + toNum(r["count"]),
           0,
         );
-        const maxConnections = toNum(
-          maxResult.rows?.[0]?.["max_connections"],
-        );
+        const maxConnections = toNum(maxResult.rows?.[0]?.["max_connections"]);
         const usagePercent =
           maxConnections > 0
-            ? Math.round(
-                (totalConnections / maxConnections) * 100 * 10,
-              ) / 10
+            ? Math.round((totalConnections / maxConnections) * 100 * 10) / 10
             : 0;
 
         const concentrations: ConnectionConcentration[] = [];

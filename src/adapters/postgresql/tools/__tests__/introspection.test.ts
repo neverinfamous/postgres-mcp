@@ -1327,10 +1327,7 @@ describe("pg_migration_init", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_migration_init")!;
-    const result = (await tool.handler(
-      { schema: "app" },
-      mockContext,
-    )) as {
+    const result = (await tool.handler({ schema: "app" }, mockContext)) as {
       success: boolean;
       tableCreated: boolean;
       tableName: string;
@@ -1340,12 +1337,12 @@ describe("pg_migration_init", () => {
     expect(result.tableCreated).toBe(true);
     // Verify schema-qualified name uses sanitized identifier
     expect(result.tableName).toContain('"app"');
-    expect(result.tableName).toContain('_mcp_schema_versions');
+    expect(result.tableName).toContain("_mcp_schema_versions");
 
     // Verify CREATE TABLE SQL references the custom schema
     const createCall = mockAdapter.executeQuery.mock.calls[1]![0] as string;
     expect(createCall).toContain('"app"');
-    expect(createCall).toContain('CREATE TABLE IF NOT EXISTS');
+    expect(createCall).toContain("CREATE TABLE IF NOT EXISTS");
   });
 });
 
@@ -1631,7 +1628,7 @@ describe("pg_migration_apply", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute migration SQL — FAILS
     mockAdapter.executeQuery.mockRejectedValueOnce(
-      new Error("syntax error at or near \"CRATE\""),
+      new Error('syntax error at or near "CRATE"'),
     );
     // ROLLBACK
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
@@ -1776,10 +1773,7 @@ describe("pg_migration_rollback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
-    const result = (await tool.handler(
-      { version: "1.0.0" },
-      mockContext,
-    )) as {
+    const result = (await tool.handler({ version: "1.0.0" }, mockContext)) as {
       success: boolean;
       dryRun: boolean;
       rollbackSql: string;
@@ -1820,10 +1814,10 @@ describe("pg_migration_rollback", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
-    const result = (await tool.handler(
-      { version: "1.0.0" },
-      mockContext,
-    )) as { success: boolean; error?: string };
+    const result = (await tool.handler({ version: "1.0.0" }, mockContext)) as {
+      success: boolean;
+      error?: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("already been rolled back");
@@ -1852,10 +1846,10 @@ describe("pg_migration_rollback", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
-    const result = (await tool.handler(
-      { version: "1.0.0" },
-      mockContext,
-    )) as { success: boolean; error?: string };
+    const result = (await tool.handler({ version: "1.0.0" }, mockContext)) as {
+      success: boolean;
+      error?: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("no rollback SQL");
@@ -1892,10 +1886,10 @@ describe("pg_migration_rollback", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
-    const result = (await tool.handler(
-      { version: "1.0.0" },
-      mockContext,
-    )) as { success: boolean; error?: string };
+    const result = (await tool.handler({ version: "1.0.0" }, mockContext)) as {
+      success: boolean;
+      error?: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Rollback failed");

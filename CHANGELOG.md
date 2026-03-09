@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-03-09
+
 ### Fixed
 
 - **`getSupportedToolGroups()` missing `migration`** — Added `"migration"` to the `getSupportedToolGroups()` array in `PostgresAdapter.ts`. Migration tools were registered and functional, but the capabilities list did not advertise the group

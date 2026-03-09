@@ -25,7 +25,10 @@ const DiagnoseInputSchemaBase = z.object({
     .string()
     .optional()
     .describe("Filter top tables to a specific schema"),
-  topN: z.any().optional().describe("Number of top tables to return (default: 10)"),
+  topN: z
+    .any()
+    .optional()
+    .describe("Number of top tables to return (default: 10)"),
 });
 
 const DiagnoseInputSchema = DiagnoseInputSchemaBase.transform((data) => ({
@@ -80,7 +83,9 @@ const toNum = (val: unknown): number =>
 
 async function diagnoseSlowQueries(
   adapter: PostgresAdapter,
-): Promise<SectionResult<{ slowQueries: Record<string, unknown>[]; count: number }>> {
+): Promise<
+  SectionResult<{ slowQueries: Record<string, unknown>[]; count: number }>
+> {
   const result = await adapter.executeQuery(`
     SELECT pid, usename, datname, state,
            now() - query_start AS duration,
@@ -116,7 +121,9 @@ async function diagnoseSlowQueries(
 
 async function diagnoseBlockingLocks(
   adapter: PostgresAdapter,
-): Promise<SectionResult<{ blockedQueries: Record<string, unknown>[]; count: number }>> {
+): Promise<
+  SectionResult<{ blockedQueries: Record<string, unknown>[]; count: number }>
+> {
   const result = await adapter.executeQuery(`
     SELECT
       blocked.pid AS blocked_pid,
@@ -154,9 +161,7 @@ async function diagnoseBlockingLocks(
   return { status, data: { blockedQueries: blocked, count }, recommendations };
 }
 
-async function diagnoseConnectionPressure(
-  adapter: PostgresAdapter,
-): Promise<
+async function diagnoseConnectionPressure(adapter: PostgresAdapter): Promise<
   SectionResult<{
     activeConnections: number;
     maxConnections: number;
@@ -175,13 +180,8 @@ async function diagnoseConnectionPressure(
   ]);
 
   const byState = connResult.rows ?? [];
-  const totalActive = byState.reduce(
-    (sum, r) => sum + toNum(r["count"]),
-    0,
-  );
-  const maxConnections = toNum(
-    maxResult.rows?.[0]?.["max_connections"],
-  );
+  const totalActive = byState.reduce((sum, r) => sum + toNum(r["count"]), 0);
+  const maxConnections = toNum(maxResult.rows?.[0]?.["max_connections"]);
   const usagePercent =
     maxConnections > 0
       ? Math.round((totalActive / maxConnections) * 100 * 10) / 10
@@ -215,7 +215,9 @@ async function diagnoseConnectionPressure(
 
 async function diagnoseCacheHitRatio(
   adapter: PostgresAdapter,
-): Promise<SectionResult<{ heapRead: number; heapHit: number; ratio: number | null }>> {
+): Promise<
+  SectionResult<{ heapRead: number; heapHit: number; ratio: number | null }>
+> {
   const result = await adapter.executeQuery(`
     SELECT
       sum(heap_blks_read) AS heap_read,
@@ -230,7 +232,10 @@ async function diagnoseCacheHitRatio(
   const row = result.rows?.[0] ?? {};
   const heapRead = toNum(row["heap_read"]);
   const heapHit = toNum(row["heap_hit"]);
-  const ratio = row["ratio"] !== null && row["ratio"] !== undefined ? Number(row["ratio"]) : null;
+  const ratio =
+    row["ratio"] !== null && row["ratio"] !== undefined
+      ? Number(row["ratio"])
+      : null;
 
   const recommendations: string[] = [];
   if (ratio !== null && ratio < 99) {
@@ -376,11 +381,11 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
     }),
     group: "performance",
     annotations: readOnly("Diagnose database performance"),
-    icons: getToolIcons("performance", readOnly("Diagnose database performance")),
-    handler: async (
-      params: unknown,
-      _context: RequestContext,
-    ) => {
+    icons: getToolIcons(
+      "performance",
+      readOnly("Diagnose database performance"),
+    ),
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = DiagnoseInputSchema.safeParse(params);
         if (!parsed.success) {

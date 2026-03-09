@@ -2033,10 +2033,10 @@ describe("pg_create_backup_plan", () => {
 
   it("should reject retention < 1", async () => {
     const tool = tools.find((t) => t.name === "pg_create_backup_plan")!;
-    const result = (await tool.handler(
-      { retention: 0 },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ retention: 0 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("retention must be at least 1");
@@ -2048,10 +2048,7 @@ describe("pg_create_backup_plan", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_create_backup_plan")!;
-    const result = (await tool.handler(
-      { retention: 30 },
-      mockContext,
-    )) as {
+    const result = (await tool.handler({ retention: 30 }, mockContext)) as {
       strategy: { fullBackup: { retention: string } };
     };
 
@@ -2333,9 +2330,7 @@ describe("pg_backup_schedule_optimize", () => {
       rows: [{ hour: 14, connection_count: 5 }],
     });
 
-    const tool = tools.find(
-      (t) => t.name === "pg_backup_schedule_optimize",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_backup_schedule_optimize")!;
     const result = (await tool.handler({}, mockContext)) as {
       recommendation: {
         strategy: string;
@@ -2358,9 +2353,7 @@ describe("pg_backup_schedule_optimize", () => {
     });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
-    const tool = tools.find(
-      (t) => t.name === "pg_backup_schedule_optimize",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_backup_schedule_optimize")!;
     const result = (await tool.handler({}, mockContext)) as {
       recommendation: { strategy: string; incrementalFrequency: string };
     };
@@ -2378,9 +2371,7 @@ describe("pg_backup_schedule_optimize", () => {
     });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
-    const tool = tools.find(
-      (t) => t.name === "pg_backup_schedule_optimize",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_backup_schedule_optimize")!;
     const result = (await tool.handler({}, mockContext)) as {
       recommendation: { strategy: string; fullBackupFrequency: string };
     };
@@ -2398,9 +2389,7 @@ describe("pg_backup_schedule_optimize", () => {
     });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
-    const tool = tools.find(
-      (t) => t.name === "pg_backup_schedule_optimize",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_backup_schedule_optimize")!;
     const result = (await tool.handler({}, mockContext)) as {
       recommendation: { strategy: string; incrementalFrequency: string };
     };
@@ -2414,9 +2403,7 @@ describe("pg_backup_schedule_optimize", () => {
       new Error("connection refused"),
     );
 
-    const tool = tools.find(
-      (t) => t.name === "pg_backup_schedule_optimize",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_backup_schedule_optimize")!;
     const result = (await tool.handler({}, mockContext)) as {
       success: boolean;
       error: string;

@@ -16,10 +16,7 @@ import {
 } from "../../../../../__tests__/mocks/index.js";
 
 // Helper to find a tool by name
-function findTool(
-  tools: ToolDefinition[],
-  name: string,
-): ToolDefinition {
+function findTool(tools: ToolDefinition[], name: string): ToolDefinition {
   const tool = tools.find((t) => t.name === name);
   if (!tool) throw new Error(`Tool ${name} not found`);
   return tool;
@@ -255,9 +252,7 @@ describe("pg_diagnose_database_performance", () => {
     expect(result.sections.blockingLocks.data.count).toBe(4);
     expect(result.sections.blockingLocks.status).not.toBe("healthy");
     expect(
-      result.allRecommendations.some((r) =>
-        r.includes("shorter transactions"),
-      ),
+      result.allRecommendations.some((r) => r.includes("shorter transactions")),
     ).toBe(true);
   });
 
@@ -292,9 +287,9 @@ describe("pg_diagnose_database_performance", () => {
     };
 
     expect(result.sections.connectionPressure.data.usagePercent).toBe(85);
-    expect(
-      result.allRecommendations.some((r) => r.includes("capacity")),
-    ).toBe(true);
+    expect(result.allRecommendations.some((r) => r.includes("capacity"))).toBe(
+      true,
+    );
   });
 
   it("should detect critical connection pressure (>90%)", async () => {
@@ -325,9 +320,9 @@ describe("pg_diagnose_database_performance", () => {
     };
 
     expect(result.sections.connectionPressure.status).toBe("critical");
-    expect(
-      result.allRecommendations.some((r) => r.includes("PgBouncer")),
-    ).toBe(true);
+    expect(result.allRecommendations.some((r) => r.includes("PgBouncer"))).toBe(
+      true,
+    );
   });
 
   it("should detect poor cache hit ratio (<95%)", async () => {
@@ -360,14 +355,10 @@ describe("pg_diagnose_database_performance", () => {
     expect(result.sections.cacheHitRatio.data.ratio).toBe(90);
     expect(result.sections.cacheHitRatio.status).toBe("critical");
     expect(
-      result.allRecommendations.some((r) =>
-        r.includes("shared_buffers"),
-      ),
+      result.allRecommendations.some((r) => r.includes("shared_buffers")),
     ).toBe(true);
     expect(
-      result.allRecommendations.some((r) =>
-        r.includes("sequential scans"),
-      ),
+      result.allRecommendations.some((r) => r.includes("sequential scans")),
     ).toBe(true);
   });
 
@@ -774,9 +765,9 @@ describe("pg_diagnose_database_performance", () => {
 
     expect(result.sections.cacheHitRatio.status).toBe("warning");
     expect(result.sections.cacheHitRatio.recommendations).toHaveLength(1);
-    expect(
-      result.sections.cacheHitRatio.recommendations[0],
-    ).toContain("shared_buffers");
+    expect(result.sections.cacheHitRatio.recommendations[0]).toContain(
+      "shared_buffers",
+    );
   });
 
   it("should handle schema escaping in top tables filter", async () => {

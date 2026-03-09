@@ -93,7 +93,10 @@ describe("Transform Schema Parsing (z.preprocess)", () => {
   bench(
     "CascadeSimulatorSchema.parse(object with schema.table)",
     () => {
-      CascadeSimulatorSchema.parse({ table: "public.orders", operation: "DELETE" });
+      CascadeSimulatorSchema.parse({
+        table: "public.orders",
+        operation: "DELETE",
+      });
     },
     { iterations: 3000, warmupIterations: 50 },
   );

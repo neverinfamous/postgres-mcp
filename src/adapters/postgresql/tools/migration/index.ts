@@ -20,9 +20,7 @@ import {
 /**
  * Get all migration tools
  */
-export function getMigrationTools(
-  adapter: PostgresAdapter,
-): ToolDefinition[] {
+export function getMigrationTools(adapter: PostgresAdapter): ToolDefinition[] {
   return [
     createMigrationInitTool(adapter),
     createMigrationRecordTool(adapter),

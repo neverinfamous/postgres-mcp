@@ -31,5 +31,3 @@ export interface IndexInfo {
   sizeBytes?: number | undefined;
   numberOfScans?: number | undefined;
 }
-
-

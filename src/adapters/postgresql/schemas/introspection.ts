@@ -229,16 +229,19 @@ export const MigrationRisksSchemaBase = z.object({
     .describe("Target schema context (default: public)"),
 });
 
-export const MigrationRisksSchema = z.preprocess((input: unknown) => {
-  if (typeof input === "object" && input !== null) {
-    const obj = input as Record<string, unknown>;
-    // Accept statement/sql aliases
-    if (obj["statement"] !== undefined && obj["statements"] === undefined) {
-      return { ...obj, statements: [obj["statement"]] };
+export const MigrationRisksSchema = z.preprocess(
+  (input: unknown) => {
+    if (typeof input === "object" && input !== null) {
+      const obj = input as Record<string, unknown>;
+      // Accept statement/sql aliases
+      if (obj["statement"] !== undefined && obj["statements"] === undefined) {
+        return { ...obj, statements: [obj["statement"]] };
+      }
     }
-  }
-  return input;
-}, MigrationRisksSchemaBase.required({ statements: true }));
+    return input;
+  },
+  MigrationRisksSchemaBase.required({ statements: true }),
+);
 
 // =============================================================================
 // Migration Tracking Input Schemas (Phase 2: Schema Version Tracking)
@@ -343,14 +346,8 @@ export const MigrationHistorySchemaBase = z.object({
     .optional()
     .describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
-  limit: z
-    .any()
-    .optional()
-    .describe("Maximum records to return (default: 50)"),
-  offset: z
-    .any()
-    .optional()
-    .describe("Offset for pagination (default: 0)"),
+  limit: z.any().optional().describe("Maximum records to return (default: 50)"),
+  offset: z.any().optional().describe("Offset for pagination (default: 0)"),
 });
 
 // Internal parse schema — coerces limit/offset types to prevent Zod leaks

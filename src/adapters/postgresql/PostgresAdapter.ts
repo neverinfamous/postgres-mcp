@@ -117,7 +117,6 @@ export class PostgresAdapter extends DatabaseAdapter {
     this.metadataCache.set(key, { data, timestamp: Date.now() });
   }
 
-
   // =========================================================================
   // Connection Lifecycle
   // =========================================================================

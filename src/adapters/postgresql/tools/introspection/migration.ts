@@ -98,7 +98,10 @@ function hashMigrationSql(sql: string): string {
 async function checkDuplicateHash(
   adapter: PostgresAdapter,
   migrationSql: string,
-): Promise<{ migrationHash: string; duplicateError: null | { success: false; error: string } }> {
+): Promise<{
+  migrationHash: string;
+  duplicateError: null | { success: false; error: string };
+}> {
   const migrationHash = hashMigrationSql(migrationSql);
   const dupCheck = await adapter.executeQuery(
     `SELECT id, version, status FROM ${TRACKING_TABLE}
@@ -195,7 +198,9 @@ export function createMigrationInitTool(
         const existed = firstRow?.["table_exists"] === true;
 
         if (!existed) {
-          await adapter.executeQuery(buildCreateTrackingTableSql(qualifiedTable));
+          await adapter.executeQuery(
+            buildCreateTrackingTableSql(qualifiedTable),
+          );
         }
 
         const countResult = await adapter.executeQuery(
@@ -246,7 +251,10 @@ export function createMigrationRecordTool(
         const parsed = MigrationRecordSchema.parse(params);
         await ensureTrackingTable(adapter);
 
-        const { migrationHash, duplicateError } = await checkDuplicateHash(adapter, parsed.migrationSql);
+        const { migrationHash, duplicateError } = await checkDuplicateHash(
+          adapter,
+          parsed.migrationSql,
+        );
         if (duplicateError) return duplicateError;
 
         const result = await adapter.executeQuery(
@@ -314,7 +322,10 @@ export function createMigrationApplyTool(
         const parsed = MigrationApplySchema.parse(params);
         await ensureTrackingTable(adapter);
 
-        const { migrationHash, duplicateError } = await checkDuplicateHash(adapter, parsed.migrationSql);
+        const { migrationHash, duplicateError } = await checkDuplicateHash(
+          adapter,
+          parsed.migrationSql,
+        );
         if (duplicateError) return duplicateError;
 
         // Execute migration SQL and record atomically

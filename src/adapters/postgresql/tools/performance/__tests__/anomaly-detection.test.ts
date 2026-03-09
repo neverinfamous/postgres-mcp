@@ -15,10 +15,7 @@ import {
 } from "../../../../../__tests__/mocks/index.js";
 
 // Helper to find a tool by name
-function findTool(
-  tools: ToolDefinition[],
-  name: string,
-): ToolDefinition {
+function findTool(tools: ToolDefinition[], name: string): ToolDefinition {
   const tool = tools.find((t) => t.name === name);
   if (!tool) throw new Error(`Tool ${name} not found`);
   return tool;
@@ -134,10 +131,7 @@ describe("pg_detect_query_anomalies", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = findTool(tools, "pg_detect_query_anomalies");
-    await tool.handler(
-      { threshold: 3.0, minCalls: 50 },
-      mockContext,
-    );
+    await tool.handler({ threshold: 3.0, minCalls: 50 }, mockContext);
 
     // Verify threshold and minCalls are used in the query
     const countQuery = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
@@ -157,10 +151,7 @@ describe("pg_detect_query_anomalies", () => {
 
     const tool = findTool(tools, "pg_detect_query_anomalies");
     // Extreme values that should be clamped
-    await tool.handler(
-      { threshold: 0.1, minCalls: -5 },
-      mockContext,
-    );
+    await tool.handler({ threshold: 0.1, minCalls: -5 }, mockContext);
 
     // threshold clamped to 0.5, minCalls clamped to 1
     const countQuery = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
@@ -419,7 +410,11 @@ describe("pg_detect_bloat_risk", () => {
 
     const tool = findTool(tools, "pg_detect_bloat_risk");
     const result = (await tool.handler({}, mockContext)) as {
-      tables: { riskScore: number; riskLevel: string; recommendations: string[] }[];
+      tables: {
+        riskScore: number;
+        riskLevel: string;
+        recommendations: string[];
+      }[];
       highRiskCount: number;
       summary: string;
     };
@@ -530,7 +525,9 @@ describe("pg_detect_bloat_risk", () => {
     };
 
     // autoanalyze_count === 0 && liveTuples > 10000 → autovacuumScore = 60
-    expect(result.tables[0]?.factors.autovacuumEffectiveness).toBeGreaterThan(0);
+    expect(result.tables[0]?.factors.autovacuumEffectiveness).toBeGreaterThan(
+      0,
+    );
   });
 
   it("should calculate size factor for very large tables (>10GB)", async () => {
@@ -740,7 +737,10 @@ describe("pg_detect_connection_spike", () => {
       rows: [{ state: "active", count: 10 }],
     });
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ usename: "user1", count: 5 }, { usename: "user2", count: 5 }],
+      rows: [
+        { usename: "user1", count: 5 },
+        { usename: "user2", count: 5 },
+      ],
     });
     // One application holds 80% of connections
     mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -808,9 +808,27 @@ describe("pg_detect_connection_spike", () => {
     // 2 connections idle > 5 minutes
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [
-        { pid: 1, usename: "user1", app_name: "app", idle_duration: "00:10:00", idle_seconds: 600 },
-        { pid: 2, usename: "user1", app_name: "app", idle_duration: "00:08:00", idle_seconds: 480 },
-        { pid: 3, usename: "user1", app_name: "app", idle_duration: "00:02:00", idle_seconds: 120 },
+        {
+          pid: 1,
+          usename: "user1",
+          app_name: "app",
+          idle_duration: "00:10:00",
+          idle_seconds: 600,
+        },
+        {
+          pid: 2,
+          usename: "user1",
+          app_name: "app",
+          idle_duration: "00:08:00",
+          idle_seconds: 480,
+        },
+        {
+          pid: 3,
+          usename: "user1",
+          app_name: "app",
+          idle_duration: "00:02:00",
+          idle_seconds: 120,
+        },
       ],
     });
 
@@ -850,9 +868,9 @@ describe("pg_detect_connection_spike", () => {
       warnings: string[];
     };
 
-    expect(
-      result.warnings.some((w) => w.includes("idle-in-transaction")),
-    ).toBe(true);
+    expect(result.warnings.some((w) => w.includes("idle-in-transaction"))).toBe(
+      true,
+    );
   });
 
   it("should detect critical connection pressure (>=90%)", async () => {

@@ -8,8 +8,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RequestContext } from "../types/index.js";
 
-
-
 /** Context required to send progress notifications */
 export interface ProgressContext {
   /** MCP Server instance for sending notifications */
@@ -74,5 +72,3 @@ export async function sendProgress(
     // Don't let notification failures break the operation
   }
 }
-
-

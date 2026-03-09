@@ -79,4 +79,3 @@ export function getPerformanceTools(
     createDetectConnectionSpikeTool(adapter),
   ];
 }
-

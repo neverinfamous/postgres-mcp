@@ -470,5 +470,4 @@ export abstract class DatabaseAdapter {
     }
     return context;
   }
-
 }
