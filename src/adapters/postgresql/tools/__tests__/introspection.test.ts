@@ -1362,7 +1362,7 @@ describe("pg_migration_record", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should record a migration successfully", async () => {
+  it("should record a migration successfully with status 'recorded'", async () => {
     // ensureTrackingTable: exists
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ table_exists: true }],
@@ -1380,7 +1380,7 @@ describe("pg_migration_record", () => {
           applied_by: "agent",
           migration_hash: "abc123",
           source_system: "agent",
-          status: "applied",
+          status: "recorded",
         },
       ],
     });
@@ -1394,11 +1394,16 @@ describe("pg_migration_record", () => {
         sourceSystem: "agent",
       },
       mockContext,
-    )) as { success: boolean; record?: { version: string } };
+    )) as { success: boolean; record?: { version: string; status: string } };
 
     expect(result.success).toBe(true);
     expect(result.record).toBeDefined();
     expect(result.record!.version).toBe("1.0.0");
+    expect(result.record!.status).toBe("recorded");
+
+    // Verify INSERT SQL uses 'recorded' status
+    const insertCall = mockAdapter.executeQuery.mock.calls[2]![0] as string;
+    expect(insertCall).toContain("'recorded'");
   });
 
   it("should detect duplicate migration by hash", async () => {

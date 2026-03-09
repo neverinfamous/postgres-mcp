@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS ${qualifiedTable} (
   source_system VARCHAR(50),
   rollback_sql TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'applied',
-  CONSTRAINT valid_status CHECK (status IN ('applied', 'rolled_back', 'failed'))
+  CONSTRAINT valid_status CHECK (status IN ('applied', 'recorded', 'rolled_back', 'failed'))
 )`;
 }
 
@@ -259,8 +259,8 @@ export function createMigrationRecordTool(
 
         const result = await adapter.executeQuery(
           `INSERT INTO ${TRACKING_TABLE}
-         (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'recorded')
          RETURNING *`,
           [
             parsed.version,
@@ -690,6 +690,7 @@ export function createMigrationStatusTool(
           `SELECT
           COUNT(*)::int AS total,
           COUNT(*) FILTER (WHERE status = 'applied')::int AS applied,
+          COUNT(*) FILTER (WHERE status = 'recorded')::int AS recorded,
           COUNT(*) FILTER (WHERE status = 'rolled_back')::int AS rolled_back,
           COUNT(*) FILTER (WHERE status = 'failed')::int AS failed
         FROM ${qualifiedTable}`,
@@ -731,6 +732,7 @@ export function createMigrationStatusTool(
           counts: {
             total: statsRow["total"] as number,
             applied: statsRow["applied"] as number,
+            recorded: (statsRow["recorded"] as number | null) ?? 0,
             rolledBack: statsRow["rolled_back"] as number,
             failed: statsRow["failed"] as number,
           },
