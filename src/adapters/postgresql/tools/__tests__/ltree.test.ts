@@ -911,12 +911,341 @@ describe("Ltree Tools", () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('Column "bad_col" not found');
     });
+  });
 
-    it("pg_ltree_create_index: should catch ZodError for invalid input", async () => {
-      const tool = findTool("pg_ltree_create_index");
-      const result = (await tool!.handler({}, mockContext)) as any;
+  // ==========================================================================
+  // Coverage-targeted tests for remaining uncovered lines
+  // ==========================================================================
+
+  describe("pg_ltree_query — lquery pattern with limit (count path)", () => {
+    it("should detect lquery pattern and use count query with limit", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ total: 50 }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [
+          { id: 1, path: "root.a", depth: 2 },
+          { id: 2, path: "root.b", depth: 2 },
+        ],
+      });
+
+      const tool = findTool("pg_ltree_query");
+      const result = (await tool!.handler(
+        {
+          table: "categories",
+          column: "path",
+          path: "root.*",
+          limit: 2,
+        },
+        mockContext,
+      )) as {
+        mode: string;
+        isPattern: boolean;
+        truncated: boolean;
+        totalCount: number;
+      };
+
+      expect(result.mode).toBe("pattern");
+      expect(result.isPattern).toBe(true);
+      expect(result.truncated).toBe(true);
+      expect(result.totalCount).toBe(50);
+      expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("~ $1::lquery"),
+        ["root.*"],
+      );
+    });
+
+    it("should use ancestors operator in count query with limit", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ total: 5 }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, path: "root", depth: 1 }],
+      });
+
+      const tool = findTool("pg_ltree_query");
+      await tool!.handler(
+        {
+          table: "categories",
+          column: "path",
+          path: "root.child1",
+          mode: "ancestors",
+          limit: 10,
+        },
+        mockContext,
+      );
+
+      expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("@>"),
+        ["root.child1"],
+      );
+    });
+
+    it("should use exact operator in count query with limit", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ total: 1 }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ id: 1, path: "root.child1", depth: 2 }],
+      });
+
+      const tool = findTool("pg_ltree_query");
+      await tool!.handler(
+        {
+          table: "categories",
+          column: "path",
+          path: "root.child1",
+          mode: "exact",
+          limit: 10,
+        },
+        mockContext,
+      );
+
+      expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+        2,
+        expect.stringContaining("= "),
+        ["root.child1"],
+      );
+    });
+  });
+
+  describe("pg_ltree_subpath — offset validation error", () => {
+    it("should return error for out-of-bounds offset", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ depth: 3 }],
+      });
+
+      const tool = findTool("pg_ltree_subpath");
+      const result = (await tool!.handler(
+        {
+          path: "root.child1.grandchild",
+          offset: 5,
+        },
+        mockContext,
+      )) as { success: boolean; error: string; pathDepth: number };
+
       expect(result.success).toBe(false);
-      expect(result.error).toContain("expected string");
+      expect(result.error).toContain("Invalid offset");
+      expect(result.pathDepth).toBe(3);
+    });
+  });
+
+  describe("pg_ltree_query — adapter error", () => {
+    it("should format adapter errors", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_ltree_query");
+      const result = (await tool!.handler(
+        { table: "t", column: "c", path: "x" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("connection refused");
+    });
+  });
+
+  describe("pg_ltree_subpath — adapter error", () => {
+    it("should format adapter errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_ltree_subpath");
+      const result = (await tool!.handler(
+        { path: "a.b.c", offset: 0 },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("connection refused");
+    });
+  });
+
+  describe("pg_ltree_lca — adapter error", () => {
+    it("should format adapter errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_ltree_lca");
+      const result = (await tool!.handler(
+        { paths: ["a.b", "c.d"] },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("connection refused");
+    });
+  });
+
+  describe("pg_ltree_match — adapter error", () => {
+    it("should format adapter errors", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_ltree_match");
+      const result = (await tool!.handler(
+        { table: "t", column: "c", pattern: "a.*" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("connection refused");
+    });
+  });
+
+  describe("pg_ltree_list_columns — adapter error", () => {
+    it("should format adapter errors", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("connection refused"),
+      );
+
+      const tool = findTool("pg_ltree_list_columns");
+      const result = (await tool!.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("connection refused");
+    });
+  });
+
+  describe("pg_ltree_convert_column — adapter error + ltree not installed", () => {
+    it("should return error when ltree extension is not installed", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ installed: false }],
+      });
+
+      const tool = findTool("pg_ltree_convert_column");
+      const result = (await tool!.handler(
+        { table: "t", column: "c" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("ltree extension is not installed");
+    });
+
+    it("should return error when dependent views exist", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ installed: true }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ dependent_view: "my_view", view_schema: "public" }],
+      });
+
+      const tool = findTool("pg_ltree_convert_column");
+      const result = (await tool!.handler(
+        { table: "t", column: "c" },
+        mockContext,
+      )) as {
+        success: boolean;
+        error: string;
+        dependentViews: string[];
+        hint: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("dependent views");
+      expect(result.dependentViews).toContain("public.my_view");
+      expect(result.hint).toContain("Drop the listed views");
+    });
+
+    it("should format adapter errors during ALTER", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ installed: true }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ data_type: "text", udt_name: "text" }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("permission denied"),
+      );
+
+      const tool = findTool("pg_ltree_convert_column");
+      const result = (await tool!.handler(
+        { table: "t", column: "c" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("permission denied");
+    });
+  });
+
+  describe("pg_ltree_create_index — semantic duplicate detection + adapter error", () => {
+    it("should detect semantic duplicate GiST index", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ exists: false }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ indexname: "existing_gist_idx" }],
+      });
+
+      const tool = findTool("pg_ltree_create_index");
+      const result = (await tool!.handler(
+        { table: "t", column: "c" },
+        mockContext,
+      )) as {
+        success: boolean;
+        alreadyExists: boolean;
+        indexName: string;
+      };
+
+      expect(result.success).toBe(true);
+      expect(result.alreadyExists).toBe(true);
+      expect(result.indexName).toBe("existing_gist_idx");
+    });
+
+    it("should format adapter errors during CREATE INDEX", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "ltree" }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ exists: false }],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("permission denied"),
+      );
+
+      const tool = findTool("pg_ltree_create_index");
+      const result = (await tool!.handler(
+        { table: "t", column: "c" },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("permission denied");
     });
   });
 

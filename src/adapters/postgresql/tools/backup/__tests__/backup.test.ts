@@ -1945,3 +1945,483 @@ describe("pg_copy_export - structured error handling", () => {
     });
   });
 });
+
+// ==========================================================================
+// Backup Planning Tools (planning.ts)
+// ==========================================================================
+
+describe("pg_create_backup_plan", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should generate daily backup plan by default", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ bytes: 5368709120 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_create_backup_plan")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      strategy: {
+        fullBackup: {
+          frequency: string;
+          cronSchedule: string;
+          retention: string;
+          command: string;
+        };
+      };
+      estimates: { databaseSize: string };
+    };
+
+    expect(result.strategy.fullBackup.frequency).toBe("daily");
+    expect(result.strategy.fullBackup.cronSchedule).toBe("0 2 * * *");
+    expect(result.strategy.fullBackup.retention).toBe("7 backups");
+    expect(result.strategy.fullBackup.command).toContain("%Y%m%d");
+    expect(result.estimates.databaseSize).toContain("5.00 GB");
+  });
+
+  it("should generate hourly backup plan with timestamp format", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ bytes: 1073741824 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_create_backup_plan")!;
+    const result = (await tool.handler(
+      { frequency: "hourly" },
+      mockContext,
+    )) as {
+      strategy: {
+        fullBackup: {
+          frequency: string;
+          cronSchedule: string;
+          command: string;
+        };
+      };
+      estimates: { backupsPerDay: number };
+    };
+
+    expect(result.strategy.fullBackup.frequency).toBe("hourly");
+    expect(result.strategy.fullBackup.cronSchedule).toBe("0 * * * *");
+    expect(result.strategy.fullBackup.command).toContain("%H%M");
+    expect(result.estimates.backupsPerDay).toBe(24);
+  });
+
+  it("should generate weekly backup plan", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ bytes: 1073741824 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_create_backup_plan")!;
+    const result = (await tool.handler(
+      { frequency: "weekly" },
+      mockContext,
+    )) as {
+      strategy: { fullBackup: { cronSchedule: string } };
+      estimates: { backupsPerWeek: number };
+    };
+
+    expect(result.strategy.fullBackup.cronSchedule).toBe("0 2 * * 0");
+    expect(result.estimates.backupsPerWeek).toBe(1);
+  });
+
+  it("should reject retention < 1", async () => {
+    const tool = tools.find((t) => t.name === "pg_create_backup_plan")!;
+    const result = (await tool.handler(
+      { retention: 0 },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("retention must be at least 1");
+  });
+
+  it("should use custom retention value", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ bytes: 1073741824 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_create_backup_plan")!;
+    const result = (await tool.handler(
+      { retention: 30 },
+      mockContext,
+    )) as {
+      strategy: { fullBackup: { retention: string } };
+    };
+
+    expect(result.strategy.fullBackup.retention).toBe("30 backups");
+  });
+
+  it("should handle adapter error", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection refused"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_create_backup_plan")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("pg_restore_command", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should generate restore command with database", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_command")!;
+    const result = (await tool.handler(
+      { backupFile: "backup.dump", database: "mydb" },
+      mockContext,
+    )) as { command: string; notes: string[] };
+
+    expect(result.command).toContain("pg_restore --verbose");
+    expect(result.command).toContain('--dbname="mydb"');
+    expect(result.command).toContain('"backup.dump"');
+    expect(result.notes.length).toBeGreaterThan(0);
+  });
+
+  it("should add warning when no database specified", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_command")!;
+    const result = (await tool.handler(
+      { backupFile: "backup.dump" },
+      mockContext,
+    )) as { command: string; warnings: string[] };
+
+    expect(result.warnings).toBeDefined();
+    expect(result.warnings[0]).toContain("No database specified");
+  });
+
+  it("should reject dataOnly + schemaOnly together", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_command")!;
+    const result = (await tool.handler(
+      { backupFile: "backup.dump", dataOnly: true, schemaOnly: true },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("cannot both be true");
+  });
+
+  it("should reject missing backupFile", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_command")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("backupFile");
+  });
+
+  it("should include schema and table filters", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_command")!;
+    const result = (await tool.handler(
+      {
+        backupFile: "backup.dump",
+        database: "mydb",
+        schema: "public",
+        table: "users",
+      },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain('--schema="public"');
+    expect(result.command).toContain('--table="users"');
+  });
+
+  it("should append --data-only flag", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_command")!;
+    const result = (await tool.handler(
+      { backupFile: "backup.dump", dataOnly: true },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain("--data-only");
+  });
+
+  it("should append --schema-only flag", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_command")!;
+    const result = (await tool.handler(
+      { backupFile: "backup.dump", schemaOnly: true },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain("--schema-only");
+  });
+});
+
+describe("pg_backup_physical", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should generate pg_basebackup command with tar format by default", async () => {
+    const tool = tools.find((t) => t.name === "pg_backup_physical")!;
+    const result = (await tool.handler(
+      { targetDir: "/backups" },
+      mockContext,
+    )) as { command: string; notes: string[]; requirements: string[] };
+
+    expect(result.command).toContain("pg_basebackup");
+    expect(result.command).toContain('-D "/backups"');
+    expect(result.command).toContain("-Ft");
+    expect(result.requirements.length).toBeGreaterThan(0);
+  });
+
+  it("should use plain format when specified", async () => {
+    const tool = tools.find((t) => t.name === "pg_backup_physical")!;
+    const result = (await tool.handler(
+      { targetDir: "/backups", format: "plain" },
+      mockContext,
+    )) as { command: string; notes: string[] };
+
+    expect(result.command).toContain("-Fp");
+    expect(result.notes.some((n) => n.includes("Plain format"))).toBe(true);
+  });
+
+  it("should add checkpoint fast flag", async () => {
+    const tool = tools.find((t) => t.name === "pg_backup_physical")!;
+    const result = (await tool.handler(
+      { targetDir: "/backups", checkpoint: "fast" },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain("-c fast");
+  });
+
+  it("should add checkpoint spread flag", async () => {
+    const tool = tools.find((t) => t.name === "pg_backup_physical")!;
+    const result = (await tool.handler(
+      { targetDir: "/backups", checkpoint: "spread" },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain("-c spread");
+  });
+
+  it("should add compression level", async () => {
+    const tool = tools.find((t) => t.name === "pg_backup_physical")!;
+    const result = (await tool.handler(
+      { targetDir: "/backups", compress: 6 },
+      mockContext,
+    )) as { command: string };
+
+    expect(result.command).toContain("-Z 6");
+  });
+
+  it("should reject missing targetDir", async () => {
+    const tool = tools.find((t) => t.name === "pg_backup_physical")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("targetDir");
+  });
+
+  it("should reject compress out of range", async () => {
+    const tool = tools.find((t) => t.name === "pg_backup_physical")!;
+    const result = (await tool.handler(
+      { targetDir: "/backups", compress: 10 },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("between 0 and 9");
+  });
+});
+
+describe("pg_restore_validate", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should generate pg_dump validation steps by default", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_validate")!;
+    const result = (await tool.handler(
+      { backupFile: "backup.dump" },
+      mockContext,
+    )) as {
+      validationSteps: { step: number; name: string }[];
+      note: string;
+      recommendations: string[];
+    };
+
+    expect(result.validationSteps).toHaveLength(3);
+    expect(result.note).toContain("defaulting to pg_dump");
+    expect(result.recommendations.length).toBeGreaterThan(0);
+  });
+
+  it("should generate pg_basebackup validation steps", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_validate")!;
+    const result = (await tool.handler(
+      { backupFile: "/backups/base", backupType: "pg_basebackup" },
+      mockContext,
+    )) as {
+      validationSteps: { step: number; name: string; command?: string }[];
+    };
+
+    expect(result.validationSteps).toHaveLength(4);
+    expect(result.validationSteps[0]?.command).toContain("pg_verifybackup");
+  });
+
+  it("should reject missing backupFile", async () => {
+    const tool = tools.find((t) => t.name === "pg_restore_validate")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("backupFile");
+  });
+});
+
+describe("pg_backup_schedule_optimize", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getBackupTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should recommend conservative schedule for low activity", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ size_bytes: 1073741824, size: "1 GB" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total_changes: 100, total_rows: 100000 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ hour: 14, connection_count: 5 }],
+    });
+
+    const tool = tools.find(
+      (t) => t.name === "pg_backup_schedule_optimize",
+    )!;
+    const result = (await tool.handler({}, mockContext)) as {
+      recommendation: {
+        strategy: string;
+        fullBackupFrequency: string;
+        incrementalFrequency: string;
+      };
+    };
+
+    expect(result.recommendation.strategy).toContain("Low activity");
+    expect(result.recommendation.fullBackupFrequency).toBe("Daily");
+    expect(result.recommendation.incrementalFrequency).toBe("Not required");
+  });
+
+  it("should recommend frequent backups for high change rate", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ size_bytes: 1073741824, size: "1 GB" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total_changes: 600000, total_rows: 100000 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find(
+      (t) => t.name === "pg_backup_schedule_optimize",
+    )!;
+    const result = (await tool.handler({}, mockContext)) as {
+      recommendation: { strategy: string; incrementalFrequency: string };
+    };
+
+    expect(result.recommendation.strategy).toContain("High change rate");
+    expect(result.recommendation.incrementalFrequency).toBe("Every 6 hours");
+  });
+
+  it("should recommend WAL-based backups for large databases", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ size_bytes: 214748364800, size: "200 GB" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total_changes: 1000, total_rows: 100000 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find(
+      (t) => t.name === "pg_backup_schedule_optimize",
+    )!;
+    const result = (await tool.handler({}, mockContext)) as {
+      recommendation: { strategy: string; fullBackupFrequency: string };
+    };
+
+    expect(result.recommendation.strategy).toContain("Large database");
+    expect(result.recommendation.fullBackupFrequency).toBe("Weekly");
+  });
+
+  it("should handle moderate activity", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ size_bytes: 1073741824, size: "1 GB" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total_changes: 20000, total_rows: 100000 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find(
+      (t) => t.name === "pg_backup_schedule_optimize",
+    )!;
+    const result = (await tool.handler({}, mockContext)) as {
+      recommendation: { strategy: string; incrementalFrequency: string };
+    };
+
+    expect(result.recommendation.strategy).toContain("Moderate activity");
+    expect(result.recommendation.incrementalFrequency).toBe("Every 12 hours");
+  });
+
+  it("should handle adapter error", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("connection refused"),
+    );
+
+    const tool = tools.find(
+      (t) => t.name === "pg_backup_schedule_optimize",
+    )!;
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+  });
+});
