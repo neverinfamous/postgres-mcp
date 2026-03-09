@@ -85,11 +85,10 @@ export function createSchemaSnapshotTool(
           schemaWhere = `AND n.nspname = $${String(schemaParams.length)}`;
         }
 
-        // Tables + columns (or compact mode without columns)
-        if (includeAll || sections.has("tables")) {
-          const columnsSubquery = parsed.compact
-            ? ""
-            : `,
+        // Build columns subquery for tables section
+        const columnsSubquery = parsed.compact
+          ? ""
+          : `,
             (SELECT json_agg(json_build_object(
               'name', a.attname,
               'type', pg_catalog.format_type(a.atttypid, a.atttypmod),
@@ -103,183 +102,220 @@ export function createSchemaSnapshotTool(
             LEFT JOIN pg_attrdef d ON (a.attrelid, a.attnum) = (d.adrelid, d.adnum)
             WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
             ) AS columns`;
-          const tablesResult = await adapter.executeQuery(
-            `SELECT
-            n.nspname AS schema, c.relname AS name,
-            CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table' END AS type,
-            CASE WHEN c.reltuples = -1 THEN COALESCE(s.n_live_tup, 0) ELSE c.reltuples END::bigint AS row_count,
-            pg_table_size(c.oid) AS size_bytes,
-            obj_description(c.oid, 'pg_class') AS comment${columnsSubquery}
-          FROM pg_class c
-          JOIN pg_namespace n ON n.oid = c.relnamespace
-          LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
-          WHERE c.relkind IN ('r', 'p')
-            ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-          ORDER BY n.nspname, c.relname`,
-            schemaParams.length > 0 ? schemaParams : undefined,
-          );
+        const qp = schemaParams.length > 0 ? schemaParams : undefined;
+
+        // Execute all independent section queries in parallel (PERF-P2)
+        const [
+          tablesResult,
+          viewsResult,
+          indexesResult,
+          constraintsResult,
+          functionsResult,
+          triggersResult,
+          seqResult,
+          typesResult,
+          extResult,
+        ] = await Promise.all([
+          // Tables + columns (or compact mode without columns)
+          (includeAll || sections.has("tables"))
+            ? adapter.executeQuery(
+                `SELECT
+                n.nspname AS schema, c.relname AS name,
+                CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table' END AS type,
+                CASE WHEN c.reltuples = -1 THEN COALESCE(s.n_live_tup, 0) ELSE c.reltuples END::bigint AS row_count,
+                pg_table_size(c.oid) AS size_bytes,
+                obj_description(c.oid, 'pg_class') AS comment${columnsSubquery}
+              FROM pg_class c
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
+              WHERE c.relkind IN ('r', 'p')
+                ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
+              ORDER BY n.nspname, c.relname`,
+                qp,
+              )
+            : null,
+
+          // Views
+          (includeAll || sections.has("views"))
+            ? adapter.executeQuery(
+                `SELECT
+                n.nspname AS schema, c.relname AS name,
+                CASE c.relkind WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END AS type,
+                pg_get_viewdef(c.oid, true) AS definition
+              FROM pg_class c
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE c.relkind IN ('v', 'm')
+                ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
+              ORDER BY n.nspname, c.relname`,
+                qp,
+              )
+            : null,
+
+          // Indexes
+          (includeAll || sections.has("indexes"))
+            ? adapter.executeQuery(
+                `SELECT
+                i.relname AS name, t.relname AS table_name, n.nspname AS schema,
+                am.amname AS type, ix.indisunique AS is_unique,
+                pg_get_indexdef(ix.indexrelid) AS definition,
+                pg_relation_size(i.oid) AS size_bytes
+              FROM pg_index ix
+              JOIN pg_class t ON t.oid = ix.indrelid
+              JOIN pg_class i ON i.oid = ix.indexrelid
+              JOIN pg_namespace n ON n.oid = t.relnamespace
+              JOIN pg_am am ON am.oid = i.relam
+              WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'"}
+                ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
+              ORDER BY n.nspname, t.relname, i.relname`,
+                qp,
+              )
+            : null,
+
+          // Constraints
+          (includeAll || sections.has("constraints"))
+            ? adapter.executeQuery(
+                `SELECT
+                c.conname AS name, t.relname AS table_name, n.nspname AS schema,
+                CASE c.contype WHEN 'p' THEN 'primary_key' WHEN 'f' THEN 'foreign_key'
+                  WHEN 'u' THEN 'unique' WHEN 'c' THEN 'check' WHEN 'x' THEN 'exclusion' END AS type,
+                pg_get_constraintdef(c.oid) AS definition
+              FROM pg_constraint c
+              JOIN pg_class t ON t.oid = c.conrelid
+              JOIN pg_namespace n ON n.oid = t.relnamespace
+              WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
+                ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
+              ORDER BY n.nspname, t.relname, c.conname`,
+                qp,
+              )
+            : null,
+
+          // Functions
+          (includeAll || sections.has("functions"))
+            ? adapter.executeQuery(
+                `SELECT
+                n.nspname AS schema, p.proname AS name,
+                pg_get_function_arguments(p.oid) AS arguments,
+                pg_get_function_result(p.oid) AS return_type,
+                l.lanname AS language, p.provolatile AS volatility
+              FROM pg_proc p
+              JOIN pg_namespace n ON n.oid = p.pronamespace
+              JOIN pg_language l ON l.oid = p.prolang
+              WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
+                ${extensionSchemaExclude} ${extOwnedClause("p.oid")} ${schemaWhere}
+              ORDER BY n.nspname, p.proname`,
+                qp,
+              )
+            : null,
+
+          // Triggers
+          (includeAll || sections.has("triggers"))
+            ? adapter.executeQuery(
+                `SELECT
+                t.tgname AS name, c.relname AS table_name, n.nspname AS schema,
+                CASE WHEN t.tgtype & 2 = 2 THEN 'BEFORE' WHEN t.tgtype & 64 = 64 THEN 'INSTEAD OF' ELSE 'AFTER' END AS timing,
+                array_remove(ARRAY[
+                  CASE WHEN t.tgtype & 4 = 4 THEN 'INSERT' END,
+                  CASE WHEN t.tgtype & 8 = 8 THEN 'DELETE' END,
+                  CASE WHEN t.tgtype & 16 = 16 THEN 'UPDATE' END,
+                  CASE WHEN t.tgtype & 32 = 32 THEN 'TRUNCATE' END
+                ], NULL) AS events,
+                p.proname AS function_name
+              FROM pg_trigger t
+              JOIN pg_class c ON c.oid = t.tgrelid
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              JOIN pg_proc p ON p.oid = t.tgfoid
+              WHERE NOT t.tgisinternal
+                ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
+              ORDER BY n.nspname, c.relname, t.tgname`,
+                qp,
+              )
+            : null,
+
+          // Sequences
+          (includeAll || sections.has("sequences"))
+            ? adapter.executeQuery(
+                `SELECT
+                n.nspname AS schema, c.relname AS name,
+                (SELECT tc.relname || '.' || a.attname
+                 FROM pg_depend d
+                 JOIN pg_class tc ON tc.oid = d.refobjid
+                 JOIN pg_attribute a ON a.attrelid = tc.oid AND a.attnum = d.refobjsubid
+                 WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'a'
+                 LIMIT 1) AS owned_by
+              FROM pg_class c
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE c.relkind = 'S'
+                ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
+              ORDER BY n.nspname, c.relname`,
+                qp,
+              )
+            : null,
+
+          // Custom types
+          (includeAll || sections.has("types"))
+            ? adapter.executeQuery(
+                `SELECT
+                n.nspname AS schema, t.typname AS name,
+                CASE t.typtype WHEN 'e' THEN 'enum' WHEN 'c' THEN 'composite' WHEN 'd' THEN 'domain' WHEN 'r' THEN 'range' END AS type,
+                CASE WHEN t.typtype = 'e' THEN
+                  (SELECT json_agg(e.enumlabel ORDER BY e.enumsortorder) FROM pg_enum e WHERE e.enumtypid = t.oid)
+                END AS values
+              FROM pg_type t
+              JOIN pg_namespace n ON n.oid = t.typnamespace
+              WHERE t.typtype IN ('e', 'c', 'd', 'r')
+                AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
+              ORDER BY n.nspname, t.typname`,
+                qp,
+              )
+            : null,
+
+          // Extensions (skip when schema filter is active — extensions are global objects)
+          (includeAll || sections.has("extensions")) && !parsed.schema
+            ? adapter.executeQuery(
+                `SELECT extname AS name, extversion AS version,
+                      n.nspname AS schema
+               FROM pg_extension e
+               JOIN pg_namespace n ON n.oid = e.extnamespace
+               ORDER BY e.extname`,
+              )
+            : null,
+        ]);
+
+        // Assign results to snapshot and stats
+        if (tablesResult !== null) {
           snapshot["tables"] = tablesResult.rows ?? [];
           stats.tables = tablesResult.rows?.length ?? 0;
         }
-
-        // Views
-        if (includeAll || sections.has("views")) {
-          const viewsResult = await adapter.executeQuery(
-            `SELECT
-            n.nspname AS schema, c.relname AS name,
-            CASE c.relkind WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END AS type,
-            pg_get_viewdef(c.oid, true) AS definition
-          FROM pg_class c
-          JOIN pg_namespace n ON n.oid = c.relnamespace
-          WHERE c.relkind IN ('v', 'm')
-            ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-          ORDER BY n.nspname, c.relname`,
-            schemaParams.length > 0 ? schemaParams : undefined,
-          );
+        if (viewsResult !== null) {
           snapshot["views"] = viewsResult.rows ?? [];
           stats.views = viewsResult.rows?.length ?? 0;
         }
-
-        // Indexes
-        if (includeAll || sections.has("indexes")) {
-          const indexesResult = await adapter.executeQuery(
-            `SELECT
-            i.relname AS name, t.relname AS table_name, n.nspname AS schema,
-            am.amname AS type, ix.indisunique AS is_unique,
-            pg_get_indexdef(ix.indexrelid) AS definition,
-            pg_relation_size(i.oid) AS size_bytes
-          FROM pg_index ix
-          JOIN pg_class t ON t.oid = ix.indrelid
-          JOIN pg_class i ON i.oid = ix.indexrelid
-          JOIN pg_namespace n ON n.oid = t.relnamespace
-          JOIN pg_am am ON am.oid = i.relam
-          WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'"}
-            ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
-          ORDER BY n.nspname, t.relname, i.relname`,
-            schemaParams.length > 0 ? schemaParams : undefined,
-          );
+        if (indexesResult !== null) {
           snapshot["indexes"] = indexesResult.rows ?? [];
           stats.indexes = indexesResult.rows?.length ?? 0;
         }
-
-        // Constraints
-        if (includeAll || sections.has("constraints")) {
-          const constraintsResult = await adapter.executeQuery(
-            `SELECT
-            c.conname AS name, t.relname AS table_name, n.nspname AS schema,
-            CASE c.contype WHEN 'p' THEN 'primary_key' WHEN 'f' THEN 'foreign_key'
-              WHEN 'u' THEN 'unique' WHEN 'c' THEN 'check' WHEN 'x' THEN 'exclusion' END AS type,
-            pg_get_constraintdef(c.oid) AS definition
-          FROM pg_constraint c
-          JOIN pg_class t ON t.oid = c.conrelid
-          JOIN pg_namespace n ON n.oid = t.relnamespace
-          WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
-            ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
-          ORDER BY n.nspname, t.relname, c.conname`,
-            schemaParams.length > 0 ? schemaParams : undefined,
-          );
+        if (constraintsResult !== null) {
           snapshot["constraints"] = constraintsResult.rows ?? [];
           stats.constraints = constraintsResult.rows?.length ?? 0;
         }
-
-        // Functions
-        if (includeAll || sections.has("functions")) {
-          const functionsResult = await adapter.executeQuery(
-            `SELECT
-            n.nspname AS schema, p.proname AS name,
-            pg_get_function_arguments(p.oid) AS arguments,
-            pg_get_function_result(p.oid) AS return_type,
-            l.lanname AS language, p.provolatile AS volatility
-          FROM pg_proc p
-          JOIN pg_namespace n ON n.oid = p.pronamespace
-          JOIN pg_language l ON l.oid = p.prolang
-          WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
-            ${extensionSchemaExclude} ${extOwnedClause("p.oid")} ${schemaWhere}
-          ORDER BY n.nspname, p.proname`,
-            schemaParams.length > 0 ? schemaParams : undefined,
-          );
+        if (functionsResult !== null) {
           snapshot["functions"] = functionsResult.rows ?? [];
           stats.functions = functionsResult.rows?.length ?? 0;
         }
-
-        // Triggers
-        if (includeAll || sections.has("triggers")) {
-          const triggersResult = await adapter.executeQuery(
-            `SELECT
-            t.tgname AS name, c.relname AS table_name, n.nspname AS schema,
-            CASE WHEN t.tgtype & 2 = 2 THEN 'BEFORE' WHEN t.tgtype & 64 = 64 THEN 'INSTEAD OF' ELSE 'AFTER' END AS timing,
-            array_remove(ARRAY[
-              CASE WHEN t.tgtype & 4 = 4 THEN 'INSERT' END,
-              CASE WHEN t.tgtype & 8 = 8 THEN 'DELETE' END,
-              CASE WHEN t.tgtype & 16 = 16 THEN 'UPDATE' END,
-              CASE WHEN t.tgtype & 32 = 32 THEN 'TRUNCATE' END
-            ], NULL) AS events,
-            p.proname AS function_name
-          FROM pg_trigger t
-          JOIN pg_class c ON c.oid = t.tgrelid
-          JOIN pg_namespace n ON n.oid = c.relnamespace
-          JOIN pg_proc p ON p.oid = t.tgfoid
-          WHERE NOT t.tgisinternal
-            ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-          ORDER BY n.nspname, c.relname, t.tgname`,
-            schemaParams.length > 0 ? schemaParams : undefined,
-          );
+        if (triggersResult !== null) {
           snapshot["triggers"] = triggersResult.rows ?? [];
           stats.triggers = triggersResult.rows?.length ?? 0;
         }
-
-        // Sequences
-        if (includeAll || sections.has("sequences")) {
-          const seqResult = await adapter.executeQuery(
-            `SELECT
-            n.nspname AS schema, c.relname AS name,
-            (SELECT tc.relname || '.' || a.attname
-             FROM pg_depend d
-             JOIN pg_class tc ON tc.oid = d.refobjid
-             JOIN pg_attribute a ON a.attrelid = tc.oid AND a.attnum = d.refobjsubid
-             WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'a'
-             LIMIT 1) AS owned_by
-          FROM pg_class c
-          JOIN pg_namespace n ON n.oid = c.relnamespace
-          WHERE c.relkind = 'S'
-            ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-          ORDER BY n.nspname, c.relname`,
-            schemaParams.length > 0 ? schemaParams : undefined,
-          );
+        if (seqResult !== null) {
           snapshot["sequences"] = seqResult.rows ?? [];
           stats.sequences = seqResult.rows?.length ?? 0;
         }
-
-        // Custom types
-        if (includeAll || sections.has("types")) {
-          const typesResult = await adapter.executeQuery(
-            `SELECT
-            n.nspname AS schema, t.typname AS name,
-            CASE t.typtype WHEN 'e' THEN 'enum' WHEN 'c' THEN 'composite' WHEN 'd' THEN 'domain' WHEN 'r' THEN 'range' END AS type,
-            CASE WHEN t.typtype = 'e' THEN
-              (SELECT json_agg(e.enumlabel ORDER BY e.enumsortorder) FROM pg_enum e WHERE e.enumtypid = t.oid)
-            END AS values
-          FROM pg_type t
-          JOIN pg_namespace n ON n.oid = t.typnamespace
-          WHERE t.typtype IN ('e', 'c', 'd', 'r')
-            AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-            ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
-          ORDER BY n.nspname, t.typname`,
-            schemaParams.length > 0 ? schemaParams : undefined,
-          );
+        if (typesResult !== null) {
           snapshot["types"] = typesResult.rows ?? [];
           stats.customTypes = typesResult.rows?.length ?? 0;
         }
-
-        // Extensions (skip when schema filter is active — extensions are global objects)
-        if ((includeAll || sections.has("extensions")) && !parsed.schema) {
-          const extResult = await adapter.executeQuery(
-            `SELECT extname AS name, extversion AS version,
-                  n.nspname AS schema
-           FROM pg_extension e
-           JOIN pg_namespace n ON n.oid = e.extnamespace
-           ORDER BY e.extname`,
-          );
+        if (extResult !== null) {
           snapshot["extensions"] = extResult.rows ?? [];
           stats.extensions = extResult.rows?.length ?? 0;
         }

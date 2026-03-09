@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **`pg_migration_init` / `pg_migration_status` SQL injection in schema parameter** — The `schema` parameter was interpolated directly into SQL strings without sanitization. Applied `sanitizeIdentifier()` to both tools, matching the defense-in-depth pattern used across all other schema-accepting tools
 - **CVE fix: Alpine zlib 1.3.1-r2 → ≥1.3.2-r0** — Added explicit `apk add 'zlib>=1.3.2-r0'` from Alpine edge in both Dockerfile stages (builder and production). `apk upgrade --no-cache` alone did not force-install the newer zlib when the base image already satisfied the dependency at 1.3.1-r2. Fixes CVSS 4.6 (MEDIUM) and CVSS 2.9 (LOW) zlib CVEs
 - **Docker Scout severity filter expanded to all fixable CVEs** — Changed `--only-severity critical,high` to `--only-severity critical,high,medium,low` in `docker-publish.yml`. The narrow filter was the primary reason the zlib CVEs (MEDIUM/LOW) slipped through the CI security gate
 - **Trivy scan added as defense-in-depth** — Added `aquasecurity/trivy-action` step in `docker-publish.yml` security-scan job, scanning the local image for all fixable CVEs (CRITICAL through LOW). Uploads SARIF results to the GitHub Security tab. The prior workflow referenced Trivy as a fallback in comments but never implemented it
@@ -43,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
+- **`pg_schema_snapshot` concurrent query execution** — Replaced 9 sequential `executeQuery()` calls with `Promise.all()`, executing all independent schema queries (tables, views, indexes, constraints, functions, triggers, sequences, types, extensions) concurrently. Reduces total wall-clock time from the sum of 9 round-trips to the duration of the slowest single query
+- **`pg_topological_sort` merged FK iterations** — Consolidated 3 separate `foreignKeys` iteration loops (drop adjacency, create adjacency, dependency counting) into a single pass, and pre-computed the create-direction adjacency list unconditionally instead of conditionally allocating it. Eliminates 2× redundant FK array traversals
+- **Redundant Zod validation intercept removed from migration tools** — Removed duplicate `ZodError` catch blocks from `pg_migration_record` and `pg_migration_apply` handlers. `formatPostgresError` already handles `ZodError` via duck-typed `.issues` detection, making the explicit `ZodError` catch redundant
 - **Benchmark infrastructure: eliminated double-running** — Moved bench config from invalid top-level `bench` key to `test.benchmark` in `vitest.config.ts` and added `exclude: ["**/dist/**"]`. Previously, benchmarks ran twice (once from `src/` TypeScript, once from `dist/` compiled JS), doubling total bench suite time
 - **Benchmark infrastructure: fixed NaN summaries** — Increased async benchmark iterations (20–30 → 100) and warmup (3 → 10) in `codemode.bench.ts` and `connection-pool.bench.ts`. Low iteration counts caused tinybench to produce `NaN` comparison ratios in summary output
 - **Benchmark infrastructure: stabilized high-RME benchmarks** — Increased warmup iterations for Zod schema parsing benchmarks with RME > 8% (`schema-parsing.bench.ts`): `ReadQuerySchema` 50→100, `CreateTableSchema` 10→50, `TransactionExecuteSchema` (3 stmts) 20→50, `TransactionExecuteSchema` (100 stmts) 5→20. Allows V8 JIT tiers to stabilize before measurement
@@ -50,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Introspection/migration schema parsing benchmarks** — 18 new Vitest bench scenarios in `introspection-migration.bench.ts` covering `MigrationInitSchema`, `MigrationRecordSchema`, `SchemaSnapshotSchema`, `TopologicalSortSchema`, `ConstraintAnalysisSchema`, and `CascadeSimulatorSchema` parse performance including required fields, transforms, defaults, and error paths. Total benchmark suite: 10 files, 93+ scenarios
 - **`pg_diagnose_database_performance` tool** — New read-only performance diagnostics tool that consolidates 7 parallel queries into a single actionable report: slow queries, blocking locks, connection pressure, cache hit ratio, disk usage, and top tables by size/activity. Returns per-section health ratings (`healthy`/`warning`/`critical`), actionable recommendations, and an overall health score (0–100). Part of the `performance` tool group
 - **Anomaly detection tools** — 3 new read-only tools in the `performance` group for proactive database monitoring:
   - `pg_detect_query_anomalies` — Z-score analysis against `pg_stat_statements` historical baselines. Detects queries deviating from their own mean execution time
@@ -59,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **README.md / DOCKER_README.md benchmark metrics refresh** — Updated performance highlights table and feature row: 9→10 benchmark files, 75+→93+ scenarios. Throughput numbers refreshed from latest run (tool dispatch ~6.9M, identifier sanitization ~4.4M, auth checks ~5.3M, schema parsing ~2.1M ops/sec). Replaced `quoteIdentifier()` → `validateIdentifier()`, `hasAnyScope()` → `hasScope()`, `ReadQuerySchema` → `MigrationInitSchema` as representative benchmarks
 - **`introspection` group split** — Separated the 12-tool `introspection` group into read-only `introspection` (6 tools) and write `migration` (6 tools) groups. The `introspection` group now contains only read-only schema analysis tools (`pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`, `pg_schema_snapshot`, `pg_constraint_analysis`, `pg_migration_risks`). Total tool groups: 21 → 22. Total tools: 227 → 231 (includes 4 new tools)
 - **Meta-group shortcuts updated** — `dev-schema` and `dba-schema` now include both `introspection` and `migration` groups (same total tool count). `dba-monitor` tool count 59 → 63, `ext-perf` tool count 28 → 32 (due to 4 new tools in `performance` group)
 

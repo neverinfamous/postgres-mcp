@@ -14,6 +14,7 @@ import type {
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import {
   MigrationInitSchemaBase,
   MigrationInitSchema,
@@ -134,13 +135,16 @@ export function createMigrationInitTool(
         const parsed = MigrationInitSchema.parse(params);
         const targetSchema = parsed.schema ?? "public";
 
+        // Sanitize schema to prevent SQL injection via identifier interpolation
+        const sanitizedSchema = sanitizeIdentifier(targetSchema);
+
         // Create table in target schema
         const createSql =
           targetSchema === "public"
             ? CREATE_TRACKING_TABLE_SQL
             : CREATE_TRACKING_TABLE_SQL.replace(
                 TRACKING_TABLE,
-                `${targetSchema}.${TRACKING_TABLE}`,
+                `${sanitizedSchema}."${TRACKING_TABLE}"`,
               );
 
         const check = await adapter.executeQuery(
@@ -160,7 +164,7 @@ export function createMigrationInitTool(
         const qualifiedTable =
           targetSchema === "public"
             ? TRACKING_TABLE
-            : `${targetSchema}.${TRACKING_TABLE}`;
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         const countResult = await adapter.executeQuery(
           `SELECT COUNT(*)::int AS count FROM ${qualifiedTable}`,
@@ -207,25 +211,7 @@ export function createMigrationRecordTool(
     icons: getToolIcons("introspection", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        let parsed;
-        try {
-          parsed = MigrationRecordSchema.parse(params);
-        } catch (error: unknown) {
-          if (
-            error !== null &&
-            typeof error === "object" &&
-            "issues" in error &&
-            Array.isArray((error as { issues: unknown[] }).issues)
-          ) {
-            const issues = (error as { issues: { message: string }[] }).issues;
-            const messages = issues.map((i) => i.message).join("; ");
-            return {
-              success: false,
-              error: `Validation error: ${messages}`,
-            };
-          }
-          throw error;
-        }
+        const parsed = MigrationRecordSchema.parse(params);
         await ensureTrackingTable(adapter);
 
         const migrationHash = hashMigrationSql(parsed.migrationSql);
@@ -311,25 +297,7 @@ export function createMigrationApplyTool(
     icons: getToolIcons("introspection", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        let parsed;
-        try {
-          parsed = MigrationApplySchema.parse(params);
-        } catch (error: unknown) {
-          if (
-            error !== null &&
-            typeof error === "object" &&
-            "issues" in error &&
-            Array.isArray((error as { issues: unknown[] }).issues)
-          ) {
-            const issues = (error as { issues: { message: string }[] }).issues;
-            const messages = issues.map((i) => i.message).join("; ");
-            return {
-              success: false,
-              error: `Validation error: ${messages}`,
-            };
-          }
-          throw error;
-        }
+        const parsed = MigrationApplySchema.parse(params);
         await ensureTrackingTable(adapter);
 
         const migrationHash = hashMigrationSql(parsed.migrationSql);
@@ -681,6 +649,9 @@ export function createMigrationStatusTool(
         const parsed = MigrationStatusSchema.parse(params);
         const targetSchema = parsed.schema ?? "public";
 
+        // Sanitize schema to prevent SQL injection via identifier interpolation
+        const sanitizedSchema = sanitizeIdentifier(targetSchema);
+
         // Check if tracking table exists
         const check = await adapter.executeQuery(
           `SELECT EXISTS (
@@ -705,7 +676,7 @@ export function createMigrationStatusTool(
         const qualifiedTable =
           targetSchema === "public"
             ? TRACKING_TABLE
-            : `${targetSchema}.${TRACKING_TABLE}`;
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         // Get aggregate status
         const statsResult = await adapter.executeQuery(
