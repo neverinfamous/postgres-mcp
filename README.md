@@ -91,6 +91,11 @@ docker pull writenotenow/postgres-mcp:latest
 }
 ```
 
+**Customization Notes:**
+
+- Update credentials (`your_username`, `your_password`, etc.) with your PostgreSQL credentials
+- **Extension tools** gracefully handle cases where extensions are not installed
+
 > **Note for Docker**: Use `host.docker.internal` to connect to PostgreSQL running on your host machine.
 
 📖 **Full Docker guide:** [DOCKER_README.md](DOCKER_README.md) · [Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp)
@@ -156,13 +161,6 @@ If you control your own setup, you can run with **only Code Mode enabled** — a
 
 This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 22 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
 
-> [!TIP]
-> **Maximize Token Savings:** Instruct your AI agent to prefer Code Mode over individual tool calls:
->
-> _"When using postgres-mcp, prefer `pg_execute_code` (Code Mode) for multi-step database operations to minimize token usage."_
->
-> For maximum savings, use `--tool-filter codemode` to run with Code Mode as your only tool. See the [Code Mode wiki](https://github.com/neverinfamous/postgres-mcp/wiki/Code-Mode) for full API documentation.
-
 #### Disabling Code Mode (Non-Admin Users)
 
 If you don't have admin access or prefer individual tool calls, exclude codemode:
@@ -211,56 +209,6 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 
 ---
 
-## ⚡ MCP Client Configuration
-
-### Cursor IDE / Claude Desktop
-
-```json
-{
-  "mcpServers": {
-    "postgres-mcp": {
-      "command": "node",
-      "args": [
-        "C:/path/to/postgres-mcp/dist/cli.js",
-        "--postgres",
-        "postgres://user:password@localhost:5432/database",
-        "--tool-filter",
-        "starter"
-      ]
-    }
-  }
-}
-```
-
-> [!TIP]
-> The `starter` shortcut provides 59 tools including **Code Mode** for token-efficient operations. All presets include Code Mode by default. See [Tool Filtering](#-tool-filtering) to customize.
-
-### Using Environment Variables (Recommended)
-
-```json
-{
-  "mcpServers": {
-    "postgres-mcp": {
-      "command": "node",
-      "args": [
-        "C:/path/to/postgres-mcp/dist/cli.js",
-        "--tool-filter",
-        "starter"
-      ],
-      "env": {
-        "POSTGRES_HOST": "localhost",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_USER": "your_user",
-        "POSTGRES_PASSWORD": "your_password",
-        "POSTGRES_DATABASE": "your_database"
-      }
-    }
-  }
-}
-```
-
----
-
 ## 🔗 Database Connection Scenarios
 
 | Scenario                       | Host to Use                           | Example Connection String                         |
@@ -282,7 +230,7 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 ## 🛠️ Tool Filtering
 
 > [!IMPORTANT]
-> AI IDEs like Cursor have tool limits. With 231 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
+> All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default for token-efficient operations. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
 
 ### What Can You Filter?
 
@@ -295,15 +243,11 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 | Shortcut + Group | `starter,+text`           | 72    | Extend a shortcut         |
 | Shortcut - Tool  | `starter,-pg_drop_table`  | 58    | Remove specific tools     |
 
-All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default for token-efficient operations. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
-
 ### Shortcuts (Predefined Bundles)
-
-> Tool counts include Code Mode (`pg_execute_code`) which is included in all presets by default.
 
 | Shortcut        | Tools  | Use Case                 | What's Included                                          |
 | --------------- | ------ | ------------------------ | -------------------------------------------------------- |
-| `starter`       | **59** | 🌟 **Recommended**       | Core, trans, JSONB, schema, codemode                     |
+| `starter`       | **59** | Standard Package         | Core, trans, JSONB, schema, codemode                     |
 | `essential`     | 47     | Minimal footprint        | Core, trans, JSONB, codemode                             |
 | `dev-schema`    | 52     | Dev Schema & Migrations  | Core, trans, schema, introspection, migration, codemode  |
 | `dev-analytics` | 42     | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
@@ -322,11 +266,9 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 
 ### Tool Groups (22 Available)
 
-> Tool counts include Code Mode (`pg_execute_code`) which is added to all groups by default.
-
 | Group           | Tools | Description                                                           |
 | --------------- | ----- | --------------------------------------------------------------------- |
-| `codemode`      | 1     | Code Mode (sandboxed code execution)                                  |
+| `codemode`      | 1     | Code Mode (sandboxed code execution)      🌟 **Recommended**         |
 | `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools           |
 | `transactions`  | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                                   |
 | `jsonb`         | 20    | JSONB manipulation and queries                                        |
@@ -348,77 +290,6 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 | `citext`        | 7     | citext (case-insensitive text)                                        |
 | `ltree`         | 9     | ltree (hierarchical data)                                             |
 | `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                          |
-
----
-
-### Quick Start: Recommended IDE Configuration
-
-Add one of these configurations to your IDE's MCP settings file:
-
-#### Option 1: Starter (59 Essential Tools)
-
-**Best for:** General PostgreSQL database work - CRUD operations, JSONB, schema management.
-
-```json
-{
-  "mcpServers": {
-    "postgres-mcp": {
-      "command": "node",
-      "args": [
-        "/path/to/postgres-mcp/dist/cli.js",
-        "--transport",
-        "stdio",
-        "--tool-filter",
-        "starter"
-      ],
-      "env": {
-        "POSTGRES_HOST": "localhost",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_USER": "your_username",
-        "POSTGRES_PASSWORD": "your_password",
-        "POSTGRES_DATABASE": "your_database"
-      }
-    }
-  }
-}
-```
-
-#### Option 2: AI Vector (50 Tools + pgvector)
-
-**Best for:** AI/ML workloads with semantic search and vector similarity.
-
-> **⚠️ Prerequisites:** Requires pgvector extension installed in your PostgreSQL database.
-
-```json
-{
-  "mcpServers": {
-    "postgres-mcp-ai": {
-      "command": "node",
-      "args": [
-        "/path/to/postgres-mcp/dist/cli.js",
-        "--transport",
-        "stdio",
-        "--tool-filter",
-        "ai-vector"
-      ],
-      "env": {
-        "POSTGRES_HOST": "localhost",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_USER": "your_username",
-        "POSTGRES_PASSWORD": "your_password",
-        "POSTGRES_DATABASE": "your_database"
-      }
-    }
-  }
-}
-```
-
-**Customization Notes:**
-
-- Replace `/path/to/postgres-mcp/` with your actual installation path
-- Update credentials (`your_username`, `your_password`, etc.) with your PostgreSQL credentials
-- For Windows: Use forward slashes in paths (e.g., `C:/postgres-mcp/dist/cli.js`) or escape backslashes (`C:\\postgres-mcp\\dist\\cli.js`)
-- **Extension tools** gracefully handle cases where extensions are not installed
 
 ---
 

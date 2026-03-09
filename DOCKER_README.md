@@ -19,7 +19,7 @@
 [![Tests](https://img.shields.io/badge/Tests-3575_passed-success.svg)](https://github.com/neverinfamous/postgres-mcp)
 [![Coverage](https://img.shields.io/badge/Coverage-95.54%25-brightgreen.svg)](https://github.com/neverinfamous/postgres-mcp)
 
-**[GitHub](https://github.com/neverinfamous/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Tool Reference](https://github.com/neverinfamous/postgres-mcp/wiki/Tool-Reference)** •**[Changelog](https://github.com/neverinfamous/postgres-mcp/blob/main/CHANGELOG.md)**
+**[GitHub](https://github.com/neverinfamous/postgres-mcp)** • **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** • **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)** • **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)** • **[Tool Reference](https://github.com/neverinfamous/postgres-mcp/wiki/Tool-Reference)** • **[Changelog](https://github.com/neverinfamous/postgres-mcp/blob/main/CHANGELOG.md)**
 
 ## 🎯 What Sets Us Apart
 
@@ -253,7 +253,7 @@ This exposes just `pg_execute_code`. The agent writes JavaScript against the typ
 ### 🛠️ Tool Filtering
 
 > [!IMPORTANT]
-> AI IDEs like Cursor have tool limits. With 231 tools available, you MUST use tool filtering to stay within your IDE's limits. We recommend `starter` (59 tools) as a starting point. Code Mode is included in all presets by default for 70-90% token savings on multi-step operations.
+> All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default for token-efficient operations. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
 
 ### What Can You Filter?
 
@@ -266,15 +266,11 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 | Shortcut + Group | `starter,+text`           | 72    | Extend a shortcut         |
 | Shortcut - Tool  | `starter,-pg_drop_table`  | 58    | Remove specific tools     |
 
-All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default for token-efficient operations. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
-
 ### Shortcuts (Predefined Bundles)
-
-> Tool counts include Code Mode (`pg_execute_code`) which is included in all presets by default.
 
 | Shortcut        | Tools  | Use Case                 | What's Included                                          |
 | --------------- | ------ | ------------------------ | -------------------------------------------------------- |
-| `starter`       | **59** | 🌟 **Recommended**       | Core, trans, JSONB, schema, codemode                     |
+| `starter`       | 59     | Standard Package         | Core, trans, JSONB, schema, codemode                     |
 | `essential`     | 47     | Minimal footprint        | Core, trans, JSONB, codemode                             |
 | `dev-schema`    | 52     | Dev Schema & Migrations  | Core, trans, schema, introspection, migration, codemode  |
 | `dev-analytics` | 42     | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
@@ -293,11 +289,9 @@ All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by defau
 
 ### Tool Groups (22 Available)
 
-> Tool counts include Code Mode (`pg_execute_code`) which is added to all groups by default.
-
 | Group           | Tools | Description                                                           |
 | --------------- | ----- | --------------------------------------------------------------------- |
-| `codemode`      | 1     | Code Mode (sandboxed code execution)                                  |
+| `codemode`      | 1     | Code Mode (sandboxed code execution)   🌟 **Recommended**            |
 | `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools           |
 | `transactions`  | 8     | BEGIN, COMMIT, ROLLBACK, savepoints                                   |
 | `jsonb`         | 20    | JSONB manipulation and queries                                        |
@@ -463,7 +457,7 @@ Update your `~/.cursor/mcp.json` to use the local build:
         "POSTGRES_URL",
         "postgres-mcp-local",
         "--tool-filter",
-        "starter"
+        "codemode"
       ],
       "env": {
         "POSTGRES_URL": "postgres://user:pass@host.docker.internal:5432/database"
