@@ -238,7 +238,8 @@ export function createMigrationRecordTool(
   return {
     name: "pg_migration_record",
     description:
-      "Record a migration in the schema version tracking table. " +
+      "Record a migration in the schema version tracking table with status 'recorded' (metadata only, SQL not executed). " +
+      "Use pg_migration_apply instead to execute SQL and record with status 'applied'. " +
       "Auto-provisions the tracking table on first use. " +
       "Computes SHA-256 hash for idempotency detection.",
     group: "migration",
