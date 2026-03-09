@@ -1216,6 +1216,7 @@ describe("Cron Resource", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "cleanup_job",
             schedule: "*/5 * * * *",
             command: "SELECT cleanup()",
             nodename: "localhost",
@@ -1233,6 +1234,7 @@ describe("Cron Resource", () => {
           { status: "failed", count: 2 },
         ],
       })
+      .mockResolvedValueOnce({ rows: [] }) // last run per job
       .mockResolvedValueOnce({ rows: [] }) // failed jobs
       .mockResolvedValueOnce({ rows: [{ old_count: 100 }] }); // history check
 
@@ -1252,6 +1254,7 @@ describe("Cron Resource", () => {
     expect(result.extensionVersion).toBe("1.6");
     expect(result.jobCount).toBe(1);
     expect(result.activeJobCount).toBe(1);
+    expect(result.jobs[0].jobname).toBe("cleanup_job");
     expect(result.recentRuns.successful).toBe(50);
     expect(result.recentRuns.failed).toBe(2);
   });
@@ -1306,6 +1309,7 @@ describe("Cron Resource", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "test_job_1",
             schedule: "*/5 * * * *",
             command: "SELECT 1",
             nodename: "",
@@ -1316,6 +1320,7 @@ describe("Cron Resource", () => {
           },
           {
             jobid: 2,
+            jobname: "test_job_2",
             schedule: "0 0 * * *",
             command: "SELECT 2",
             nodename: "",
@@ -1355,6 +1360,7 @@ describe("Cron Resource", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "test_job",
             schedule: "*/5 * * * *",
             command: "SELECT 1",
             nodename: "",
@@ -3481,6 +3487,7 @@ describe("pg_cron Resource (Branch Coverage)", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "vacuum_job",
             schedule: "0 * * * *",
             command: "VACUUM",
             nodename: "localhost",
@@ -3541,6 +3548,7 @@ describe("pg_cron Resource (Branch Coverage)", () => {
         rows: [
           {
             jobid: 1,
+            jobname: "vacuum_job",
             schedule: "0 * * * *",
             command: "VACUUM",
             nodename: "localhost",
@@ -3551,6 +3559,7 @@ describe("pg_cron Resource (Branch Coverage)", () => {
           },
           {
             jobid: 2,
+            jobname: "analyze_job",
             schedule: "0 0 * * *",
             command: "ANALYZE",
             nodename: "localhost",
@@ -5846,7 +5855,10 @@ describe("Vacuum Resource — uncovered branches", () => {
     const resource = createVacuumResource(
       mockAdapter as unknown as PostgresAdapter,
     );
-    const result = (await resource.handler("postgres://vacuum", mockContext)) as {
+    const result = (await resource.handler(
+      "postgres://vacuum",
+      mockContext,
+    )) as {
       warnings: Array<{ severity: string; message: string }>;
     };
 
@@ -5871,7 +5883,10 @@ describe("Vacuum Resource — uncovered branches", () => {
     const resource = createVacuumResource(
       mockAdapter as unknown as PostgresAdapter,
     );
-    const result = (await resource.handler("postgres://vacuum", mockContext)) as {
+    const result = (await resource.handler(
+      "postgres://vacuum",
+      mockContext,
+    )) as {
       warnings: Array<{ severity: string; message: string }>;
     };
 
@@ -5907,11 +5922,16 @@ describe("Vacuum Resource — uncovered branches", () => {
     const resource = createVacuumResource(
       mockAdapter as unknown as PostgresAdapter,
     );
-    const result = (await resource.handler("postgres://vacuum", mockContext)) as {
+    const result = (await resource.handler(
+      "postgres://vacuum",
+      mockContext,
+    )) as {
       warnings: Array<{ severity: string; table?: string }>;
     };
 
-    const tableWarning = result.warnings.find((w) => w.table === "public.bloated");
+    const tableWarning = result.warnings.find(
+      (w) => w.table === "public.bloated",
+    );
     expect(tableWarning).toBeDefined();
     expect(tableWarning!.severity).toBe("MEDIUM");
   });
@@ -5945,7 +5965,10 @@ describe("Vacuum Resource — uncovered branches", () => {
     const resource = createVacuumResource(
       mockAdapter as unknown as PostgresAdapter,
     );
-    const result = (await resource.handler("postgres://vacuum", mockContext)) as {
+    const result = (await resource.handler(
+      "postgres://vacuum",
+      mockContext,
+    )) as {
       warnings: Array<{ severity: string; table?: string }>;
     };
 
@@ -6060,9 +6083,7 @@ describe("Replication Resource — uncovered branches", () => {
     });
     // Replication stats (connected replicas)
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [
-        { client_addr: "10.0.0.2", state: "streaming", replay_lag: null },
-      ],
+      rows: [{ client_addr: "10.0.0.2", state: "streaming", replay_lag: null }],
     });
     // WAL status
     mockAdapter.executeQuery.mockResolvedValueOnce({

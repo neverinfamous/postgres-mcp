@@ -268,30 +268,30 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 
 ### Shortcuts (Predefined Bundles)
 
-| Shortcut        | Tools  | Use Case                 | What's Included                                          |
-| --------------- | ------ | ------------------------ | -------------------------------------------------------- |
-| `starter`       | 60     | Standard Package         | Core, trans, JSONB, schema, codemode                     |
-| `essential`     | 48     | Minimal footprint        | Core, trans, JSONB, codemode                             |
-| `dev-schema`    | 53     | Dev Schema & Migrations  | Core, trans, schema, introspection, migration, codemode  |
-| `dev-analytics` | 43     | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
-| `ai-data`       | 61     | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
-| `ai-vector`     | 51     | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
-| `dba-monitor`   | 64     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
-| `dba-schema`    | 45     | DBA Schema & Migrations  | Core, schema, introspection, migration, codemode         |
-| `dba-infra`     | 46     | DBA Infrastructure       | Core, admin, backup, partitioning, codemode              |
-| `dba-stats`     | 58     | DBA Stats                | Core, admin, monitoring, trans, stats, codemode          |
-| `geo`           | 44     | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
-| `base-ops`      | 51     | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
-| `ext-ai`        | 26     | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
-| `ext-geo`       | 24     | Extension: Spatial       | PostGIS, ltree, codemode                                 |
-| `ext-schedule`  | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
-| `ext-perf`      | 32     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
+| Shortcut        | Tools | Use Case                 | What's Included                                          |
+| --------------- | ----- | ------------------------ | -------------------------------------------------------- |
+| `starter`       | 60    | Standard Package         | Core, trans, JSONB, schema, codemode                     |
+| `essential`     | 48    | Minimal footprint        | Core, trans, JSONB, codemode                             |
+| `dev-schema`    | 53    | Dev Schema & Migrations  | Core, trans, schema, introspection, migration, codemode  |
+| `dev-analytics` | 43    | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
+| `ai-data`       | 61    | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
+| `ai-vector`     | 51    | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
+| `dba-monitor`   | 64    | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
+| `dba-schema`    | 45    | DBA Schema & Migrations  | Core, schema, introspection, migration, codemode         |
+| `dba-infra`     | 46    | DBA Infrastructure       | Core, admin, backup, partitioning, codemode              |
+| `dba-stats`     | 58    | DBA Stats                | Core, admin, monitoring, trans, stats, codemode          |
+| `geo`           | 44    | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
+| `base-ops`      | 51    | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
+| `ext-ai`        | 26    | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
+| `ext-geo`       | 24    | Extension: Spatial       | PostGIS, ltree, codemode                                 |
+| `ext-schedule`  | 19    | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
+| `ext-perf`      | 32    | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
 
 ### Tool Groups (22 Available)
 
 | Group           | Tools | Description                                                           |
 | --------------- | ----- | --------------------------------------------------------------------- |
-| `codemode`      | 1     | Code Mode (sandboxed code execution)   🌟 **Recommended**            |
+| `codemode`      | 1     | Code Mode (sandboxed code execution) 🌟 **Recommended**               |
 | `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools           |
 | `transactions`  | 9     | BEGIN, COMMIT, ROLLBACK, savepoints, status                           |
 | `jsonb`         | 20    | JSONB manipulation and queries                                        |

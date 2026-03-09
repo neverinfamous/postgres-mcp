@@ -252,12 +252,8 @@ export const TransactionStatusOutputSchema = z.object({
     .boolean()
     .optional()
     .describe("Whether the transaction connection still exists"),
-  message: z
-    .string()
-    .optional()
-    .describe("Human-readable status description"),
+  message: z.string().optional().describe("Human-readable status description"),
 });
-
 
 // Output schema for pg_transaction_savepoint, pg_transaction_release, pg_transaction_rollback_to
 export const SavepointResultOutputSchema = z.object({

@@ -3713,4 +3713,3 @@ describe("performance/stats.ts — uncovered branches", () => {
     expect(result.success).toBe(false);
   });
 });
-

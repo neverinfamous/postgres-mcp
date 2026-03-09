@@ -181,7 +181,9 @@ describe("pg_dependency_graph", () => {
 
   it("should filter by schema", async () => {
     // Schema existence check
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
     // FK and table queries
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
@@ -2275,10 +2277,10 @@ describe("pg_migration_rollback — uncovered branches", () => {
 
   it("should return error when id is NaN (caught by Zod validation)", async () => {
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
-    const result = (await tool.handler(
-      { id: NaN },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ id: NaN }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     // NaN is caught by Zod validation before reaching the handler's isNaN check
@@ -2305,10 +2307,10 @@ describe("pg_migration_rollback — uncovered branches", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
-    const result = (await tool.handler(
-      { id: 1 },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ id: 1 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("already been rolled back");
@@ -2334,10 +2336,10 @@ describe("pg_migration_rollback — uncovered branches", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
-    const result = (await tool.handler(
-      { id: 2 },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ id: 2 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("no rollback SQL stored");
@@ -2371,10 +2373,10 @@ describe("pg_migration_rollback — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
-    const result = (await tool.handler(
-      { id: 3 },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ id: 3 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Rollback failed");
@@ -2388,10 +2390,10 @@ describe("pg_migration_rollback — uncovered branches", () => {
     );
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
-    const result = (await tool.handler(
-      { version: "1.0.0" },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ version: "1.0.0" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("connection timeout");

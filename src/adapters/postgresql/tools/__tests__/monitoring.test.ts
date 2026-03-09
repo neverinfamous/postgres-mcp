@@ -1701,10 +1701,10 @@ describe("monitoring/basic.ts — uncovered branches", () => {
   it("pg_table_sizes should return error for invalid schema type", async () => {
     const tool = findTool("pg_table_sizes");
     // Pass schema as a number to trigger Zod validation
-    const result = (await tool.handler(
-      { schema: 12345 },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ schema: 12345 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toBeDefined();
   });
@@ -1768,10 +1768,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
     });
 
     const tool = findTool("pg_show_settings");
-    const result = (await tool.handler(
-      { limit: 5 },
-      mockContext,
-    )) as {
+    const result = (await tool.handler({ limit: 5 }, mockContext)) as {
       settings: unknown[];
       count: number;
       totalCount: number;

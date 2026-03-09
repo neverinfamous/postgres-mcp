@@ -1632,10 +1632,10 @@ describe("jsonb/write.ts — uncovered branches", () => {
   // write.ts L471: missing values for pg_jsonb_array
   it("pg_jsonb_array should return error when values is missing", async () => {
     const tool = findTool("pg_jsonb_array")!;
-    const result = (await tool.handler(
-      {},
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toContain("values");
   });
@@ -1643,10 +1643,9 @@ describe("jsonb/write.ts — uncovered branches", () => {
   // write.ts L478: empty values returns empty array
   it("pg_jsonb_array should return empty array for empty values", async () => {
     const tool = findTool("pg_jsonb_array")!;
-    const result = (await tool.handler(
-      { values: [] },
-      mockContext,
-    )) as { array: unknown[] };
+    const result = (await tool.handler({ values: [] }, mockContext)) as {
+      array: unknown[];
+    };
     expect(result.array).toEqual([]);
   });
 
@@ -1654,10 +1653,10 @@ describe("jsonb/write.ts — uncovered branches", () => {
   it("pg_jsonb_array should handle query error", async () => {
     mockAdapter.executeQuery.mockRejectedValueOnce(new Error("boom"));
     const tool = findTool("pg_jsonb_array")!;
-    const result = (await tool.handler(
-      { values: [1, 2] },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ values: [1, 2] }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
   });
 
@@ -1715,7 +1714,13 @@ describe("jsonb/write.ts — uncovered branches", () => {
     );
     const tool = findTool("pg_jsonb_insert")!;
     const result = (await tool.handler(
-      { table: "users", column: "data", path: ["tags", "0"], value: "x", where: "id = 1" },
+      {
+        table: "users",
+        column: "data",
+        path: ["tags", "0"],
+        value: "x",
+        where: "id = 1",
+      },
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
@@ -1735,7 +1740,13 @@ describe("jsonb/write.ts — uncovered branches", () => {
     );
     const tool = findTool("pg_jsonb_insert")!;
     const result = (await tool.handler(
-      { table: "users", column: "data", path: ["tags", "0"], value: "x", where: "id = 1" },
+      {
+        table: "users",
+        column: "data",
+        path: ["tags", "0"],
+        value: "x",
+        where: "id = 1",
+      },
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
@@ -1745,9 +1756,7 @@ describe("jsonb/write.ts — uncovered branches", () => {
   // write.ts: pg_jsonb_strip_nulls preview mode (L541-551)
   it("pg_jsonb_strip_nulls should support preview mode", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [
-        { before: { a: 1, b: null }, after: { a: 1 } },
-      ],
+      rows: [{ before: { a: 1, b: null }, after: { a: 1 } }],
     });
     const tool = findTool("pg_jsonb_strip_nulls")!;
     const result = (await tool.handler(
@@ -1764,7 +1773,13 @@ describe("jsonb/write.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rowsAffected: 1 });
     const tool = findTool("pg_jsonb_set")!;
     const result = (await tool.handler(
-      { table: "users", column: "data", path: [], value: { new: true }, where: "id = 1" },
+      {
+        table: "users",
+        column: "data",
+        path: [],
+        value: { new: true },
+        where: "id = 1",
+      },
       mockContext,
     )) as { rowsAffected: number; hint: string };
     expect(result.rowsAffected).toBe(1);
@@ -1776,7 +1791,14 @@ describe("jsonb/write.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rowsAffected: 1 });
     const tool = findTool("pg_jsonb_set")!;
     const result = (await tool.handler(
-      { table: "users", column: "data", path: ["name"], value: "test", where: "id = 1", createMissing: false },
+      {
+        table: "users",
+        column: "data",
+        path: ["name"],
+        value: "test",
+        where: "id = 1",
+        createMissing: false,
+      },
       mockContext,
     )) as { rowsAffected: number; hint: string };
     expect(result.hint).toContain("createMissing=false");
@@ -1804,10 +1826,10 @@ describe("jsonb/transform.ts — uncovered branches", () => {
   // transform.ts L78: validate_path with empty path
   it("pg_jsonb_validate_path should error for empty path", async () => {
     const tool = findTool("pg_jsonb_validate_path")!;
-    const result = (await tool.handler(
-      { path: "" },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ path: "" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toContain("path is required");
   });
@@ -1852,30 +1874,30 @@ describe("jsonb/transform.ts — uncovered branches", () => {
   // transform.ts L207: base is undefined
   it("pg_jsonb_merge should reject undefined base", async () => {
     const tool = findTool("pg_jsonb_merge")!;
-    const result = (await tool.handler(
-      { overlay: { b: 2 } },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ overlay: { b: 2 } }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
   });
 
   // transform.ts L210: overlay is undefined
   it("pg_jsonb_merge should reject undefined overlay", async () => {
     const tool = findTool("pg_jsonb_merge")!;
-    const result = (await tool.handler(
-      { base: { a: 1 } },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ base: { a: 1 } }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
   });
 
   // transform.ts L300: missing table/column for normalize
   it("pg_jsonb_normalize should error when table is missing", async () => {
     const tool = findTool("pg_jsonb_normalize")!;
-    const result = (await tool.handler(
-      { column: "data" },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ column: "data" }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
     expect(result.success).toBe(false);
     expect(result.error).toContain("table");
   });
@@ -1900,7 +1922,9 @@ describe("jsonb/transform.ts — uncovered branches", () => {
         overlay: { a: { y: 3, z: 4 }, c: 20 },
       },
       mockContext,
-    )) as { merged: { a: { x: number; y: number; z: number }; b: number; c: number } };
+    )) as {
+      merged: { a: { x: number; y: number; z: number }; b: number; c: number };
+    };
     expect(result.merged.a).toEqual({ x: 1, y: 3, z: 4 });
     expect(result.merged.b).toBe(10);
     expect(result.merged.c).toBe(20);

@@ -268,7 +268,7 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 
 | Group           | Tools | Description                                                           |
 | --------------- | ----- | --------------------------------------------------------------------- |
-| `codemode`      | 1     | Code Mode (sandboxed code execution)      🌟 **Recommended**         |
+| `codemode`      | 1     | Code Mode (sandboxed code execution) 🌟 **Recommended**               |
 | `core`          | 21    | Read/write queries, tables, indexes, convenience/drop tools           |
 | `transactions`  | 9     | BEGIN, COMMIT, ROLLBACK, savepoints, status                           |
 | `jsonb`         | 20    | JSONB manipulation and queries                                        |

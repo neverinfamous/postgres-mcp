@@ -324,7 +324,10 @@ describe("ObjectDetailsSchema — preprocess branches", () => {
   });
 
   it("should normalize type to lowercase", () => {
-    const parsed = ObjectDetailsSchema.parse({ name: "users", type: "TABLE" as "table" });
+    const parsed = ObjectDetailsSchema.parse({
+      name: "users",
+      type: "TABLE" as "table",
+    });
     expect(parsed.type).toBe("table");
   });
 
@@ -420,10 +423,9 @@ describe("core/convenience.ts — uncovered branches", () => {
     });
 
     const tool = findTool("pg_count")!;
-    const result = (await tool.handler(
-      { name: "users" },
-      mockContext,
-    )) as { count: number };
+    const result = (await tool.handler({ name: "users" }, mockContext)) as {
+      count: number;
+    };
 
     expect(result.count).toBe(42);
   });
@@ -573,10 +575,9 @@ describe("core/convenience.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rowsAffected: 0 });
 
     const tool = findTool("pg_truncate")!;
-    const result = (await tool.handler(
-      { tableName: "logs" },
-      mockContext,
-    )) as { success: boolean };
+    const result = (await tool.handler({ tableName: "logs" }, mockContext)) as {
+      success: boolean;
+    };
 
     expect(result.success).toBe(true);
   });
@@ -605,26 +606,24 @@ describe("parsePostgresError — uncovered branches", () => {
   it("should re-throw error with cause but no pgCode unchanged", () => {
     const inner = new Error("inner");
     const outer = new Error("already processed", { cause: inner });
-    expect(() =>
-      parsePostgresError(outer, { tool: "pg_test" }),
-    ).toThrow(outer);
+    expect(() => parsePostgresError(outer, { tool: "pg_test" })).toThrow(outer);
   });
 
   // error-helpers.ts L174-178: foreign key violation
   it("should throw actionable error for FK violation", () => {
     const err = new Error("violates foreign key constraint");
-    expect(() =>
-      parsePostgresError(err, { tool: "pg_write_query" }),
-    ).toThrow(/Foreign key constraint violated/);
+    expect(() => parsePostgresError(err, { tool: "pg_write_query" })).toThrow(
+      /Foreign key constraint violated/,
+    );
   });
 
   // error-helpers.ts L174-178: FK violation via pgCode 23503
   it("should throw actionable error for FK violation via pgCode", () => {
     const err = new Error("insert or update on table violates FK");
     (err as unknown as Record<string, unknown>)["code"] = "23503";
-    expect(() =>
-      parsePostgresError(err, { tool: "pg_write_query" }),
-    ).toThrow(/Foreign key constraint violated/);
+    expect(() => parsePostgresError(err, { tool: "pg_write_query" })).toThrow(
+      /Foreign key constraint violated/,
+    );
   });
 
   // error-helpers.ts L312-318: pg_cron_alter_job context
@@ -662,12 +661,12 @@ describe("parsePostgresError — uncovered branches", () => {
   // error-helpers.ts L300-306: tsvector function does not exist
   it("should throw tsvector guidance for function tsvector error", () => {
     const err = new Error(
-      'function to_tsvector(unknown, tsvector) does not exist',
+      "function to_tsvector(unknown, tsvector) does not exist",
     );
     (err as unknown as Record<string, unknown>)["code"] = "42704";
-    expect(() =>
-      parsePostgresError(err, { tool: "pg_text_search" }),
-    ).toThrow(/tsvector type/);
+    expect(() => parsePostgresError(err, { tool: "pg_text_search" })).toThrow(
+      /tsvector type/,
+    );
   });
 
   // error-helpers.ts L292-298: pg_drop_table table not found
@@ -703,9 +702,7 @@ describe("core/query.ts — uncovered branches", () => {
   // query.ts L59-66: pg_read_query transaction connection error
   it("pg_read_query should return error when transaction query fails", async () => {
     const mockClient = {};
-    mockAdapter.getTransactionConnection = vi
-      .fn()
-      .mockReturnValue(mockClient);
+    mockAdapter.getTransactionConnection = vi.fn().mockReturnValue(mockClient);
     mockAdapter.executeOnConnection = vi
       .fn()
       .mockRejectedValueOnce(new Error('relation "foo" does not exist'));
@@ -723,9 +720,7 @@ describe("core/query.ts — uncovered branches", () => {
   // query.ts L148-155: pg_write_query transaction connection error
   it("pg_write_query should return error when transaction query fails", async () => {
     const mockClient = {};
-    mockAdapter.getTransactionConnection = vi
-      .fn()
-      .mockReturnValue(mockClient);
+    mockAdapter.getTransactionConnection = vi.fn().mockReturnValue(mockClient);
     mockAdapter.executeOnConnection = vi
       .fn()
       .mockRejectedValueOnce(new Error("permission denied"));

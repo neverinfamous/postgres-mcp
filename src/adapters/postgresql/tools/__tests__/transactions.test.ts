@@ -133,10 +133,12 @@ describe("pg_transaction_status", () => {
 
   it("should return active status for live transaction", async () => {
     const mockClient = { query: vi.fn() };
-    (mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>)
-      .mockReturnValueOnce(mockClient);
-    (mockAdapter.executeOnConnection as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(mockClient);
+    (
+      mockAdapter.executeOnConnection as ReturnType<typeof vi.fn>
+    ).mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
 
     const tool = tools.find((t) => t.name === "pg_transaction_status")!;
     const result = (await tool.handler(
@@ -151,14 +153,16 @@ describe("pg_transaction_status", () => {
 
   it("should return aborted status for failed transaction", async () => {
     const mockClient = { query: vi.fn() };
-    (mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>)
-      .mockReturnValueOnce(mockClient);
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(mockClient);
     const abortedError = new Error(
       "current transaction is aborted, commands ignored",
     ) as Error & { code: string };
     abortedError.code = "25P02";
-    (mockAdapter.executeOnConnection as ReturnType<typeof vi.fn>)
-      .mockRejectedValueOnce(abortedError);
+    (
+      mockAdapter.executeOnConnection as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(abortedError);
 
     const tool = tools.find((t) => t.name === "pg_transaction_status")!;
     const result = (await tool.handler(
@@ -172,8 +176,9 @@ describe("pg_transaction_status", () => {
   });
 
   it("should return not_found for unknown transaction ID", async () => {
-    (mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>)
-      .mockReturnValueOnce(undefined);
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(undefined);
 
     const tool = tools.find((t) => t.name === "pg_transaction_status")!;
     const result = (await tool.handler(
@@ -187,28 +192,30 @@ describe("pg_transaction_status", () => {
   });
 
   it("should accept txId alias", async () => {
-    (mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>)
-      .mockReturnValueOnce(undefined);
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(undefined);
 
     const tool = tools.find((t) => t.name === "pg_transaction_status")!;
-    const result = (await tool.handler(
-      { txId: "txn-alias" },
-      mockContext,
-    )) as { status: string; transactionId: string };
+    const result = (await tool.handler({ txId: "txn-alias" }, mockContext)) as {
+      status: string;
+      transactionId: string;
+    };
 
     expect(result.status).toBe("not_found");
     expect(result.transactionId).toBe("txn-alias");
   });
 
   it("should accept tx alias", async () => {
-    (mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>)
-      .mockReturnValueOnce(undefined);
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(undefined);
 
     const tool = tools.find((t) => t.name === "pg_transaction_status")!;
-    const result = (await tool.handler(
-      { tx: "txn-short" },
-      mockContext,
-    )) as { status: string; transactionId: string };
+    const result = (await tool.handler({ tx: "txn-short" }, mockContext)) as {
+      status: string;
+      transactionId: string;
+    };
 
     expect(result.status).toBe("not_found");
     expect(result.transactionId).toBe("txn-short");
@@ -216,10 +223,12 @@ describe("pg_transaction_status", () => {
 
   it("should return structured error on unexpected probe failure", async () => {
     const mockClient = { query: vi.fn() };
-    (mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>)
-      .mockReturnValueOnce(mockClient);
-    (mockAdapter.executeOnConnection as ReturnType<typeof vi.fn>)
-      .mockRejectedValueOnce(new Error("Connection reset"));
+    (
+      mockAdapter.getTransactionConnection as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(mockClient);
+    (
+      mockAdapter.executeOnConnection as ReturnType<typeof vi.fn>
+    ).mockRejectedValueOnce(new Error("Connection reset"));
 
     const tool = tools.find((t) => t.name === "pg_transaction_status")!;
     const result = (await tool.handler(

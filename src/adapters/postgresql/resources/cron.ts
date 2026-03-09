@@ -18,6 +18,7 @@ interface CronResourceData {
   extensionVersion: string | null;
   jobs: {
     jobid: number;
+    jobname: string | null;
     schedule: string;
     command: string;
     nodename: string;
@@ -93,7 +94,7 @@ export function createCronResource(
       try {
         // Get all jobs
         const jobsResult = await adapter.executeQuery(
-          `SELECT jobid, schedule, command, nodename, nodeport, database, username, active
+          `SELECT jobid, jobname, schedule, command, nodename, nodeport, database, username, active
                      FROM cron.job ORDER BY jobid`,
         );
 
@@ -101,6 +102,8 @@ export function createCronResource(
           for (const row of jobsResult.rows) {
             result.jobs.push({
               jobid: Number(row["jobid"]),
+              jobname:
+                typeof row["jobname"] === "string" ? row["jobname"] : null,
               schedule: toStr(row["schedule"]),
               command: toStr(row["command"]),
               nodename: toStr(row["nodename"]),

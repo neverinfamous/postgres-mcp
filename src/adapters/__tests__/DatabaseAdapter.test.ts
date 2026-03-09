@@ -637,7 +637,7 @@ describe("DatabaseAdapter", () => {
       );
     });
 
-    it("should build Zod schema from prompt arguments", () => {
+    it("should register prompt without argsSchema to avoid SDK validation on undefined args", () => {
       const mockServer = {
         registerPrompt: vi.fn(),
       };
@@ -658,9 +658,9 @@ describe("DatabaseAdapter", () => {
         string,
         unknown
       >;
-      const zodShape = options["argsSchema"] as Record<string, unknown>;
-      expect(zodShape).toHaveProperty("tableName");
-      expect(zodShape).toHaveProperty("limit");
+      // argsSchema is intentionally omitted — SDK rejects undefined arguments
+      // when argsSchema is set, even with all-optional fields
+      expect(options["argsSchema"]).toBeUndefined();
     });
 
     it("should invoke prompt handler and return result as message", async () => {

@@ -2425,7 +2425,9 @@ describe("pg_partman_check_default — uncovered branches", () => {
 
   it("should report table not partitioned (relkind != 'p', no children)", async () => {
     // table exists
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: true }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ exists: true }],
+    });
     // find default partition - none
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // has children - none
@@ -2454,7 +2456,9 @@ describe("pg_partman_check_default — uncovered branches", () => {
 
   it("should report partitioned table with no child partitions", async () => {
     // table exists
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: true }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ exists: true }],
+    });
     // find default partition - none
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // has children - none
@@ -2483,7 +2487,9 @@ describe("pg_partman_check_default — uncovered branches", () => {
 
   it("should report partitioned with children but no default", async () => {
     // table exists
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: true }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ exists: true }],
+    });
     // find default partition - none
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // has children - yes
@@ -2515,15 +2521,15 @@ describe("pg_partman_check_default — uncovered branches", () => {
 
   it("should handle count query failure gracefully", async () => {
     // table exists
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ exists: true }] });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ exists: true }],
+    });
     // find default partition - found
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ default_partition: "events_default", schema: "public" }],
     });
     // count query fails
-    mockAdapter.executeQuery.mockRejectedValueOnce(
-      new Error("count failed"),
-    );
+    mockAdapter.executeQuery.mockRejectedValueOnce(new Error("count failed"));
 
     const tool = tools.find((t) => t.name === "pg_partman_check_default")!;
     const result = (await tool.handler(
@@ -2791,9 +2797,7 @@ describe("pg_partman_run_maintenance — all tables with orphaned & errors", () 
     // Check if public.deleted_table exists → no (orphaned)
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
-    const tool = tools.find(
-      (t) => t.name === "pg_partman_run_maintenance",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_partman_run_maintenance")!;
     const result = (await tool.handler({}, mockContext)) as {
       success: boolean;
       maintained: string[];
@@ -2822,9 +2826,7 @@ describe("pg_partman_run_maintenance — all tables with orphaned & errors", () 
       ),
     );
 
-    const tool = tools.find(
-      (t) => t.name === "pg_partman_run_maintenance",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_partman_run_maintenance")!;
     const result = (await tool.handler(
       { parentTable: "public.events" },
       mockContext,
@@ -2852,9 +2854,7 @@ describe("pg_partman_set_retention — uncovered branches", () => {
   });
 
   it("should return error when parentTable is missing", async () => {
-    const tool = tools.find(
-      (t) => t.name === "pg_partman_set_retention",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_partman_set_retention")!;
     const result = (await tool.handler({}, mockContext)) as {
       success: boolean;
       error: string;
@@ -2865,9 +2865,7 @@ describe("pg_partman_set_retention — uncovered branches", () => {
   });
 
   it("should return error when retention is missing (undefined)", async () => {
-    const tool = tools.find(
-      (t) => t.name === "pg_partman_set_retention",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_partman_set_retention")!;
     const result = (await tool.handler(
       { parentTable: "public.events" },
       mockContext,
@@ -2887,9 +2885,7 @@ describe("pg_partman_set_retention — uncovered branches", () => {
     // UPDATE returns 1 affected row
     mockAdapter.executeQuery.mockResolvedValueOnce({ rowsAffected: 1 });
 
-    const tool = tools.find(
-      (t) => t.name === "pg_partman_set_retention",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_partman_set_retention")!;
     const result = (await tool.handler(
       { parentTable: "public.events", retention: null },
       mockContext,
@@ -2906,9 +2902,7 @@ describe("pg_partman_set_retention — uncovered branches", () => {
       rows: [{ table_schema: "partman" }],
     });
 
-    const tool = tools.find(
-      (t) => t.name === "pg_partman_set_retention",
-    )!;
+    const tool = tools.find((t) => t.name === "pg_partman_set_retention")!;
     const result = (await tool.handler(
       { parentTable: "public.events", retention: "garbage&&value" },
       mockContext,

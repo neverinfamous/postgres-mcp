@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-03-09
+
 ### Fixed
 
 - **3 introspection tools silent empty result for nonexistent schema** — `pg_dependency_graph({schema: "nonexistent"})`, `pg_topological_sort({schema: "nonexistent"})`, and `pg_constraint_analysis({schema: "nonexistent"})` now return `{success: false, error: "Schema '...' does not exist. Use pg_list_schemas to see available schemas."}` instead of silently returning empty results (empty graph, empty order, empty findings). Extracted shared `checkSchemaExists()` helper from the existing inline validation in `pg_schema_snapshot` and applied it to all three tools. Refactored `pg_schema_snapshot` to use the shared helper. Updated 3 unit tests
