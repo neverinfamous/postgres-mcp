@@ -81,7 +81,7 @@ export function createDetectQueryAnomaliesTool(
     }),
     group: "performance",
     annotations: readOnly("Detect query anomalies"),
-    icons: getToolIcons("performance"),
+    icons: getToolIcons("performance", readOnly("Detect query anomalies")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = QueryAnomaliesInput.safeParse(params);
@@ -224,7 +224,7 @@ export function createDetectBloatRiskTool(
     }),
     group: "performance",
     annotations: readOnly("Detect bloat risk"),
-    icons: getToolIcons("performance"),
+    icons: getToolIcons("performance", readOnly("Detect bloat risk")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = BloatRiskInput.safeParse(params);
@@ -359,6 +359,12 @@ export function createDetectBloatRiskTool(
             autovacuumCount,
             riskScore,
             riskLevel: riskFromScore(riskScore),
+            factors: {
+              deadTupleRatio: Math.round(deadTupleScore * 0.35),
+              vacuumStaleness: Math.round(vacuumStalenessScore * 0.25),
+              tableSizeImpact: Math.round(sizeScore * 0.15),
+              autovacuumEffectiveness: Math.round(autovacuumScore * 0.25),
+            },
             recommendations,
           };
         });
@@ -448,7 +454,7 @@ export function createDetectConnectionSpikeTool(
     }),
     group: "performance",
     annotations: readOnly("Detect connection spike"),
-    icons: getToolIcons("performance"),
+    icons: getToolIcons("performance", readOnly("Detect connection spike")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = ConnectionSpikeInput.safeParse(params);

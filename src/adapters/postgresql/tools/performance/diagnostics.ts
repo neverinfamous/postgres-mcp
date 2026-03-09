@@ -376,7 +376,7 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
     }),
     group: "performance",
     annotations: readOnly("Diagnose database performance"),
-    icons: getToolIcons("performance"),
+    icons: getToolIcons("performance", readOnly("Diagnose database performance")),
     handler: async (
       params: unknown,
       _context: RequestContext,
