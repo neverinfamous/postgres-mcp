@@ -1296,3 +1296,385 @@ describe("monitoring.ts branch coverage", () => {
     expect(result.maxConnections).toBe(200);
   });
 });
+
+// ==========================================================================
+// Coverage-targeted tests for analysis.ts uncovered branches
+// ==========================================================================
+
+describe("pg_capacity_planning — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMonitoringTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMonitoringTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should handle string-typed numeric values from PG (bigint coercion)", async () => {
+    // All values returned as strings (common with pg_bigint columns)
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [{ current_size_bytes: "5368709120", current_size: "5 GB" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            table_count: "25",
+            total_rows: "500000",
+            total_inserts: "50000",
+            total_deletes: "5000",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ max_connections: "100", current_connections: "10" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ stats_since: "2026-01-01", days_of_data: "45.5" }],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      current: {
+        databaseSize: { current_size_bytes: number };
+        tableCount: number;
+        totalRows: number;
+      };
+      growth: {
+        totalInserts: number;
+        totalDeletes: number;
+        estimationQuality: string;
+      };
+    };
+
+    // Verify coerced values are numbers, not strings
+    expect(typeof result.current.databaseSize.current_size_bytes).toBe(
+      "number",
+    );
+    expect(typeof result.current.tableCount).toBe("number");
+    expect(typeof result.current.totalRows).toBe("number");
+    expect(typeof result.growth.totalInserts).toBe("number");
+    expect(typeof result.growth.totalDeletes).toBe("number");
+    expect(result.growth.estimationQuality).toContain("High confidence");
+  });
+
+  it("should return low confidence for less than 1 day of data", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [{ current_size_bytes: 1073741824, current_size: "1 GB" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            table_count: 10,
+            total_rows: 1000,
+            total_inserts: 100,
+            total_deletes: 10,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ max_connections: 100, current_connections: 5 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ stats_since: "2026-03-09", days_of_data: 0.5 }],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      growth: { estimationQuality: string };
+      recommendations: string[];
+    };
+
+    expect(result.growth.estimationQuality).toContain("Low confidence");
+    expect(result.recommendations).toContainEqual(
+      expect.stringContaining("Wait for more data"),
+    );
+  });
+
+  it("should return moderate confidence for < 7 days of data", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({
+        rows: [{ current_size_bytes: 1073741824, current_size: "1 GB" }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            table_count: 10,
+            total_rows: 1000,
+            total_inserts: 100,
+            total_deletes: 10,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ max_connections: 100, current_connections: 5 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ stats_since: "2026-03-06", days_of_data: 3 }],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      growth: { estimationQuality: string };
+    };
+
+    expect(result.growth.estimationQuality).toContain("Moderate confidence");
+  });
+
+  it("should handle non-ZodError in catch path (line 79)", async () => {
+    const tool = tools.find((t) => t.name === "pg_capacity_planning")!;
+    // Pass an object with a `projectionDays` that is a custom type that
+    // throws a non-Zod error. The simplest way is to use a getter that throws.
+    const poison = {
+      get projectionDays(): never {
+        throw new TypeError("Cannot read property");
+      },
+    };
+
+    const result = (await tool.handler(poison, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+});
+
+describe("pg_resource_usage_analyze — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMonitoringTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMonitoringTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should handle null hit rates (no heap/index activity)", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ version_num: 160000 }] })
+      .mockResolvedValueOnce({
+        rows: [{ buffers_checkpoint: 0, buffers_clean: 0 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ checkpoints_timed: 0, checkpoints_req: 0 }],
+      })
+      .mockResolvedValueOnce({ rows: [] }) // no connections
+      .mockResolvedValueOnce({
+        rows: [{ heap_reads: 0, heap_hits: 0, index_reads: 0, index_hits: 0 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            active_queries: 0,
+            idle_connections: 0,
+            lock_waiting: 0,
+            io_waiting: 0,
+          },
+        ],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      bufferUsage: { heapHitRate: string; indexHitRate: string };
+      analysis: {
+        heapCachePerformance: string;
+        indexCachePerformance: string;
+      };
+    };
+
+    expect(result.bufferUsage.heapHitRate).toBe("N/A");
+    expect(result.bufferUsage.indexHitRate).toBe("N/A");
+    expect(result.analysis.heapCachePerformance).toContain("No heap activity");
+    expect(result.analysis.indexCachePerformance).toContain(
+      "No index activity",
+    );
+  });
+
+  it("should detect poor hit rate and I/O wait + lock contention", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ version_num: 160000 }] })
+      .mockResolvedValueOnce({
+        rows: [{ buffers_checkpoint: 100, buffers_clean: 50 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ checkpoints_timed: 5, checkpoints_req: 1 }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            heap_reads: 500,
+            heap_hits: 500,
+            index_reads: 150,
+            index_hits: 850,
+          },
+        ],
+      }) // 50% heap, 85% index
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            active_queries: 5,
+            idle_connections: 10,
+            lock_waiting: 3,
+            io_waiting: 2,
+          },
+        ],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      analysis: {
+        heapCachePerformance: string;
+        indexCachePerformance: string;
+        ioPattern: string;
+        lockContention: string;
+      };
+    };
+
+    expect(result.analysis.heapCachePerformance).toContain("Poor");
+    expect(result.analysis.indexCachePerformance).toContain("Fair");
+    expect(result.analysis.ioPattern).toContain("waiting on I/O");
+    expect(result.analysis.lockContention).toContain("3 queries waiting");
+  });
+
+  it("should use PG17+ query paths for bgwriter and checkpointer", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ version_num: 170000 }] }) // PG17
+      .mockResolvedValueOnce({
+        rows: [{ buffers_clean: 100, maxwritten_clean: 5, buffers_alloc: 200 }],
+      }) // PG17 bgwriter (no buffers_checkpoint here)
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            checkpoints_timed: 50,
+            checkpoints_req: 5,
+            checkpoint_write_time: 1000,
+            checkpoint_sync_time: 100,
+            buffers_checkpoint: 500,
+          },
+        ],
+      }) // PG17 checkpointer
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            heap_reads: 100,
+            heap_hits: 9900,
+            index_reads: 50,
+            index_hits: 4950,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            active_queries: 1,
+            idle_connections: 5,
+            lock_waiting: 0,
+            io_waiting: 0,
+          },
+        ],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      backgroundWriter: Record<string, unknown>;
+      checkpoints: Record<string, unknown>;
+      analysis: { heapCachePerformance: string };
+    };
+
+    // PG17 bgwriter should NOT have buffers_checkpoint
+    expect(result.backgroundWriter).not.toHaveProperty("buffers_checkpoint");
+    // PG17 checkpointer SHOULD have buffers_checkpoint (renamed from pg_stat_checkpointer)
+    expect(result.checkpoints).toHaveProperty("buffers_checkpoint");
+    expect(result.analysis.heapCachePerformance).toContain("Excellent");
+  });
+
+  it("should detect good hit rate (95-99%)", async () => {
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ version_num: 160000 }] })
+      .mockResolvedValueOnce({
+        rows: [{ buffers_checkpoint: 100, buffers_clean: 50 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ checkpoints_timed: 50, checkpoints_req: 5 }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            heap_reads: 30,
+            heap_hits: 970,
+            index_reads: 20,
+            index_hits: 980,
+          },
+        ],
+      }) // 97% heap, 98% index
+      .mockResolvedValueOnce({
+        rows: [
+          {
+            active_queries: 1,
+            idle_connections: 5,
+            lock_waiting: 0,
+            io_waiting: 0,
+          },
+        ],
+      });
+
+    const tool = tools.find((t) => t.name === "pg_resource_usage_analyze")!;
+    const result = (await tool.handler({}, mockContext)) as {
+      analysis: {
+        heapCachePerformance: string;
+        indexCachePerformance: string;
+      };
+    };
+
+    expect(result.analysis.heapCachePerformance).toContain("Good");
+    expect(result.analysis.indexCachePerformance).toContain("Good");
+  });
+});
+
+describe("pg_alert_threshold_set — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getMonitoringTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getMonitoringTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return error for invalid metric name", async () => {
+    const tool = tools.find((t) => t.name === "pg_alert_threshold_set")!;
+    const result = (await tool.handler(
+      { metric: "nonexistent_metric" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid metric");
+    expect(result.error).toContain("nonexistent_metric");
+  });
+
+  it("should return threshold for specific valid metric", async () => {
+    const tool = tools.find((t) => t.name === "pg_alert_threshold_set")!;
+    const result = (await tool.handler(
+      { metric: "connection_usage" },
+      mockContext,
+    )) as { metric: string; threshold: { warning: string; critical: string } };
+
+    expect(result.metric).toBe("connection_usage");
+    expect(result.threshold.warning).toBe("70%");
+    expect(result.threshold.critical).toBe("90%");
+  });
+});

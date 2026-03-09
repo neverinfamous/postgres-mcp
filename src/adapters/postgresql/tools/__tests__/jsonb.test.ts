@@ -1235,3 +1235,287 @@ describe("jsonb transform uncovered branches", () => {
     expect(result.rows).toBeDefined();
   });
 });
+
+// ==========================================================================
+// Coverage-targeted tests for jsonb/read.ts uncovered branches
+// ==========================================================================
+
+describe("jsonb/read.ts — uncovered branches", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+  let tools: ReturnType<typeof getJsonbTools>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    mockContext = createMockRequestContext();
+    tools = getJsonbTools(mockAdapter as unknown as PostgresAdapter);
+  });
+
+  const findTool = (name: string) => tools.find((t) => t.name === name);
+
+  it("pg_jsonb_extract should handle NaN limit gracefully", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ extracted_value: "test" }],
+    });
+
+    const tool = findTool("pg_jsonb_extract")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data", path: "$.name", limit: "abc" },
+      mockContext,
+    )) as { rows: unknown[]; count: number };
+
+    // NaN limit → treated as undefined (no LIMIT clause)
+    expect(result.count).toBe(1);
+  });
+
+  it("pg_jsonb_extract should return error when table is missing", async () => {
+    const tool = findTool("pg_jsonb_extract")!;
+    const result = (await tool.handler(
+      { column: "data", path: "$.name" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("table and column are required");
+  });
+
+  it("pg_jsonb_extract should return error when path is missing", async () => {
+    const tool = findTool("pg_jsonb_extract")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("path is required");
+  });
+
+  it("pg_jsonb_extract should validate non-public schema", async () => {
+    // Schema check → not found
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = findTool("pg_jsonb_extract")!;
+    const result = (await tool.handler(
+      {
+        table: "users",
+        column: "data",
+        path: "$.name",
+        schema: "nonexistent",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("does not exist");
+  });
+
+  it("pg_jsonb_extract with select should show all-null hint", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, extracted_value: null },
+        { id: 2, extracted_value: null },
+      ],
+    });
+
+    const tool = findTool("pg_jsonb_extract")!;
+    const result = (await tool.handler(
+      {
+        table: "users",
+        column: "data",
+        path: "$.nonexistent",
+        select: ["id"],
+      },
+      mockContext,
+    )) as { rows: unknown[]; hint: string };
+
+    expect(result.hint).toContain("All values are null");
+  });
+
+  it("pg_jsonb_extract without select should show all-null hint", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ extracted_value: null }],
+    });
+
+    const tool = findTool("pg_jsonb_extract")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data", path: "$.nonexistent" },
+      mockContext,
+    )) as { hint: string };
+
+    expect(result.hint).toContain("All values are null");
+  });
+
+  it("pg_jsonb_contains should detect truncated results", async () => {
+    // Return limit+1 rows (default limit=100, so need 101 rows)
+    const rows = Array.from({ length: 101 }, (_, i) => ({ id: i }));
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows });
+    // Count query for totalCount
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: 500 }],
+    });
+
+    const tool = findTool("pg_jsonb_contains")!;
+    const result = (await tool.handler(
+      { table: "events", column: "data", value: { type: "click" } },
+      mockContext,
+    )) as { count: number; truncated: boolean; totalCount: number };
+
+    expect(result.truncated).toBe(true);
+    expect(result.totalCount).toBe(500);
+    expect(result.count).toBe(100); // limited to 100
+  });
+
+  it("pg_jsonb_contains should warn about empty object value", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ id: 1 }],
+    });
+
+    const tool = findTool("pg_jsonb_contains")!;
+    const result = (await tool.handler(
+      { table: "events", column: "data", value: {} },
+      mockContext,
+    )) as { warning: string };
+
+    expect(result.warning).toContain("Empty {} matches ALL rows");
+  });
+
+  it("pg_jsonb_path_query should wrap jsonpath syntax error", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("syntax error in jsonpath near end of expression"),
+    );
+
+    const tool = findTool("pg_jsonb_path_query")!;
+    const result = (await tool.handler(
+      {
+        table: "docs",
+        column: "content",
+        path: "$..items",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Invalid JSONPath syntax");
+  });
+
+  it("pg_jsonb_keys should wrap array column error", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("cannot call jsonb_object_keys on array"),
+    );
+
+    const tool = findTool("pg_jsonb_keys")!;
+    const result = (await tool.handler(
+      { table: "events", column: "tags" },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("requires object columns");
+  });
+
+  it("pg_jsonb_agg should handle grouped results with jsonb operator", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { group_key: "active", items: [{ id: 1 }] },
+        { group_key: "inactive", items: [{ id: 2 }] },
+      ],
+    });
+
+    const tool = findTool("pg_jsonb_agg")!;
+    const result = (await tool.handler(
+      {
+        table: "users",
+        groupBy: "data->>'status'",
+      },
+      mockContext,
+    )) as { grouped: boolean; count: number };
+
+    expect(result.grouped).toBe(true);
+    expect(result.count).toBe(2);
+    // Verify the jsonb operator wasn't quoted
+    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    expect(sql).toContain("data->>'status'");
+    expect(sql).not.toContain("\"data->>'status'\"");
+  });
+
+  it("pg_jsonb_agg should show hint for empty non-grouped result", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ result: null }],
+    });
+
+    const tool = findTool("pg_jsonb_agg")!;
+    const result = (await tool.handler(
+      { table: "empty_table" },
+      mockContext,
+    )) as { count: number; hint: string };
+
+    expect(result.count).toBe(0);
+    expect(result.hint).toContain("No rows matched");
+  });
+
+  it("pg_jsonb_path_query should detect truncated results", async () => {
+    // Return 101 rows for default limit=100
+    const rows = Array.from({ length: 101 }, (_, i) => ({
+      result: `item_${String(i)}`,
+    }));
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows });
+    // Count query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: 1000 }],
+    });
+
+    const tool = findTool("pg_jsonb_path_query")!;
+    const result = (await tool.handler(
+      { table: "docs", column: "data", path: "$.items[*]" },
+      mockContext,
+    )) as { truncated: boolean; totalCount: number; count: number };
+
+    expect(result.truncated).toBe(true);
+    expect(result.totalCount).toBe(1000);
+    expect(result.count).toBe(100);
+  });
+
+  it("pg_jsonb_extract should handle select with expression columns", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 1,
+          "data->>'status'": "active",
+          extracted_value: "John",
+        },
+      ],
+    });
+
+    const tool = findTool("pg_jsonb_extract")!;
+    const result = (await tool.handler(
+      {
+        table: "users",
+        column: "data",
+        path: "$.name",
+        select: ["id", "data->>'status'"],
+      },
+      mockContext,
+    )) as { rows: Record<string, unknown>[] };
+
+    // id should be quoted, but data->>'status' should not be quoted (expression)
+    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    expect(sql).toContain('"id"');
+    expect(sql).toContain("data->>'status'");
+  });
+
+  it("pg_jsonb_typeof should handle column_null detection", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ type: null, column_null: true }],
+    });
+
+    const tool = findTool("pg_jsonb_typeof")!;
+    const result = (await tool.handler(
+      { table: "users", column: "data" },
+      mockContext,
+    )) as { types: (string | null)[]; columnNull: boolean };
+
+    expect(result.columnNull).toBe(true);
+    expect(result.types).toEqual([null]);
+  });
+});

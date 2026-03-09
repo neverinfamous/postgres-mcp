@@ -17,6 +17,7 @@ import {
   parseArrayColumn,
   qualifiedName,
   checkSchemaExists,
+  checkTableExists,
 } from "./graph.js";
 import {
   SchemaSnapshotSchemaBase,
@@ -371,6 +372,14 @@ export function createConstraintAnalysisTool(
         const schemaError = await checkSchemaExists(adapter, parsed.schema);
         if (schemaError) return schemaError;
 
+        // Validate table existence when filtering by table
+        const tableError = await checkTableExists(
+          adapter,
+          parsed.table,
+          parsed.schema,
+        );
+        if (tableError) return tableError;
+
         const runAll = !parsed.checks || parsed.checks.length === 0;
         const checks = new Set(parsed.checks ?? []);
 
@@ -520,12 +529,6 @@ export function createConstraintAnalysisTool(
           bySeverity[f.severity] = (bySeverity[f.severity] ?? 0) + 1;
         }
 
-        // Add hint for nonexistent table
-        const hint =
-          parsed.table !== undefined && findings.length === 0
-            ? `No findings for table '${parsed.schema ? parsed.schema + "." : "public."}${parsed.table}'. Verify the table exists with pg_list_tables.`
-            : undefined;
-
         return {
           findings,
           summary: {
@@ -533,7 +536,6 @@ export function createConstraintAnalysisTool(
             byType,
             bySeverity,
           },
-          ...(hint !== undefined && { hint }),
         };
       } catch (error: unknown) {
         return {

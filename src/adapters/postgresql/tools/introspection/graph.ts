@@ -212,6 +212,32 @@ export async function checkSchemaExists(
   return null;
 }
 
+/**
+ * Check if a table exists in the database.
+ * Returns null if table exists or no filter specified, or error response if nonexistent.
+ */
+export async function checkTableExists(
+  adapter: PostgresAdapter,
+  tableFilter?: string,
+  schemaFilter?: string,
+): Promise<{ success: false; error: string } | null> {
+  if (!tableFilter) return null;
+  const schema = schemaFilter ?? "public";
+  const result = await adapter.executeQuery(
+    `SELECT 1 FROM pg_class c
+     JOIN pg_namespace n ON n.oid = c.relnamespace
+     WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind IN ('r', 'p')`,
+    [tableFilter, schema],
+  );
+  if ((result.rows?.length ?? 0) === 0) {
+    return {
+      success: false as const,
+      error: `Table '${schema}.${tableFilter}' does not exist. Use pg_list_tables to verify.`,
+    };
+  }
+  return null;
+}
+
 // =============================================================================
 // Graph algorithms
 // =============================================================================
