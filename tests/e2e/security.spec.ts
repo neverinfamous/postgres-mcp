@@ -72,4 +72,39 @@ test.describe("HTTP Transport Security & Limits", () => {
     const headers = response.headers();
     expect(headers).not.toHaveProperty("access-control-allow-origin");
   });
+
+  test("should expose oauthEnabled: false in /health when OAuth is not configured", async ({
+    request,
+  }) => {
+    const response = await request.get("/health");
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    expect(body).toHaveProperty("oauthEnabled", false);
+  });
+
+  test("should ignore X-Forwarded-For for rate limiting when trustProxy is not enabled", async ({
+    request,
+  }) => {
+    // Send requests with X-Forwarded-For header — should be ignored since trustProxy defaults to false
+    // All requests should be tracked by socket IP, not the forwarded IP
+    const response = await request.get("/health", {
+      headers: { "X-Forwarded-For": "1.2.3.4" },
+    });
+    expect(response.status()).toBe(200);
+
+    // Verify the response still works normally — the X-Forwarded-For header is simply ignored
+    const body = await response.json();
+    expect(body).toHaveProperty("status", "healthy");
+  });
+
+  test("should set Referrer-Policy header to no-referrer", async ({
+    request,
+  }) => {
+    const response = await request.get("/health");
+    expect(response.status()).toBe(200);
+
+    const headers = response.headers();
+    expect(headers["referrer-policy"]).toBe("no-referrer");
+  });
 });

@@ -12,10 +12,11 @@ import {
   getAllToolNames,
   getToolGroup,
   getFilterSummary,
-  clearToolFilterCaches,
-  getToolGroupInfo,
-  getMetaGroupInfo,
+  TOOL_GROUPS,
+  META_GROUPS,
 } from "../../filtering/ToolFilter.js";
+import { getMetaGroupTools } from "../../filtering/ToolFilter.js";
+import type { ToolGroup, MetaGroup } from "../../types/index.js";
 
 // Suppress logger output
 vi.mock("../../utils/logger.js", () => ({
@@ -95,10 +96,10 @@ describe("Lookup Operations", () => {
   );
 
   bench(
-    "getAllToolNames() (cold, cache cleared)",
+    "getAllToolNames() (cold, fresh parse)",
     () => {
-      clearToolFilterCaches();
-      getAllToolNames();
+      // Parse from scratch to simulate cold path
+      parseToolFilter(undefined);
     },
     { iterations: 500, warmupIterations: 10 },
   );
@@ -133,17 +134,25 @@ describe("Filter Summary", () => {
   );
 
   bench(
-    "getToolGroupInfo() catalog",
+    "getToolGroupInfo() catalog (inline)",
     () => {
-      getToolGroupInfo();
+      Object.entries(TOOL_GROUPS).map(([group, tools]) => ({
+        group: group as ToolGroup,
+        count: tools.length,
+        tools,
+      }));
     },
     { iterations: 2000, warmupIterations: 20 },
   );
 
   bench(
-    "getMetaGroupInfo() catalog",
+    "getMetaGroupInfo() catalog (inline)",
     () => {
-      getMetaGroupInfo();
+      Object.entries(META_GROUPS).map(([metaGroup, groups]) => ({
+        metaGroup: metaGroup as MetaGroup,
+        groups,
+        count: getMetaGroupTools(metaGroup as MetaGroup).length,
+      }));
     },
     { iterations: 2000, warmupIterations: 20 },
   );

@@ -1813,3 +1813,192 @@ describe("Error Path - Empty Params Validation", () => {
     expect(result.error.length).toBeGreaterThan(0);
   });
 });
+
+// ==========================================================================
+// Coverage-targeted tests for management.ts uncovered lines
+// ==========================================================================
+
+describe("pg_list_partitions — schema.table format and truncation", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPartitioningTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPartitioningTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should parse schema.table format in table name", async () => {
+    // checkTablePartitionStatus
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // partition listing
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_list_partitions")!;
+    await tool.handler({ table: "analytics.events" }, mockContext);
+
+    // Should have parsed schema from the table name
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("relkind"),
+      ["events", "analytics"],
+    );
+  });
+
+  it("should return truncation count when results exceed limit", async () => {
+    // checkTablePartitionStatus
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ relkind: "p" }],
+    });
+    // partition listing returns limit+1 rows (detecting truncation)
+    const rows = Array.from({ length: 3 }, (_, i) => ({
+      partition_name: `part_${String(i)}`,
+      bounds: `FOR VALUES FROM ('${String(i)}') TO ('${String(i + 1)}')`,
+      size_bytes: 8192,
+    }));
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows });
+    // COUNT query for total
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: 100 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_list_partitions")!;
+    const result = (await tool.handler(
+      { table: "events", limit: 2 },
+      mockContext,
+    )) as {
+      partitions: unknown[];
+      count: number;
+      truncated: boolean;
+      totalCount: number;
+    };
+
+    expect(result.truncated).toBe(true);
+    expect(result.count).toBe(2);
+    expect(result.totalCount).toBe(100);
+  });
+});
+
+describe("pg_create_partitioned_table — PK validation and edge cases", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getPartitioningTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getPartitioningTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should reject table-level PK missing partition key columns", async () => {
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
+    const result = (await tool.handler(
+      {
+        name: "events",
+        columns: [
+          { name: "id", type: "bigint" },
+          { name: "event_date", type: "date" },
+        ],
+        partitionBy: "range",
+        partitionKey: "event_date",
+        primaryKey: ["id"], // Missing event_date
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      "Primary key must include all partition key columns",
+    );
+    expect(result.error).toContain("event_date");
+  });
+
+  it("should reject column-level PK missing partition key columns", async () => {
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
+    const result = (await tool.handler(
+      {
+        name: "events",
+        columns: [
+          { name: "id", type: "bigint", primaryKey: true },
+          { name: "event_date", type: "date" },
+        ],
+        partitionBy: "range",
+        partitionKey: "event_date",
+        // No table-level primaryKey, but column-level PK doesn't include partition key
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      "Primary key must include all partition key columns",
+    );
+  });
+
+  it("should include table-level PRIMARY KEY constraint", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
+    const result = (await tool.handler(
+      {
+        name: "events",
+        columns: [
+          { name: "id", type: "bigint" },
+          { name: "event_date", type: "date" },
+        ],
+        partitionBy: "range",
+        partitionKey: "event_date",
+        primaryKey: ["id", "event_date"], // Includes partition key
+      },
+      mockContext,
+    )) as { success: boolean; primaryKey: string[] };
+
+    expect(result.success).toBe(true);
+    expect(result.primaryKey).toEqual(["id", "event_date"]);
+    const call = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(call).toContain("PRIMARY KEY");
+  });
+
+  it("should handle DEFAULT NULL column default", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
+    await tool.handler(
+      {
+        name: "data",
+        columns: [{ name: "notes", type: "text", default: null }],
+        partitionBy: "hash",
+        partitionKey: "id",
+      },
+      mockContext,
+    );
+
+    const call = mockAdapter.executeQuery.mock.calls[0][0] as string;
+    expect(call).toContain("DEFAULT NULL");
+  });
+
+  it("should handle adapter error during CREATE TABLE", async () => {
+    mockAdapter.executeQuery.mockRejectedValueOnce(
+      new Error("permission denied"),
+    );
+
+    const tool = tools.find((t) => t.name === "pg_create_partitioned_table")!;
+    const result = (await tool.handler(
+      {
+        name: "events",
+        columns: [{ name: "id", type: "bigint" }],
+        partitionBy: "range",
+        partitionKey: "id",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("permission denied");
+  });
+});

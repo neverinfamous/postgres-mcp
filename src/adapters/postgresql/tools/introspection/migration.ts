@@ -1,5 +1,5 @@
 /**
- * PostgreSQL Introspection Tools - Migration Tracking
+ * PostgreSQL Migration Tools — Schema Version Tracking
  *
  * Migration init, record, apply, rollback, history, and status tools.
  * 6 tools total.
@@ -14,6 +14,7 @@ import type {
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatPostgresError } from "../core/error-helpers.js";
+import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import {
   MigrationInitSchemaBase,
   MigrationInitSchema,
@@ -42,8 +43,15 @@ import {
 
 const TRACKING_TABLE = "_mcp_schema_versions";
 
-const CREATE_TRACKING_TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS ${TRACKING_TABLE} (
+/**
+ * Build the CREATE TABLE DDL for the tracking table.
+ * Accepts a pre-computed qualified table name (e.g. `_mcp_schema_versions`
+ * or `"custom_schema"."_mcp_schema_versions"`) so the caller controls
+ * schema qualification without fragile string replacement.
+ */
+function buildCreateTrackingTableSql(qualifiedTable: string): string {
+  return `
+CREATE TABLE IF NOT EXISTS ${qualifiedTable} (
   id SERIAL PRIMARY KEY,
   version VARCHAR(50) NOT NULL,
   description TEXT,
@@ -56,9 +64,10 @@ CREATE TABLE IF NOT EXISTS ${TRACKING_TABLE} (
   status VARCHAR(20) NOT NULL DEFAULT 'applied',
   CONSTRAINT valid_status CHECK (status IN ('applied', 'rolled_back', 'failed'))
 )`;
+}
 
 /**
- * Ensure the _mcp_schema_versions table exists.
+ * Ensure the _mcp_schema_versions table exists in the public schema.
  * Returns true if the table was newly created, false if it already existed.
  */
 async function ensureTrackingTable(adapter: PostgresAdapter): Promise<boolean> {
@@ -73,13 +82,48 @@ async function ensureTrackingTable(adapter: PostgresAdapter): Promise<boolean> {
   const existed = firstRow?.["table_exists"] === true;
 
   if (!existed) {
-    await adapter.executeQuery(CREATE_TRACKING_TABLE_SQL);
+    await adapter.executeQuery(buildCreateTrackingTableSql(TRACKING_TABLE));
   }
   return !existed;
 }
 
 function hashMigrationSql(sql: string): string {
   return createHash("sha256").update(sql).digest("hex");
+}
+
+/**
+ * Check for an already-applied migration with the same SQL hash.
+ * Returns an error result object if duplicate found, or null if clear.
+ */
+async function checkDuplicateHash(
+  adapter: PostgresAdapter,
+  migrationSql: string,
+): Promise<{
+  migrationHash: string;
+  duplicateError: null | { success: false; error: string };
+}> {
+  const migrationHash = hashMigrationSql(migrationSql);
+  const dupCheck = await adapter.executeQuery(
+    `SELECT id, version, status FROM ${TRACKING_TABLE}
+     WHERE migration_hash = $1 AND status = 'applied'`,
+    [migrationHash],
+  );
+  const dupRows = dupCheck.rows ?? [];
+  if (dupRows.length > 0) {
+    const dup = dupRows[0] ?? {};
+    const dupId = dup["id"] as number;
+    const dupVersion = dup["version"] as string;
+    return {
+      migrationHash,
+      duplicateError: {
+        success: false,
+        error:
+          `Duplicate migration detected: version "${dupVersion}" (id: ${String(dupId)}) has the same SQL hash. ` +
+          `Use a different migration SQL or roll back the existing one first.`,
+      },
+    };
+  }
+  return { migrationHash, duplicateError: null };
 }
 
 interface FormattedRecord {
@@ -124,7 +168,7 @@ export function createMigrationInitTool(
     description:
       "Initialize or verify the schema version tracking table (_mcp_schema_versions). " +
       "Idempotent — safe to call repeatedly. Returns current tracking state.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationInitSchemaBase,
     outputSchema: MigrationInitOutputSchema,
     annotations,
@@ -134,14 +178,14 @@ export function createMigrationInitTool(
         const parsed = MigrationInitSchema.parse(params);
         const targetSchema = parsed.schema ?? "public";
 
-        // Create table in target schema
-        const createSql =
+        // Sanitize schema to prevent SQL injection via identifier interpolation
+        const sanitizedSchema = sanitizeIdentifier(targetSchema);
+
+        // Compute qualified table name once, reuse for DDL and queries
+        const qualifiedTable =
           targetSchema === "public"
-            ? CREATE_TRACKING_TABLE_SQL
-            : CREATE_TRACKING_TABLE_SQL.replace(
-                TRACKING_TABLE,
-                `${targetSchema}.${TRACKING_TABLE}`,
-              );
+            ? TRACKING_TABLE
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         const check = await adapter.executeQuery(
           `SELECT EXISTS (
@@ -154,13 +198,10 @@ export function createMigrationInitTool(
         const existed = firstRow?.["table_exists"] === true;
 
         if (!existed) {
-          await adapter.executeQuery(createSql);
+          await adapter.executeQuery(
+            buildCreateTrackingTableSql(qualifiedTable),
+          );
         }
-
-        const qualifiedTable =
-          targetSchema === "public"
-            ? TRACKING_TABLE
-            : `${targetSchema}.${TRACKING_TABLE}`;
 
         const countResult = await adapter.executeQuery(
           `SELECT COUNT(*)::int AS count FROM ${qualifiedTable}`,
@@ -200,54 +241,21 @@ export function createMigrationRecordTool(
       "Record a migration in the schema version tracking table. " +
       "Auto-provisions the tracking table on first use. " +
       "Computes SHA-256 hash for idempotency detection.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationRecordSchemaBase,
     outputSchema: MigrationRecordOutputSchema,
     annotations,
     icons: getToolIcons("introspection", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        let parsed;
-        try {
-          parsed = MigrationRecordSchema.parse(params);
-        } catch (error: unknown) {
-          if (
-            error !== null &&
-            typeof error === "object" &&
-            "issues" in error &&
-            Array.isArray((error as { issues: unknown[] }).issues)
-          ) {
-            const issues = (error as { issues: { message: string }[] }).issues;
-            const messages = issues.map((i) => i.message).join("; ");
-            return {
-              success: false,
-              error: `Validation error: ${messages}`,
-            };
-          }
-          throw error;
-        }
+        const parsed = MigrationRecordSchema.parse(params);
         await ensureTrackingTable(adapter);
 
-        const migrationHash = hashMigrationSql(parsed.migrationSql);
-
-        // Check for duplicate hash
-        const dupCheck = await adapter.executeQuery(
-          `SELECT id, version, status FROM ${TRACKING_TABLE}
-         WHERE migration_hash = $1 AND status = 'applied'`,
-          [migrationHash],
+        const { migrationHash, duplicateError } = await checkDuplicateHash(
+          adapter,
+          parsed.migrationSql,
         );
-        const dupRows = dupCheck.rows ?? [];
-        if (dupRows.length > 0) {
-          const dup = dupRows[0] ?? {};
-          const dupId = dup["id"] as number;
-          const dupVersion = dup["version"] as string;
-          return {
-            success: false,
-            error:
-              `Duplicate migration detected: version "${dupVersion}" (id: ${String(dupId)}) has the same SQL hash. ` +
-              `Use a different migration SQL or roll back the existing one first.`,
-          };
-        }
+        if (duplicateError) return duplicateError;
 
         const result = await adapter.executeQuery(
           `INSERT INTO ${TRACKING_TABLE}
@@ -304,54 +312,21 @@ export function createMigrationApplyTool(
       "Auto-provisions the tracking table on first use. " +
       "On failure, rolls back and records a 'failed' entry. " +
       "Use pg_migration_record instead if you only need to log an already-applied migration.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationApplySchemaBase,
     outputSchema: MigrationApplyOutputSchema,
     annotations,
     icons: getToolIcons("introspection", annotations),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        let parsed;
-        try {
-          parsed = MigrationApplySchema.parse(params);
-        } catch (error: unknown) {
-          if (
-            error !== null &&
-            typeof error === "object" &&
-            "issues" in error &&
-            Array.isArray((error as { issues: unknown[] }).issues)
-          ) {
-            const issues = (error as { issues: { message: string }[] }).issues;
-            const messages = issues.map((i) => i.message).join("; ");
-            return {
-              success: false,
-              error: `Validation error: ${messages}`,
-            };
-          }
-          throw error;
-        }
+        const parsed = MigrationApplySchema.parse(params);
         await ensureTrackingTable(adapter);
 
-        const migrationHash = hashMigrationSql(parsed.migrationSql);
-
-        // Check for duplicate hash
-        const dupCheck = await adapter.executeQuery(
-          `SELECT id, version, status FROM ${TRACKING_TABLE}
-         WHERE migration_hash = $1 AND status = 'applied'`,
-          [migrationHash],
+        const { migrationHash, duplicateError } = await checkDuplicateHash(
+          adapter,
+          parsed.migrationSql,
         );
-        const dupRows = dupCheck.rows ?? [];
-        if (dupRows.length > 0) {
-          const dup = dupRows[0] ?? {};
-          const dupId = dup["id"] as number;
-          const dupVersion = dup["version"] as string;
-          return {
-            success: false,
-            error:
-              `Duplicate migration detected: version "${dupVersion}" (id: ${String(dupId)}) has the same SQL hash. ` +
-              `Use a different migration SQL or roll back the existing one first.`,
-          };
-        }
+        if (duplicateError) return duplicateError;
 
         // Execute migration SQL and record atomically
         try {
@@ -449,7 +424,7 @@ export function createMigrationRollbackTool(
       "Roll back a specific migration by ID or version. " +
       "Executes the stored rollback_sql in a transaction and updates status to 'rolled_back'. " +
       "Use dryRun: true to preview the rollback SQL without executing.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationRollbackSchemaBase,
     outputSchema: MigrationRollbackOutputSchema,
     annotations,
@@ -583,7 +558,7 @@ export function createMigrationHistoryTool(
     description:
       "Query migration history with optional filtering by status and source system. " +
       "Returns paginated results ordered by applied_at descending.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationHistorySchemaBase,
     outputSchema: MigrationHistoryOutputSchema,
     annotations,
@@ -671,7 +646,7 @@ export function createMigrationStatusTool(
     description:
       "Get current migration tracking status: latest version, counts by status, " +
       "and list of source systems. Returns initialized: false if tracking table doesn't exist.",
-    group: "introspection",
+    group: "migration",
     inputSchema: MigrationStatusSchemaBase,
     outputSchema: MigrationStatusOutputSchema,
     annotations,
@@ -680,6 +655,9 @@ export function createMigrationStatusTool(
       try {
         const parsed = MigrationStatusSchema.parse(params);
         const targetSchema = parsed.schema ?? "public";
+
+        // Sanitize schema to prevent SQL injection via identifier interpolation
+        const sanitizedSchema = sanitizeIdentifier(targetSchema);
 
         // Check if tracking table exists
         const check = await adapter.executeQuery(
@@ -705,7 +683,7 @@ export function createMigrationStatusTool(
         const qualifiedTable =
           targetSchema === "public"
             ? TRACKING_TABLE
-            : `${targetSchema}.${TRACKING_TABLE}`;
+            : `${sanitizedSchema}."${TRACKING_TABLE}"`;
 
         // Get aggregate status
         const statsResult = await adapter.executeQuery(

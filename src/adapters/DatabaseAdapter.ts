@@ -470,18 +470,4 @@ export abstract class DatabaseAdapter {
     }
     return context;
   }
-
-  /**
-   * Get adapter info for logging/debugging
-   */
-  getInfo(): Record<string, unknown> {
-    return {
-      type: this.type,
-      name: this.name,
-      version: this.version,
-      connected: this.connected,
-      capabilities: this.getCapabilities(),
-      toolGroups: this.getSupportedToolGroups(),
-    };
-  }
 }

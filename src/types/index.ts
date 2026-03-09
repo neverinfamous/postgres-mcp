@@ -22,18 +22,10 @@ export type {
 } from "./database.js";
 
 // Schema metadata types
-export type {
-  SchemaInfo,
-  IndexInfo,
-  ConstraintInfo,
-  FunctionInfo,
-  TriggerInfo,
-  SequenceInfo,
-  CustomTypeInfo,
-} from "./schema.js";
+export type { SchemaInfo, IndexInfo } from "./schema.js";
 
 // MCP server types
-export type { TransportType, McpServerConfig } from "./mcp.js";
+export type { TransportType } from "./mcp.js";
 
 // OAuth types
 export type {

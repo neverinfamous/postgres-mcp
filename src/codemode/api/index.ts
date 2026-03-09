@@ -47,6 +47,7 @@ export class PgApi {
     string,
     (...args: unknown[]) => Promise<unknown>
   >;
+  readonly migration: Record<string, (...args: unknown[]) => Promise<unknown>>;
 
   private readonly toolsByGroup: Map<string, ToolDefinition[]>;
 
@@ -156,6 +157,11 @@ export class PgApi {
       "introspection",
       this.toolsByGroup.get("introspection") ?? [],
     );
+    this.migration = createGroupApi(
+      adapter,
+      "migration",
+      this.toolsByGroup.get("migration") ?? [],
+    );
   }
 
   /**
@@ -243,6 +249,7 @@ export class PgApi {
       "ltree",
       "pgcrypto",
       "introspection",
+      "migration",
     ] as const;
 
     for (const groupName of groupNames) {

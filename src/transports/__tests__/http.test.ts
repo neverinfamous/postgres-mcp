@@ -1819,4 +1819,157 @@ describe("HttpTransport", () => {
       expect(res._body).toContain("Not found");
     });
   });
+
+  describe("Trust Proxy", () => {
+    it("should return X-Forwarded-For leftmost IP when trustProxy is true", () => {
+      const transport = new HttpTransport({
+        port: 3000,
+        trustProxy: true,
+      });
+
+      const getClientIp = (
+        transport as unknown as {
+          getClientIp: (req: IncomingMessage) => string;
+        }
+      ).getClientIp.bind(transport);
+
+      const req = createMockRequest({
+        headers: { "x-forwarded-for": "1.2.3.4, 10.0.0.1, 127.0.0.1" },
+      });
+
+      expect(getClientIp(req)).toBe("1.2.3.4");
+    });
+
+    it("should ignore X-Forwarded-For when trustProxy is false (default)", () => {
+      const transport = new HttpTransport({ port: 3000 });
+
+      const getClientIp = (
+        transport as unknown as {
+          getClientIp: (req: IncomingMessage) => string;
+        }
+      ).getClientIp.bind(transport);
+
+      const req = createMockRequest({
+        headers: { "x-forwarded-for": "1.2.3.4" },
+      });
+
+      expect(getClientIp(req)).toBe("127.0.0.1");
+    });
+
+    it("should fall back to socket address when X-Forwarded-For is missing", () => {
+      const transport = new HttpTransport({
+        port: 3000,
+        trustProxy: true,
+      });
+
+      const getClientIp = (
+        transport as unknown as {
+          getClientIp: (req: IncomingMessage) => string;
+        }
+      ).getClientIp.bind(transport);
+
+      const req = createMockRequest();
+
+      expect(getClientIp(req)).toBe("127.0.0.1");
+    });
+
+    it("should rate limit by forwarded IP when trustProxy is true", () => {
+      const transport = new HttpTransport({
+        port: 3000,
+        enableRateLimit: true,
+        rateLimitMaxRequests: 2,
+        rateLimitWindowMs: 60000,
+        trustProxy: true,
+      });
+
+      const checkRateLimit = (
+        transport as unknown as {
+          checkRateLimit: (req: IncomingMessage) => boolean;
+        }
+      ).checkRateLimit.bind(transport);
+
+      // Both requests come from same socket but different forwarded IPs
+      const reqA = createMockRequest({
+        headers: { "x-forwarded-for": "1.2.3.4" },
+      });
+      const reqB = createMockRequest({
+        headers: { "x-forwarded-for": "5.6.7.8" },
+      });
+
+      // Exhaust limit for forwarded IP 1.2.3.4
+      expect(checkRateLimit(reqA)).toBe(true);
+      expect(checkRateLimit(reqA)).toBe(true);
+      expect(checkRateLimit(reqA)).toBe(false);
+
+      // Different forwarded IP should have its own limit
+      expect(checkRateLimit(reqB)).toBe(true);
+      expect(checkRateLimit(reqB)).toBe(true);
+      expect(checkRateLimit(reqB)).toBe(false);
+    });
+  });
+
+  describe("Health Endpoint oauthEnabled", () => {
+    it("should return oauthEnabled: false when OAuth is not configured", () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const res = createMockResponse();
+
+      const handleHealthCheck = (
+        transport as unknown as {
+          handleHealthCheck: (res: ServerResponse) => void;
+        }
+      ).handleHealthCheck.bind(transport);
+
+      handleHealthCheck(res);
+
+      const body = JSON.parse(res._body) as {
+        oauthEnabled: boolean;
+      };
+      expect(body.oauthEnabled).toBe(false);
+    });
+
+    it("should return oauthEnabled: true when OAuth is configured", () => {
+      const mockResourceServer = {
+        getMetadata: vi.fn().mockReturnValue({}),
+      };
+      const transport = new HttpTransport({
+        port: 3000,
+        resourceServer: mockResourceServer as unknown as HttpTransport extends {
+          config: { resourceServer?: infer T };
+        }
+          ? T
+          : never,
+      });
+      const res = createMockResponse();
+
+      const handleHealthCheck = (
+        transport as unknown as {
+          handleHealthCheck: (res: ServerResponse) => void;
+        }
+      ).handleHealthCheck.bind(transport);
+
+      handleHealthCheck(res);
+
+      const body = JSON.parse(res._body) as {
+        oauthEnabled: boolean;
+      };
+      expect(body.oauthEnabled).toBe(true);
+    });
+  });
+
+  describe("Referrer-Policy Header", () => {
+    it("should set Referrer-Policy to no-referrer", () => {
+      const transport = new HttpTransport({ port: 3000 });
+      const res = createMockResponse();
+
+      const setSecurityHeaders = (
+        transport as unknown as {
+          setSecurityHeaders: (res: ServerResponse) => void;
+        }
+      ).setSecurityHeaders.bind(transport);
+
+      setSecurityHeaders(res);
+
+      expect(res._headers["referrer-policy"]).toBe("no-referrer");
+    });
+  });
 });

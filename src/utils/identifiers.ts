@@ -184,10 +184,9 @@ export function validateIdentifier(name: string): void {
 export function sanitizeIdentifier(name: string): string {
   validateIdentifier(name);
 
-  // Escape any embedded double quotes (though validateIdentifier should prevent this)
-  const escaped = name.replace(/"/g, '""');
-
-  return `"${escaped}"`;
+  // validateIdentifier() guarantees no double-quote characters can pass,
+  // so the previous .replace(/"/g, '""') was always a no-op allocation.
+  return `"${name}"`;
 }
 
 /**
@@ -371,8 +370,7 @@ export function quoteIdentifier(name: string): string {
     );
   }
 
-  // Escape any embedded double quotes (defensive - pattern should prevent this)
-  const escaped = name.replace(/"/g, '""');
-
-  return `"${escaped}"`;
+  // IDENTIFIER_PATTERN guarantees no double-quote characters can pass,
+  // so the previous .replace(/"/g, '""') was always a no-op allocation.
+  return `"${name}"`;
 }

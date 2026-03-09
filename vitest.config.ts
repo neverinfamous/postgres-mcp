@@ -23,9 +23,10 @@ export default defineConfig({
         "src/types/index.ts",
       ],
     },
-  },
-  bench: {
-    include: ["src/__tests__/benchmarks/**/*.bench.ts"],
-    reporters: ["default"],
+    benchmark: {
+      include: ["src/__tests__/benchmarks/**/*.bench.ts"],
+      exclude: ["**/dist/**"],
+      reporters: ["default"],
+    },
   },
 });

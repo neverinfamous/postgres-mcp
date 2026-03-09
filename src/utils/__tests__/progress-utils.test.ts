@@ -6,11 +6,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import {
-  buildProgressContext,
-  sendProgress,
-  createBatchProgressReporter,
-} from "../progress-utils.js";
+import { buildProgressContext, sendProgress } from "../progress-utils.js";
 import type { ProgressContext } from "../progress-utils.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -136,66 +132,5 @@ describe("sendProgress", () => {
 
     const ctx: ProgressContext = { server, progressToken: "tok-1" };
     await expect(sendProgress(ctx, 1, 10)).resolves.toBeUndefined();
-  });
-});
-
-describe("createBatchProgressReporter", () => {
-  it("should report progress at throttle intervals", async () => {
-    const server = createMockServer();
-    const ctx: ProgressContext = { server, progressToken: "tok-1" };
-
-    const report = createBatchProgressReporter(ctx, 100, 10);
-
-    // Calls under throttle should not send
-    await report(1);
-    await report(5);
-    await report(9);
-    expect(server.server.notification).not.toHaveBeenCalled();
-
-    // Call at throttle boundary should send
-    await report(10);
-    expect(server.server.notification).toHaveBeenCalledTimes(1);
-
-    // At completion (current === total) should always send
-    await report(100);
-    expect(server.server.notification).toHaveBeenCalledTimes(2);
-  });
-
-  it("should include message in report", async () => {
-    const server = createMockServer();
-    const ctx: ProgressContext = { server, progressToken: "tok-1" };
-
-    const report = createBatchProgressReporter(ctx, 50, 10);
-    await report(10, "Halfway done");
-
-    expect(server.server.notification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        params: expect.objectContaining({
-          message: "Halfway done",
-          progress: 10,
-          total: 50,
-        }),
-      }),
-    );
-  });
-
-  it("should use default throttle of 10", async () => {
-    const server = createMockServer();
-    const ctx: ProgressContext = { server, progressToken: "tok-1" };
-
-    const report = createBatchProgressReporter(ctx, 20);
-
-    await report(9);
-    expect(server.server.notification).not.toHaveBeenCalled();
-
-    await report(10);
-    expect(server.server.notification).toHaveBeenCalledTimes(1);
-  });
-
-  it("should not send when ctx is undefined", async () => {
-    const report = createBatchProgressReporter(undefined, 100, 5);
-    // Should silently complete without errors
-    await expect(report(5)).resolves.toBeUndefined();
-    await expect(report(100)).resolves.toBeUndefined();
   });
 });

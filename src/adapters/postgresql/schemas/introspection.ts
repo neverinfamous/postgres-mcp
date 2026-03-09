@@ -41,7 +41,7 @@ export const TopologicalSortSchemaBase = z.object({
     .optional()
     .describe("Schema to analyze (default: all user schemas)"),
   direction: z
-    .enum(["create", "drop"])
+    .string()
     .optional()
     .describe(
       "Sort direction: 'create' = dependencies first, 'drop' = dependents first (default: create)",
@@ -54,7 +54,13 @@ export const TopologicalSortSchemaBase = z.object({
     ),
 });
 
-export const TopologicalSortSchema = TopologicalSortSchemaBase.default({});
+export const TopologicalSortSchema = z
+  .object({
+    schema: z.string().optional(),
+    direction: z.enum(["create", "drop"]).optional(),
+    excludeExtensionSchemas: z.boolean().optional(),
+  })
+  .default({});
 
 /**
  * pg_cascade_simulator input
@@ -62,12 +68,19 @@ export const TopologicalSortSchema = TopologicalSortSchemaBase.default({});
 export const CascadeSimulatorSchemaBase = z.object({
   table: z
     .string()
+    .optional()
     .describe("Table name to simulate deletion from (supports schema.table)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   operation: z
-    .enum(["DELETE", "DROP", "TRUNCATE"])
+    .string()
     .optional()
     .describe("Operation to simulate (default: DELETE)"),
+});
+
+const CascadeSimulatorInnerSchema = z.object({
+  table: z.string(),
+  schema: z.string().optional(),
+  operation: z.enum(["DELETE", "DROP", "TRUNCATE"]).optional(),
 });
 
 export const CascadeSimulatorSchema = z.preprocess((input: unknown) => {
@@ -87,7 +100,7 @@ export const CascadeSimulatorSchema = z.preprocess((input: unknown) => {
     }
   }
   return input;
-}, CascadeSimulatorSchemaBase);
+}, CascadeSimulatorInnerSchema);
 
 /**
  * pg_schema_snapshot input
@@ -108,19 +121,7 @@ export const SchemaSnapshotSchemaBase = z.object({
       "Exclude known extension schemas (cron, topology, tiger, tiger_data) from snapshot (default: true)",
     ),
   sections: z
-    .array(
-      z.enum([
-        "tables",
-        "views",
-        "indexes",
-        "constraints",
-        "functions",
-        "triggers",
-        "sequences",
-        "types",
-        "extensions",
-      ]),
-    )
+    .array(z.string())
     .optional()
     .describe("Specific sections to include (default: all)"),
   compact: z
@@ -131,7 +132,29 @@ export const SchemaSnapshotSchemaBase = z.object({
     ),
 });
 
-export const SchemaSnapshotSchema = SchemaSnapshotSchemaBase.default({});
+export const SchemaSnapshotSchema = z
+  .object({
+    schema: z.string().optional(),
+    includeSystem: z.boolean().optional(),
+    excludeExtensionSchemas: z.boolean().optional(),
+    sections: z
+      .array(
+        z.enum([
+          "tables",
+          "views",
+          "indexes",
+          "constraints",
+          "functions",
+          "triggers",
+          "sequences",
+          "types",
+          "extensions",
+        ]),
+      )
+      .optional(),
+    compact: z.boolean().optional(),
+  })
+  .default({});
 
 /**
  * pg_constraint_analysis input
@@ -146,6 +169,21 @@ export const ConstraintAnalysisSchemaBase = z.object({
     .optional()
     .describe("Analyze constraints for a specific table only"),
   checks: z
+    .array(z.string())
+    .optional()
+    .describe("Specific checks to run (default: all)"),
+  excludeExtensionSchemas: z
+    .boolean()
+    .optional()
+    .describe(
+      "Exclude known extension schemas (cron, topology, tiger, tiger_data) from analysis (default: true)",
+    ),
+});
+
+const ConstraintAnalysisInnerSchema = z.object({
+  schema: z.string().optional(),
+  table: z.string().optional(),
+  checks: z
     .array(
       z.enum([
         "redundant",
@@ -155,14 +193,8 @@ export const ConstraintAnalysisSchemaBase = z.object({
         "unindexed_fk",
       ]),
     )
-    .optional()
-    .describe("Specific checks to run (default: all)"),
-  excludeExtensionSchemas: z
-    .boolean()
-    .optional()
-    .describe(
-      "Exclude known extension schemas (cron, topology, tiger, tiger_data) from analysis (default: true)",
-    ),
+    .optional(),
+  excludeExtensionSchemas: z.boolean().optional(),
 });
 
 export const ConstraintAnalysisSchema = z.preprocess((input: unknown) => {
@@ -181,7 +213,7 @@ export const ConstraintAnalysisSchema = z.preprocess((input: unknown) => {
     }
   }
   return input;
-}, ConstraintAnalysisSchemaBase.default({}));
+}, ConstraintAnalysisInnerSchema.default({}));
 
 /**
  * pg_migration_risks input
@@ -189,6 +221,7 @@ export const ConstraintAnalysisSchema = z.preprocess((input: unknown) => {
 export const MigrationRisksSchemaBase = z.object({
   statements: z
     .array(z.string())
+    .optional()
     .describe("Array of DDL statements to analyze for risks"),
   schema: z
     .string()
@@ -196,7 +229,19 @@ export const MigrationRisksSchemaBase = z.object({
     .describe("Target schema context (default: public)"),
 });
 
-export const MigrationRisksSchema = MigrationRisksSchemaBase;
+export const MigrationRisksSchema = z.preprocess(
+  (input: unknown) => {
+    if (typeof input === "object" && input !== null) {
+      const obj = input as Record<string, unknown>;
+      // Accept statement/sql aliases
+      if (obj["statement"] !== undefined && obj["statements"] === undefined) {
+        return { ...obj, statements: [obj["statement"]] };
+      }
+    }
+    return input;
+  },
+  MigrationRisksSchemaBase.required({ statements: true }),
+);
 
 // =============================================================================
 // Migration Tracking Input Schemas (Phase 2: Schema Version Tracking)
@@ -301,17 +346,19 @@ export const MigrationHistorySchemaBase = z.object({
     .optional()
     .describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
-  limit: z.coerce
-    .number()
-    .optional()
-    .describe("Maximum records to return (default: 50)"),
-  offset: z.coerce
-    .number()
-    .optional()
-    .describe("Offset for pagination (default: 0)"),
+  limit: z.any().optional().describe("Maximum records to return (default: 50)"),
+  offset: z.any().optional().describe("Offset for pagination (default: 0)"),
 });
 
-export const MigrationHistorySchema = MigrationHistorySchemaBase.default({});
+// Internal parse schema — coerces limit/offset types to prevent Zod leaks
+export const MigrationHistorySchema = z
+  .object({
+    status: z.enum(["applied", "rolled_back", "failed"]).optional(),
+    sourceSystem: z.string().optional(),
+    limit: z.coerce.number().optional(),
+    offset: z.coerce.number().optional(),
+  })
+  .default({});
 
 /**
  * pg_migration_status input

@@ -99,3 +99,6 @@ eslint.config.*
 
 # Registry Config
 server.json
+
+# Assets
+social-preview.png

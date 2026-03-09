@@ -359,25 +359,6 @@ describe("PostgresAdapter", () => {
       await adapter.connect(mockConfig);
     });
 
-    it("clearMetadataCache should clear all cached data", async () => {
-      // First call to listTables will cache results
-      const mockResult: QueryResult = {
-        rows: [
-          {
-            table_name: "users",
-            schema_name: "public",
-            table_type: "BASE TABLE",
-          },
-        ],
-      };
-      mockPoolMethods.query.mockResolvedValueOnce(mockResult);
-
-      await adapter.listTables();
-
-      // Clear cache - should not throw
-      expect(() => adapter.clearMetadataCache()).not.toThrow();
-    });
-
     it("listTables should return cached results on second call", async () => {
       const mockTablesResult: QueryResult = {
         rows: [
@@ -533,38 +514,6 @@ describe("PostgresAdapter", () => {
       const result = await adapter.describeTable("fresh_table", "public");
       expect(result.rowCount).toBe(5); // Falls back to live_row_estimate
     });
-
-    it("clearMetadataCache should force re-query for listTables", async () => {
-      const mockTablesResult: QueryResult = {
-        rows: [
-          {
-            name: "users",
-            schema: "public",
-            type: "table",
-            owner: "admin",
-            row_count: 50,
-            live_row_estimate: 50,
-            stats_stale: false,
-            size_bytes: 8192,
-            total_size_bytes: 16384,
-            comment: null,
-          },
-        ],
-      };
-      mockPoolMethods.query
-        .mockResolvedValueOnce(mockTablesResult) // First listTables call
-        .mockResolvedValueOnce(mockTablesResult); // Second listTables call after cache clear
-
-      await adapter.listTables();
-      expect(mockPoolMethods.query).toHaveBeenCalledTimes(1);
-
-      // Clear cache
-      adapter.clearMetadataCache();
-
-      // Next call should re-query
-      await adapter.listTables();
-      expect(mockPoolMethods.query).toHaveBeenCalledTimes(2);
-    });
   });
 
   describe("Tool Registration", () => {
@@ -719,7 +668,10 @@ describe("PostgresAdapter", () => {
       };
       mockPoolMethods.query
         .mockResolvedValueOnce(mockColumnsResult)
-        .mockResolvedValueOnce(mockTableResult);
+        .mockResolvedValueOnce(mockTableResult)
+        .mockResolvedValueOnce({ rows: [] } as QueryResult) // indexes
+        .mockResolvedValueOnce({ rows: [] } as QueryResult) // constraints
+        .mockResolvedValueOnce({ rows: [] } as QueryResult); // foreign keys
 
       const tableInfo = await adapter.describeTable("users", "public");
 

@@ -122,6 +122,11 @@ const CATEGORY_ICONS: Record<ToolGroup, { path: string; color: string }> = {
     path: '<circle cx="10" cy="10" r="7"/><path d="m21 21-4.35-4.35"/><circle cx="8" cy="8" r="1.5"/><circle cx="12" cy="10" r="1.5"/><path d="M8 8l4 2"/>',
     color: "#A855F7",
   },
+  // Migration: Git branch / version tracking
+  migration: {
+    path: '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>',
+    color: "#D946EF",
+  },
   // Codemode: Terminal/code
   codemode: {
     path: '<polyline points="4,17 10,11 4,5"/><line x1="12" y1="19" x2="20" y2="19"/>',

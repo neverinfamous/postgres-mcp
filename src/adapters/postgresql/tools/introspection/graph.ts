@@ -30,7 +30,7 @@ import {
 // Internal types
 // =============================================================================
 
-export interface FkEdge {
+interface FkEdge {
   constraintName: string;
   fromSchema: string;
   fromTable: string;
@@ -480,11 +480,12 @@ export function createTopologicalSortTool(
           excludeExt,
         );
 
-        // Build adjacency: A depends on B means A→B
-        // For "create" order, we need B before A (dependencies first)
-        // For "drop" order, we need A before B (dependents first)
+        // Build all graph structures in a single FK iteration (PERF-P3)
         const adjacency = new Map<string, string[]>();
         const allNodes = new Set<string>();
+        const dependsOn = new Map<string, Set<string>>();
+        // Pre-compute create-direction adjacency for level computation in drop mode
+        const createAdj = new Map<string, string[]>();
 
         for (const t of tables) {
           allNodes.add(qualifiedName(t.schema, t.table));
@@ -494,26 +495,15 @@ export function createTopologicalSortTool(
           const to = qualifiedName(fk.toSchema, fk.toTable);
           allNodes.add(from);
           allNodes.add(to);
-        }
 
-        // Build dependency graph: from→to means "from depends on to"
-        const dependsOn = new Map<string, Set<string>>();
-        for (const fk of fks) {
-          const from = qualifiedName(fk.fromSchema, fk.fromTable);
-          const to = qualifiedName(fk.toSchema, fk.toTable);
           if (from === to) continue; // Self-references don't affect ordering
+
+          // dependsOn: from depends on to
           const deps = dependsOn.get(from) ?? new Set<string>();
           deps.add(to);
           dependsOn.set(from, deps);
-        }
 
-        // For create order: edge from dependency → dependent (process deps first)
-        // For drop order: edge from dependent → dependency (process dependents first)
-        for (const fk of fks) {
-          const from = qualifiedName(fk.fromSchema, fk.fromTable);
-          const to = qualifiedName(fk.toSchema, fk.toTable);
-          if (from === to) continue; // Self-references don't affect ordering
-
+          // adjacency for requested direction
           if (direction === "create") {
             const existing = adjacency.get(to) ?? [];
             existing.push(from);
@@ -522,6 +512,11 @@ export function createTopologicalSortTool(
             const existing = adjacency.get(from) ?? [];
             existing.push(to);
             adjacency.set(from, existing);
+
+            // Also build create-direction adjacency for level computation
+            const createExisting = createAdj.get(to) ?? [];
+            createExisting.push(from);
+            createAdj.set(to, createExisting);
           }
         }
 
@@ -533,21 +528,11 @@ export function createTopologicalSortTool(
         const levelMap = new Map<string, number>();
         if (sorted) {
           // For create direction, sorted is already in dependency order.
-          // For drop direction, we need create-order to compute levels correctly.
+          // For drop direction, use pre-computed create-direction adjacency.
           let createOrder: string[];
           if (direction === "create") {
             createOrder = sorted;
           } else {
-            // Build create-direction adjacency and sort
-            const createAdj = new Map<string, string[]>();
-            for (const fk of fks) {
-              const from = qualifiedName(fk.fromSchema, fk.fromTable);
-              const to = qualifiedName(fk.toSchema, fk.toTable);
-              if (from === to) continue;
-              const existing = createAdj.get(to) ?? [];
-              existing.push(from);
-              createAdj.set(to, existing);
-            }
             createOrder =
               topologicalSort(createAdj, allNodes) ?? [...allNodes].sort();
           }
@@ -639,6 +624,7 @@ export function createCascadeSimulatorTool(
         // Check if source table exists
         if (!tableMap.has(sourceQName)) {
           return {
+            success: false as const,
             sourceTable: sourceQName,
             operation,
             affectedTables: [],

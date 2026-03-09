@@ -31,15 +31,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
 
       - name: Build image for scanning (local only)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
         with:
           context: .
           file: Dockerfile
@@ -60,23 +60,23 @@ jobs:
           docker images local-scan:latest
           echo "🔍 Running Docker Scout security scan for local-scan:latest"
 
-          echo "⏱️ Running Docker Scout scan for FIXABLE vulnerabilities..."
+          echo "⏱️ Running Docker Scout scan for ALL FIXABLE vulnerabilities..."
 
           # Use --only-fixed to find CVEs that HAVE fixes available
-          # This ensures we block on things we CAN fix while allowing unfixable upstream CVEs
-          if timeout 480 docker scout cves local-scan:latest --only-fixed --only-severity critical,high > scout_fixable.txt 2>&1; then
+          # Scan all severities to catch medium/low CVEs (e.g. zlib) that have available fixes
+          if timeout 480 docker scout cves local-scan:latest --only-fixed --only-severity critical,high,medium,low > scout_fixable.txt 2>&1; then
             echo "📊 Scan completed"
 
-            # Check if any fixable critical/high CVEs were found
-            if grep -qE "(CRITICAL|HIGH)" scout_fixable.txt 2>/dev/null; then
-              echo "❌ Fixable CRITICAL/HIGH CVEs detected - blocking deploy"
+            # Check if any fixable CVEs were found at any severity
+            if grep -qE "(CRITICAL|HIGH|MEDIUM|LOW)" scout_fixable.txt 2>/dev/null; then
+              echo "❌ Fixable CVEs detected - blocking deploy"
               cat scout_fixable.txt
               echo ""
               echo "🚨 Deploy blocked: These vulnerabilities have available fixes."
               echo "   Update dependencies or Dockerfile to resolve."
               exit 1
             else
-              echo "✅ No fixable critical/high CVEs found"
+              echo "✅ No fixable CVEs found"
             fi
           else
             exit_code=$?
@@ -89,12 +89,41 @@ jobs:
               echo "⚠️ Docker Scout scan timed out"
               echo "🔄 Continuing build - scan timeout is not a security failure"
             else
-              echo "⚠️ Docker Scout scan failed with exit code $exit_code"
-              echo "🔄 Continuing build - will rely on Trivy for security validation"
+              echo "❌ Docker Scout scan failed with exit code $exit_code"
+              cat scout_fixable.txt 2>/dev/null || true
+              exit 1
             fi
           fi
 
-          echo "✅ Security gate passed - images will now be built and pushed"
+          echo "✅ Docker Scout security gate passed"
+
+      - name: Trivy security scan
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # master
+        with:
+          image-ref: local-scan:latest
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          timeout: 10m
+
+      - name: Trivy SARIF upload
+        if: always()
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # master
+        with:
+          image-ref: local-scan:latest
+          format: sarif
+          output: trivy-results.sarif
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          timeout: 10m
+
+      - name: Upload Trivy results to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@dd677812177e0c29f9c970a6c58d8607ae1bfefd # v4
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-docker-scan
 
   # Build each platform on native architecture (only runs if security scan passes)
   build-platform:
@@ -121,15 +150,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -147,7 +176,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
@@ -158,7 +187,7 @@ jobs:
 
       - name: Build and push platform image
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
         with:
           context: .
           file: Dockerfile
@@ -178,7 +207,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: digests-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
           path: /tmp/digests/*
@@ -203,22 +232,22 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Download digests
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           path: /tmp/digests
           pattern: digests-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -235,7 +264,7 @@ jobs:
 
       - name: Extract metadata for manifest
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
@@ -258,7 +287,7 @@ jobs:
       # Update Docker Hub description
       - name: Update Docker Hub Description
         if: github.ref == 'refs/heads/main'
-        uses: peter-evans/dockerhub-description@v5
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5
         continue-on-error: true
         timeout-minutes: 5
         with:
@@ -266,7 +295,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: ${{ env.IMAGE_NAME }}
           readme-filepath: ./DOCKER_README.md
-          short-description: "PostgreSQL MCP: 227 Tools Via One Code Mode Tool with Tool Filtering, Pooling, HTTP/SSE & OAuth 2.1."
+          short-description: "PostgreSQL MCP: 231 Tools Via One Code Mode Tool with Tool Filtering, Pooling, HTTP/SSE & OAuth 2.1."
 
       - name: Deployment Summary
         if: github.ref == 'refs/heads/main'

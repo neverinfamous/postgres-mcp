@@ -12,18 +12,13 @@ import {
   getToolGroup,
   getMetaGroupTools,
   parseToolFilter,
-  isToolEnabled,
   filterTools,
-  calculateTokenSavings,
   getFilterSummary,
-  getToolGroupInfo,
-  getMetaGroupInfo,
-  clearToolFilterCaches,
 } from "../ToolFilter.js";
 import type { ToolDefinition } from "../../types/index.js";
 
 describe("TOOL_GROUPS", () => {
-  it("should contain all 21 tool groups", () => {
+  it("should contain all 22 tool groups", () => {
     const expectedGroups = [
       "core",
       "transactions",
@@ -44,11 +39,12 @@ describe("TOOL_GROUPS", () => {
       "citext",
       "ltree",
       "introspection",
+      "migration",
       "pgcrypto",
       "codemode",
     ];
 
-    expect(Object.keys(TOOL_GROUPS)).toHaveLength(21);
+    expect(Object.keys(TOOL_GROUPS)).toHaveLength(22);
     for (const group of expectedGroups) {
       expect(TOOL_GROUPS).toHaveProperty(group);
     }
@@ -59,7 +55,7 @@ describe("TOOL_GROUPS", () => {
     expect(TOOL_GROUPS.transactions).toHaveLength(7);
     expect(TOOL_GROUPS.jsonb).toHaveLength(19);
     expect(TOOL_GROUPS.text).toHaveLength(13);
-    expect(TOOL_GROUPS.performance).toHaveLength(20);
+    expect(TOOL_GROUPS.performance).toHaveLength(24);
     expect(TOOL_GROUPS.admin).toHaveLength(10);
     expect(TOOL_GROUPS.monitoring).toHaveLength(11);
     expect(TOOL_GROUPS.backup).toHaveLength(9);
@@ -73,14 +69,15 @@ describe("TOOL_GROUPS", () => {
     expect(TOOL_GROUPS.kcache).toHaveLength(7);
     expect(TOOL_GROUPS.citext).toHaveLength(6);
     expect(TOOL_GROUPS.ltree).toHaveLength(8);
-    expect(TOOL_GROUPS.introspection).toHaveLength(12);
+    expect(TOOL_GROUPS.introspection).toHaveLength(6);
+    expect(TOOL_GROUPS.migration).toHaveLength(6);
     expect(TOOL_GROUPS.pgcrypto).toHaveLength(9);
     expect(TOOL_GROUPS.codemode).toHaveLength(1);
   });
 
-  it("should total 227 tools across all groups", () => {
+  it("should total 231 tools across all groups", () => {
     const totalTools = Object.values(TOOL_GROUPS).flat().length;
-    expect(totalTools).toBe(227);
+    expect(totalTools).toBe(231);
   });
 });
 
@@ -134,9 +131,9 @@ describe("META_GROUPS", () => {
 });
 
 describe("getAllToolNames", () => {
-  it("should return all 227 tool names", () => {
+  it("should return all 231 tool names", () => {
     const tools = getAllToolNames();
-    expect(tools).toHaveLength(227);
+    expect(tools).toHaveLength(231);
   });
 
   it("should return unique tool names", () => {
@@ -192,7 +189,7 @@ describe("getMetaGroupTools", () => {
 
   it("should return correct tools for dev-schema meta-group", () => {
     const tools = getMetaGroupTools("dev-schema");
-    // dev-schema = core(20) + transactions(7) + schema(12) + introspection(12) + codemode(1) = 52
+    // dev-schema = core(20) + transactions(7) + schema(12) + introspection(6) + migration(6) + codemode(1) = 52
     expect(tools).toHaveLength(52);
   });
 
@@ -210,13 +207,13 @@ describe("getMetaGroupTools", () => {
 
   it("should return correct tools for dba-monitor meta-group", () => {
     const tools = getMetaGroupTools("dba-monitor");
-    // dba-monitor = core(20) + monitoring(11) + performance(20) + transactions(7) + codemode(1) = 59
-    expect(tools).toHaveLength(59);
+    // dba-monitor = core(20) + monitoring(11) + performance(24) + transactions(7) + codemode(1) = 63
+    expect(tools).toHaveLength(63);
   });
 
   it("should return correct tools for dba-schema meta-group", () => {
     const tools = getMetaGroupTools("dba-schema");
-    // dba-schema = core(20) + schema(12) + introspection(12) + codemode(1) = 45
+    // dba-schema = core(20) + schema(12) + introspection(6) + migration(6) + codemode(1) = 45
     expect(tools).toHaveLength(45);
   });
 
@@ -234,36 +231,36 @@ describe("getMetaGroupTools", () => {
 });
 
 describe("parseToolFilter", () => {
-  it("should return all 227 tools enabled for empty filter", () => {
+  it("should return all 231 tools enabled for empty filter", () => {
     const config = parseToolFilter("");
-    expect(config.enabledTools.size).toBe(227);
+    expect(config.enabledTools.size).toBe(231);
     expect(config.rules).toHaveLength(0);
     expect(config.enabledTools.has("pg_read_query")).toBe(true);
   });
 
-  it("should return all 227 tools enabled for undefined filter", () => {
+  it("should return all 231 tools enabled for undefined filter", () => {
     const config = parseToolFilter(undefined);
-    expect(config.enabledTools.size).toBe(227);
+    expect(config.enabledTools.size).toBe(231);
     expect(config.rules).toHaveLength(0);
   });
 
   it("should disable a single tool", () => {
     const config = parseToolFilter("-pg_read_query");
-    expect(config.enabledTools.size).toBe(226); // 227 - 1
+    expect(config.enabledTools.size).toBe(230); // 231 - 1
     expect(config.enabledTools.has("pg_read_query")).toBe(false);
     expect(config.enabledTools.has("pg_write_query")).toBe(true);
   });
 
   it("should disable a tool group", () => {
     const config = parseToolFilter("-core");
-    expect(config.enabledTools.size).toBe(207); // 227 - 20
+    expect(config.enabledTools.size).toBe(211); // 231 - 20
     expect(config.enabledTools.has("pg_read_query")).toBe(false);
     expect(config.enabledTools.has("pg_jsonb_extract")).toBe(true);
   });
 
   it("should disable a meta-group", () => {
     const config = parseToolFilter("-starter");
-    expect(config.enabledTools.size).toBe(168); // 227 - 59
+    expect(config.enabledTools.size).toBe(172); // 231 - 59
     expect(config.enabledTools.has("pg_read_query")).toBe(false);
     expect(config.enabledTools.has("pg_jsonb_extract")).toBe(false);
     expect(config.enabledTools.has("pg_vector_search")).toBe(true);
@@ -335,31 +332,13 @@ describe("parseToolFilter", () => {
   it("should include codemode in blacklist mode by default", () => {
     const config = parseToolFilter("-vector");
     expect(config.enabledTools.has("pg_execute_code")).toBe(true);
-    expect(config.enabledTools.size).toBe(211); // 227 - 16
+    expect(config.enabledTools.size).toBe(215); // 231 - 16
   });
 
   it("should allow excluding codemode in blacklist mode", () => {
     const config = parseToolFilter("-codemode");
     expect(config.enabledTools.has("pg_execute_code")).toBe(false);
-    expect(config.enabledTools.size).toBe(226); // 227 - 1
-  });
-});
-
-describe("isToolEnabled", () => {
-  it("should return true for enabled tools", () => {
-    const config = parseToolFilter("");
-    expect(isToolEnabled("pg_read_query", config)).toBe(true);
-  });
-
-  it("should return false for disabled tools", () => {
-    const config = parseToolFilter("-pg_read_query");
-    expect(isToolEnabled("pg_read_query", config)).toBe(false);
-  });
-
-  it("should return false for unknown tools", () => {
-    const config = parseToolFilter("");
-    // Unknown tools are not in enabledTools set
-    expect(isToolEnabled("unknown_tool", config)).toBe(false);
+    expect(config.enabledTools.size).toBe(230); // 231 - 1
   });
 });
 
@@ -410,38 +389,11 @@ describe("filterTools", () => {
   });
 });
 
-describe("calculateTokenSavings", () => {
-  it("should calculate correct savings", () => {
-    const result = calculateTokenSavings(227, 59);
-    // (227 - 59) * 200 = 33600 tokens
-    expect(result.tokensSaved).toBe(33600);
-    expect(result.percentSaved).toBe(74); // ~74% disabled
-  });
-
-  it("should return 0 for no filtering", () => {
-    const result = calculateTokenSavings(227, 227);
-    expect(result.tokensSaved).toBe(0);
-    expect(result.percentSaved).toBe(0);
-  });
-
-  it("should handle custom tokens per tool", () => {
-    const result = calculateTokenSavings(100, 50, 100);
-    expect(result.tokensSaved).toBe(5000); // 50 * 100
-    expect(result.percentSaved).toBe(50);
-  });
-
-  it("should handle edge case with 0 total tools", () => {
-    const result = calculateTokenSavings(0, 0);
-    expect(result.tokensSaved).toBe(0);
-    expect(result.percentSaved).toBe(0);
-  });
-});
-
 describe("getFilterSummary", () => {
   it("should generate summary for no filter", () => {
     const config = parseToolFilter("");
     const summary = getFilterSummary(config);
-    expect(summary).toContain("227");
+    expect(summary).toContain("231");
     expect(summary).toContain("Enabled");
   });
 
@@ -464,71 +416,5 @@ describe("getFilterSummary", () => {
     const summary = getFilterSummary(config);
     expect(summary).toContain("By group:");
     expect(summary).toContain("vector: 0/16");
-  });
-});
-
-describe("getToolGroupInfo", () => {
-  it("should return info for all 21 groups", () => {
-    const info = getToolGroupInfo();
-    expect(info).toHaveLength(21);
-  });
-
-  it("should include correct counts", () => {
-    const info = getToolGroupInfo();
-    const coreInfo = info.find((g) => g.group === "core");
-    expect(coreInfo).toBeDefined();
-    expect(coreInfo?.count).toBe(20);
-    expect(coreInfo?.tools).toHaveLength(20);
-  });
-
-  it("should include codemode group with 1 tool", () => {
-    const info = getToolGroupInfo();
-    const codemodeInfo = info.find((g) => g.group === "codemode");
-    expect(codemodeInfo).toBeDefined();
-    expect(codemodeInfo?.count).toBe(1);
-    expect(codemodeInfo?.tools).toContain("pg_execute_code");
-  });
-});
-
-describe("getMetaGroupInfo", () => {
-  it("should return info for all 16 meta-groups", () => {
-    const info = getMetaGroupInfo();
-    expect(info).toHaveLength(16);
-  });
-
-  it("should include correct expanded counts", () => {
-    const info = getMetaGroupInfo();
-    const starterInfo = info.find((g) => g.metaGroup === "starter");
-    expect(starterInfo).toBeDefined();
-    expect(starterInfo?.count).toBe(59);
-    expect(starterInfo?.groups).toContain("core");
-    expect(starterInfo?.groups).toContain("codemode");
-  });
-});
-
-describe("caching behavior", () => {
-  beforeEach(() => {
-    clearToolFilterCaches();
-  });
-
-  it("should return same array reference from getAllToolNames on repeated calls", () => {
-    const first = getAllToolNames();
-    const second = getAllToolNames();
-    expect(first).toBe(second); // Same reference = cached
-  });
-
-  it("should return same group from getToolGroup after building cache", () => {
-    const first = getToolGroup("pg_read_query");
-    const second = getToolGroup("pg_read_query");
-    expect(first).toBe("core");
-    expect(second).toBe("core");
-  });
-
-  it("should rebuild cache after clearToolFilterCaches", () => {
-    const first = getAllToolNames();
-    clearToolFilterCaches();
-    const second = getAllToolNames();
-    expect(first).not.toBe(second); // Different reference after clear
-    expect(first).toEqual(second); // Same content
   });
 });

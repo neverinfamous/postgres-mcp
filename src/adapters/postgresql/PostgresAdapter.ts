@@ -61,6 +61,7 @@ import { getCitextTools } from "./tools/citext/index.js";
 import { getLtreeTools } from "./tools/ltree.js";
 import { getPgcryptoTools } from "./tools/pgcrypto.js";
 import { getIntrospectionTools } from "./tools/introspection/index.js";
+import { getMigrationTools } from "./tools/migration/index.js";
 import { getCodeModeTools } from "./tools/codemode/index.js";
 import { getPostgresResources } from "./resources/index.js";
 import { getPostgresPrompts } from "./prompts/index.js";
@@ -114,13 +115,6 @@ export class PostgresAdapter extends DatabaseAdapter {
    */
   private setCache(key: string, data: unknown): void {
     this.metadataCache.set(key, { data, timestamp: Date.now() });
-  }
-
-  /**
-   * Clear all cached metadata (useful after schema changes)
-   */
-  clearMetadataCache(): void {
-    this.metadataCache.clear();
   }
 
   // =========================================================================
@@ -616,6 +610,7 @@ export class PostgresAdapter extends DatabaseAdapter {
       "ltree",
       "pgcrypto",
       "introspection",
+      "migration",
       "codemode",
     ];
   }
@@ -651,6 +646,7 @@ export class PostgresAdapter extends DatabaseAdapter {
       ...getLtreeTools(this),
       ...getPgcryptoTools(this),
       ...getIntrospectionTools(this),
+      ...getMigrationTools(this),
       ...getCodeModeTools(this),
     ];
 

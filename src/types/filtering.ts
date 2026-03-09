@@ -27,7 +27,8 @@ export type ToolGroup =
   | "citext" // citext extension - case-insensitive text
   | "ltree" // ltree extension - hierarchical tree labels
   | "pgcrypto" // pgcrypto extension - cryptographic functions
-  | "introspection" // Agent-optimized database analysis & migration support
+  | "introspection" // Agent-optimized database analysis (read-only)
+  | "migration" // Schema migration tracking & management
   | "codemode"; // Code Mode - sandboxed code execution
 
 /**
@@ -59,7 +60,7 @@ export type MetaGroup =
   | "ext-ai" // Extension: AI/Security (vector, pgcrypto) 26 tools
   | "ext-geo" // Extension: Spatial/Hierarchical (postgis, ltree) 24 tools
   | "ext-schedule" // Extension: Scheduling (cron, partman) 19 tools
-  | "ext-perf"; // Extension: Performance/Analysis (kcache, performance) 28 tools
+  | "ext-perf"; // Extension: Performance/Analysis (kcache, performance) 32 tools
 
 /**
  * Tool filter rule

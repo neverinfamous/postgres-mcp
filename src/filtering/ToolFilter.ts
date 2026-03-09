@@ -75,14 +75,6 @@ export function getToolGroup(toolName: string): ToolGroup | undefined {
 }
 
 /**
- * Clear all caches - useful for testing
- */
-export function clearToolFilterCaches(): void {
-  cachedAllToolNames = null;
-  toolToGroupMap = null;
-}
-
-/**
  * Check if a name is a valid tool group
  */
 export function isToolGroup(name: string): name is ToolGroup {
@@ -250,16 +242,6 @@ export function parseToolFilter(
 }
 
 /**
- * Check if a tool is enabled based on filter configuration
- */
-export function isToolEnabled(
-  toolName: string,
-  config: ToolFilterConfig,
-): boolean {
-  return config.enabledTools.has(toolName);
-}
-
-/**
  * Filter a list of tool definitions based on filter configuration
  */
 export function filterTools(
@@ -278,23 +260,6 @@ export function getToolFilterFromEnv(): ToolFilterConfig {
     process.env["MCP_TOOL_FILTER"] ??
     process.env["TOOL_FILTER"];
   return parseToolFilter(filterString);
-}
-
-/**
- * Calculate token savings from tool filtering
- * Assumes ~200 tokens per tool definition (description + parameters)
- */
-export function calculateTokenSavings(
-  totalTools: number,
-  enabledTools: number,
-  tokensPerTool = 200,
-): { tokensSaved: number; percentSaved: number } {
-  const disabledTools = totalTools - enabledTools;
-  const tokensSaved = disabledTools * tokensPerTool;
-  const percentSaved =
-    totalTools > 0 ? Math.round((disabledTools / totalTools) * 100) : 0;
-
-  return { tokensSaved, percentSaved };
 }
 
 /**
@@ -337,34 +302,4 @@ export function getFilterSummary(config: ToolFilterConfig): string {
   }
 
   return lines.join("\n");
-}
-
-/**
- * Get a list of all tool groups with their tool counts
- */
-export function getToolGroupInfo(): {
-  group: ToolGroup;
-  count: number;
-  tools: string[];
-}[] {
-  return Object.entries(TOOL_GROUPS).map(([group, tools]) => ({
-    group: group as ToolGroup,
-    count: tools.length,
-    tools,
-  }));
-}
-
-/**
- * Get a list of all meta-groups with their expanded tool counts
- */
-export function getMetaGroupInfo(): {
-  metaGroup: MetaGroup;
-  groups: ToolGroup[];
-  count: number;
-}[] {
-  return Object.entries(META_GROUPS).map(([metaGroup, groups]) => ({
-    metaGroup: metaGroup as MetaGroup,
-    groups,
-    count: getMetaGroupTools(metaGroup as MetaGroup).length,
-  }));
 }
