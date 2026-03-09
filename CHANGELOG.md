@@ -38,12 +38,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`pg_diagnose_database_performance` tool** — New read-only performance diagnostics tool that consolidates 7 parallel queries into a single actionable report: slow queries, blocking locks, connection pressure, cache hit ratio, disk usage, and top tables by size/activity. Returns per-section health ratings (`healthy`/`warning`/`critical`), actionable recommendations, and an overall health score (0–100). Part of the `performance` tool group
+- **Anomaly detection tools** — 3 new read-only tools in the `performance` group for proactive database monitoring:
+  - `pg_detect_query_anomalies` — Z-score analysis against `pg_stat_statements` historical baselines. Detects queries deviating from their own mean execution time
+  - `pg_detect_bloat_risk` — Multi-factor risk scoring (0–100) per table: dead tuple ratio (35%), vacuum staleness (25%), table size blast radius (15%), autovacuum effectiveness (25%)
+  - `pg_detect_connection_spike` — Connection concentration analysis by user, application, and state. Flags monopolized pools, idle-in-transaction buildup, and pressure thresholds
 - **`migration` tool group** — New dedicated tool group for schema migration tracking (6 tools: `pg_migration_init`, `pg_migration_record`, `pg_migration_apply`, `pg_migration_rollback`, `pg_migration_history`, `pg_migration_status`). Requires `WRITE` OAuth scope. Previously bundled in the `introspection` group alongside read-only tools
 
 ### Changed
 
-- **`introspection` group split** — Separated the 12-tool `introspection` group into read-only `introspection` (6 tools) and write `migration` (6 tools) groups. The `introspection` group now contains only read-only schema analysis tools (`pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`, `pg_schema_snapshot`, `pg_constraint_analysis`, `pg_migration_risks`). Total tool groups: 21 → 22. Total tools: 227 → 228
-- **Meta-group shortcuts updated** — `dev-schema` and `dba-schema` now include both `introspection` and `migration` groups (same total tool count). `dba-monitor` tool count 59 → 60, `ext-perf` tool count 28 → 29 (due to new diagnostics tool in `performance` group)
+- **`introspection` group split** — Separated the 12-tool `introspection` group into read-only `introspection` (6 tools) and write `migration` (6 tools) groups. The `introspection` group now contains only read-only schema analysis tools (`pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`, `pg_schema_snapshot`, `pg_constraint_analysis`, `pg_migration_risks`). Total tool groups: 21 → 22. Total tools: 227 → 231 (includes 4 new tools)
+- **Meta-group shortcuts updated** — `dev-schema` and `dba-schema` now include both `introspection` and `migration` groups (same total tool count). `dba-monitor` tool count 59 → 63, `ext-perf` tool count 28 → 32 (due to 4 new tools in `performance` group)
 
 ### Removed
 

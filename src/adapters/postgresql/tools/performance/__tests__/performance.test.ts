@@ -23,8 +23,8 @@ describe("getPerformanceTools", () => {
     tools = getPerformanceTools(adapter);
   });
 
-  it("should return 21 performance tools", () => {
-    expect(tools).toHaveLength(21);
+  it("should return 24 performance tools", () => {
+    expect(tools).toHaveLength(24);
   });
 
   it("should have all expected tool names", () => {
@@ -51,6 +51,9 @@ describe("getPerformanceTools", () => {
     expect(toolNames).toContain("pg_vacuum_stats");
     expect(toolNames).toContain("pg_query_plan_stats");
     expect(toolNames).toContain("pg_diagnose_database_performance");
+    expect(toolNames).toContain("pg_detect_query_anomalies");
+    expect(toolNames).toContain("pg_detect_bloat_risk");
+    expect(toolNames).toContain("pg_detect_connection_spike");
   });
 
   it("should have group set to performance for all tools", () => {

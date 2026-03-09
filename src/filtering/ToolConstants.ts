@@ -5,8 +5,8 @@
  * STRICT LIMIT: No shortcut may exceed 50 tools.
  *
  * TOOL COUNT ACCOUNTING:
- *   ToolConstants arrays total: 228 tools (sum of all group arrays)
- *   Published "specialized tools": 219 (228 - 9 utility tools)
+ *   ToolConstants arrays total: 231 tools (sum of all group arrays)
+ *   Published "specialized tools": 222 (231 - 9 utility tools)
  *
  *   The 9 excluded utility tools:
  *     - 8 create_extension helpers (one per extension group):
@@ -20,7 +20,7 @@
  *   and the published total in README/DOCKER_README/wiki.
  *   The published total = array total - 9 utility tools.
  *
- *   Verify: 20+7+19+13+21+10+11+9+12+16+15+6+8+8+10+7+6+8+6+6+9+1 = 228
+ *   Verify: 20+7+19+13+24+10+11+9+12+16+15+6+8+8+10+7+6+8+6+6+9+1 = 231
  */
 
 import type { ToolGroup, MetaGroup } from "../types/index.js";
@@ -120,6 +120,9 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_vacuum_stats",
     "pg_query_plan_stats",
     "pg_diagnose_database_performance",
+    "pg_detect_query_anomalies",
+    "pg_detect_bloat_risk",
+    "pg_detect_connection_spike",
   ],
   admin: [
     "pg_vacuum",
@@ -310,7 +313,7 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
  * ALL presets include codemode (pg_execute_code) by default for token efficiency.
  *
  * Group sizes:
- *   core:20, transactions:7, jsonb:19, text:13, performance:21,
+ *   core:20, transactions:7, jsonb:19, text:13, performance:24,
  *   admin:10, monitoring:11, backup:9, schema:12, introspection:6,
  *   migration:6, vector:16, postgis:15, partitioning:6, stats:8,
  *   cron:8, partman:10, kcache:7, citext:6, ltree:8, pgcrypto:9, codemode:1
@@ -322,7 +325,7 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
  *   dev-analytics: 42 (core:20 + transactions:7 + stats:8 + partitioning:6 + codemode:1)
  *   ai-data:       60 (core:20 + jsonb:19 + text:13 + transactions:7 + codemode:1)
  *   ai-vector:     50 (core:20 + vector:16 + transactions:7 + partitioning:6 + codemode:1)
- *   dba-monitor:   60 (core:20 + monitoring:11 + performance:21 + transactions:7 + codemode:1)
+ *   dba-monitor:   63 (core:20 + monitoring:11 + performance:24 + transactions:7 + codemode:1)
  *   dba-schema:    45 (core:20 + schema:12 + introspection:6 + migration:6 + codemode:1)
  *   dba-infra:     46 (core:20 + admin:10 + backup:9 + partitioning:6 + codemode:1)
  *   dba-stats:     57 (core:20 + admin:10 + monitoring:11 + transactions:7 + stats:8 + codemode:1)
@@ -331,7 +334,7 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
  *   ext-ai:        26 (vector:16 + pgcrypto:9 + codemode:1)
  *   ext-geo:       24 (postgis:15 + ltree:8 + codemode:1)
  *   ext-schedule:  19 (cron:8 + partman:10 + codemode:1)
- *   ext-perf:      29 (kcache:7 + performance:21 + codemode:1)
+ *   ext-perf:      32 (kcache:7 + performance:24 + codemode:1)
  */
 export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
   // 1. General Use - All include codemode for token efficiency
@@ -359,7 +362,7 @@ export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
     "performance",
     "transactions",
     "codemode",
-  ], // 60
+  ], // 63
   "dba-schema": ["core", "schema", "introspection", "migration", "codemode"], // 45
   "dba-infra": ["core", "admin", "backup", "partitioning", "codemode"], // 46
   "dba-stats": [
@@ -389,5 +392,5 @@ export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
   "ext-ai": ["vector", "pgcrypto", "codemode"], // 26
   "ext-geo": ["postgis", "ltree", "codemode"], // 24
   "ext-schedule": ["cron", "partman", "codemode"], // 19
-  "ext-perf": ["kcache", "performance", "codemode"], // 29
+  "ext-perf": ["kcache", "performance", "codemode"], // 32
 };

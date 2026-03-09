@@ -55,7 +55,7 @@ describe("TOOL_GROUPS", () => {
     expect(TOOL_GROUPS.transactions).toHaveLength(7);
     expect(TOOL_GROUPS.jsonb).toHaveLength(19);
     expect(TOOL_GROUPS.text).toHaveLength(13);
-    expect(TOOL_GROUPS.performance).toHaveLength(21);
+    expect(TOOL_GROUPS.performance).toHaveLength(24);
     expect(TOOL_GROUPS.admin).toHaveLength(10);
     expect(TOOL_GROUPS.monitoring).toHaveLength(11);
     expect(TOOL_GROUPS.backup).toHaveLength(9);
@@ -75,9 +75,9 @@ describe("TOOL_GROUPS", () => {
     expect(TOOL_GROUPS.codemode).toHaveLength(1);
   });
 
-  it("should total 228 tools across all groups", () => {
+  it("should total 231 tools across all groups", () => {
     const totalTools = Object.values(TOOL_GROUPS).flat().length;
-    expect(totalTools).toBe(228);
+    expect(totalTools).toBe(231);
   });
 });
 
@@ -131,9 +131,9 @@ describe("META_GROUPS", () => {
 });
 
 describe("getAllToolNames", () => {
-  it("should return all 228 tool names", () => {
+  it("should return all 231 tool names", () => {
     const tools = getAllToolNames();
-    expect(tools).toHaveLength(228);
+    expect(tools).toHaveLength(231);
   });
 
   it("should return unique tool names", () => {
@@ -207,8 +207,8 @@ describe("getMetaGroupTools", () => {
 
   it("should return correct tools for dba-monitor meta-group", () => {
     const tools = getMetaGroupTools("dba-monitor");
-    // dba-monitor = core(20) + monitoring(11) + performance(21) + transactions(7) + codemode(1) = 60
-    expect(tools).toHaveLength(60);
+    // dba-monitor = core(20) + monitoring(11) + performance(24) + transactions(7) + codemode(1) = 63
+    expect(tools).toHaveLength(63);
   });
 
   it("should return correct tools for dba-schema meta-group", () => {
@@ -231,36 +231,36 @@ describe("getMetaGroupTools", () => {
 });
 
 describe("parseToolFilter", () => {
-  it("should return all 228 tools enabled for empty filter", () => {
+  it("should return all 231 tools enabled for empty filter", () => {
     const config = parseToolFilter("");
-    expect(config.enabledTools.size).toBe(228);
+    expect(config.enabledTools.size).toBe(231);
     expect(config.rules).toHaveLength(0);
     expect(config.enabledTools.has("pg_read_query")).toBe(true);
   });
 
-  it("should return all 228 tools enabled for undefined filter", () => {
+  it("should return all 231 tools enabled for undefined filter", () => {
     const config = parseToolFilter(undefined);
-    expect(config.enabledTools.size).toBe(228);
+    expect(config.enabledTools.size).toBe(231);
     expect(config.rules).toHaveLength(0);
   });
 
   it("should disable a single tool", () => {
     const config = parseToolFilter("-pg_read_query");
-    expect(config.enabledTools.size).toBe(227); // 228 - 1
+    expect(config.enabledTools.size).toBe(230); // 231 - 1
     expect(config.enabledTools.has("pg_read_query")).toBe(false);
     expect(config.enabledTools.has("pg_write_query")).toBe(true);
   });
 
   it("should disable a tool group", () => {
     const config = parseToolFilter("-core");
-    expect(config.enabledTools.size).toBe(208); // 228 - 20
+    expect(config.enabledTools.size).toBe(211); // 231 - 20
     expect(config.enabledTools.has("pg_read_query")).toBe(false);
     expect(config.enabledTools.has("pg_jsonb_extract")).toBe(true);
   });
 
   it("should disable a meta-group", () => {
     const config = parseToolFilter("-starter");
-    expect(config.enabledTools.size).toBe(169); // 228 - 59
+    expect(config.enabledTools.size).toBe(172); // 231 - 59
     expect(config.enabledTools.has("pg_read_query")).toBe(false);
     expect(config.enabledTools.has("pg_jsonb_extract")).toBe(false);
     expect(config.enabledTools.has("pg_vector_search")).toBe(true);
@@ -332,13 +332,13 @@ describe("parseToolFilter", () => {
   it("should include codemode in blacklist mode by default", () => {
     const config = parseToolFilter("-vector");
     expect(config.enabledTools.has("pg_execute_code")).toBe(true);
-    expect(config.enabledTools.size).toBe(212); // 228 - 16
+    expect(config.enabledTools.size).toBe(215); // 231 - 16
   });
 
   it("should allow excluding codemode in blacklist mode", () => {
     const config = parseToolFilter("-codemode");
     expect(config.enabledTools.has("pg_execute_code")).toBe(false);
-    expect(config.enabledTools.size).toBe(227); // 228 - 1
+    expect(config.enabledTools.size).toBe(230); // 231 - 1
   });
 });
 
@@ -393,7 +393,7 @@ describe("getFilterSummary", () => {
   it("should generate summary for no filter", () => {
     const config = parseToolFilter("");
     const summary = getFilterSummary(config);
-    expect(summary).toContain("228");
+    expect(summary).toContain("231");
     expect(summary).toContain("Enabled");
   });
 
