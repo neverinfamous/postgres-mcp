@@ -34,10 +34,10 @@ test.describe("E2E Tool Execution (via MCP SDK Client)", () => {
     expect(toolNames).toContain("pg_read_query");
   });
 
-  test("should execute a read tool successfully (pg_read_query)", async () => {
+  test("should execute a read tool successfully (pg_list_tables)", async () => {
     const response = await client.callTool({
-      name: "pg_read_query",
-      arguments: { query: "SELECT 1 AS test_value" },
+      name: "pg_list_tables",
+      arguments: {},
     });
 
     expect(response.isError).toBeUndefined();
@@ -46,9 +46,10 @@ test.describe("E2E Tool Execution (via MCP SDK Client)", () => {
     expect(response.content[0].type).toBe("text");
     const textOutput = (response.content[0] as any).text as string;
     const parsed = JSON.parse(textOutput);
-    expect(parsed).toHaveProperty("rows");
-    expect(Array.isArray(parsed.rows)).toBe(true);
-    expect(parsed.rows.length).toBe(1);
+    expect(parsed).toHaveProperty("tables");
+    expect(Array.isArray(parsed.tables)).toBe(true);
+    expect(parsed).toHaveProperty("count");
+    expect(typeof parsed.count).toBe("number");
   });
 
   test("should return formatted MCP error for validation failures (pg_read_query)", async () => {

@@ -39,14 +39,17 @@ test.describe("Streamable HTTP Transport (MCP 2025-11-25)", () => {
 
   test("should list and execute tools via Streamable HTTP", async () => {
     const response = await client.callTool({
-      name: "pg_read_query",
-      arguments: { query: "SELECT 1 AS value" },
+      name: "pg_list_tables",
+      arguments: {},
     });
 
     expect(response.isError).toBeUndefined();
     expect(Array.isArray(response.content)).toBe(true);
     expect(response.content.length).toBeGreaterThan(0);
     expect(response.content[0].type).toBe("text");
+
+    const parsed = JSON.parse((response.content[0] as any).text);
+    expect(parsed).toHaveProperty("tables");
   });
 
   test("should call a read tool via Streamable HTTP", async () => {

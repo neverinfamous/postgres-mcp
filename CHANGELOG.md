@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Playwright config expanded** — Changed `--tool-filter starter` to `--tool-filter +all` for full tool coverage, added `MCP_RATE_LIMIT_MAX: "1000"` env var, set `workers: 1` for stability
 - **E2E shared client pattern** — Refactored `tools.spec.ts` to use single shared client via `beforeAll`/`afterAll` instead of per-test client creation
 
+### Fixed
+
+- **`TableListOutputSchema` additional-properties rejection** — `TableInfoSchema` was missing `owner`, `totalSizeBytes`, `comment`, and `statsStale` properties that `queryListTables()` returns, causing MCP SDK clients to reject `pg_list_tables` responses with output schema validation errors
+
 ## [2.3.0] - 2026-03-09
 
 ### Fixed

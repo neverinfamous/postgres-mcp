@@ -300,8 +300,12 @@ const TableInfoSchema = z.object({
   name: z.string().describe("Table name"),
   schema: z.string().describe("Schema name"),
   type: z.string().describe("Object type (table/view/materialized_view)"),
+  owner: z.string().optional().describe("Table owner"),
   rowCount: z.number().optional().describe("Estimated row count"),
   sizeBytes: z.number().optional().describe("Table size in bytes"),
+  totalSizeBytes: z.number().optional().describe("Total size including indexes"),
+  comment: z.string().nullable().optional().describe("Table comment"),
+  statsStale: z.boolean().optional().describe("Whether pg_class stats are stale"),
 });
 
 // Output schema for pg_list_tables
