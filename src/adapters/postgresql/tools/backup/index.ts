@@ -12,9 +12,13 @@ import type { ToolDefinition } from "../../../../types/index.js";
 import {
   createDumpTableTool,
   createDumpSchemaTool,
+} from "./dump.js";
+
+// COPY operations
+import {
   createCopyExportTool,
   createCopyImportTool,
-} from "./dump.js";
+} from "./copy.js";
 
 // Backup planning
 import {

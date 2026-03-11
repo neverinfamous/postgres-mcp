@@ -11,10 +11,14 @@
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
-// Management tools
+// Setup & creation tools
 import {
   createPartmanExtensionTool,
   createPartmanCreateParentTool,
+} from "./create.js";
+
+// Management & inspection tools
+import {
   createPartmanRunMaintenanceTool,
   createPartmanShowPartitionsTool,
   createPartmanShowConfigTool,

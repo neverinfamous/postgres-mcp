@@ -347,7 +347,7 @@ export {
   AttachPartitionOutputSchema,
   DetachPartitionOutputSchema,
   PartitionInfoOutputSchema,
-} from "./partitioning.js";
+} from "./partitioning/index.js";
 
 // pg_cron schemas
 export {

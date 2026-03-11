@@ -179,6 +179,43 @@ class Logger {
   ]);
 
   /**
+   * Pre-compiled regex for substring-based sensitive key detection.
+   * Replaces O(n) Set iteration with a single regex test on the slow path.
+   */
+  private readonly sensitiveKeyPattern: RegExp = new RegExp(
+    [
+      "password",
+      "secret",
+      "token",
+      "key",
+      "apikey",
+      "api_key",
+      "accesstoken",
+      "access_token",
+      "refreshtoken",
+      "refresh_token",
+      "authorization",
+      "credential",
+      "credentials",
+      "client_secret",
+      "clientsecret",
+      "issuer",
+      "audience",
+      "jwksuri",
+      "jwks_uri",
+      "authorizationserverurl",
+      "authorization_server_url",
+      "bearerformat",
+      "bearer_format",
+      "oauthconfig",
+      "oauth_config",
+      "oauth",
+      "scopes_supported",
+      "scopessupported",
+    ].join("|"),
+  );
+
+  /**
    * Sanitize log message to prevent log injection attacks
    * Removes newlines, carriage returns, and all control characters
    */
@@ -215,14 +252,9 @@ class Logger {
       // Check if this key matches any sensitive pattern
       // Fast path: exact Set membership
       let isSensitive = this.sensitiveKeys.has(lowerKey);
-      // Slow path: substring check — iterate Set directly (avoids spread allocation)
+      // Slow path: single regex test for substring containment
       if (!isSensitive) {
-        for (const sk of this.sensitiveKeys) {
-          if (lowerKey.includes(sk)) {
-            isSensitive = true;
-            break;
-          }
-        }
+        isSensitive = this.sensitiveKeyPattern.test(lowerKey);
       }
 
       if (isSensitive && value !== undefined && value !== null) {

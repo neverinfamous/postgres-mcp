@@ -954,7 +954,7 @@ describe("normalizePathToString", () => {
 import {
   CreatePartitionSchema,
   CreatePartitionedTableSchema,
-} from "../partitioning.js";
+} from "../partitioning/index.js";
 
 describe("CreatePartitionSchema", () => {
   it("should resolve parentTable alias to parent", () => {
@@ -2219,7 +2219,7 @@ import {
   ListPartitionsSchema,
   PartitionInfoSchema,
   CreatePartitionedTableSchema,
-} from "../partitioning.js";
+} from "../partitioning/index.js";
 
 describe("CreatePartitionSchema (preprocessPartitionParams)", () => {
   it("should resolve parentTable alias to parent", () => {

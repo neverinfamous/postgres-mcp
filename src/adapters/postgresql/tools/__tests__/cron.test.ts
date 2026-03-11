@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getCronTools } from "../cron.js";
+import { getCronTools } from "../cron/index.js";
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import {
   createMockPostgresAdapter,

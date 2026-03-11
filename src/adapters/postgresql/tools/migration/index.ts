@@ -12,10 +12,13 @@ import {
   createMigrationInitTool,
   createMigrationRecordTool,
   createMigrationApplyTool,
+} from "../introspection/migration.js";
+
+import {
   createMigrationRollbackTool,
   createMigrationHistoryTool,
   createMigrationStatusTool,
-} from "../introspection/migration.js";
+} from "../introspection/migration-query.js";
 
 /**
  * Get all migration tools

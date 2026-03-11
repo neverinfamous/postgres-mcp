@@ -47,8 +47,8 @@ import { createDiagnoseTool } from "./diagnostics.js";
 import {
   createDetectQueryAnomaliesTool,
   createDetectBloatRiskTool,
-  createDetectConnectionSpikeTool,
 } from "./anomaly-detection.js";
+import { createDetectConnectionSpikeTool } from "./connection-analysis.js";
 
 /**
  * Get all performance tools

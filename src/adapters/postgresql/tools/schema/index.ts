@@ -18,15 +18,19 @@ import {
   createDropSequenceTool,
 } from "./objects.js";
 
-// Views, functions, triggers & constraints tools
+// Views CRUD
 import {
   createListViewsTool,
   createCreateViewTool,
   createDropViewTool,
+} from "./views.js";
+
+// Catalog listing (functions, triggers, constraints)
+import {
   createListFunctionsTool,
   createListTriggersTool,
   createListConstraintsTool,
-} from "./views.js";
+} from "./catalog.js";
 
 /**
  * Get all schema management tools

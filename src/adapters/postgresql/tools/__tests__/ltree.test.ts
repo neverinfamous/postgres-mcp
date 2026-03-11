@@ -10,7 +10,7 @@ import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
-import { getLtreeTools } from "../ltree.js";
+import { getLtreeTools } from "../ltree/index.js";
 
 describe("Ltree Tools", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;

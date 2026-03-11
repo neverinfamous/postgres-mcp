@@ -8,10 +8,14 @@
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
-// Basic statistics tools
+// Descriptive statistics tools
 import {
   createStatsDescriptiveTool,
   createStatsPercentilesTool,
+} from "./descriptive.js";
+
+// Two-column analysis tools
+import {
   createStatsCorrelationTool,
   createStatsRegressionTool,
 } from "./basic.js";

@@ -12,9 +12,12 @@ import type { ToolDefinition } from "../../../../types/index.js";
 import {
   createVectorExtensionTool,
   createVectorAddColumnTool,
+} from "./data.js";
+
+import {
   createVectorInsertTool,
   createVectorBatchInsertTool,
-} from "./data.js";
+} from "./data-insert.js";
 
 import {
   createVectorSearchTool,
@@ -31,9 +34,11 @@ import {
   createVectorValidateTool,
 } from "./aggregate.js";
 
+// Cluster analysis
+import { createVectorClusterTool } from "./cluster.js";
+
 // Search & analysis operations
 import {
-  createVectorClusterTool,
   createHybridSearchTool,
   createVectorPerformanceTool,
 } from "./search-advanced.js";

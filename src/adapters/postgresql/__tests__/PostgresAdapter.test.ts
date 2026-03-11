@@ -16,7 +16,7 @@ import {
   extractIndexColumns,
   extractIndexExpressionPart,
   parseIndexExpressions,
-} from "../schema-operations.js";
+} from "../schema-operations/index.js";
 import type {
   DatabaseConfig,
   HealthStatus,

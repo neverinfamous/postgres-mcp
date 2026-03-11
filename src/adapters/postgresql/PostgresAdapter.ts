@@ -38,8 +38,8 @@ import {
   queryListSchemas,
   queryTableIndexes,
   queryIsExtensionAvailable,
-} from "./schema-operations.js";
-import type { CacheHelpers } from "./schema-operations.js";
+} from "./schema-operations/index.js";
+import type { CacheHelpers } from "./schema-operations/index.js";
 
 import { getCoreTools } from "./tools/core/index.js";
 import { getTransactionTools } from "./tools/transactions.js";
@@ -54,11 +54,11 @@ import { getVectorTools } from "./tools/vector/index.js";
 import { getPostgisTools } from "./tools/postgis/index.js";
 import { getPartitioningTools } from "./tools/partitioning/index.js";
 import { getStatsTools } from "./tools/stats/index.js";
-import { getCronTools } from "./tools/cron.js";
+import { getCronTools } from "./tools/cron/index.js";
 import { getPartmanTools } from "./tools/partman/index.js";
 import { getKcacheTools } from "./tools/kcache/index.js";
 import { getCitextTools } from "./tools/citext/index.js";
-import { getLtreeTools } from "./tools/ltree.js";
+import { getLtreeTools } from "./tools/ltree/index.js";
 import { getPgcryptoTools } from "./tools/pgcrypto.js";
 import { getIntrospectionTools } from "./tools/introspection/index.js";
 import { getMigrationTools } from "./tools/migration/index.js";
