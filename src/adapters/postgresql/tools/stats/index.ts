@@ -17,12 +17,10 @@ import {
 } from "./basic.js";
 
 // Advanced statistics tools
-import {
-  createStatsTimeSeriesTool,
-  createStatsDistributionTool,
-  createStatsHypothesisTool,
-  createStatsSamplingTool,
-} from "./advanced.js";
+import { createStatsTimeSeriesTool } from "./time-series.js";
+import { createStatsDistributionTool } from "./distribution.js";
+import { createStatsHypothesisTool } from "./hypothesis.js";
+import { createStatsSamplingTool } from "./sampling.js";
 
 // Schemas (now centralized in schemas/stats.ts)
 import {

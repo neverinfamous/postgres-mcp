@@ -56,7 +56,7 @@ import { getPartitioningTools } from "./tools/partitioning/index.js";
 import { getStatsTools } from "./tools/stats/index.js";
 import { getCronTools } from "./tools/cron.js";
 import { getPartmanTools } from "./tools/partman/index.js";
-import { getKcacheTools } from "./tools/kcache.js";
+import { getKcacheTools } from "./tools/kcache/index.js";
 import { getCitextTools } from "./tools/citext/index.js";
 import { getLtreeTools } from "./tools/ltree.js";
 import { getPgcryptoTools } from "./tools/pgcrypto.js";

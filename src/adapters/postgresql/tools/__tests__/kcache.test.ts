@@ -10,7 +10,7 @@ import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
-import { getKcacheTools } from "../kcache.js";
+import { getKcacheTools } from "../kcache/index.js";
 
 describe("Kcache Tools", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;

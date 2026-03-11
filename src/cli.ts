@@ -11,7 +11,7 @@ import { PostgresAdapter } from "./adapters/postgresql/index.js";
 import { PostgresMcpServer } from "./server/McpServer.js";
 import { parseToolFilter, getFilterSummary } from "./filtering/ToolFilter.js";
 import { logger } from "./utils/logger.js";
-import { HttpTransport, type HttpTransportConfig } from "./transports/http.js";
+import { HttpTransport, type HttpTransportConfig } from "./transports/http/index.js";
 import {
   OAuthResourceServer,
   TokenValidator,

@@ -1,11 +1,11 @@
 /**
- * postgres-mcp - HTTP Transport
+ * postgres-mcp - HTTP Transport Server
  *
  * Dual-protocol HTTP transport with backward compatibility:
  * - `/mcp` — Streamable HTTP transport (MCP protocol 2025-11-25)
  * - `/sse` + `/messages` — Legacy SSE transport (MCP protocol 2024-11-05)
  *
- * Includes OAuth 2.0 support, rate limiting, CORS, and security headers.
+ * Security utilities and endpoint handlers are in ./security.ts and ./handlers.ts.
  */
 
 import { randomUUID } from "node:crypto";
@@ -15,18 +15,32 @@ import {
   type ServerResponse,
 } from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+// Legacy SSE transport — intentionally used for MCP 2024-11-05 backward compatibility
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import type { OAuthResourceServer } from "../auth/OAuthResourceServer.js";
-import type { TokenValidator } from "../auth/TokenValidator.js";
+import type { OAuthResourceServer } from "../../auth/OAuthResourceServer.js";
+import type { TokenValidator } from "../../auth/TokenValidator.js";
 import {
   validateAuth,
   formatOAuthError,
   type AuthenticatedContext,
-} from "../auth/middleware.js";
-import { runWithAuthContext } from "../auth/auth-context.js";
-import { logger } from "../utils/logger.js";
+} from "../../auth/middleware.js";
+import { runWithAuthContext } from "../../auth/auth-context.js";
+import { logger } from "../../utils/logger.js";
+import {
+  type RateLimitEntry,
+  DEFAULTS,
+  checkRateLimit,
+  setSecurityHeaders,
+  setCorsHeaders,
+  readBody,
+} from "./security.js";
+import {
+  handleProtectedResourceMetadata,
+  handleHealthCheck,
+  handleRootInfo,
+} from "./handlers.js";
 
 /**
  * HTTP transport configuration
@@ -99,14 +113,6 @@ export interface HttpTransportConfig {
 }
 
 /**
- * Rate limit entry for tracking request counts per IP
- */
-interface RateLimitEntry {
-  count: number;
-  resetTime: number;
-}
-
-/**
  * HTTP Transport for MCP
  *
  * Supports two transport protocols simultaneously:
@@ -121,18 +127,13 @@ export class HttpTransport {
   /** Active transports by session ID (supports both transport types) */
   private readonly transports = new Map<
     string,
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     StreamableHTTPServerTransport | SSEServerTransport
   >();
 
   // Rate limiting state
   private readonly rateLimitMap = new Map<string, RateLimitEntry>();
   private rateLimitCleanupInterval: NodeJS.Timeout | null = null;
-
-  // Default configuration values
-  private static readonly DEFAULT_RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-  private static readonly DEFAULT_RATE_LIMIT_MAX_REQUESTS = 100;
-  private static readonly DEFAULT_MAX_BODY_SIZE = 1048576; // 1MB
-  private static readonly DEFAULT_HSTS_MAX_AGE = 31536000; // 1 year
 
   constructor(
     config: HttpTransportConfig,
@@ -144,13 +145,12 @@ export class HttpTransport {
       publicPaths: config.publicPaths ?? ["/health", "/.well-known/*"],
       enableRateLimit: config.enableRateLimit ?? true,
       rateLimitWindowMs:
-        config.rateLimitWindowMs ?? HttpTransport.DEFAULT_RATE_LIMIT_WINDOW_MS,
+        config.rateLimitWindowMs ?? DEFAULTS.RATE_LIMIT_WINDOW_MS,
       rateLimitMaxRequests:
-        config.rateLimitMaxRequests ??
-        HttpTransport.DEFAULT_RATE_LIMIT_MAX_REQUESTS,
-      maxBodySize: config.maxBodySize ?? HttpTransport.DEFAULT_MAX_BODY_SIZE,
+        config.rateLimitMaxRequests ?? DEFAULTS.RATE_LIMIT_MAX_REQUESTS,
+      maxBodySize: config.maxBodySize ?? DEFAULTS.MAX_BODY_SIZE,
       enableHSTS: config.enableHSTS ?? false,
-      hstsMaxAge: config.hstsMaxAge ?? HttpTransport.DEFAULT_HSTS_MAX_AGE,
+      hstsMaxAge: config.hstsMaxAge ?? DEFAULTS.HSTS_MAX_AGE,
       trustProxy: config.trustProxy ?? false,
     };
     if (onConnect) {
@@ -247,120 +247,6 @@ export class HttpTransport {
   }
 
   /**
-   * Check rate limit for a request
-   * @returns true if request should be allowed, false if rate limited
-   */
-  private checkRateLimit(req: IncomingMessage): boolean {
-    if (!this.config.enableRateLimit) {
-      return true;
-    }
-
-    const clientIp = this.getClientIp(req);
-    const now = Date.now();
-    const windowMs =
-      this.config.rateLimitWindowMs ??
-      HttpTransport.DEFAULT_RATE_LIMIT_WINDOW_MS;
-    const maxRequests =
-      this.config.rateLimitMaxRequests ??
-      HttpTransport.DEFAULT_RATE_LIMIT_MAX_REQUESTS;
-
-    const entry = this.rateLimitMap.get(clientIp);
-
-    // Expired entries are cleaned up by a deterministic interval (see start())
-
-    if (!entry || now > entry.resetTime) {
-      // Start new window
-      this.rateLimitMap.set(clientIp, { count: 1, resetTime: now + windowMs });
-      return true;
-    }
-
-    if (entry.count >= maxRequests) {
-      return false;
-    }
-
-    entry.count++;
-    return true;
-  }
-
-  /**
-   * Extract the client IP address from the request.
-   * When trustProxy is enabled, uses the leftmost IP from X-Forwarded-For.
-   * Falls back to req.socket.remoteAddress.
-   */
-  private getClientIp(req: IncomingMessage): string {
-    if (this.config.trustProxy) {
-      const forwarded = req.headers["x-forwarded-for"];
-      if (typeof forwarded === "string") {
-        const firstIp = forwarded.split(",")[0]?.trim();
-        if (firstIp) return firstIp;
-      }
-    }
-    return req.socket.remoteAddress ?? "unknown";
-  }
-
-  /**
-   * Read and parse JSON body from an incoming request.
-   * Returns undefined for GET/DELETE/OPTIONS (no body expected).
-   * Enforces maxBodySize limit while streaming to prevent memory exhaustion.
-   */
-  private async readBody(
-    req: IncomingMessage,
-    res: ServerResponse,
-  ): Promise<unknown> {
-    if (
-      req.method === "GET" ||
-      req.method === "DELETE" ||
-      req.method === "OPTIONS"
-    ) {
-      return undefined;
-    }
-
-    const maxBodySize =
-      this.config.maxBodySize ?? HttpTransport.DEFAULT_MAX_BODY_SIZE;
-
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      let receivedBytes = 0;
-      let limitExceeded = false;
-
-      req.on("data", (chunk: Buffer) => {
-        if (limitExceeded) return;
-        receivedBytes += chunk.length;
-        if (receivedBytes > maxBodySize) {
-          limitExceeded = true;
-          req.destroy();
-          if (!res.headersSent) {
-            res.writeHead(413, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({
-                error: "payload_too_large",
-                error_description: `Request body exceeds maximum size of ${String(maxBodySize)} bytes.`,
-              }),
-            );
-          }
-          reject(new Error("Payload too large"));
-          return;
-        }
-        chunks.push(chunk);
-      });
-      req.on("end", () => {
-        if (limitExceeded) return;
-        const raw = Buffer.concat(chunks).toString("utf-8");
-        if (!raw) {
-          resolve(undefined);
-          return;
-        }
-        try {
-          resolve(JSON.parse(raw));
-        } catch {
-          reject(new Error("Invalid JSON in request body"));
-        }
-      });
-      req.on("error", reject);
-    });
-  }
-
-  /**
    * Handle incoming HTTP request
    */
   private async handleRequest(
@@ -368,10 +254,10 @@ export class HttpTransport {
     res: ServerResponse,
   ): Promise<void> {
     // Set security headers for all responses
-    this.setSecurityHeaders(res);
+    setSecurityHeaders(res, this.config);
 
     // Set CORS headers
-    this.setCorsHeaders(req, res);
+    setCorsHeaders(req, res, this.config);
 
     // Handle preflight
     if (req.method === "OPTIONS") {
@@ -381,7 +267,7 @@ export class HttpTransport {
     }
 
     // Check rate limit
-    if (!this.checkRateLimit(req)) {
+    if (!checkRateLimit(req, this.config, this.rateLimitMap)) {
       res.writeHead(429, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
@@ -394,8 +280,7 @@ export class HttpTransport {
 
     // Check body size — fast rejection via Content-Length header.
     // Streaming byte tracking for spoofed/missing headers is handled inside readBody().
-    const maxBodySize =
-      this.config.maxBodySize ?? HttpTransport.DEFAULT_MAX_BODY_SIZE;
+    const maxBodySize = this.config.maxBodySize ?? DEFAULTS.MAX_BODY_SIZE;
     const contentLength = parseInt(req.headers["content-length"] ?? "0", 10);
     if (contentLength > maxBodySize) {
       res.writeHead(413, { "Content-Type": "application/json" });
@@ -415,19 +300,19 @@ export class HttpTransport {
 
     // Handle well-known endpoints
     if (url.pathname === "/.well-known/oauth-protected-resource") {
-      this.handleProtectedResourceMetadata(res);
+      handleProtectedResourceMetadata(res, this.config.resourceServer);
       return;
     }
 
     // Health check
     if (url.pathname === "/health") {
-      this.handleHealthCheck(res);
+      handleHealthCheck(res, !!this.config.resourceServer);
       return;
     }
 
     // Root info endpoint
     if (url.pathname === "/" && req.method === "GET") {
-      this.handleRootInfo(res);
+      handleRootInfo(res);
       return;
     }
 
@@ -527,9 +412,10 @@ export class HttpTransport {
     }
 
     // POST requests — pre-parse the body so the SDK receives parsed JSON
+    const maxBodySize = this.config.maxBodySize ?? DEFAULTS.MAX_BODY_SIZE;
     let body: unknown;
     try {
-      body = await this.readBody(req, res);
+      body = await readBody(req, res, maxBodySize);
     } catch (readError) {
       // readBody rejects with "Payload too large" after sending 413 to client
       if (
@@ -635,6 +521,7 @@ export class HttpTransport {
   ): void {
     logger.debug("Legacy SSE connection established");
 
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const transport = new SSEServerTransport("/messages", res);
     this.transports.set(transport.sessionId, transport);
 
@@ -678,6 +565,7 @@ export class HttpTransport {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     if (!(transport instanceof SSEServerTransport)) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(
@@ -693,132 +581,6 @@ export class HttpTransport {
   }
 
   // ===========================================================================
-  // Utility Endpoints
-  // ===========================================================================
-
-  /**
-   * Handle protected resource metadata endpoint
-   */
-  private handleProtectedResourceMetadata(res: ServerResponse): void {
-    if (!this.config.resourceServer) {
-      res.writeHead(404);
-      res.end(JSON.stringify({ error: "OAuth not configured" }));
-      return;
-    }
-
-    const metadata = this.config.resourceServer.getMetadata();
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(metadata));
-  }
-
-  /**
-   * Handle health check endpoint
-   */
-  private handleHealthCheck(res: ServerResponse): void {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        status: "healthy",
-        timestamp: new Date().toISOString(),
-        oauthEnabled: !!this.config.resourceServer,
-      }),
-    );
-  }
-
-  /**
-   * Handle root info endpoint — helpful for browser visitors and debugging
-   */
-  private handleRootInfo(res: ServerResponse): void {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        name: "postgres-mcp",
-        description: "PostgreSQL MCP Server with dual HTTP transport",
-        endpoints: {
-          "POST /mcp": "JSON-RPC requests (Streamable HTTP, MCP 2025-11-25)",
-          "GET /mcp": "SSE stream for server-to-client notifications",
-          "DELETE /mcp": "Session termination",
-          "GET /sse": "Legacy SSE connection (MCP 2024-11-05)",
-          "POST /messages": "Legacy SSE message endpoint",
-          "GET /health": "Health check",
-        },
-        documentation: "https://github.com/neverinfamous/postgres-mcp",
-      }),
-    );
-  }
-
-  // ===========================================================================
-  // Security Headers
-  // ===========================================================================
-
-  /**
-   * Set security headers for all responses
-   */
-  private setSecurityHeaders(res: ServerResponse): void {
-    // Prevent MIME type sniffing
-    res.setHeader("X-Content-Type-Options", "nosniff");
-    // Prevent clickjacking
-    res.setHeader("X-Frame-Options", "DENY");
-    // Prevent caching of API responses
-    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    // Content Security Policy - API server has no content to load
-    res.setHeader(
-      "Content-Security-Policy",
-      "default-src 'none'; frame-ancestors 'none'",
-    );
-    // Restrict browser features not needed by an API server
-    res.setHeader(
-      "Permissions-Policy",
-      "camera=(), microphone=(), geolocation=()",
-    );
-    // Prevent referrer leakage — API server does not need referrers
-    res.setHeader("Referrer-Policy", "no-referrer");
-
-    // HTTP Strict Transport Security (for HTTPS deployments)
-    if (this.config.enableHSTS) {
-      const maxAge =
-        this.config.hstsMaxAge ?? HttpTransport.DEFAULT_HSTS_MAX_AGE;
-      res.setHeader(
-        "Strict-Transport-Security",
-        `max-age=${String(maxAge)}; includeSubDomains`,
-      );
-    }
-  }
-
-  /**
-   * Set CORS headers for browser-based MCP client support
-   *
-   * This implements the MCP SDK 1.25.1 recommendation of using external middleware
-   * for origin validation rather than the deprecated built-in options.
-   */
-  private setCorsHeaders(req: IncomingMessage, res: ServerResponse): void {
-    const origin = req.headers.origin;
-
-    // Only allow configured origins
-    if (origin && this.config.corsOrigins?.includes(origin)) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-      res.setHeader(
-        "Access-Control-Allow-Methods",
-        "GET, POST, DELETE, OPTIONS",
-      );
-      res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Content-Type, Authorization, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID",
-      );
-      res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
-      res.setHeader("Access-Control-Max-Age", "86400");
-
-      // Vary header is important for correct caching behavior
-      res.setHeader("Vary", "Origin");
-
-      // Allow credentials if explicitly configured (needed for browser cookies/auth)
-      if (this.config.corsAllowCredentials) {
-        res.setHeader("Access-Control-Allow-Credentials", "true");
-      }
-    }
-  }
-
-  // ===========================================================================
   // Accessors
   // ===========================================================================
 
@@ -827,6 +589,7 @@ export class HttpTransport {
    */
   getTransports(): Map<
     string,
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     StreamableHTTPServerTransport | SSEServerTransport
   > {
     return this.transports;

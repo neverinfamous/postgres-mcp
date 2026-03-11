@@ -7,7 +7,9 @@
 
 import { describe, it, expect, vi } from "vitest";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { HttpTransport } from "../http.js";
+import { HttpTransport } from "../http/index.js";
+import { setSecurityHeaders, setCorsHeaders, checkRateLimit, readBody, getClientIp } from "../http/security.js";
+import { handleProtectedResourceMetadata, handleHealthCheck } from "../http/handlers.js";
 
 // Mock the logger to avoid console output during tests
 vi.mock("../../utils/logger.js", () => ({
@@ -75,18 +77,12 @@ describe("HttpTransport", () => {
         rateLimitWindowMs: 60000,
       });
 
-      // Access private method via type casting for testing
-      const checkRateLimit = (
-        transport as unknown as {
-          checkRateLimit: (req: IncomingMessage) => boolean;
-        }
-      ).checkRateLimit.bind(transport);
+      const rateLimitMap = new Map();
 
       const req = createMockRequest();
 
-      // First 5 requests should be allowed
       for (let i = 0; i < 5; i++) {
-        expect(checkRateLimit(req)).toBe(true);
+        expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(true);
       }
     });
 
@@ -98,21 +94,17 @@ describe("HttpTransport", () => {
         rateLimitWindowMs: 60000,
       });
 
-      const checkRateLimit = (
-        transport as unknown as {
-          checkRateLimit: (req: IncomingMessage) => boolean;
-        }
-      ).checkRateLimit.bind(transport);
+      const rateLimitMap = new Map();
 
       const req = createMockRequest();
 
       // First 3 requests allowed
-      expect(checkRateLimit(req)).toBe(true);
-      expect(checkRateLimit(req)).toBe(true);
-      expect(checkRateLimit(req)).toBe(true);
+      expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(true);
 
       // 4th request should be blocked
-      expect(checkRateLimit(req)).toBe(false);
+      expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(false);
     });
 
     it("should track rate limits per IP address", () => {
@@ -123,11 +115,7 @@ describe("HttpTransport", () => {
         rateLimitWindowMs: 60000,
       });
 
-      const checkRateLimit = (
-        transport as unknown as {
-          checkRateLimit: (req: IncomingMessage) => boolean;
-        }
-      ).checkRateLimit.bind(transport);
+      const rateLimitMap = new Map();
 
       const req1 = createMockRequest({
         socket: { remoteAddress: "192.168.1.1" },
@@ -137,14 +125,14 @@ describe("HttpTransport", () => {
       } as unknown as IncomingMessage);
 
       // IP 1: use up their limit
-      expect(checkRateLimit(req1)).toBe(true);
-      expect(checkRateLimit(req1)).toBe(true);
-      expect(checkRateLimit(req1)).toBe(false);
+      expect(checkRateLimit(req1, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(req1, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(req1, transport.config, rateLimitMap)).toBe(false);
 
       // IP 2: should have their own limit
-      expect(checkRateLimit(req2)).toBe(true);
-      expect(checkRateLimit(req2)).toBe(true);
-      expect(checkRateLimit(req2)).toBe(false);
+      expect(checkRateLimit(req2, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(req2, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(req2, transport.config, rateLimitMap)).toBe(false);
     });
 
     it("should bypass rate limiting when disabled", () => {
@@ -153,17 +141,13 @@ describe("HttpTransport", () => {
         enableRateLimit: false,
       });
 
-      const checkRateLimit = (
-        transport as unknown as {
-          checkRateLimit: (req: IncomingMessage) => boolean;
-        }
-      ).checkRateLimit.bind(transport);
+      const rateLimitMap = new Map();
 
       const req = createMockRequest();
 
       // Should allow unlimited requests
       for (let i = 0; i < 1000; i++) {
-        expect(checkRateLimit(req)).toBe(true);
+        expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(true);
       }
     });
 
@@ -177,24 +161,20 @@ describe("HttpTransport", () => {
         rateLimitWindowMs: 60000,
       });
 
-      const checkRateLimit = (
-        transport as unknown as {
-          checkRateLimit: (req: IncomingMessage) => boolean;
-        }
-      ).checkRateLimit.bind(transport);
+      const rateLimitMap = new Map();
 
       const req = createMockRequest();
 
       // Use up limit
-      expect(checkRateLimit(req)).toBe(true);
-      expect(checkRateLimit(req)).toBe(true);
-      expect(checkRateLimit(req)).toBe(false);
+      expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(false);
 
       // Advance past window
       vi.advanceTimersByTime(61000);
 
       // Should have new limit
-      expect(checkRateLimit(req)).toBe(true);
+      expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(true);
 
       vi.useRealTimers();
     });
@@ -205,13 +185,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["x-content-type-options"]).toBe("nosniff");
     });
@@ -220,13 +194,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["x-frame-options"]).toBe("DENY");
     });
@@ -235,13 +203,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["x-xss-protection"]).toBeUndefined();
     });
@@ -250,13 +212,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["permissions-policy"]).toBe(
         "camera=(), microphone=(), geolocation=()",
@@ -267,13 +223,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["cache-control"]).toBe(
         "no-store, no-cache, must-revalidate",
@@ -284,13 +234,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["content-security-policy"]).toBe(
         "default-src 'none'; frame-ancestors 'none'",
@@ -303,13 +247,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["strict-transport-security"]).toBeUndefined();
     });
@@ -321,13 +259,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["strict-transport-security"]).toContain("max-age=");
       expect(res._headers["strict-transport-security"]).toContain(
@@ -343,13 +275,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["strict-transport-security"]).toBe(
         "max-age=86400; includeSubDomains",
@@ -368,13 +294,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const setCorsHeaders = (
-        transport as unknown as {
-          setCorsHeaders: (req: IncomingMessage, res: ServerResponse) => void;
-        }
-      ).setCorsHeaders.bind(transport);
-
-      setCorsHeaders(req, res);
+      setCorsHeaders(req, res, transport.config);
 
       expect(res._headers["access-control-allow-origin"]).toBeUndefined();
     });
@@ -389,13 +309,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const setCorsHeaders = (
-        transport as unknown as {
-          setCorsHeaders: (req: IncomingMessage, res: ServerResponse) => void;
-        }
-      ).setCorsHeaders.bind(transport);
-
-      setCorsHeaders(req, res);
+      setCorsHeaders(req, res, transport.config);
 
       expect(res._headers["access-control-allow-origin"]).toBe(
         "https://allowed.example.com",
@@ -414,13 +328,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const setCorsHeaders = (
-        transport as unknown as {
-          setCorsHeaders: (req: IncomingMessage, res: ServerResponse) => void;
-        }
-      ).setCorsHeaders.bind(transport);
-
-      setCorsHeaders(req, res);
+      setCorsHeaders(req, res, transport.config);
 
       expect(res._headers["vary"]).toBe("Origin");
     });
@@ -435,13 +343,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const setCorsHeaders = (
-        transport as unknown as {
-          setCorsHeaders: (req: IncomingMessage, res: ServerResponse) => void;
-        }
-      ).setCorsHeaders.bind(transport);
-
-      setCorsHeaders(req, res);
+      setCorsHeaders(req, res, transport.config);
 
       expect(res._headers["access-control-expose-headers"]).toContain(
         "Mcp-Session-Id",
@@ -458,13 +360,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const setCorsHeaders = (
-        transport as unknown as {
-          setCorsHeaders: (req: IncomingMessage, res: ServerResponse) => void;
-        }
-      ).setCorsHeaders.bind(transport);
-
-      setCorsHeaders(req, res);
+      setCorsHeaders(req, res, transport.config);
 
       expect(res._headers["access-control-allow-credentials"]).toBeUndefined();
     });
@@ -480,13 +376,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const setCorsHeaders = (
-        transport as unknown as {
-          setCorsHeaders: (req: IncomingMessage, res: ServerResponse) => void;
-        }
-      ).setCorsHeaders.bind(transport);
-
-      setCorsHeaders(req, res);
+      setCorsHeaders(req, res, transport.config);
 
       expect(res._headers["access-control-allow-credentials"]).toBe("true");
     });
@@ -501,13 +391,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const setCorsHeaders = (
-        transport as unknown as {
-          setCorsHeaders: (req: IncomingMessage, res: ServerResponse) => void;
-        }
-      ).setCorsHeaders.bind(transport);
-
-      setCorsHeaders(req, res);
+      setCorsHeaders(req, res, transport.config);
 
       const allowedHeaders = res._headers["access-control-allow-headers"];
       expect(allowedHeaders).toContain("Mcp-Session-Id");
@@ -700,13 +584,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const handleHealthCheck = (
-        transport as unknown as {
-          handleHealthCheck: (res: ServerResponse) => void;
-        }
-      ).handleHealthCheck.bind(transport);
-
-      handleHealthCheck(res);
+      handleHealthCheck(res, !!transport.config.resourceServer);
 
       expect(res._statusCode).toBe(200);
       const body = JSON.parse(res._body) as {
@@ -721,13 +599,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const handleHealthCheck = (
-        transport as unknown as {
-          handleHealthCheck: (res: ServerResponse) => void;
-        }
-      ).handleHealthCheck.bind(transport);
-
-      handleHealthCheck(res);
+      handleHealthCheck(res, !!transport.config.resourceServer);
 
       expect(res.writeHead).toHaveBeenCalledWith(200, {
         "Content-Type": "application/json",
@@ -740,13 +612,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const handleProtectedResourceMetadata = (
-        transport as unknown as {
-          handleProtectedResourceMetadata: (res: ServerResponse) => void;
-        }
-      ).handleProtectedResourceMetadata.bind(transport);
-
-      handleProtectedResourceMetadata(res);
+      handleProtectedResourceMetadata(res, transport.config.resourceServer);
 
       expect(res._statusCode).toBe(404);
       expect(res._body).toContain("OAuth not configured");
@@ -771,13 +637,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const handleProtectedResourceMetadata = (
-        transport as unknown as {
-          handleProtectedResourceMetadata: (res: ServerResponse) => void;
-        }
-      ).handleProtectedResourceMetadata.bind(transport);
-
-      handleProtectedResourceMetadata(res);
+      handleProtectedResourceMetadata(res, transport.config.resourceServer);
 
       expect(res._statusCode).toBe(200);
       expect(mockResourceServer.getMetadata).toHaveBeenCalled();
@@ -1177,11 +1037,7 @@ describe("HttpTransport", () => {
         rateLimitMaxRequests: 5,
       });
 
-      const checkRateLimit = (
-        transport as unknown as {
-          checkRateLimit: (req: IncomingMessage) => boolean;
-        }
-      ).checkRateLimit.bind(transport);
+      const rateLimitMap = new Map();
 
       // Request with no remote address
       const req = createMockRequest({
@@ -1189,7 +1045,7 @@ describe("HttpTransport", () => {
       } as unknown as IncomingMessage);
 
       // Should still allow the request
-      expect(checkRateLimit(req)).toBe(true);
+      expect(checkRateLimit(req, transport.config, rateLimitMap)).toBe(true);
     });
 
     it("should cleanup expired entries via deterministic interval", async () => {
@@ -1365,7 +1221,7 @@ describe("HttpTransport", () => {
   describe("createHttpTransport factory", () => {
     it("should create HttpTransport with factory function", async () => {
       // Import factory function
-      const { createHttpTransport } = await import("../http.js");
+      const { createHttpTransport } = await import("../http/index.js");
 
       const transport = createHttpTransport({ port: 3000 });
       expect(transport).toBeInstanceOf(HttpTransport);
@@ -1376,12 +1232,9 @@ describe("HttpTransport", () => {
   // readBody — JSON body parsing
   // ==========================================================================
   describe("readBody", () => {
+    // removed getReadBody helper
     function getReadBody(transport: HttpTransport) {
-      return (
-        transport as unknown as {
-          readBody: (req: IncomingMessage) => Promise<unknown>;
-        }
-      ).readBody.bind(transport);
+      return (req: IncomingMessage) => readBody(req, transport.config);
     }
 
     /** Create a mock request that emits body data */
@@ -1827,33 +1680,21 @@ describe("HttpTransport", () => {
         trustProxy: true,
       });
 
-      const getClientIp = (
-        transport as unknown as {
-          getClientIp: (req: IncomingMessage) => string;
-        }
-      ).getClientIp.bind(transport);
-
       const req = createMockRequest({
         headers: { "x-forwarded-for": "1.2.3.4, 10.0.0.1, 127.0.0.1" },
       });
 
-      expect(getClientIp(req)).toBe("1.2.3.4");
+      expect(getClientIp(req, transport.config)).toBe("1.2.3.4");
     });
 
     it("should ignore X-Forwarded-For when trustProxy is false (default)", () => {
       const transport = new HttpTransport({ port: 3000 });
 
-      const getClientIp = (
-        transport as unknown as {
-          getClientIp: (req: IncomingMessage) => string;
-        }
-      ).getClientIp.bind(transport);
-
       const req = createMockRequest({
         headers: { "x-forwarded-for": "1.2.3.4" },
       });
 
-      expect(getClientIp(req)).toBe("127.0.0.1");
+      expect(getClientIp(req, transport.config.trustProxy ?? false)).toBe("127.0.0.1");
     });
 
     it("should fall back to socket address when X-Forwarded-For is missing", () => {
@@ -1862,15 +1703,9 @@ describe("HttpTransport", () => {
         trustProxy: true,
       });
 
-      const getClientIp = (
-        transport as unknown as {
-          getClientIp: (req: IncomingMessage) => string;
-        }
-      ).getClientIp.bind(transport);
-
       const req = createMockRequest();
 
-      expect(getClientIp(req)).toBe("127.0.0.1");
+      expect(getClientIp(req, transport.config.trustProxy ?? false)).toBe("127.0.0.1");
     });
 
     it("should rate limit by forwarded IP when trustProxy is true", () => {
@@ -1882,11 +1717,7 @@ describe("HttpTransport", () => {
         trustProxy: true,
       });
 
-      const checkRateLimit = (
-        transport as unknown as {
-          checkRateLimit: (req: IncomingMessage) => boolean;
-        }
-      ).checkRateLimit.bind(transport);
+      const rateLimitMap = new Map();
 
       // Both requests come from same socket but different forwarded IPs
       const reqA = createMockRequest({
@@ -1897,14 +1728,14 @@ describe("HttpTransport", () => {
       });
 
       // Exhaust limit for forwarded IP 1.2.3.4
-      expect(checkRateLimit(reqA)).toBe(true);
-      expect(checkRateLimit(reqA)).toBe(true);
-      expect(checkRateLimit(reqA)).toBe(false);
+      expect(checkRateLimit(reqA, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(reqA, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(reqA, transport.config, rateLimitMap)).toBe(false);
 
       // Different forwarded IP should have its own limit
-      expect(checkRateLimit(reqB)).toBe(true);
-      expect(checkRateLimit(reqB)).toBe(true);
-      expect(checkRateLimit(reqB)).toBe(false);
+      expect(checkRateLimit(reqB, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(reqB, transport.config, rateLimitMap)).toBe(true);
+      expect(checkRateLimit(reqB, transport.config, rateLimitMap)).toBe(false);
     });
   });
 
@@ -1913,13 +1744,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const handleHealthCheck = (
-        transport as unknown as {
-          handleHealthCheck: (res: ServerResponse) => void;
-        }
-      ).handleHealthCheck.bind(transport);
-
-      handleHealthCheck(res);
+      handleHealthCheck(res, !!transport.config.resourceServer);
 
       const body = JSON.parse(res._body) as {
         oauthEnabled: boolean;
@@ -1941,13 +1766,7 @@ describe("HttpTransport", () => {
       });
       const res = createMockResponse();
 
-      const handleHealthCheck = (
-        transport as unknown as {
-          handleHealthCheck: (res: ServerResponse) => void;
-        }
-      ).handleHealthCheck.bind(transport);
-
-      handleHealthCheck(res);
+      handleHealthCheck(res, !!transport.config.resourceServer);
 
       const body = JSON.parse(res._body) as {
         oauthEnabled: boolean;
@@ -1961,13 +1780,7 @@ describe("HttpTransport", () => {
       const transport = new HttpTransport({ port: 3000 });
       const res = createMockResponse();
 
-      const setSecurityHeaders = (
-        transport as unknown as {
-          setSecurityHeaders: (res: ServerResponse) => void;
-        }
-      ).setSecurityHeaders.bind(transport);
-
-      setSecurityHeaders(res);
+      setSecurityHeaders(res, transport.config);
 
       expect(res._headers["referrer-policy"]).toBe("no-referrer");
     });

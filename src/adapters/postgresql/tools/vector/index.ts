@@ -19,11 +19,17 @@ import {
 import {
   createVectorSearchTool,
   createVectorCreateIndexTool,
+} from "./search.js";
+
+import {
   createVectorDistanceTool,
   createVectorNormalizeTool,
+} from "./math.js";
+
+import {
   createVectorAggregateTool,
   createVectorValidateTool,
-} from "./query.js";
+} from "./aggregate.js";
 
 // Search & analysis operations
 import {

@@ -17,13 +17,17 @@ import {
 import {
   createIndexStatsTool,
   createTableStatsTool,
+  createVacuumStatsTool,
+} from "./catalog-stats.js";
+import {
   createStatStatementsTool,
   createStatActivityTool,
+  createQueryPlanStatsTool,
+} from "./query-stats.js";
+import {
   createUnusedIndexesTool,
   createDuplicateIndexesTool,
-  createVacuumStatsTool,
-  createQueryPlanStatsTool,
-} from "./stats.js";
+} from "./index-analysis.js";
 import {
   createLocksTool,
   createBloatCheckTool,
