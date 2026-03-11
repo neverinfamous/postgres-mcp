@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: "list",
   use: {
     baseURL: "http://localhost:3000",
@@ -19,11 +19,16 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "node dist/cli.js --transport http --port 3000 --postgres postgres://postgres:postgres@localhost:5432/postgres --tool-filter starter",
+      "node dist/cli.js --transport http --port 3000 --postgres postgres://postgres:postgres@localhost:5432/postgres --tool-filter +all",
     url: "http://localhost:3000/health",
     reuseExistingServer: !process.env.CI,
     timeout: 10000,
     stdout: "pipe",
     stderr: "pipe",
+    env: {
+      ...process.env,
+      // Prevent 429s during E2E runs with many client connections
+      MCP_RATE_LIMIT_MAX: "1000",
+    },
   },
 });

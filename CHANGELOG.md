@@ -7,12 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **E2E prompt coverage** — New `prompts.spec.ts` with 20 tests covering all 19 prompts (list + individual gets) via MCP SDK client
+- **E2E Streamable HTTP coverage** — New `streamable-http.spec.ts` with 6 tests validating MCP 2025-11-25 transport parity (init, tools, reads, resources, prompts)
+- **E2E structured error coverage** — New `errors.spec.ts` with 6 tests verifying `{success: false, error}` responses for nonexistent tables, invalid queries, validation failures
+- **`MCP_RATE_LIMIT_MAX` environment variable** — Rate limiter in `http/security.ts` now reads `MCP_RATE_LIMIT_MAX` as fallback when `rateLimitMaxRequests` is not set in config
+
 ### Changed
 
 - **Dependency Updates**
   - `@types/node`: 25.3.5 → 25.4.0 (minor)
   - `typescript-eslint`: 8.56.1 → 8.57.0 (minor)
   - `hono`: 4.12.5 → 4.12.7 (patch)
+- **Playwright config expanded** — Changed `--tool-filter starter` to `--tool-filter +all` for full tool coverage, added `MCP_RATE_LIMIT_MAX: "1000"` env var, set `workers: 1` for stability
+- **E2E shared client pattern** — Refactored `tools.spec.ts` to use single shared client via `beforeAll`/`afterAll` instead of per-test client creation
 
 ## [2.3.0] - 2026-03-09
 

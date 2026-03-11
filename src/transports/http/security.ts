@@ -64,7 +64,10 @@ export function checkRateLimit(
   const now = Date.now();
   const windowMs = config.rateLimitWindowMs ?? DEFAULTS.RATE_LIMIT_WINDOW_MS;
   const maxRequests =
-    config.rateLimitMaxRequests ?? DEFAULTS.RATE_LIMIT_MAX_REQUESTS;
+    config.rateLimitMaxRequests ??
+    (process.env["MCP_RATE_LIMIT_MAX"]
+      ? parseInt(process.env["MCP_RATE_LIMIT_MAX"], 10)
+      : DEFAULTS.RATE_LIMIT_MAX_REQUESTS);
 
   const entry = rateLimitMap.get(clientIp);
 
