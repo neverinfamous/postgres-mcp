@@ -6,6 +6,7 @@
  * - `/sse` + `/messages` — Legacy SSE transport (MCP protocol 2024-11-05)
  *
  * Security utilities and endpoint handlers are in ./security.ts and ./handlers.ts.
+ * Config types and constants are in ./types.ts.
  */
 
 import { randomUUID } from "node:crypto";
@@ -19,8 +20,6 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
-import type { OAuthResourceServer } from "../../auth/OAuthResourceServer.js";
-import type { TokenValidator } from "../../auth/TokenValidator.js";
 import {
   validateAuth,
   formatOAuthError,
@@ -28,6 +27,12 @@ import {
 } from "../../auth/middleware.js";
 import { runWithAuthContext } from "../../auth/auth-context.js";
 import { logger } from "../../utils/logger.js";
+import type { HttpTransportConfig } from "./types.js";
+import {
+  HTTP_REQUEST_TIMEOUT_MS,
+  HTTP_KEEP_ALIVE_TIMEOUT_MS,
+  HTTP_HEADERS_TIMEOUT_MS,
+} from "./types.js";
 import {
   type RateLimitEntry,
   DEFAULTS,
@@ -42,75 +47,8 @@ import {
   handleRootInfo,
 } from "./handlers.js";
 
-/**
- * HTTP transport configuration
- */
-export interface HttpTransportConfig {
-  /** Port to listen on */
-  port: number;
-
-  /** Host to bind to (default: localhost) */
-  host?: string;
-
-  /** OAuth resource server (optional) */
-  resourceServer?: OAuthResourceServer;
-
-  /** Token validator (optional, required if resourceServer is provided) */
-  tokenValidator?: TokenValidator;
-
-  /** CORS allowed origins (default: none) */
-  corsOrigins?: string[];
-
-  /** Allow credentials in CORS requests (default: false) */
-  corsAllowCredentials?: boolean;
-
-  /** Paths that bypass authentication */
-  publicPaths?: string[];
-
-  // =========================================================================
-  // Security Options
-  // =========================================================================
-
-  /**
-   * Enable rate limiting (default: true)
-   * Helps prevent DoS attacks and brute-force attempts
-   */
-  enableRateLimit?: boolean;
-
-  /**
-   * Rate limit window in milliseconds (default: 60000 = 1 minute)
-   */
-  rateLimitWindowMs?: number;
-
-  /**
-   * Maximum requests per window per IP (default: 100)
-   */
-  rateLimitMaxRequests?: number;
-
-  /**
-   * Maximum request body size in bytes (default: 1MB = 1048576)
-   * Prevents memory exhaustion from large payloads
-   */
-  maxBodySize?: number;
-
-  /**
-   * Enable HTTP Strict Transport Security header (default: false)
-   * Should only be enabled when running behind HTTPS
-   */
-  enableHSTS?: boolean;
-
-  /**
-   * HSTS max-age in seconds (default: 31536000 = 1 year)
-   */
-  hstsMaxAge?: number;
-
-  /**
-   * Trust proxy headers for client IP extraction (default: false)
-   * When enabled, uses the leftmost IP from X-Forwarded-For for rate limiting.
-   * Only enable when running behind a trusted reverse proxy.
-   */
-  trustProxy?: boolean;
-}
+// Re-export for consumers and tests
+export type { HttpTransportConfig } from "./types.js";
 
 /**
  * HTTP Transport for MCP
@@ -121,7 +59,7 @@ export interface HttpTransportConfig {
  */
 export class HttpTransport {
   private server: ReturnType<typeof createServer> | null = null;
-  private readonly config: HttpTransportConfig;
+  readonly config: HttpTransportConfig;
   private readonly onConnect?: (transport: Transport) => void | Promise<void>;
 
   /** Active transports by session ID (supports both transport types) */
@@ -172,6 +110,11 @@ export class HttpTransport {
           }
         });
       });
+
+      // Server timeouts — prevent slowloris-style DoS attacks
+      this.server.setTimeout(HTTP_REQUEST_TIMEOUT_MS);
+      this.server.keepAliveTimeout = HTTP_KEEP_ALIVE_TIMEOUT_MS;
+      this.server.headersTimeout = HTTP_HEADERS_TIMEOUT_MS;
 
       // Start deterministic rate limit cleanup (every 60s)
       if (this.config.enableRateLimit) {
@@ -266,13 +209,34 @@ export class HttpTransport {
       return;
     }
 
-    // Check rate limit
+    const url = new URL(
+      req.url ?? "/",
+      `http://${req.headers.host ?? "localhost"}`,
+    );
+
+    // Health check — bypass rate limiting (always available for monitoring)
+    if (url.pathname === "/health") {
+      handleHealthCheck(res, !!this.config.resourceServer);
+      return;
+    }
+
+    // Check rate limit (after health check bypass)
     if (!checkRateLimit(req, this.config, this.rateLimitMap)) {
-      res.writeHead(429, { "Content-Type": "application/json" });
+      const entry = this.rateLimitMap.get(
+        req.socket.remoteAddress ?? "unknown",
+      );
+      const retryAfter = entry
+        ? Math.ceil((entry.resetTime - Date.now()) / 1000)
+        : 60;
+      res.writeHead(429, {
+        "Content-Type": "application/json",
+        "Retry-After": String(retryAfter),
+      });
       res.end(
         JSON.stringify({
           error: "rate_limit_exceeded",
           error_description: "Too many requests. Please try again later.",
+          retryAfter,
         }),
       );
       return;
@@ -293,20 +257,9 @@ export class HttpTransport {
       return;
     }
 
-    const url = new URL(
-      req.url ?? "/",
-      `http://${req.headers.host ?? "localhost"}`,
-    );
-
     // Handle well-known endpoints
     if (url.pathname === "/.well-known/oauth-protected-resource") {
       handleProtectedResourceMetadata(res, this.config.resourceServer);
-      return;
-    }
-
-    // Health check
-    if (url.pathname === "/health") {
-      handleHealthCheck(res, !!this.config.resourceServer);
       return;
     }
 

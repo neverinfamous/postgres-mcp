@@ -6,7 +6,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { HttpTransportConfig } from "./server.js";
+import type { HttpTransportConfig } from "./types.js";
 
 // =============================================================================
 // Rate Limiting

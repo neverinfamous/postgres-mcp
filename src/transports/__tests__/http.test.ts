@@ -477,7 +477,12 @@ describe("HttpTransport", () => {
         rateLimitMaxRequests: 1,
         rateLimitWindowMs: 60000,
       });
-      const req = createMockRequest({ method: "GET", url: "/health" });
+      // Use /mcp instead of /health — health bypasses rate limiting
+      const req = createMockRequest({
+        method: "GET",
+        url: "/mcp",
+        headers: { host: "localhost:3000" },
+      });
       const res = createMockResponse();
 
       const handleRequest = (

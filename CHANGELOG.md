@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **E2E Streamable HTTP coverage** — New `streamable-http.spec.ts` with 6 tests validating MCP 2025-11-25 transport parity (init, tools, reads, resources, prompts)
 - **E2E structured error coverage** — New `errors.spec.ts` with 6 tests verifying `{success: false, error}` responses for nonexistent tables, invalid queries, validation failures
 - **`MCP_RATE_LIMIT_MAX` environment variable** — Rate limiter in `http/security.ts` now reads `MCP_RATE_LIMIT_MAX` as fallback when `rateLimitMaxRequests` is not set in config
+- **Transport Types Module** — Extracted `HttpTransportConfig` interface and server timeout constants to `transports/http/types.ts`
+  - `HTTP_REQUEST_TIMEOUT_MS` (120s), `HTTP_KEEP_ALIVE_TIMEOUT_MS` (65s), `HTTP_HEADERS_TIMEOUT_MS` (66s)
+- **Server Timeouts** — HTTP server now sets `setTimeout`, `keepAliveTimeout`, and `headersTimeout` to prevent slowloris-style DoS
+- **Health Check Rate-Limit Bypass** — `/health` endpoint now bypasses rate limiting so monitoring probes always succeed
+- **Retry-After Header** — 429 responses now include `Retry-After` header with seconds until rate limit window resets
+- **HSTS Opt-In E2E Test** — New E2E test verifying `Strict-Transport-Security` is not set when `enableHSTS` is false (default)
+- **Health Rate-Limit Bypass E2E Test** — New E2E test verifying `/health` always returns 200 under rate-limited conditions
 
 ### Changed
 
