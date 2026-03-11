@@ -13,10 +13,12 @@ import {
   createJsonbExtractTool,
   createJsonbContainsTool,
   createJsonbPathQueryTool,
+} from "./read.js";
+import {
   createJsonbAggTool,
   createJsonbKeysTool,
   createJsonbTypeofTool,
-} from "./read.js";
+} from "./query.js";
 
 // Write JSONB operations
 import {

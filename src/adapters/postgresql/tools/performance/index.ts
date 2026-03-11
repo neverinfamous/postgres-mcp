@@ -36,8 +36,8 @@ import {
 import {
   createSeqScanTablesTool,
   createIndexRecommendationsTool,
-  createQueryPlanCompareTool,
 } from "./analysis.js";
+import { createQueryPlanCompareTool } from "./compare.js";
 import {
   createPerformanceBaselineTool,
   createConnectionPoolOptimizeTool,

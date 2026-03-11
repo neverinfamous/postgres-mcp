@@ -9,7 +9,6 @@ import type {
   QueryResult,
   TableInfo,
   ColumnInfo,
-  IndexInfo,
 } from "../../../types/index.js";
 
 // ---------------------------------------------------------------------------
