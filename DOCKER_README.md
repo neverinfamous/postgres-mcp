@@ -36,7 +36,7 @@
 | **8 Extension Ecosystems**             | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                                                                                |
 | **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools split into read-only analysis and migration management groups                                   |
 | **Deterministic Error Handling**       | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes                                                              |
-| **Production-Ready Security**          | SQL injection protection, parameterized queries, input validation, sandboxed code execution, SSL certificate verification by default, and HTTP body size enforcement                                                                                       |
+| **Production-Ready Security**          | SQL injection protection, parameterized queries, input validation, sandboxed code execution, SSL certificate verification by default, HTTP body size enforcement, 7 security headers, server timeouts (slowloris protection), Retry-After rate limiting, `trustProxy` for reverse proxy deployments, and opt-in HSTS |
 | **Benchmarked Performance**            | 93+ [Vitest benchmarks](https://github.com/neverinfamous/postgres-mcp/wiki/Performance) across 10 domains: tool dispatch at 6.9M ops/sec, identifier sanitization at 4.4M ops/sec, auth checks at 5.3M ops/sec, and schema parsing at 2.1M ops/sec         |
 | **Strict TypeScript**                  | 100% type-safe codebase with 3448 tests and 95.09% coverage                                                                                                                                                                                                |
 | **MCP 2025-11-25 Compliant**           | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                                                                              |
@@ -366,9 +366,9 @@ Legacy protocol (MCP 2024-11-05) — for clients like Python `mcp.client.sse`:
 
 ### Utility Endpoints
 
-| Method | Endpoint  | Purpose                              |
-| ------ | --------- | ------------------------------------ |
-| `GET`  | `/health` | Health check (database connectivity) |
+| Method | Endpoint  | Purpose                                          |
+| ------ | --------- | ------------------------------------------------ |
+| `GET`  | `/health` | Health check (bypasses rate limiting, always available for monitoring) |
 
 **Docker Health Check:** The built-in `HEALTHCHECK` is transport-aware. When running with `--transport http` or `--transport sse`, it uses native `node -e "fetch(...)"` to verify the `/health` endpoint (confirming both HTTP server and database connectivity). In stdio mode (default), it falls back to a Node.js process check since no HTTP endpoint is available.
 
@@ -399,6 +399,11 @@ docker pull writenotenow/postgres-mcp@sha256:<manifest-digest>
 - ✅ **Supply Chain Attestations** - Verifiable build integrity
 - ✅ **Non-root Execution** - Minimal attack surface
 - ✅ **No Native Dependencies** - Pure JS stack reduces attack surface
+- ✅ **7 Security Headers** - X-Content-Type-Options, X-Frame-Options, CSP, Cache-Control, Referrer-Policy (no-referrer), Permissions-Policy, opt-in HSTS
+- ✅ **Server Timeouts** - Request, keep-alive, and headers timeouts prevent slowloris-style DoS
+- ✅ **Retry-After Rate Limiting** - 429 responses include Retry-After header for well-behaved clients
+- ✅ **trustProxy Support** - Correct client IP extraction behind reverse proxies via X-Forwarded-For
+- ✅ **Wildcard Subdomain CORS** - Pattern-based origin matching (e.g., `*.example.com`)
 
 ---
 
