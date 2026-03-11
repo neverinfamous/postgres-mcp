@@ -49,15 +49,15 @@ export function getClientIp(
 
 /**
  * Check rate limit for a request.
- * @returns true if request should be allowed, false if rate limited
+ * @returns Object with `allowed` flag and optional `retryAfterSeconds`.
  */
 export function checkRateLimit(
   req: IncomingMessage,
   config: HttpTransportConfig,
   rateLimitMap: Map<string, RateLimitEntry>,
-): boolean {
+): { allowed: boolean; retryAfterSeconds?: number } {
   if (!config.enableRateLimit) {
-    return true;
+    return { allowed: true };
   }
 
   const clientIp = getClientIp(req, config.trustProxy ?? false);
@@ -74,15 +74,16 @@ export function checkRateLimit(
   if (!entry || now > entry.resetTime) {
     // Start new window
     rateLimitMap.set(clientIp, { count: 1, resetTime: now + windowMs });
-    return true;
+    return { allowed: true };
   }
 
   if (entry.count >= maxRequests) {
-    return false;
+    const retryAfterSeconds = Math.ceil((entry.resetTime - now) / 1000);
+    return { allowed: false, retryAfterSeconds };
   }
 
   entry.count++;
-  return true;
+  return { allowed: true };
 }
 
 // =============================================================================
@@ -148,9 +149,9 @@ export function setCorsHeaders(
     origins.some((allowed) => {
       if (allowed === "*") return true;
       if (allowed.startsWith("*.")) {
-        // Wildcard subdomain matching
-        const domain = allowed.slice(2);
-        return origin.endsWith(domain);
+        // Wildcard subdomain matching: "*.example.com" → ".example.com"
+        const domain = allowed.slice(1);
+        return origin.endsWith(domain) && origin.length > domain.length;
       }
       return origin === allowed;
     });

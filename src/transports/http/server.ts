@@ -126,6 +126,8 @@ export class HttpTransport {
             }
           }
         }, 60_000);
+        // Don't block process exit
+        this.rateLimitCleanupInterval.unref();
       }
 
       this.server.on("error", reject);
@@ -221,22 +223,19 @@ export class HttpTransport {
     }
 
     // Check rate limit (after health check bypass)
-    if (!checkRateLimit(req, this.config, this.rateLimitMap)) {
-      const entry = this.rateLimitMap.get(
-        req.socket.remoteAddress ?? "unknown",
-      );
-      const retryAfter = entry
-        ? Math.ceil((entry.resetTime - Date.now()) / 1000)
-        : 60;
-      res.writeHead(429, {
+    const rateLimitResult = checkRateLimit(req, this.config, this.rateLimitMap);
+    if (!rateLimitResult.allowed) {
+      const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        "Retry-After": String(retryAfter),
-      });
+      };
+      if (rateLimitResult.retryAfterSeconds !== undefined) {
+        headers["Retry-After"] = String(rateLimitResult.retryAfterSeconds);
+      }
+      res.writeHead(429, headers);
       res.end(
         JSON.stringify({
           error: "rate_limit_exceeded",
           error_description: "Too many requests. Please try again later.",
-          retryAfter,
         }),
       );
       return;
