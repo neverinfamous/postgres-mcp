@@ -1,7 +1,7 @@
 /**
  * postgres-mcp - OAuth Types
  *
- * Type definitions for OAuth 2.0 components including
+ * Type definitions for OAuth 2.1 components including
  * RFC 9728, RFC 8414, and RFC 7591 compliance.
  */
 

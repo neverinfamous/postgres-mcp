@@ -399,10 +399,11 @@ async function startHttpServer(
   mcpServer.registerComponents();
 
   // Build HTTP transport config
+  const resolvedToken = options.authToken ?? process.env["MCP_AUTH_TOKEN"];
   const transportConfig: HttpTransportConfig = {
     port,
     host,
-    authToken: options.authToken ?? process.env["MCP_AUTH_TOKEN"],
+    ...(resolvedToken !== undefined ? { authToken: resolvedToken } : {}),
     stateless: options.stateless ?? false,
     publicPaths: oauthConfig?.publicPaths ?? ["/health", "/.well-known/*"],
     trustProxy: options.trustProxy ?? process.env["TRUST_PROXY"] === "true",

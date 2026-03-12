@@ -574,9 +574,10 @@ export class HttpTransport {
     }
 
     // Create a fresh transport for each request (no session persistence)
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
-    });
+    // Omitting sessionIdGenerator tells the SDK to run in stateless mode
+    const transport = new StreamableHTTPServerTransport(
+      {} as ConstructorParameters<typeof StreamableHTTPServerTransport>[0],
+    );
 
     if (this.onConnect) {
       await this.onConnect(transport as unknown as Transport);
