@@ -1,7 +1,8 @@
 /**
  * Payload Contract Tests: JSONB
  *
- * Validates response shapes for JSONB tools (19 tools).
+ * Validates response shapes for JSONB tools.
+ * JSONB tools return { rows, count } (not rowCount).
  */
 
 import { test, expect } from "@playwright/test";
@@ -21,7 +22,7 @@ test.describe("Payload Contracts: JSONB", () => {
     await client.close();
   });
 
-  test("pg_jsonb_extract returns { rows, rowCount }", async () => {
+  test("pg_jsonb_extract returns { rows, count }", async () => {
     const payload = await callToolAndParse(client, "pg_jsonb_extract", {
       table: "test_jsonb_docs",
       column: "metadata",
@@ -29,10 +30,10 @@ test.describe("Payload Contracts: JSONB", () => {
     });
     expectSuccess(payload);
     expect(Array.isArray(payload.rows)).toBe(true);
-    expect(typeof payload.rowCount).toBe("number");
+    expect(typeof payload.count).toBe("number");
   });
 
-  test("pg_jsonb_contains returns { rows, rowCount }", async () => {
+  test("pg_jsonb_contains returns { rows, count }", async () => {
     const payload = await callToolAndParse(client, "pg_jsonb_contains", {
       table: "test_jsonb_docs",
       column: "metadata",
@@ -40,7 +41,7 @@ test.describe("Payload Contracts: JSONB", () => {
     });
     expectSuccess(payload);
     expect(Array.isArray(payload.rows)).toBe(true);
-    expect(typeof payload.rowCount).toBe("number");
+    expect(typeof payload.count).toBe("number");
   });
 
   test("pg_jsonb_keys returns { keys }", async () => {
@@ -52,14 +53,15 @@ test.describe("Payload Contracts: JSONB", () => {
     expect(Array.isArray(payload.keys)).toBe(true);
   });
 
-  test("pg_jsonb_path_query returns results", async () => {
+  test("pg_jsonb_path_query returns { results, count }", async () => {
     const payload = await callToolAndParse(client, "pg_jsonb_path_query", {
       table: "test_jsonb_docs",
       column: "metadata",
-      jsonpath: "$.author",
+      path: "$.author",
     });
     expectSuccess(payload);
-    expect(typeof payload).toBe("object");
+    expect(Array.isArray(payload.results)).toBe(true);
+    expect(typeof payload.count).toBe("number");
   });
 
   test("pg_jsonb_stats returns statistics", async () => {

@@ -85,7 +85,10 @@ export class HttpTransport {
       rateLimitWindowMs:
         config.rateLimitWindowMs ?? DEFAULTS.RATE_LIMIT_WINDOW_MS,
       rateLimitMaxRequests:
-        config.rateLimitMaxRequests ?? DEFAULTS.RATE_LIMIT_MAX_REQUESTS,
+        config.rateLimitMaxRequests ??
+        (process.env["MCP_RATE_LIMIT_MAX"]
+          ? parseInt(process.env["MCP_RATE_LIMIT_MAX"], 10)
+          : DEFAULTS.RATE_LIMIT_MAX_REQUESTS),
       maxBodySize: config.maxBodySize ?? DEFAULTS.MAX_BODY_SIZE,
       enableHSTS: config.enableHSTS ?? false,
       hstsMaxAge: config.hstsMaxAge ?? DEFAULTS.HSTS_MAX_AGE,

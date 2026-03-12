@@ -1,7 +1,8 @@
 /**
  * Payload Contract Tests: Text + Search
  *
- * Validates response shapes for text/FTS tools (13 tools).
+ * Validates response shapes for text/FTS tools.
+ * pg_text_search requires `column` (or `columns`) param + `query`.
  */
 
 import { test, expect } from "@playwright/test";
@@ -21,17 +22,18 @@ test.describe("Payload Contracts: Text + Search", () => {
     await client.close();
   });
 
-  test("pg_text_search returns { rows, rowCount }", async () => {
+  test("pg_text_search returns { rows, count }", async () => {
     const payload = await callToolAndParse(client, "pg_text_search", {
       table: "test_articles",
+      column: "title",
       query: "database",
     });
     expectSuccess(payload);
     expect(Array.isArray(payload.rows)).toBe(true);
-    expect(typeof payload.rowCount).toBe("number");
+    expect(typeof payload.count).toBe("number");
   });
 
-  test("pg_like_search returns { rows, rowCount }", async () => {
+  test("pg_like_search returns { rows, count }", async () => {
     const payload = await callToolAndParse(client, "pg_like_search", {
       table: "test_articles",
       column: "title",
@@ -39,14 +41,14 @@ test.describe("Payload Contracts: Text + Search", () => {
     });
     expectSuccess(payload);
     expect(Array.isArray(payload.rows)).toBe(true);
-    expect(typeof payload.rowCount).toBe("number");
+    expect(typeof payload.count).toBe("number");
   });
 
   test("pg_trigram_similarity returns results", async () => {
     const payload = await callToolAndParse(client, "pg_trigram_similarity", {
       table: "test_articles",
       column: "title",
-      text: "database guide",
+      value: "database guide",
     });
     expectSuccess(payload);
     expect(typeof payload).toBe("object");

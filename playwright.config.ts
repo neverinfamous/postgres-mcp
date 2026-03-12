@@ -28,7 +28,7 @@ export default defineConfig({
     env: {
       ...process.env,
       // Prevent 429s during E2E runs with many client connections
-      MCP_RATE_LIMIT_MAX: "1000",
+      MCP_RATE_LIMIT_MAX: "10000",
     },
   },
 });

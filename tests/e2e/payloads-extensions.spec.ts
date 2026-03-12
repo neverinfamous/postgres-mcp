@@ -1,9 +1,9 @@
 /**
  * Payload Contract Tests: Extensions
  *
- * Validates response shapes for extension tools:
- * vector (16), postgis (15), citext (6), ltree (8), pgcrypto (9),
- * cron (8), kcache (7).
+ * Validates response shapes for extension tools.
+ * pg_distance uses { table, column, point: {lat, lng} } format.
+ * pg_vector_search returns { results, count }.
  */
 
 import { test, expect } from "@playwright/test";
@@ -40,16 +40,16 @@ test.describe("Payload Contracts: Extensions", () => {
 
   // --- PostGIS ---
 
-  test("pg_distance returns nearby results", async () => {
+  test("pg_distance returns { results, count }", async () => {
     const payload = await callToolAndParse(client, "pg_distance", {
       table: "test_locations",
-      geometryColumn: "location",
-      latitude: 40.7128,
-      longitude: -74.006,
-      distance: 100000,
+      column: "location",
+      point: { lat: 40.7128, lng: -74.006 },
+      maxDistance: 100000,
     });
     expectSuccess(payload);
-    expect(typeof payload).toBe("object");
+    expect(Array.isArray(payload.results)).toBe(true);
+    expect(typeof payload.count).toBe("number");
   });
 
   // --- citext ---
@@ -69,7 +69,8 @@ test.describe("Payload Contracts: Extensions", () => {
     const payload = await callToolAndParse(client, "pg_ltree_query", {
       table: "test_categories",
       column: "path",
-      query: "electronics.*",
+      path: "electronics",
+      mode: "descendants",
     });
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
