@@ -1,148 +1,97 @@
 /**
  * Payload Contract Tests: Admin + Monitoring
  *
- * Validates response shapes for admin (11) and monitoring (12) tools.
+ * Validates response shapes for admin (10) and monitoring (11) tools.
  */
 
 import { test, expect } from "@playwright/test";
-import { createClient, callToolAndParse } from "./helpers.js";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { createClient, callToolAndParse, expectSuccess } from "./helpers.js";
 
 test.describe.configure({ mode: "serial" });
 
 test.describe("Payload Contracts: Admin + Monitoring", () => {
-  // --- Admin tools ---
+  let client: Client;
+
+  test.beforeAll(async () => {
+    client = await createClient();
+  });
+
+  test.afterAll(async () => {
+    await client.close();
+  });
 
   test("pg_analyze returns { success }", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_analyze", {
-        table: "test_products",
-      });
-
-      expect(typeof payload.success).toBe("boolean");
-    } finally {
-      await client.close();
-    }
+    const payload = await callToolAndParse(client, "pg_analyze", {
+      table: "test_products",
+    });
+    expectSuccess(payload);
+    expect(payload.success).toBe(true);
   });
 
-  // --- Monitoring tools ---
-
-  test("pg_show_processlist returns processes", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(
-        client,
-        "pg_show_processlist",
-        {},
-      );
-
-      expect(typeof payload).toBe("object");
-      // Should have some process-related data
-      expect(
-        Array.isArray(payload.processes) || Array.isArray(payload.rows),
-      ).toBe(true);
-    } finally {
-      await client.close();
-    }
-  });
-
-  test("pg_database_size returns size info", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_database_size", {});
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_database_size returns { bytes, size }", async () => {
+    const payload = await callToolAndParse(client, "pg_database_size", {});
+    expectSuccess(payload);
+    expect(typeof payload.bytes).toBe("number");
+    expect(typeof payload.size).toBe("string");
   });
 
   test("pg_table_sizes returns { tables, count }", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_table_sizes", {});
-
-      expect(typeof payload).toBe("object");
-      expect(Array.isArray(payload.tables)).toBe(true);
-      expect(typeof payload.count).toBe("number");
-    } finally {
-      await client.close();
-    }
-  });
-
-  test("pg_lock_info returns lock data", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_lock_info", {});
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
-  });
-
-  test("pg_replication_status returns replication info", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(
-        client,
-        "pg_replication_status",
-        {},
-      );
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+    const payload = await callToolAndParse(client, "pg_table_sizes", {});
+    expectSuccess(payload);
+    expect(Array.isArray(payload.tables)).toBe(true);
+    expect(typeof payload.count).toBe("number");
   });
 
   test("pg_connection_stats returns connection data", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(
-        client,
-        "pg_connection_stats",
-        {},
-      );
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+    const payload = await callToolAndParse(client, "pg_connection_stats", {});
+    expectSuccess(payload);
+    expect(typeof payload.totalConnections).toBe("number");
+    expect(typeof payload.maxConnections).toBe("number");
   });
 
-  test("pg_cache_stats returns cache metrics", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_cache_stats", {});
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_replication_status returns { role }", async () => {
+    const payload = await callToolAndParse(
+      client,
+      "pg_replication_status",
+      {},
+    );
+    expectSuccess(payload);
+    expect(typeof payload.role).toBe("string");
   });
 
-  test("pg_vacuum_stats returns vacuum info", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_vacuum_stats", {});
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_server_version returns version info", async () => {
+    const payload = await callToolAndParse(client, "pg_server_version", {});
+    expectSuccess(payload);
+    expect(typeof payload.version).toBe("string");
   });
 
-  test("pg_show_settings returns settings", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_show_settings", {
-        category: "memory",
-      });
+  test("pg_show_settings returns { settings, count }", async () => {
+    const payload = await callToolAndParse(client, "pg_show_settings", {
+      pattern: "shared_buffers",
+    });
+    expectSuccess(payload);
+    expect(Array.isArray(payload.settings)).toBe(true);
+    expect(typeof payload.count).toBe("number");
+  });
 
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_uptime returns uptime data", async () => {
+    const payload = await callToolAndParse(client, "pg_uptime", {});
+    expectSuccess(payload);
+    expect(typeof payload.uptime).toBe("object");
+  });
+
+  test("pg_recovery_status returns { in_recovery }", async () => {
+    const payload = await callToolAndParse(client, "pg_recovery_status", {});
+    expectSuccess(payload);
+    expect(typeof payload.in_recovery).toBe("boolean");
+  });
+
+  test("pg_capacity_planning returns forecast", async () => {
+    const payload = await callToolAndParse(client, "pg_capacity_planning", {});
+    expectSuccess(payload);
+    expect(typeof payload.current).toBe("object");
+    expect(typeof payload.growth).toBe("object");
+    expect(typeof payload.projection).toBe("object");
   });
 });

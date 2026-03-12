@@ -2,164 +2,107 @@
  * Payload Contract Tests: Extensions
  *
  * Validates response shapes for extension tools:
- * vector (17), postgis (16), cron (9), partman (11), kcache (8),
- * citext (7), ltree (9), pgcrypto (10).
- *
- * Uses test_embeddings, test_locations, test_users, test_categories,
- * test_secure_data from seed data.
+ * vector (16), postgis (15), citext (6), ltree (8), pgcrypto (9),
+ * cron (8), kcache (7).
  */
 
 import { test, expect } from "@playwright/test";
-import { createClient, callToolAndParse } from "./helpers.js";
+import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { createClient, callToolAndParse, expectSuccess } from "./helpers.js";
 
 test.describe.configure({ mode: "serial" });
 
 test.describe("Payload Contracts: Extensions", () => {
+  let client: Client;
+
+  test.beforeAll(async () => {
+    client = await createClient();
+  });
+
+  test.afterAll(async () => {
+    await client.close();
+  });
+
   // --- pgvector ---
 
-  test("pg_vector_search returns { rows, rowCount }", async () => {
-    const client = await createClient();
-    try {
-      // Generate a 384-dim zero vector for search
-      const zeroVector = Array(384).fill(0);
-      const payload = await callToolAndParse(client, "pg_vector_search", {
-        table: "test_embeddings",
-        column: "embedding",
-        vector: zeroVector,
-        limit: 3,
-      });
-
-      expect(Array.isArray(payload.rows)).toBe(true);
-      expect(typeof payload.rowCount).toBe("number");
-    } finally {
-      await client.close();
-    }
+  test("pg_vector_search returns { results, count }", async () => {
+    const zeroVector = Array(384).fill(0);
+    const payload = await callToolAndParse(client, "pg_vector_search", {
+      table: "test_embeddings",
+      column: "embedding",
+      vector: zeroVector,
+      limit: 3,
+    });
+    expectSuccess(payload);
+    expect(Array.isArray(payload.results)).toBe(true);
+    expect(typeof payload.count).toBe("number");
   });
 
   // --- PostGIS ---
 
-  test("pg_postgis_distance returns distance result", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_postgis_distance", {
-        table: "test_locations",
-        geometryColumn: "location",
-        latitude: 40.7128,
-        longitude: -74.006,
-      });
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
-  });
-
-  test("pg_postgis_nearest returns nearest results", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_postgis_nearest", {
-        table: "test_locations",
-        geometryColumn: "location",
-        latitude: 40.7128,
-        longitude: -74.006,
-        limit: 3,
-      });
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_distance returns nearby results", async () => {
+    const payload = await callToolAndParse(client, "pg_distance", {
+      table: "test_locations",
+      geometryColumn: "location",
+      latitude: 40.7128,
+      longitude: -74.006,
+      distance: 100000,
+    });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
   });
 
   // --- citext ---
 
-  test("pg_citext_search returns { rows, rowCount }", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_citext_search", {
-        table: "test_users",
-        column: "username",
-        value: "admin",
-      });
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_citext_compare returns comparison result", async () => {
+    const payload = await callToolAndParse(client, "pg_citext_compare", {
+      value1: "Admin",
+      value2: "admin",
+    });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
   });
 
   // --- ltree ---
 
-  test("pg_ltree_query returns { rows, rowCount }", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_ltree_query", {
-        table: "test_categories",
-        column: "path",
-        query: "electronics.*",
-      });
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
-  });
-
-  test("pg_ltree_ancestors returns ancestor data", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_ltree_ancestors", {
-        table: "test_categories",
-        column: "path",
-        path: "electronics.phones.smartphones",
-      });
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_ltree_query returns results", async () => {
+    const payload = await callToolAndParse(client, "pg_ltree_query", {
+      table: "test_categories",
+      column: "path",
+      query: "electronics.*",
+    });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
   });
 
   // --- pgcrypto ---
 
-  test("pg_crypto_hash returns hash result", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_crypto_hash", {
-        data: "test data",
-        algorithm: "sha256",
-      });
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_pgcrypto_hash returns hash result", async () => {
+    const payload = await callToolAndParse(client, "pg_pgcrypto_hash", {
+      data: "test data",
+      algorithm: "sha256",
+    });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
   });
 
-  // --- pg_cron (may not be available) ---
+  // --- pg_cron ---
 
-  test("pg_cron_list returns job data", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_cron_list", {});
-
-      // May return jobs array or error if extension not installed
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_cron_list_jobs returns job data", async () => {
+    const payload = await callToolAndParse(client, "pg_cron_list_jobs", {});
+    // May fail if extension not installed — just check shape
+    expect(typeof payload).toBe("object");
   });
 
-  // --- pg_stat_kcache (may not be available) ---
+  // --- pg_stat_kcache ---
 
-  test("pg_kcache_status returns status", async () => {
-    const client = await createClient();
-    try {
-      const payload = await callToolAndParse(client, "pg_kcache_status", {});
-
-      expect(typeof payload).toBe("object");
-    } finally {
-      await client.close();
-    }
+  test("pg_kcache_database_stats returns stats", async () => {
+    const payload = await callToolAndParse(
+      client,
+      "pg_kcache_database_stats",
+      {},
+    );
+    // May fail if extension not installed — just check shape
+    expect(typeof payload).toBe("object");
   });
 });
