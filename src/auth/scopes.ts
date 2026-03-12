@@ -40,6 +40,23 @@ export const ALL_SCOPES = [
   // Pattern scopes: db:{name}, schema:{name}, table:{schema}:{table}
 ] as const;
 
+/**
+ * Base scopes supported by the server (without dynamic patterns)
+ */
+export const BASE_SCOPES = ["read", "write", "admin", "full"] as const;
+
+/**
+ * Regex patterns for validating dynamic scope strings
+ */
+export const SCOPE_PATTERNS = {
+  /** Database-specific access pattern: db:{name} */
+  DATABASE: /^db:([a-zA-Z0-9_-]+)$/,
+  /** Schema-specific access pattern: schema:{name} */
+  SCHEMA: /^schema:([a-zA-Z0-9_-]+)$/,
+  /** Table-specific access pattern: table:{schema}:{table} */
+  TABLE: /^table:([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)$/,
+} as const;
+
 // =============================================================================
 // Tool Group to Scope Mapping
 // =============================================================================

@@ -87,6 +87,27 @@ export class OAuthResourceServer {
   getAuthorizationServers(): string[] {
     return [...this.config.authorizationServers];
   }
+
+  /**
+   * Generate WWW-Authenticate header for 401 responses
+   *
+   * @param error - Error type for the header
+   * @param errorDescription - Human-readable error description
+   * @returns WWW-Authenticate header value
+   */
+  getWWWAuthenticateHeader(error?: string, errorDescription?: string): string {
+    const parts = [`Bearer realm="${this.config.resource}"`];
+
+    if (error) {
+      parts.push(`error="${error}"`);
+    }
+
+    if (errorDescription) {
+      parts.push(`error_description="${errorDescription}"`);
+    }
+
+    return parts.join(", ");
+  }
 }
 
 /**

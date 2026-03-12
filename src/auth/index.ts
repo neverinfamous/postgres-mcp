@@ -30,12 +30,16 @@ export {
   AuthServerDiscoveryError,
   JwksFetchError,
   ClientRegistrationError,
+  isOAuthError,
+  getWWWAuthenticateHeader,
 } from "./errors.js";
 
 // Scopes
 export {
   SCOPES,
   ALL_SCOPES,
+  BASE_SCOPES,
+  SCOPE_PATTERNS,
   TOOL_GROUP_SCOPES,
   parseScopes,
   hasScope,

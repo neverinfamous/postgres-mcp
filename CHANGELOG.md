@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **OAuth `SCOPE_PATTERNS` and `BASE_SCOPES` constants** — Added `SCOPE_PATTERNS` (regex validators for `db:*`, `schema:*`, `table:*:*` dynamic scopes) and `BASE_SCOPES` (`["read", "write", "admin", "full"]`) to `scopes.ts`, matching the db-mcp standard
+- **`OAuthResourceServer.getWWWAuthenticateHeader()`** — New method generates RFC-compliant `WWW-Authenticate` headers for 401 responses with optional error and description parameters
+- **`isOAuthError()` type guard** — New utility in `errors.ts` for checking if an unknown error is an `OAuthError` instance
+- **`getWWWAuthenticateHeader()` utility** — New utility in `errors.ts` that formats error-type-specific `WWW-Authenticate` headers per RFC 6750 §3 (insufficient scope includes scope list, token missing returns realm-only, all others return `invalid_token`)
 - **E2E prompt coverage** — New `prompts.spec.ts` with 20 tests covering all 19 prompts (list + individual gets) via MCP SDK client
 - **E2E Streamable HTTP coverage** — New `streamable-http.spec.ts` with 6 tests validating MCP 2025-11-25 transport parity (init, tools, reads, resources, prompts)
 - **E2E structured error coverage** — New `errors.spec.ts` with 6 tests verifying `{success: false, error}` responses for nonexistent tables, invalid queries, validation failures
