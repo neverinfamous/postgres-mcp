@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "./error-response-fields.js";
 
 /**
  * Base schema for MCP visibility (shows all parameters in JSON Schema).
@@ -209,7 +210,7 @@ export const CopyImportOutputSchema = z.object({
   notes: z.string().optional().describe("Usage notes"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_create_backup_plan output - backup strategy
@@ -249,7 +250,7 @@ export const CreateBackupPlanOutputSchema = z.object({
     .optional(),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_restore_command output - pg_restore command
@@ -263,7 +264,7 @@ export const RestoreCommandOutputSchema = z.object({
   notes: z.array(z.string()).optional().describe("Usage notes"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_backup_physical output - pg_basebackup command
@@ -277,7 +278,7 @@ export const PhysicalBackupOutputSchema = z.object({
     .describe("PostgreSQL requirements"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_restore_validate output - validation steps
@@ -349,4 +350,4 @@ export const BackupScheduleOptimizeOutputSchema = z.object({
     .optional(),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);

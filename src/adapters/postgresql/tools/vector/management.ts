@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -169,12 +169,9 @@ export function createVectorIndexOptimizeTool(
           recommendations,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_vector_index_optimize",
-          }),
-        };
+          });
       }
     },
   };
@@ -423,12 +420,9 @@ export function createVectorDimensionReduceTool(
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_vector_dimension_reduce",
-          }),
-        };
+          });
       }
     },
   };
@@ -513,10 +507,7 @@ export function createVectorEmbedTool(): ToolDefinition {
             "This is a demo embedding using hash functions. For production, use OpenAI, Cohere, or other embedding APIs.",
         });
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_vector_embed" }),
-        });
+        return Promise.resolve(formatHandlerError(error, { tool: "pg_vector_embed" }));
       }
     },
   };

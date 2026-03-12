@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import { sanitizeTableName } from "../../../../utils/identifiers.js";
 import {
   DetachPartitionSchema,
@@ -51,12 +51,9 @@ export function createAttachPartitionTool(
           schema?: string;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
+        return formatHandlerError(zodError, {
             tool: "pg_attach_partition",
-          }),
-        };
+          });
       }
       const { parent, partition, forValues, schema } = parsed;
 
@@ -132,13 +129,10 @@ export function createAttachPartitionTool(
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_attach_partition",
             table: parsedPartition.table,
-          }),
-        };
+          });
       }
 
       return {
@@ -174,12 +168,9 @@ export function createDetachPartitionTool(
           schema?: string;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
+        return formatHandlerError(zodError, {
             tool: "pg_detach_partition",
-          }),
-        };
+          });
       }
       const { parent, partition, concurrently, finalize, schema } = parsed;
 
@@ -249,13 +240,10 @@ export function createDetachPartitionTool(
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_detach_partition",
             table: parsedPartition.table,
-          }),
-        };
+          });
       }
 
       return {
@@ -288,12 +276,9 @@ export function createPartitionInfoTool(
           schema?: string;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
+        return formatHandlerError(zodError, {
             tool: "pg_partition_info",
-          }),
-        };
+          });
       }
 
       // Parse schema.table format if present

@@ -12,7 +12,7 @@ import type {
 
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -104,12 +104,9 @@ export function createListPartitionsTool(
           limit?: number;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
+        return formatHandlerError(zodError, {
             tool: "pg_list_partitions",
-          }),
-        };
+          });
       }
 
       // Parse schema.table format if present
@@ -235,12 +232,9 @@ export function createPartitionedTableTool(
           primaryKey?: string[];
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
+        return formatHandlerError(zodError, {
             tool: "pg_create_partitioned_table",
-          }),
-        };
+          });
       }
       const { name, schema, columns, partitionBy, partitionKey, primaryKey } =
         parsed;
@@ -355,14 +349,11 @@ export function createPartitionedTableTool(
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_create_partitioned_table",
             table: name,
             ...(schema !== undefined && { schema }),
-          }),
-        };
+          });
       }
       return {
         success: true,
@@ -398,12 +389,9 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
           subpartitionKey?: string;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
+        return formatHandlerError(zodError, {
             tool: "pg_create_partition",
-          }),
-        };
+          });
       }
       const {
         parent,
@@ -480,13 +468,10 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_create_partition",
             table: name,
-          }),
-        };
+          });
       }
 
       const result: Record<string, unknown> = {

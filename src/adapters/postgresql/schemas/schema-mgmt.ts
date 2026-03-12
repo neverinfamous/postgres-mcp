@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "./error-response-fields.js";
 
 // Base schema for MCP visibility — name is optional so MCP framework
 // doesn't reject {} calls; handler validates via the full schema.
@@ -327,7 +328,7 @@ export const ListFunctionsSchema = z.preprocess(
 export const ListSchemasOutputSchema = z.object({
   schemas: z.array(z.string()).describe("Schema names"),
   count: z.number().describe("Number of schemas"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_create_schema output

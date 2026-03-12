@@ -10,7 +10,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { z, ZodError } from "zod";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   CronScheduleSchema,
   CronScheduleSchemaBase,
@@ -96,10 +96,7 @@ or interval syntax (e.g., "30 seconds"). Note: pg_cron allows duplicate job name
             error: error.issues.map((e) => e.message).join("; "),
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_cron_schedule" }),
-        };
+        return formatHandlerError(error, { tool: "pg_cron_schedule" });
       }
     },
   };
@@ -159,12 +156,9 @@ maintenance tasks. Returns the job ID.`,
             error: error.issues.map((e) => e.message).join("; "),
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_cron_schedule_in_database",
-          }),
-        };
+          });
       }
     },
   };
@@ -254,10 +248,7 @@ export function createCronUnscheduleTool(adapter: PostgresAdapter): ToolDefiniti
             error: error.issues.map((e) => e.message).join("; "),
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_cron_unschedule" }),
-        };
+        return formatHandlerError(error, { tool: "pg_cron_unschedule" });
       }
     },
   };

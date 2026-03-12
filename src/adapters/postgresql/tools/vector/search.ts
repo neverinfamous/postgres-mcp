@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -177,10 +177,7 @@ export function createVectorSearchTool(
           throw error;
         }
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_vector_search" }),
-        };
+        return formatHandlerError(error, { tool: "pg_vector_search" });
       }
     },
   };
@@ -354,10 +351,7 @@ export function createVectorCreateIndexTool(
           throw error;
         }
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_vector_create_index" }),
-        };
+        return formatHandlerError(error, { tool: "pg_vector_create_index" });
       }
     },
   };

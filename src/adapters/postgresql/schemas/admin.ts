@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "./error-response-fields.js";
 
 /**
  * Preprocess vacuum/analyze parameters:
@@ -76,7 +77,7 @@ export const VacuumOutputSchema = z.object({
   table: z.string().optional().describe("Table that was vacuumed"),
   schema: z.string().optional().describe("Schema of the table"),
   hint: z.string().optional().describe("Additional information"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // ============== ANALYZE SCHEMA ==============
 // Base schema for MCP visibility
@@ -237,7 +238,7 @@ export const AnalyzeOutputSchema = z.object({
   table: z.string().optional().describe("Table that was analyzed"),
   schema: z.string().optional().describe("Schema of the table"),
   hint: z.string().optional().describe("Additional information"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for REINDEX operations
 export const ReindexOutputSchema = z.object({
@@ -254,7 +255,7 @@ export const ReindexOutputSchema = z.object({
     .optional()
     .describe("Whether concurrent reindex was used"),
   hint: z.string().optional().describe("Additional information"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for CLUSTER operations
 export const ClusterOutputSchema = z.object({
@@ -264,7 +265,7 @@ export const ClusterOutputSchema = z.object({
   table: z.string().optional().describe("Table that was clustered"),
   index: z.string().optional().describe("Index used for clustering"),
   hint: z.string().optional().describe("Additional information"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for backend operations (terminate/cancel)
 export const BackendOutputSchema = z.object({
@@ -272,7 +273,7 @@ export const BackendOutputSchema = z.object({
   message: z.string().describe("Human-readable result message"),
   pid: z.number().optional().describe("Process ID that was affected"),
   hint: z.string().optional().describe("Additional information"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for configuration operations (reload_conf, set_config, reset_stats)
 export const ConfigOutputSchema = z.object({
@@ -288,4 +289,4 @@ export const ConfigOutputSchema = z.object({
     .optional()
     .describe("Configuration parameter value (set_config)"),
   hint: z.string().optional().describe("Additional information"),
-});
+}).extend(ErrorResponseFields.shape);

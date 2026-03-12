@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   sanitizeTableName,
@@ -183,12 +183,9 @@ export function createJsonbExtractTool(
         }
         return response;
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_jsonb_extract",
-          }),
-        };
+          });
       }
     },
   };
@@ -312,12 +309,9 @@ export function createJsonbContainsTool(
         }
         return response;
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_jsonb_contains",
-          }),
-        };
+          });
       }
     },
   };
@@ -414,12 +408,9 @@ export function createJsonbPathQueryTool(
             error: `Invalid JSONPath syntax. Use $.key, $.array[*], or $.* ? (@.field > 10) syntax.`,
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_jsonb_path_query",
-          }),
-        };
+          });
       }
     },
   };

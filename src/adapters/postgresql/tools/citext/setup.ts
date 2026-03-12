@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   CitextConvertColumnSchema,
   CitextConvertColumnSchemaBase,
@@ -45,12 +45,9 @@ citext is ideal for emails, usernames, and other identifiers where case shouldn'
             "Create columns with type CITEXT instead of TEXT for case-insensitive comparisons",
         };
       } catch (error) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_citext_create_extension",
-          }),
-        };
+          });
       }
     },
   };
@@ -231,12 +228,9 @@ Note: If views depend on this column, you must drop and recreate them manually b
           };
         }
       } catch (error) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_citext_convert_column",
-          }),
-        };
+          });
       }
     },
   };

@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerError } from "./error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   CountOutputSchema,
@@ -79,23 +79,17 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           result = await adapter.executeQuery(sql, parsed.params);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_count",
               table: parsed.table,
               schema: schemaName,
-            }),
-          };
+            });
         }
 
         const count = Number(result.rows?.[0]?.["count"]) || 0;
         return { count };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_count" }),
-        };
+        return formatHandlerError(error, { tool: "pg_count" });
       }
     },
   };
@@ -150,10 +144,7 @@ export function createExistsTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_exists" }),
-        };
+        return formatHandlerError(error, { tool: "pg_exists" });
       }
     },
   };
@@ -204,10 +195,7 @@ export function createTruncateTool(adapter: PostgresAdapter): ToolDefinition {
           restartIdentity: parsed.restartIdentity ?? false,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_truncate" }),
-        };
+        return formatHandlerError(error, { tool: "pg_truncate" });
       }
     },
   };

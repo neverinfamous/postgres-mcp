@@ -10,7 +10,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   LtreeMatchSchema,
   LtreeMatchSchemaBase,
@@ -111,12 +111,9 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_ltree_match",
-          }),
-        };
+          });
       }
     },
   };
@@ -258,12 +255,9 @@ function createLtreeConvertColumnTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_ltree_convert_column",
-          }),
-        };
+          });
       }
     },
   };
@@ -370,12 +364,9 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_ltree_create_index",
-          }),
-        };
+          });
       }
     },
   };

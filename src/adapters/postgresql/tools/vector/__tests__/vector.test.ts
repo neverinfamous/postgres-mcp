@@ -1889,7 +1889,7 @@ describe("Coverage: Missing Param Validation", () => {
         { vector: "not-an-array" },
         mockContext,
       )) as Record<string, unknown>;
-      expect(result.valid).toBe(false);
+      expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
   });

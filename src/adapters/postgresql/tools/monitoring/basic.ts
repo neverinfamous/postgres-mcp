@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
   DatabaseSizeSchemaBase,
@@ -66,10 +66,7 @@ export function createDatabaseSizeTool(
           bytes: parseInt(String(row.bytes), 10),
         };
       } catch (err) {
-        return {
-          success: false,
-          error: formatPostgresError(err, { tool: "pg_database_size" }),
-        };
+        return formatHandlerError(err, { tool: "pg_database_size" });
       }
     },
   };
@@ -105,10 +102,7 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
             error: err.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(err, { tool: "pg_table_sizes" }),
-        };
+        return formatHandlerError(err, { tool: "pg_table_sizes" });
       }
 
       // P154: Validate schema existence before querying
@@ -249,10 +243,7 @@ export function createConnectionStatsTool(
                 : 0,
         };
       } catch (err) {
-        return {
-          success: false,
-          error: formatPostgresError(err, { tool: "pg_connection_stats" }),
-        };
+        return formatHandlerError(err, { tool: "pg_connection_stats" });
       }
     },
   };
@@ -295,10 +286,7 @@ export function createReplicationStatusTool(
           return { role: "primary", replicas: result.rows };
         }
       } catch (err) {
-        return {
-          success: false,
-          error: formatPostgresError(err, { tool: "pg_replication_status" }),
-        };
+        return formatHandlerError(err, { tool: "pg_replication_status" });
       }
     },
   };
@@ -334,10 +322,7 @@ export function createServerVersionTool(
           version_num: parseInt(row.version_num, 10),
         };
       } catch (err) {
-        return {
-          success: false,
-          error: formatPostgresError(err, { tool: "pg_server_version" }),
-        };
+        return formatHandlerError(err, { tool: "pg_server_version" });
       }
     },
   };
@@ -376,10 +361,7 @@ export function createShowSettingsTool(
             error: err.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(err, { tool: "pg_show_settings" }),
-        };
+        return formatHandlerError(err, { tool: "pg_show_settings" });
       }
 
       // Auto-detect if user passed exact name vs LIKE pattern
@@ -476,10 +458,7 @@ export function createUptimeTool(adapter: PostgresAdapter): ToolDefinition {
           },
         };
       } catch (err) {
-        return {
-          success: false,
-          error: formatPostgresError(err, { tool: "pg_uptime" }),
-        };
+        return formatHandlerError(err, { tool: "pg_uptime" });
       }
     },
   };
@@ -510,10 +489,7 @@ export function createRecoveryStatusTool(
         const result = await adapter.executeQuery(sql);
         return result.rows?.[0];
       } catch (err) {
-        return {
-          success: false,
-          error: formatPostgresError(err, { tool: "pg_recovery_status" }),
-        };
+        return formatHandlerError(err, { tool: "pg_recovery_status" });
       }
     },
   };

@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   CitextListColumnsSchema,
   CitextListColumnsSchemaBase,
@@ -134,12 +134,9 @@ Useful for auditing case-insensitive columns.`,
           ...(schema !== undefined && { schema }),
         };
       } catch (error) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_citext_list_columns",
-          }),
-        };
+          });
       }
     },
   };
@@ -437,12 +434,9 @@ Useful for testing citext behavior before converting columns.`,
           };
         }
       } catch (error) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_citext_compare",
-          }),
-        };
+          });
       }
     },
   };
@@ -608,12 +602,9 @@ Requires the 'table' parameter to specify which table to analyze.`,
               : ["No columns require conversion"],
         };
       } catch (error) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_citext_schema_advisor",
-          }),
-        };
+          });
       }
     },
   };

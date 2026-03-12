@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   StatStatementsOutputSchema,
   StatActivityOutputSchema,
@@ -95,10 +95,7 @@ export function createStatStatementsTool(
         }
         return response;
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_stat_statements" }),
-        };
+        return formatHandlerError(error, { tool: "pg_stat_statements" });
       }
     },
   };
@@ -155,10 +152,7 @@ export function createStatActivityTool(
           backgroundWorkers: bgCount,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_stat_activity" }),
-        };
+        return formatHandlerError(error, { tool: "pg_stat_activity" });
       }
     },
   };
@@ -283,10 +277,7 @@ export function createQueryPlanStatsTool(
         }
         return response;
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_query_plan_stats" }),
-        };
+        return formatHandlerError(error, { tool: "pg_query_plan_stats" });
       }
     },
   };

@@ -13,7 +13,7 @@ import type {
 import { z, ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import { sanitizeTableName } from "../../../../utils/identifiers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
@@ -382,15 +382,12 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_geo_cluster",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
               undefined,
-          }),
-        };
+          });
       }
     },
   };

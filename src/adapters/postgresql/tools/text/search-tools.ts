@@ -13,7 +13,7 @@ import type {
 import { z, ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeIdentifiers,
@@ -132,12 +132,9 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
             error: `pg_like_search validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_like_search",
-          }),
-        };
+          });
       }
     },
   };

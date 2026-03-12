@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerError } from "./error-helpers.js";
 import {
   ListObjectsSchemaBase,
   ListObjectsSchema,
@@ -188,12 +188,9 @@ export function createListObjectsTool(
           }),
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_list_objects",
-          }),
-        };
+          });
       }
     },
   };
@@ -402,12 +399,9 @@ export function createObjectDetailsTool(
 
         return details;
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_object_details",
-          }),
-        };
+          });
       }
     },
   };
@@ -445,12 +439,9 @@ export function createListExtensionsTool(
           count: result.rows?.length ?? 0,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_list_extensions",
-          }),
-        };
+          });
       }
     },
   };

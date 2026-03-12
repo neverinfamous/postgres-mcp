@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerError } from "./error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   GetIndexesSchemaBase,
@@ -99,10 +99,7 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
           table: `${schemaName}.${table}`,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_get_indexes" }),
-        };
+        return formatHandlerError(error, { tool: "pg_get_indexes" });
       }
     },
   };
@@ -219,21 +216,15 @@ export function createCreateIndexTool(
             }
           }
           // Return structured error
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_create_index",
               index: name,
               table,
               schema: schemaName,
-            }),
-          };
+            });
         }
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_create_index" }),
-        };
+        return formatHandlerError(error, { tool: "pg_create_index" });
       }
     },
   };
@@ -340,14 +331,11 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_drop_index",
               index: name,
               schema: schemaName,
-            }),
-          };
+            });
         }
         return {
           success: true,
@@ -356,10 +344,7 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
           sql,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_drop_index" }),
-        };
+        return formatHandlerError(error, { tool: "pg_drop_index" });
       }
     },
   };

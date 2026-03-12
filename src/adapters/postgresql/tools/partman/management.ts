@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   PartmanRunMaintenanceSchema,
   PartmanRunMaintenanceSchemaBase,
@@ -207,12 +207,9 @@ Maintains all partition sets if no specific parent table is specified.`,
               : `Maintenance completed for all ${String(maintained.length)} partition sets`,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_partman_run_maintenance",
-          }),
-        };
+          });
       }
     },
   };
@@ -314,12 +311,9 @@ export function createPartmanShowPartitionsTool(
           totalCount,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_partman_show_partitions",
-          }),
-        };
+          });
       }
     },
   };
@@ -461,10 +455,7 @@ export function createPartmanShowConfigTool(
               : undefined),
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_partman_show_config" }),
-        };
+        return formatHandlerError(error, { tool: "pg_partman_show_config" });
       }
     },
   };

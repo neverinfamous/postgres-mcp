@@ -18,7 +18,7 @@ import {
   DumpTableOutputSchema,
   DumpSchemaOutputSchema,
 } from "../../schemas/index.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -356,10 +356,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
 
         return result;
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_dump_table" }),
-        };
+        return formatHandlerError(error, { tool: "pg_dump_table" });
       }
     },
   };
@@ -416,10 +413,7 @@ export function createDumpSchemaTool(
           ],
         });
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_dump_schema" }),
-        });
+        return Promise.resolve(formatHandlerError(error, { tool: "pg_dump_schema" }));
       }
     },
   };

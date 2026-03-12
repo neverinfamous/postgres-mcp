@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import {
   MigrationInitSchemaBase,
@@ -95,12 +95,9 @@ export function createMigrationInitTool(
           existingRecords,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_migration_init",
-          }),
-        };
+          });
       }
     },
   };
@@ -166,12 +163,9 @@ export function createMigrationRecordTool(
           record: formatRecord(row),
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_migration_record",
-          }),
-        };
+          });
       }
     },
   };
@@ -279,12 +273,9 @@ export function createMigrationApplyTool(
           };
         }
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_migration_apply",
-          }),
-        };
+          });
       }
     },
   };

@@ -10,7 +10,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z, ZodError } from "zod";
 import { admin, destructive } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
-import { formatPostgresError } from "./core/error-helpers.js";
+import { formatHandlerError } from "./core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeIdentifiers,
@@ -101,10 +101,7 @@ function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_vacuum" }),
-        };
+        return formatHandlerError(error, { tool: "pg_vacuum" });
       }
     },
   };
@@ -152,10 +149,7 @@ function createVacuumAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_vacuum_analyze" }),
-        };
+        return formatHandlerError(error, { tool: "pg_vacuum_analyze" });
       }
     },
   };
@@ -209,10 +203,7 @@ function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
           ...(columns !== undefined && columns.length > 0 && { columns }),
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_analyze" }),
-        };
+        return formatHandlerError(error, { tool: "pg_analyze" });
       }
     },
   };
@@ -273,13 +264,10 @@ function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
           message: `Reindexed ${parsed.target}: ${effectiveName}`,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_reindex",
             ...(parsedTarget !== undefined && { target: parsedTarget }),
-          }),
-        };
+          });
       }
     },
   };
@@ -307,12 +295,9 @@ function createTerminateBackendTool(adapter: PostgresAdapter): ToolDefinition {
           message: terminated ? "Backend terminated" : "Failed to terminate",
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_terminate_backend",
-          }),
-        };
+          });
       }
     },
   };
@@ -339,12 +324,9 @@ function createCancelBackendTool(adapter: PostgresAdapter): ToolDefinition {
           message: cancelled ? "Query cancelled" : "Failed to cancel",
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_cancel_backend",
-          }),
-        };
+          });
       }
     },
   };
@@ -368,10 +350,7 @@ function createReloadConfTool(adapter: PostgresAdapter): ToolDefinition {
           message: "Configuration reloaded",
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_reload_conf" }),
-        };
+        return formatHandlerError(error, { tool: "pg_reload_conf" });
       }
     },
   };
@@ -446,10 +425,7 @@ function createSetConfigTool(adapter: PostgresAdapter): ToolDefinition {
           value: actualValue,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_set_config" }),
-        };
+        return formatHandlerError(error, { tool: "pg_set_config" });
       }
     },
   };
@@ -469,10 +445,7 @@ function createResetStatsTool(adapter: PostgresAdapter): ToolDefinition {
         await adapter.executeQuery(`SELECT pg_stat_reset()`);
         return { success: true, message: "Statistics reset" };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_reset_stats" }),
-        };
+        return formatHandlerError(error, { tool: "pg_reset_stats" });
       }
     },
   };
@@ -619,10 +592,7 @@ function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_cluster" }),
-        };
+        return formatHandlerError(error, { tool: "pg_cluster" });
       }
     },
   };

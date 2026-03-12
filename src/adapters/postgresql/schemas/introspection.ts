@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "./error-response-fields.js";
 
 // =============================================================================
 // Input Schemas
@@ -408,7 +409,7 @@ export const DependencyGraphOutputSchema = z.object({
   hint: z.string().optional(),
   success: z.boolean().optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const TopologicalSortOutputSchema = z.object({
   order: z
@@ -427,7 +428,7 @@ export const TopologicalSortOutputSchema = z.object({
   hint: z.string().optional(),
   success: z.boolean().optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const CascadeSimulatorOutputSchema = z.object({
   sourceTable: z.string().optional(),
@@ -456,7 +457,7 @@ export const CascadeSimulatorOutputSchema = z.object({
     .optional(),
   success: z.boolean().optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const SchemaSnapshotOutputSchema = z.object({
   snapshot: z.record(z.string(), z.unknown()).optional(),
@@ -478,7 +479,7 @@ export const SchemaSnapshotOutputSchema = z.object({
   hint: z.string().optional(),
   success: z.boolean().optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const ConstraintAnalysisOutputSchema = z.object({
   findings: z
@@ -502,7 +503,7 @@ export const ConstraintAnalysisOutputSchema = z.object({
   hint: z.string().optional(),
   success: z.boolean().optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const MigrationRisksOutputSchema = z.object({
   risks: z
@@ -528,7 +529,7 @@ export const MigrationRisksOutputSchema = z.object({
     .optional(),
   success: z.boolean().optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 // =============================================================================
 // Migration Tracking Output Schemas
@@ -551,19 +552,19 @@ export const MigrationInitOutputSchema = z.object({
   tableName: z.string().optional(),
   existingRecords: z.number().optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const MigrationRecordOutputSchema = z.object({
   success: z.boolean(),
   record: MigrationRecordOutputEntry.optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const MigrationApplyOutputSchema = z.object({
   success: z.boolean(),
   record: MigrationRecordOutputEntry.optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const MigrationRollbackOutputSchema = z.object({
   success: z.boolean(),
@@ -571,7 +572,7 @@ export const MigrationRollbackOutputSchema = z.object({
   rollbackSql: z.string().nullable().optional(),
   record: MigrationRecordOutputEntry.optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const MigrationHistoryOutputSchema = z.object({
   records: z.array(MigrationRecordOutputEntry).optional(),
@@ -580,7 +581,7 @@ export const MigrationHistoryOutputSchema = z.object({
   offset: z.number().optional(),
   success: z.boolean().optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);
 
 export const MigrationStatusOutputSchema = z.object({
   initialized: z.boolean().optional(),
@@ -598,4 +599,4 @@ export const MigrationStatusOutputSchema = z.object({
   sourceSystems: z.array(z.string()).optional(),
   success: z.boolean().optional(),
   error: z.string().optional(),
-});
+}).extend(ErrorResponseFields.shape);

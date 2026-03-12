@@ -10,7 +10,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   SeqScanTablesOutputSchema,
   IndexRecommendationsOutputSchema,
@@ -170,10 +170,7 @@ export function createSeqScanTablesTool(
         }
         return response;
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_seq_scan_tables" }),
-        };
+        return formatHandlerError(error, { tool: "pg_seq_scan_tables" });
       }
     },
   };
@@ -477,12 +474,9 @@ export function createIndexRecommendationsTool(
           hint: "Based on table statistics. Provide a SQL query for query-specific recommendations.",
         };
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_index_recommendations",
-          }),
-        };
+          });
       }
     },
   };

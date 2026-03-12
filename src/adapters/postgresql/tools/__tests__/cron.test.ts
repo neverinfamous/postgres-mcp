@@ -1012,13 +1012,11 @@ describe("cron.ts uncovered branches", () => {
     const tool = tools.find((t) => t.name === "pg_cron_cleanup_history")!;
     const result = (await tool.handler({ olderThanDays: 7 }, mockContext)) as {
       success: boolean;
-      message: string;
-      deletedCount: number;
+      error: string;
     };
 
     expect(result.success).toBe(false);
-    expect(result.deletedCount).toBe(0);
-    expect(result.message).toContain("does not exist");
+    expect(result.error).toContain("does not exist");
   });
 
   // cron.ts list_jobs DB error path

@@ -13,6 +13,7 @@ import { CodeModeSecurityManager } from "../../../../codemode/security.js";
 import { createPgApi } from "../../../../codemode/api/index.js";
 import type { ExecuteCodeOptions } from "../../../../codemode/types.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { ErrorResponseFields } from "../../schemas/error-response-fields.js";
 
 // Schema for pg_execute_code input
 export const ExecuteCodeSchema = z.object({
@@ -50,7 +51,7 @@ export const ExecuteCodeOutputSchema = z.object({
     .optional()
     .describe("Execution performance metrics"),
   hint: z.string().optional().describe("Helpful tip or additional information"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Singleton instances (initialized on first use)
 let sandboxPool: SandboxPool | null = null;

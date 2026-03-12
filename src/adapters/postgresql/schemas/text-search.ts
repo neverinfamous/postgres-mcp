@@ -10,6 +10,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "./error-response-fields.js";
 
 /**
  * Preprocess text tool parameters to normalize common input patterns.
@@ -165,7 +166,7 @@ export const TextRowsOutputSchema = z.object({
     .describe("Hint about truncation when results are capped"),
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_create_fts_index
 export const FtsIndexOutputSchema = z.object({
@@ -177,14 +178,14 @@ export const FtsIndexOutputSchema = z.object({
     .optional()
     .describe("Whether index already existed (IF NOT EXISTS)"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_normalize
 export const TextNormalizeOutputSchema = z.object({
   normalized: z.string().optional().describe("Text with accent marks removed"),
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_sentiment
 export const TextSentimentOutputSchema = z.object({
@@ -218,14 +219,14 @@ export const TextSentimentOutputSchema = z.object({
     .describe("Matched negative words (if returnWords=true)"),
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_to_vector
 export const TextToVectorOutputSchema = z.object({
   vector: z.string().optional().describe("tsvector representation"),
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_to_query
 export const TextToQueryOutputSchema = z.object({
@@ -233,7 +234,7 @@ export const TextToQueryOutputSchema = z.object({
   mode: z.string().optional().describe("Query parsing mode used"),
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_search_config
 export const TextSearchConfigOutputSchema = z.object({
@@ -253,4 +254,4 @@ export const TextSearchConfigOutputSchema = z.object({
   count: z.number().optional().describe("Number of configurations"),
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);

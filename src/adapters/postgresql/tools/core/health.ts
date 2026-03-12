@@ -10,7 +10,7 @@ import type {
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerError } from "./error-helpers.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
   AnalyzeDbHealthSchemaBase,
@@ -401,14 +401,10 @@ export function createAnalyzeQueryIndexesTool(
         try {
           result = await adapter.executeQuery(explainSql, queryParams);
         } catch (error) {
-          return {
-            sql,
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_analyze_query_indexes",
               sql,
-            }),
-          };
+            });
         }
 
         if (!result.rows || result.rows.length === 0) {
@@ -534,12 +530,9 @@ export function createAnalyzeQueryIndexesTool(
           hint: "Use verbosity: 'full' to include complete plan with all metrics",
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_analyze_query_indexes",
-          }),
-        };
+          });
       }
     },
   };

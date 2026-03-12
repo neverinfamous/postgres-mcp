@@ -9,7 +9,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   KcacheQueryStatsSchemaBase,
   KcacheTopCpuSchemaBase,
@@ -163,10 +163,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         return response;
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_kcache_query_stats" }),
-        };
+        return formatHandlerError(error, { tool: "pg_kcache_query_stats" });
       }
     },
   };
@@ -271,10 +268,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
 
         return response;
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_kcache_top_cpu" }),
-        };
+        return formatHandlerError(error, { tool: "pg_kcache_top_cpu" });
       }
     },
   };
@@ -409,10 +403,7 @@ which represent actual disk access (not just shared buffer hits).`,
 
         return response;
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_kcache_top_io" }),
-        };
+        return formatHandlerError(error, { tool: "pg_kcache_top_io" });
       }
     },
   };

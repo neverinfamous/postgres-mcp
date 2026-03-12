@@ -14,7 +14,7 @@ import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   CreateSchemaSchemaBase,
   CreateSchemaSchema,
@@ -99,14 +99,11 @@ export function createCreateSchemaTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_create_schema",
               schema: name,
               objectType: "schema",
-            }),
-          };
+            });
         }
 
         const result: Record<string, unknown> = { success: true, schema: name };
@@ -115,13 +112,7 @@ export function createCreateSchemaTool(
         }
         return result;
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_create_schema" }),
-        };
+        return formatHandlerError(error, { tool: "pg_create_schema" });
       }
     },
   };
@@ -164,13 +155,10 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_drop_schema",
               schema: name,
-            }),
-          };
+            });
         }
         return {
           success: true,
@@ -181,13 +169,7 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
             : `Schema '${name}' did not exist (ifExists: true)`,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_drop_schema" }),
-        };
+        return formatHandlerError(error, { tool: "pg_drop_schema" });
       }
     },
   };
@@ -386,14 +368,11 @@ export function createCreateSequenceTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_create_sequence",
               objectType: "sequence",
               ...(schema !== undefined && { schema }),
-            }),
-          };
+            });
         }
 
         const result: Record<string, unknown> = {
@@ -406,13 +385,7 @@ export function createCreateSequenceTool(
         }
         return result;
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_create_sequence" }),
-        };
+        return formatHandlerError(error, { tool: "pg_create_sequence" });
       }
     },
   };
@@ -461,23 +434,14 @@ export function createDropSequenceTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_drop_sequence",
               ...(schema !== undefined && { schema }),
-            }),
-          };
+            });
         }
         return { success: true, sequence: `${schemaName}.${name}`, existed };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_drop_sequence" }),
-        };
+        return formatHandlerError(error, { tool: "pg_drop_sequence" });
       }
     },
   };

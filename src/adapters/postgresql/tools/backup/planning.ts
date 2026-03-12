@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   CreateBackupPlanOutputSchema,
   RestoreCommandOutputSchema,
@@ -110,10 +110,7 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_create_backup_plan" }),
-        };
+        return formatHandlerError(error, { tool: "pg_create_backup_plan" });
       }
     },
   };
@@ -196,15 +193,9 @@ export function createRestoreCommandTool(
               ],
             };
           })
-          .catch((error: unknown) => ({
-            success: false as const,
-            error: formatPostgresError(error, { tool: "pg_restore_command" }),
-          }));
+          .catch((error: unknown) => formatHandlerError(error, { tool: "pg_restore_command" }));
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_restore_command" }),
-        });
+        return Promise.resolve(formatHandlerError(error, { tool: "pg_restore_command" }));
       }
     },
   };
@@ -299,15 +290,9 @@ export function createPhysicalBackupTool(
               ],
             };
           })
-          .catch((error: unknown) => ({
-            success: false as const,
-            error: formatPostgresError(error, { tool: "pg_backup_physical" }),
-          }));
+          .catch((error: unknown) => formatHandlerError(error, { tool: "pg_backup_physical" }));
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_backup_physical" }),
-        });
+        return Promise.resolve(formatHandlerError(error, { tool: "pg_backup_physical" }));
       }
     },
   };
@@ -415,15 +400,9 @@ export function createRestoreValidateTool(
               };
             }
           })
-          .catch((error: unknown) => ({
-            success: false as const,
-            error: formatPostgresError(error, { tool: "pg_restore_validate" }),
-          }));
+          .catch((error: unknown) => formatHandlerError(error, { tool: "pg_restore_validate" }));
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_restore_validate" }),
-        });
+        return Promise.resolve(formatHandlerError(error, { tool: "pg_restore_validate" }));
       }
     },
   };
@@ -526,12 +505,9 @@ export function createBackupScheduleOptimizeTool(
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_backup_schedule_optimize",
-          }),
-        };
+          });
       }
     },
   };

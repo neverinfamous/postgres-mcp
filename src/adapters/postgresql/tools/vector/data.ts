@@ -13,7 +13,7 @@ import type {
 import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -113,12 +113,9 @@ export function createVectorExtensionTool(
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS vector");
         return { success: true, message: "pgvector extension enabled" };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_vector_create_extension",
-          }),
-        };
+          });
       }
     },
   };
@@ -251,10 +248,7 @@ export function createVectorAddColumnTool(
           throw err;
         }
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_vector_add_column" }),
-        };
+        return formatHandlerError(error, { tool: "pg_vector_add_column" });
       }
     },
   };

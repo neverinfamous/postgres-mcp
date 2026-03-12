@@ -14,7 +14,7 @@ import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   CreateViewSchemaBase,
   CreateViewSchema,
@@ -219,14 +219,11 @@ export function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_create_view",
               objectType: "view",
               ...(schema !== undefined && { schema }),
-            }),
-          };
+            });
         }
 
         const result: Record<string, unknown> = {
@@ -239,13 +236,7 @@ export function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
         }
         return result;
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_create_view" }),
-        };
+        return formatHandlerError(error, { tool: "pg_create_view" });
       }
     },
   };
@@ -296,13 +287,10 @@ export function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_drop_view",
               ...(schema !== undefined && { schema }),
-            }),
-          };
+            });
         }
         return {
           success: true,
@@ -311,13 +299,7 @@ export function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
           existed,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_drop_view" }),
-        };
+        return formatHandlerError(error, { tool: "pg_drop_view" });
       }
     },
   };

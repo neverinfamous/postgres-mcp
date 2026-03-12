@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "../../schemas/error-response-fields.js";
 
 // Helper to handle undefined params (allows tools to be called without {})
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
@@ -274,7 +275,7 @@ export const ReadQueryOutputSchema = z.object({
   fields: z.array(FieldSchema).optional().describe("Column metadata"),
   executionTimeMs: z.number().optional().describe("Query execution time in ms"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_write_query, pg_upsert, pg_batch_insert
 export const WriteQueryOutputSchema = z.object({
@@ -293,7 +294,7 @@ export const WriteQueryOutputSchema = z.object({
   sql: z.string().optional().describe("Generated SQL statement"),
   hint: z.string().optional().describe("Additional information"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Table info schema for list tables
 const TableInfoSchema = z.object({
@@ -315,7 +316,7 @@ export const TableListOutputSchema = z.object({
   totalCount: z.number().describe("Total number of tables"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   hint: z.string().optional().describe("Pagination hint"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Column info schema for describe table
 const ColumnInfoSchema = z.object({
@@ -348,7 +349,7 @@ export const TableDescribeOutputSchema = z.object({
     .describe("Index definitions"),
   rowCount: z.number().optional().describe("Estimated row count"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_create_table, pg_drop_table
 export const TableOperationOutputSchema = z.object({
@@ -362,7 +363,7 @@ export const TableOperationOutputSchema = z.object({
     .optional()
     .describe("Composite PK columns"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_truncate
 export const TruncateOutputSchema = z.object({
@@ -374,7 +375,7 @@ export const TruncateOutputSchema = z.object({
     .optional()
     .describe("Whether identity was restarted"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Index info schema
 const IndexInfoSchema = z.object({
@@ -398,7 +399,7 @@ export const IndexListOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   hint: z.string().optional().describe("Additional information"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_create_index, pg_drop_index
 export const IndexOperationOutputSchema = z.object({
@@ -409,7 +410,7 @@ export const IndexOperationOutputSchema = z.object({
   sql: z.string().optional().describe("Generated SQL"),
   hint: z.string().optional().describe("Additional information"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Database object schema
 const DatabaseObjectSchema = z.object({
@@ -435,7 +436,7 @@ export const ObjectListOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   hint: z.string().optional().describe("Additional information"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_object_details - flexible due to different object types
 export const ObjectDetailsOutputSchema = z.object({
@@ -449,7 +450,7 @@ export const ObjectDetailsOutputSchema = z.object({
     .optional()
     .describe("Type-specific details"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Extension info schema
 const ExtensionInfoSchema = z.object({
@@ -463,7 +464,7 @@ const ExtensionInfoSchema = z.object({
 export const ExtensionListOutputSchema = z.object({
   extensions: z.array(ExtensionInfoSchema).describe("List of extensions"),
   count: z.number().describe("Number of extensions"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Cache hit ratio schema for health analysis
 const CacheHitRatioSchema = z.object({
@@ -505,7 +506,7 @@ export const HealthAnalysisOutputSchema = z.object({
     .string()
     .optional()
     .describe("Overall status (healthy/needs_attention/critical)"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_analyze_workload_indexes
 export const IndexRecommendationsOutputSchema = z.object({
@@ -514,7 +515,7 @@ export const IndexRecommendationsOutputSchema = z.object({
     .describe("Index recommendations"),
   queriesAnalyzed: z.number().optional().describe("Number of queries analyzed"),
   hint: z.string().optional().describe("Additional information"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_analyze_query_indexes
 export const QueryIndexAnalysisOutputSchema = z.object({
@@ -536,14 +537,14 @@ export const QueryIndexAnalysisOutputSchema = z.object({
   verbosity: z.string().optional().describe("Response verbosity level"),
   hint: z.string().optional().describe("Additional information"),
   error: z.string().optional().describe("Error message if analysis failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_count
 export const CountOutputSchema = z.object({
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   count: z.number().optional().describe("Row count"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_exists
 export const ExistsOutputSchema = z.object({
@@ -554,4 +555,4 @@ export const ExistsOutputSchema = z.object({
   where: z.string().optional().describe("WHERE clause used (filtered mode)"),
   hint: z.string().optional().describe("Clarifying hint (any_rows mode)"),
   error: z.string().optional().describe("Error message if operation failed"),
-});
+}).extend(ErrorResponseFields.shape);

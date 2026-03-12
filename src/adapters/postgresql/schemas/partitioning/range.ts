@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "../error-response-fields.js";
 
 /**
  * Parse schema from schema.table format identifier
@@ -530,7 +531,7 @@ export const AttachPartitionOutputSchema = z.object({
   parent: z.string().optional().describe("Parent table name"),
   partition: z.string().optional().describe("Attached partition name"),
   bounds: z.string().optional().describe("Partition bounds description"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_detach_partition output
@@ -540,4 +541,4 @@ export const DetachPartitionOutputSchema = z.object({
   error: z.string().optional().describe("Error message if operation failed"),
   parent: z.string().optional().describe("Parent table name"),
   partition: z.string().optional().describe("Detached partition name"),
-});
+}).extend(ErrorResponseFields.shape);

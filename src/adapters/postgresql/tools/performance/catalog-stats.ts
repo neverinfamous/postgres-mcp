@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   IndexStatsOutputSchema,
   TableStatsOutputSchema,
@@ -126,10 +126,7 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
         }
         return response;
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_index_stats" }),
-        };
+        return formatHandlerError(error, { tool: "pg_index_stats" });
       }
     },
   };
@@ -243,10 +240,7 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
         }
         return response;
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_table_stats" }),
-        };
+        return formatHandlerError(error, { tool: "pg_table_stats" });
       }
     },
   };
@@ -370,10 +364,7 @@ export function createVacuumStatsTool(
         }
         return response;
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_vacuum_stats" }),
-        };
+        return formatHandlerError(error, { tool: "pg_vacuum_stats" });
       }
     },
   };

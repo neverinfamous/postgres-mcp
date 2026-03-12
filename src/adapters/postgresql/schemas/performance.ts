@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "./error-response-fields.js";
 
 // Helper to handle undefined params (allows tools to be called without {})
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
@@ -90,7 +91,7 @@ export const ExplainOutputSchema = z.object({
   plan: z.unknown().optional().describe("Query execution plan"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Common paginated output with array + count
 const PaginatedBase = {
@@ -118,7 +119,7 @@ export const IndexStatsOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_table_stats
 export const TableStatsOutputSchema = z.object({
@@ -134,7 +135,7 @@ export const TableStatsOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_stat_statements
 export const StatStatementsOutputSchema = z.object({
@@ -143,7 +144,7 @@ export const StatStatementsOutputSchema = z.object({
     .optional()
     .describe("Query statistics"),
   ...PaginatedBase,
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_stat_activity
 export const StatActivityOutputSchema = z.object({
@@ -158,7 +159,7 @@ export const StatActivityOutputSchema = z.object({
     .describe("Number of filtered background worker processes"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_locks
 export const LocksOutputSchema = z.object({
@@ -168,7 +169,7 @@ export const LocksOutputSchema = z.object({
     .describe("Lock information"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_bloat_check
 export const BloatCheckOutputSchema = z.object({
@@ -179,7 +180,7 @@ export const BloatCheckOutputSchema = z.object({
   count: z.number().optional().describe("Number of tables with bloat"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_cache_hit_ratio
 export const CacheHitRatioOutputSchema = z.object({
@@ -200,7 +201,7 @@ export const CacheHitRatioOutputSchema = z.object({
     .describe("Cache hit ratio percentage"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_seq_scan_tables
 export const SeqScanTablesOutputSchema = z.object({
@@ -218,7 +219,7 @@ export const SeqScanTablesOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_index_recommendations
 export const IndexRecommendationsOutputSchema = z.object({
@@ -239,7 +240,7 @@ export const IndexRecommendationsOutputSchema = z.object({
   hint: z.string().optional().describe("Recommendation hint"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_query_plan_compare
 export const QueryPlanCompareOutputSchema = z.object({
@@ -270,7 +271,7 @@ export const QueryPlanCompareOutputSchema = z.object({
     .describe("Full execution plans"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_performance_baseline
 export const PerformanceBaselineOutputSchema = z.object({
@@ -302,7 +303,7 @@ export const PerformanceBaselineOutputSchema = z.object({
     .optional(),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_connection_pool_optimize
 export const ConnectionPoolOptimizeOutputSchema = z.object({
@@ -325,7 +326,7 @@ export const ConnectionPoolOptimizeOutputSchema = z.object({
     .describe("Optimization recommendations"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_partition_strategy_suggest
 export const PartitionStrategySuggestOutputSchema = z.object({
@@ -358,7 +359,7 @@ export const PartitionStrategySuggestOutputSchema = z.object({
   note: z.string().optional().describe("Additional guidance"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_unused_indexes (supports both summary and list modes)
 export const UnusedIndexesOutputSchema = z.object({
@@ -378,7 +379,7 @@ export const UnusedIndexesOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_duplicate_indexes
 export const DuplicateIndexesOutputSchema = z.object({
@@ -392,7 +393,7 @@ export const DuplicateIndexesOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_vacuum_stats
 export const VacuumStatsOutputSchema = z.object({
@@ -408,7 +409,7 @@ export const VacuumStatsOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // pg_query_plan_stats
 export const QueryPlanStatsOutputSchema = z.object({
@@ -422,4 +423,4 @@ export const QueryPlanStatsOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);

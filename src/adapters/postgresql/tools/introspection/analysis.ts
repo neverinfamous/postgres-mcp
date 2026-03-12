@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   parseArrayColumn,
   qualifiedName,
@@ -220,12 +220,9 @@ export function createConstraintAnalysisTool(
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_constraint_analysis",
-          }),
-        };
+          });
       }
     },
   };
@@ -454,11 +451,6 @@ export function createMigrationRisksTool(
             },
           };
         })
-        .catch((error: unknown) => ({
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_migration_risks",
-          }),
-        })),
+        .catch((error: unknown) => formatHandlerError(error, { tool: "pg_migration_risks" })),
   };
 }

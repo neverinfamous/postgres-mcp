@@ -24,7 +24,7 @@ import {
   CopyExportOutputSchema,
   CopyImportOutputSchema,
 } from "../../schemas/index.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifiers,
   sanitizeTableName,
@@ -217,10 +217,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
           'Binary format is not supported via MCP protocol. Use format: "csv" or "text" instead. For binary export, use pg_dump_schema to generate a pg_dump command.',
         );
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_copy_export" }),
-        };
+        return formatHandlerError(error, { tool: "pg_copy_export" });
       }
     },
   };
@@ -315,15 +312,9 @@ export function createCopyImportTool(
               notes: "Use \\copy in psql for client-side files",
             };
           })
-          .catch((error: unknown) => ({
-            success: false as const,
-            error: formatPostgresError(error, { tool: "pg_copy_import" }),
-          }));
+          .catch((error: unknown) => formatHandlerError(error, { tool: "pg_copy_import" }));
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_copy_import" }),
-        });
+        return Promise.resolve(formatHandlerError(error, { tool: "pg_copy_import" }));
       }
     },
   };

@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
   CapacityPlanningOutputSchema,
@@ -76,10 +76,7 @@ export function createCapacityPlanningTool(
             error: err.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(err, { tool: "pg_capacity_planning" }),
-        };
+        return formatHandlerError(err, { tool: "pg_capacity_planning" });
       }
       const projectionDays = parsed.projectionDays;
 

@@ -9,7 +9,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   KcacheDatabaseStatsSchemaBase,
   KcacheDatabaseStatsSchema,
@@ -133,12 +133,9 @@ Shows total CPU time, I/O, and page faults across all queries.`,
           count: result.rows?.length ?? 0,
         };
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_kcache_database_stats",
-          }),
-        };
+          });
       }
     },
   };
@@ -322,12 +319,9 @@ Helps identify the root cause of performance issues - is the query computation-h
 
         return response;
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_kcache_resource_analysis",
-          }),
-        };
+          });
       }
     },
   };
@@ -355,10 +349,7 @@ Note: This also resets pg_stat_statements statistics.`,
           note: "pg_stat_statements statistics were also reset",
         };
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_kcache_reset" }),
-        };
+        return formatHandlerError(error, { tool: "pg_kcache_reset" });
       }
     },
   };

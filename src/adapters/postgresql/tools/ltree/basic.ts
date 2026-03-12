@@ -10,7 +10,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   LtreeQuerySchema,
   LtreeQuerySchemaBase,
@@ -55,12 +55,9 @@ function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS ltree");
         return { success: true, message: "ltree extension enabled" };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_ltree_create_extension",
-          }),
-        };
+          });
       }
     },
   };
@@ -184,12 +181,9 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_ltree_query",
-          }),
-        };
+          });
       }
     },
   };
@@ -248,12 +242,9 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_ltree_subpath",
-          }),
-        };
+          });
       }
     },
   };
@@ -289,12 +280,9 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_ltree_lca",
-          }),
-        };
+          });
       }
     },
   };
@@ -331,12 +319,9 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_ltree_list_columns",
-          }),
-        };
+          });
       }
     },
   };

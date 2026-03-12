@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   JsonbAggSchemaBase,
@@ -123,12 +123,9 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
           return response;
         }
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_jsonb_agg",
-          }),
-        };
+          });
       }
     },
   };
@@ -184,12 +181,9 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
             error: `pg_jsonb_keys requires object columns. For array columns, use pg_jsonb_normalize with mode: 'array'.`,
           };
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_jsonb_keys",
-          }),
-        };
+          });
       }
     },
   };
@@ -243,12 +237,9 @@ export function createJsonbTypeofTool(
           result.rows?.some((r) => r["column_null"] === true) ?? false;
         return { types, count: types?.length ?? 0, columnNull };
       } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_jsonb_typeof",
-          }),
-        };
+          });
       }
     },
   };

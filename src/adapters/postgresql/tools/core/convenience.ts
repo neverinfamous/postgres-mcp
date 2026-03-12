@@ -16,7 +16,7 @@ import type {
 import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerError } from "./error-helpers.js";
 import { WriteQueryOutputSchema } from "./schemas.js";
 import {
   validateTableExists,
@@ -153,20 +153,14 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
               };
             }
           }
-          return {
-            success: false,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_upsert",
               table: parsed.table,
               schema: schemaName,
-            }),
-          };
+            });
         }
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_upsert" }),
-        };
+        return formatHandlerError(error, { tool: "pg_upsert" });
       }
     },
   };
@@ -294,14 +288,11 @@ export function createBatchInsertTool(
       try {
         result = await adapter.executeQuery(sql, values);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_batch_insert",
             table: parsed.table,
             schema: schemaName,
-          }),
-        };
+          });
       }
       return {
         success: true,

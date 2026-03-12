@@ -16,7 +16,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import { toNum, toStr, safeNum, riskFromScore } from "./anomaly-detection.js";
 
 // =============================================================================
@@ -240,12 +240,9 @@ export function createDetectConnectionSpikeTool(
           summary,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_detect_connection_spike",
-          }),
-        };
+          });
       }
     },
   };

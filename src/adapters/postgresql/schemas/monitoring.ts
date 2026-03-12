@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "./error-response-fields.js";
 
 // Helper to handle undefined params (allows tools to be called without {})
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
@@ -100,7 +101,7 @@ export const TableSizesOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_connection_stats output
@@ -120,7 +121,7 @@ export const ConnectionStatsOutputSchema = z.object({
   maxConnections: z.number().optional().describe("Maximum allowed connections"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_replication_status output (primary or replica)
@@ -162,7 +163,7 @@ export const ServerVersionOutputSchema = z.object({
   version_num: z.number().optional().describe("Numeric version for comparison"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_show_settings output
@@ -185,7 +186,7 @@ export const ShowSettingsOutputSchema = z.object({
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_uptime output
@@ -203,7 +204,7 @@ export const UptimeOutputSchema = z.object({
     .optional(),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_recovery_status output
@@ -220,7 +221,7 @@ export const RecoveryStatusOutputSchema = z.object({
     .describe("Last replayed transaction timestamp (null if primary)"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_capacity_planning output
@@ -354,7 +355,7 @@ export const ResourceUsageAnalyzeOutputSchema = z.object({
     .optional(),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
-});
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_alert_threshold_set output (single metric or all thresholds)

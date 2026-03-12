@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   VectorDistanceOutputSchema,
   VectorNormalizeOutputSchema,
@@ -81,10 +81,7 @@ export function createVectorDistanceTool(
         const result = await adapter.executeQuery(sql);
         return { distance: result.rows?.[0]?.["distance"], metric };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_vector_distance" }),
-        };
+        return formatHandlerError(error, { tool: "pg_vector_distance" });
       }
     },
   };
@@ -138,10 +135,7 @@ export function createVectorNormalizeTool(): ToolDefinition {
 
         return Promise.resolve({ normalized, magnitude });
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_vector_normalize" }),
-        });
+        return Promise.resolve(formatHandlerError(error, { tool: "pg_vector_normalize" }));
       }
     },
   };

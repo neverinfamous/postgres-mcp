@@ -8,6 +8,7 @@
 import { z } from "zod";
 
 import { preprocessJsonbParams } from "./basic.js";
+import { ErrorResponseFields } from "../error-response-fields.js";
 
 // ============== NORMALIZE SCHEMA ==============
 // Base schema (for MCP inputSchema visibility - no preprocess)
@@ -153,7 +154,7 @@ export const JsonbExtractOutputSchema = z.object({
   hint: z.string().optional().describe("Hint when all values are null"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_set
 export const JsonbSetOutputSchema = z.object({
@@ -161,14 +162,14 @@ export const JsonbSetOutputSchema = z.object({
   hint: z.string().optional().describe("Additional information"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_insert
 export const JsonbInsertOutputSchema = z.object({
   rowsAffected: z.number().optional().describe("Number of rows updated"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_delete
 export const JsonbDeleteOutputSchema = z.object({
@@ -176,7 +177,7 @@ export const JsonbDeleteOutputSchema = z.object({
   hint: z.string().optional().describe("Note about rowsAffected semantics"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_contains
 export const JsonbContainsOutputSchema = z.object({
@@ -199,7 +200,7 @@ export const JsonbContainsOutputSchema = z.object({
     .describe("Warning for empty object containment"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_path_query
 export const JsonbPathQueryOutputSchema = z.object({
@@ -215,7 +216,7 @@ export const JsonbPathQueryOutputSchema = z.object({
     .describe("Total results before limit (present when truncated)"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_agg
 export const JsonbAggOutputSchema = z.object({
@@ -228,7 +229,7 @@ export const JsonbAggOutputSchema = z.object({
   hint: z.string().optional().describe("Empty result hint"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_object
 export const JsonbObjectOutputSchema = z.object({
@@ -238,14 +239,14 @@ export const JsonbObjectOutputSchema = z.object({
     .describe("Built JSONB object"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_array
 export const JsonbArrayOutputSchema = z.object({
   array: z.array(z.unknown()).optional().describe("Built JSONB array"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_keys
 export const JsonbKeysOutputSchema = z.object({
@@ -257,7 +258,7 @@ export const JsonbKeysOutputSchema = z.object({
   hint: z.string().optional().describe("Deduplication note"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_strip_nulls (two modes: update or preview)
 // Uses combined schema with optional fields instead of union with z.literal() to avoid Zod validation issues
@@ -274,7 +275,7 @@ export const JsonbStripNullsOutputSchema = z.object({
   hint: z.string().optional().describe("Preview mode note"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_typeof
 export const JsonbTypeofOutputSchema = z.object({
@@ -290,7 +291,7 @@ export const JsonbTypeofOutputSchema = z.object({
   hint: z.string().optional().describe("Additional information"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // ============== ADVANCED JSONB OUTPUT SCHEMAS ==============
 
@@ -308,7 +309,7 @@ export const JsonbValidatePathOutputSchema = z.object({
     .optional()
     .describe("Whether vars were used in the query"),
   success: z.boolean().optional().describe("False on error"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_merge
 export const JsonbMergeOutputSchema = z.object({
@@ -320,7 +321,7 @@ export const JsonbMergeOutputSchema = z.object({
     .describe("Whether arrays were concatenated"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_normalize
 export const JsonbNormalizeOutputSchema = z.object({
@@ -333,7 +334,7 @@ export const JsonbNormalizeOutputSchema = z.object({
   hint: z.string().optional().describe("Additional information"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_diff
 export const JsonbDiffOutputSchema = z.object({
@@ -358,7 +359,7 @@ export const JsonbDiffOutputSchema = z.object({
   hint: z.string().optional().describe("Explanation of comparison scope"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_index_suggest
 export const JsonbIndexSuggestOutputSchema = z.object({
@@ -375,7 +376,7 @@ export const JsonbIndexSuggestOutputSchema = z.object({
     .describe("Analysis details"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_security_scan
 export const JsonbSecurityScanOutputSchema = z.object({
@@ -397,7 +398,7 @@ export const JsonbSecurityScanOutputSchema = z.object({
   scannedRows: z.number().optional().describe("Number of rows scanned"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_jsonb_stats
 export const JsonbStatsOutputSchema = z.object({
@@ -438,4 +439,4 @@ export const JsonbStatsOutputSchema = z.object({
   hint: z.string().optional().describe("Usage hints or notes"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
-});
+}).extend(ErrorResponseFields.shape);

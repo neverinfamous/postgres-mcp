@@ -13,7 +13,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   ListFunctionsSchemaBase,
   ListFunctionsSchema,
@@ -140,13 +140,7 @@ export function createListFunctionsTool(
               : undefined,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_list_functions" }),
-        };
+        return formatHandlerError(error, { tool: "pg_list_functions" });
       }
     },
   };
@@ -253,10 +247,7 @@ export function createListTriggersTool(
             : await adapter.executeQuery(sql);
         return { triggers: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_list_triggers" }),
-        };
+        return formatHandlerError(error, { tool: "pg_list_triggers" });
       }
     },
   };
@@ -397,10 +388,7 @@ export function createListConstraintsTool(
             : await adapter.executeQuery(sql);
         return { constraints: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_list_constraints" }),
-        };
+        return formatHandlerError(error, { tool: "pg_list_constraints" });
       }
     },
   };

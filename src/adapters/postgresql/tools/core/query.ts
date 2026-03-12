@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerError } from "./error-helpers.js";
 import {
   ReadQuerySchemaBase,
   ReadQuerySchema,
@@ -57,25 +57,19 @@ export function createReadQueryTool(adapter: PostgresAdapter): ToolDefinition {
               queryParams,
             );
           } catch (error: unknown) {
-            return {
-              success: false,
-              error: formatPostgresError(error, {
+            return formatHandlerError(error, {
                 tool: "pg_read_query",
                 sql,
-              }),
-            };
+              });
           }
         } else {
           try {
             result = await adapter.executeReadQuery(sql, queryParams);
           } catch (error: unknown) {
-            return {
-              success: false,
-              error: formatPostgresError(error, {
+            return formatHandlerError(error, {
                 tool: "pg_read_query",
                 sql,
-              }),
-            };
+              });
           }
         }
 
@@ -90,10 +84,7 @@ export function createReadQueryTool(adapter: PostgresAdapter): ToolDefinition {
           executionTimeMs: result.executionTimeMs,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_read_query" }),
-        };
+        return formatHandlerError(error, { tool: "pg_read_query" });
       }
     },
   };
@@ -146,25 +137,19 @@ export function createWriteQueryTool(adapter: PostgresAdapter): ToolDefinition {
               queryParams,
             );
           } catch (error: unknown) {
-            return {
-              success: false,
-              error: formatPostgresError(error, {
+            return formatHandlerError(error, {
                 tool: "pg_write_query",
                 sql,
-              }),
-            };
+              });
           }
         } else {
           try {
             result = await adapter.executeWriteQuery(sql, queryParams);
           } catch (error: unknown) {
-            return {
-              success: false,
-              error: formatPostgresError(error, {
+            return formatHandlerError(error, {
                 tool: "pg_write_query",
                 sql,
-              }),
-            };
+              });
           }
         }
 
@@ -178,10 +163,7 @@ export function createWriteQueryTool(adapter: PostgresAdapter): ToolDefinition {
           ...(result.rows && result.rows.length > 0 && { rows: result.rows }),
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_write_query" }),
-        };
+        return formatHandlerError(error, { tool: "pg_write_query" });
       }
     },
   };

@@ -13,7 +13,7 @@ import type {
 import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   PartmanCreateParentSchema,
   PartmanCreateParentSchemaBase,
@@ -44,12 +44,9 @@ export function createPartmanExtensionTool(
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS pg_partman");
         return { success: true, message: "pg_partman extension enabled" };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_partman_create_extension",
-          }),
-        };
+          });
       }
     },
   };
@@ -288,12 +285,9 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
             : undefined,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_partman_create_parent",
-          }),
-        };
+          });
       }
     },
   };

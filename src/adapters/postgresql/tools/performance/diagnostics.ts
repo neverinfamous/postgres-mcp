@@ -14,7 +14,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
 
 // =============================================================================
@@ -460,12 +460,9 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
           allRecommendations,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_diagnose_database_performance",
-          }),
-        };
+          });
       }
     },
   };

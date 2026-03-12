@@ -13,7 +13,7 @@ import type {
 import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -117,15 +117,12 @@ export function createPointInPolygonTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_point_in_polygon",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
               undefined,
-          }),
-        };
+          });
       }
     },
   };
@@ -197,15 +194,12 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_distance",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
               undefined,
-          }),
-        };
+          });
       }
     },
   };
@@ -306,15 +300,12 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_buffer",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
               undefined,
-          }),
-        };
+          });
       }
     },
   };
@@ -420,15 +411,12 @@ export function createIntersectionTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_intersection",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
               undefined,
-          }),
-        };
+          });
       }
     },
   };
@@ -533,15 +521,12 @@ export function createBoundingBoxTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_bounding_box",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
               undefined,
-          }),
-        };
+          });
       }
     },
   };

@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   MigrationRollbackSchemaBase,
   MigrationRollbackSchema,
@@ -156,12 +156,9 @@ export function createMigrationRollbackTool(
           };
         }
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_migration_rollback",
-          }),
-        };
+          });
       }
     },
   };
@@ -244,12 +241,9 @@ export function createMigrationHistoryTool(
           offset,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_migration_history",
-          }),
-        };
+          });
       }
     },
   };
@@ -361,12 +355,9 @@ export function createMigrationStatusTool(
           sourceSystems,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_migration_status",
-          }),
-        };
+          });
       }
     },
   };

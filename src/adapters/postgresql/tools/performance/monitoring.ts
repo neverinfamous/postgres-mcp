@@ -10,7 +10,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   LocksOutputSchema,
   BloatCheckOutputSchema,
@@ -95,10 +95,7 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql);
         return { locks: result.rows };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_locks" }),
-        };
+        return formatHandlerError(error, { tool: "pg_locks" });
       }
     },
   };
@@ -183,10 +180,7 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
           count: tables.length,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_bloat_check" }),
-        };
+        return formatHandlerError(error, { tool: "pg_bloat_check" });
       }
     },
   };
@@ -222,10 +216,7 @@ export function createCacheHitRatioTool(
           cache_hit_ratio: row ? toNum(row["cache_hit_ratio"]) : null,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_cache_hit_ratio" }),
-        };
+        return formatHandlerError(error, { tool: "pg_cache_hit_ratio" });
       }
     },
   };

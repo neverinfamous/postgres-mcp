@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   DependencyGraphSchemaBase,
   DependencyGraphSchema,
@@ -172,12 +172,9 @@ export function createDependencyGraphTool(
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_dependency_graph",
-          }),
-        };
+          });
       }
     },
   };
@@ -308,12 +305,9 @@ export function createTopologicalSortTool(
           ...(cycles.length > 0 ? { cycles } : {}),
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_topological_sort",
-          }),
-        };
+          });
       }
     },
   };
@@ -476,12 +470,9 @@ export function createCascadeSimulatorTool(
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_cascade_simulator",
-          }),
-        };
+          });
       }
     },
   };

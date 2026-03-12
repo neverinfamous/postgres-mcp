@@ -13,7 +13,7 @@ import type {
 import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerError } from "../core/error-helpers.js";
 import {
   GeometryBufferSchemaBase,
   GeometryBufferSchema,
@@ -101,12 +101,9 @@ export function createGeometryBufferTool(
         try {
           result = await adapter.executeQuery(sql, [geometry, distance]);
         } catch (error: unknown) {
-          return {
-            success: false as const,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_geometry_buffer",
-            }),
-          };
+            });
         }
         const row = result.rows?.[0];
         const response: Record<string, unknown> = {
@@ -137,12 +134,9 @@ export function createGeometryBufferTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_geometry_buffer",
-          }),
-        };
+          });
       }
     },
   };
@@ -189,12 +183,9 @@ export function createGeometryIntersectionTool(
         try {
           result = await adapter.executeQuery(sql, [geometry1, geometry2]);
         } catch (error: unknown) {
-          return {
-            success: false as const,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_geometry_intersection",
-            }),
-          };
+            });
         }
         return {
           ...result.rows?.[0],
@@ -209,12 +200,9 @@ export function createGeometryIntersectionTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_geometry_intersection",
-          }),
-        };
+          });
       }
     },
   };
@@ -252,12 +240,9 @@ export function createGeometryTransformTool(
         try {
           result = await adapter.executeQuery(sql, [geometry]);
         } catch (error: unknown) {
-          return {
-            success: false as const,
-            error: formatPostgresError(error, {
+          return formatHandlerError(error, {
               tool: "pg_geometry_transform",
-            }),
-          };
+            });
         }
         return {
           ...result.rows?.[0],
@@ -272,12 +257,9 @@ export function createGeometryTransformTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
+        return formatHandlerError(error, {
             tool: "pg_geometry_transform",
-          }),
-        };
+          });
       }
     },
   };

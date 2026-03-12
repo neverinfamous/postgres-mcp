@@ -7,6 +7,7 @@
 import { z } from "zod";
 
 import { defaultToEmpty } from "./queries.js";
+import { ErrorResponseFields } from "../error-response-fields.js";
 
 // =============================================================================
 // Transaction Schemas
@@ -221,7 +222,7 @@ export const TransactionBeginOutputSchema = z.object({
     .describe("Unique transaction ID for subsequent operations"),
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
   message: z.string().optional().describe("Confirmation message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_transaction_commit, pg_transaction_rollback
 export const TransactionResultOutputSchema = z.object({
@@ -232,7 +233,7 @@ export const TransactionResultOutputSchema = z.object({
     .optional()
     .describe("Transaction ID that was operated on"),
   message: z.string().optional().describe("Result message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_transaction_status
 export const TransactionStatusOutputSchema = z.object({
@@ -253,7 +254,7 @@ export const TransactionStatusOutputSchema = z.object({
     .optional()
     .describe("Whether the transaction connection still exists"),
   message: z.string().optional().describe("Human-readable status description"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Output schema for pg_transaction_savepoint, pg_transaction_release, pg_transaction_rollback_to
 export const SavepointResultOutputSchema = z.object({
@@ -262,7 +263,7 @@ export const SavepointResultOutputSchema = z.object({
   transactionId: z.string().optional().describe("Transaction ID"),
   savepoint: z.string().optional().describe("Savepoint name"),
   message: z.string().optional().describe("Result message"),
-});
+}).extend(ErrorResponseFields.shape);
 
 // Statement result schema for transaction execute
 const StatementResultSchema = z.object({
@@ -303,4 +304,4 @@ export const TransactionExecuteOutputSchema = z.object({
     .string()
     .optional()
     .describe("Transaction ID (when joining existing transaction)"),
-});
+}).extend(ErrorResponseFields.shape);
