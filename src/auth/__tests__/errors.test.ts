@@ -23,13 +23,15 @@ describe("OAuth Errors", () => {
       const error = new OAuthError("Test error", "TEST_CODE");
 
       expect(error.message).toBe("Test error");
-      expect(error.code).toBe("TEST_CODE");
+      expect(error.code).toBe("AUTH_TEST_CODE");
       expect(error.httpStatus).toBe(401);
       expect(error.name).toBe("OAuthError");
     });
 
     it("should accept custom HTTP status", () => {
       const error = new OAuthError("Server error", "SERVER_ERROR", 500);
+
+      expect(error.code).toBe("AUTH_SERVER_ERROR");
 
       expect(error.httpStatus).toBe(500);
     });
@@ -47,7 +49,7 @@ describe("OAuth Errors", () => {
       const error = new TokenMissingError();
 
       expect(error.message).toBe("No bearer token provided");
-      expect(error.code).toBe("TOKEN_MISSING");
+      expect(error.code).toBe("AUTH_TOKEN_MISSING");
       expect(error.httpStatus).toBe(401);
       expect(error.name).toBe("TokenMissingError");
     });
@@ -71,7 +73,7 @@ describe("OAuth Errors", () => {
       const error = new InvalidTokenError();
 
       expect(error.message).toBe("Invalid access token");
-      expect(error.code).toBe("INVALID_TOKEN");
+      expect(error.code).toBe("AUTH_INVALID_TOKEN");
       expect(error.httpStatus).toBe(401);
       expect(error.name).toBe("InvalidTokenError");
     });
@@ -90,7 +92,7 @@ describe("OAuth Errors", () => {
       const error = new TokenExpiredError();
 
       expect(error.message).toBe("Access token has expired");
-      expect(error.code).toBe("TOKEN_EXPIRED");
+      expect(error.code).toBe("AUTH_TOKEN_EXPIRED");
       expect(error.httpStatus).toBe(401);
       expect(error.name).toBe("TokenExpiredError");
     });
@@ -101,7 +103,7 @@ describe("OAuth Errors", () => {
       const error = new InvalidSignatureError();
 
       expect(error.message).toBe("Invalid token signature");
-      expect(error.code).toBe("INVALID_SIGNATURE");
+      expect(error.code).toBe("AUTH_INVALID_SIGNATURE");
       expect(error.httpStatus).toBe(401);
       expect(error.name).toBe("InvalidSignatureError");
     });
@@ -112,7 +114,7 @@ describe("OAuth Errors", () => {
       const error = new InsufficientScopeError(["read", "write"]);
 
       expect(error.message).toBe("Insufficient scope. Required: read, write");
-      expect(error.code).toBe("INSUFFICIENT_SCOPE");
+      expect(error.code).toBe("AUTH_INSUFFICIENT_SCOPE");
       expect(error.httpStatus).toBe(403); // 403 Forbidden, not 401
       expect(error.requiredScopes).toEqual(["read", "write"]);
       expect(error.name).toBe("InsufficientScopeError");
@@ -150,7 +152,7 @@ describe("OAuth Errors", () => {
       expect(error.message).toBe(
         "Failed to discover authorization server metadata",
       );
-      expect(error.code).toBe("DISCOVERY_FAILED");
+      expect(error.code).toBe("AUTH_DISCOVERY_FAILED");
       expect(error.httpStatus).toBe(500); // Server error
       expect(error.name).toBe("AuthServerDiscoveryError");
     });
@@ -169,7 +171,7 @@ describe("OAuth Errors", () => {
       const error = new JwksFetchError();
 
       expect(error.message).toBe("Failed to fetch JWKS");
-      expect(error.code).toBe("JWKS_FETCH_FAILED");
+      expect(error.code).toBe("AUTH_JWKS_FETCH_FAILED");
       expect(error.httpStatus).toBe(500);
       expect(error.name).toBe("JwksFetchError");
     });
@@ -190,7 +192,7 @@ describe("OAuth Errors", () => {
       const error = new ClientRegistrationError();
 
       expect(error.message).toBe("Client registration failed");
-      expect(error.code).toBe("REGISTRATION_FAILED");
+      expect(error.code).toBe("AUTH_REGISTRATION_FAILED");
       expect(error.httpStatus).toBe(400); // Bad Request
       expect(error.name).toBe("ClientRegistrationError");
     });

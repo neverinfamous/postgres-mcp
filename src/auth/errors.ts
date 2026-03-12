@@ -2,21 +2,37 @@
  * postgres-mcp - OAuth Errors
  *
  * Error classes for OAuth 2.0 authentication and authorization.
+ * Follows the harmonized error handling standard — OAuthError
+ * extends PostgresMcpError for full category/suggestion/toResponse() support.
  */
+
+import { PostgresMcpError } from "../types/errors.js";
+import { ErrorCategory } from "../types/error-types.js";
 
 /**
  * Base OAuth error class
  */
-export class OAuthError extends Error {
-  public readonly code: string;
+export class OAuthError extends PostgresMcpError {
   public readonly httpStatus: number;
+  public readonly wwwAuthenticate: string;
 
-  constructor(message: string, code: string, httpStatus = 401) {
-    super(message);
+  constructor(
+    message: string,
+    code: string,
+    httpStatus = 401,
+    options?: {
+      details?: Record<string, unknown>;
+      wwwAuthenticate?: string;
+    },
+  ) {
+    super(message, `AUTH_${code}`, ErrorCategory.AUTHENTICATION, {
+      details: options?.details,
+      recoverable: false,
+    });
     this.name = "OAuthError";
-    this.code = code;
     this.httpStatus = httpStatus;
-    Object.setPrototypeOf(this, OAuthError.prototype);
+    this.wwwAuthenticate =
+      options?.wwwAuthenticate ?? `Bearer error="invalid_token"`;
   }
 }
 
@@ -25,9 +41,10 @@ export class OAuthError extends Error {
  */
 export class TokenMissingError extends OAuthError {
   constructor(message = "No bearer token provided") {
-    super(message, "TOKEN_MISSING", 401);
+    super(message, "TOKEN_MISSING", 401, {
+      wwwAuthenticate: `Bearer realm="postgres-mcp"`,
+    });
     this.name = "TokenMissingError";
-    Object.setPrototypeOf(this, TokenMissingError.prototype);
   }
 }
 
@@ -38,7 +55,6 @@ export class InvalidTokenError extends OAuthError {
   constructor(message = "Invalid access token") {
     super(message, "INVALID_TOKEN", 401);
     this.name = "InvalidTokenError";
-    Object.setPrototypeOf(this, InvalidTokenError.prototype);
   }
 }
 
@@ -49,7 +65,6 @@ export class TokenExpiredError extends OAuthError {
   constructor(message = "Access token has expired") {
     super(message, "TOKEN_EXPIRED", 401);
     this.name = "TokenExpiredError";
-    Object.setPrototypeOf(this, TokenExpiredError.prototype);
   }
 }
 
@@ -60,7 +75,6 @@ export class InvalidSignatureError extends OAuthError {
   constructor(message = "Invalid token signature") {
     super(message, "INVALID_SIGNATURE", 401);
     this.name = "InvalidSignatureError";
-    Object.setPrototypeOf(this, InvalidSignatureError.prototype);
   }
 }
 
@@ -75,10 +89,13 @@ export class InsufficientScopeError extends OAuthError {
       message ?? `Insufficient scope. Required: ${requiredScopes.join(", ")}`,
       "INSUFFICIENT_SCOPE",
       403,
+      {
+        details: { requiredScopes },
+        wwwAuthenticate: `Bearer error="insufficient_scope", scope="${requiredScopes.join(" ")}"`,
+      },
     );
     this.name = "InsufficientScopeError";
     this.requiredScopes = requiredScopes;
-    Object.setPrototypeOf(this, InsufficientScopeError.prototype);
   }
 }
 
@@ -89,7 +106,6 @@ export class AuthServerDiscoveryError extends OAuthError {
   constructor(message = "Failed to discover authorization server metadata") {
     super(message, "DISCOVERY_FAILED", 500);
     this.name = "AuthServerDiscoveryError";
-    Object.setPrototypeOf(this, AuthServerDiscoveryError.prototype);
   }
 }
 
@@ -100,7 +116,6 @@ export class JwksFetchError extends OAuthError {
   constructor(message = "Failed to fetch JWKS") {
     super(message, "JWKS_FETCH_FAILED", 500);
     this.name = "JwksFetchError";
-    Object.setPrototypeOf(this, JwksFetchError.prototype);
   }
 }
 
@@ -111,7 +126,6 @@ export class ClientRegistrationError extends OAuthError {
   constructor(message = "Client registration failed") {
     super(message, "REGISTRATION_FAILED", 400);
     this.name = "ClientRegistrationError";
-    Object.setPrototypeOf(this, ClientRegistrationError.prototype);
   }
 }
 
@@ -128,19 +142,11 @@ export function isOAuthError(error: unknown): error is OAuthError {
 
 /**
  * Get WWW-Authenticate header for an OAuth error.
- * Formats based on error type per RFC 6750 §3.
+ * @deprecated Use error.wwwAuthenticate property directly instead.
  */
 export function getWWWAuthenticateHeader(
   error: OAuthError,
-  realm = "postgres-mcp",
+  _realm = "postgres-mcp",
 ): string {
-  if (error instanceof InsufficientScopeError) {
-    return `Bearer error="insufficient_scope", scope="${error.requiredScopes.join(" ")}"`;
-  }
-
-  if (error instanceof TokenMissingError) {
-    return `Bearer realm="${realm}"`;
-  }
-
-  return `Bearer error="invalid_token"`;
+  return error.wwwAuthenticate;
 }

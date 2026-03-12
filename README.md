@@ -2,7 +2,7 @@
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp -->
 
-**Last Updated March 10, 2026**
+**Last Updated March 12, 2026**
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 232 tools through a single, secure JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
@@ -38,7 +38,7 @@
 | **High-Performance Pooling**           | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                                                                     |
 | **8 Extension Ecosystems**             | First-class support for **pgvector**, **PostGIS**, **pg_cron**, **pg_partman**, **pg_stat_kcache**, **citext**, **ltree**, and **pgcrypto**                                                                                                                                                                  |
 | **Introspection & Migration Tracking** | Simulate cascade impacts, generate safe DDL ordering, analyze constraint health, and track schema migrations with SHA-256 dedup — 12 agent-optimized tools split into read-only analysis and migration management groups                                                                                     |
-| **Deterministic Error Handling**       | Every tool returns structured `{success, error}` responses — no raw exceptions, no silent failures, no misleading messages. Agents get actionable context instead of cryptic PostgreSQL codes                                                                                                                |
+| **Deterministic Error Handling**       | Every tool returns structured `{success, error, code, category, suggestion, recoverable}` responses — no raw exceptions, no silent failures. Agents get enriched error context with actionable suggestions instead of cryptic PostgreSQL codes                                                                |
 | **Production-Ready Security**          | SQL injection protection, parameterized queries, input validation, sandboxed code execution, SSL certificate verification by default, HTTP body size enforcement, 7 security headers, server timeouts (slowloris protection), Retry-After rate limiting, `trustProxy` for reverse proxy deployments, and opt-in HSTS |
 | **Benchmarked Performance**            | 93+ [Vitest benchmarks](https://github.com/neverinfamous/postgres-mcp/wiki/Performance) across 10 domains: tool dispatch at 6.9M ops/sec, identifier sanitization at 4.4M ops/sec, auth checks at 5.3M ops/sec, and schema parsing at 2.1M ops/sec                                                           |
 | **Strict TypeScript**                  | 100% type-safe codebase with 3448 tests and 95.09% coverage                                                                                                                                                                                                                                                  |
@@ -56,6 +56,8 @@
 ```bash
 docker pull writenotenow/postgres-mcp:latest
 ```
+
+Add to your `~/.cursor/mcp.json` or Claude Desktop config:
 
 ```json
 {
@@ -78,7 +80,7 @@ docker pull writenotenow/postgres-mcp:latest
         "POSTGRES_DATABASE",
         "writenotenow/postgres-mcp:latest",
         "--tool-filter",
-        "starter"
+        "codemode"
       ],
       "env": {
         "POSTGRES_HOST": "host.docker.internal",
@@ -92,10 +94,18 @@ docker pull writenotenow/postgres-mcp:latest
 }
 ```
 
-**Customization Notes:**
+> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 232 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#️-tool-filtering) for alternatives.
 
-- Update credentials (`your_username`, `your_password`, etc.) with your PostgreSQL credentials
-- **Extension tools** gracefully handle cases where extensions are not installed
+**Variants** (modify the canonical config above):
+
+| Variant | Change |
+|---------|--------|
+| **Starter (60 tools)** | Replace `"codemode"` with `"starter"` in `--tool-filter` |
+| **npm (no Docker)** | Replace `"command"` with `"postgres-mcp"`, remove Docker args/env passthrough |
+| **From source** | Replace `"command"` with `"node"`, use `"args": ["dist/cli.js", "--transport", "stdio", "--tool-filter", "codemode"]` |
+| **Connection string** | Replace individual env vars with `"POSTGRES_URL": "postgres://user:pass@host:5432/db"` |
+| **Host PostgreSQL** | Use `"POSTGRES_HOST": "localhost"` instead of `host.docker.internal` |
+| **Disable Code Mode** | Use `"starter,-codemode"` as tool filter |
 
 > **Note for Docker**: Use `host.docker.internal` to connect to PostgreSQL running on your host machine.
 
@@ -122,7 +132,7 @@ node dist/cli.js --transport stdio --postgres postgres://user:password@localhost
 
 ## Code Mode: Maximum Efficiency
 
-Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets.
+Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets. The Quick Start above uses `--tool-filter codemode` — this exposes just `pg_execute_code`, a single tool that provides access to all 232 tools' worth of capability through the `pg.*` API.
 
 Code executes in a **sandboxed VM context** with multiple layers of security. All `pg.*` API calls execute against the database within the sandbox, providing:
 
@@ -132,35 +142,7 @@ Code executes in a **sandboxed VM context** with multiple layers of security. Al
 - **Full API access** — all 22 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`, `pg.migration.migrationStatus()`)
 - **Requires `admin` OAuth scope** — execution is logged for audit
 
-### ⚡ Code Mode Only (Maximum Token Savings)
-
-If you control your own setup, you can run with **only Code Mode enabled** — a single tool that provides access to all 232 tools' worth of capability through the `pg.*` API:
-
-```json
-{
-  "mcpServers": {
-    "postgres-mcp": {
-      "command": "node",
-      "args": [
-        "/path/to/postgres-mcp/dist/cli.js",
-        "--transport",
-        "stdio",
-        "--tool-filter",
-        "codemode"
-      ],
-      "env": {
-        "POSTGRES_HOST": "localhost",
-        "POSTGRES_PORT": "5432",
-        "POSTGRES_USER": "your_user",
-        "POSTGRES_PASSWORD": "your_password",
-        "POSTGRES_DATABASE": "your_database"
-      }
-    }
-  }
-}
-```
-
-This exposes just `pg_execute_code`. The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 22 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
+The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 22 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
 
 #### Disabling Code Mode (Non-Admin Users)
 
@@ -428,17 +410,55 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 
 ---
 
-## ⚡ Performance Tuning
+## 🔧 Configuration
 
-| Variable                | Default     | Description                                        |
-| ----------------------- | ----------- | -------------------------------------------------- |
-| `MCP_HOST`              | `localhost` | Server bind host (`0.0.0.0` for containers)        |
-| `METADATA_CACHE_TTL_MS` | `30000`     | Cache TTL for schema metadata (milliseconds)       |
-| `LOG_LEVEL`             | `info`      | Log verbosity: `debug`, `info`, `warning`, `error` |
+### Environment Variables
 
-> **Tip:** Lower `METADATA_CACHE_TTL_MS` for development (e.g., `5000`), or increase it for production with stable schemas (e.g., `300000` = 5 min).
+| Variable | Default | Description | CLI Flag |
+|----------|---------|-------------|----------|
+| `POSTGRES_HOST` | `localhost` | Database host | `--host` |
+| `POSTGRES_PORT` | `5432` | Database port | `--pg-port` |
+| `POSTGRES_USER` | `postgres` | Database username | `--user` |
+| `POSTGRES_PASSWORD` | _(empty)_ | Database password | `--password` |
+| `POSTGRES_DATABASE` | `postgres` | Database name | `--database` |
+| `POSTGRES_URL` | — | Connection string (overrides individual vars) | `--postgres` |
+| `MCP_HOST` | `localhost` | Server bind host (`0.0.0.0` for containers) | `--server-host` |
+| `MCP_TRANSPORT` | `stdio` | Transport type: `stdio`, `http`, `sse` | `--transport` |
+| `PORT` | `3000` | HTTP port for http/sse transports | `--port` |
+| `LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warning`, `error` | `--log-level` |
+| `METADATA_CACHE_TTL_MS` | `30000` | Schema cache TTL (ms) | — |
+| `POSTGRES_TOOL_FILTER` | — | Tool filter string (also `MCP_TOOL_FILTER`) | `--tool-filter` |
+| `MCP_RATE_LIMIT_MAX` | `100` | Rate limit per IP per 15min window | — |
+| `TRUST_PROXY` | `false` | Trust X-Forwarded-For for client IP | `--trust-proxy` |
+| `OAUTH_ENABLED` | `false` | Enable OAuth 2.1 authentication | `--oauth-enabled` |
+| `OAUTH_ISSUER` | — | Authorization server URL | `--oauth-issuer` |
+| `OAUTH_AUDIENCE` | — | Expected token audience | `--oauth-audience` |
+| `OAUTH_JWKS_URI` | _(auto)_ | JWKS URI (auto-discovered from issuer) | `--oauth-jwks-uri` |
+| `OAUTH_CLOCK_TOLERANCE` | `60` | Clock tolerance in seconds | `--oauth-clock-tolerance` |
 
-> **Pool Tuning for IAM Auth:** For cloud-managed databases with IAM authentication (e.g., AWS RDS, Google Cloud SQL), set `POSTGRES_POOL_MIN=2` to keep warm connections and reduce authentication latency.
+> **Aliases:** `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` are also supported (standard PostgreSQL client env vars).
+
+> **Pool Tuning for IAM Auth:** For cloud-managed databases with IAM authentication (e.g., AWS RDS, Google Cloud SQL), use `--pool-max` to control pool size.
+
+### CLI Reference
+
+| Flag | Description |
+|------|-------------|
+| `--postgres <url>` | Connection string |
+| `--host <host>` | PostgreSQL host |
+| `--pg-port <port>` | PostgreSQL port |
+| `--user <user>` | Username |
+| `--password <pw>` | Password (prefer `PGPASSWORD`) |
+| `--database <db>` | Database name |
+| `--ssl` | Enable SSL |
+| `--pool-max <n>` | Max pool connections (default: 10) |
+| `--transport <type>` | `stdio` \| `http` \| `sse` |
+| `--port <n>` | HTTP port |
+| `--server-host <host>` | Server bind host |
+| `--tool-filter <filter>` | Tool filter string |
+| `--log-level <level>` | Log verbosity |
+| `--oauth-enabled` | Enable OAuth |
+| `--trust-proxy` | Trust reverse proxy headers |
 
 ---
 

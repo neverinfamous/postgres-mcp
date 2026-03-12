@@ -2,19 +2,64 @@
  * postgres-mcp - Error Types
  *
  * Custom error classes for postgres-mcp operations.
+ * Follows the harmonized error handling standard with
+ * category, suggestion, recoverable flag, and toResponse().
  */
 
+import { ErrorCategory } from "./error-types.js";
+import type { ErrorResponse } from "./error-types.js";
+
 /**
- * Base error class for postgres-mcp
+ * Base error class for postgres-mcp with enhanced diagnostics
  */
 export class PostgresMcpError extends Error {
+  /** Error category for classification */
+  readonly category: ErrorCategory;
+  /** Module-prefixed error code (e.g., CONNECTION_ERROR) */
+  readonly code: string;
+  /** Actionable suggestion for resolving the error */
+  readonly suggestion: string | undefined;
+  /** Additional error details */
+  readonly details: Record<string, unknown> | undefined;
+  /** Whether the error is recoverable (can retry) */
+  readonly recoverable: boolean;
+
   constructor(
     message: string,
-    public readonly code: string,
-    public readonly details?: Record<string, unknown>,
+    code: string,
+    category: ErrorCategory,
+    options?: {
+      suggestion?: string | undefined;
+      details?: Record<string, unknown> | undefined;
+      recoverable?: boolean | undefined;
+      cause?: Error | undefined;
+    },
   ) {
-    super(message);
-    this.name = "PostgresMcpError";
+    super(message, { cause: options?.cause });
+    this.name = this.constructor.name;
+    this.code = code;
+    this.category = category;
+    this.recoverable = options?.recoverable ?? false;
+    this.details = options?.details;
+    this.suggestion = options?.suggestion;
+
+    // Capture stack trace
+    Error.captureStackTrace?.(this, this.constructor);
+  }
+
+  /**
+   * Convert to structured response object
+   */
+  toResponse(): ErrorResponse {
+    return {
+      success: false,
+      error: this.message,
+      code: this.code,
+      category: this.category,
+      suggestion: this.suggestion,
+      recoverable: this.recoverable,
+      details: this.details,
+    };
   }
 }
 
@@ -22,9 +67,18 @@ export class PostgresMcpError extends Error {
  * Database connection error
  */
 export class ConnectionError extends PostgresMcpError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, "CONNECTION_ERROR", details);
-    this.name = "ConnectionError";
+  constructor(
+    message: string,
+    details?: Record<string, unknown>,
+    options?: { cause?: Error },
+  ) {
+    super(message, "CONNECTION_ERROR", ErrorCategory.CONNECTION, {
+      suggestion:
+        "Verify PostgreSQL is running and connection parameters are correct.",
+      details,
+      recoverable: true,
+      cause: options?.cause,
+    });
   }
 }
 
@@ -32,9 +86,18 @@ export class ConnectionError extends PostgresMcpError {
  * Connection pool error
  */
 export class PoolError extends PostgresMcpError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, "POOL_ERROR", details);
-    this.name = "PoolError";
+  constructor(
+    message: string,
+    details?: Record<string, unknown>,
+    options?: { cause?: Error },
+  ) {
+    super(message, "POOL_ERROR", ErrorCategory.CONNECTION, {
+      suggestion:
+        "Check pool size limits or wait for connections to be released.",
+      details,
+      recoverable: true,
+      cause: options?.cause,
+    });
   }
 }
 
@@ -42,9 +105,16 @@ export class PoolError extends PostgresMcpError {
  * Query execution error
  */
 export class QueryError extends PostgresMcpError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, "QUERY_ERROR", details);
-    this.name = "QueryError";
+  constructor(
+    message: string,
+    details?: Record<string, unknown>,
+    options?: { cause?: Error },
+  ) {
+    super(message, "QUERY_ERROR", ErrorCategory.QUERY, {
+      details,
+      recoverable: false,
+      cause: options?.cause,
+    });
   }
 }
 
@@ -52,9 +122,17 @@ export class QueryError extends PostgresMcpError {
  * Authentication error
  */
 export class AuthenticationError extends PostgresMcpError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, "AUTHENTICATION_ERROR", details);
-    this.name = "AuthenticationError";
+  constructor(
+    message: string,
+    details?: Record<string, unknown>,
+    options?: { cause?: Error },
+  ) {
+    super(message, "AUTHENTICATION_ERROR", ErrorCategory.AUTHENTICATION, {
+      suggestion: "Verify database credentials and authentication method.",
+      details,
+      recoverable: false,
+      cause: options?.cause,
+    });
   }
 }
 
@@ -62,9 +140,17 @@ export class AuthenticationError extends PostgresMcpError {
  * Authorization error (insufficient permissions)
  */
 export class AuthorizationError extends PostgresMcpError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, "AUTHORIZATION_ERROR", details);
-    this.name = "AuthorizationError";
+  constructor(
+    message: string,
+    details?: Record<string, unknown>,
+    options?: { cause?: Error },
+  ) {
+    super(message, "AUTHORIZATION_ERROR", ErrorCategory.AUTHORIZATION, {
+      suggestion: "Check the user's privileges on the target database object.",
+      details,
+      recoverable: false,
+      cause: options?.cause,
+    });
   }
 }
 
@@ -72,9 +158,16 @@ export class AuthorizationError extends PostgresMcpError {
  * Validation error for input parameters
  */
 export class ValidationError extends PostgresMcpError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, "VALIDATION_ERROR", details);
-    this.name = "ValidationError";
+  constructor(
+    message: string,
+    details?: Record<string, unknown>,
+    options?: { cause?: Error },
+  ) {
+    super(message, "VALIDATION_ERROR", ErrorCategory.VALIDATION, {
+      details,
+      recoverable: false,
+      cause: options?.cause,
+    });
   }
 }
 
@@ -82,9 +175,18 @@ export class ValidationError extends PostgresMcpError {
  * Transaction error
  */
 export class TransactionError extends PostgresMcpError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, "TRANSACTION_ERROR", details);
-    this.name = "TransactionError";
+  constructor(
+    message: string,
+    details?: Record<string, unknown>,
+    options?: { cause?: Error },
+  ) {
+    super(message, "TRANSACTION_ERROR", ErrorCategory.QUERY, {
+      suggestion:
+        "Use pg_transaction_rollback to end the aborted transaction, or pg_transaction_rollback_to to recover to a savepoint.",
+      details,
+      recoverable: true,
+      cause: options?.cause,
+    });
   }
 }
 
@@ -92,12 +194,21 @@ export class TransactionError extends PostgresMcpError {
  * Extension not available error
  */
 export class ExtensionNotAvailableError extends PostgresMcpError {
-  constructor(extensionName: string, details?: Record<string, unknown>) {
+  constructor(
+    extensionName: string,
+    details?: Record<string, unknown>,
+    options?: { cause?: Error },
+  ) {
     super(
       `Extension '${extensionName}' is not installed or enabled`,
       "EXTENSION_NOT_AVAILABLE",
-      { extension: extensionName, ...details },
+      ErrorCategory.CONFIGURATION,
+      {
+        suggestion: `Install the '${extensionName}' extension with CREATE EXTENSION ${extensionName}.`,
+        details: { extension: extensionName, ...details },
+        recoverable: false,
+        cause: options?.cause,
+      },
     );
-    this.name = "ExtensionNotAvailableError";
   }
 }

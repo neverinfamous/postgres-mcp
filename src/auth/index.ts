@@ -31,7 +31,6 @@ export {
   JwksFetchError,
   ClientRegistrationError,
   isOAuthError,
-  getWWWAuthenticateHeader,
 } from "./errors.js";
 
 // Scopes

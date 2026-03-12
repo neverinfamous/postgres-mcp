@@ -54,6 +54,10 @@ export type {
   PromptDefinition,
 } from "./adapters.js";
 
+// Error types (categories, response structure, context)
+export { ErrorCategory } from "./error-types.js";
+export type { ErrorResponse, ErrorContext } from "./error-types.js";
+
 // Error classes
 export {
   PostgresMcpError,

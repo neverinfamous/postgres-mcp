@@ -24,9 +24,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Retry-After Header** — 429 responses now include `Retry-After` header with seconds until rate limit window resets
 - **HSTS Opt-In E2E Test** — New E2E test verifying `Strict-Transport-Security` is not set when `enableHSTS` is false (default)
 - **Health Rate-Limit Bypass E2E Test** — New E2E test verifying `/health` always returns 200 under rate-limited conditions
+- **Harmonized error types** — New `types/error-types.ts` with `ErrorCategory` enum (9 categories), `ErrorResponse` interface, and `ErrorContext` interface, aligned with the db-mcp error handling standard
+- **`formatHandlerError()` canonical formatter** — New function in `error-helpers.ts` returning structured `ErrorResponse` objects. Handles `PostgresMcpError`, Zod validation errors, raw PG errors (via `parsePostgresError`), and unknown errors with fallback
 
 ### Changed
 
+- **`PostgresMcpError` enriched with harmonized fields** — Base error class now includes `category` (`ErrorCategory`), `suggestion`, `recoverable`, and `details` properties, plus a `toResponse()` method returning structured `ErrorResponse`. All 8 subclasses updated. Constructor: `(message, code, category, options?)`
+- **`OAuthError` extends `PostgresMcpError`** — OAuth errors now inherit enriched error handling. Module-prefixed codes (`AUTH_TOKEN_MISSING`, `AUTH_INVALID_TOKEN`, etc.), `wwwAuthenticate` as instance property, `getWWWAuthenticateHeader()` deprecated. Removed deprecated export from `auth/index.ts` barrel
+- **`types/index.ts` exports** — Added exports for `ErrorCategory`, `ErrorResponse`, `ErrorContext`, and `formatHandlerError`
+- **Feature table error description** — Updated both READMEs from `{success, error}` to `{success, error, code, category, suggestion, recoverable}`
+- **Documentation consolidation** — Replaced fragmented Quick Start + Code Mode JSON blocks with one canonical example + variants table. Replaced 3-var "Performance Tuning" with comprehensive 20-var "Configuration" section + CLI Reference. Both READMEs updated
 - **Dependency Updates**
   - `@types/node`: 25.3.5 → 25.4.0 (minor)
   - `typescript-eslint`: 8.56.1 → 8.57.0 (minor)
