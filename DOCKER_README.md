@@ -223,6 +223,7 @@ The agent writes JavaScript against the typed `pg.*` SDK — composing queries, 
 | `METADATA_CACHE_TTL_MS` | `30000` | Schema cache TTL (ms) |
 | `POSTGRES_TOOL_FILTER` | — | Tool filter string (also `MCP_TOOL_FILTER`) |
 | `MCP_RATE_LIMIT_MAX` | `100` | Rate limit per IP per 15min window |
+| `MCP_AUTH_TOKEN` | — | Simple bearer token for HTTP auth |
 | `TRUST_PROXY` | `false` | Trust X-Forwarded-For for client IP |
 | `OAUTH_ENABLED` | `false` | Enable OAuth 2.1 authentication |
 | `OAUTH_ISSUER` | — | Authorization server URL |
@@ -309,6 +310,16 @@ docker run --rm -p 3000:3000 \
   --transport http --port 3000
 ```
 
+**With simple bearer token authentication:**
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e POSTGRES_URL=postgres://user:pass@host:5432/db \
+  -e MCP_AUTH_TOKEN=my-secret-token \
+  writenotenow/postgres-mcp:latest \
+  --transport http --port 3000
+```
+
 **With OAuth 2.1 (recommended for production):**
 
 ```bash
@@ -321,7 +332,18 @@ docker run --rm -p 3000:3000 \
   --transport http --port 3000
 ```
 
-> **⚠️ Security:** When using `--transport http` without OAuth, all clients have full unrestricted access. Always enable OAuth for production HTTP deployments.
+**Stateless mode (serverless, no sessions):**
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e POSTGRES_URL=postgres://user:pass@host:5432/db \
+  writenotenow/postgres-mcp:latest \
+  --transport http --port 3000 --stateless
+```
+
+> **⚠️ Security:** When using `--transport http` without `--auth-token` or OAuth, all clients have full unrestricted access. Always enable authentication for production HTTP deployments.
+
+> **Priority:** When both `MCP_AUTH_TOKEN` and `OAUTH_ENABLED` are set, OAuth 2.1 takes precedence. If neither is configured, the server warns and runs without authentication.
 
 The server supports **two MCP transport protocols simultaneously**, enabling both modern and legacy clients to connect:
 

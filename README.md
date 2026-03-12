@@ -326,6 +326,16 @@ Modern protocol (MCP 2025-03-26) — single endpoint, session-based:
 
 Sessions are managed via the `Mcp-Session-Id` header.
 
+### Stateless Mode
+
+For serverless/stateless deployments where sessions are not needed:
+
+```bash
+node dist/cli.js --transport http --port 3000 --stateless --postgres "postgres://..."
+```
+
+In stateless mode: `GET /mcp` returns 405, `DELETE /mcp` returns 204, `/sse` and `/messages` return 404. Each `POST /mcp` creates a fresh transport.
+
 ### Legacy SSE (Backward Compatibility)
 
 Legacy protocol (MCP 2024-11-05) — for clients like Python `mcp.client.sse`:
@@ -343,13 +353,27 @@ Legacy protocol (MCP 2024-11-05) — for clients like Python `mcp.client.sse`:
 
 ---
 
-## 🔐 OAuth 2.1 Authentication
+## 🔐 Authentication
 
-When using HTTP/SSE transport, oauth 2.1 authentication can protect your MCP endpoints.
+postgres-mcp supports two authentication mechanisms for HTTP transport:
 
-### Configuration
+### Simple Bearer Token (`--auth-token`)
 
-**CLI Options:**
+Lightweight authentication for development or single-tenant deployments:
+
+```bash
+node dist/cli.js --transport http --port 3000 --auth-token my-secret --postgres "postgres://..."
+
+# Or via environment variable
+export MCP_AUTH_TOKEN=my-secret
+node dist/cli.js --transport http --port 3000 --postgres "postgres://..."
+```
+
+Clients must include `Authorization: Bearer my-secret` on all requests. `/health` and `/` are exempt. Unauthenticated requests receive `401` with `WWW-Authenticate: Bearer` headers per RFC 6750.
+
+### OAuth 2.1 (Enterprise)
+
+Full OAuth 2.1 with RFC 9728/8414 compliance for production multi-tenant deployments:
 
 ```bash
 node dist/cli.js \
@@ -361,20 +385,7 @@ node dist/cli.js \
   --oauth-audience postgres-mcp-client
 ```
 
-**Environment Variables (Required):**
-
-```bash
-OAUTH_ENABLED=true
-OAUTH_ISSUER=http://localhost:8080/realms/postgres-mcp
-OAUTH_AUDIENCE=postgres-mcp-client
-```
-
-**Environment Variables (Optional — auto-discovered from issuer):**
-
-```bash
-OAUTH_JWKS_URI=http://localhost:8080/realms/postgres-mcp/protocol/openid-connect/certs
-OAUTH_CLOCK_TOLERANCE=60
-```
+> **Additional flags:** `--oauth-jwks-uri <url>` (auto-discovered if omitted), `--oauth-clock-tolerance <seconds>` (default: 60).
 
 ### OAuth Scopes
 
@@ -394,9 +405,9 @@ Access control is managed through OAuth scopes:
 
 This implementation follows:
 
-- **RFC 9728** — OAuth 2.0 Protected Resource Metadata
-- **RFC 8414** — OAuth 2.0 Authorization Server Metadata
-- **RFC 7591** — OAuth 2.0 Dynamic Client Registration
+- **RFC 9728** — OAuth 2.1 Protected Resource Metadata
+- **RFC 8414** — OAuth 2.1 Authorization Server Metadata
+- **RFC 7591** — OAuth 2.1 Dynamic Client Registration
 
 The server exposes metadata at `/.well-known/oauth-protected-resource`.
 
@@ -406,7 +417,9 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 > **Per-tool scope enforcement:** Scopes are enforced at the tool level — each tool group maps to a required scope (`read`, `write`, or `admin`). When OAuth is enabled, every tool invocation checks the calling token's scopes before execution. When OAuth is not configured, scope checks are skipped entirely.
 
 > [!WARNING]
-> **HTTP without OAuth:** When using `--transport http` without enabling OAuth, all clients have full unrestricted access. Always enable OAuth for production HTTP deployments. See [SECURITY.md](SECURITY.md) for details.
+> **HTTP without authentication:** When using `--transport http` without enabling OAuth or `--auth-token`, all clients have full unrestricted access. Always enable authentication for production HTTP deployments. See [SECURITY.md](SECURITY.md) for details.
+
+> **Priority:** When both `--auth-token` and `--oauth-enabled` are set, OAuth 2.1 takes precedence. If neither is configured, the server warns and runs without authentication.
 
 ---
 
@@ -425,6 +438,7 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `MCP_HOST` | `localhost` | Server bind host (`0.0.0.0` for containers) | `--server-host` |
 | `MCP_TRANSPORT` | `stdio` | Transport type: `stdio`, `http`, `sse` | `--transport` |
 | `PORT` | `3000` | HTTP port for http/sse transports | `--port` |
+| `MCP_AUTH_TOKEN` | — | Simple bearer token for HTTP auth | `--auth-token` |
 | `LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warning`, `error` | `--log-level` |
 | `METADATA_CACHE_TTL_MS` | `30000` | Schema cache TTL (ms) | — |
 | `POSTGRES_TOOL_FILTER` | — | Tool filter string (also `MCP_TOOL_FILTER`) | `--tool-filter` |
@@ -455,9 +469,11 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `--transport <type>` | `stdio` \| `http` \| `sse` |
 | `--port <n>` | HTTP port |
 | `--server-host <host>` | Server bind host |
+| `--auth-token <token>` | Simple bearer token for HTTP auth |
+| `--stateless` | Stateless HTTP mode (no sessions, no SSE) |
 | `--tool-filter <filter>` | Tool filter string |
 | `--log-level <level>` | Log verbosity |
-| `--oauth-enabled` | Enable OAuth |
+| `--oauth-enabled` | Enable OAuth 2.1 |
 | `--trust-proxy` | Trust reverse proxy headers |
 
 ---
