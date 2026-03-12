@@ -13,7 +13,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   ExplainSchema,
   ExplainSchemaBase,
@@ -53,7 +53,7 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
       } catch (error) {
-        return formatHandlerError(error, { tool: "pg_explain" });
+        return formatHandlerErrorResponse(error, { tool: "pg_explain" });
       }
     },
   };
@@ -94,7 +94,7 @@ export function createExplainAnalyzeTool(
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
       } catch (error) {
-        return formatHandlerError(error, { tool: "pg_explain_analyze" });
+        return formatHandlerErrorResponse(error, { tool: "pg_explain_analyze" });
       }
     },
   };
@@ -135,7 +135,7 @@ export function createExplainBuffersTool(
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
       } catch (error) {
-        return formatHandlerError(error, { tool: "pg_explain_buffers" });
+        return formatHandlerErrorResponse(error, { tool: "pg_explain_buffers" });
       }
     },
   };

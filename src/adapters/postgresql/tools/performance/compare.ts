@@ -13,7 +13,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { QueryPlanCompareOutputSchema } from "../../schemas/index.js";
 
 /**
@@ -188,7 +188,7 @@ export function createQueryPlanCompareTool(
 
         return comparison;
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_query_plan_compare",
           });
       }

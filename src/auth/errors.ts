@@ -1,7 +1,7 @@
 /**
  * postgres-mcp - OAuth Errors
  *
- * Error classes for OAuth 2.0 authentication and authorization.
+ * Error classes for OAuth 2.1 authentication and authorization.
  * Follows the harmonized error handling standard — OAuthError
  * extends PostgresMcpError for full category/suggestion/toResponse() support.
  */

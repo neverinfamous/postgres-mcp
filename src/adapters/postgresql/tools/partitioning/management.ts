@@ -12,7 +12,7 @@ import type {
 
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -104,7 +104,7 @@ export function createListPartitionsTool(
           limit?: number;
         };
       } catch (zodError: unknown) {
-        return formatHandlerError(zodError, {
+        return formatHandlerErrorResponse(zodError, {
             tool: "pg_list_partitions",
           });
       }
@@ -232,7 +232,7 @@ export function createPartitionedTableTool(
           primaryKey?: string[];
         };
       } catch (zodError: unknown) {
-        return formatHandlerError(zodError, {
+        return formatHandlerErrorResponse(zodError, {
             tool: "pg_create_partitioned_table",
           });
       }
@@ -349,7 +349,7 @@ export function createPartitionedTableTool(
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_create_partitioned_table",
             table: name,
             ...(schema !== undefined && { schema }),
@@ -389,7 +389,7 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
           subpartitionKey?: string;
         };
       } catch (zodError: unknown) {
-        return formatHandlerError(zodError, {
+        return formatHandlerErrorResponse(zodError, {
             tool: "pg_create_partition",
           });
       }
@@ -468,7 +468,7 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_create_partition",
             table: name,
           });

@@ -12,7 +12,7 @@ import type {
 import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -71,7 +71,7 @@ export function createGeocodeTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, { tool: "pg_geocode" });
+        return formatHandlerErrorResponse(error, { tool: "pg_geocode" });
       }
     },
   };
@@ -209,7 +209,7 @@ export function createGeoTransformTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_geo_transform",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??

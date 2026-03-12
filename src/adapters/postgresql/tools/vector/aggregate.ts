@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -245,7 +245,7 @@ export function createVectorAggregateTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_vector_aggregate" });
+        return formatHandlerErrorResponse(error, { tool: "pg_vector_aggregate" });
       }
     },
   };
@@ -410,7 +410,7 @@ export function createVectorValidateTool(
             : {}),
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_vector_validate" });
+        return formatHandlerErrorResponse(error, { tool: "pg_vector_validate" });
       }
     },
   };

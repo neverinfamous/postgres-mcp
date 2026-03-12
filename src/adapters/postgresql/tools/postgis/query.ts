@@ -13,7 +13,7 @@ import type {
 import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -117,7 +117,7 @@ export function createPointInPolygonTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_point_in_polygon",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
@@ -194,7 +194,7 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_distance",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
@@ -300,7 +300,7 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_buffer",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
@@ -411,7 +411,7 @@ export function createIntersectionTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_intersection",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
@@ -521,7 +521,7 @@ export function createBoundingBoxTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_bounding_box",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??

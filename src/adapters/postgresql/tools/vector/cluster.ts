@@ -13,7 +13,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -218,7 +218,7 @@ export function createVectorClusterTool(
           note: "For production clustering, consider using specialized libraries",
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_vector_cluster" });
+        return formatHandlerErrorResponse(error, { tool: "pg_vector_cluster" });
       }
     },
   };

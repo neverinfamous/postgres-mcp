@@ -402,7 +402,7 @@ Server Options:
   --log-level <level>       Log level: debug, info, notice, warning, error, critical, alert, emergency
 
 OAuth Options:
-  --oauth-enabled, -o       Enable OAuth 2.0 authentication
+  --oauth-enabled, -o       Enable OAuth 2.1 authentication
   --oauth-issuer <url>      Authorization server URL (issuer)
   --oauth-audience <aud>    Expected token audience
   --oauth-jwks-uri <url>    JWKS URI (auto-discovered from issuer if not set)

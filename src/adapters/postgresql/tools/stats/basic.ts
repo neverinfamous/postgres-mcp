@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   // Base schemas for MCP visibility
@@ -183,7 +183,7 @@ export function createStatsCorrelationTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_stats_correlation" });
+        return formatHandlerErrorResponse(error, { tool: "pg_stats_correlation" });
       }
     },
   };
@@ -348,7 +348,7 @@ export function createStatsRegressionTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_stats_regression" });
+        return formatHandlerErrorResponse(error, { tool: "pg_stats_regression" });
       }
     },
   };

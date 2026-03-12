@@ -1,7 +1,7 @@
 /**
  * postgres-mcp - OAuth Scopes
  *
- * Scope definitions and utilities for PostgreSQL MCP OAuth 2.0.
+ * Scope definitions and utilities for PostgreSQL MCP OAuth 2.1.
  */
 
 import type { ToolGroup } from "../types/index.js";

@@ -21,7 +21,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
 
 // =============================================================================
@@ -185,7 +185,7 @@ export function createDetectQueryAnomaliesTool(
           summary,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_detect_query_anomalies",
           });
       }
@@ -404,7 +404,7 @@ export function createDetectBloatRiskTool(
           summary,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_detect_bloat_risk",
           });
       }

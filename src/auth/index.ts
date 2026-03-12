@@ -1,7 +1,7 @@
 /**
  * postgres-mcp - Auth Module
  *
- * OAuth 2.0 authentication and authorization for PostgreSQL MCP Server.
+ * OAuth 2.1 authentication and authorization for PostgreSQL MCP Server.
  */
 
 // Types

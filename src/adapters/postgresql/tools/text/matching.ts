@@ -13,7 +13,7 @@ import type {
 import { z, ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeIdentifiers,
@@ -126,7 +126,7 @@ export function createTrigramSimilarityTool(
             error: `pg_trigram_similarity validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_trigram_similarity",
           });
       }
@@ -277,7 +277,7 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
             error: `pg_fuzzy_match validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_fuzzy_match",
           });
       }
@@ -366,7 +366,7 @@ export function createRegexpMatchTool(
             error: `pg_regexp_match validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_regexp_match",
           });
       }

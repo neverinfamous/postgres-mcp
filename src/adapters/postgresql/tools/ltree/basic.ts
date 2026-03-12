@@ -10,7 +10,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   LtreeQuerySchema,
   LtreeQuerySchemaBase,
@@ -55,7 +55,7 @@ function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS ltree");
         return { success: true, message: "ltree extension enabled" };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_create_extension",
           });
       }
@@ -181,7 +181,7 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_query",
           });
       }
@@ -242,7 +242,7 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_subpath",
           });
       }
@@ -280,7 +280,7 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_lca",
           });
       }
@@ -319,7 +319,7 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_list_columns",
           });
       }

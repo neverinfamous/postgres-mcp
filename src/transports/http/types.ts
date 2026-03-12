@@ -49,6 +49,12 @@ export interface HttpTransportConfig {
   /** Paths that bypass authentication */
   publicPaths?: string[];
 
+  /** Simple bearer token for lightweight authentication (alternative to OAuth) */
+  authToken?: string;
+
+  /** Enable stateless mode — no sessions, no SSE, each request is independent */
+  stateless?: boolean;
+
   // =========================================================================
   // Security Options
   // =========================================================================

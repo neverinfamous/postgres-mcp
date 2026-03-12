@@ -13,7 +13,7 @@ import type {
 import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -113,7 +113,7 @@ export function createVectorExtensionTool(
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS vector");
         return { success: true, message: "pgvector extension enabled" };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_vector_create_extension",
           });
       }
@@ -248,7 +248,7 @@ export function createVectorAddColumnTool(
           throw err;
         }
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_vector_add_column" });
+        return formatHandlerErrorResponse(error, { tool: "pg_vector_add_column" });
       }
     },
   };

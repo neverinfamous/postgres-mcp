@@ -10,7 +10,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { z, ZodError } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   CronAlterJobSchemaBase,
   CronAlterJobSchema,
@@ -76,7 +76,7 @@ or active status. Only specify the parameters you want to change.`,
             error: error.issues.map((e) => e.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_cron_alter_job",
             ...(parsedJobId !== undefined && {
               target: String(parsedJobId),
@@ -220,7 +220,7 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
         return {
           jobs: [],
           count: 0,
-          ...formatHandlerError(error, { tool: "pg_cron_list_jobs" }),
+          ...formatHandlerErrorResponse(error, { tool: "pg_cron_list_jobs" }),
         };
       }
     },
@@ -377,7 +377,7 @@ Useful for monitoring and debugging scheduled jobs.`,
           runs: [],
           count: 0,
           summary: { succeeded: 0, failed: 0, running: 0 },
-          ...formatHandlerError(error, {
+          ...formatHandlerErrorResponse(error, {
             tool: "pg_cron_job_run_details",
           }),
         };
@@ -460,7 +460,7 @@ from growing too large. By default, removes records older than 7 days.`,
             message: error.issues.map((e) => e.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_cron_cleanup_history",
           });
       }

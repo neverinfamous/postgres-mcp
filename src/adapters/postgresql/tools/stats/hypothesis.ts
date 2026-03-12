@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   calculateTTestPValue,
@@ -255,7 +255,7 @@ export function createStatsHypothesisTool(
           results: testResults,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_stats_hypothesis" });
+        return formatHandlerErrorResponse(error, { tool: "pg_stats_hypothesis" });
       }
     },
   };

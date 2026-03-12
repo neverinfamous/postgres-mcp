@@ -3,7 +3,7 @@
  * postgres-mcp - CLI Entry Point
  *
  * Command-line interface for the PostgreSQL MCP server.
- * Supports stdio, HTTP, and SSE transports with OAuth 2.0 authentication.
+ * Supports stdio, HTTP, and SSE transports with OAuth 2.1 authentication.
  */
 
 import { Command } from "commander";
@@ -48,6 +48,8 @@ interface CliOptions {
   transport?: TransportType;
   port?: number;
   serverHost?: string;
+  authToken?: string;
+  stateless?: boolean;
   oauthEnabled?: boolean;
   oauthIssuer?: string;
   oauthAudience?: string;
@@ -66,7 +68,7 @@ const program = new Command();
 program
   .name("postgres-mcp")
   .description(
-    "PostgreSQL MCP Server - Full-featured database tools for AI with OAuth 2.0",
+    "PostgreSQL MCP Server - Full-featured database tools for AI with OAuth 2.1",
   )
   .version(VERSION);
 
@@ -113,7 +115,7 @@ program
     "Log level: debug, info, notice, warning, error, critical, alert, emergency (default: info)",
   )
   // OAuth options
-  .option("--oauth-enabled, -o", "Enable OAuth 2.0 authentication")
+  .option("--oauth-enabled, -o", "Enable OAuth 2.1 authentication")
   .option("--oauth-issuer <url>", "Authorization server URL (issuer)")
   .option("--oauth-audience <aud>", "Expected token audience")
   .option(
@@ -128,6 +130,14 @@ program
   .option(
     "--trust-proxy",
     "Trust X-Forwarded-For header for client IP (enable behind reverse proxy)",
+  )
+  .option(
+    "--auth-token <token>",
+    "Simple bearer token for HTTP authentication (env: MCP_AUTH_TOKEN)",
+  )
+  .option(
+    "--stateless",
+    "Enable stateless HTTP mode (no sessions, no SSE, suitable for serverless)",
   )
   .action(async (options: CliOptions) => {
     // Set log level
@@ -162,7 +172,7 @@ program
 
       // Log OAuth status
       if (oauthConfig?.enabled) {
-        logger.info("OAuth 2.0 authentication enabled", {
+        logger.info("OAuth 2.1 authentication enabled", {
           issuer: oauthConfig.issuer,
         });
       }
@@ -173,10 +183,10 @@ program
         "stdio") as TransportType;
 
       if (transport === "http" || transport === "sse") {
-        if (!oauthConfig?.enabled) {
+        if (!oauthConfig?.enabled && !options.authToken && !process.env["MCP_AUTH_TOKEN"]) {
           logger.warn(
-            "HTTP transport started WITHOUT OAuth authentication — all clients have unrestricted access. " +
-              "Enable OAuth with --oauth-enabled for production deployments.",
+            "HTTP transport started WITHOUT authentication — all clients have unrestricted access. " +
+              "Enable OAuth with --oauth-enabled or use --auth-token for simple bearer auth.",
           );
         }
         // Start with HTTP transport
@@ -392,6 +402,8 @@ async function startHttpServer(
   const transportConfig: HttpTransportConfig = {
     port,
     host,
+    authToken: options.authToken ?? process.env["MCP_AUTH_TOKEN"],
+    stateless: options.stateless ?? false,
     publicPaths: oauthConfig?.publicPaths ?? ["/health", "/.well-known/*"],
     trustProxy: options.trustProxy ?? process.env["TRUST_PROXY"] === "true",
   };
@@ -433,7 +445,7 @@ async function startHttpServer(
 
   if (oauthConfig?.enabled) {
     logger.info(
-      "OAuth 2.0 protected resource metadata available at /.well-known/oauth-protected-resource",
+      "OAuth 2.1 protected resource metadata available at /.well-known/oauth-protected-resource",
     );
   }
 }
@@ -502,7 +514,7 @@ program
     console.error(`Prompts: ${String(prompts.length)}`);
     console.error(`Tool Groups: ${groups.join(", ")}`);
     console.error("\nTransports: stdio (default), http, sse");
-    console.error("OAuth 2.0: Supported (RFC 9728/8414)");
+    console.error("OAuth 2.1: Supported (RFC 9728/8414)");
     console.error("\nCapabilities:");
     const caps = adapter.getCapabilities();
     for (const [cap, enabled] of Object.entries(caps)) {

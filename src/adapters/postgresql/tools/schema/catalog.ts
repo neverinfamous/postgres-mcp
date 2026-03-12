@@ -13,7 +13,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   ListFunctionsSchemaBase,
   ListFunctionsSchema,
@@ -140,7 +140,7 @@ export function createListFunctionsTool(
               : undefined,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_list_functions" });
+        return formatHandlerErrorResponse(error, { tool: "pg_list_functions" });
       }
     },
   };
@@ -247,7 +247,7 @@ export function createListTriggersTool(
             : await adapter.executeQuery(sql);
         return { triggers: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_list_triggers" });
+        return formatHandlerErrorResponse(error, { tool: "pg_list_triggers" });
       }
     },
   };
@@ -388,7 +388,7 @@ export function createListConstraintsTool(
             : await adapter.executeQuery(sql);
         return { constraints: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_list_constraints" });
+        return formatHandlerErrorResponse(error, { tool: "pg_list_constraints" });
       }
     },
   };

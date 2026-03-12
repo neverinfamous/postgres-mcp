@@ -13,7 +13,7 @@ import type {
 import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -251,7 +251,7 @@ export function createVectorInsertTool(
           throw error;
         }
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_vector_insert" });
+        return formatHandlerErrorResponse(error, { tool: "pg_vector_insert" });
       }
     },
   };
@@ -390,7 +390,7 @@ export function createVectorBatchInsertTool(
           throw error;
         }
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_vector_batch_insert" });
+        return formatHandlerErrorResponse(error, { tool: "pg_vector_batch_insert" });
       }
     },
   };

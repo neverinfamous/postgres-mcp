@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "./error-helpers.js";
+import { formatHandlerErrorResponse } from "./error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   GetIndexesSchemaBase,
@@ -99,7 +99,7 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
           table: `${schemaName}.${table}`,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_get_indexes" });
+        return formatHandlerErrorResponse(error, { tool: "pg_get_indexes" });
       }
     },
   };
@@ -216,7 +216,7 @@ export function createCreateIndexTool(
             }
           }
           // Return structured error
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_create_index",
               index: name,
               table,
@@ -224,7 +224,7 @@ export function createCreateIndexTool(
             });
         }
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_create_index" });
+        return formatHandlerErrorResponse(error, { tool: "pg_create_index" });
       }
     },
   };
@@ -331,7 +331,7 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_drop_index",
               index: name,
               schema: schemaName,
@@ -344,7 +344,7 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
           sql,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_drop_index" });
+        return formatHandlerErrorResponse(error, { tool: "pg_drop_index" });
       }
     },
   };

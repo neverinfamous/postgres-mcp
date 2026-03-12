@@ -10,7 +10,7 @@ import type {
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
-import { formatHandlerError } from "./error-helpers.js";
+import { formatHandlerErrorResponse } from "./error-helpers.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
   AnalyzeDbHealthSchemaBase,
@@ -401,7 +401,7 @@ export function createAnalyzeQueryIndexesTool(
         try {
           result = await adapter.executeQuery(explainSql, queryParams);
         } catch (error) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_analyze_query_indexes",
               sql,
             });
@@ -530,7 +530,7 @@ export function createAnalyzeQueryIndexesTool(
           hint: "Use verbosity: 'full' to include complete plan with all metrics",
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_analyze_query_indexes",
           });
       }

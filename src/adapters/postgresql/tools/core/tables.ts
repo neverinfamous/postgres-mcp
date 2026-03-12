@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "./error-helpers.js";
+import { formatHandlerErrorResponse } from "./error-helpers.js";
 import {
   ListTablesSchemaBase,
   ListTablesSchema,
@@ -76,7 +76,7 @@ export function createListTablesTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_list_tables" });
+        return formatHandlerErrorResponse(error, { tool: "pg_list_tables" });
       }
     },
   };
@@ -149,7 +149,7 @@ export function createDescribeTableTool(
 
         return await adapter.describeTable(table, schemaName);
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_describe_table" });
+        return formatHandlerErrorResponse(error, { tool: "pg_describe_table" });
       }
     },
   };
@@ -261,7 +261,7 @@ export function createCreateTableTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_create_table",
               table: name,
               schema: schema ?? "public",
@@ -278,7 +278,7 @@ export function createCreateTableTool(
           }),
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_create_table" });
+        return formatHandlerErrorResponse(error, { tool: "pg_create_table" });
       }
     },
   };
@@ -318,7 +318,7 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_drop_table",
               table,
               schema: schemaName,
@@ -331,7 +331,7 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
           existed,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_drop_table" });
+        return formatHandlerErrorResponse(error, { tool: "pg_drop_table" });
       }
     },
   };

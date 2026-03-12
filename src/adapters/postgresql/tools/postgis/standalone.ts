@@ -13,7 +13,7 @@ import type {
 import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   GeometryBufferSchemaBase,
   GeometryBufferSchema,
@@ -101,7 +101,7 @@ export function createGeometryBufferTool(
         try {
           result = await adapter.executeQuery(sql, [geometry, distance]);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_geometry_buffer",
             });
         }
@@ -134,7 +134,7 @@ export function createGeometryBufferTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_geometry_buffer",
           });
       }
@@ -183,7 +183,7 @@ export function createGeometryIntersectionTool(
         try {
           result = await adapter.executeQuery(sql, [geometry1, geometry2]);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_geometry_intersection",
             });
         }
@@ -200,7 +200,7 @@ export function createGeometryIntersectionTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_geometry_intersection",
           });
       }
@@ -240,7 +240,7 @@ export function createGeometryTransformTool(
         try {
           result = await adapter.executeQuery(sql, [geometry]);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_geometry_transform",
             });
         }
@@ -257,7 +257,7 @@ export function createGeometryTransformTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_geometry_transform",
           });
       }

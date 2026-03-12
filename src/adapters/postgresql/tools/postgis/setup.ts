@@ -13,7 +13,7 @@ import type {
 import { z, ZodError } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -136,7 +136,7 @@ export function createGeometryColumnTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_geometry_column",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??
@@ -229,7 +229,7 @@ export function createSpatialIndexTool(
             error: error.issues.map((i) => i.message).join("; "),
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_spatial_index",
             table:
               ((params as Record<string, unknown>)?.["table"] as string) ??

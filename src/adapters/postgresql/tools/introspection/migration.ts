@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import {
   MigrationInitSchemaBase,
@@ -95,7 +95,7 @@ export function createMigrationInitTool(
           existingRecords,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_migration_init",
           });
       }
@@ -163,7 +163,7 @@ export function createMigrationRecordTool(
           record: formatRecord(row),
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_migration_record",
           });
       }
@@ -273,7 +273,7 @@ export function createMigrationApplyTool(
           };
         }
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_migration_apply",
           });
       }

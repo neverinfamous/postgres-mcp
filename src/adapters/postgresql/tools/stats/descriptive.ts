@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   // Base schemas for MCP visibility
@@ -212,7 +212,7 @@ export function createStatsDescriptiveTool(
           statistics: mapStats(stats),
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_stats_descriptive" });
+        return formatHandlerErrorResponse(error, { tool: "pg_stats_descriptive" });
       }
     },
   };
@@ -358,7 +358,7 @@ export function createStatsPercentilesTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_stats_percentiles" });
+        return formatHandlerErrorResponse(error, { tool: "pg_stats_percentiles" });
       }
     },
   };

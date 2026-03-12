@@ -10,7 +10,7 @@ import type {
 } from "./types.js";
 
 /**
- * OAuth 2.0 Resource Server (RFC 9728)
+ * OAuth 2.1 Resource Server (RFC 9728)
  */
 export class OAuthResourceServer {
   private readonly config: ResourceServerConfig;

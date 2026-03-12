@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import { validateNumericColumn } from "./math-utils.js";
 import {
@@ -293,7 +293,7 @@ export function createStatsDistributionTool(
           histogram,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_stats_distribution" });
+        return formatHandlerErrorResponse(error, { tool: "pg_stats_distribution" });
       }
     },
   };

@@ -14,7 +14,7 @@ import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   CreateSchemaSchemaBase,
   CreateSchemaSchema,
@@ -99,7 +99,7 @@ export function createCreateSchemaTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_create_schema",
               schema: name,
               objectType: "schema",
@@ -112,7 +112,7 @@ export function createCreateSchemaTool(
         }
         return result;
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_create_schema" });
+        return formatHandlerErrorResponse(error, { tool: "pg_create_schema" });
       }
     },
   };
@@ -155,7 +155,7 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_drop_schema",
               schema: name,
             });
@@ -169,7 +169,7 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
             : `Schema '${name}' did not exist (ifExists: true)`,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_drop_schema" });
+        return formatHandlerErrorResponse(error, { tool: "pg_drop_schema" });
       }
     },
   };
@@ -368,7 +368,7 @@ export function createCreateSequenceTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_create_sequence",
               objectType: "sequence",
               ...(schema !== undefined && { schema }),
@@ -385,7 +385,7 @@ export function createCreateSequenceTool(
         }
         return result;
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_create_sequence" });
+        return formatHandlerErrorResponse(error, { tool: "pg_create_sequence" });
       }
     },
   };
@@ -434,14 +434,14 @@ export function createDropSequenceTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_drop_sequence",
               ...(schema !== undefined && { schema }),
             });
         }
         return { success: true, sequence: `${schemaName}.${name}`, existed };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_drop_sequence" });
+        return formatHandlerErrorResponse(error, { tool: "pg_drop_sequence" });
       }
     },
   };

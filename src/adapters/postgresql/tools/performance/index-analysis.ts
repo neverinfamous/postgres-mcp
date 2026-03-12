@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   UnusedIndexesOutputSchema,
   DuplicateIndexesOutputSchema,
@@ -169,7 +169,7 @@ export function createUnusedIndexesTool(
         }
         return response;
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_unused_indexes" });
+        return formatHandlerErrorResponse(error, { tool: "pg_unused_indexes" });
       }
     },
   };
@@ -313,7 +313,7 @@ export function createDuplicateIndexesTool(
         }
         return response;
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_duplicate_indexes" });
+        return formatHandlerErrorResponse(error, { tool: "pg_duplicate_indexes" });
       }
     },
   };

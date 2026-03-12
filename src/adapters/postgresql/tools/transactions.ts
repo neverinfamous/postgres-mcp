@@ -10,7 +10,7 @@ import type { PostgresAdapter } from "../PostgresAdapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
-import { formatHandlerError } from "./core/error-helpers.js";
+import { formatHandlerErrorResponse } from "./core/error-helpers.js";
 import {
   BeginTransactionSchemaBase,
   BeginTransactionSchema,
@@ -67,7 +67,7 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
             "Transaction started. Use this ID for subsequent operations.",
         };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_begin",
           });
       }
@@ -128,12 +128,12 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
                 "Transaction is in an aborted state — only ROLLBACK or ROLLBACK TO SAVEPOINT commands are accepted.",
             };
           }
-          return formatHandlerError(probeError, {
+          return formatHandlerErrorResponse(probeError, {
               tool: "pg_transaction_status",
             });
         }
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_status",
           });
       }
@@ -160,7 +160,7 @@ function createCommitTransactionTool(adapter: PostgresAdapter): ToolDefinition {
           message: "Transaction committed successfully.",
         };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_commit",
           });
       }
@@ -189,7 +189,7 @@ function createRollbackTransactionTool(
           message: "Transaction rolled back successfully.",
         };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_rollback",
           });
       }
@@ -218,7 +218,7 @@ function createSavepointTool(adapter: PostgresAdapter): ToolDefinition {
           message: `Savepoint '${name}' created.`,
         };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_savepoint",
           });
       }
@@ -247,7 +247,7 @@ function createReleaseSavepointTool(adapter: PostgresAdapter): ToolDefinition {
           message: `Savepoint '${name}' released.`,
         };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_release",
           });
       }
@@ -277,7 +277,7 @@ function createRollbackToSavepointTool(
           message: `Rolled back to savepoint '${name}'.`,
         };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_rollback_to",
           });
       }
@@ -303,7 +303,7 @@ function createTransactionExecuteTool(
       try {
         parsed = await TransactionExecuteSchema.parseAsync(params);
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_execute",
           });
       }
@@ -372,7 +372,7 @@ function createTransactionExecuteTool(
         }
 
         // Build structured error response with partial results and rollback context
-        const errResponse = formatHandlerError(error, {
+        const errResponse = formatHandlerErrorResponse(error, {
           tool: "pg_transaction_execute",
         });
 

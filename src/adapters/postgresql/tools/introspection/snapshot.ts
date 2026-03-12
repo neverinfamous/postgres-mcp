@@ -12,7 +12,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { checkSchemaExists } from "./helpers.js";
 import {
   SchemaSnapshotSchemaBase,
@@ -325,7 +325,7 @@ export function createSchemaSnapshotTool(
           ...(parsed.compact && { compact: true }),
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_schema_snapshot",
           });
       }

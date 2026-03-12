@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeTableName } from "../../../../utils/identifiers.js";
 import {
   DetachPartitionSchema,
@@ -51,7 +51,7 @@ export function createAttachPartitionTool(
           schema?: string;
         };
       } catch (zodError: unknown) {
-        return formatHandlerError(zodError, {
+        return formatHandlerErrorResponse(zodError, {
             tool: "pg_attach_partition",
           });
       }
@@ -129,7 +129,7 @@ export function createAttachPartitionTool(
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_attach_partition",
             table: parsedPartition.table,
           });
@@ -168,7 +168,7 @@ export function createDetachPartitionTool(
           schema?: string;
         };
       } catch (zodError: unknown) {
-        return formatHandlerError(zodError, {
+        return formatHandlerErrorResponse(zodError, {
             tool: "pg_detach_partition",
           });
       }
@@ -240,7 +240,7 @@ export function createDetachPartitionTool(
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_detach_partition",
             table: parsedPartition.table,
           });
@@ -276,7 +276,7 @@ export function createPartitionInfoTool(
           schema?: string;
         };
       } catch (zodError: unknown) {
-        return formatHandlerError(zodError, {
+        return formatHandlerErrorResponse(zodError, {
             tool: "pg_partition_info",
           });
       }

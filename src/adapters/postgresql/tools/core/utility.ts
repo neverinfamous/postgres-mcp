@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "./error-helpers.js";
+import { formatHandlerErrorResponse } from "./error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   CountOutputSchema,
@@ -79,7 +79,7 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           result = await adapter.executeQuery(sql, parsed.params);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_count",
               table: parsed.table,
               schema: schemaName,
@@ -89,7 +89,7 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
         const count = Number(result.rows?.[0]?.["count"]) || 0;
         return { count };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_count" });
+        return formatHandlerErrorResponse(error, { tool: "pg_count" });
       }
     },
   };
@@ -144,7 +144,7 @@ export function createExistsTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_exists" });
+        return formatHandlerErrorResponse(error, { tool: "pg_exists" });
       }
     },
   };
@@ -195,7 +195,7 @@ export function createTruncateTool(adapter: PostgresAdapter): ToolDefinition {
           restartIdentity: parsed.restartIdentity ?? false,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_truncate" });
+        return formatHandlerErrorResponse(error, { tool: "pg_truncate" });
       }
     },
   };

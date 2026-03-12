@@ -13,7 +13,7 @@ import type {
 import { z, ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   // Output schemas
   TextNormalizeOutputSchema,
@@ -65,7 +65,7 @@ export function createTextNormalizeTool(
             error: `pg_text_normalize validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_text_normalize",
           });
       }
@@ -122,7 +122,7 @@ export function createTextToVectorTool(
             error: `pg_text_to_vector validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_text_to_vector",
           });
       }
@@ -204,7 +204,7 @@ export function createTextToQueryTool(
             error: `pg_text_to_query validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_text_to_query",
           });
       }
@@ -244,7 +244,7 @@ export function createTextSearchConfigTool(
           count: result.rows?.length ?? 0,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_text_search_config",
           });
       }

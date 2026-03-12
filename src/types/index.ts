@@ -2,7 +2,7 @@
  * postgres-mcp - PostgreSQL MCP Server
  *
  * Core type definitions for the MCP server, database adapters,
- * OAuth 2.0 authentication, and tool filtering.
+ * OAuth 2.1 authentication, and tool filtering.
  *
  * Re-exports all types from modular files.
  */

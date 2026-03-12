@@ -1,11 +1,11 @@
 /**
- * postgres-mcp - OAuth 2.0 Types
+ * postgres-mcp - OAuth 2.1 Types
  *
- * OAuth 2.0/2.1 authentication and authorization types.
+ * OAuth 2.1 authentication and authorization types.
  */
 
 /**
- * OAuth 2.0 configuration
+ * OAuth 2.1 configuration
  */
 export interface OAuthConfig {
   /** Enable OAuth authentication */

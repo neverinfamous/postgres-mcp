@@ -93,6 +93,7 @@ export class HttpTransport {
       enableHSTS: config.enableHSTS ?? false,
       hstsMaxAge: config.hstsMaxAge ?? DEFAULTS.HSTS_MAX_AGE,
       trustProxy: config.trustProxy ?? false,
+      stateless: config.stateless ?? false,
     };
     if (onConnect) {
       this.onConnect = onConnect;
@@ -271,6 +272,43 @@ export class HttpTransport {
       return;
     }
 
+    // =========================================================================
+    // Authentication: Simple Bearer Token (lighter-weight alternative to OAuth)
+    // =========================================================================
+    if (this.config.authToken && !this.config.resourceServer) {
+      if (!this.isPublicPath(url.pathname)) {
+        const authHeader = req.headers.authorization;
+        if (!authHeader?.startsWith("Bearer ")) {
+          res.writeHead(401, {
+            "Content-Type": "application/json",
+            "WWW-Authenticate": 'Bearer realm="postgres-mcp"',
+          });
+          res.end(
+            JSON.stringify({
+              error: "unauthorized",
+              error_description: "Bearer token required",
+            }),
+          );
+          return;
+        }
+        const token = authHeader.slice(7);
+        if (token !== this.config.authToken) {
+          res.writeHead(401, {
+            "Content-Type": "application/json",
+            "WWW-Authenticate":
+              'Bearer realm="postgres-mcp", error="invalid_token"',
+          });
+          res.end(
+            JSON.stringify({
+              error: "unauthorized",
+              error_description: "Invalid bearer token",
+            }),
+          );
+          return;
+        }
+      }
+    }
+
     // Authenticate if OAuth is configured and path is not public
     let authCtx: AuthenticatedContext | undefined;
     if (this.config.resourceServer && this.config.tokenValidator) {
@@ -298,7 +336,11 @@ export class HttpTransport {
       // Streamable HTTP Transport (Protocol 2025-11-25) — canonical endpoint
       // =====================================================================
       if (url.pathname === "/mcp") {
-        await this.handleStreamableRequest(req, res);
+        if (this.config.stateless) {
+          await this.handleStatelessRequest(req, res);
+        } else {
+          await this.handleStreamableRequest(req, res);
+        }
         return;
       }
 
@@ -306,11 +348,21 @@ export class HttpTransport {
       // Legacy SSE Transport (Protocol 2024-11-05) — backward compatibility
       // =====================================================================
       if (url.pathname === "/sse") {
+        if (this.config.stateless) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Not found" }));
+          return;
+        }
         this.handleLegacySSERequest(req, res);
         return;
       }
 
       if (url.pathname === "/messages") {
+        if (this.config.stateless) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Not found" }));
+          return;
+        }
         await this.handleLegacyMessageRequest(req, res, url);
         return;
       }
@@ -458,6 +510,80 @@ export class HttpTransport {
         id: null,
       }),
     );
+  }
+
+  // ===========================================================================
+  // Stateless HTTP Mode
+  // ===========================================================================
+
+  /**
+   * Handle stateless HTTP requests on `/mcp`.
+   *
+   * Each request creates a fresh transport — no sessions, no SSE stream.
+   * Only POST is supported; GET (SSE) and DELETE (terminate) return errors.
+   */
+  private async handleStatelessRequest(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): Promise<void> {
+    if (req.method === "GET") {
+      res.writeHead(405, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: {
+            message: "SSE connections not available in stateless mode",
+          },
+        }),
+      );
+      return;
+    }
+
+    if (req.method === "DELETE") {
+      // No-op in stateless mode — nothing to terminate
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.writeHead(405, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: { message: "Method not allowed" } }));
+      return;
+    }
+
+    const maxBodySize = this.config.maxBodySize ?? DEFAULTS.MAX_BODY_SIZE;
+    let body: unknown;
+    try {
+      body = await readBody(req, res, maxBodySize);
+    } catch (readError) {
+      if (
+        readError instanceof Error &&
+        readError.message === "Payload too large"
+      ) {
+        return;
+      }
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code: -32700, message: "Parse error: Invalid JSON" },
+          id: null,
+        }),
+      );
+      return;
+    }
+
+    // Create a fresh transport for each request (no session persistence)
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: undefined,
+    });
+
+    if (this.onConnect) {
+      await this.onConnect(transport as unknown as Transport);
+    }
+
+    await transport.handleRequest(req, res, body);
+    await transport.close();
   }
 
   // ===========================================================================

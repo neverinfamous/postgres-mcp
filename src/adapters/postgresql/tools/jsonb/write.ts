@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import { toJsonString, resolveJsonbTable } from "./read.js";
 import {
@@ -138,7 +138,7 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
           return { rowsAffected: result.rowsAffected, hint };
         }
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_set",
           });
       }
@@ -263,7 +263,7 @@ export function createJsonbInsertTool(
             error: `pg_jsonb_insert requires numeric index for array position. Use array format with number: ["tags", 0] not ["tags", "0"] or "tags.0"`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_insert",
           });
       }
@@ -354,7 +354,7 @@ export function createJsonbDeleteTool(
           hint: "rowsAffected counts matched rows, not whether key existed",
         };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_delete",
           });
       }
@@ -423,7 +423,7 @@ export function createJsonbObjectTool(
         const result = await adapter.executeQuery(sql, args);
         return { object: result.rows?.[0]?.["result"] ?? {} };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_object",
           });
       }
@@ -475,7 +475,7 @@ export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
         );
         return { array: result.rows?.[0]?.["result"] };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_array",
           });
       }
@@ -539,7 +539,7 @@ export function createJsonbStripNullsTool(
         const result = await adapter.executeQuery(sql);
         return { rowsAffected: result.rowsAffected };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_strip_nulls",
           });
       }

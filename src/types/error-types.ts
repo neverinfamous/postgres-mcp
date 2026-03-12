@@ -44,7 +44,7 @@ export interface ErrorResponse {
 
 /**
  * Context about the operation that triggered the error.
- * Passed to formatHandlerError for context-aware error mapping.
+ * Passed to formatHandlerErrorResponse for context-aware error mapping.
  */
 export interface ErrorContext {
   tool: string;

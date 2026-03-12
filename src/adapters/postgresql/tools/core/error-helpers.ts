@@ -441,7 +441,7 @@ export function formatPostgresError(
  * - Zod validation path extraction
  * - Fallback for unknown errors
  */
-export function formatHandlerError(
+export function formatHandlerErrorResponse(
   error: unknown,
   context: ErrorContext,
 ): ErrorResponse {

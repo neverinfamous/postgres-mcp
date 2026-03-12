@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   sanitizeIdentifier,
@@ -264,7 +264,7 @@ export function createJsonbMergeTool(adapter: PostgresAdapter): ToolDefinition {
           return { merged: result.rows?.[0]?.["result"], deep: false };
         }
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_merge",
           });
       }
@@ -422,7 +422,7 @@ export function createJsonbNormalizeTool(
             error: `pg_jsonb_normalize 'array' mode requires array columns. For object columns, use mode: 'keys' or 'pairs'.`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_normalize",
           });
       }
@@ -510,7 +510,7 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
           hint: "Compares top-level keys only. Nested object changes show as modified.",
         };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_diff",
           });
       }

@@ -13,7 +13,7 @@ import type {
 import { z, ZodError } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeIdentifiers,
@@ -121,7 +121,7 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
             error: `pg_text_search validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_text_search",
           });
       }
@@ -243,7 +243,7 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
             error: `pg_text_rank validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_text_rank",
           });
       }
@@ -396,7 +396,7 @@ export function createTextHeadlineTool(
             error: `pg_text_headline validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_text_headline",
           });
       }
@@ -489,7 +489,7 @@ export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
             error: `pg_create_fts_index validation error: ${error.issues.map((e) => e.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_create_fts_index",
           });
       }

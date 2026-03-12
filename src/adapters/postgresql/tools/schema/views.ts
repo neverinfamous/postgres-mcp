@@ -14,7 +14,7 @@ import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   CreateViewSchemaBase,
   CreateViewSchema,
@@ -219,7 +219,7 @@ export function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_create_view",
               objectType: "view",
               ...(schema !== undefined && { schema }),
@@ -236,7 +236,7 @@ export function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
         }
         return result;
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_create_view" });
+        return formatHandlerErrorResponse(error, { tool: "pg_create_view" });
       }
     },
   };
@@ -287,7 +287,7 @@ export function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerError(error, {
+          return formatHandlerErrorResponse(error, {
               tool: "pg_drop_view",
               ...(schema !== undefined && { schema }),
             });
@@ -299,7 +299,7 @@ export function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
           existed,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, { tool: "pg_drop_view" });
+        return formatHandlerErrorResponse(error, { tool: "pg_drop_view" });
       }
     },
   };

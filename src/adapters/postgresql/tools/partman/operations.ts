@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   PartmanCheckDefaultSchema,
   PartmanCheckDefaultSchemaBase,
@@ -182,7 +182,7 @@ Data in default indicates partitions may be missing for certain time/value range
             : "Default partition is empty - no action needed",
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_partman_check_default",
           });
       }
@@ -321,7 +321,7 @@ Creates new partitions if needed for the data being moved.`,
               : "Data partitioning completed - no rows needed to be moved (default partition empty or already partitioned)",
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_partman_partition_data",
           });
       }

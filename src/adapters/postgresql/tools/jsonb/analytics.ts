@@ -11,7 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   sanitizeIdentifier,
@@ -160,7 +160,7 @@ export function createJsonbIndexSuggestTool(
             error: `pg_jsonb_index_suggest requires JSONB objects (not arrays). Column may not be JSONB type or contains arrays.`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_index_suggest",
           });
       }
@@ -301,7 +301,7 @@ export function createJsonbSecurityScanTool(
             error: `pg_jsonb_security_scan requires JSONB objects. Column may contain arrays or non-JSONB data.`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_security_scan",
           });
       }
@@ -443,7 +443,7 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
           hint,
         };
       } catch (error) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_stats",
           });
       }

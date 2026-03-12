@@ -12,7 +12,7 @@ import type {
 import { z } from "zod";
 import { write, destructive, readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   PartmanRetentionSchema,
   PartmanRetentionSchemaBase,
@@ -162,7 +162,7 @@ Partitions older than the retention period will be dropped or detached during ma
           message: `Retention policy set: ${retentionPhrase} will be ${retentionKeepTable === true ? "detached" : "dropped"}`,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_partman_set_retention",
           });
       }
@@ -296,7 +296,7 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
             : `The parent table still exists. To clean up: DROP TABLE ${validatedParentTable} CASCADE;`,
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_partman_undo_partition",
           });
       }
@@ -623,7 +623,7 @@ stale maintenance, and retention configuration.`,
           },
         };
       } catch (error: unknown) {
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_partman_analyze_partition_health",
           });
       }

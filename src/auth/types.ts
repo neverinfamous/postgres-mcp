@@ -10,7 +10,7 @@
 // =============================================================================
 
 /**
- * OAuth 2.0 Protected Resource Metadata (RFC 9728)
+ * OAuth 2.1 Protected Resource Metadata (RFC 9728)
  */
 export interface ProtectedResourceMetadata {
   /** Resource identifier (canonical URI) */
@@ -46,7 +46,7 @@ export interface ProtectedResourceMetadata {
 // =============================================================================
 
 /**
- * OAuth 2.0 Authorization Server Metadata (RFC 8414)
+ * OAuth 2.1 Authorization Server Metadata (RFC 8414)
  */
 export interface AuthorizationServerMetadata {
   /** Authorization server issuer identifier */
@@ -85,7 +85,7 @@ export interface AuthorizationServerMetadata {
 // =============================================================================
 
 /**
- * OAuth 2.0 Dynamic Client Registration Request (RFC 7591)
+ * OAuth 2.1 Dynamic Client Registration Request (RFC 7591)
  */
 export interface ClientRegistrationRequest {
   /** Redirect URIs */
@@ -117,7 +117,7 @@ export interface ClientRegistrationRequest {
 }
 
 /**
- * OAuth 2.0 Dynamic Client Registration Response (RFC 7591)
+ * OAuth 2.1 Dynamic Client Registration Response (RFC 7591)
  */
 export interface ClientRegistrationResponse {
   /** Client identifier */

@@ -8,7 +8,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
-import { formatHandlerError } from "./core/error-helpers.js";
+import { formatHandlerErrorResponse } from "./core/error-helpers.js";
 import {
   PgcryptoHashSchema,
   PgcryptoHashSchemaBase,
@@ -102,7 +102,7 @@ function createPgcryptoHashTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_hash",
           });
       }
@@ -145,7 +145,7 @@ function createPgcryptoHmacTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_hmac",
           });
       }
@@ -185,7 +185,7 @@ function createPgcryptoEncryptTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_encrypt",
           });
       }
@@ -232,7 +232,7 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_decrypt",
           });
       }
@@ -298,7 +298,7 @@ function createPgcryptoGenRandomUuidTool(
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_gen_random_uuid",
           });
       }
@@ -339,7 +339,7 @@ function createPgcryptoGenRandomBytesTool(
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_gen_random_bytes",
           });
       }
@@ -378,7 +378,7 @@ function createPgcryptoGenSaltTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_gen_salt",
           });
       }
@@ -419,7 +419,7 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
             error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
           };
         }
-        return formatHandlerError(error, {
+        return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_crypt",
           });
       }
