@@ -50,6 +50,7 @@ interface CliOptions {
   serverHost?: string;
   authToken?: string;
   stateless?: boolean;
+  enableHsts?: boolean;
   oauthEnabled?: boolean;
   oauthIssuer?: string;
   oauthAudience?: string;
@@ -138,6 +139,10 @@ program
   .option(
     "--stateless",
     "Enable stateless HTTP mode (no sessions, no SSE, suitable for serverless)",
+  )
+  .option(
+    "--enable-hsts",
+    "Enable HSTS header for HTTP transport (use when behind HTTPS, env: MCP_ENABLE_HSTS)",
   )
   .action(async (options: CliOptions) => {
     // Set log level
@@ -405,6 +410,7 @@ async function startHttpServer(
     host,
     ...(resolvedToken !== undefined ? { authToken: resolvedToken } : {}),
     stateless: options.stateless ?? false,
+    ...(options.enableHsts !== undefined && { enableHSTS: options.enableHsts }),
     publicPaths: oauthConfig?.publicPaths ?? ["/health", "/.well-known/*"],
     trustProxy: options.trustProxy ?? process.env["TRUST_PROXY"] === "true",
   };
