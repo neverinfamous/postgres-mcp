@@ -244,8 +244,21 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 | ---------------- | ------------------------- | ----- | ------------------------- |
 | Shortcut only    | `starter`                 | 60    | Use a predefined bundle   |
 | Groups only      | `core,jsonb,transactions` | 48    | Combine individual groups |
+| Tool names       | `pg_read_query,pg_explain`| 2     | Custom tool selection     |
 | Shortcut + Group | `starter,+text`           | 73    | Extend a shortcut         |
 | Shortcut - Tool  | `starter,-pg_drop_table`  | 59    | Remove specific tools     |
+
+#### Custom Tool Selection
+
+You can list individual tool names (without `+` prefix) to create a fully custom whitelist — only the tools you specify will be enabled:
+
+```bash
+# Enable exactly 3 tools
+--tool-filter "pg_read_query,pg_write_query,pg_list_tables"
+
+# Mix tools from different groups
+--tool-filter "pg_read_query,pg_explain,pg_vector_search"
+```
 
 ### Shortcuts (Predefined Bundles)
 

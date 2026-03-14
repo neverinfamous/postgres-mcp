@@ -280,10 +280,28 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 | -------- | -------- | ---------------- | --------------------------------------------- |
 | _(none)_ | Shortcut | `starter`        | **Whitelist Mode:** Enable ONLY this shortcut |
 | _(none)_ | Group    | `core`           | **Whitelist Mode:** Enable ONLY this group    |
+| _(none)_ | Tool     | `pg_read_query`  | **Whitelist Mode:** Enable ONLY this tool     |
 | `+`      | Group    | `+vector`        | Add tools from this group to current set      |
 | `-`      | Group    | `-admin`         | Remove tools in this group from current set   |
 | `+`      | Tool     | `+pg_explain`    | Add one specific tool                         |
 | `-`      | Tool     | `-pg_drop_table` | Remove one specific tool                      |
+
+### Custom Tool Selection
+
+You can list individual tool names (without `+` prefix) to create a fully custom whitelist — only the tools you specify will be enabled:
+
+```bash
+# Enable exactly 3 tools (whitelist mode)
+--tool-filter "pg_read_query,pg_write_query,pg_list_tables"
+
+# Mix tools from different groups
+--tool-filter "pg_read_query,pg_explain,pg_vector_search"
+
+# Combine with a shortcut or group
+--tool-filter "starter,+pg_vector_search,+pg_fuzzy_match"
+```
+
+This is useful for scripted or automated clients that need a minimal, precise set of capabilities.
 
 **Legacy Syntax (still supported):**
 If you start with a negative filter (e.g., `-base,-extensions`), it assumes you want to start with _all_ tools enabled and then subtract.
