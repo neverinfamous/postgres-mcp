@@ -56,7 +56,7 @@ yarn.lock
 pnpm-lock.yaml
 
 # Test database files
-test-database/
+test-server/
 .mcpregistry_*
 
 # Caches
