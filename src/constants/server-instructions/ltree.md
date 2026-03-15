@@ -1,0 +1,14 @@
+# ltree Tools
+
+Core: `createExtension()`, `query()`, `match()`, `subpath()`, `lca()`, `listColumns()`, `convertColumn()`, `createIndex()`
+
+- `pg_ltree_create_extension`: Enable ltree extension (idempotent). Returns `{success, message}`
+- `pg_ltree_query`: Query hierarchical relationships. Supports `schema.table` format (auto-parsed). `mode`/`type`: 'ancestors', 'descendants' (default), 'exact'. Returns `{results, count, path, mode, isPattern}`. ⚠️ Validates column is ltree type—returns clear error for non-ltree columns
+- `pg_ltree_match`: Match paths using lquery pattern syntax (`*`, `*{1,2}`, `*.label.*`). Supports `schema.table` format. `pattern`/`lquery`/`query` aliases. Returns `{results, count, pattern}`
+- `pg_ltree_subpath`: Extract portion of ltree path. `offset`/`start`/`from` and `length`/`len` aliases. Negative `offset` counts from end. ⚠️ Returns `{success: false, error, pathDepth}` for invalid offset (validated before PostgreSQL call)
+- `pg_ltree_lca`: Find longest common ancestor of multiple paths. Requires `paths` array (min 2). Returns `{longestCommonAncestor, hasCommonAncestor: bool, paths}`
+- `pg_ltree_list_columns`: List all ltree columns in database. Optional `schema` filter. Returns `{columns: [{table_schema, table_name, column_name, is_nullable, column_default}], count}`
+- `pg_ltree_convert_column`: Convert TEXT column to ltree. Supports `schema.table` format. `col` alias for `column`. Returns `{previousType}`. ⚠️ When views depend on column, returns `{success: false, dependentViews, hint}`—drop/recreate views manually
+- `pg_ltree_create_index`: Create GiST index on ltree column. Supports `schema.table` format. Auto-generates index name if `indexName` omitted. Returns `{indexName, indexType: 'gist', alreadyExists?}`
+
+**Discovery**: `pg.ltree.help()` returns `{methods, methodAliases, examples}` object. Top-level aliases available: `pg.ltreeQuery()`, `pg.ltreeMatch()`, etc.

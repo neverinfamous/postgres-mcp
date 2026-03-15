@@ -9,9 +9,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { DatabaseAdapter } from "../adapters/DatabaseAdapter.js";
 import type { ToolFilterConfig } from "../types/index.js";
-import { parseToolFilter } from "../filtering/ToolFilter.js";
+import { TOOL_GROUPS, parseToolFilter } from "../filtering/ToolFilter.js";
+import type { ToolGroup } from "../types/index.js";
 import { logger } from "../utils/logger.js";
-import { generateInstructions } from "../constants/ServerInstructions.js";
+import { INSTRUCTIONS, HELP_CONTENT } from "../constants/server-instructions.js";
 
 export interface ServerConfig {
   name: string;
@@ -33,10 +34,7 @@ export class PostgresMcpServer {
     this.adapter = config.adapter;
     this.filterConfig = parseToolFilter(config.toolFilter);
 
-    // Generate filtered instructions based on enabled tools
-    const instructions = generateInstructions(this.filterConfig.enabledTools);
-
-    // Create MCP server with logging capability enabled and server instructions
+    // Create MCP server with slim instructions pointing to postgres://help resources
     this.mcpServer = new McpServer(
       {
         name: config.name,
@@ -46,7 +44,7 @@ export class PostgresMcpServer {
         capabilities: {
           logging: {},
         },
-        instructions,
+        instructions: INSTRUCTIONS,
       },
     );
 
@@ -72,6 +70,9 @@ export class PostgresMcpServer {
     // Register resources
     this.adapter.registerResources(this.mcpServer);
 
+    // Register help resources (filtered by enabled tool groups)
+    this.registerHelpResources();
+
     // Register prompts
     this.adapter.registerPrompts(this.mcpServer);
 
@@ -84,6 +85,67 @@ export class PostgresMcpServer {
       resources: resourceCount,
       prompts: promptCount,
     });
+  }
+
+  /**
+   * Register postgres://help resources for on-demand reference documentation.
+   * Always registers postgres://help (gotchas). Group-specific help is filtered
+   * by the tool filter configuration.
+   */
+  private registerHelpResources(): void {
+    // Derive enabled groups from the enabled tool names
+    const enabledGroups = new Set<string>();
+    for (const [group, tools] of Object.entries(TOOL_GROUPS) as [ToolGroup, string[]][]) {
+      if (tools.some((tool) => this.filterConfig.enabledTools.has(tool))) {
+        enabledGroups.add(group);
+      }
+    }
+
+    // Always register postgres://help (gotchas + response structures + Code Mode API)
+    const gotchasContent = HELP_CONTENT.get("gotchas");
+    if (gotchasContent) {
+      this.mcpServer.registerResource(
+        "postgres_help",
+        "postgres://help",
+        {
+          description: "Critical gotchas, response structures, and Code Mode API reference",
+          mimeType: "text/markdown",
+        },
+        () => ({
+          contents: [{
+            uri: "postgres://help",
+            mimeType: "text/markdown",
+            text: gotchasContent,
+          }],
+        }),
+      );
+    }
+
+    // Register group-specific help resources based on tool filter
+    const registeredHelp = ["postgres://help"];
+    for (const [key, content] of HELP_CONTENT) {
+      if (key === "gotchas") continue; // Already registered above
+      if (!enabledGroups.has(key)) continue; // Skip disabled groups
+
+      this.mcpServer.registerResource(
+        `postgres_help_${key}`,
+        `postgres://help/${key}`,
+        {
+          description: `Tool reference for the ${key} tool group`,
+          mimeType: "text/markdown",
+        },
+        () => ({
+          contents: [{
+            uri: `postgres://help/${key}`,
+            mimeType: "text/markdown",
+            text: content,
+          }],
+        }),
+      );
+      registeredHelp.push(`postgres://help/${key}`);
+    }
+
+    logger.info(`Help resources: ${registeredHelp.join(", ")}`);
   }
 
   /**
