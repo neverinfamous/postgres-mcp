@@ -54,7 +54,9 @@ For each scenario, report:
 
 ---
 
-## Pass 1: `starter` (Core, Trans, JSONB, Schema)
+## Pass 1: `starter`
+
+**Tool groups under test:** `core` (21), `transactions` (9), `jsonb` (20), `schema` (13), `codemode` (1)
 
 ### Phase 1 — Discovery
 
@@ -102,7 +104,9 @@ List all constraints on `test_orders`. What types are they (PK, FK, CHECK, UNIQU
 
 ---
 
-## Pass 2: `dev-analytics` (Core, Trans, Stats, Partitioning)
+## Pass 2: `dev-analytics`
+
+**Tool groups under test:** `core` (21), `transactions` (9), `stats` (9), `partitioning` (7), `codemode` (1)
 
 ### Phase 5 — Statistics
 
@@ -120,7 +124,9 @@ Which products have the most orders? Join the data and present a ranked summary 
 
 ---
 
-## Pass 3: `ai-data` (Core, JSONB, Text, Trans)
+## Pass 3: `ai-data`
+
+**Tool groups under test:** `core` (21), `jsonb` (20), `text` (14), `transactions` (9), `codemode` (1)
 
 ### Phase 6 — Text & Full-Text Search
 
@@ -135,7 +141,9 @@ Find events in `test_events` where the JSONB `payload` contains a specific key, 
 
 ---
 
-## Pass 4: `ai-vector` (Core, Vector, Trans, Partitioning)
+## Pass 4: `ai-vector`
+
+**Tool groups under test:** `core` (21), `vector` (17), `transactions` (9), `partitioning` (7), `codemode` (1)
 
 ### Phase 7 — Vector & Semantic Search
 
@@ -150,7 +158,9 @@ What are the dimensions of the embeddings? How many vectors are stored? What ind
 
 ---
 
-## Pass 5: `geo` (Core, PostGIS, Trans)
+## Pass 5: `geo`
+
+**Tool groups under test:** `core` (21), `postgis` (16), `transactions` (9), `codemode` (1)
 
 ### Phase 8 — Geospatial
 
@@ -165,7 +175,9 @@ Find all locations within a bounding box covering North America. Which cities ar
 
 ---
 
-## Pass 6: `dba-monitor` (Core, Monitoring, Perf, Trans)
+## Pass 6: `dba-monitor`
+
+**Tool groups under test:** `core` (21), `monitoring` (12), `performance` (25), `transactions` (9), `codemode` (1)
 
 ### Phase 9 — Monitoring & Performance
 
@@ -180,7 +192,9 @@ Check for table bloat across all test tables. Which tables, if any, would benefi
 
 ---
 
-## Pass 7: `dba-infra` (Core, Admin, Backup, Partitioning)
+## Pass 7: `dba-infra`
+
+**Tool groups under test:** `core` (21), `admin` (11), `backup` (10), `partitioning` (7), `codemode` (1)
 
 ### Phase 10 — Admin & Infrastructure
 
@@ -195,7 +209,9 @@ Inspect the partitioning setup for `test_events`. Can the agent identify the par
 
 ---
 
-## Pass 8: `core,introspection,migration` (Core, Introspection, Migration)
+## Pass 8: `core,introspection,migration`
+
+**Tool groups under test:** `core` (21), `introspection` (7), `migration` (7), `codemode` (1)
 
 ### Phase 11 — Schema Analysis & Migration
 
@@ -210,7 +226,9 @@ Initialize migration tracking, then create and apply a migration that adds a `de
 
 ---
 
-## Pass 9: `codemode` (Code Mode only)
+## Pass 9: `codemode`
+
+**Tool groups under test:** `codemode` (1) + built-in resources (3)
 
 ### Phase 12 — Code Mode Discovery & Efficiency
 
