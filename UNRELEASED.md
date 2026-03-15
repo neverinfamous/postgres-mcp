@@ -1,5 +1,6 @@
 # Unreleased
 
 ## Added
-- **Instruction Filter Alignment**: Server instructions now align with `--tool-filter` — only documentation for enabled tool groups is included in the MCP instructions sent to clients. Added `<!-- GROUP: -->` markers to `server-instructions.md`, rewrote generator script to emit per-group `INSTRUCTION_SECTIONS` Map, and updated `McpServer.ts` to use `generateInstructions(enabledTools)`. Reduces wasted tokens by filtering out documentation for disabled tool groups.
+- **Help Resource Architecture**: Replaced monolithic `ServerInstructions.ts` (72KB) with 22 per-group `.md` files under `src/constants/server-instructions/`. Slim ~600 char instructions field points agents to `postgres://help` resources for on-demand reference. `McpServer.ts` registers `postgres://help` (always) + `postgres://help/{group}` filtered by `--tool-filter`. Supersedes instruction filter alignment.
+- **Agent Experience Test**: Added `test-server/test-agent-experience.md` with 9 passes (37 scenarios) covering all tool groups with explicit tool group annotations.
 - **Integration Test**: Added `test-server/test-instruction-levels.mjs` to verify instruction filtering behavior.
