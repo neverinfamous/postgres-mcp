@@ -1,3 +1,5 @@
+<!-- GROUP: _always -->
+
 # postgres-mcp Code Mode
 
 ## ⚠️ Critical Gotchas
@@ -76,6 +78,8 @@
 
 ---
 
+<!-- GROUP: vector -->
+
 ## Vector Tools
 
 ⚠️ **Large Vectors**: Direct MCP tool calls may truncate vectors >256 dimensions due to JSON-RPC message size limits. For vectors ≥256 dimensions (e.g., OpenAI 1536-dim, local 384-dim), use Code Mode: `await pg.vector.search({table, column, vector, limit})`
@@ -95,6 +99,8 @@
 - `pg_hybrid_search`: Supports `schema.table` format (auto-parsed). Combines vector similarity and full-text search with weighted scoring. `textColumn` auto-detects type: uses tsvector columns directly, wraps text columns with `to_tsvector()`. Code mode alias: `pg.hybridSearch()` → `pg.vector.hybridSearch()`
 - 📝 **Error Handling**: Vector tools return `{success: false, error: "...", suggestion: "..."}` for validation/semantic errors (dimension mismatch, non-vector column, table not found). Check `success` field before processing results.
 
+<!-- GROUP: jsonb -->
+
 ## JSONB Tools
 
 - `pg_jsonb_extract`: Returns null if path doesn't exist
@@ -112,6 +118,8 @@
 
 **Top-Level Aliases**: `pg.jsonbExtract()`, `pg.jsonbSet()`, `pg.jsonbInsert()`, `pg.jsonbDelete()`, `pg.jsonbContains()`, `pg.jsonbPathQuery()`, `pg.jsonbAgg()`, `pg.jsonbObject()`, `pg.jsonbArray()`, `pg.jsonbKeys()`, `pg.jsonbStripNulls()`, `pg.jsonbTypeof()`, `pg.jsonbValidatePath()`, `pg.jsonbMerge()`, `pg.jsonbNormalize()`, `pg.jsonbDiff()`, `pg.jsonbIndexSuggest()`, `pg.jsonbSecurityScan()`, `pg.jsonbStats()`
 
+<!-- GROUP: stats -->
+
 ## Stats Tools
 
 - All stats tools support `schema.table` format (auto-parsed, embedded schema takes priority over explicit `schema` param)
@@ -126,10 +134,14 @@
 
 **Top-Level Aliases**: `pg.descriptive()`, `pg.percentiles()`, `pg.correlation()`, `pg.regression()`, `pg.timeSeries()`, `pg.distribution()`, `pg.hypothesis()`, `pg.sampling()`
 
+<!-- GROUP: text -->
+
 ## Text Tools
 
 - `pg_text_search`/`pg_text_rank`: Column must be `text` type—pre-built `tsvector` columns are **not** supported (wrap with `to_tsvector()` fails on tsvector input). Use `pg_read_query` with raw FTS SQL for tsvector columns
 - `pg_create_fts_index`: Returns `{success, index, config, skipped}`. `skipped: true` = index already existed (IF NOT EXISTS). `ifNotExists` defaults to `true`
+
+<!-- GROUP: performance -->
 
 ## Performance Tools
 
@@ -160,6 +172,8 @@ Aliases: `cacheStats`→`cacheHitRatio`, `queryStats`→`statStatements`, `activ
 
 **Top-Level Aliases**: `pg.explain()`, `pg.explainAnalyze()`, `pg.cacheHitRatio()`, `pg.indexStats()`, `pg.tableStats()`, `pg.indexRecommendations()`, `pg.bloatCheck()`, `pg.vacuumStats()`, `pg.unusedIndexes()`, `pg.duplicateIndexes()`, `pg.seqScanTables()`, `pg.diagnoseDatabasePerformance()`, `pg.detectQueryAnomalies()`, `pg.detectBloatRisk()`, `pg.detectConnectionSpike()`
 
+<!-- GROUP: monitoring -->
+
 ## Monitoring Tools
 
 Core: `databaseSize()`, `tableSizes()`, `connectionStats()`, `showSettings()`, `capacityPlanning()`, `uptime()`, `serverVersion()`, `recoveryStatus()`, `replicationStatus()`, `resourceUsageAnalyze()`, `alertThresholdSet()`
@@ -184,6 +198,8 @@ Core: `databaseSize()`, `tableSizes()`, `connectionStats()`, `showSettings()`, `
 Aliases: `tables`→`tableSizes`, `connections`→`connectionStats`, `settings`/`config`→`showSettings`, `alerts`/`thresholds`→`alertThresholdSet`
 
 **Top-Level Aliases**: `pg.databaseSize()`, `pg.tableSizes()`, `pg.connectionStats()`, `pg.serverVersion()`, `pg.uptime()`, `pg.showSettings()`, `pg.recoveryStatus()`, `pg.replicationStatus()`, `pg.capacityPlanning()`, `pg.resourceUsageAnalyze()`, `pg.alertThresholdSet()`
+
+<!-- GROUP: admin -->
 
 ## Admin Tools
 
@@ -212,6 +228,8 @@ Aliases: `tableName`→`table`, `indexName`→`index`, `param`/`setting`→`name
 - `setConfig()`: `{success, message, parameter, value}`
 - `reloadConf()` / `resetStats()`: `{success, message}`
 - `cancelBackend()` / `terminateBackend()`: `{success, message}`
+
+<!-- GROUP: backup -->
 
 ## Backup Tools
 
@@ -242,6 +260,8 @@ Response Structures:
 
 **Top-Level Aliases**: `pg.dumpTable()`, `pg.dumpSchema()`, `pg.copyExport()`, `pg.copyImport()`, `pg.createBackupPlan()`, `pg.restoreCommand()`, `pg.restoreValidate()`, `pg.physical()`, `pg.backupPhysical()`, `pg.scheduleOptimize()`, `pg.backupScheduleOptimize()`
 
+<!-- GROUP: text -->
+
 ## Text Tools
 
 Defaults: `threshold`=0.3 (use 0.1-0.2 for partial), `maxDistance`=3 (use 5+ for longer strings)
@@ -254,6 +274,8 @@ Defaults: `threshold`=0.3 (use 0.1-0.2 for partial), `maxDistance`=3 (use 5+ for
 - 📍 **Table vs Standalone**: `normalize`, `sentiment`, `toVector`, `toQuery`, `searchConfig` are standalone (text input only). For phonetic matching: use `pg_fuzzy_match` with `method: 'soundex'|'metaphone'` (direct MCP), or `pg.text.soundex()`/`pg.text.metaphone()` (Code Mode convenience wrappers that call fuzzyMatch internally)
 
 **Top-Level Aliases**: `pg.textSearch()`, `pg.textRank()`, `pg.textHeadline()`, `pg.textNormalize()`, `pg.textSentiment()`, `pg.textToVector()`, `pg.textToQuery()`, `pg.textSearchConfig()`, `pg.textTrigramSimilarity()`, `pg.textFuzzyMatch()`, `pg.textLikeSearch()`, `pg.textRegexpMatch()`, `pg.textCreateFtsIndex()`
+
+<!-- GROUP: schema -->
 
 ## Schema Tools
 
@@ -278,6 +300,8 @@ Response Structures:
 
 **Discovery**: `pg.schema.help()` returns `{methods, methodAliases, examples}` object
 
+<!-- GROUP: partitioning -->
+
 ## Partitioning Tools
 
 - `pg_create_partitioned_table`: `partitionBy` case-insensitive. Supports `schema.table` format for `name` (auto-parsed). `primaryKey` accepts array (e.g., `['id', 'event_date']`). ⛔ `primaryKey`/`unique` must include partition key—throws validation error otherwise
@@ -289,6 +313,8 @@ Response Structures:
 - Response structures: `pg_create_partitioned_table` → `{success, table, partitionBy, partitionKey, primaryKey?}`. `pg_create_partition` → `{success, partition, parent, bounds, subpartitionBy?, subpartitionKey?}`. `pg_attach_partition` → `{success, parent, partition, bounds}`. `pg_detach_partition` → `{success, parent, partition}`
 - ⚠️ Sub-partitioning: `subpartitionBy`/`subpartitionKey` on `pg_create_partition` makes a partition itself partitionable. The parent's `primaryKey` must include the sub-partition key column (PostgreSQL constraint)
 - 📍 Code Mode: `pg.partitioning.create()` = `createPartition`, NOT `createPartitionedTable`
+
+<!-- GROUP: partman -->
 
 ## pg_partman Tools
 
@@ -303,6 +329,8 @@ Response Structures:
 - 📝 **Schema Resolution**: All partman tools auto-prefix `public.` when no schema specified in `parentTable`
 - 📝 **Aliases**: `parentTable` accepts `table`, `parent`, `name`. `controlColumn` accepts `control`, `column`. `targetTable` accepts `target`
 
+<!-- GROUP: kcache -->
+
 ## pg_stat_kcache Tools
 
 Core: `createExtension()`, `queryStats()`, `topCpu()`, `topIo()`, `databaseStats()`, `resourceAnalysis()`, `reset()`
@@ -313,6 +341,8 @@ Core: `createExtension()`, `queryStats()`, `topCpu()`, `topIo()`, `databaseStats
 - `pg_kcache_top_io`: `type`/`ioType` (alias): 'reads', 'writes', 'both' (default). `limit` param (default: 10). `queryPreviewLength`: chars for query preview (default: 100, max: 500, 0 for full). Returns `truncated` + `totalCount` when limited
 - `pg_kcache_database_stats`: Aggregated CPU/IO stats per database. Optional `database` param to filter specific db
 - `pg_kcache_reset`: Resets pg_stat_kcache AND pg_stat_statements statistics
+
+<!-- GROUP: citext -->
 
 ## citext Tools
 
@@ -326,6 +356,8 @@ Core: `createExtension()`, `convertColumn()`, `listColumns()`, `analyzeCandidate
 - `pg_citext_schema_advisor`: Supports `schema.table` format (auto-parsed). Analyzes specific table. Returns `{table, recommendations: [{column, currentType, previousType?, recommendation, confidence, reason}], summary, nextSteps}`. `tableName` alias for `table`. Already-citext columns include `previousType: "text or varchar (converted)"`
 
 **Discovery**: `pg.citext.help()` returns `{methods, methodAliases, examples}` object
+
+<!-- GROUP: ltree -->
 
 ## ltree Tools
 
@@ -341,6 +373,8 @@ Core: `createExtension()`, `query()`, `match()`, `subpath()`, `lca()`, `listColu
 - `pg_ltree_create_index`: Create GiST index on ltree column. Supports `schema.table` format. Auto-generates index name if `indexName` omitted. Returns `{indexName, indexType: 'gist', alreadyExists?}`
 
 **Discovery**: `pg.ltree.help()` returns `{methods, methodAliases, examples}` object. Top-level aliases available: `pg.ltreeQuery()`, `pg.ltreeMatch()`, etc.
+
+<!-- GROUP: postgis -->
 
 ## PostGIS Tools
 
@@ -376,6 +410,8 @@ Core: `createExtension()`, `query()`, `match()`, `subpath()`, `lca()`, `listColu
 
 **Code Mode Aliases:** `pg.postgis.addColumn()` → `geometryColumn`, `pg.postgis.indexOptimize()` → `geoIndexOptimize`, `pg.postgis.geoCluster()` → `pg_geo_cluster`, `pg.postgis.geoTransform()` → `pg_geo_transform`. Note: `pg.{group}.help()` returns `{methods, methodAliases, examples}`
 
+<!-- GROUP: cron -->
+
 ## Cron Tools (pg_cron)
 
 Core: `createExtension()`, `schedule()`, `scheduleInDatabase()`, `unschedule()`, `alterJob()`, `listJobs()`, `jobRunDetails()`, `cleanupHistory()`
@@ -390,6 +426,8 @@ Core: `createExtension()`, `schedule()`, `scheduleInDatabase()`, `unschedule()`,
 - `pg_cron_create_extension`: Enable pg_cron extension (idempotent). Requires superuser
 
 **Discovery**: `pg.cron.help()` returns `{methods, methodAliases, examples}` object
+
+<!-- GROUP: pgcrypto -->
 
 ## pgcrypto Tools
 
@@ -411,11 +449,15 @@ Core: `createExtension()`, `hash()`, `hmac()`, `encrypt()`, `decrypt()`, `genRan
 
 **Discovery**: `pg.pgcrypto.help()` returns `{methods, methodAliases, examples}` object
 
+<!-- GROUP: _always -->
+
 ## Code Mode Sandbox
 
 No `setTimeout`, `setInterval`, `fetch`, or network access. Use `pg.core.readQuery()` for data access.
 
 📊 **Metrics Note**: `memoryUsedMb` measures heap delta (end - start). Negative values indicate memory freed during execution (e.g., GC ran).
+
+<!-- GROUP: transactions -->
 
 ## Transactions
 
@@ -460,6 +502,8 @@ Core: `begin()`, `status()`, `commit()`, `rollback()`, `savepoint()`, `rollbackT
 
 **Discovery**: `pg.transactions.help()` returns `{methods, methodAliases, examples}`
 
+<!-- GROUP: introspection -->
+
 ## Introspection Tools
 
 Code Mode: `pg.introspection.*` — 6 read-only tools for schema analysis.
@@ -475,6 +519,8 @@ Core: `dependencyGraph()`, `topologicalSort()`, `cascadeSimulator()`, `schemaSna
 - `pg_migration_risks`: Static DDL risk assessment. ⚠️ Does NOT validate object existence—analyzes SQL patterns only. Returns `{risks, summary}`
 
 **Discovery**: `pg.introspection.help()` returns `{methods, methodAliases, examples}`
+
+<!-- GROUP: migration -->
 
 ## Migration Tools
 
