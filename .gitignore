@@ -55,8 +55,10 @@ temp/
 yarn.lock
 pnpm-lock.yaml
 
-# Test database files
-test-server/
+# Test server runtime files (test plans, docs, SQL seeds, and scripts are tracked)
+test-server/*.db
+test-server/*.log
+test-server/*.dump
 .mcpregistry_*
 
 # Caches
