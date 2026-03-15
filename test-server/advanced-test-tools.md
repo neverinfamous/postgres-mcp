@@ -687,5 +687,3 @@ Compile a summary of all findings:
 5. **Commit**: Stage and commit all changes — do NOT push
 6. **Live re-test**: Test fixes with direct MCP tool calls
 7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live MCP re-testing confirms fixes are working
-
-> **Note:** `test-server/` is in `.gitignore` as intended.

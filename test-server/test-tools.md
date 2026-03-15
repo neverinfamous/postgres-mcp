@@ -195,8 +195,6 @@ DROP TABLE IF EXISTS temp_my_test_table;
 6. **Live re-test**: Test fixes with direct MCP tool calls. I will have already rebuilt and restarted the server.
 7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live MCP re-testing confirms fixes are working. If the test prompt/database can be improved, suggest improvements.
 
-> **Note:** `test-server/` is in `.gitignore` as intended.
-
 ---
 
 ## Troubleshooting
@@ -230,4 +228,3 @@ Some tools require PostgreSQL extensions that may not be installed in all enviro
 Ensure PostGIS is installed and the spatial_ref_sys table is populated: `SELECT COUNT(*) FROM spatial_ref_sys;`
 
 ---
-

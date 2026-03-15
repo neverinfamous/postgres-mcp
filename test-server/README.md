@@ -1,6 +1,6 @@
 # postgres-mcp Test Database — Agent Testing Instructions
 
-> **This README is optimized for AI agent consumption.** It serves as the primary orchestration document for running manual MCP functionality tests against the local PostgreSQL database (`postgres`). All files in this directory are `.gitignore`d.
+> **This README is optimized for AI agent consumption.** It serves as the primary orchestration document for running manual MCP functionality tests against the local PostgreSQL database (`postgres`).
 
 ## Files
 
@@ -102,7 +102,7 @@
 
 ## Agent Workflow
 
-1. Read `src/constants/server-instructions.md` (via `view_file` tool).
+1. Read `postgres://help` resource (via MCP — critical gotchas, aliases, Code Mode API) and relevant group help (`postgres://help/{group}`).
 2. Read `test-tools.md` for protocol, schema, and error pattern details.
 3. Copy target group from `test-group-tools.md`. 
 4. Run checklist + explicit 🔴 error path and alias tests.
