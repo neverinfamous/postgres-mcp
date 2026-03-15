@@ -2,7 +2,7 @@
 
 > **Agent-optimized navigation reference.** Read this before searching the codebase. Covers directory layout, handler→tool mapping, type/schema locations, error hierarchy, and key constants.
 >
-> Last updated: March 12, 2026
+> Last updated: March 15, 2026
 
 ---
 
@@ -32,8 +32,8 @@ src/
 │   └── adapters.ts                 # AdapterCapabilities, ToolDefinition, ResourceDefinition, PromptDefinition
 │
 ├── constants/
-│   ├── ServerInstructions.ts       # Agent instructions string (71KB — system prompt for Code Mode)
-│   └── server-instructions.md      # Human-readable version (67KB)
+│   ├── server-instructions.ts      # Generated: slim INSTRUCTIONS constant (~600 chars) + HELP_CONTENT map (per-group help)
+│   └── server-instructions/        # Source .md files for each help resource (22 files: overview, gotchas, jsonb, text, stats, etc.)
 │
 ├── filtering/
 │   ├── ToolConstants.ts            # TOOL_GROUPS arrays, META_GROUPS shortcuts, group→tools map
@@ -246,7 +246,9 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 
 ## Resources (`src/adapters/postgresql/resources/`)
 
-20+ MCP resources providing read-only database metadata:
+20+ data resources + 22+ help resources providing read-only metadata and agent guidance:
+
+### Data Resources
 
 | File | Resources |
 |------|-----------|
@@ -270,6 +272,15 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `postgis.ts` | `postgres://postgis/{view}` |
 | `vector.ts` | `postgres://vector/{table}` |
 | `crypto.ts` | `postgres://crypto/{info}` |
+
+### Help Resources (registered dynamically by McpServer)
+
+| URI | Source | Content |
+|-----|--------|---------|
+| `postgres://help` | `server-instructions/overview.md` + `gotchas.md` | Gotchas, aliases, Code Mode API — always available |
+| `postgres://help/{group}` | `server-instructions/{group}.md` | Per-group tool reference — filtered by `--tool-filter` |
+
+22 group-specific help resources (one per tool group). Only groups enabled by `--tool-filter` are registered.
 
 ---
 
@@ -312,8 +323,7 @@ throw new ExtensionNotAvailableError("pgvector");
 
 | What | Where | Notes |
 |------|-------|-------|
-| Server instructions (agent prompt) | `src/constants/ServerInstructions.ts` | 71KB — exported as string constant |
-| Human-readable instructions | `src/constants/server-instructions.md` | 67KB markdown version |
+| Server instructions (agent prompt) | `src/constants/server-instructions.ts` | Generated: slim `INSTRUCTIONS` (~600 chars) + `HELP_CONTENT` map. Source: `server-instructions/*.md` (22 files) |
 | Tool group arrays | `src/filtering/ToolConstants.ts` | `TOOL_GROUPS` map, `META_GROUPS` shortcuts |
 | Tool filter logic | `src/filtering/ToolFilter.ts` | `ToolFilter` class |
 | Connection pool | `src/pool/ConnectionPool.ts` | pg-native pool wrapper |
@@ -337,6 +347,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | **Tool Aliases** | postgres-mcp has a dedicated alias system (`codemode/api/aliases.ts`, 15KB) for Code Mode. |
 | **Per-Group Schemas** | Zod schemas separated into `schemas/` subdir organized by group (vs mysql-mcp's monolithic file). |
 | **Extension Tools** | citext, ltree, pgcrypto, kcache, partman, cron, PostGIS, pgvector — each requires extension installation. |
+| **Help Resources** | Slim `INSTRUCTIONS` (~600 chars) + on-demand `postgres://help` resources replace old 71KB monolith. `postgres://help/{group}` filtered by `--tool-filter`. |
 | **Barrel Re-exports** | Import from `./module/index.js` (with `.js` extension for ESM). |
 
 ---
