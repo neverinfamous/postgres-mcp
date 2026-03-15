@@ -9,6 +9,7 @@
 | `test-tools.md` | 17 KB | **Entry-point protocol** — schema reference, P154 error patterns, Split Schema verification, structured error docs, cleanup rules. Paste a group checklist from `test-group-tools.md` at the bottom. | Always read first (Step 1 says read `src/constants/server-instructions.md`, Step 2 is the testing) |
 | `test-group-tools.md` | 48 KB | Per-group **deterministic checklists** for all 22 tool groups. Each section has numbered items with exact inputs/outputs, 🔴 error path items, alias tests, and create→use→drop lifecycles. | When running a specific tool group |
 | `advanced-test-tools.md` | 26 KB | **Second-pass stress tests** — 8 categories: boundary values, state pollution, alias matrix, error quality, concurrency/transactions, extension edge cases, payload truncation, code mode parity. | After basic checklist passes |
+| `test-preflight.md` | ~2KB | **Pre-flight check** — validates slim instructions, help resources, data resources, and tool-filter alignment in 5 steps | Before any test pass |
 | `test-resources.md` | 5 KB | Resource testing plan (20 `postgres://` resources via `read_resource`) | When testing resources |
 | `test-resources.sql` | 10 KB | Seed SQL for resource-specific test data (`resource_test_job` cron, vacuum stats, etc.) | Run before resource testing |
 | `test-prompts.md` | 8 KB | Prompt testing plan (19 prompts). Tested manually since agents typically don't invoke prompts yet. | When testing prompts |
