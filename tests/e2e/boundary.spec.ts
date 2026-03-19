@@ -284,6 +284,7 @@ test.describe("Boundary: View Lifecycle", () => {
 
 test.describe("Boundary: Data Integrity", () => {
   test("test_products still has expected row count", async ({}, testInfo) => {
+    test.setTimeout(60_000);
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_read_query", {

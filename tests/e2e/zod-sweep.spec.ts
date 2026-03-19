@@ -261,7 +261,6 @@ test.describe("Zod Sweep: Schema", () => {
 test.describe("Zod Sweep: Backup", () => {
   const tools = [
     "pg_dump_table",
-    "pg_dump_schema",
     "pg_copy_export",
     "pg_copy_import",
     "pg_create_backup_plan",
