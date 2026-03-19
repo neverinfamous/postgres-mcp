@@ -1,5 +1,14 @@
 # Unreleased
 
+## Added
+- **Ported E2E Tests**: Ported 13 Playwright E2E test files from `db-mcp`, adapted for postgres-mcp tool names and PostgreSQL semantics:
+  - Infrastructure: `rate-limiting.spec.ts` (429/Retry-After/health exemption), `session-advanced.spec.ts` (cross-protocol guard, sequential isolation, post-DELETE rejection), `streaming.spec.ts` (Streamable HTTP + Legacy SSE), `oauth-discovery.spec.ts` (RFC 9728 metadata)
+  - Validation: `zod-sweep.spec.ts` (~100 tools empty-args sweep), `numeric-coercion.spec.ts` (string→numeric params), `errors-extended.spec.ts` (per-group error paths)
+  - Code Mode: `codemode.spec.ts` (sandbox basics, security, readonly, workflows), `codemode-groups.spec.ts` (10 groups via `pg.*` API)
+  - Data Quality: `boundary.spec.ts` (empty tables, NULLs, idempotency, view lifecycle), `integration-workflows.spec.ts` (cross-group pipelines)
+  - Feature: `help-resources.spec.ts` (22-group `postgres://help` resources)
+- **Test Helpers Enhancement**: Added `getBaseURL()`, `callToolRaw()`, `expectHandlerError()`, `startServer()`, `stopServer()` to `tests/e2e/helpers.ts`. `createClient()` now accepts optional `baseURL` parameter with retry logic.
+
 ### Security
 - **Dependency Updates**:
   - Hono vulnerable to Prototype Pollution fixed via `v4.12.8`

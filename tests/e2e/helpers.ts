@@ -1,29 +1,64 @@
 /**
  * Shared E2E test helpers for payload contract tests.
  *
- * Provides utilities for creating MCP SDK clients via SSE transport
- * and parsing tool responses into typed payloads.
+ * Provides utilities for creating MCP SDK clients via SSE transport,
+ * parsing tool responses, asserting error shapes, and managing
+ * dedicated server processes for isolated test scenarios.
  */
+
+import { type ChildProcess, spawn } from "node:child_process";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import type { TestInfo } from "@playwright/test";
 import { expect } from "@playwright/test";
+
+const DEFAULT_BASE_URL = "http://localhost:3000";
+const DEFAULT_POSTGRES_URL =
+  "postgres://postgres:postgres@localhost:5432/postgres";
+
+// ─── Client creation ────────────────────────────────────────────────────────
+
+/**
+ * Resolve the baseURL from Playwright test info.
+ * Falls back to DEFAULT_BASE_URL if not set.
+ */
+export function getBaseURL(testInfo: TestInfo): string {
+  return (testInfo.project.use as { baseURL?: string }).baseURL ?? DEFAULT_BASE_URL;
+}
 
 /**
  * Create a connected MCP client via SSE transport.
  * Caller is responsible for calling `client.close()` in a finally block.
+ *
+ * @param baseURL - Server base URL. Defaults to `http://localhost:3000`.
  */
-export async function createClient(): Promise<Client> {
-  const transport = new SSEClientTransport(
-    new URL("http://localhost:3000/sse"),
-  );
-  const client = new Client(
-    { name: "payload-test-client", version: "1.0.0" },
-    { capabilities: {} },
-  );
-  await client.connect(transport);
-  return client;
+export async function createClient(
+  baseURL: string = DEFAULT_BASE_URL,
+): Promise<Client> {
+  const url = new URL(`${baseURL}/sse`);
+  const maxRetries = 3;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const transport = new SSEClientTransport(url);
+      const client = new Client(
+        { name: "payload-test-client", version: "1.0.0" },
+        { capabilities: {} },
+      );
+      await client.connect(transport);
+      return client;
+    } catch {
+      if (attempt === maxRetries - 1) throw new Error(`Failed to connect to ${url} after ${maxRetries} attempts`);
+      await delay(500);
+    }
+  }
+
+  throw new Error("Unreachable");
 }
+
+// ─── Tool call helpers ──────────────────────────────────────────────────────
 
 /**
  * Call a tool and parse the JSON response payload.
@@ -47,10 +82,120 @@ export async function callToolAndParse(
 }
 
 /**
+ * Call a tool and return the raw MCP response (without parsing).
+ * Useful for inspecting isError, checking raw text, or handling non-JSON.
+ */
+export async function callToolRaw(
+  client: Client,
+  toolName: string,
+  args: Record<string, unknown>,
+): Promise<{
+  content: Array<{ type: string; text: string }>;
+  isError?: boolean;
+}> {
+  const response = await client.callTool({ name: toolName, arguments: args });
+  return response as {
+    content: Array<{ type: string; text: string }>;
+    isError?: boolean;
+  };
+}
+
+// ─── Assertion helpers ──────────────────────────────────────────────────────
+
+/**
  * Assert that a payload does not contain an error.
  */
 export function expectSuccess(payload: Record<string, unknown>): void {
   if (payload.success === false) {
     throw new Error(`Tool returned error: ${JSON.stringify(payload.error)}`);
+  }
+}
+
+/**
+ * Assert that a payload IS a structured handler error.
+ * Checks for `{ success: false, error: "..." }` shape.
+ */
+export function expectHandlerError(
+  payload: Record<string, unknown>,
+  expectedMessage?: string | RegExp,
+): void {
+  expect(payload.success, `Expected handler error, got: ${JSON.stringify(payload)}`).toBe(false);
+  expect(typeof payload.error, `Missing error string in: ${JSON.stringify(payload)}`).toBe("string");
+
+  if (expectedMessage instanceof RegExp) {
+    expect(payload.error as string).toMatch(expectedMessage);
+  } else if (typeof expectedMessage === "string") {
+    expect((payload.error as string).toLowerCase()).toContain(expectedMessage.toLowerCase());
+  }
+}
+
+// ─── Server process management ──────────────────────────────────────────────
+
+const serverProcesses = new Map<number, ChildProcess>();
+
+/**
+ * Start a postgres-mcp server on a custom port.
+ *
+ * Spawns `node dist/cli.js` with HTTP transport and waits
+ * for the /health endpoint to respond.
+ *
+ * @param port - Port to run the server on.
+ * @param extraArgs - Additional CLI arguments (e.g., `--oauth-enabled`).
+ * @param label - Debug label for error messages.
+ */
+export async function startServer(
+  port: number,
+  extraArgs: string[] = [],
+  label = "test",
+): Promise<void> {
+  const proc = spawn(
+    "node",
+    [
+      "dist/cli.js",
+      "--transport",
+      "http",
+      "--port",
+      String(port),
+      "--postgres",
+      DEFAULT_POSTGRES_URL,
+      "--tool-filter",
+      "+all",
+      ...extraArgs,
+    ],
+    {
+      cwd: process.cwd(),
+      stdio: "pipe",
+      env: {
+        ...process.env,
+        MCP_RATE_LIMIT_MAX: "10000",
+      },
+    },
+  );
+
+  serverProcesses.set(port, proc);
+
+  // Wait for server readiness
+  const maxAttempts = 30;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const res = await fetch(`http://localhost:${port}/health`);
+      if (res.ok) return;
+    } catch {
+      // Not ready yet
+    }
+    await delay(500);
+  }
+
+  throw new Error(`[${label}] Server on port ${port} did not start within ${maxAttempts * 500}ms`);
+}
+
+/**
+ * Stop a server started by `startServer()`.
+ */
+export function stopServer(port: number): void {
+  const proc = serverProcesses.get(port);
+  if (proc) {
+    proc.kill("SIGTERM");
+    serverProcesses.delete(port);
   }
 }
