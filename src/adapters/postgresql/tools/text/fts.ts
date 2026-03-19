@@ -21,6 +21,10 @@ import {
 } from "../../../../utils/identifiers.js";
 import { sanitizeFtsConfig } from "../../../../utils/fts-config.js";
 import {
+  coerceLimit,
+  buildLimitClause,
+} from "../../../../utils/query-helpers.js";
+import {
   TextSearchSchema,
   TextSearchSchemaBase,
   preprocessTextParams,
@@ -79,22 +83,8 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const tsvector = sanitizedCols
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
-        // Coerce limit with NaN fallback (z.any() passes through strings)
-        const rawLimit = Number(parsed.limit);
-        const limitRaw =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
-        const limitVal =
-          limitRaw === 0
-            ? null
-            : limitRaw !== undefined && limitRaw > 0
-              ? limitRaw
-              : 100;
-        const limitClause =
-          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
+        const limitVal = coerceLimit(parsed.limit);
+        const limitClause = buildLimitClause(limitVal);
 
         const sql = `SELECT ${selectCols}, ts_rank_cd(to_tsvector('${cfg}', ${tsvector}), plainto_tsquery('${cfg}', $1)) as rank
                         FROM ${tableName}
@@ -201,22 +191,8 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         const tsvector = sanitizedCols
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
-        // Coerce limit with NaN fallback (z.any() passes through strings)
-        const rawLimit = Number(parsed.limit);
-        const limitRaw =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
-        const limitVal =
-          limitRaw === 0
-            ? null
-            : limitRaw !== undefined && limitRaw > 0
-              ? limitRaw
-              : 100;
-        const limitClause =
-          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
+        const limitVal = coerceLimit(parsed.limit);
+        const limitClause = buildLimitClause(limitVal);
 
         const sql = `SELECT ${selectCols}, ts_rank_cd(to_tsvector('${cfg}', ${tsvector}), plainto_tsquery('${cfg}', $1), ${String(norm)}) as rank
                         FROM ${tableName}
@@ -355,22 +331,8 @@ export function createTextHeadlineTool(
           parsed.select !== undefined && parsed.select.length > 0
             ? sanitizeIdentifiers(parsed.select).join(", ") + ", "
             : "";
-        // Coerce limit with NaN fallback (z.any() passes through strings)
-        const rawLimit = Number(parsed.limit);
-        const limitRaw =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
-        const limitVal =
-          limitRaw === 0
-            ? null
-            : limitRaw !== undefined && limitRaw > 0
-              ? limitRaw
-              : 100;
-        const limitClause =
-          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
+        const limitVal = coerceLimit(parsed.limit);
+        const limitClause = buildLimitClause(limitVal);
 
         const sql = `SELECT ${selectCols}ts_headline('${cfg}', ${columnName}, plainto_tsquery('${cfg}', $1), '${opts}') as headline
                         FROM ${tableName}

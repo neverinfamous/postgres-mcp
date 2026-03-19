@@ -16,6 +16,41 @@ export { parsePostgresError } from "./error-parser.js";
 export type { ErrorContext } from "./error-parser.js";
 
 /**
+ * Check whether an error is a Zod-like validation error (duck-type detection).
+ * Avoids importing zod in this shared module.
+ */
+function isZodLikeError(
+  error: unknown,
+): error is Error & { issues: { message?: string; path?: unknown[] }[] } {
+  return (
+    error instanceof Error &&
+    "issues" in error &&
+    Array.isArray((error as Record<string, unknown>)["issues"])
+  );
+}
+
+/**
+ * Format Zod validation issues into a human-readable semicolon-separated string.
+ * Shared between formatPostgresError() and formatHandlerErrorResponse().
+ */
+function formatZodIssues(
+  issues: { message?: string; path?: unknown[] }[],
+): string {
+  return issues
+    .map((issue) => {
+      const pathStr =
+        Array.isArray(issue.path) && issue.path.length > 0
+          ? issue.path.join(".")
+          : "";
+      const msg = issue.message ?? "Unknown validation error";
+      return pathStr !== ""
+        ? `Validation error: ${msg} (${pathStr})`
+        : `Validation error: ${msg}`;
+    })
+    .join("; ");
+}
+
+/**
  * Wrapper around parsePostgresError that returns the structured error message
  * as a string instead of throwing. Use this in handler catch blocks where you
  * want to return `{ success: false, error: formatPostgresError(...) }`.
@@ -28,29 +63,8 @@ export function formatPostgresError(
   context: ErrorContext,
 ): string {
   // Handle Zod validation errors: extract clean messages from issues array
-  // ZodError instances have an .issues array — detect via duck-typing to
-  // avoid importing zod in this shared module.
-  if (
-    error instanceof Error &&
-    "issues" in error &&
-    Array.isArray((error as Record<string, unknown>)["issues"])
-  ) {
-    const issues = (error as Record<string, unknown>)["issues"] as {
-      message?: string;
-      path?: unknown[];
-    }[];
-    return issues
-      .map((issue) => {
-        const pathStr =
-          Array.isArray(issue.path) && issue.path.length > 0
-            ? issue.path.join(".")
-            : "";
-        const msg = issue.message ?? "Unknown validation error";
-        return pathStr !== ""
-          ? `Validation error: ${msg} (${pathStr})`
-          : `Validation error: ${msg}`;
-      })
-      .join("; ");
+  if (isZodLikeError(error)) {
+    return formatZodIssues(error.issues);
   }
 
   try {
@@ -83,32 +97,11 @@ export function formatHandlerErrorResponse(
     return error.toResponse();
   }
 
-  // Zod validation errors — duck-type detection
-  if (
-    error instanceof Error &&
-    "issues" in error &&
-    Array.isArray((error as Record<string, unknown>)["issues"])
-  ) {
-    const issues = (error as Record<string, unknown>)["issues"] as {
-      message?: string;
-      path?: unknown[];
-    }[];
-    const message = issues
-      .map((issue) => {
-        const pathStr =
-          Array.isArray(issue.path) && issue.path.length > 0
-            ? issue.path.join(".")
-            : "";
-        const msg = issue.message ?? "Unknown validation error";
-        return pathStr !== ""
-          ? `Validation error: ${msg} (${pathStr})`
-          : `Validation error: ${msg}`;
-      })
-      .join("; ");
-
+  // Zod validation errors — shared formatter
+  if (isZodLikeError(error)) {
     return {
       success: false,
-      error: message,
+      error: formatZodIssues(error.issues),
       code: "VALIDATION_ERROR",
       category: ErrorCategory.VALIDATION,
       suggestion: "Check the input parameters match the expected schema.",

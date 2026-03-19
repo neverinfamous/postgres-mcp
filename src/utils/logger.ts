@@ -9,6 +9,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ModuleLogger } from "./module-logger.js";
 
 /**
  * RFC 5424 syslog severity levels
@@ -80,7 +81,7 @@ interface LogEntry {
  * - Severity: RFC 5424 levels
  * - Format: [timestamp] [LEVEL] [MODULE] [CODE] message {context}
  */
-class Logger {
+export class Logger {
   private minLevel: LogLevel = "info";
   private mcpServer: McpServer | null = null;
   private loggerName = "postgres-mcp";
@@ -142,10 +143,12 @@ class Logger {
   }
 
   /**
-   * List of keys that contain sensitive data and should be redacted
-   * Includes OAuth 2.1 configuration fields that may contain sensitive data
+   * Canonical list of keys that contain sensitive data and should be redacted.
+   * Includes authentication credentials and OAuth 2.1 configuration fields.
+   * Both sensitiveKeys (Set) and sensitiveKeyPattern (RegExp) are derived
+   * from this single source of truth.
    */
-  private readonly sensitiveKeys: ReadonlySet<string> = new Set([
+  private static readonly SENSITIVE_KEY_LIST: readonly string[] = [
     // Authentication credentials
     "password",
     "secret",
@@ -176,43 +179,19 @@ class Logger {
     "oauth",
     "scopes_supported",
     "scopessupported",
-  ]);
+  ];
+
+  /** Fast-path exact match for sensitive keys */
+  private readonly sensitiveKeys: ReadonlySet<string> = new Set(
+    Logger.SENSITIVE_KEY_LIST,
+  );
 
   /**
    * Pre-compiled regex for substring-based sensitive key detection.
    * Replaces O(n) Set iteration with a single regex test on the slow path.
    */
   private readonly sensitiveKeyPattern: RegExp = new RegExp(
-    [
-      "password",
-      "secret",
-      "token",
-      "key",
-      "apikey",
-      "api_key",
-      "accesstoken",
-      "access_token",
-      "refreshtoken",
-      "refresh_token",
-      "authorization",
-      "credential",
-      "credentials",
-      "client_secret",
-      "clientsecret",
-      "issuer",
-      "audience",
-      "jwksuri",
-      "jwks_uri",
-      "authorizationserverurl",
-      "authorization_server_url",
-      "bearerformat",
-      "bearer_format",
-      "oauthconfig",
-      "oauth_config",
-      "oauth",
-      "scopes_supported",
-      "scopessupported",
-    ].join("|"),
+    Logger.SENSITIVE_KEY_LIST.join("|"),
   );
 
   /**
@@ -459,54 +438,6 @@ class Logger {
   }
 }
 
-/**
- * Module-scoped logger for cleaner code in specific modules
- */
-class ModuleLogger {
-  constructor(
-    private parent: Logger,
-    private module: LogModule,
-  ) {}
-
-  private withModule(context?: LogContext): LogContext {
-    return { ...context, module: this.module };
-  }
-
-  debug(message: string, context?: LogContext): void {
-    this.parent.debug(message, this.withModule(context));
-  }
-
-  info(message: string, context?: LogContext): void {
-    this.parent.info(message, this.withModule(context));
-  }
-
-  notice(message: string, context?: LogContext): void {
-    this.parent.notice(message, this.withModule(context));
-  }
-
-  warn(message: string, context?: LogContext): void {
-    this.parent.warn(message, this.withModule(context));
-  }
-
-  warning(message: string, context?: LogContext): void {
-    this.parent.warning(message, this.withModule(context));
-  }
-
-  error(message: string, context?: LogContext): void {
-    this.parent.error(message, this.withModule(context));
-  }
-
-  critical(message: string, context?: LogContext): void {
-    this.parent.critical(message, this.withModule(context));
-  }
-
-  alert(message: string, context?: LogContext): void {
-    this.parent.alert(message, this.withModule(context));
-  }
-
-  emergency(message: string, context?: LogContext): void {
-    this.parent.emergency(message, this.withModule(context));
-  }
-}
+// ModuleLogger is defined in module-logger.ts and imported above
 
 export const logger = new Logger();

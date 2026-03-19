@@ -21,6 +21,10 @@ import {
 } from "../../../../utils/identifiers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
+  coerceLimit,
+  buildLimitClause,
+} from "../../../../utils/query-helpers.js";
+import {
   preprocessTextParams,
   // Output schemas
   TextRowsOutputSchema,
@@ -94,22 +98,8 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        // Coerce limit with NaN fallback (z.any() passes through strings)
-        const rawLimit = Number(parsed.limit);
-        const limitRaw =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
-        const limitVal =
-          limitRaw === 0
-            ? null
-            : limitRaw !== undefined && limitRaw > 0
-              ? limitRaw
-              : 100;
-        const limitClause =
-          limitVal !== null ? ` LIMIT ${String(limitVal)}` : "";
+        const limitVal = coerceLimit(parsed.limit);
+        const limitClause = buildLimitClause(limitVal);
 
         const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
         const result = await adapter.executeQuery(sql, [parsed.pattern]);

@@ -29,3 +29,9 @@
 
 ### Fixed
 - **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), `http.test.ts` (HTTP transport function extraction), and `schemas.test.ts` (partman/vector directory promotion)
+
+### Changed (Audit)
+- **Logger dedup**: Consolidated duplicated 23-item sensitive-key list in `logger.ts` into a single `SENSITIVE_KEY_LIST` constant, deriving both the `Set` and `RegExp` from it
+- **ModuleLogger extraction**: Moved `ModuleLogger` class from `logger.ts` (513→~440 lines) to `module-logger.ts`
+- **Zod error dedup**: Extracted duplicated Zod validation issue formatting in `error-helpers.ts` into shared `isZodLikeError()` guard + `formatZodIssues()` helper
+- **Limit coercion**: Extracted duplicated limit-coercion logic (7 occurrences across `matching.ts`, `search-tools.ts`, `fts.ts`) into `query-helpers.ts` with `coerceLimit()` + `buildLimitClause()` + `DEFAULT_QUERY_LIMIT` constant
