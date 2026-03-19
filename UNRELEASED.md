@@ -1,11 +1,27 @@
 # Unreleased
 
+### Security
+- **Dependency Updates**:
+  - Hono vulnerable to Prototype Pollution fixed via `v4.12.8`
+  - Bumped `gitleaks-action` to `ff98106`
+  - Bumped `trufflehog` to `v3.93.8` (`6c05c4a`)
+  - Bumped `github/codeql-action` to `v4` (`0d579ff`)
+
 ## Added
 - **Help Resource Architecture**: Replaced monolithic `ServerInstructions.ts` (72KB) with 22 per-group `.md` files under `src/constants/server-instructions/`. Slim ~600 char instructions field points agents to `postgres://help` resources for on-demand reference. `McpServer.ts` registers `postgres://help` (always) + `postgres://help/{group}` filtered by `--tool-filter`. Supersedes instruction filter alignment.
 - **Agent Experience Test**: Added `test-server/test-agent-experience.md` with 9 passes (37 scenarios) covering all tool groups with explicit tool group annotations.
 - **Integration Test**: Added `test-server/test-instruction-levels.mjs` to verify instruction filtering behavior.
 
 ### Changed
+- **Dependency Updates**:
+  - Bumped `hono` to `v4.12.8`
+  - Bumped `jose` to `v6.2.2`
+  - Bumped `@vitest/coverage-v8` to `v4.1.0`
+  - Bumped `vitest` to `v4.1.0`
+  - Bumped `typescript-eslint` to `v8.57.1`
+  - Bumped `@types/node` to `v25.5.0`
+  - Bumped `actions/upload-artifact` to `v7.0.0`
+  - Bumped `docker/metadata-action` to `v6.0.0`
 - **Modularization**: Split 8 files exceeding 500-line limit into focused sub-modules:
   - `server.ts` (690→~420) → extracted `streamable.ts`, `stateless.ts`, `legacy-sse.ts`
   - `PostgresAdapter.ts` (674→~480) → extracted `transaction-operations.ts`
