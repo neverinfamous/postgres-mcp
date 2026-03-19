@@ -2,7 +2,7 @@
  * PostgreSQL JSONB Tools
  *
  * JSONB operations including path queries, containment, and aggregation.
- * 19 tools total.
+ * 20 tools total.
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
@@ -49,6 +49,9 @@ import {
   createJsonbStatsTool,
 } from "./analytics.js";
 
+// Pretty print
+import { createJsonbPrettyTool } from "./pretty.js";
+
 /**
  * Get all JSONB tools
  */
@@ -73,6 +76,7 @@ export function getJsonbTools(adapter: PostgresAdapter): ToolDefinition[] {
     createJsonbIndexSuggestTool(adapter),
     createJsonbSecurityScanTool(adapter),
     createJsonbStatsTool(adapter),
+    createJsonbPrettyTool(adapter),
   ];
 }
 
@@ -97,4 +101,5 @@ export {
   createJsonbIndexSuggestTool,
   createJsonbSecurityScanTool,
   createJsonbStatsTool,
+  createJsonbPrettyTool,
 };

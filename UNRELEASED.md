@@ -1,6 +1,16 @@
 # Unreleased
 
 ## Added
+- **13 New Tools Ported from db-mcp/mysql-mcp**:
+  - **Stats — Window Functions (6)**: `pg_stats_row_number`, `pg_stats_rank`, `pg_stats_lag_lead`, `pg_stats_running_total`, `pg_stats_moving_avg`, `pg_stats_ntile` — SQL window functions with `partitionBy`, `selectColumns`, and configurable limits
+  - **Stats — Outlier Detection (1)**: `pg_stats_outliers` — IQR and Z-score outlier detection with configurable thresholds and `maxOutliers` cap
+  - **Stats — Advanced Analysis (4)**: `pg_stats_top_n` (auto-excludes long-content columns), `pg_stats_distinct`, `pg_stats_frequency`, `pg_stats_summary` (multi-column numeric summary)
+  - **Admin — Insights (1)**: `pg_append_insight` — in-memory business insight memo accessible via `postgres://insights` resource
+  - **JSONB — Pretty Print (1)**: `pg_jsonb_pretty` — dual-mode (raw JSON string or table column via `jsonb_pretty()`)
+- **Insights Resource**: Added `postgres://insights` resource (21 total resources) for reading AI-appended business insights
+- **Server Instructions**: Updated help content in `admin.md`, `jsonb.md`, `stats.md` with full parameter docs, response shapes, and top-level aliases for all 13 new tools
+
+
 - **Ported E2E Tests**: Ported 13 Playwright E2E test files from `db-mcp`, adapted for postgres-mcp tool names and PostgreSQL semantics:
   - Infrastructure: `rate-limiting.spec.ts` (429/Retry-After/health exemption), `session-advanced.spec.ts` (cross-protocol guard, sequential isolation, post-DELETE rejection), `streaming.spec.ts` (Streamable HTTP + Legacy SSE), `oauth-discovery.spec.ts` (RFC 9728 metadata)
   - Validation: `zod-sweep.spec.ts` (~100 tools empty-args sweep), `numeric-coercion.spec.ts` (string→numeric params), `errors-extended.spec.ts` (per-group error paths)

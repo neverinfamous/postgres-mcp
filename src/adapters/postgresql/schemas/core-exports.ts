@@ -173,6 +173,19 @@ export {
   StatsDistributionSchemaBase,
   StatsHypothesisSchemaBase,
   StatsSamplingSchemaBase,
+  // Window function base schemas
+  StatsRowNumberSchemaBase,
+  StatsRankSchemaBase,
+  StatsLagLeadSchemaBase,
+  StatsRunningTotalSchemaBase,
+  StatsMovingAvgSchemaBase,
+  StatsNtileSchemaBase,
+  // Advanced stats base schemas
+  StatsOutliersSchemaBase,
+  StatsTopNSchemaBase,
+  StatsDistinctSchemaBase,
+  StatsFrequencySchemaBase,
+  StatsSummarySchemaBase,
   // Preprocessed schemas for handler validation
   StatsDescriptiveSchema,
   StatsPercentilesSchema,
@@ -182,6 +195,19 @@ export {
   StatsDistributionSchema,
   StatsHypothesisSchema,
   StatsSamplingSchema,
+  // Window function preprocessed schemas
+  StatsRowNumberSchema,
+  StatsRankSchema,
+  StatsLagLeadSchema,
+  StatsRunningTotalSchema,
+  StatsMovingAvgSchema,
+  StatsNtileSchema,
+  // Advanced stats preprocessed schemas
+  StatsOutliersSchema,
+  StatsTopNSchema,
+  StatsDistinctSchema,
+  StatsFrequencySchema,
+  StatsSummarySchema,
   // Output schemas for MCP structured content
   DescriptiveOutputSchema,
   PercentilesOutputSchema,
@@ -191,6 +217,19 @@ export {
   DistributionOutputSchema,
   HypothesisOutputSchema,
   SamplingOutputSchema,
+  // Window function output schemas
+  WindowRowNumberOutputSchema,
+  WindowRankOutputSchema,
+  WindowLagLeadOutputSchema,
+  WindowRunningTotalOutputSchema,
+  WindowMovingAvgOutputSchema,
+  WindowNtileOutputSchema,
+  // Advanced stats output schemas
+  StatsOutliersOutputSchema,
+  StatsTopNOutputSchema,
+  StatsDistinctOutputSchema,
+  StatsFrequencyOutputSchema,
+  StatsSummaryOutputSchema,
 } from "./stats/index.js";
 
 // Introspection schemas (agent-optimized database analysis)

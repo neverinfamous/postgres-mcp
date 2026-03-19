@@ -5,8 +5,8 @@
  * STRICT LIMIT: No shortcut may exceed 50 tools.
  *
  * TOOL COUNT ACCOUNTING:
- *   ToolConstants arrays total: 232 tools (sum of all group arrays)
- *   Published "specialized tools": 223 (232 - 9 utility tools)
+ *   ToolConstants arrays total: 245 tools (sum of all group arrays)
+ *   Published "specialized tools": 236 (245 - 9 utility tools)
  *
  *   The 9 excluded utility tools:
  *     - 8 create_extension helpers (one per extension group):
@@ -20,7 +20,7 @@
  *   and the published total in README/DOCKER_README/wiki.
  *   The published total = array total - 9 utility tools.
  *
- *   Verify: 20+8+19+13+24+10+11+9+12+16+15+6+8+8+10+7+6+8+6+6+9+1 = 232
+ *   Verify: 20+8+20+13+24+11+11+9+12+16+15+6+19+8+10+7+6+8+6+6+9+1 = 245
  */
 
 import type { ToolGroup, MetaGroup } from "../types/index.js";
@@ -83,6 +83,7 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_jsonb_diff",
     "pg_jsonb_index_suggest",
     "pg_jsonb_security_scan",
+    "pg_jsonb_pretty",
   ],
   text: [
     "pg_text_search",
@@ -136,6 +137,7 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_set_config",
     "pg_reset_stats",
     "pg_cluster",
+    "pg_append_insight",
   ],
   monitoring: [
     "pg_database_size",
@@ -227,6 +229,17 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_stats_distribution",
     "pg_stats_hypothesis",
     "pg_stats_sampling",
+    "pg_stats_row_number",
+    "pg_stats_rank",
+    "pg_stats_lag_lead",
+    "pg_stats_running_total",
+    "pg_stats_moving_avg",
+    "pg_stats_ntile",
+    "pg_stats_outliers",
+    "pg_stats_top_n",
+    "pg_stats_distinct",
+    "pg_stats_frequency",
+    "pg_stats_summary",
   ],
   cron: [
     "pg_cron_create_extension",
@@ -314,24 +327,24 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
  * ALL presets include codemode (pg_execute_code) by default for token efficiency.
  *
  * Group sizes:
- *   core:20, transactions:8, jsonb:19, text:13, performance:24,
- *   admin:10, monitoring:11, backup:9, schema:12, introspection:6,
- *   migration:6, vector:16, postgis:15, partitioning:6, stats:8,
+ *   core:20, transactions:8, jsonb:20, text:13, performance:24,
+ *   admin:11, monitoring:11, backup:9, schema:12, introspection:6,
+ *   migration:6, vector:16, postgis:15, partitioning:6, stats:19,
  *   cron:8, partman:10, kcache:7, citext:6, ltree:8, pgcrypto:9, codemode:1
  *
  * Tool counts (with codemode):
- *   starter:       60 (core:20 + transactions:8 + jsonb:19 + schema:12 + codemode:1)
- *   essential:     48 (core:20 + transactions:8 + jsonb:19 + codemode:1)
+ *   starter:       61 (core:20 + transactions:8 + jsonb:20 + schema:12 + codemode:1)
+ *   essential:     49 (core:20 + transactions:8 + jsonb:20 + codemode:1)
  *   dev-schema:    53 (core:20 + transactions:8 + schema:12 + introspection:6 + migration:6 + codemode:1)
- *   dev-analytics: 43 (core:20 + transactions:8 + stats:8 + partitioning:6 + codemode:1)
- *   ai-data:       61 (core:20 + jsonb:19 + text:13 + transactions:8 + codemode:1)
+ *   dev-analytics: 54 (core:20 + transactions:8 + stats:19 + partitioning:6 + codemode:1)
+ *   ai-data:       62 (core:20 + jsonb:20 + text:13 + transactions:8 + codemode:1)
  *   ai-vector:     51 (core:20 + vector:16 + transactions:8 + partitioning:6 + codemode:1)
  *   dba-monitor:   64 (core:20 + monitoring:11 + performance:24 + transactions:8 + codemode:1)
  *   dba-schema:    45 (core:20 + schema:12 + introspection:6 + migration:6 + codemode:1)
- *   dba-infra:     46 (core:20 + admin:10 + backup:9 + partitioning:6 + codemode:1)
- *   dba-stats:     58 (core:20 + admin:10 + monitoring:11 + transactions:8 + stats:8 + codemode:1)
+ *   dba-infra:     47 (core:20 + admin:11 + backup:9 + partitioning:6 + codemode:1)
+ *   dba-stats:     70 (core:20 + admin:11 + monitoring:11 + transactions:8 + stats:19 + codemode:1)
  *   geo:           44 (core:20 + postgis:15 + transactions:8 + codemode:1)
- *   base-ops:      51 (admin:10 + monitoring:11 + backup:9 + partitioning:6 + stats:8 + citext:6 + codemode:1)
+ *   base-ops:      62 (admin:11 + monitoring:11 + backup:9 + partitioning:6 + stats:19 + citext:6 + codemode:1) ⚠️ OVER 50
  *   ext-ai:        26 (vector:16 + pgcrypto:9 + codemode:1)
  *   ext-geo:       24 (postgis:15 + ltree:8 + codemode:1)
  *   ext-schedule:  19 (cron:8 + partman:10 + codemode:1)

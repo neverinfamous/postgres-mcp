@@ -23,8 +23,8 @@ describe("getAdminTools", () => {
     tools = getAdminTools(adapter);
   });
 
-  it("should return 10 admin tools", () => {
-    expect(tools).toHaveLength(10);
+  it("should return 11 admin tools", () => {
+    expect(tools).toHaveLength(11);
   });
 
   it("should have all expected tool names", () => {
@@ -39,6 +39,7 @@ describe("getAdminTools", () => {
     expect(toolNames).toContain("pg_set_config");
     expect(toolNames).toContain("pg_reset_stats");
     expect(toolNames).toContain("pg_cluster");
+    expect(toolNames).toContain("pg_append_insight");
   });
 
   it("should have group set to admin for all tools", () => {

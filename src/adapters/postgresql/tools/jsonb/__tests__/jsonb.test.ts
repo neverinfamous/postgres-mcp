@@ -23,8 +23,8 @@ describe("getJsonbTools", () => {
     tools = getJsonbTools(adapter);
   });
 
-  it("should return 19 JSONB tools", () => {
-    expect(tools).toHaveLength(19);
+  it("should return 20 JSONB tools", () => {
+    expect(tools).toHaveLength(20);
   });
 
   it("should have all expected tool names", () => {
@@ -50,6 +50,7 @@ describe("getJsonbTools", () => {
     expect(toolNames).toContain("pg_jsonb_index_suggest");
     expect(toolNames).toContain("pg_jsonb_security_scan");
     expect(toolNames).toContain("pg_jsonb_stats");
+    expect(toolNames).toContain("pg_jsonb_pretty");
   });
 
   it("should have handler function for all tools", () => {

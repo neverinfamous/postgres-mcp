@@ -23,12 +23,13 @@ describe("getStatsTools", () => {
     tools = getStatsTools(adapter);
   });
 
-  it("should return 8 stats tools", () => {
-    expect(tools).toHaveLength(8);
+  it("should return 19 stats tools", () => {
+    expect(tools).toHaveLength(19);
   });
 
   it("should have all expected tool names", () => {
     const toolNames = tools.map((t) => t.name);
+    // Original stats tools
     expect(toolNames).toContain("pg_stats_descriptive");
     expect(toolNames).toContain("pg_stats_percentiles");
     expect(toolNames).toContain("pg_stats_correlation");
@@ -37,6 +38,20 @@ describe("getStatsTools", () => {
     expect(toolNames).toContain("pg_stats_distribution");
     expect(toolNames).toContain("pg_stats_hypothesis");
     expect(toolNames).toContain("pg_stats_sampling");
+    // Window function tools
+    expect(toolNames).toContain("pg_stats_row_number");
+    expect(toolNames).toContain("pg_stats_rank");
+    expect(toolNames).toContain("pg_stats_lag_lead");
+    expect(toolNames).toContain("pg_stats_running_total");
+    expect(toolNames).toContain("pg_stats_moving_avg");
+    expect(toolNames).toContain("pg_stats_ntile");
+    // Outlier detection
+    expect(toolNames).toContain("pg_stats_outliers");
+    // Granular stats
+    expect(toolNames).toContain("pg_stats_top_n");
+    expect(toolNames).toContain("pg_stats_distinct");
+    expect(toolNames).toContain("pg_stats_frequency");
+    expect(toolNames).toContain("pg_stats_summary");
   });
 
   it("should have group set to stats for all tools", () => {

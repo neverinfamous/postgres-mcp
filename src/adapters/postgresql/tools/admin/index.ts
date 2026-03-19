@@ -1,8 +1,8 @@
 /**
  * PostgreSQL Admin Tools
  *
- * Database maintenance: VACUUM, ANALYZE, REINDEX, configuration.
- * 10 tools total.
+ * Database maintenance: VACUUM, ANALYZE, REINDEX, configuration, insights.
+ * 11 tools total.
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
@@ -27,6 +27,8 @@ import {
   createClusterTool,
 } from "./config-tools.js";
 
+import { createAppendInsightTool } from "./insights.js";
+
 /**
  * Get all admin tools
  */
@@ -42,6 +44,7 @@ export function getAdminTools(adapter: PostgresAdapter): ToolDefinition[] {
     createSetConfigTool(adapter),
     createResetStatsTool(adapter),
     createClusterTool(adapter),
+    createAppendInsightTool(),
   ];
 }
 
@@ -57,4 +60,5 @@ export {
   createSetConfigTool,
   createResetStatsTool,
   createClusterTool,
+  createAppendInsightTool,
 };

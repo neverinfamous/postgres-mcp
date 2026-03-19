@@ -35,6 +35,8 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     jsonbIndexSuggest: "indexSuggest",
     jsonbSecurityScan: "securityScan",
     jsonbStats: "stats",
+    jsonbPretty: "pretty",
+    format: "pretty", // pg.jsonb.format() → pretty()
   },
   // Text: pg_text_search → textSearch, but also search
   text: {
@@ -129,12 +131,32 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     statsDistribution: "distribution",
     statsHypothesis: "hypothesis",
     statsSampling: "sampling",
+    // Window function aliases
+    statsRowNumber: "rowNumber",
+    statsRank: "rank",
+    statsLagLead: "lagLead",
+    statsRunningTotal: "runningTotal",
+    statsMovingAvg: "movingAvg",
+    statsNtile: "ntile",
+    // Advanced stats aliases
+    statsOutliers: "outliers",
+    statsTopN: "topN",
+    statsDistinct: "distinct",
+    statsFrequency: "frequency",
+    statsSummary: "summary",
     // Intuitive aliases
-    summary: "descriptive", // summary() → descriptive()
     percentile: "percentiles", // percentile() → percentiles()
     histogram: "distribution", // histogram() → distribution()
-    movingAverage: "timeSeries", // movingAverage() → timeSeries()
+    movingAverage: "movingAvg", // movingAverage() → movingAvg()
     time_series: "timeSeries", // time_series() → timeSeries()
+    cumulative: "runningTotal", // cumulative() → runningTotal()
+    cumulativeSum: "runningTotal", // cumulativeSum() → runningTotal()
+    lag: "lagLead", // lag() → lagLead() (use direction: 'lag')
+    lead: "lagLead", // lead() → lagLead() (use direction: 'lead')
+    top: "topN", // top() → topN()
+    values: "distinct", // values() → distinct()
+    freq: "frequency", // freq() → frequency()
+    quartiles: "ntile", // quartiles() → ntile() (use buckets: 4)
   },
   // Cron: pg_cron_schedule → cronSchedule, but agent might try cronSchedule
   cron: {
@@ -329,6 +351,14 @@ export const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.stats.descriptive({ table: 'orders', column: 'amount' })",
     "pg.stats.percentiles({ table: 'orders', column: 'amount', percentiles: [0.5, 0.95, 0.99] })",
     "pg.stats.timeSeries({ table: 'metrics', timeColumn: 'ts', valueColumn: 'value', interval: '1 hour' })",
+    "pg.stats.rowNumber({ table: 'orders', orderBy: 'created_at' })",
+    "pg.stats.rank({ table: 'sales', orderBy: 'revenue', rankType: 'dense_rank' })",
+    "pg.stats.runningTotal({ table: 'orders', column: 'amount', orderBy: 'created_at' })",
+    "pg.stats.movingAvg({ table: 'metrics', column: 'value', orderBy: 'ts', windowSize: 7 })",
+    "pg.stats.outliers({ table: 'orders', column: 'amount', method: 'iqr' })",
+    "pg.stats.topN({ table: 'products', column: 'price', n: 10 })",
+    "pg.stats.frequency({ table: 'orders', column: 'status' })",
+    "pg.stats.summary({ table: 'orders' })",
   ],
   cron: [
     "pg.cron.schedule({ name: 'cleanup', schedule: '0 3 * * *', command: \"DELETE FROM logs WHERE created_at < NOW() - INTERVAL '30 days'\" })",
@@ -493,6 +523,26 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   statsHypothesis: ["table", "column", "test", "hypothesizedMean"],
   statsSampling: ["table", "sampleSize"],
   statsRegression: ["table", "xColumn", "yColumn"],
+
+  // Window function positional params
+  rowNumber: ["table", "orderBy"],
+  rank: ["table", "orderBy"],
+  lagLead: ["table", "column", "orderBy", "direction"],
+  runningTotal: ["table", "column", "orderBy"],
+  movingAvg: ["table", "column", "orderBy", "windowSize"],
+  ntile: ["table", "orderBy", "buckets"],
+
+  // Advanced stats positional params
+  topN: ["table", "column", "n"],
+  distinct: ["table", "column"],
+  frequency: ["table", "column"],
+  summary: "table",
+
+  // Insights
+  appendInsight: "insight",
+
+  // JSONB pretty
+  pretty: "json",
 
   // ============ BACKUP GROUP ============
   copyExport: "table",

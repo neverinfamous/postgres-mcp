@@ -738,8 +738,8 @@ describe("JSONB Tools", () => {
     });
   });
 
-  it("should export all 19 JSONB tools", () => {
-    expect(tools).toHaveLength(19);
+  it("should export all 20 JSONB tools", () => {
+    expect(tools).toHaveLength(20);
     const toolNames = tools.map((t) => t.name);
     // Basic tools
     expect(toolNames).toContain("pg_jsonb_extract");
@@ -762,6 +762,7 @@ describe("JSONB Tools", () => {
     expect(toolNames).toContain("pg_jsonb_index_suggest");
     expect(toolNames).toContain("pg_jsonb_security_scan");
     expect(toolNames).toContain("pg_jsonb_stats");
+    expect(toolNames).toContain("pg_jsonb_pretty");
   });
 });
 

@@ -41,7 +41,7 @@ Read \`postgres://help/{group}\` for group-specific tool reference (jsonb, text,
 export const HELP_CONTENT: ReadonlyMap<string, string> = new Map([
   ["admin", `# Admin Tools
 
-Core: \`vacuum()\`, \`vacuumAnalyze()\`, \`analyze()\`, \`reindex()\`, \`cluster()\`, \`setConfig()\`, \`reloadConf()\`, \`resetStats()\`, \`cancelBackend()\`, \`terminateBackend()\`
+Core: \`vacuum()\`, \`vacuumAnalyze()\`, \`analyze()\`, \`reindex()\`, \`cluster()\`, \`setConfig()\`, \`reloadConf()\`, \`resetStats()\`, \`cancelBackend()\`, \`terminateBackend()\`, \`appendInsight()\`
 
 - All admin tools support \`schema.table\` format (auto-parsed, embedded schema takes priority over explicit \`schema\` param)
 - \`vacuum({ table?, full?, analyze?, verbose? })\`: Without \`table\`, vacuums ALL tables. \`verbose\` output goes to PostgreSQL server logs
@@ -50,10 +50,11 @@ Core: \`vacuum()\`, \`vacuumAnalyze()\`, \`analyze()\`, \`reindex()\`, \`cluster
 - \`setConfig({ name, value, isLocal? })\`: \`isLocal: true\` applies only to current transaction
 - \`cancelBackend({ pid })\`: Graceful query cancellation—returns \`{success: false}\` for invalid PID (no error thrown)
 - \`terminateBackend({ pid })\`: Forceful connection termination—use with caution
+- \`appendInsight({ insight })\`: Record a business insight to in-memory memo. Insights are accessible via \`postgres://insights\` resource. Use to record key findings during database analysis. Returns \`{success, insightCount, message}\`
 
 Aliases: \`tableName\`→\`table\`, \`indexName\`→\`index\`, \`param\`/\`setting\`→\`name\`, \`processId\`→\`pid\`
 
-**Top-Level Aliases**: \`pg.vacuum()\`, \`pg.vacuumAnalyze()\`, \`pg.analyze()\`, \`pg.reindex()\`, \`pg.cluster()\`, \`pg.setConfig()\`, \`pg.reloadConf()\`, \`pg.resetStats()\`, \`pg.cancelBackend()\`, \`pg.terminateBackend()\`
+**Top-Level Aliases**: \`pg.vacuum()\`, \`pg.vacuumAnalyze()\`, \`pg.analyze()\`, \`pg.reindex()\`, \`pg.cluster()\`, \`pg.setConfig()\`, \`pg.reloadConf()\`, \`pg.resetStats()\`, \`pg.cancelBackend()\`, \`pg.terminateBackend()\`, \`pg.appendInsight()\`
 
 **Discovery**: \`pg.admin.help()\` returns \`{methods, methodAliases, examples}\` object
 
@@ -65,7 +66,8 @@ Aliases: \`tableName\`→\`table\`, \`indexName\`→\`index\`, \`param\`/\`setti
 - \`cluster()\`: \`{success, message, table?, index?}\` (table/index present for table-specific cluster)
 - \`setConfig()\`: \`{success, message, parameter, value}\`
 - \`reloadConf()\` / \`resetStats()\`: \`{success, message}\`
-- \`cancelBackend()\` / \`terminateBackend()\`: \`{success, message}\``],
+- \`cancelBackend()\` / \`terminateBackend()\`: \`{success, message}\`
+- \`appendInsight()\`: \`{success, insightCount, message}\``],
   ["backup", `# Backup Tools
 
 Core: \`dumpTable()\`, \`dumpSchema()\`, \`copyExport()\`, \`copyImport()\`, \`createBackupPlan()\`, \`restoreCommand()\`, \`physical()\`, \`restoreValidate()\`, \`scheduleOptimize()\`
@@ -228,12 +230,13 @@ Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`sc
 - \`pg_jsonb_object\`: Use \`data\`, \`object\`, or \`pairs\` parameter: \`{data: {name: "John", age: 30}}\`. Returns \`{object: {...}}\`
 - \`pg_jsonb_normalize\`: \`flatten\` doesn't descend into arrays; \`keys\` returns text (use \`pairs\` for JSON types)
 - \`pg_jsonb_stats\`: Returns column-level statistics. \`topKeysLimit\` controls key count (default: 20). ⚠️ \`typeDistribution\` null type = SQL NULL columns (entire column NULL, not JSON \`null\` literal). Use \`sqlNullCount\` for explicit count
+- \`pg_jsonb_pretty\`: Two modes: (1) Pass raw JSON via \`json\` param—formats with indentation locally. (2) Pass \`table\` + \`column\` (+ optional \`where\`/\`filter\`, \`limit\`)—uses PostgreSQL's native \`jsonb_pretty()\`. Table mode defaults to \`limit: 10\`. Supports \`schema.table\` format. Returns \`{formatted}\` (raw mode) or \`{rows: [{formatted}], count}\` (table mode)
 - ⛔ **Object-only tools**: \`diff\`, \`merge\`, \`keys\`, \`indexSuggest\`, \`securityScan\`, \`stats\`—topKeys require JSONB objects, throw descriptive errors for arrays
 - ⛔ **Array-only tools**: \`insert\`—requires JSONB arrays, throws errors for objects
 - 📝 \`normalize\` modes: \`pairs\`/\`keys\`/\`flatten\` for objects; \`array\` for arrays
 - 📦 **AI-Optimized Payloads**: \`contains\` and \`pathQuery\` default to 100 results. Returns \`truncated\` + \`totalCount\` when capped. Use \`limit: 0\` for all rows
 
-**Top-Level Aliases**: \`pg.jsonbExtract()\`, \`pg.jsonbSet()\`, \`pg.jsonbInsert()\`, \`pg.jsonbDelete()\`, \`pg.jsonbContains()\`, \`pg.jsonbPathQuery()\`, \`pg.jsonbAgg()\`, \`pg.jsonbObject()\`, \`pg.jsonbArray()\`, \`pg.jsonbKeys()\`, \`pg.jsonbStripNulls()\`, \`pg.jsonbTypeof()\`, \`pg.jsonbValidatePath()\`, \`pg.jsonbMerge()\`, \`pg.jsonbNormalize()\`, \`pg.jsonbDiff()\`, \`pg.jsonbIndexSuggest()\`, \`pg.jsonbSecurityScan()\`, \`pg.jsonbStats()\``],
+**Top-Level Aliases**: \`pg.jsonbExtract()\`, \`pg.jsonbSet()\`, \`pg.jsonbInsert()\`, \`pg.jsonbDelete()\`, \`pg.jsonbContains()\`, \`pg.jsonbPathQuery()\`, \`pg.jsonbAgg()\`, \`pg.jsonbObject()\`, \`pg.jsonbArray()\`, \`pg.jsonbKeys()\`, \`pg.jsonbStripNulls()\`, \`pg.jsonbTypeof()\`, \`pg.jsonbValidatePath()\`, \`pg.jsonbMerge()\`, \`pg.jsonbNormalize()\`, \`pg.jsonbDiff()\`, \`pg.jsonbIndexSuggest()\`, \`pg.jsonbSecurityScan()\`, \`pg.jsonbStats()\`, \`pg.jsonbPretty()\``],
   ["kcache", `# pg_stat_kcache Tools
 
 Core: \`createExtension()\`, \`queryStats()\`, \`topCpu()\`, \`topIo()\`, \`databaseStats()\`, \`resourceAnalysis()\`, \`reset()\`
@@ -432,7 +435,27 @@ Response Structures:
 - \`regression\`: Use \`xColumn\`/\`yColumn\`, aliases \`x\`/\`y\`, or \`column1\`/\`column2\` (for consistency with correlation). Returns nested \`regression\` object containing \`slope\`, \`intercept\`, \`rSquared\`, \`equation\`, \`avgX\`, \`avgY\`, \`sampleSize\`. Access via \`reg.regression.slope\`
 - ⚠️ WARNING: \`sampling\` with \`system\` method unreliable for small tables—use \`bernoulli\` or \`random\`
 
-**Top-Level Aliases**: \`pg.descriptive()\`, \`pg.percentiles()\`, \`pg.correlation()\`, \`pg.regression()\`, \`pg.timeSeries()\`, \`pg.distribution()\`, \`pg.hypothesis()\`, \`pg.sampling()\``],
+**Window Functions (6 tools):**
+
+- \`pg_stats_row_number({ table, orderBy, partitionBy?, selectColumns?, where?, limit? })\`: Sequential numbering within ordered result. \`partitionBy\` restarts numbering per group. Default \`limit: 100\`. Returns \`{success, rowCount, rows}\`
+- \`pg_stats_rank({ table, orderBy, rankType?, partitionBy?, selectColumns?, where?, limit? })\`: Rank within ordered set. \`rankType\`: 'rank' (default, with gaps), 'dense_rank' (no gaps), 'percent_rank' (0-1). Default \`limit: 100\`. Returns \`{success, rankType, rowCount, rows}\`
+- \`pg_stats_lag_lead({ table, column, orderBy, direction, offset?, defaultValue?, partitionBy?, selectColumns?, where?, limit? })\`: Access previous (\`lag\`) or next (\`lead\`) row values. \`direction\`: 'lag' or 'lead'. \`offset\` (default: 1) = number of rows to look back/ahead. \`defaultValue\` fills when no row exists. Default \`limit: 100\`. Returns \`{success, direction, offset, rowCount, rows}\`
+- \`pg_stats_running_total({ table, column, orderBy, partitionBy?, selectColumns?, where?, limit? })\`: Cumulative running total using \`SUM OVER\`. \`partitionBy\` resets total per group. Default \`limit: 100\`. Returns \`{success, valueColumn, rowCount, rows}\`
+- \`pg_stats_moving_avg({ table, column, orderBy, windowSize, partitionBy?, selectColumns?, where?, limit? })\`: Moving average over sliding window. \`windowSize\` = number of rows in window (default: 3). Default \`limit: 100\`. Returns \`{success, valueColumn, windowSize, rowCount, rows}\`
+- \`pg_stats_ntile({ table, orderBy, buckets, partitionBy?, selectColumns?, where?, limit? })\`: Divide rows into N equal buckets. \`buckets\` = number of groups (e.g., 4 for quartiles). Default \`limit: 100\`. Returns \`{success, buckets, rowCount, rows}\`
+
+**Outlier Detection:**
+
+- \`pg_stats_outliers({ table, column, method?, threshold?, where?, limit?, maxOutliers? })\`: Detect outliers using IQR or Z-score. \`method\`: 'iqr' (default, robust for non-normal data) or 'zscore'. IQR \`threshold\` (default: 1.5, use 3 for extreme). Z-score \`threshold\` (default: 3). \`maxOutliers\` (default: 50). Validates column is numeric. Returns \`{success, method, stats, outlierCount, totalRows, outliers, truncated?, totalOutliers?}\`. IQR stats: \`{q1, q3, iqr, lowerBound, upperBound}\`. Z-score stats: \`{mean, stdDev, lowerBound, upperBound}\`
+
+**Advanced Analysis (4 tools):**
+
+- \`pg_stats_top_n({ table, column, n?, orderDirection?, selectColumns?, where? })\`: Top N rows ranked by column. \`n\` (default: 10). \`orderDirection\`: 'desc' (default) or 'asc'. Auto-excludes long-content columns (text, json, bytea) unless \`selectColumns\` specified—returns \`hint\` when columns excluded. Returns \`{success, column, direction, count, rows, hint?}\`
+- \`pg_stats_distinct({ table, column, where?, limit? })\`: Distinct values with total cardinality. Default \`limit: 100\`. Returns \`{success, column, distinctCount, values}\`
+- \`pg_stats_frequency({ table, column, where?, limit? })\`: Value frequency distribution ordered by frequency desc. Default \`limit: 20\`. Returns \`{success, column, distinctValues, distribution: [{value, frequency, percentage}]}\`
+- \`pg_stats_summary({ table, columns?, where? })\`: Summary statistics for multiple numeric columns. Defaults to all numeric columns if \`columns\` omitted. Returns \`{success, table, summaries: [{column, count, avg, min, max, stddev}]}\`
+
+**Top-Level Aliases**: \`pg.descriptive()\`, \`pg.percentiles()\`, \`pg.correlation()\`, \`pg.regression()\`, \`pg.timeSeries()\`, \`pg.distribution()\`, \`pg.hypothesis()\`, \`pg.sampling()\`, \`pg.statsRowNumber()\`, \`pg.statsRank()\`, \`pg.statsLagLead()\`, \`pg.statsRunningTotal()\`, \`pg.statsMovingAvg()\`, \`pg.statsNtile()\`, \`pg.statsOutliers()\`, \`pg.statsTopN()\`, \`pg.statsDistinct()\`, \`pg.statsFrequency()\`, \`pg.statsSummary()\``],
   ["text", `# Text Tools
 
 - \`pg_text_search\`/\`pg_text_rank\`: Column must be \`text\` type—pre-built \`tsvector\` columns are **not** supported (wrap with \`to_tsvector()\` fails on tsvector input). Use \`pg_read_query\` with raw FTS SQL for tsvector columns

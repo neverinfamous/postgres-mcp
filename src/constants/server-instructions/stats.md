@@ -10,4 +10,25 @@
 - `regression`: Use `xColumn`/`yColumn`, aliases `x`/`y`, or `column1`/`column2` (for consistency with correlation). Returns nested `regression` object containing `slope`, `intercept`, `rSquared`, `equation`, `avgX`, `avgY`, `sampleSize`. Access via `reg.regression.slope`
 - ⚠️ WARNING: `sampling` with `system` method unreliable for small tables—use `bernoulli` or `random`
 
-**Top-Level Aliases**: `pg.descriptive()`, `pg.percentiles()`, `pg.correlation()`, `pg.regression()`, `pg.timeSeries()`, `pg.distribution()`, `pg.hypothesis()`, `pg.sampling()`
+**Window Functions (6 tools):**
+
+- `pg_stats_row_number({ table, orderBy, partitionBy?, selectColumns?, where?, limit? })`: Sequential numbering within ordered result. `partitionBy` restarts numbering per group. Default `limit: 100`. Returns `{success, rowCount, rows}`
+- `pg_stats_rank({ table, orderBy, rankType?, partitionBy?, selectColumns?, where?, limit? })`: Rank within ordered set. `rankType`: 'rank' (default, with gaps), 'dense_rank' (no gaps), 'percent_rank' (0-1). Default `limit: 100`. Returns `{success, rankType, rowCount, rows}`
+- `pg_stats_lag_lead({ table, column, orderBy, direction, offset?, defaultValue?, partitionBy?, selectColumns?, where?, limit? })`: Access previous (`lag`) or next (`lead`) row values. `direction`: 'lag' or 'lead'. `offset` (default: 1) = number of rows to look back/ahead. `defaultValue` fills when no row exists. Default `limit: 100`. Returns `{success, direction, offset, rowCount, rows}`
+- `pg_stats_running_total({ table, column, orderBy, partitionBy?, selectColumns?, where?, limit? })`: Cumulative running total using `SUM OVER`. `partitionBy` resets total per group. Default `limit: 100`. Returns `{success, valueColumn, rowCount, rows}`
+- `pg_stats_moving_avg({ table, column, orderBy, windowSize, partitionBy?, selectColumns?, where?, limit? })`: Moving average over sliding window. `windowSize` = number of rows in window (default: 3). Default `limit: 100`. Returns `{success, valueColumn, windowSize, rowCount, rows}`
+- `pg_stats_ntile({ table, orderBy, buckets, partitionBy?, selectColumns?, where?, limit? })`: Divide rows into N equal buckets. `buckets` = number of groups (e.g., 4 for quartiles). Default `limit: 100`. Returns `{success, buckets, rowCount, rows}`
+
+**Outlier Detection:**
+
+- `pg_stats_outliers({ table, column, method?, threshold?, where?, limit?, maxOutliers? })`: Detect outliers using IQR or Z-score. `method`: 'iqr' (default, robust for non-normal data) or 'zscore'. IQR `threshold` (default: 1.5, use 3 for extreme). Z-score `threshold` (default: 3). `maxOutliers` (default: 50). Validates column is numeric. Returns `{success, method, stats, outlierCount, totalRows, outliers, truncated?, totalOutliers?}`. IQR stats: `{q1, q3, iqr, lowerBound, upperBound}`. Z-score stats: `{mean, stdDev, lowerBound, upperBound}`
+
+**Advanced Analysis (4 tools):**
+
+- `pg_stats_top_n({ table, column, n?, orderDirection?, selectColumns?, where? })`: Top N rows ranked by column. `n` (default: 10). `orderDirection`: 'desc' (default) or 'asc'. Auto-excludes long-content columns (text, json, bytea) unless `selectColumns` specified—returns `hint` when columns excluded. Returns `{success, column, direction, count, rows, hint?}`
+- `pg_stats_distinct({ table, column, where?, limit? })`: Distinct values with total cardinality. Default `limit: 100`. Returns `{success, column, distinctCount, values}`
+- `pg_stats_frequency({ table, column, where?, limit? })`: Value frequency distribution ordered by frequency desc. Default `limit: 20`. Returns `{success, column, distinctValues, distribution: [{value, frequency, percentage}]}`
+- `pg_stats_summary({ table, columns?, where? })`: Summary statistics for multiple numeric columns. Defaults to all numeric columns if `columns` omitted. Returns `{success, table, summaries: [{column, count, avg, min, max, stddev}]}`
+
+**Top-Level Aliases**: `pg.descriptive()`, `pg.percentiles()`, `pg.correlation()`, `pg.regression()`, `pg.timeSeries()`, `pg.distribution()`, `pg.hypothesis()`, `pg.sampling()`, `pg.statsRowNumber()`, `pg.statsRank()`, `pg.statsLagLead()`, `pg.statsRunningTotal()`, `pg.statsMovingAvg()`, `pg.statsNtile()`, `pg.statsOutliers()`, `pg.statsTopN()`, `pg.statsDistinct()`, `pg.statsFrequency()`, `pg.statsSummary()`
+
