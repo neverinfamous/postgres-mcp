@@ -46,13 +46,14 @@ src/
 │   ├── module-logger.ts            # ModuleLogger class (per-module logger wrapper)
 │   ├── query-helpers.ts            # coerceLimit(), buildLimitClause(), DEFAULT_QUERY_LIMIT, toStr()
 │   ├── identifiers.ts              # SQL identifier validation/sanitization
-│   ├── annotations.ts              # MCP tool annotation helpers (readOnly, destructive hints)
+│   ├── annotations.ts              # MCP tool annotation presets (READ_ONLY, WRITE, etc. with openWorldHint)
 │   ├── icons.ts                    # MCP icon definitions per tool group
 │   ├── fts-config.ts               # Full-text search configuration helpers
 │   ├── progress-utils.ts           # MCP progress notification helpers
 │   ├── resource-annotations.ts     # MCP resource annotation helpers
 │   ├── version.ts                  # SSoT version constant (reads package.json)
-│   └── where-clause.ts             # WHERE clause builder/validator
+│   ├── where-clause.ts             # WHERE clause builder/validator
+│   └── error-suggestions.ts        # Pattern-based error suggestions + findSuggestion() (auto-refinement)
 │
 ├── pool/
 │   └── connection-pool.ts          # PostgreSQL connection pool manager (pg)
@@ -77,7 +78,7 @@ src/
 │       ├── stateless.ts            # Stateless HTTP transport handler
 │       ├── legacy-sse.ts           # Legacy SSE transport handler
 │       ├── handlers.ts             # Route handlers (POST /mcp, GET /sse, health, etc.)
-│       ├── security.ts             # Security headers, rate limiting, CORS, body parsing
+│       ├── security.ts             # Security headers, rate limiting, CORS, DNS rebinding (validateHostHeader), body parsing
 │       ├── types.ts                # HTTP transport types
 │       └── index.ts                # Barrel
 │
@@ -328,13 +329,15 @@ All errors extend `PostgresMcpError` (defined in `src/types/errors.ts`). Every t
 PostgresMcpError (types/errors.ts)                code: string, details?: Record
 ├── ConnectionError              code: CONNECTION_ERROR
 ├── PoolError                    code: POOL_ERROR
-├── QueryError                   code: QUERY_ERROR
+├── QueryError                   code: QUERY_ERROR          (auto-refined → TABLE_NOT_FOUND, etc.)
 ├── AuthenticationError          code: AUTHENTICATION_ERROR
 ├── AuthorizationError           code: AUTHORIZATION_ERROR
-├── ValidationError              code: VALIDATION_ERROR
+├── ValidationError              code: VALIDATION_ERROR     (auto-refined → COLUMN_NOT_FOUND, etc.)
 ├── TransactionError             code: TRANSACTION_ERROR
 └── ExtensionNotAvailableError   code: EXTENSION_NOT_AVAILABLE    (unique to postgres-mcp)
 ```
+
+**Auto-refinement** — `PostgresMcpError` constructor calls `findSuggestion(message)` from `utils/error-suggestions.ts`. Generic codes in `REFINABLE_CODES` (`QUERY_ERROR`, `VALIDATION_ERROR`, `RESOURCE_ERROR`, `UNKNOWN_ERROR`) are auto-refined to specific codes when a pattern match provides one (e.g., `QUERY_ERROR` → `TABLE_NOT_FOUND`). Suggestions are also auto-populated if not explicitly provided.
 
 **Usage pattern** — all tool handlers:
 ```typescript
