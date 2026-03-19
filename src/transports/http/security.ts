@@ -2,15 +2,82 @@
  * postgres-mcp - HTTP Transport Security Utilities
  *
  * Standalone security functions extracted from the HttpTransport class.
- * These handle security headers, CORS headers, rate limiting, and body parsing.
+ * These handle security headers, CORS headers, rate limiting, DNS rebinding
+ * protection, and body parsing.
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { HttpTransportConfig } from "./types.js";
 
 // =============================================================================
-// Rate Limiting
+// DNS Rebinding Protection
 // =============================================================================
+
+/**
+ * Default allowed hostnames for DNS rebinding protection.
+ * Matches the MCP SDK's `localhostHostValidation()` — allows only localhost
+ * addresses to prevent DNS rebinding attacks on local servers.
+ */
+const ALLOWED_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);
+
+/**
+ * Validate the Host header to prevent DNS rebinding attacks.
+ *
+ * DNS rebinding attacks bypass same-origin policy by manipulating DNS to
+ * point attacker-controlled domains to localhost, allowing malicious
+ * websites to access local MCP servers.
+ *
+ * Equivalent to the MCP SDK's `localhostHostValidation()` middleware,
+ * adapted for raw Node.js HTTP (non-Express).
+ *
+ * @returns true if the request should proceed, false if it was rejected
+ */
+export function validateHostHeader(
+  req: IncomingMessage,
+  res: ServerResponse,
+): boolean {
+  const hostHeader = req.headers.host;
+  if (!hostHeader) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Missing Host header" },
+        id: null,
+      }),
+    );
+    return false;
+  }
+
+  let hostname: string;
+  try {
+    hostname = new URL(`http://${hostHeader}`).hostname;
+  } catch {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: `Invalid Host header: ${hostHeader}` },
+        id: null,
+      }),
+    );
+    return false;
+  }
+
+  if (!ALLOWED_HOSTNAMES.has(hostname)) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: `Invalid Host: ${hostname}` },
+        id: null,
+      }),
+    );
+    return false;
+  }
+
+  return true;
+}
 
 /**
  * Rate limit entry for tracking request counts per IP

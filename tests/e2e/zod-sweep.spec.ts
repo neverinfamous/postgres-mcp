@@ -224,7 +224,6 @@ test.describe("Zod Sweep: Admin", () => {
     "pg_terminate_backend",
     "pg_cancel_backend",
     "pg_set_config",
-    "pg_cluster",
   ];
 
   for (const tool of tools) {

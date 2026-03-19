@@ -38,6 +38,7 @@ import {
   checkRateLimit,
   setSecurityHeaders,
   setCorsHeaders,
+  validateHostHeader,
 } from "./security.js";
 import {
   handleProtectedResourceMetadata,
@@ -218,6 +219,18 @@ export class HttpTransport {
       res.writeHead(204);
       res.end();
       return;
+    }
+
+    // DNS rebinding protection — only for localhost-bound servers
+    const host = this.config.host ?? "localhost";
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1"
+    ) {
+      if (!validateHostHeader(req, res)) {
+        return;
+      }
     }
 
     const url = new URL(
