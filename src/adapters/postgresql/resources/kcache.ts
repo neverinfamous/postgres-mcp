@@ -4,9 +4,9 @@
  * Provides pg_stat_kcache OS-level performance metrics summary.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type { ResourceDefinition } from "../../../types/index.js";
-import { LOW_PRIORITY } from "../../../utils/resourceAnnotations.js";
+import { LOW_PRIORITY } from "../../../utils/resource-annotations.js";
 
 /** Safely convert unknown value to string */
 function toStr(value: unknown): string {

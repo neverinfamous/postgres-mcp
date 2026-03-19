@@ -4,7 +4,7 @@
  * Common utilities shared across performance stat modules.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 
 /** Helper to handle undefined params (allows tools to be called without {}) */
 export const defaultToEmpty = (val: unknown): unknown => val ?? {};

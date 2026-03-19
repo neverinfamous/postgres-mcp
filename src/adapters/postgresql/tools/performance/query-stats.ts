@@ -4,7 +4,7 @@
  * pg_stat_statements, pg_stat_activity, and query plan stats tools.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,

@@ -10,7 +10,7 @@ import {
   getCodeModeTools,
   cleanupCodeMode,
 } from "../codemode/index.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 
 // Shared mock instances — controllable per-test
 const mockPoolInstance = {

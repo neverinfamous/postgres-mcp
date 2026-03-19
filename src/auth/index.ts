@@ -53,15 +53,15 @@ export {
 export type { StandardScope } from "./scopes.js";
 
 // Components
-export { TokenValidator, createTokenValidator } from "./TokenValidator.js";
+export { TokenValidator, createTokenValidator } from "./token-validator.js";
 export {
   AuthorizationServerDiscovery,
   createAuthServerDiscovery,
-} from "./AuthorizationServerDiscovery.js";
+} from "./authorization-server-discovery.js";
 export {
   OAuthResourceServer,
   createOAuthResourceServer,
-} from "./OAuthResourceServer.js";
+} from "./oauth-resource-server.js";
 
 // Middleware
 export {

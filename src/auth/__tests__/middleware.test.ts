@@ -21,7 +21,7 @@ import {
   InvalidTokenError,
   InsufficientScopeError,
 } from "../errors.js";
-import type { TokenValidator } from "../TokenValidator.js";
+import type { TokenValidator } from "../token-validator.js";
 import type { TokenValidationResult } from "../types.js";
 
 // Mock token validator

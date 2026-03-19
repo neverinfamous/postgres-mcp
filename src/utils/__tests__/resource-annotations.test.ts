@@ -12,7 +12,7 @@ import {
   ASSISTANT_FOCUSED,
   withPriority,
   withTimestamp,
-} from "../resourceAnnotations.js";
+} from "../resource-annotations.js";
 
 describe("Resource Annotation Presets", () => {
   it("HIGH_PRIORITY should have correct values", () => {

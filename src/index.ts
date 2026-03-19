@@ -10,14 +10,14 @@
 export * from "./types/index.js";
 
 // Export adapters
-export { DatabaseAdapter } from "./adapters/DatabaseAdapter.js";
+export { DatabaseAdapter } from "./adapters/database-adapter.js";
 export { PostgresAdapter } from "./adapters/postgresql/index.js";
 
 // Export server
-export { PostgresMcpServer } from "./server/McpServer.js";
+export { PostgresMcpServer } from "./server/mcp-server.js";
 
 // Export utilities
-export { ConnectionPool } from "./pool/ConnectionPool.js";
+export { ConnectionPool } from "./pool/connection-pool.js";
 export {
   parseToolFilter,
   filterTools,
@@ -25,5 +25,5 @@ export {
   TOOL_GROUPS,
   getAllToolNames,
   getToolGroup,
-} from "./filtering/ToolFilter.js";
+} from "./filtering/tool-filter.js";
 export { logger } from "./utils/logger.js";

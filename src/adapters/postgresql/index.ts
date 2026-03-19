@@ -2,4 +2,4 @@
  * postgres-mcp - PostgreSQL Adapter Exports
  */
 
-export { PostgresAdapter } from "./PostgresAdapter.js";
+export { PostgresAdapter } from "./postgres-adapter.js";

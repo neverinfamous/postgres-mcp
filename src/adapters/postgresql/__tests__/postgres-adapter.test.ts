@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { PostgresAdapter } from "../PostgresAdapter.js";
+import { PostgresAdapter } from "../postgres-adapter.js";
 import {
   parseColumnsArray,
   extractIndexColumns,
@@ -54,7 +54,7 @@ const mockPoolMethods = {
 };
 
 // Mock ConnectionPool as a class
-vi.mock("../../../pool/ConnectionPool.js", () => {
+vi.mock("../../../pool/connection-pool.js", () => {
   return {
     ConnectionPool: class MockConnectionPool {
       initialize = mockPoolMethods.initialize;

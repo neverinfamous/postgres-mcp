@@ -5,7 +5,7 @@
  */
 
 import type { TokenClaims } from "./types.js";
-import type { TokenValidator } from "./TokenValidator.js";
+import type { TokenValidator } from "./token-validator.js";
 import {
   TokenMissingError,
   InvalidTokenError,

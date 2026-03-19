@@ -5,7 +5,7 @@
  * 3 tools: run_maintenance, show_partitions, show_config.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { createExtensionSetupPrompt } from "../extensionSetup.js";
+import { createExtensionSetupPrompt } from "../extension-setup.js";
 import type {
   PromptDefinition,
   RequestContext,

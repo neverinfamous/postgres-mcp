@@ -5,7 +5,7 @@
  * 4 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
 import { z, ZodError } from "zod";
 import { write, destructive } from "../../../../utils/annotations.js";

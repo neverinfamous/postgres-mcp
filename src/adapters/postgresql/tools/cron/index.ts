@@ -8,7 +8,7 @@
  * Supports standard cron (minute granularity) and interval scheduling.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 // Scheduling tools

@@ -4,7 +4,7 @@
  * Perform one-sample t-test or z-test against a hypothesized mean.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,

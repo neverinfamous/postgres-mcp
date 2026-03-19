@@ -14,7 +14,7 @@ import {
   parseToolFilter,
   filterTools,
   getFilterSummary,
-} from "../ToolFilter.js";
+} from "../tool-filter.js";
 import type { ToolDefinition } from "../../types/index.js";
 
 describe("TOOL_GROUPS", () => {

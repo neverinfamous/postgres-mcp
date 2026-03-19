@@ -10,7 +10,7 @@
  * status) are in the separate "migration" group — see ./migration.ts.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 // Graph analysis tools

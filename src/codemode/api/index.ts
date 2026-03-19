@@ -5,7 +5,7 @@
  * sandboxed code execution environment.
  */
 
-import type { PostgresAdapter } from "../../adapters/postgresql/PostgresAdapter.js";
+import type { PostgresAdapter } from "../../adapters/postgresql/postgres-adapter.js";
 import type { ToolDefinition } from "../../types/index.js";
 import { METHOD_ALIASES, GROUP_EXAMPLES } from "./maps.js";
 import { TOP_LEVEL_ALIASES } from "./aliases.js";

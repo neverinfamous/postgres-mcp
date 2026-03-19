@@ -5,13 +5,13 @@
  * Enhanced with statsStale detection based on modification percentage.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type {
   ResourceDefinition,
   RequestContext,
   TableInfo,
 } from "../../../types/index.js";
-import { HIGH_PRIORITY } from "../../../utils/resourceAnnotations.js";
+import { HIGH_PRIORITY } from "../../../utils/resource-annotations.js";
 
 interface TableStatsModification {
   schemaname: string;

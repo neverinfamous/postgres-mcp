@@ -59,7 +59,7 @@ vi.mock("../../utils/logger.js", () => ({
 }));
 
 // Import after mocking
-import { ConnectionPool } from "../../pool/ConnectionPool.js";
+import { ConnectionPool } from "../../pool/connection-pool.js";
 
 describe("Connection Pool Benchmarks", () => {
   let pool: ConnectionPool;

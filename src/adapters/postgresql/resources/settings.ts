@@ -4,12 +4,12 @@
  * Current PostgreSQL configuration settings with production defaults analysis.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type {
   ResourceDefinition,
   RequestContext,
 } from "../../../types/index.js";
-import { ASSISTANT_FOCUSED } from "../../../utils/resourceAnnotations.js";
+import { ASSISTANT_FOCUSED } from "../../../utils/resource-annotations.js";
 
 interface ProductionRecommendation {
   setting: string;

@@ -4,7 +4,7 @@
  * Configuration management (reload, set, reset stats) and CLUSTER tool.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
 import { z, ZodError } from "zod";
 import { admin } from "../../../../utils/annotations.js";

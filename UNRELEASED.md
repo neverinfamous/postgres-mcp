@@ -15,6 +15,7 @@
   - `tools/admin.ts` (599) → split into `admin/vacuum-tools.ts` + `backend-tools.ts` + `config-tools.ts`
   - `schemas/index.ts` (555→8) → split into `core-exports.ts` + `extension-exports.ts`
   - `tools/core/schemas.ts` (559→8) → split into `schemas/input.ts` + `schemas/output.ts`
+- **Naming conventions**: Renamed 12 source + 9 test PascalCase files to kebab-case (`DatabaseAdapter.ts` → `database-adapter.ts`, `PostgresAdapter.ts` → `postgres-adapter.ts`, `McpServer.ts` → `mcp-server.ts`, etc.). Updated all import paths across ~80 files.
 
 ### Fixed
 - **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), and `http.test.ts` (HTTP transport function extraction)

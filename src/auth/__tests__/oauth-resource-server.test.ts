@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 import {
   OAuthResourceServer,
   createOAuthResourceServer,
-} from "../OAuthResourceServer.js";
+} from "../oauth-resource-server.js";
 
 describe("OAuthResourceServer", () => {
   const defaultConfig = {

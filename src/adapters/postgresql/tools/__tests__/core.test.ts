@@ -395,7 +395,7 @@ import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import { getCoreTools } from "../core/index.js";
 
 describe("core/convenience.ts — uncovered branches", () => {

@@ -4,7 +4,7 @@
  * Advanced JSONB operations including path validation, merge, normalize, diff, index suggestions, security scanning, and statistics.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,

@@ -4,12 +4,12 @@
  * Lock contention detection and blocking query identification.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type {
   ResourceDefinition,
   RequestContext,
 } from "../../../types/index.js";
-import { MEDIUM_PRIORITY } from "../../../utils/resourceAnnotations.js";
+import { MEDIUM_PRIORITY } from "../../../utils/resource-annotations.js";
 
 interface LockWarning {
   severity: "HIGH" | "MEDIUM" | "INFO";

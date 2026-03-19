@@ -4,7 +4,7 @@
  * Shared validator for numeric column requirements.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 
 /**
  * Numeric types supported by PostgreSQL statistical functions.

@@ -6,7 +6,7 @@
  * module load for O(1) per-call lookup.
  */
 
-import { TOOL_GROUPS } from "../filtering/ToolConstants.js";
+import { TOOL_GROUPS } from "../filtering/tool-constants.js";
 import { TOOL_GROUP_SCOPES } from "./scopes.js";
 import type { StandardScope } from "./scopes.js";
 import type { ToolGroup } from "../types/index.js";

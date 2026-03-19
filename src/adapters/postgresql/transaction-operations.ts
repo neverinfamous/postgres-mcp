@@ -13,7 +13,7 @@ import {
 import { logger } from "../../utils/logger.js";
 import { quoteIdentifier } from "../../utils/identifiers.js";
 import { parsePostgresError } from "./tools/core/error-helpers.js";
-import type { ConnectionPool } from "../../pool/ConnectionPool.js";
+import type { ConnectionPool } from "../../pool/connection-pool.js";
 
 /**
  * Begin a transaction

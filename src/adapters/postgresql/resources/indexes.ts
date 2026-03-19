@@ -4,12 +4,12 @@
  * Index usage statistics with unused/rarely-used detection and DROP recommendations.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type {
   ResourceDefinition,
   RequestContext,
 } from "../../../types/index.js";
-import { MEDIUM_PRIORITY } from "../../../utils/resourceAnnotations.js";
+import { MEDIUM_PRIORITY } from "../../../utils/resource-annotations.js";
 
 interface IndexRecommendation {
   type:

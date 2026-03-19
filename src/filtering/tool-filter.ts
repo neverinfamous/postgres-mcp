@@ -34,8 +34,8 @@ let toolToGroupMap: Map<string, ToolGroup> | null = null;
  * Default tool groups and their member tools.
  * This serves as the canonical mapping of tools to groups.
  */
-export { TOOL_GROUPS, META_GROUPS } from "./ToolConstants.js";
-import { TOOL_GROUPS, META_GROUPS } from "./ToolConstants.js";
+export { TOOL_GROUPS, META_GROUPS } from "./tool-constants.js";
+import { TOOL_GROUPS, META_GROUPS } from "./tool-constants.js";
 
 /**
  * Get all tool names from all groups (cached)

@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 import { SandboxPool } from "../../../../codemode/sandbox.js";
 import { CodeModeSecurityManager } from "../../../../codemode/security.js";

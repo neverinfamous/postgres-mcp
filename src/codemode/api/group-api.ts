@@ -6,7 +6,7 @@
  * functions for text (soundex/metaphone) and performance groups.
  */
 
-import type { PostgresAdapter } from "../../adapters/postgresql/PostgresAdapter.js";
+import type { PostgresAdapter } from "../../adapters/postgresql/postgres-adapter.js";
 import type { ToolDefinition } from "../../types/index.js";
 import { METHOD_ALIASES } from "./maps.js";
 import { normalizeParams } from "./normalize.js";

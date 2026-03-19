@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createPgApi, PgApi } from "../api/index.js";
-import type { PostgresAdapter } from "../../adapters/postgresql/PostgresAdapter.js";
+import type { PostgresAdapter } from "../../adapters/postgresql/postgres-adapter.js";
 import type { ToolDefinition, ToolGroup } from "../../types/index.js";
 
 // Mock PostgresAdapter for testing

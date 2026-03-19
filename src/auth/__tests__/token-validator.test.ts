@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { TokenValidator, createTokenValidator } from "../TokenValidator.js";
+import { TokenValidator, createTokenValidator } from "../token-validator.js";
 
 // Mock jose module
 vi.mock("jose", () => ({

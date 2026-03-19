@@ -5,7 +5,7 @@
  * 19 prompts total.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type {
   PromptDefinition,
   RequestContext,
@@ -15,8 +15,8 @@ import type {
 // Import modular prompts
 import { createDatabaseHealthCheckPrompt } from "./health.js";
 import { createBackupStrategyPrompt } from "./backup.js";
-import { createIndexTuningPrompt } from "./indexTuning.js";
-import { createExtensionSetupPrompt } from "./extensionSetup.js";
+import { createIndexTuningPrompt } from "./index-tuning.js";
+import { createExtensionSetupPrompt } from "./extension-setup.js";
 import { createSetupPgvectorPrompt } from "./pgvector.js";
 import { createSetupPostgisPrompt } from "./postgis.js";
 import { createSetupPgcronPrompt } from "./pgcron.js";

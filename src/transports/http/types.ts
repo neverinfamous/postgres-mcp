@@ -4,8 +4,8 @@
  * Shared interfaces and constants for the HTTP transport module.
  */
 
-import type { OAuthResourceServer } from "../../auth/OAuthResourceServer.js";
-import type { TokenValidator } from "../../auth/TokenValidator.js";
+import type { OAuthResourceServer } from "../../auth/oauth-resource-server.js";
+import type { TokenValidator } from "../../auth/token-validator.js";
 
 // =============================================================================
 // Server Timeout Constants

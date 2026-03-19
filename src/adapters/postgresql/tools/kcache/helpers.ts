@@ -4,7 +4,7 @@
  * Version-aware column name detection for pg_stat_kcache.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 
 /**
  * Column naming in pg_stat_kcache changed in version 2.2:

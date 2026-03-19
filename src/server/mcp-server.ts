@@ -7,9 +7,9 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { DatabaseAdapter } from "../adapters/DatabaseAdapter.js";
+import type { DatabaseAdapter } from "../adapters/database-adapter.js";
 import type { ToolFilterConfig } from "../types/index.js";
-import { TOOL_GROUPS, parseToolFilter } from "../filtering/ToolFilter.js";
+import { TOOL_GROUPS, parseToolFilter } from "../filtering/tool-filter.js";
 import type { ToolGroup } from "../types/index.js";
 import { logger } from "../utils/logger.js";
 import { INSTRUCTIONS, HELP_CONTENT } from "../constants/server-instructions.js";

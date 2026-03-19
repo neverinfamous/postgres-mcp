@@ -5,7 +5,7 @@
  * for extension setup, querying, subpath extraction, LCA, and column listing.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";

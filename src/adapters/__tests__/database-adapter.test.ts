@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { DatabaseAdapter } from "../DatabaseAdapter.js";
+import { DatabaseAdapter } from "../database-adapter.js";
 import type {
   DatabaseConfig,
   QueryResult,

@@ -4,7 +4,7 @@
  * Common utilities used by partman operation and maintenance tools.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 /**
  * Detect the schema where pg_partman is installed.
  * Newer versions install to 'public' by default, older versions use 'partman'.

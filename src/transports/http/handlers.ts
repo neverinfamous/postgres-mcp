@@ -5,7 +5,7 @@
  */
 
 import type { ServerResponse } from "node:http";
-import type { OAuthResourceServer } from "../../auth/OAuthResourceServer.js";
+import type { OAuthResourceServer } from "../../auth/oauth-resource-server.js";
 
 /**
  * Handle protected resource metadata endpoint

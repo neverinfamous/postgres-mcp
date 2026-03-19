@@ -4,7 +4,7 @@
  * Tools for enabling and configuring citext: create extension, convert columns.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,

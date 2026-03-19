@@ -8,7 +8,7 @@
  * of partitioned tables. Supports time-based and integer-based partitioning.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 // Setup & creation tools

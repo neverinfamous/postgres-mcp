@@ -6,7 +6,7 @@
  */
 
 import { vi } from "vitest";
-import type { PostgresAdapter } from "../../adapters/postgresql/PostgresAdapter.js";
+import type { PostgresAdapter } from "../../adapters/postgresql/postgres-adapter.js";
 import type {
   QueryResult,
   TableInfo,

@@ -4,7 +4,7 @@
  * Backup planning tools: backup_plan, restore_command, physical_backup, restore_validate, backup_schedule_optimize.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,

@@ -8,8 +8,8 @@
  */
 
 import type { PoolClient } from "pg";
-import { DatabaseAdapter } from "../DatabaseAdapter.js";
-import { ConnectionPool } from "../../pool/ConnectionPool.js";
+import { DatabaseAdapter } from "../database-adapter.js";
+import { ConnectionPool } from "../../pool/connection-pool.js";
 import type {
   DatabaseConfig,
   QueryResult,

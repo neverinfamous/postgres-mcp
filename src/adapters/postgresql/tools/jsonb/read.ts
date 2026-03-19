@@ -5,7 +5,7 @@
  * Also exports shared utilities: toJsonString, resolveJsonbTable, parseSelectAlias.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,

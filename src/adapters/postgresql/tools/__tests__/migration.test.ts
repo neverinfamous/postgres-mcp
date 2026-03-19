@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getMigrationTools } from "../migration/index.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import { createMockPostgresAdapter } from "../../../../__tests__/mocks/index.js";
 
 describe("getMigrationTools", () => {

@@ -5,7 +5,7 @@
  * used by the advanced statistics tools.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 
 // =============================================================================
 // P-Value Calculation Utilities
