@@ -6,10 +6,15 @@
 - **Integration Test**: Added `test-server/test-instruction-levels.mjs` to verify instruction filtering behavior.
 
 ### Changed
-- **Modularization**: Split 6 files exceeding 500-line limit into focused sub-modules:
+- **Modularization**: Split 8 files exceeding 500-line limit into focused sub-modules:
   - `server.ts` (690→~420) → extracted `streamable.ts`, `stateless.ts`, `legacy-sse.ts`
   - `PostgresAdapter.ts` (674→~480) → extracted `transaction-operations.ts`
   - `partman/maintenance.ts` (632) → split into `retention.ts` + `health-analysis.ts`
   - `citext/analysis.ts` (611) → split into `list-compare.ts` + `candidates-advisor.ts`
   - `schemas/introspection.ts` (602) → split into `introspection/input.ts` + `output.ts`
   - `tools/admin.ts` (599) → split into `admin/vacuum-tools.ts` + `backend-tools.ts` + `config-tools.ts`
+  - `schemas/index.ts` (555→8) → split into `core-exports.ts` + `extension-exports.ts`
+  - `tools/core/schemas.ts` (559→8) → split into `schemas/input.ts` + `schemas/output.ts`
+
+### Fixed
+- **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), and `http.test.ts` (HTTP transport function extraction)

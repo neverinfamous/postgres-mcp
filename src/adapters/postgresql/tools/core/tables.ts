@@ -26,7 +26,7 @@ import {
   TableListOutputSchema,
   TableDescribeOutputSchema,
   TableOperationOutputSchema,
-} from "./schemas.js";
+} from "./schemas/index.js";
 
 /**
  * List all tables in the database

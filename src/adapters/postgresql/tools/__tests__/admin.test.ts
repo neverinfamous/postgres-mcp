@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getAdminTools } from "../admin.js";
+import { getAdminTools } from "../admin/index.js";
 import type { PostgresAdapter } from "../../PostgresAdapter.js";
 import {
   createMockPostgresAdapter,

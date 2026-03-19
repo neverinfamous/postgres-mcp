@@ -22,7 +22,7 @@ import {
 import {
   IndexListOutputSchema,
   IndexOperationOutputSchema,
-} from "./schemas.js";
+} from "./schemas/index.js";
 
 /**
  * Get indexes for a table

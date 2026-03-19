@@ -42,7 +42,7 @@ export {
   AnalyzeWorkloadIndexesSchema,
   AnalyzeQueryIndexesSchema,
   AnalyzeQueryIndexesSchemaBase,
-} from "./schemas.js";
+} from "./schemas/index.js";
 export { UpsertSchema, BatchInsertSchema } from "./convenience.js";
 export { CountSchema, ExistsSchema, TruncateSchema } from "./utility.js";
 

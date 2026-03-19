@@ -17,7 +17,7 @@ import {
   CountOutputSchema,
   ExistsOutputSchema,
   TruncateOutputSchema,
-} from "./schemas.js";
+} from "./schemas/index.js";
 import {
   validateTableExists,
   CountSchema,

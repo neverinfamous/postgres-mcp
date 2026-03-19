@@ -18,7 +18,7 @@ import {
   WriteQuerySchemaBase,
   WriteQuerySchema,
 } from "../../schemas/index.js";
-import { ReadQueryOutputSchema, WriteQueryOutputSchema } from "./schemas.js";
+import { ReadQueryOutputSchema, WriteQueryOutputSchema } from "./schemas/index.js";
 
 /**
  * Execute a read-only SQL query

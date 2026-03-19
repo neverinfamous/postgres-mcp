@@ -22,7 +22,7 @@ import {
   HealthAnalysisOutputSchema,
   IndexRecommendationsOutputSchema,
   QueryIndexAnalysisOutputSchema,
-} from "./schemas.js";
+} from "./schemas/index.js";
 
 /**
  * Analyze database health

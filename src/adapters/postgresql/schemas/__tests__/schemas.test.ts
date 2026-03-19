@@ -4200,7 +4200,7 @@ describe("StatsCorrelationSchema", () => {
 import {
   ListObjectsSchema,
   ObjectDetailsSchema,
-} from "../../tools/core/schemas.js";
+} from "../../tools/core/schemas/index.js";
 
 describe("ListObjectsSchema preprocess", () => {
   it("should convert type array alias to types", () => {

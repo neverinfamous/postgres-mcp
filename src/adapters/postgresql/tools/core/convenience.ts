@@ -17,7 +17,7 @@ import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "./error-helpers.js";
-import { WriteQueryOutputSchema } from "./schemas.js";
+import { WriteQueryOutputSchema } from "./schemas/index.js";
 import {
   validateTableExists,
   UpsertSchemaBase,

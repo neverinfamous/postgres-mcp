@@ -21,7 +21,7 @@ import {
   ObjectListOutputSchema,
   ObjectDetailsOutputSchema,
   ExtensionListOutputSchema,
-} from "./schemas.js";
+} from "./schemas/index.js";
 
 /**
  * List database objects

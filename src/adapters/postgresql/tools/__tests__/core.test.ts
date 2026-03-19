@@ -252,7 +252,7 @@ import {
   AnalyzeQueryIndexesSchema,
   AnalyzeDbHealthSchema,
   AnalyzeWorkloadIndexesSchema,
-} from "../core/schemas.js";
+} from "../core/schemas/index.js";
 
 describe("ListObjectsSchema — preprocess branches", () => {
   it("should convert 'type' string to 'types' array", () => {

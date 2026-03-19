@@ -1,0 +1,236 @@
+/**
+ * postgres-mcp - Schema Re-exports: Core & Transactions
+ *
+ * Core tool schemas and transaction schemas.
+ */
+
+// Core tool schemas (queries, tables, indexes, transactions)
+export {
+  ReadQuerySchemaBase,
+  ReadQuerySchema,
+  WriteQuerySchemaBase,
+  WriteQuerySchema,
+  ListTablesSchemaBase,
+  ListTablesSchema,
+  DescribeTableSchemaBase,
+  DescribeTableSchema,
+  CreateTableSchemaBase,
+  CreateTableSchema,
+  DropTableSchemaBase,
+  DropTableSchema,
+  GetIndexesSchemaBase,
+  GetIndexesSchema,
+  CreateIndexSchemaBase,
+  CreateIndexSchema,
+  BeginTransactionSchemaBase,
+  BeginTransactionSchema,
+  TransactionIdSchema,
+  TransactionIdSchemaBase,
+  SavepointSchema,
+  SavepointSchemaBase,
+  ExecuteInTransactionSchema,
+  TransactionExecuteSchema,
+  TransactionExecuteSchemaBase,
+  // Transaction output schemas
+  TransactionBeginOutputSchema,
+  TransactionResultOutputSchema,
+  TransactionStatusOutputSchema,
+  SavepointResultOutputSchema,
+  TransactionExecuteOutputSchema,
+} from "./core/index.js";
+
+// Performance and explain schemas
+export {
+  ExplainSchema,
+  ExplainSchemaBase,
+  preprocessExplainParams,
+  IndexStatsSchemaBase,
+  IndexStatsSchema,
+  TableStatsSchemaBase,
+  TableStatsSchema,
+  // Output schemas
+  ExplainOutputSchema,
+  IndexStatsOutputSchema,
+  TableStatsOutputSchema,
+  StatStatementsOutputSchema,
+  StatActivityOutputSchema,
+  LocksOutputSchema,
+  BloatCheckOutputSchema,
+  CacheHitRatioOutputSchema,
+  SeqScanTablesOutputSchema,
+  IndexRecommendationsOutputSchema,
+  QueryPlanCompareOutputSchema,
+  PerformanceBaselineOutputSchema,
+  ConnectionPoolOptimizeOutputSchema,
+  PartitionStrategySuggestOutputSchema,
+  UnusedIndexesOutputSchema,
+  DuplicateIndexesOutputSchema,
+  VacuumStatsOutputSchema,
+  QueryPlanStatsOutputSchema,
+} from "./performance.js";
+
+// Admin operation schemas
+export {
+  VacuumSchema,
+  VacuumSchemaBase,
+  VacuumOutputSchema,
+  AnalyzeSchema,
+  AnalyzeSchemaBase,
+  AnalyzeOutputSchema,
+  ReindexSchema,
+  ReindexSchemaBase,
+  ReindexOutputSchema,
+  ClusterOutputSchema,
+  TerminateBackendSchema,
+  TerminateBackendSchemaBase,
+  CancelBackendSchema,
+  CancelBackendSchemaBase,
+  BackendOutputSchema,
+  ConfigOutputSchema,
+} from "./admin.js";
+
+// Monitoring schemas
+export {
+  DatabaseSizeSchemaBase,
+  DatabaseSizeSchema,
+  TableSizesSchemaBase,
+  TableSizesSchema,
+  ShowSettingsSchemaBase,
+  ShowSettingsSchema,
+  // Output schemas
+  DatabaseSizeOutputSchema,
+  TableSizesOutputSchema,
+  ConnectionStatsOutputSchema,
+  ReplicationStatusOutputSchema,
+  ServerVersionOutputSchema,
+  ShowSettingsOutputSchema,
+  UptimeOutputSchema,
+  RecoveryStatusOutputSchema,
+  CapacityPlanningOutputSchema,
+  ResourceUsageAnalyzeOutputSchema,
+  AlertThresholdOutputSchema,
+} from "./monitoring.js";
+
+// Backup and export schemas
+export {
+  CopyExportSchema,
+  CopyExportSchemaBase,
+  DumpSchemaSchema,
+  // Output schemas
+  DumpTableOutputSchema,
+  DumpSchemaOutputSchema,
+  CopyExportOutputSchema,
+  CopyImportOutputSchema,
+  CreateBackupPlanOutputSchema,
+  RestoreCommandOutputSchema,
+  PhysicalBackupOutputSchema,
+  RestoreValidateOutputSchema,
+  BackupScheduleOptimizeOutputSchema,
+} from "./backup.js";
+
+// Schema management schemas
+export {
+  CreateSchemaSchemaBase,
+  CreateSchemaSchema,
+  DropSchemaSchemaBase,
+  DropSchemaSchema,
+  // Sequence schemas - Split Schema pattern for MCP visibility
+  CreateSequenceSchemaBase,
+  CreateSequenceSchema,
+  DropSequenceSchemaBase,
+  DropSequenceSchema,
+  // View schemas - Split Schema pattern for MCP visibility
+  CreateViewSchemaBase,
+  CreateViewSchema,
+  DropViewSchemaBase,
+  DropViewSchema,
+  // List functions schemas - Split Schema pattern for MCP visibility
+  ListFunctionsSchemaBase,
+  ListFunctionsSchema,
+  // Output schemas
+  ListSchemasOutputSchema,
+  CreateSchemaOutputSchema,
+  DropSchemaOutputSchema,
+  ListSequencesOutputSchema,
+  CreateSequenceOutputSchema,
+  DropSequenceOutputSchema,
+  ListViewsOutputSchema,
+  CreateViewOutputSchema,
+  DropViewOutputSchema,
+  ListFunctionsOutputSchema,
+  ListTriggersOutputSchema,
+  ListConstraintsOutputSchema,
+} from "./schema-mgmt.js";
+
+// Stats schemas
+export {
+  // Base schemas for MCP visibility
+  StatsDescriptiveSchemaBase,
+  StatsPercentilesSchemaBase,
+  StatsCorrelationSchemaBase,
+  StatsRegressionSchemaBase,
+  StatsTimeSeriesSchemaBase,
+  StatsDistributionSchemaBase,
+  StatsHypothesisSchemaBase,
+  StatsSamplingSchemaBase,
+  // Preprocessed schemas for handler validation
+  StatsDescriptiveSchema,
+  StatsPercentilesSchema,
+  StatsCorrelationSchema,
+  StatsRegressionSchema,
+  StatsTimeSeriesSchema,
+  StatsDistributionSchema,
+  StatsHypothesisSchema,
+  StatsSamplingSchema,
+  // Output schemas for MCP structured content
+  DescriptiveOutputSchema,
+  PercentilesOutputSchema,
+  CorrelationOutputSchema,
+  RegressionOutputSchema,
+  TimeSeriesOutputSchema,
+  DistributionOutputSchema,
+  HypothesisOutputSchema,
+  SamplingOutputSchema,
+} from "./stats/index.js";
+
+// Introspection schemas (agent-optimized database analysis)
+export {
+  // Input schemas
+  DependencyGraphSchemaBase,
+  DependencyGraphSchema,
+  TopologicalSortSchemaBase,
+  TopologicalSortSchema,
+  CascadeSimulatorSchemaBase,
+  CascadeSimulatorSchema,
+  SchemaSnapshotSchemaBase,
+  SchemaSnapshotSchema,
+  ConstraintAnalysisSchemaBase,
+  ConstraintAnalysisSchema,
+  MigrationRisksSchemaBase,
+  MigrationRisksSchema,
+  MigrationInitSchemaBase,
+  MigrationInitSchema,
+  MigrationRecordSchemaBase,
+  MigrationRecordSchema,
+  MigrationApplySchemaBase,
+  MigrationApplySchema,
+  MigrationRollbackSchemaBase,
+  MigrationRollbackSchema,
+  MigrationHistorySchemaBase,
+  MigrationHistorySchema,
+  MigrationStatusSchemaBase,
+  MigrationStatusSchema,
+  // Output schemas
+  DependencyGraphOutputSchema,
+  TopologicalSortOutputSchema,
+  CascadeSimulatorOutputSchema,
+  SchemaSnapshotOutputSchema,
+  ConstraintAnalysisOutputSchema,
+  MigrationRisksOutputSchema,
+  MigrationInitOutputSchema,
+  MigrationRecordOutputSchema,
+  MigrationApplyOutputSchema,
+  MigrationRollbackOutputSchema,
+  MigrationHistoryOutputSchema,
+  MigrationStatusOutputSchema,
+} from "./introspection/index.js";

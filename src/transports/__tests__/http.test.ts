@@ -10,6 +10,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { HttpTransport } from "../http/index.js";
 import { setSecurityHeaders, setCorsHeaders, checkRateLimit, readBody, getClientIp } from "../http/security.js";
 import { handleProtectedResourceMetadata, handleHealthCheck } from "../http/handlers.js";
+import { handleLegacyMessageRequest, handleLegacySSERequest } from "../http/legacy-sse.js";
+import { handleStreamableRequest } from "../http/streamable.js";
 
 // Mock the logger to avoid console output during tests
 vi.mock("../../utils/logger.js", () => ({
@@ -656,17 +658,7 @@ describe("HttpTransport", () => {
       const res = createMockResponse();
       const url = new URL("http://localhost:3000/messages");
 
-      const handleLegacyMessageRequest = (
-        transport as unknown as {
-          handleLegacyMessageRequest: (
-            req: IncomingMessage,
-            res: ServerResponse,
-            url: URL,
-          ) => Promise<void>;
-        }
-      ).handleLegacyMessageRequest.bind(transport);
-
-      await handleLegacyMessageRequest(req, res, url);
+      await handleLegacyMessageRequest(req, res, url, transport.getTransports());
 
       expect(res._statusCode).toBe(400);
       expect(res._body).toContain("Missing sessionId parameter");
@@ -681,17 +673,7 @@ describe("HttpTransport", () => {
       const res = createMockResponse();
       const url = new URL("http://localhost:3000/messages?sessionId=unknown");
 
-      const handleLegacyMessageRequest = (
-        transport as unknown as {
-          handleLegacyMessageRequest: (
-            req: IncomingMessage,
-            res: ServerResponse,
-            url: URL,
-          ) => Promise<void>;
-        }
-      ).handleLegacyMessageRequest.bind(transport);
-
-      await handleLegacyMessageRequest(req, res, url);
+      await handleLegacyMessageRequest(req, res, url, transport.getTransports());
 
       expect(res._statusCode).toBe(404);
       expect(res._body).toContain("No transport found for sessionId");
@@ -724,17 +706,7 @@ describe("HttpTransport", () => {
         "http://localhost:3000/messages?sessionId=test-session",
       );
 
-      const handleLegacyMessageRequest = (
-        transport as unknown as {
-          handleLegacyMessageRequest: (
-            req: IncomingMessage,
-            res: ServerResponse,
-            url: URL,
-          ) => Promise<void>;
-        }
-      ).handleLegacyMessageRequest.bind(transport);
-
-      await handleLegacyMessageRequest(req, res, url);
+      await handleLegacyMessageRequest(req, res, url, transport.getTransports());
 
       expect(mockSSETransport.handlePostMessage).toHaveBeenCalledWith(req, res);
     });
@@ -747,17 +719,11 @@ describe("HttpTransport", () => {
       const req = createMockRequest({ method: "GET", url: "/sse" });
       const res = createMockResponse();
 
-      const handleLegacySSERequest = (
-        transport as unknown as {
-          handleLegacySSERequest: (
-            req: IncomingMessage,
-            res: ServerResponse,
-          ) => Promise<void>;
-        }
-      ).handleLegacySSERequest.bind(transport);
+      const handleLegacySSE = (r: IncomingMessage, s: ServerResponse) =>
+        handleLegacySSERequest(r, s, transport.getTransports(), onConnect);
 
       try {
-        await handleLegacySSERequest(req, res);
+        await handleLegacySSE(req, res);
         // onConnect should be called with the SSE transport
         expect(onConnect).toHaveBeenCalled();
         // Transport should be registered in the transports map
@@ -775,17 +741,11 @@ describe("HttpTransport", () => {
       // Initially empty
       expect(transport.getTransports().size).toBe(0);
 
-      const handleLegacySSERequest = (
-        transport as unknown as {
-          handleLegacySSERequest: (
-            req: IncomingMessage,
-            res: ServerResponse,
-          ) => Promise<void>;
-        }
-      ).handleLegacySSERequest.bind(transport);
+      const handleLegacySSE = (r: IncomingMessage, s: ServerResponse) =>
+        handleLegacySSERequest(r, s, transport.getTransports());
 
       try {
-        await handleLegacySSERequest(req, res);
+        await handleLegacySSE(req, res);
         // After SSE request, a transport should be registered
         expect(transport.getTransports().size).toBe(1);
       } catch {
@@ -1319,14 +1279,14 @@ describe("HttpTransport", () => {
   // ==========================================================================
   describe("handleStreamableRequest", () => {
     function getHandleStreamable(transport: HttpTransport) {
-      return (
-        transport as unknown as {
-          handleStreamableRequest: (
-            req: IncomingMessage,
-            res: ServerResponse,
-          ) => Promise<void>;
-        }
-      ).handleStreamableRequest.bind(transport);
+      return (req: IncomingMessage, res: ServerResponse) =>
+        handleStreamableRequest(
+          req,
+          res,
+          transport.config,
+          transport.getTransports(),
+          (transport as unknown as { onConnect?: (t: unknown) => void | Promise<void> }).onConnect,
+        );
     }
 
     /** Create a mock request with a readable body stream */
@@ -1578,17 +1538,7 @@ describe("HttpTransport", () => {
         "http://localhost:3000/messages?sessionId=stream-session",
       );
 
-      const handleLegacyMessageRequest = (
-        transport as unknown as {
-          handleLegacyMessageRequest: (
-            req: IncomingMessage,
-            res: ServerResponse,
-            url: URL,
-          ) => Promise<void>;
-        }
-      ).handleLegacyMessageRequest.bind(transport);
-
-      await handleLegacyMessageRequest(req, res, url);
+      await handleLegacyMessageRequest(req, res, url, transport.getTransports());
 
       expect(res._statusCode).toBe(400);
       expect(res._body).toContain("different transport protocol");
