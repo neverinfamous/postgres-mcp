@@ -49,6 +49,7 @@ src/
 │   ├── annotations.ts              # MCP tool annotation presets (READ_ONLY, WRITE, etc. with openWorldHint)
 │   ├── icons.ts                    # MCP icon definitions per tool group
 │   ├── fts-config.ts               # Full-text search configuration helpers
+│   ├── insights-manager.ts         # In-memory InsightsManager for pg_append_insight / postgres://insights
 │   ├── progress-utils.ts           # MCP progress notification helpers
 │   ├── resource-annotations.ts     # MCP resource annotation helpers
 │   ├── version.ts                  # SSoT version constant (reads package.json)
@@ -115,7 +116,7 @@ src/
 
 ## Handler → Tool Mapping
 
-232 tools across 22 groups. Each handler file registers tools with `group` labels.
+245 tools across 22 groups. Each handler file registers tools with `group` labels.
 
 ### Tool Handlers (`src/adapters/postgresql/tools/`)
 
@@ -141,6 +142,7 @@ src/
 | | `jsonb/transform.ts` | 4 | `pg_jsonb_validate_path`, `pg_jsonb_merge`, `pg_jsonb_normalize`, `pg_jsonb_diff` |
 | | `jsonb/query.ts` | 3 | `pg_jsonb_agg`, `pg_jsonb_keys`, `pg_jsonb_typeof` |
 | | `jsonb/analytics.ts` | 3 | `pg_jsonb_index_suggest`, `pg_jsonb_security_scan`, `pg_jsonb_stats` |
+| | `jsonb/pretty.ts` | 1 | `pg_jsonb_pretty` |
 | **text** | `text/fts.ts` | 4 | `pg_text_search`, `pg_text_rank`, `pg_text_headline`, `pg_create_fts_index` |
 | | `text/matching.ts` | 3 | `pg_trigram_similarity`, `pg_fuzzy_match`, `pg_regexp_match` |
 | | `text/search.ts` | 4 | `pg_text_normalize`, `pg_text_to_vector`, `pg_text_to_query`, `pg_text_search_config` |
@@ -151,6 +153,9 @@ src/
 | | `stats/hypothesis.ts` | 1 | `pg_stats_hypothesis` |
 | | `stats/sampling.ts` | 1 | `pg_stats_sampling` |
 | | `stats/time-series.ts` | 1 | `pg_stats_time_series` |
+| | `stats/window.ts` | 6 | `pg_stats_row_number`, `pg_stats_rank`, `pg_stats_lag_lead`, `pg_stats_running_total`, `pg_stats_moving_avg`, `pg_stats_ntile` |
+| | `stats/outlier.ts` | 1 | `pg_stats_outliers` |
+| | `stats/advanced.ts` | 4 | `pg_stats_top_n`, `pg_stats_distinct`, `pg_stats_frequency`, `pg_stats_summary` |
 | | `stats/math-utils.ts` | — | Statistical math helpers |
 | | `stats/validators.ts` | — | Input validators for stats tools |
 | **performance** | `performance/explain.ts` | 3 | `pg_explain`, `pg_explain_analyze`, `pg_explain_buffers` |
@@ -171,6 +176,7 @@ src/
 | **admin** | `admin/vacuum-tools.ts` | 3 | `pg_vacuum`, `pg_vacuum_analyze`, `pg_analyze` |
 | | `admin/backend-tools.ts` | 3 | `pg_terminate_backend`, `pg_cancel_backend`, `pg_reindex` |
 | | `admin/config-tools.ts` | 4 | `pg_reload_conf`, `pg_set_config`, `pg_reset_stats`, `pg_cluster` |
+| | `admin/insights.ts` | 1 | `pg_append_insight` |
 | **backup** | `backup/dump.ts` | 2 | `pg_dump_table`, `pg_dump_schema` |
 | | `backup/copy.ts` | 2 | `pg_copy_export`, `pg_copy_import` |
 | | `backup/planning.ts` | 5 | `pg_create_backup_plan`, `pg_restore_command`, `pg_backup_physical`, `pg_restore_validate`, `pg_backup_schedule_optimize` |
@@ -232,6 +238,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `core/index-schemas.ts` | Index operation schemas |
 | `jsonb/basic.ts` | JSONB read/write/transform schemas |
 | `jsonb/advanced.ts` | JSONB analytics/validation schemas |
+| `jsonb/pretty.ts` | JSONB pretty-print schemas |
 | `jsonb/utils.ts` | Path normalization, preprocessing helpers |
 | `extensions/citext.ts` | Citext schemas |
 | `extensions/ltree.ts` | Ltree schemas |
@@ -242,6 +249,8 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `stats/input.ts` | Statistics input schemas |
 | `stats/output.ts` | Statistics output schemas |
 | `stats/preprocessing.ts` | Statistics preprocessing helpers |
+| `stats/window.ts` | Window function schemas |
+| `stats/advanced.ts` | Advanced analysis + outlier detection schemas |
 | `introspection/input.ts` | Introspection input schemas |
 | `introspection/output.ts` | Introspection output schemas |
 | `partitioning/range.ts` | Range partitioning schemas |
@@ -309,6 +318,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `postgis.ts` | `postgres://postgis/{view}` |
 | `vector.ts` | `postgres://vector/{table}` |
 | `crypto.ts` | `postgres://crypto/{info}` |
+| `insights.ts` | `postgres://insights` |
 
 ### Help Resources (registered dynamically by McpServer)
 
@@ -409,7 +419,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/README.md` | Agent testing orchestration doc |
 | `test-server/test-database.sql` | Core seed DDL+DML (16 tables, ~700+ rows) |
 | `test-server/reset-database.ps1` | Reset Docker container DB from seed data |
-| `test-server/Tool-Reference.md` | Complete 232-tool inventory with descriptions |
+| `test-server/Tool-Reference.md` | Complete 245-tool inventory with descriptions |
 | `test-server/tool-groups-list.md` | Canonical tool inventory (22 groups) |
 | `test-server/test-group-tools.md` | Per-group deterministic checklists (all 22 groups) |
 | `test-server/test-tools.md` | Entry-point protocol (schema ref, P154, reporting format) |

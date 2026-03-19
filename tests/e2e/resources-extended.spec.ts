@@ -1,7 +1,7 @@
 /**
  * E2E Tests: Extended Resource Reads
  *
- * Reads the 12 data resources NOT covered by resources.spec.ts.
+ * Reads the 13 data resources NOT covered by resources.spec.ts.
  * Extension-dependent resources (vector, postgis, crypto) use
  * lenient assertions since extensions may not be installed.
  *
@@ -186,6 +186,25 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents.length).toBeGreaterThan(0);
       const parsed = JSON.parse(response.contents[0].text as string);
       expect(typeof parsed).toBe("object");
+    } finally {
+      await client.close();
+    }
+  });
+
+  // --- In-memory resources ---
+
+  test("postgres://insights returns text memo", async ({}, testInfo) => {
+    const client = await createClient(getBaseURL(testInfo));
+    try {
+      const response = await client.readResource({
+        uri: "postgres://insights",
+      });
+      expect(response.contents).toBeDefined();
+      expect(response.contents.length).toBeGreaterThan(0);
+      const text = response.contents[0].text as string;
+      // insights resource returns a text memo (may be empty placeholder or contain insights)
+      expect(typeof text).toBe("string");
+      expect(text.length).toBeGreaterThan(0);
     } finally {
       await client.close();
     }

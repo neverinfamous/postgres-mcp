@@ -1,7 +1,7 @@
 /**
  * Payload Contract Tests: Admin + Monitoring
  *
- * Validates response shapes for admin (10) and monitoring (11) tools.
+ * Validates response shapes for admin (11) and monitoring (11) tools.
  */
 
 import { test, expect } from "@playwright/test";
@@ -93,5 +93,14 @@ test.describe("Payload Contracts: Admin + Monitoring", () => {
     expect(typeof payload.current).toBe("object");
     expect(typeof payload.growth).toBe("object");
     expect(typeof payload.projection).toBe("object");
+  });
+
+  test("pg_append_insight returns { success, insightCount }", async () => {
+    const payload = await callToolAndParse(client, "pg_append_insight", {
+      insight: "E2E test insight: database is healthy",
+    });
+    expectSuccess(payload);
+    expect(typeof payload.insightCount).toBe("number");
+    expect(payload.insightCount).toBeGreaterThan(0);
   });
 });

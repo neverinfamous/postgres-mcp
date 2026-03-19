@@ -9,6 +9,8 @@
   - **JSONB — Pretty Print (1)**: `pg_jsonb_pretty` — dual-mode (raw JSON string or table column via `jsonb_pretty()`)
 - **Insights Resource**: Added `postgres://insights` resource (21 total resources) for reading AI-appended business insights
 - **Server Instructions**: Updated help content in `admin.md`, `jsonb.md`, `stats.md` with full parameter docs, response shapes, and top-level aliases for all 13 new tools
+- **Test Coverage for New Tools**: Added 24 vitest handler tests for 11 new stats tools (window, outlier, advanced) in `stats.test.ts`. Added 9 E2E Playwright tests: 6 stats payload contracts (`payloads-stats.spec.ts`), 1 jsonb pretty (`payloads-jsonb.spec.ts`), 1 admin insights (`payloads-admin.spec.ts`), 1 insights resource (`resources-extended.spec.ts`)
+- **Code Map Update**: Updated `code-map.md` with new handler files, schemas, resource, utility (245 tools, 21 resources)
 
 
 - **Ported E2E Tests**: Ported 13 Playwright E2E test files from `db-mcp`, adapted for postgres-mcp tool names and PostgreSQL semantics:

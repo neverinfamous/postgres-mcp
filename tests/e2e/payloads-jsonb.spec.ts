@@ -81,4 +81,13 @@ test.describe("Payload Contracts: JSONB", () => {
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
   });
+
+  test("pg_jsonb_pretty returns { formatted } for raw JSON", async () => {
+    const payload = await callToolAndParse(client, "pg_jsonb_pretty", {
+      json: '{"name":"Alice","age":30}',
+    });
+    expectSuccess(payload);
+    expect(typeof payload.formatted).toBe("string");
+    expect(payload.formatted).toContain("Alice");
+  });
 });
