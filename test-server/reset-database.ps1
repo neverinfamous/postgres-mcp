@@ -346,26 +346,79 @@ if (-not $SkipVerify) {
     Write-Host "`n────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
     Write-Host "Verification" -ForegroundColor Yellow
 
-    $countResult = docker exec postgres-server psql -U postgres -d postgres -t -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';" 2>&1
-    # Handle array results and extract the numeric value
-    $countStr = if ($countResult -is [array]) { $countResult -join "" } else { $countResult }
-    $tableCount = [int]($countStr -replace '\s','')
-
-    Write-Host "  Table count in public schema: " -NoNewline
-    if ($tableCount -ge 15 -and $tableCount -le 30) {
-        Write-Host $tableCount -ForegroundColor Green -NoNewline
-        Write-Host " (expected: 15-25)"
-    } else {
-        Write-Host $tableCount -ForegroundColor Yellow -NoNewline
-        Write-Host " (expected: 15-25, may need investigation)"
+    # Expected table counts
+    $expectedTables = @{
+        "test_products" = 15
+        "test_orders" = 20
+        "test_jsonb_docs" = 3
+        "test_articles" = 3
+        "test_measurements" = 500
+        "test_embeddings" = 50
+        "test_locations" = 5
+        "test_users" = 3
+        "test_categories" = 6
+        "test_events" = 100
+        "test_secure_data" = 0
+        "test_logs" = 0
+        "test_departments" = 3
+        "test_employees" = 5
+        "test_projects" = 2
+        "test_assignments" = 3
+        "test_audit_log" = 3
     }
 
-    # List test tables
-    if ($Verbose) {
-        Write-Host "`n  Test tables:" -ForegroundColor DarkGray
-        $tables = docker exec postgres-server psql -U postgres -d postgres -t -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'test_%' ORDER BY tablename;" 2>&1
-        $tableLines = if ($tables -is [array]) { $tables } else { $tables -split "`n" }
-        $tableLines | Where-Object { $_ -and $_.Trim() } | ForEach-Object { Write-Host "    • $($_.Trim())" -ForegroundColor DarkGray }
+    Write-Host "`n  Table verification:" -ForegroundColor Yellow
+
+    $allPassed = $true
+    foreach ($entry in $expectedTables.GetEnumerator()) {
+        $tableName = $entry.Key
+        $expectedCount = $entry.Value
+        $countResult = docker exec postgres-server psql -U postgres -d postgres -t -c "SELECT COUNT(*) FROM public.$tableName;" 2>&1
+        $countStr = if ($countResult -is [array]) { $countResult -join "" } else { $countResult }
+        $actualCount = [int]($countStr -replace '\s','')
+
+        if ($actualCount -eq $expectedCount) {
+            Write-Host "    [pass] " -ForegroundColor Green -NoNewline
+            Write-Host "$tableName" -NoNewline
+            Write-Host " ($actualCount rows)" -ForegroundColor Gray
+        } else {
+            Write-Host "    [fail] " -ForegroundColor Red -NoNewline
+            Write-Host "$tableName" -NoNewline
+            Write-Host " (expected $expectedCount, got $actualCount)" -ForegroundColor Red
+            $allPassed = $false
+        }
+    }
+
+    if ($allPassed) {
+        Write-Host "`n  ✓ " -ForegroundColor Green -NoNewline
+        Write-Host "All tables verified successfully"
+    } else {
+        Write-Host "`n  ⚠ " -ForegroundColor Yellow -NoNewline
+        Write-Host "Some tables have unexpected row counts" -ForegroundColor Yellow
+    }
+
+    # Check for unexpected non-seed tables
+    Write-Host "`n  Artifact check:" -ForegroundColor Yellow
+    $allTablesResult = docker exec postgres-server psql -U postgres -d postgres -t -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;" 2>&1
+    $tableLines = if ($allTablesResult -is [array]) { $allTablesResult } else { $allTablesResult -split "`n" }
+    $unexpectedTables = @()
+    foreach ($line in $tableLines) {
+        $name = $line.Trim()
+        if (-not $name) { continue }
+        if (-not $expectedTables.ContainsKey($name) -and $name -ne "spatial_ref_sys") {
+            $unexpectedTables += $name
+        }
+    }
+
+    if ($unexpectedTables.Count -gt 0) {
+        Write-Host "    ⚠ Found $($unexpectedTables.Count) unexpected table(s) — possible stale test artifacts:" -ForegroundColor Yellow
+        foreach ($ut in $unexpectedTables) {
+            Write-Host "    [stale] " -ForegroundColor Yellow -NoNewline
+            Write-Host $ut -ForegroundColor Gray
+        }
+    } else {
+        Write-Host "    ✓ " -ForegroundColor Green -NoNewline
+        Write-Host "No stale test artifacts found"
     }
 }
 
