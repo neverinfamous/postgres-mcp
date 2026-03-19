@@ -185,7 +185,6 @@ test.describe("Zod Sweep: Performance", () => {
     "pg_explain",
     "pg_explain_analyze",
     "pg_explain_buffers",
-    "pg_index_recommendations",
     "pg_query_plan_compare",
     "pg_detect_query_anomalies",
     "pg_detect_bloat_risk",
