@@ -8,6 +8,10 @@
   - Data Quality: `boundary.spec.ts` (empty tables, NULLs, idempotency, view lifecycle), `integration-workflows.spec.ts` (cross-group pipelines)
   - Feature: `help-resources.spec.ts` (22-group `postgres://help` resources)
 - **Test Helpers Enhancement**: Added `getBaseURL()`, `callToolRaw()`, `expectHandlerError()`, `startServer()`, `stopServer()` to `tests/e2e/helpers.ts`. `createClient()` now accepts optional `baseURL` parameter with retry logic.
+- **Error Auto-Refinement**: Added `findSuggestion()` in `src/utils/error-suggestions.ts` (24 patterns) and auto-refinement logic in `PostgresMcpError` constructor — generic codes (`QUERY_ERROR`, `VALIDATION_ERROR`) are auto-refined to specific codes (`TABLE_NOT_FOUND`, `COLUMN_NOT_FOUND`) via `REFINABLE_CODES` set
+- **DNS Rebinding Protection**: Added `validateHostHeader()` in `src/transports/http/security.ts` — prevents DNS rebinding attacks on localhost-bound servers by validating Host header against `localhost`, `127.0.0.1`, `::1`. Integrated into `server.ts` request pipeline.
+- **Invariant Tests**: Added `src/__tests__/tool-annotations.test.ts` (9 tests) and `src/__tests__/tool-output-schemas.test.ts` (3 tests) for structural enforcement — verifies every tool has complete annotations (title, readOnlyHint, destructiveHint, openWorldHint), description, group, and outputSchema
+- **openWorldHint**: Added `openWorldHint: false` to all 5 annotation presets (`READ_ONLY`, `WRITE`, `DESTRUCTIVE`, `IDEMPOTENT`, `ADMIN`) — fixes 231 tools missing this field
 
 ### Security
 - **Dependency Updates**:
