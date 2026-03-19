@@ -11,6 +11,7 @@ import type {
   RequestContext,
 } from "../../../types/index.js";
 import { MEDIUM_PRIORITY } from "../../../utils/resource-annotations.js";
+import { toStr } from "../../../utils/query-helpers.js";
 
 interface StatsRecommendation {
   priority: "HIGH" | "MEDIUM" | "INFO";
@@ -37,13 +38,7 @@ interface TableStatsRow {
   statsStale: boolean;
 }
 
-/** Safely convert unknown value to string */
-function toStr(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (value === null || value === undefined) return "";
-  if (typeof value === "number") return value.toString();
-  return "";
-}
+
 
 /** Safely convert unknown value to number */
 function toNum(value: unknown): number {

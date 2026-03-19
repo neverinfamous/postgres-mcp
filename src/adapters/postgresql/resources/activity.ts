@@ -10,15 +10,9 @@ import type {
   RequestContext,
 } from "../../../types/index.js";
 import { HIGH_PRIORITY } from "../../../utils/resource-annotations.js";
+import { toStr } from "../../../utils/query-helpers.js";
 
-/** Safely convert unknown value to string */
-function toStr(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (value === null || value === undefined) return "";
-  if (typeof value === "number") return value.toString();
-  if (typeof value === "object") return JSON.stringify(value);
-  return "";
-}
+
 
 interface BlockingRelationship {
   blockerPid: number;

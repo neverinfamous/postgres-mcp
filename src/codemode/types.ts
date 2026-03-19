@@ -96,8 +96,12 @@ export interface SecurityConfig {
   maxCodeLength: number;
   /** Maximum executions per minute per client (default: 60) */
   maxExecutionsPerMinute: number;
+  /** Rate limit window in milliseconds (default: 60000 = 1 minute) */
+  rateLimitWindowMs: number;
   /** Maximum result size in bytes (default: 10MB) */
   maxResultSize: number;
+  /** Maximum characters to include in a truncated result preview */
+  resultPreviewLength: number;
   /** Patterns to block in code */
   blockedPatterns: RegExp[];
 }
@@ -108,7 +112,9 @@ export interface SecurityConfig {
 export const DEFAULT_SECURITY_CONFIG: SecurityConfig = {
   maxCodeLength: 50 * 1024, // 50KB
   maxExecutionsPerMinute: 60,
+  rateLimitWindowMs: 60000, // 1 minute
   maxResultSize: 10 * 1024 * 1024, // 10MB
+  resultPreviewLength: 1000,
   blockedPatterns: [
     /\brequire\s*\(/, // No require()
     /\bimport\s*\(/, // No dynamic import()

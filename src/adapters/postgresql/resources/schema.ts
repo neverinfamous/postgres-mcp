@@ -12,6 +12,7 @@ import type {
   TableInfo,
 } from "../../../types/index.js";
 import { HIGH_PRIORITY } from "../../../utils/resource-annotations.js";
+import { toStr } from "../../../utils/query-helpers.js";
 
 interface TableStatsModification {
   schemaname: string;
@@ -20,13 +21,7 @@ interface TableStatsModification {
   n_live_tup: number;
 }
 
-/** Safely convert unknown value to string */
-function toStr(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (value === null || value === undefined) return "";
-  if (typeof value === "number") return value.toString();
-  return "";
-}
+
 
 /** Safely convert unknown value to number */
 function toNum(value: unknown): number {

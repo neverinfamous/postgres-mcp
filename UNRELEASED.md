@@ -60,3 +60,6 @@
 - **Raw param cast removal**: Replaced 5 `(params ?? {}) as` raw casts with proper Zod `.parse()` in `catalog.ts` (pg_list_triggers, pg_list_constraints), `views.ts` (pg_list_views), `objects.ts` (pg_list_sequences), and `monitoring.ts` (pg_locks)
 - **Stale comment cleanup**: Updated 2 comments that incorrectly referenced `z.any()` after prior refactoring in `catalog.ts` and `cron.ts`
 - **ZodError catch dedup (pass 2)**: Removed 19 more redundant `instanceof z.ZodError` blocks in 6 tool files (`pgcrypto.ts`, `monitoring/basic.ts`, `monitoring/capacity-planning.ts`, `ltree/basic.ts`, `ltree/operations.ts`, `core/convenience.ts`). Cleaned up 2 now-unused `z` imports.
+- **Resource helper dedup**: Extracted duplicated `toStr()` helper (9 resource files) and `SMALL_TABLE_THRESHOLD` constant (2 files) into shared `query-helpers.ts`. Unified `toStr` to handle string, number, null, and object coercion.
+- **Code mode magic values**: Added `rateLimitWindowMs` and `resultPreviewLength` to `SecurityConfig` and `DEFAULT_SECURITY_CONFIG` in `codemode/types.ts`, replacing hardcoded `60000` and `1000` in `codemode/security.ts`.
+- **Threshold documentation**: Added explanatory comments for intentionally different large-table warning thresholds: 10K (PostGIS — spatial queries expensive) vs 100K (pgvector — sequential scans tolerable on moderate tables).

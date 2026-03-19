@@ -1,12 +1,31 @@
 /**
  * postgres-mcp - Query Helpers
  *
- * Shared utilities for tool handlers that build SQL queries.
- * Eliminates duplicated limit-coercion and default-limit logic.
+ * Shared utilities for tool handlers and resource files.
+ * Eliminates duplicated limit-coercion, default-limit, and type-coercion logic.
  */
 
 /** Default maximum rows returned when no limit is specified */
 export const DEFAULT_QUERY_LIMIT = 100;
+
+/**
+ * Row-count threshold below which index recommendations are suppressed.
+ * Used by resource handlers (vector, postgis) to skip index suggestions
+ * on tables too small to benefit from them.
+ */
+export const SMALL_TABLE_THRESHOLD = 1000;
+
+/**
+ * Safely coerce an unknown database row value to a string.
+ * Handles string, number, null/undefined, and object values.
+ */
+export function toStr(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === null || value === undefined) return "";
+  if (typeof value === "number") return value.toString();
+  if (typeof value === "object") return JSON.stringify(value);
+  return "";
+}
 
 /**
  * Coerce a raw limit parameter into a usable value.

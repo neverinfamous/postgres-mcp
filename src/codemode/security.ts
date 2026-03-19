@@ -65,7 +65,7 @@ export class CodeModeSecurityManager {
    */
   checkRateLimit(clientId: string): boolean {
     const now = Date.now();
-    const windowMs = 60000; // 1 minute window
+    const windowMs = this.config.rateLimitWindowMs;
 
     const existing = this.rateLimitMap.get(clientId);
 
@@ -108,7 +108,8 @@ export class CodeModeSecurityManager {
           _truncated: true,
           _originalSize: serialized.length,
           _maxSize: this.config.maxResultSize,
-          preview: serialized.substring(0, 1000) + "...",
+          preview:
+            serialized.substring(0, this.config.resultPreviewLength) + "...",
         };
       }
       return result;
