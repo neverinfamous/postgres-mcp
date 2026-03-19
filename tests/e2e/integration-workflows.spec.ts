@@ -153,7 +153,8 @@ test.describe("Integration: Core + Stats Cross-Validation", () => {
       });
       expectSuccess(p);
       const result = p.result as Record<string, unknown>;
-      expect(result.match).toBe(true);
+      // COUNT returns bigint (string), pg_count returns number — compare as numbers
+      expect(Number(result.manualCount)).toBe(Number(result.toolCount));
     } finally {
       await client.close();
     }

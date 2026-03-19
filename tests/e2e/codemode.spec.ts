@@ -324,7 +324,8 @@ test.describe("Code Mode: Multi-Step Workflows", () => {
       expect(result.productsExists).toBe(true);
       expect(typeof result.columnCount).toBe("number");
       expect((result.columnCount as number)).toBeGreaterThan(0);
-      expect(typeof result.rowCount).toBe("number");
+      // PG COUNT returns bigint which may come as string or number
+      expect(["number", "string"]).toContain(typeof result.rowCount);
     } finally {
       await client.close();
     }

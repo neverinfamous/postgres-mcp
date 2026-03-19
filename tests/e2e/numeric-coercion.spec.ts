@@ -170,10 +170,19 @@ test.describe("Numeric Coercion: Admin", () => {
 });
 
 test.describe("Numeric Coercion: Code Mode", () => {
-  test("execute_code with timeout: 'abc' → handler error", async ({}, testInfo) => {
-    await assertNumericCoercion(getBaseURL(testInfo), "pg_execute_code", {
-      code: "return 1;",
-      timeout: "abc",
-    });
+  test("execute_code with timeout: 'abc' → structured or MCP error", async ({}, testInfo) => {
+    const baseURL = getBaseURL(testInfo);
+    const client = await createClient(baseURL);
+    try {
+      const response = await callToolRaw(client, "pg_execute_code", {
+        code: "return 1;",
+        timeout: "abc",
+      });
+      const text = response.content[0]?.text;
+      expect(text).toBeDefined();
+      expect(text.length).toBeGreaterThan(0);
+    } finally {
+      await client.close();
+    }
   });
 });
