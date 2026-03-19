@@ -5,20 +5,19 @@
  * - `/mcp` — Streamable HTTP transport (MCP protocol 2025-11-25)
  * - `/sse` + `/messages` — Legacy SSE transport (MCP protocol 2024-11-05)
  *
+ * Transport-specific handlers are in ./streamable.ts, ./stateless.ts, and ./legacy-sse.ts.
  * Security utilities and endpoint handlers are in ./security.ts and ./handlers.ts.
  * Config types and constants are in ./types.ts.
  */
 
-import { randomUUID } from "node:crypto";
 import {
   createServer,
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 // Legacy SSE transport — intentionally used for MCP 2024-11-05 backward compatibility
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import type { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   validateAuth,
@@ -39,13 +38,18 @@ import {
   checkRateLimit,
   setSecurityHeaders,
   setCorsHeaders,
-  readBody,
 } from "./security.js";
 import {
   handleProtectedResourceMetadata,
   handleHealthCheck,
   handleRootInfo,
 } from "./handlers.js";
+import { handleStreamableRequest } from "./streamable.js";
+import { handleStatelessRequest } from "./stateless.js";
+import {
+  handleLegacySSERequest,
+  handleLegacyMessageRequest,
+} from "./legacy-sse.js";
 
 // Re-export for consumers and tests
 export type { HttpTransportConfig } from "./types.js";
@@ -338,9 +342,15 @@ export class HttpTransport {
       // =====================================================================
       if (url.pathname === "/mcp") {
         if (this.config.stateless) {
-          await this.handleStatelessRequest(req, res);
+          await handleStatelessRequest(req, res, this.config, this.onConnect);
         } else {
-          await this.handleStreamableRequest(req, res);
+          await handleStreamableRequest(
+            req,
+            res,
+            this.config,
+            this.transports,
+            this.onConnect,
+          );
         }
         return;
       }
@@ -354,7 +364,12 @@ export class HttpTransport {
           res.end(JSON.stringify({ error: "Not found" }));
           return;
         }
-        await this.handleLegacySSERequest(req, res);
+        await handleLegacySSERequest(
+          req,
+          res,
+          this.transports,
+          this.onConnect,
+        );
         return;
       }
 
@@ -364,7 +379,7 @@ export class HttpTransport {
           res.end(JSON.stringify({ error: "Not found" }));
           return;
         }
-        await this.handleLegacyMessageRequest(req, res, url);
+        await handleLegacyMessageRequest(req, res, url, this.transports);
         return;
       }
 
@@ -377,290 +392,6 @@ export class HttpTransport {
     } else {
       await dispatch();
     }
-  }
-
-  // ===========================================================================
-  // Streamable HTTP Transport (Protocol 2025-11-25)
-  // ===========================================================================
-
-  /**
-   * Handle Streamable HTTP requests on `/mcp`.
-   *
-   * Supports GET (SSE stream), POST (initialize + messages), DELETE (terminate).
-   * Session management is handled via the `Mcp-Session-Id` header.
-   */
-  private async handleStreamableRequest(
-    req: IncomingMessage,
-    res: ServerResponse,
-  ): Promise<void> {
-    const sessionId = req.headers["mcp-session-id"] as string | undefined;
-
-    // For non-POST requests (GET for SSE stream, DELETE for session termination),
-    // delegate directly to the transport if we have a valid session
-    if (req.method !== "POST") {
-      if (sessionId && this.transports.has(sessionId)) {
-        const existing = this.transports.get(sessionId);
-        if (existing instanceof StreamableHTTPServerTransport) {
-          await existing.handleRequest(req, res);
-          return;
-        }
-      }
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: -32000,
-            message: "Bad Request: No valid session ID provided",
-          },
-          id: null,
-        }),
-      );
-      return;
-    }
-
-    // POST requests — pre-parse the body so the SDK receives parsed JSON
-    const maxBodySize = this.config.maxBodySize ?? DEFAULTS.MAX_BODY_SIZE;
-    let body: unknown;
-    try {
-      body = await readBody(req, res, maxBodySize);
-    } catch (readError) {
-      // readBody rejects with "Payload too large" after sending 413 to client
-      if (
-        readError instanceof Error &&
-        readError.message === "Payload too large"
-      ) {
-        return;
-      }
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: { code: -32700, message: "Parse error: Invalid JSON" },
-          id: null,
-        }),
-      );
-      return;
-    }
-
-    // Existing session — route to the correct transport
-    if (sessionId && this.transports.has(sessionId)) {
-      const existing = this.transports.get(sessionId);
-      if (existing instanceof StreamableHTTPServerTransport) {
-        await existing.handleRequest(req, res, body);
-        return;
-      }
-      // Session exists but uses legacy SSE transport
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: {
-            code: -32000,
-            message:
-              "Bad Request: Session exists but uses a different transport protocol",
-          },
-          id: null,
-        }),
-      );
-      return;
-    }
-
-    // No session ID — must be an initialization request
-    if (!sessionId && isInitializeRequest(body)) {
-      const newTransport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: (newSessionId: string) => {
-          logger.debug("Streamable HTTP session initialized", {
-            sessionId: newSessionId,
-          });
-          this.transports.set(newSessionId, newTransport);
-        },
-      });
-
-      // Clean up on close
-      newTransport.onclose = () => {
-        const sid = newTransport.sessionId;
-        if (sid && this.transports.has(sid)) {
-          logger.debug("Streamable HTTP transport closed", {
-            sessionId: sid,
-          });
-          this.transports.delete(sid);
-        }
-      };
-
-      // Connect MCP server to this transport (must complete before handling request)
-      if (this.onConnect) {
-        await this.onConnect(newTransport as unknown as Transport);
-      }
-
-      // Handle request with pre-parsed body
-      await newTransport.handleRequest(req, res, body);
-      return;
-    }
-
-    // POST without session ID and not an initialization request
-    res.writeHead(400, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        jsonrpc: "2.0",
-        error: {
-          code: -32000,
-          message: "Bad Request: No valid session ID provided",
-        },
-        id: null,
-      }),
-    );
-  }
-
-  // ===========================================================================
-  // Stateless HTTP Mode
-  // ===========================================================================
-
-  /**
-   * Handle stateless HTTP requests on `/mcp`.
-   *
-   * Each request creates a fresh transport — no sessions, no SSE stream.
-   * Only POST is supported; GET (SSE) and DELETE (terminate) return errors.
-   */
-  private async handleStatelessRequest(
-    req: IncomingMessage,
-    res: ServerResponse,
-  ): Promise<void> {
-    if (req.method === "GET") {
-      res.writeHead(405, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          error: {
-            message: "SSE connections not available in stateless mode",
-          },
-        }),
-      );
-      return;
-    }
-
-    if (req.method === "DELETE") {
-      // No-op in stateless mode — nothing to terminate
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-
-    if (req.method !== "POST") {
-      res.writeHead(405, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: { message: "Method not allowed" } }));
-      return;
-    }
-
-    const maxBodySize = this.config.maxBodySize ?? DEFAULTS.MAX_BODY_SIZE;
-    let body: unknown;
-    try {
-      body = await readBody(req, res, maxBodySize);
-    } catch (readError) {
-      if (
-        readError instanceof Error &&
-        readError.message === "Payload too large"
-      ) {
-        return;
-      }
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          error: { code: -32700, message: "Parse error: Invalid JSON" },
-          id: null,
-        }),
-      );
-      return;
-    }
-
-    // Create a fresh transport for each request (no session persistence)
-    // Omitting sessionIdGenerator tells the SDK to run in stateless mode
-    const transport = new StreamableHTTPServerTransport(
-      {} as ConstructorParameters<typeof StreamableHTTPServerTransport>[0],
-    );
-
-    if (this.onConnect) {
-      await this.onConnect(transport as unknown as Transport);
-    }
-
-    await transport.handleRequest(req, res, body);
-    await transport.close();
-  }
-
-  // ===========================================================================
-  // Legacy SSE Transport (Protocol 2024-11-05)
-  // ===========================================================================
-
-  /**
-   * Handle legacy SSE connection request (GET /sse).
-   *
-   * Creates an SSEServerTransport that establishes an event stream and
-   * directs the client to POST messages to `/messages?sessionId=<id>`.
-   */
-  private async handleLegacySSERequest(
-    _req: IncomingMessage,
-    res: ServerResponse,
-  ): Promise<void> {
-    logger.debug("Legacy SSE connection established");
-
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const transport = new SSEServerTransport("/messages", res);
-    this.transports.set(transport.sessionId, transport);
-
-    // Clean up on disconnect
-    res.on("close", () => {
-      logger.debug("Legacy SSE transport closed", {
-        sessionId: transport.sessionId,
-      });
-      this.transports.delete(transport.sessionId);
-    });
-
-    // Connect MCP server to this transport (must complete before client sends messages)
-    if (this.onConnect) {
-      await this.onConnect(transport as unknown as Transport);
-    }
-  }
-
-  /**
-   * Handle legacy message request (POST /messages?sessionId=<id>).
-   *
-   * Routes the message to the correct SSEServerTransport instance.
-   */
-  private async handleLegacyMessageRequest(
-    req: IncomingMessage,
-    res: ServerResponse,
-    url: URL,
-  ): Promise<void> {
-    const sessionId = url.searchParams.get("sessionId");
-
-    if (!sessionId) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Missing sessionId parameter" }));
-      return;
-    }
-
-    const transport = this.transports.get(sessionId);
-
-    if (!transport) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "No transport found for sessionId" }));
-      return;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
-    if (!(transport instanceof SSEServerTransport)) {
-      res.writeHead(400, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          error:
-            "Session exists but uses a different transport protocol. Use /mcp instead.",
-        }),
-      );
-      return;
-    }
-
-    await transport.handlePostMessage(req, res);
   }
 
   // ===========================================================================

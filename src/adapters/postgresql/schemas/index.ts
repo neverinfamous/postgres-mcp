@@ -568,4 +568,4 @@ export {
   MigrationRollbackOutputSchema,
   MigrationHistoryOutputSchema,
   MigrationStatusOutputSchema,
-} from "./introspection.js";
+} from "./introspection/index.js";

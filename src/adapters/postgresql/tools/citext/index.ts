@@ -14,10 +14,13 @@ import {
 
 import {
   createCitextListColumnsTool,
-  createCitextAnalyzeCandidatesTool,
   createCitextCompareTool,
+} from "./list-compare.js";
+
+import {
+  createCitextAnalyzeCandidatesTool,
   createCitextSchemaAdvisorTool,
-} from "./analysis.js";
+} from "./candidates-advisor.js";
 
 /**
  * Get all citext tools

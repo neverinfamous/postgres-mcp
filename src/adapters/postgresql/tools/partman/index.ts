@@ -30,12 +30,14 @@ import {
   createPartmanPartitionDataTool,
 } from "./operations.js";
 
-// Maintenance tools (retention, undo, analyze health)
+// Retention & undo tools
 import {
   createPartmanSetRetentionTool,
   createPartmanUndoPartitionTool,
-  createPartmanAnalyzeHealthTool,
-} from "./maintenance.js";
+} from "./retention.js";
+
+// Health analysis tools
+import { createPartmanAnalyzeHealthTool } from "./health-analysis.js";
 
 /**
  * Get all pg_partman tools

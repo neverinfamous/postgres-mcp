@@ -4,3 +4,12 @@
 - **Help Resource Architecture**: Replaced monolithic `ServerInstructions.ts` (72KB) with 22 per-group `.md` files under `src/constants/server-instructions/`. Slim ~600 char instructions field points agents to `postgres://help` resources for on-demand reference. `McpServer.ts` registers `postgres://help` (always) + `postgres://help/{group}` filtered by `--tool-filter`. Supersedes instruction filter alignment.
 - **Agent Experience Test**: Added `test-server/test-agent-experience.md` with 9 passes (37 scenarios) covering all tool groups with explicit tool group annotations.
 - **Integration Test**: Added `test-server/test-instruction-levels.mjs` to verify instruction filtering behavior.
+
+### Changed
+- **Modularization**: Split 6 files exceeding 500-line limit into focused sub-modules:
+  - `server.ts` (690→~420) → extracted `streamable.ts`, `stateless.ts`, `legacy-sse.ts`
+  - `PostgresAdapter.ts` (674→~480) → extracted `transaction-operations.ts`
+  - `partman/maintenance.ts` (632) → split into `retention.ts` + `health-analysis.ts`
+  - `citext/analysis.ts` (611) → split into `list-compare.ts` + `candidates-advisor.ts`
+  - `schemas/introspection.ts` (602) → split into `introspection/input.ts` + `output.ts`
+  - `tools/admin.ts` (599) → split into `admin/vacuum-tools.ts` + `backend-tools.ts` + `config-tools.ts`
