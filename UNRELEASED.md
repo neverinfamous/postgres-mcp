@@ -7,6 +7,14 @@
   - Code Mode: `codemode.spec.ts` (sandbox basics, security, readonly, workflows), `codemode-groups.spec.ts` (10 groups via `pg.*` API)
   - Data Quality: `boundary.spec.ts` (empty tables, NULLs, idempotency, view lifecycle), `integration-workflows.spec.ts` (cross-group pipelines)
   - Feature: `help-resources.spec.ts` (22-group `postgres://help` resources)
+- **E2E Test Coverage Expansion**: Added 5 new spec files and extended 2 existing files (+37 tests):
+  - `resources-extended.spec.ts` (12 tests) — reads 12 previously untested data resources (`stats`, `activity`, `pool`, `capabilities`, `performance`, `indexes`, `replication`, `vacuum`, `locks`, `vector`, `postgis`, `crypto`)
+  - `tool-filter.spec.ts` (4 tests) — first-ever `--tool-filter` runtime E2E tests (`core`, `starter`, `core,-codemode`, individual whitelist)
+  - `payloads-transactions.spec.ts` (3 tests) — savepoint lifecycle, rollback verification, transaction status
+  - `payloads-convenience.spec.ts` (6 tests) — `pg_batch_insert`, `pg_upsert`, `pg_exists`, `pg_list_objects`, `pg_object_details`
+  - `codemode-groups-extended.spec.ts` (4 tests) — transactions, backup, partitioning groups via Code Mode
+  - `payloads-performance.spec.ts` (+4) — `pg_vacuum_stats`, `pg_locks`, `pg_unused_indexes`, `pg_diagnose_database_performance`
+  - `payloads-schema.spec.ts` (+4) — `pg_list_sequences`, `pg_list_triggers`, `pg_topological_sort`, `pg_schema_snapshot`
 - **Test Helpers Enhancement**: Added `getBaseURL()`, `callToolRaw()`, `expectHandlerError()`, `startServer()`, `stopServer()` to `tests/e2e/helpers.ts`. `createClient()` now accepts optional `baseURL` parameter with retry logic.
 - **Error Auto-Refinement**: Added `findSuggestion()` in `src/utils/error-suggestions.ts` (24 patterns) and auto-refinement logic in `PostgresMcpError` constructor — generic codes (`QUERY_ERROR`, `VALIDATION_ERROR`) are auto-refined to specific codes (`TABLE_NOT_FOUND`, `COLUMN_NOT_FOUND`) via `REFINABLE_CODES` set
 - **DNS Rebinding Protection**: Added `validateHostHeader()` in `src/transports/http/security.ts` — prevents DNS rebinding attacks on localhost-bound servers by validating Host header against `localhost`, `127.0.0.1`, `::1`. Integrated into `server.ts` request pipeline.

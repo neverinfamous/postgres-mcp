@@ -58,4 +58,32 @@ test.describe("Payload Contracts: Performance", () => {
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
   });
+
+  test("pg_vacuum_stats returns vacuum data", async () => {
+    const payload = await callToolAndParse(client, "pg_vacuum_stats", {});
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_locks returns lock data", async () => {
+    const payload = await callToolAndParse(client, "pg_locks", {});
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_unused_indexes returns unused index data", async () => {
+    const payload = await callToolAndParse(client, "pg_unused_indexes", {});
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_diagnose_database_performance returns diagnostic report", async () => {
+    const payload = await callToolAndParse(
+      client,
+      "pg_diagnose_database_performance",
+      {},
+    );
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
 });

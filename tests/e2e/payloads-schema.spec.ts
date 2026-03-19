@@ -65,4 +65,30 @@ test.describe("Payload Contracts: Schema + Introspection + Migration", () => {
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
   });
+
+  test("pg_list_sequences returns sequences", async () => {
+    const payload = await callToolAndParse(client, "pg_list_sequences", {});
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_list_triggers returns triggers", async () => {
+    const payload = await callToolAndParse(client, "pg_list_triggers", {});
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_topological_sort returns sorted dependencies", async () => {
+    const payload = await callToolAndParse(client, "pg_topological_sort", {
+      tables: ["test_products", "test_orders"],
+    });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_schema_snapshot returns snapshot object", async () => {
+    const payload = await callToolAndParse(client, "pg_schema_snapshot", {});
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
 });
