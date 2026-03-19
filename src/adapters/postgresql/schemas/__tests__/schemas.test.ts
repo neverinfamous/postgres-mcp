@@ -12,7 +12,7 @@ import {
   FiniteNumberArray,
   VectorSearchSchema,
   VectorCreateIndexSchema,
-} from "../vector.js";
+} from "../vector/index.js";
 
 // PostGIS schemas
 import {
@@ -2526,7 +2526,7 @@ import {
   PartmanRunMaintenanceSchema,
   PartmanUndoPartitionSchema,
   PartmanRetentionSchema,
-} from "../partman.js";
+} from "../partman/index.js";
 
 describe("PartmanCreateParentSchema (preprocessPartmanParams)", () => {
   it("should resolve table alias to parentTable with auto-prefix", () => {
@@ -2663,7 +2663,7 @@ import {
   VectorSearchSchema,
   VectorCreateIndexSchema,
   FiniteNumberArray,
-} from "../vector.js";
+} from "../vector/index.js";
 
 describe("VectorSearchSchema", () => {
   it("should resolve tableName alias to table", () => {

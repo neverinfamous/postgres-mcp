@@ -7,7 +7,7 @@
 
 import { z } from "zod";
 
-import { preprocessJsonbParams } from "./basic.js";
+import { preprocessJsonbParams } from "./utils.js";
 import { ErrorResponseFields } from "../error-response-fields.js";
 
 // ============== NORMALIZE SCHEMA ==============

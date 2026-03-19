@@ -25,10 +25,14 @@ import {
   createJsonbSetTool,
   createJsonbInsertTool,
   createJsonbDeleteTool,
+} from "./write.js";
+
+// Builder JSONB operations
+import {
   createJsonbObjectTool,
   createJsonbArrayTool,
   createJsonbStripNullsTool,
-} from "./write.js";
+} from "./write-builders.js";
 
 // JSONB transform operations (validate path, merge, normalize, diff)
 import {

@@ -113,7 +113,7 @@ export {
   VectorDimensionReduceOutputSchema,
   VectorEmbedOutputSchema,
   VectorValidateOutputSchema,
-} from "./vector.js";
+} from "./vector/index.js";
 
 // PostGIS schemas
 export {
@@ -248,7 +248,7 @@ export {
   PartmanSetRetentionOutputSchema,
   PartmanUndoPartitionOutputSchema,
   PartmanAnalyzeHealthOutputSchema,
-} from "./partman.js";
+} from "./partman/index.js";
 
 // Extension schemas (kcache, citext, ltree, pgcrypto)
 export {

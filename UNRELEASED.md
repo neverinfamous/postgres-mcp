@@ -15,7 +15,15 @@
   - `tools/admin.ts` (599) → split into `admin/vacuum-tools.ts` + `backend-tools.ts` + `config-tools.ts`
   - `schemas/index.ts` (555→8) → split into `core-exports.ts` + `extension-exports.ts`
   - `tools/core/schemas.ts` (559→8) → split into `schemas/input.ts` + `schemas/output.ts`
+  - `schemas/jsonb/basic.ts` (587→~420) → extracted `utils.ts` (path normalization, preprocessing)
+  - `schemas/postgis/basic.ts` (575→~430) → extracted `utils.ts` (preprocessing, coordinate helpers)
+  - `schemas/postgis/advanced.ts` (535→~218) → extracted `output.ts` (16 output schemas)
+  - `schemas/partman.ts` (577) → promoted to `partman/` directory with `input.ts` + `output.ts` + `index.ts`
+  - `schemas/vector.ts` (529) → promoted to `vector/` directory with `input.ts` + `output.ts` + `index.ts`
+  - `schemas/partitioning/range.ts` (545→~350) → extracted `preprocess.ts` (alias resolution, bounds construction)
+  - `tools/monitoring/analysis.ts` (547) → split into `capacity-planning.ts` + `resource-usage.ts` + `alert-thresholds.ts`
+  - `tools/jsonb/write.ts` (549→~360) → extracted `write-builders.ts` (object, array, stripNulls)
 - **Naming conventions**: Renamed 12 source + 9 test PascalCase files to kebab-case (`DatabaseAdapter.ts` → `database-adapter.ts`, `PostgresAdapter.ts` → `postgres-adapter.ts`, `McpServer.ts` → `mcp-server.ts`, etc.). Updated all import paths across ~80 files.
 
 ### Fixed
-- **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), and `http.test.ts` (HTTP transport function extraction)
+- **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), `http.test.ts` (HTTP transport function extraction), and `schemas.test.ts` (partman/vector directory promotion)

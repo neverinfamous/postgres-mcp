@@ -1,0 +1,104 @@
+/**
+ * PostgreSQL Monitoring — Alert Thresholds
+ */
+
+import type { PostgresAdapter } from "../../postgres-adapter.js";
+import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import { z } from "zod";
+import { readOnly } from "../../../../utils/annotations.js";
+
+import { getToolIcons } from "../../../../utils/icons.js";
+import { AlertThresholdOutputSchema } from "../../schemas/index.js";
+
+export function createAlertThresholdSetTool(
+  _adapter: PostgresAdapter,
+): ToolDefinition {
+  return {
+    name: "pg_alert_threshold_set",
+    description:
+      "Get recommended alert thresholds for monitoring key database metrics. Note: This is informational only - returns suggested warning/critical thresholds for external monitoring tools. Does not configure alerts in PostgreSQL itself.",
+    group: "monitoring",
+    inputSchema: z.object({
+      metric: z
+        .string()
+        .optional()
+        .describe(
+          "Specific metric to get thresholds for, or all if not specified. Valid: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time",
+        ),
+    }),
+    outputSchema: AlertThresholdOutputSchema,
+    annotations: readOnly("Get Alert Thresholds"),
+    icons: getToolIcons("monitoring", readOnly("Get Alert Thresholds")),
+    handler: (params: unknown, _context: RequestContext) => {
+      const AlertThresholdSchema = z.object({
+        metric: z.string().optional(),
+      });
+
+      const parsed = AlertThresholdSchema.parse(params ?? {});
+
+      const validMetrics = [
+        "connection_usage",
+        "cache_hit_ratio",
+        "replication_lag",
+        "dead_tuples",
+        "long_running_queries",
+        "lock_wait_time",
+      ];
+
+      if (parsed.metric && !validMetrics.includes(parsed.metric)) {
+        return Promise.resolve({
+          success: false,
+          error: `Invalid metric "${parsed.metric}". Valid metrics: ${validMetrics.join(", ")}`,
+        });
+      }
+
+      const thresholds: Record<
+        string,
+        { warning: string; critical: string; description: string }
+      > = {
+        connection_usage: {
+          warning: "70%",
+          critical: "90%",
+          description: "Percentage of max_connections in use",
+        },
+        cache_hit_ratio: {
+          warning: "< 95%",
+          critical: "< 80%",
+          description: "Buffer cache hit ratio - lower is worse",
+        },
+        replication_lag: {
+          warning: "> 1 minute",
+          critical: "> 5 minutes",
+          description: "Replication lag from primary to replica",
+        },
+        dead_tuples: {
+          warning: "> 10% of live tuples",
+          critical: "> 25% of live tuples",
+          description: "Dead tuples indicating need for VACUUM",
+        },
+        long_running_queries: {
+          warning: "> 5 minutes",
+          critical: "> 30 minutes",
+          description: "Queries running longer than threshold",
+        },
+        lock_wait_time: {
+          warning: "> 30 seconds",
+          critical: "> 5 minutes",
+          description: "Time spent waiting for locks",
+        },
+      };
+
+      if (parsed.metric && thresholds[parsed.metric]) {
+        return Promise.resolve({
+          metric: parsed.metric,
+          threshold: thresholds[parsed.metric],
+        });
+      }
+
+      return Promise.resolve({
+        thresholds,
+        note: "These are recommended starting thresholds. Adjust based on your specific workload and requirements.",
+      });
+    },
+  };
+}
