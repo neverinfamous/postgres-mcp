@@ -263,8 +263,6 @@ test.describe("Zod Sweep: Backup", () => {
     "pg_dump_table",
     "pg_copy_export",
     "pg_copy_import",
-    "pg_create_backup_plan",
-    "pg_restore_command",
   ];
 
   for (const tool of tools) {
