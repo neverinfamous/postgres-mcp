@@ -44,7 +44,7 @@ test.describe("Boundary: Empty Tables", () => {
         table: "_e2e_boundary_empty",
       });
       expectSuccess(desc);
-      expect(desc.table).toBe("_e2e_boundary_empty");
+      expect(desc.name).toBe("_e2e_boundary_empty");
       expect(Array.isArray(desc.columns)).toBe(true);
 
       // Read — should return 0 rows

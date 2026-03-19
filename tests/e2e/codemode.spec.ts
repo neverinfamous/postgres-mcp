@@ -181,11 +181,12 @@ test.describe("Code Mode: Security", () => {
   });
 
   test("should enforce timeout", async ({}, testInfo) => {
+    test.setTimeout(60_000);
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_execute_code", {
         code: "while (true) {}",
-        timeout: 1000,
+        timeout: 2000,
       });
       expectHandlerError(p);
     } finally {

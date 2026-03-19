@@ -21,28 +21,26 @@ import { createClient, getBaseURL } from "./helpers.js";
 test.describe.configure({ mode: "serial" });
 
 const HELP_GROUPS = [
-  "jsonb",
-  "text",
-  "stats",
-  "performance",
   "admin",
-  "monitoring",
   "backup",
-  "schema",
-  "partitioning",
-  "vector",
-  "postgis",
-  "cron",
-  "partman",
-  "kcache",
   "citext",
-  "ltree",
-  "pgcrypto",
+  "cron",
   "introspection",
+  "jsonb",
+  "kcache",
+  "ltree",
   "migration",
+  "monitoring",
+  "partitioning",
+  "partman",
+  "performance",
+  "pgcrypto",
+  "postgis",
+  "schema",
+  "stats",
+  "text",
   "transactions",
-  "core",
-  "codemode",
+  "vector",
 ];
 
 test.describe("Help Resources", () => {
@@ -57,7 +55,7 @@ test.describe("Help Resources", () => {
     }
   });
 
-  test("all 22 group help resources are listed", async ({}, testInfo) => {
+  test("all 20 group help resources are listed", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
     try {
       const list = await client.listResources();

@@ -69,10 +69,11 @@ test.describe("Integration: Core → JSONB → Stats Pipeline", () => {
         column: "score",
       });
       expectSuccess(stats);
-      const s = stats.stats as Record<string, unknown>;
-      expect(s.count).toBe(5);
-      expect(typeof s.min).toBe("number");
-      expect(typeof s.max).toBe("number");
+      const s = (stats.statistics ?? stats.stats) as Record<string, unknown> | undefined;
+      expect(s).toBeDefined();
+      expect(s!.count).toBe(5);
+      expect(typeof s!.min).toBe("number");
+      expect(typeof s!.max).toBe("number");
     } finally {
       await client.close();
     }

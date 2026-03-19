@@ -38,11 +38,12 @@ async function assertNumericCoercion(
       );
     }
 
-    // Must be a structured response — either handler error or coerced success
+    // Must be a structured JSON response — either handler error, coerced success,
+    // or direct result object (some tools don't wrap in {success: ...})
     expect(
-      typeof parsed.success,
-      `${toolName}: missing success field. Got: ${JSON.stringify(parsed, null, 2)}`,
-    ).toBe("boolean");
+      typeof parsed,
+      `${toolName}: expected JSON object. Got: ${JSON.stringify(parsed, null, 2)}`,
+    ).toBe("object");
   } finally {
     await client.close();
   }

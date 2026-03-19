@@ -89,7 +89,7 @@ test.describe("Code Mode Groups: Stats", () => {
       const p = await callToolAndParse(client, "pg_execute_code", {
         code: `
           const result = await pg.stats.descriptive({ table: "test_products", column: "price" });
-          return { count: result.stats.count };
+          return { count: result.statistics?.count ?? result.stats?.count };
         `,
       });
       expectSuccess(p);

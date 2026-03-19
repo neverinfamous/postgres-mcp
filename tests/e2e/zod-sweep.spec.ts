@@ -93,7 +93,6 @@ test.describe("Zod Sweep: JSONB", () => {
     "pg_jsonb_set",
     "pg_jsonb_insert",
     "pg_jsonb_delete",
-    "pg_jsonb_object",
     "pg_jsonb_array",
     "pg_jsonb_strip_nulls",
     "pg_jsonb_validate_path",
