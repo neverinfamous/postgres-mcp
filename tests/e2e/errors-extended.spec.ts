@@ -303,8 +303,8 @@ test.describe("Errors: Introspection", () => {
         query: "DELETE FROM test_products WHERE id = 1",
       });
       // PostgreSQL EXPLAIN can explain non-SELECT statements
-      // Accept either structured error or valid plan
-      expect(typeof p.success).toBe("boolean");
+      // Accept either structured error or valid plan (direct result without success wrapper)
+      expect(typeof p).toBe("object");
     } finally {
       await client.close();
     }

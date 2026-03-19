@@ -114,7 +114,7 @@ test.describe("Integration: Admin → Introspection Health Check", () => {
           const constraints = await pg.schema.listConstraints({ table: "test_products" });
 
           return {
-            tableCount: snapshot.tables.length,
+            tableCount: (snapshot.snapshot?.tables ?? snapshot.tables)?.length ?? 0,
             hasPlan: !!plan.plan,
             constraintCount: constraints.constraints?.length ?? 0,
           };

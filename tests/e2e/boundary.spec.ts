@@ -291,7 +291,7 @@ test.describe("Boundary: Data Integrity", () => {
       });
       expectSuccess(p);
       const rows = p.rows as Array<{ cnt: number }>;
-      expect(rows[0].cnt).toBeGreaterThan(0);
+      expect(Number(rows[0].cnt)).toBeGreaterThan(0);
     } finally {
       await client.close();
     }
