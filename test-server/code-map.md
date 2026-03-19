@@ -2,7 +2,7 @@
 
 > **Agent-optimized navigation reference.** Read this before searching the codebase. Covers directory layout, handler→tool mapping, type/schema locations, error hierarchy, and key constants.
 >
-> Last updated: March 15, 2026
+> Last updated: March 19, 2026
 
 ---
 
@@ -10,15 +10,17 @@
 
 ```
 src/
-├── cli.ts                          # CLI entry point (legacy, calls cli/args.ts)
+├── cli.ts                          # CLI entry point (delegates to cli/ submodules)
 ├── index.ts                        # Barrel re-export for library consumers
 │
 ├── cli/
 │   ├── args.ts                     # Argument parsing, transport selection
+│   ├── config.ts                   # DB/OAuth config builders
+│   ├── server.ts                   # stdio/HTTP server starters
 │   └── index.ts                    # Barrel
 │
 ├── server/
-│   └── McpServer.ts                # McpServer setup, adapter registration, tool/resource/prompt wiring
+│   └── mcp-server.ts              # McpServer setup, adapter registration, tool/resource/prompt wiring
 │
 ├── types/                          # Core TypeScript types (barrel: types/index.ts)
 │   ├── index.ts                    # Barrel — also re-exports error classes from errors.ts
@@ -36,31 +38,33 @@ src/
 │   └── server-instructions/        # Source .md files for each help resource (22 files: overview, gotchas, jsonb, text, stats, etc.)
 │
 ├── filtering/
-│   ├── ToolConstants.ts            # TOOL_GROUPS arrays, META_GROUPS shortcuts, group→tools map
-│   └── ToolFilter.ts               # ToolFilter class — parse/apply --tool-filter expressions
+│   ├── tool-constants.ts           # TOOL_GROUPS arrays, META_GROUPS shortcuts, group→tools map
+│   └── tool-filter.ts              # ToolFilter class — parse/apply --tool-filter expressions
 │
 ├── utils/
-│   ├── logger.ts                   # Logger class (structured JSON, severity filtering)
+│   ├── logger.ts                   # Logger class (structured JSON, severity filtering, SENSITIVE_KEY_LIST)
+│   ├── module-logger.ts            # ModuleLogger class (per-module logger wrapper)
+│   ├── query-helpers.ts            # coerceLimit(), buildLimitClause(), DEFAULT_QUERY_LIMIT, toStr()
 │   ├── identifiers.ts              # SQL identifier validation/sanitization
 │   ├── annotations.ts              # MCP tool annotation helpers (readOnly, destructive hints)
 │   ├── icons.ts                    # MCP icon definitions per tool group
 │   ├── fts-config.ts               # Full-text search configuration helpers
 │   ├── progress-utils.ts           # MCP progress notification helpers
-│   ├── resourceAnnotations.ts      # MCP resource annotation helpers
+│   ├── resource-annotations.ts     # MCP resource annotation helpers
 │   ├── version.ts                  # SSoT version constant (reads package.json)
 │   └── where-clause.ts             # WHERE clause builder/validator
 │
 ├── pool/
-│   └── ConnectionPool.ts           # PostgreSQL connection pool manager (pg)
+│   └── connection-pool.ts          # PostgreSQL connection pool manager (pg)
 │
 ├── auth/                           # OAuth 2.1 implementation
 │   ├── middleware.ts               # Express-style OAuth middleware
-│   ├── TokenValidator.ts           # JWT/JWKS token validation
+│   ├── token-validator.ts          # JWT/JWKS token validation
 │   ├── scopes.ts                   # Scope parsing, enforcement
 │   ├── scope-map.ts                # Tool→scope mapping
 │   ├── auth-context.ts             # Request context builder
-│   ├── OAuthResourceServer.ts      # RFC 9728 /.well-known/oauth-protected-resource
-│   ├── AuthorizationServerDiscovery.ts  # RFC 8414 auth server metadata discovery
+│   ├── oauth-resource-server.ts    # RFC 9728 /.well-known/oauth-protected-resource
+│   ├── authorization-server-discovery.ts  # RFC 8414 auth server metadata discovery
 │   ├── errors.ts                   # OAuth-specific error classes
 │   ├── types.ts                    # OAuth TypeScript types
 │   └── index.ts                    # Barrel
@@ -68,7 +72,10 @@ src/
 ├── transports/
 │   ├── index.ts                    # Barrel
 │   └── http/
-│       ├── server.ts               # HTTP/SSE transport (Streamable HTTP + legacy SSE)
+│       ├── server.ts               # HTTP/SSE transport orchestrator
+│       ├── streamable.ts           # Streamable HTTP transport handler
+│       ├── stateless.ts            # Stateless HTTP transport handler
+│       ├── legacy-sse.ts           # Legacy SSE transport handler
 │       ├── handlers.ts             # Route handlers (POST /mcp, GET /sse, health, etc.)
 │       ├── security.ts             # Security headers, rate limiting, CORS, body parsing
 │       ├── types.ts                # HTTP transport types
@@ -77,7 +84,7 @@ src/
 ├── codemode/                       # Code Mode sandbox (secure JS execution)
 │   ├── sandbox.ts                  # SandboxPool lifecycle manager
 │   ├── security.ts                 # Code validation (blocked patterns, injection prevention)
-│   ├── types.ts                    # Sandbox TypeScript types
+│   ├── types.ts                    # Sandbox TypeScript types (SecurityConfig, rateLimitWindowMs, resultPreviewLength)
 │   ├── index.ts                    # Barrel
 │   └── api/                        # pg.* API bridge (unique to postgres-mcp)
 │       ├── index.ts                # Main API bridge — exposes tools to sandbox
@@ -87,10 +94,11 @@ src/
 │       └── normalize.ts            # Parameter normalization utilities
 │
 ├── adapters/
-│   ├── DatabaseAdapter.ts          # Abstract DatabaseAdapter base class
+│   ├── database-adapter.ts         # Abstract DatabaseAdapter base class
 │   │
 │   └── postgresql/                 # ── PostgreSQL adapter (pg) ──
-│       ├── PostgresAdapter.ts      # PostgresAdapter class (extends DatabaseAdapter)
+│       ├── postgres-adapter.ts     # PostgresAdapter class (extends DatabaseAdapter)
+│       ├── transaction-operations.ts  # Transaction helper operations (extracted from adapter)
 │       ├── index.ts                # Barrel
 │       ├── schema-operations/      # Schema introspection queries
 │       │   ├── describe.ts         # Table/column metadata queries
@@ -98,7 +106,7 @@ src/
 │       │   └── index.ts            # Barrel
 │       ├── schemas/                # Zod schemas (see § below)
 │       ├── prompts/                # 13+ MCP prompts (see § below)
-│       ├── resources/              # 20+ MCP resources (see § below)
+│       ├── resources/              # 21 MCP data resources (see § below)
 │       └── tools/                  # Tool handler files (see § Handler Map below)
 ```
 
@@ -120,12 +128,15 @@ src/
 | | `core/convenience.ts` | 2 | `pg_upsert`, `pg_batch_insert` |
 | | `core/health.ts` | 3 | `pg_analyze_db_health`, `pg_analyze_workload_indexes`, `pg_analyze_query_indexes` |
 | | `core/utility.ts` | 3 | `pg_count`, `pg_exists`, `pg_truncate` |
-| | `core/error-helpers.ts` | — | Shared `formatHandlerError()` → enriched `ErrorResponse` — 16KB |
-| | `core/schemas.ts` | — | Zod input schemas for core tools — 20KB |
-| | `core/convenience-schemas.ts` | — | Zod schemas for convenience tools — 15KB |
+| | `core/error-helpers.ts` | — | Shared `formatHandlerError()` orchestrator (~4KB) |
+| | `core/error-parser.ts` | — | PG error code→message parser (~14KB) |
+| | `core/schemas/input.ts` | — | Zod input schemas for core tools |
+| | `core/schemas/output.ts` | — | Zod output schemas for core tools |
+| | `core/convenience-schemas.ts` | — | Zod schemas for convenience tools |
 | **transactions** | `transactions.ts` | 8 | `pg_transaction_begin/commit/rollback/savepoint/release/rollback_to/execute/status` |
 | **jsonb** | `jsonb/read.ts` | 3 | `pg_jsonb_extract`, `pg_jsonb_contains`, `pg_jsonb_path_query` |
 | | `jsonb/write.ts` | 6 | `pg_jsonb_set`, `pg_jsonb_insert`, `pg_jsonb_delete`, `pg_jsonb_object`, `pg_jsonb_array`, `pg_jsonb_strip_nulls` |
+| | `jsonb/write-builders.ts` | — | Builder helpers for object, array, stripNulls operations |
 | | `jsonb/transform.ts` | 4 | `pg_jsonb_validate_path`, `pg_jsonb_merge`, `pg_jsonb_normalize`, `pg_jsonb_diff` |
 | | `jsonb/query.ts` | 3 | `pg_jsonb_agg`, `pg_jsonb_keys`, `pg_jsonb_typeof` |
 | | `jsonb/analytics.ts` | 3 | `pg_jsonb_index_suggest`, `pg_jsonb_security_scan`, `pg_jsonb_stats` |
@@ -153,8 +164,12 @@ src/
 | | `performance/compare.ts` | 1 | `pg_query_plan_compare` |
 | | `performance/anomaly-detection.ts` | 2 | `pg_detect_query_anomalies`, `pg_detect_bloat_risk` |
 | **monitoring** | `monitoring/basic.ts` | 8 | `pg_database_size`, `pg_table_sizes`, `pg_connection_stats`, `pg_replication_status`, `pg_server_version`, `pg_show_settings`, `pg_uptime`, `pg_recovery_status` |
-| | `monitoring/analysis.ts` | 3 | `pg_capacity_planning`, `pg_resource_usage_analyze`, `pg_alert_threshold_set` |
-| **admin** | `admin.ts` | 10 | `pg_vacuum`, `pg_vacuum_analyze`, `pg_analyze`, `pg_reindex`, `pg_terminate_backend`, `pg_cancel_backend`, `pg_reload_conf`, `pg_set_config`, `pg_reset_stats`, `pg_cluster` |
+| | `monitoring/capacity-planning.ts` | 1 | `pg_capacity_planning` |
+| | `monitoring/resource-usage.ts` | 1 | `pg_resource_usage_analyze` |
+| | `monitoring/alert-thresholds.ts` | 1 | `pg_alert_threshold_set` |
+| **admin** | `admin/vacuum-tools.ts` | 3 | `pg_vacuum`, `pg_vacuum_analyze`, `pg_analyze` |
+| | `admin/backend-tools.ts` | 3 | `pg_terminate_backend`, `pg_cancel_backend`, `pg_reindex` |
+| | `admin/config-tools.ts` | 4 | `pg_reload_conf`, `pg_set_config`, `pg_reset_stats`, `pg_cluster` |
 | **backup** | `backup/dump.ts` | 2 | `pg_dump_table`, `pg_dump_schema` |
 | | `backup/copy.ts` | 2 | `pg_copy_export`, `pg_copy_import` |
 | | `backup/planning.ts` | 5 | `pg_create_backup_plan`, `pg_restore_command`, `pg_backup_physical`, `pg_restore_validate`, `pg_backup_schedule_optimize` |
@@ -180,12 +195,16 @@ src/
 | | `cron/management.ts` | 4 | `pg_cron_alter_job`, `pg_cron_list_jobs`, `pg_cron_job_run_details`, `pg_cron_cleanup_history` |
 | **partman** | `partman/create.ts` | 2 | `pg_partman_create_extension`, `pg_partman_create_parent` |
 | | `partman/management.ts` | 3 | `pg_partman_run_maintenance`, `pg_partman_show_partitions`, `pg_partman_show_config` |
-| | `partman/maintenance.ts` | 3 | `pg_partman_set_retention`, `pg_partman_undo_partition`, `pg_partman_analyze_partition_health` |
+| | `partman/retention.ts` | 1 | `pg_partman_set_retention` |
+| | `partman/health-analysis.ts` | 2 | `pg_partman_undo_partition`, `pg_partman_analyze_partition_health` |
 | | `partman/operations.ts` | 2 | `pg_partman_check_default`, `pg_partman_partition_data` |
+| | `partman/helpers.ts` | — | Shared partman helpers |
 | **kcache** | `kcache/admin.ts` | 4 | `pg_kcache_create_extension`, `pg_kcache_database_stats`, `pg_kcache_resource_analysis`, `pg_kcache_reset` |
 | | `kcache/query.ts` | 3 | `pg_kcache_query_stats`, `pg_kcache_top_cpu`, `pg_kcache_top_io` |
+| | `kcache/helpers.ts` | — | Shared kcache helpers |
 | **citext** | `citext/setup.ts` | 2 | `pg_citext_create_extension`, `pg_citext_convert_column` |
-| | `citext/analysis.ts` | 4 | `pg_citext_list_columns`, `pg_citext_analyze_candidates`, `pg_citext_compare`, `pg_citext_schema_advisor` |
+| | `citext/list-compare.ts` | 2 | `pg_citext_list_columns`, `pg_citext_compare` |
+| | `citext/candidates-advisor.ts` | 2 | `pg_citext_analyze_candidates`, `pg_citext_schema_advisor` |
 | **ltree** | `ltree/basic.ts` | 5 | `pg_ltree_create_extension`, `pg_ltree_query`, `pg_ltree_subpath`, `pg_ltree_lca`, `pg_ltree_list_columns` |
 | | `ltree/operations.ts` | 3 | `pg_ltree_match`, `pg_ltree_convert_column`, `pg_ltree_create_index` |
 | **pgcrypto** | `pgcrypto.ts` | 9 | `pg_pgcrypto_create_extension`, `pg_pgcrypto_hash`, `pg_pgcrypto_hmac`, `pg_pgcrypto_encrypt`, `pg_pgcrypto_decrypt`, `pg_pgcrypto_gen_random_uuid`, `pg_pgcrypto_gen_random_bytes`, `pg_pgcrypto_gen_salt`, `pg_pgcrypto_crypt` |
@@ -203,22 +222,39 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 
 | Subdirectory / File | Groups Covered |
 |---------------------|---------------|
-| `index.ts` | Barrel + shared schemas |
+| `index.ts` | Barrel (re-exports `core-exports.ts` + `extension-exports.ts`) |
+| `core-exports.ts` | Core schema barrel exports |
+| `extension-exports.ts` | Extension schema barrel exports |
 | `error-response-fields.ts` | Shared `ErrorResponseFields` — merged into all 100 output schemas via `.extend()` |
 | `core/queries.ts` | Core read/write query schemas |
 | `core/transactions.ts` | Transaction schemas |
 | `core/index-schemas.ts` | Index operation schemas |
 | `jsonb/basic.ts` | JSONB read/write/transform schemas |
 | `jsonb/advanced.ts` | JSONB analytics/validation schemas |
+| `jsonb/utils.ts` | Path normalization, preprocessing helpers |
 | `extensions/citext.ts` | Citext schemas |
 | `extensions/ltree.ts` | Ltree schemas |
 | `extensions/pgcrypto.ts` | pgcrypto schemas |
 | `extensions/kcache.ts` | pg_stat_kcache schemas |
 | `extensions/shared.ts` | Shared extension schemas |
-| `stats/` | Statistics schemas |
-| `partitioning/` | Partitioning schemas |
-| `postgis/` | PostGIS schemas |
-| Plus: `admin.ts`, `backup.ts`, `cron.ts`, `introspection.ts`, `monitoring.ts`, `partman.ts`, `performance.ts`, `schema-mgmt.ts`, `text-search.ts`, `vector.ts` |
+| `stats/base-schemas.ts` | Statistics base schemas |
+| `stats/input.ts` | Statistics input schemas |
+| `stats/output.ts` | Statistics output schemas |
+| `stats/preprocessing.ts` | Statistics preprocessing helpers |
+| `introspection/input.ts` | Introspection input schemas |
+| `introspection/output.ts` | Introspection output schemas |
+| `partitioning/range.ts` | Range partitioning schemas |
+| `partitioning/list.ts` | List partitioning schemas |
+| `partitioning/preprocess.ts` | Alias resolution, bounds construction |
+| `postgis/basic.ts` | PostGIS basic schemas |
+| `postgis/advanced.ts` | PostGIS advanced input schemas |
+| `postgis/output.ts` | PostGIS output schemas (16 schemas) |
+| `postgis/utils.ts` | Preprocessing, coordinate helpers |
+| `partman/input.ts` | Partman input schemas |
+| `partman/output.ts` | Partman output schemas |
+| `vector/input.ts` | Vector input schemas |
+| `vector/output.ts` | Vector output schemas |
+| Plus: `admin.ts`, `backup.ts`, `cron.ts`, `monitoring.ts`, `performance.ts`, `schema-mgmt.ts`, `text-search.ts` |
 
 ---
 
@@ -227,13 +263,13 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 13+ prompt definitions:
 
 | File | Prompts |
-|------|---------|
+|------|---------| 
 | `index.ts` | Barrel + `pg_optimization`, `pg_health_check` |
 | `backup.ts` | `pg_backup_strategy` |
 | `citext.ts` | `pg_citext_setup` |
-| `extensionSetup.ts` | `pg_extension_setup` |
+| `extension-setup.ts` | `pg_extension_setup` |
 | `health.ts` | `pg_health_diagnosis` |
-| `indexTuning.ts` | `pg_index_tuning` |
+| `index-tuning.ts` | `pg_index_tuning` |
 | `kcache.ts` | `pg_kcache_setup` |
 | `ltree.ts` | `pg_ltree_setup` |
 | `partman.ts` | `pg_partman_setup` |
@@ -246,7 +282,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 
 ## Resources (`src/adapters/postgresql/resources/`)
 
-20+ data resources + 22+ help resources providing read-only metadata and agent guidance:
+21 data resources + 22+ help resources providing read-only metadata and agent guidance:
 
 ### Data Resources
 
@@ -311,11 +347,11 @@ throw new ExtensionNotAvailableError("pgvector");
 // Catch at handler boundary → return enriched ErrorResponse
 ```
 
-**Error helpers** — `tools/core/error-helpers.ts` (16KB):
+**Error helpers** — `tools/core/error-helpers.ts` (~4KB) + `tools/core/error-parser.ts` (~14KB):
 - `formatHandlerError(error, context?)` — returns enriched `ErrorResponse` with `success`, `error`, `code`, `category`, `suggestion`, `recoverable`
-- `formatPostgresError(error, context?)` — legacy string-only builder (retained for definition, superseded by `formatHandlerError`)
+- `error-parser.ts` — PG error code→message mapping (extracted from error-helpers)
 - Handles pg-specific error codes (e.g., `42P01` undefined table, `42703` undefined column)
-- Used across all handler files — all catch blocks now return `formatHandlerError()`
+- Used across all handler files — all catch blocks return `formatHandlerError()` (centralized ZodError handling, no per-file `instanceof ZodError` blocks)
 
 ---
 
@@ -324,10 +360,12 @@ throw new ExtensionNotAvailableError("pgvector");
 | What | Where | Notes |
 |------|-------|-------|
 | Server instructions (agent prompt) | `src/constants/server-instructions.ts` | Generated: slim `INSTRUCTIONS` (~600 chars) + `HELP_CONTENT` map. Source: `server-instructions/*.md` (22 files) |
-| Tool group arrays | `src/filtering/ToolConstants.ts` | `TOOL_GROUPS` map, `META_GROUPS` shortcuts |
-| Tool filter logic | `src/filtering/ToolFilter.ts` | `ToolFilter` class |
-| Connection pool | `src/pool/ConnectionPool.ts` | pg-native pool wrapper |
-| Logger | `src/utils/logger.ts` | Structured logging with severity filtering |
+| Tool group arrays | `src/filtering/tool-constants.ts` | `TOOL_GROUPS` map, `META_GROUPS` shortcuts |
+| Tool filter logic | `src/filtering/tool-filter.ts` | `ToolFilter` class |
+| Connection pool | `src/pool/connection-pool.ts` | pg-native pool wrapper |
+| Logger | `src/utils/logger.ts` | Structured logging with severity filtering, `SENSITIVE_KEY_LIST` constant |
+| Module logger | `src/utils/module-logger.ts` | Per-module `ModuleLogger` class |
+| Query helpers | `src/utils/query-helpers.ts` | `coerceLimit()`, `buildLimitClause()`, `DEFAULT_QUERY_LIMIT`, `toStr()`, `SMALL_TABLE_THRESHOLD` |
 | Identifiers | `src/utils/identifiers.ts` | SQL identifier validation/sanitization |
 | FTS config | `src/utils/fts-config.ts` | Full-text search configuration helpers |
 | Version SSoT | `src/utils/version.ts` | Reads from `package.json` at build time |
@@ -338,17 +376,18 @@ throw new ExtensionNotAvailableError("pgvector");
 
 | Pattern | Description |
 |---------|-------------|
-| **Structured Errors** | Every tool returns enriched `ErrorResponse` (`{success, error, code, category, suggestion, recoverable}`) — never raw exceptions. Uses `formatHandlerError()`. |
+| **Structured Errors** | Every tool returns enriched `ErrorResponse` (`{success, error, code, category, suggestion, recoverable}`) — never raw exceptions. Uses `formatHandlerError()`. Centralized ZodError handling — no per-handler catch blocks. |
 | **P154 Pattern** | All tools verify object existence before operating. Returns structured error for missing tables/schemas. |
 | **Adapter Pattern** | `DatabaseAdapter` (abstract) → `PostgresAdapter`. Single adapter (no WASM variant). |
 | **Schema Cache** | Metadata caching via `schema-operations/` (describe + list). |
 | **Connection Pool** | `ConnectionPool` wraps `pg` module. Managed lifecycle with health checks. |
-| **Code Mode Bridge** | `pg.*` API in worker thread. Unique `api/` subdir with alias resolution + group-api generation. |
+| **Code Mode Bridge** | `pg.*` API in worker thread. Unique `api/` subdir with alias resolution + group-api generation. Security constants (`rateLimitWindowMs`, `resultPreviewLength`) in `SecurityConfig`. |
 | **Tool Aliases** | postgres-mcp has a dedicated alias system (`codemode/api/aliases.ts`, 15KB) for Code Mode. |
 | **Per-Group Schemas** | Zod schemas separated into `schemas/` subdir organized by group (vs mysql-mcp's monolithic file). |
 | **Extension Tools** | citext, ltree, pgcrypto, kcache, partman, cron, PostGIS, pgvector — each requires extension installation. |
 | **Help Resources** | Slim `INSTRUCTIONS` (~600 chars) + on-demand `postgres://help` resources replace old 71KB monolith. `postgres://help/{group}` filtered by `--tool-filter`. |
 | **Barrel Re-exports** | Import from `./module/index.js` (with `.js` extension for ESM). |
+| **Input Coercion** | Numeric input fields use `z.coerce.number()` for proper validation at parse time (not `z.any()`). |
 
 ---
 
@@ -356,7 +395,7 @@ throw new ExtensionNotAvailableError("pgvector");
 
 - All imports use **`.js` extension** (ESM requirement): `import { x } from "./foo/index.js"`
 - Error classes: import from `../../types/index.js` (barrel re-export)
-- Note: postgres-mcp uses **PascalCase filenames** for major classes (e.g., `PostgresAdapter.ts`, `McpServer.ts`) and kebab-case for utilities
+- All filenames use **kebab-case** (`postgres-adapter.ts`, `mcp-server.ts`, `connection-pool.ts`, `tool-filter.ts`, etc.)
 
 ---
 
@@ -374,4 +413,9 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/advanced-test-tools.md` | Stress tests (boundary, concurrency, cross-group) |
 | `test-server/test-resources.md` | Resource testing plan (20 resources) |
 | `test-server/test-prompts.md` | Prompt testing plan (19 prompts) |
+| `test-server/test-preflight.md` | Pre-test environment validation |
+| `test-server/test-agent-experience.md` | Agent experience test (9 passes, 37 scenarios) |
+| `test-server/test-instruction-levels.mjs` | Instruction filtering behavior verification |
 | `src/__tests__/` | Vitest unit tests (top-level) |
+| `tests/e2e/` | Playwright E2E suite (33 spec files) |
+| `tests/e2e/helpers.ts` | E2E helpers: `getBaseURL()`, `callToolRaw()`, `expectHandlerError()`, `startServer()`, `stopServer()`, `createClient()` |
