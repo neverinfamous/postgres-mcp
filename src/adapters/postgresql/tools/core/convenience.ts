@@ -13,7 +13,6 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "./error-helpers.js";
@@ -186,13 +185,7 @@ export function createBatchInsertTool(
       try {
         parsed = BatchInsertSchema.parse(params);
       } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join("; ")}`,
-          };
-        }
-        throw error;
+        return formatHandlerErrorResponse(error, { tool: "pg_batch_insert" });
       }
 
       // Validate rows array is not empty

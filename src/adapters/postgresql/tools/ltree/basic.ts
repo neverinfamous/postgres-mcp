@@ -175,12 +175,6 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
 
         return response;
       } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_query",
           });
@@ -236,12 +230,6 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
           originalDepth: row?.["original_depth"] as number,
         };
       } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_subpath",
           });
@@ -274,12 +262,6 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
           hasCommonAncestor: lca !== null && lca !== "",
         };
       } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_lca",
           });
@@ -313,12 +295,6 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, queryParams);
         return { columns: result.rows ?? [], count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_list_columns",
           });

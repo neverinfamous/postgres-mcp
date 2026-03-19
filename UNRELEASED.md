@@ -59,3 +59,4 @@
 - **Residual `z.any()` cleanup**: Replaced 5 remaining `z.any()` fields with `z.coerce.number()` in `cron.ts` (limit, olderThanDays), `views.ts` (truncateDefinition, limit), and `objects.ts` (limit)
 - **Raw param cast removal**: Replaced 5 `(params ?? {}) as` raw casts with proper Zod `.parse()` in `catalog.ts` (pg_list_triggers, pg_list_constraints), `views.ts` (pg_list_views), `objects.ts` (pg_list_sequences), and `monitoring.ts` (pg_locks)
 - **Stale comment cleanup**: Updated 2 comments that incorrectly referenced `z.any()` after prior refactoring in `catalog.ts` and `cron.ts`
+- **ZodError catch dedup (pass 2)**: Removed 19 more redundant `instanceof z.ZodError` blocks in 6 tool files (`pgcrypto.ts`, `monitoring/basic.ts`, `monitoring/capacity-planning.ts`, `ltree/basic.ts`, `ltree/operations.ts`, `core/convenience.ts`). Cleaned up 2 now-unused `z` imports.

@@ -96,12 +96,6 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
         schema = parsed.schema;
         limit = parsed.limit;
       } catch (err) {
-        if (err instanceof z.ZodError) {
-          return {
-            success: false,
-            error: err.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(err, { tool: "pg_table_sizes" });
       }
 
@@ -355,12 +349,6 @@ export function createShowSettingsTool(
         pattern = parsed.pattern;
         limit = parsed.limit;
       } catch (err) {
-        if (err instanceof z.ZodError) {
-          return {
-            success: false,
-            error: err.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(err, { tool: "pg_show_settings" });
       }
 

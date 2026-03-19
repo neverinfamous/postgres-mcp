@@ -96,12 +96,6 @@ function createPgcryptoHashTool(adapter: PostgresAdapter): ToolDefinition {
           inputLength: data.length,
         };
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_hash",
           });
@@ -139,12 +133,6 @@ function createPgcryptoHmacTool(adapter: PostgresAdapter): ToolDefinition {
           hmac: result.rows?.[0]?.["hmac"] as string,
         };
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_hmac",
           });
@@ -179,12 +167,6 @@ function createPgcryptoEncryptTool(adapter: PostgresAdapter): ToolDefinition {
           encoding: "base64",
         };
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_encrypt",
           });
@@ -226,12 +208,6 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
           verified: true,
         };
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_decrypt",
           });
@@ -292,12 +268,6 @@ function createPgcryptoGenRandomUuidTool(
         }
         return response;
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_gen_random_uuid",
           });
@@ -333,12 +303,6 @@ function createPgcryptoGenRandomBytesTool(
           encoding: enc,
         };
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_gen_random_bytes",
           });
@@ -372,12 +336,6 @@ function createPgcryptoGenSaltTool(adapter: PostgresAdapter): ToolDefinition {
           type,
         };
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_gen_salt",
           });
@@ -413,12 +371,6 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
                 : "des";
         return { success: true, hash, algorithm };
       } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_crypt",
           });

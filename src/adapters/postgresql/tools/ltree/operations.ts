@@ -7,7 +7,6 @@
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -105,12 +104,6 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
 
         return response;
       } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_match",
           });
@@ -249,12 +242,6 @@ function createLtreeConvertColumnTool(
           previousType: currentType,
         };
       } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_convert_column",
           });
@@ -358,12 +345,6 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
           indexType: "gist",
         };
       } catch (error: unknown) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_create_index",
           });

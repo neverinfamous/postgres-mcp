@@ -60,12 +60,6 @@ export function createCapacityPlanningTool(
       try {
         parsed = CapacityPlanningSchema.parse(params ?? {});
       } catch (err) {
-        if (err instanceof z.ZodError) {
-          return {
-            success: false,
-            error: err.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(err, { tool: "pg_capacity_planning" });
       }
       const projectionDays = parsed.projectionDays;
