@@ -56,6 +56,7 @@
 - **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), `http.test.ts` (HTTP transport function extraction), and `schemas.test.ts` (partman/vector directory promotion)
 
 ### Changed (Audit)
+- **Prebuild clean**: Added `prebuild` script (`node -e "require('fs').rmSync('dist',{recursive:true,force:true})"`) to `package.json`, preventing stale compiled output from persisting across file renames
 - **Logger dedup**: Consolidated duplicated 23-item sensitive-key list in `logger.ts` into a single `SENSITIVE_KEY_LIST` constant, deriving both the `Set` and `RegExp` from it
 - **ModuleLogger extraction**: Moved `ModuleLogger` class from `logger.ts` (513→~440 lines) to `module-logger.ts`
 - **Zod error dedup**: Extracted duplicated Zod validation issue formatting in `error-helpers.ts` into shared `isZodLikeError()` guard + `formatZodIssues()` helper
