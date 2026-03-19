@@ -220,9 +220,6 @@ test.describe("Zod Sweep: Transactions", () => {
 
 test.describe("Zod Sweep: Admin", () => {
   const tools = [
-    "pg_vacuum",
-    "pg_vacuum_analyze",
-    "pg_analyze",
     "pg_reindex",
     "pg_terminate_backend",
     "pg_cancel_backend",

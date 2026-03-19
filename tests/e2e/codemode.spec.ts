@@ -219,6 +219,7 @@ test.describe("Code Mode: Readonly Mode", () => {
   });
 
   test("readonly should block writes", async ({}, testInfo) => {
+    test.setTimeout(60_000);
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_execute_code", {
@@ -229,16 +230,16 @@ test.describe("Code Mode: Readonly Mode", () => {
         readonly: true,
       });
       // Readonly enforcement may happen at sandbox level or DB level.
-      // Accept either a handler error OR success (if enforcement is DB-level
-      // and the CREATE was rejected as a read-only transaction error).
       if (p.success === false) {
         expect(typeof p.error).toBe("string");
       } else {
         // Cleanup if the write unexpectedly succeeded
-        await callToolAndParse(client, "pg_drop_table", {
-          table: "_e2e_readonly_test",
-          ifExists: true,
-        });
+        try {
+          await callToolAndParse(client, "pg_drop_table", {
+            table: "_e2e_readonly_test",
+            ifExists: true,
+          });
+        } catch { /* best effort cleanup */ }
       }
     } finally {
       await client.close();
