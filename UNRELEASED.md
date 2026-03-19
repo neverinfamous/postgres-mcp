@@ -51,3 +51,8 @@
 - **ModuleLogger extraction**: Moved `ModuleLogger` class from `logger.ts` (513→~440 lines) to `module-logger.ts`
 - **Zod error dedup**: Extracted duplicated Zod validation issue formatting in `error-helpers.ts` into shared `isZodLikeError()` guard + `formatZodIssues()` helper
 - **Limit coercion**: Extracted duplicated limit-coercion logic (7 occurrences across `matching.ts`, `search-tools.ts`, `fts.ts`) into `query-helpers.ts` with `coerceLimit()` + `buildLimitClause()` + `DEFAULT_QUERY_LIMIT` constant
+- **Silent catch logging**: Added `logger.warn()` for bloat estimation errors in `health.ts` (was silently swallowed)
+- **Schema helper extraction**: Extracted `extractSchemaFromDottedName()` in `schema-mgmt.ts` to DRY 4 preprocessing functions
+- **Output schema typing**: Replaced `z.any()` / `z.array(z.any())` with `z.record(z.string(), z.unknown())` / `z.array(z.record(...))` in 3 performance tool output schemas
+- **ZodError catch dedup**: Removed 33 redundant `if (error instanceof ZodError)` catch blocks across 13 tool files — centralized `formatHandlerErrorResponse` already handles ZodError
+- **Input schema coercion**: Replaced 40 `z.any().optional()` input fields with `z.coerce.number().optional()` across 13 schema/tool files for proper numeric validation at parse time. Removed redundant handler-side `Number()` wrappers.

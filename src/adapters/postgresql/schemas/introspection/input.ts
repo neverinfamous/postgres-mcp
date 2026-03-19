@@ -346,8 +346,8 @@ export const MigrationHistorySchemaBase = z.object({
     .optional()
     .describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
-  limit: z.any().optional().describe("Maximum records to return (default: 50)"),
-  offset: z.any().optional().describe("Offset for pagination (default: 0)"),
+  limit: z.coerce.number().optional().describe("Maximum records to return (default: 50)"),
+  offset: z.coerce.number().optional().describe("Offset for pagination (default: 0)"),
 });
 
 // Internal parse schema — coerces limit/offset types to prevent Zod leaks

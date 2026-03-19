@@ -12,6 +12,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { formatHandlerErrorResponse } from "./error-helpers.js";
 import { getToolIcons } from "../../../../utils/icons.js";
+import { logger } from "../../../../utils/logger.js";
 import {
   AnalyzeDbHealthSchemaBase,
   AnalyzeDbHealthSchema,
@@ -197,8 +198,10 @@ export function createAnalyzeDbHealthTool(
             tablesWithBloat: row.tables_with_bloat,
           };
         }
-      } catch {
-        // Bloat estimation may fail on some configurations - not critical
+      } catch (error) {
+        logger.warn("Bloat estimation unavailable", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
 
       // Replication status

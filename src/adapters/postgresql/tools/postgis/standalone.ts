@@ -10,7 +10,6 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -128,12 +127,6 @@ export function createGeometryBufferTool(
 
         return response;
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_geometry_buffer",
           });
@@ -194,12 +187,6 @@ export function createGeometryIntersectionTool(
           sridUsed: 4326,
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_geometry_intersection",
           });
@@ -251,12 +238,6 @@ export function createGeometryTransformTool(
           inputFormat: isGeoJson ? "GeoJSON" : "WKT",
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_geometry_transform",
           });

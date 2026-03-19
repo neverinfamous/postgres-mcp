@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -376,12 +376,6 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
 
         return response;
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_geo_cluster",
             table:

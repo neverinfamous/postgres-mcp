@@ -1254,19 +1254,17 @@ describe("jsonb/read.ts — uncovered branches", () => {
 
   const findTool = (name: string) => tools.find((t) => t.name === name);
 
-  it("pg_jsonb_extract should handle NaN limit gracefully", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ extracted_value: "test" }],
-    });
-
+  // z.coerce.number() rejects non-numeric strings at schema level → validation error
+  it("pg_jsonb_extract should return validation error for non-numeric limit", async () => {
     const tool = findTool("pg_jsonb_extract")!;
     const result = (await tool.handler(
       { table: "users", column: "data", path: "$.name", limit: "abc" },
       mockContext,
-    )) as { rows: unknown[]; count: number };
+    )) as { success: boolean; error: string };
 
-    // NaN limit → treated as undefined (no LIMIT clause)
-    expect(result.count).toBe(1);
+    // z.coerce.number() rejects "abc" → structured error
+    expect(result.success).toBe(false);
+    expect(result.error).toBeDefined();
   });
 
   it("pg_jsonb_extract should return error when table is missing", async () => {

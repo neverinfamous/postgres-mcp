@@ -62,7 +62,7 @@ export const ListPartitionsSchemaBase = z.object({
   parentTable: z.string().optional().describe("Alias for table"),
   name: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z.any().optional().describe("Maximum partitions to return"),
+  limit: z.coerce.number().optional().describe("Maximum partitions to return"),
 });
 
 // Preprocessed schema for handler parsing (with alias support)

@@ -7,7 +7,7 @@
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -90,12 +90,6 @@ or interval syntax (e.g., "30 seconds"). Note: pg_cron allows duplicate job name
             : undefined,
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: error.issues.map((e) => e.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, { tool: "pg_cron_schedule" });
       }
     },
@@ -150,12 +144,6 @@ maintenance tasks. Returns the job ID.`,
           message: `Job scheduled in database '${database}' with ID ${String(jobId)}`,
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: error.issues.map((e) => e.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_cron_schedule_in_database",
           });
@@ -242,12 +230,6 @@ export function createCronUnscheduleTool(adapter: PostgresAdapter): ToolDefiniti
             : "Job not found",
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: error.issues.map((e) => e.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, { tool: "pg_cron_unschedule" });
       }
     },

@@ -890,28 +890,16 @@ describe("cron.ts uncovered branches", () => {
   });
 
   // cron.ts L419-424: list_jobs limit coercion with NaN value
-  it("should fallback to default limit when limit is NaN", async () => {
-    // Mock COUNT query
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ total: 2 }],
-    });
-    // Mock main query
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [
-        { jobid: 1, jobname: "test", schedule: "* * * * *", active: true },
-      ],
-    });
-
+  // z.coerce.number() rejects non-numeric strings at schema level → validation error
+  it("should return validation error when limit is non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
     const result = (await tool.handler(
       { limit: "not_a_number" },
       mockContext,
-    )) as { count: number };
+    )) as { error: string };
 
-    // Should fallback to default limit 50
-    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
-    expect(sql).toContain("LIMIT 50");
-    expect(result.count).toBe(1);
+    // z.coerce.number() rejects "not_a_number" → structured error
+    expect(result.error).toBeDefined();
   });
 
   // cron.ts L437: list_jobs active filter in COUNT query

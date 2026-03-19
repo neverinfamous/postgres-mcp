@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -110,12 +110,6 @@ export function createTrigramSimilarityTool(
             : {}),
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: `pg_trigram_similarity validation error: ${error.issues.map((e) => e.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_trigram_similarity",
           });
@@ -247,12 +241,6 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
             : {}),
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: `pg_fuzzy_match validation error: ${error.issues.map((e) => e.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_fuzzy_match",
           });
@@ -322,12 +310,6 @@ export function createRegexpMatchTool(
             : {}),
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: `pg_regexp_match validation error: ${error.issues.map((e) => e.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_regexp_match",
           });

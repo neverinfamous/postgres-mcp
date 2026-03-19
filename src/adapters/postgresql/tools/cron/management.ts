@@ -7,7 +7,7 @@
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -70,12 +70,6 @@ or active status. Only specify the parameters you want to change.`,
           message: `Job ${String(jobId)} updated successfully`,
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: error.issues.map((e) => e.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_cron_alter_job",
             ...(parsedJobId !== undefined && {
@@ -91,20 +85,18 @@ or active status. Only specify the parameters you want to change.`,
  * List all scheduled jobs
  */
 export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
-  // Base schema uses z.any() for limit to avoid MCP framework rejection of wrong-type values
   const ListJobsSchemaBase = z.object({
     active: z.boolean().optional().describe("Filter by active status"),
     limit: z
-      .any()
+      .coerce.number()
       .optional()
       .describe("Maximum jobs to return (default: 50, use 0 for all)"),
   });
 
-  // Handler-side schema — uses z.any() for limit so wrong-type values silently fall back to default
   const ListJobsSchema = z.object({
     active: z.boolean().optional().describe("Filter by active status"),
     limit: z
-      .any()
+      .coerce.number()
       .optional()
       .describe("Maximum jobs to return (default: 50, use 0 for all)"),
   });
@@ -210,13 +202,6 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
               : undefined,
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            jobs: [],
-            count: 0,
-            error: error.issues.map((e) => e.message).join("; "),
-          };
-        }
         return {
           jobs: [],
           count: 0,
@@ -365,14 +350,6 @@ Useful for monitoring and debugging scheduled jobs.`,
           },
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            runs: [],
-            count: 0,
-            summary: { succeeded: 0, failed: 0, running: 0 },
-            error: error.issues.map((e) => e.message).join("; "),
-          };
-        }
         return {
           runs: [],
           count: 0,
@@ -451,15 +428,6 @@ from growing too large. By default, removes records older than 7 days.`,
           message: `Deleted ${String(result.rowsAffected ?? 0)} old job run records`,
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            deletedCount: 0,
-            olderThanDays: 0,
-            jobId: null,
-            message: error.issues.map((e) => e.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_cron_cleanup_history",
           });

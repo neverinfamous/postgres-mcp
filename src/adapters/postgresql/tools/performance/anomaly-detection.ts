@@ -83,7 +83,7 @@ export function createDetectQueryAnomaliesTool(
       "Returns anomalous queries ranked by deviation severity with risk level.",
     inputSchema: QueryAnomaliesInputBase.shape,
     outputSchema: z.object({
-      anomalies: z.array(z.any()),
+      anomalies: z.array(z.record(z.string(), z.unknown())),
       riskLevel: z.enum(["low", "moderate", "high", "critical"]),
       totalAnalyzed: z.number(),
       anomalyCount: z.number(),
@@ -224,7 +224,7 @@ export function createDetectBloatRiskTool(
       "Returns per-table risk scores (0-100) with actionable recommendations.",
     inputSchema: BloatRiskInputBase.shape,
     outputSchema: z.object({
-      tables: z.array(z.any()),
+      tables: z.array(z.record(z.string(), z.unknown())),
       highRiskCount: z.number(),
       totalAnalyzed: z.number(),
       summary: z.string(),

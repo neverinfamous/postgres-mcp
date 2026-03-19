@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -59,12 +59,6 @@ export function createTextNormalizeTool(
         );
         return { normalized: result.rows?.[0]?.["normalized"] };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: `pg_text_normalize validation error: ${error.issues.map((e) => e.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_text_normalize",
           });
@@ -116,12 +110,6 @@ export function createTextToVectorTool(
         );
         return { vector: result.rows?.[0]?.["vector"] };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: `pg_text_to_vector validation error: ${error.issues.map((e) => e.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_text_to_vector",
           });
@@ -198,12 +186,6 @@ export function createTextToQueryTool(
         );
         return { query: result.rows?.[0]?.["query"], mode };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: `pg_text_to_query validation error: ${error.issues.map((e) => e.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_text_to_query",
           });

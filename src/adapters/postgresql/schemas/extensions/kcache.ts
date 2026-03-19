@@ -26,7 +26,7 @@ export const KcacheQueryStatsSchemaBase = z.object({
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
-  minCalls: z.any().optional().describe("Minimum call count to include"),
+  minCalls: z.coerce.number().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
     .any()
     .optional()
@@ -118,7 +118,7 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .any()
     .optional()
     .describe("Maximum number of queries to return (default: 20)"),
-  minCalls: z.any().optional().describe("Minimum call count to include"),
+  minCalls: z.coerce.number().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
     .any()
     .optional()

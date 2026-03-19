@@ -42,10 +42,10 @@ export const CreateSequenceSchemaBase = z.object({
   name: z.string().optional().describe("Sequence name"),
   sequenceName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
-  start: z.any().optional().describe("Start value"),
-  increment: z.any().optional().describe("Increment by (default: 1)"),
-  minValue: z.any().optional().describe("Minimum value"),
-  maxValue: z.any().optional().describe("Maximum value"),
+  start: z.coerce.number().optional().describe("Start value"),
+  increment: z.coerce.number().optional().describe("Increment by (default: 1)"),
+  minValue: z.coerce.number().optional().describe("Minimum value"),
+  maxValue: z.coerce.number().optional().describe("Maximum value"),
   cache: z
     .any()
     .optional()
@@ -67,14 +67,14 @@ export const CreateSequenceSchemaBase = z.object({
 });
 
 /**
- * Preprocess sequence create params to handle schema.name format
+ * Extract schema from dotted name format (e.g., "myschema.myname" → schema="myschema", name="myname").
+ * Shared across all schema-mgmt preprocessing functions.
  */
-function preprocessCreateSequenceParams(input: unknown): unknown {
-  if (typeof input !== "object" || input === null) return input;
-  const result = { ...(input as Record<string, unknown>) };
-
-  // Get the name from either name or sequenceName
-  const nameVal = result["name"] ?? result["sequenceName"];
+function extractSchemaFromDottedName(
+  result: Record<string, unknown>,
+  nameField = "name",
+): Record<string, unknown> {
+  const nameVal = result[nameField];
   if (
     typeof nameVal === "string" &&
     nameVal.includes(".") &&
@@ -83,11 +83,25 @@ function preprocessCreateSequenceParams(input: unknown): unknown {
     const parts = nameVal.split(".");
     if (parts.length === 2) {
       result["schema"] = parts[0];
-      result["name"] = parts[1];
+      result[nameField] = parts[1];
     }
   }
-
   return result;
+}
+
+/**
+ * Preprocess sequence create params to handle schema.name format
+ */
+function preprocessCreateSequenceParams(input: unknown): unknown {
+  if (typeof input !== "object" || input === null) return input;
+  const result = { ...(input as Record<string, unknown>) };
+
+  // Resolve sequenceName alias to name before dotted-name extraction
+  if (result["name"] === undefined && result["sequenceName"] !== undefined) {
+    result["name"] = result["sequenceName"];
+  }
+
+  return extractSchemaFromDottedName(result);
 }
 
 // Transformed schema with alias resolution and schema.name preprocessing
@@ -148,21 +162,12 @@ function preprocessCreateViewParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
   const result = { ...(input as Record<string, unknown>) };
 
-  // Get the name from either name or viewName
-  const nameVal = result["name"] ?? result["viewName"];
-  if (
-    typeof nameVal === "string" &&
-    nameVal.includes(".") &&
-    result["schema"] === undefined
-  ) {
-    const parts = nameVal.split(".");
-    if (parts.length === 2) {
-      result["schema"] = parts[0];
-      result["name"] = parts[1];
-    }
+  // Resolve viewName alias to name before dotted-name extraction
+  if (result["name"] === undefined && result["viewName"] !== undefined) {
+    result["name"] = result["viewName"];
   }
 
-  return result;
+  return extractSchemaFromDottedName(result);
 }
 
 // Transformed schema with alias resolution and schema.name preprocessing
@@ -205,22 +210,7 @@ export const DropSequenceSchemaBase = z.object({
  */
 function preprocessDropSequenceParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
-  const result = { ...(input as Record<string, unknown>) };
-
-  // Parse schema.name format
-  if (
-    typeof result["name"] === "string" &&
-    result["name"].includes(".") &&
-    result["schema"] === undefined
-  ) {
-    const parts = result["name"].split(".");
-    if (parts.length === 2) {
-      result["schema"] = parts[0];
-      result["name"] = parts[1];
-    }
-  }
-
-  return result;
+  return extractSchemaFromDottedName({ ...(input as Record<string, unknown>) });
 }
 
 /**
@@ -254,22 +244,7 @@ export const DropViewSchemaBase = z.object({
  */
 function preprocessDropViewParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
-  const result = { ...(input as Record<string, unknown>) };
-
-  // Parse schema.name format
-  if (
-    typeof result["name"] === "string" &&
-    result["name"].includes(".") &&
-    result["schema"] === undefined
-  ) {
-    const parts = result["name"].split(".");
-    if (parts.length === 2) {
-      result["schema"] = parts[0];
-      result["name"] = parts[1];
-    }
-  }
-
-  return result;
+  return extractSchemaFromDottedName({ ...(input as Record<string, unknown>) });
 }
 
 /**

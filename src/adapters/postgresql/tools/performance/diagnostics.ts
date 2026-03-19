@@ -376,12 +376,12 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
     inputSchema: DiagnoseInputSchemaBase.shape,
     outputSchema: z.object({
       sections: z.object({
-        slowQueries: z.any(),
-        blockingLocks: z.any(),
-        connectionPressure: z.any(),
-        cacheHitRatio: z.any(),
-        diskUsage: z.any(),
-        topTables: z.any(),
+        slowQueries: z.record(z.string(), z.unknown()),
+        blockingLocks: z.record(z.string(), z.unknown()),
+        connectionPressure: z.record(z.string(), z.unknown()),
+        cacheHitRatio: z.record(z.string(), z.unknown()),
+        diskUsage: z.record(z.string(), z.unknown()),
+        topTables: z.record(z.string(), z.unknown()),
       }),
       overallScore: z.number(),
       overallStatus: z.enum(["healthy", "warning", "critical"]),

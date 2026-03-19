@@ -9,7 +9,6 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -65,12 +64,6 @@ export function createGeocodeTool(adapter: PostgresAdapter): ToolDefinition {
         }
         return response;
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, { tool: "pg_geocode" });
       }
     },
@@ -203,12 +196,6 @@ export function createGeoTransformTool(
 
         return response;
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_geo_transform",
             table:

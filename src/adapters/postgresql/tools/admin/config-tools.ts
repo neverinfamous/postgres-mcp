@@ -6,7 +6,7 @@
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -271,12 +271,6 @@ export function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
           index: parsed.index,
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, { tool: "pg_cluster" });
       }
     },

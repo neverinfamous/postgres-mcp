@@ -10,7 +10,6 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -111,12 +110,6 @@ export function createPointInPolygonTool(
 
         return response;
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_point_in_polygon",
             table:
@@ -188,12 +181,6 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
         return { results: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_distance",
             table:
@@ -294,12 +281,6 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
 
         return response;
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_buffer",
             table:
@@ -405,12 +386,6 @@ export function createIntersectionTool(
           sridUsed: srid ?? "none (explicit SRID in geometry or GeoJSON)",
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_intersection",
             table:
@@ -515,12 +490,6 @@ export function createBoundingBoxTool(
 
         return response;
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_bounding_box",
             table:

@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -116,12 +116,6 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
             : {}),
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false,
-            error: `pg_like_search validation error: ${error.issues.map((e) => e.message).join(", ")}`,
-          };
-        }
         return formatHandlerErrorResponse(error, {
             tool: "pg_like_search",
           });
@@ -269,17 +263,11 @@ export function createTextSentimentTool(
 
         return Promise.resolve(result);
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return Promise.resolve({
-            success: false as const,
-            error: `pg_text_sentiment validation error: ${error.issues.map((e) => e.message).join(", ")}`,
-          });
-        }
-        return Promise.resolve({
-          success: false as const,
-          error:
-            error instanceof Error ? error.message : "Unknown error occurred",
-        });
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, {
+            tool: "pg_text_sentiment",
+          }),
+        );
       }
     },
   };

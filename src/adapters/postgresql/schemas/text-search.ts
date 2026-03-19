@@ -87,7 +87,7 @@ export const TextSearchSchemaBase = z.object({
     .optional()
     .describe("Text search config (default: english)"),
   select: z.array(z.string()).optional().describe("Columns to return"),
-  limit: z.any().optional().describe("Max results"),
+  limit: z.coerce.number().optional().describe("Max results"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 

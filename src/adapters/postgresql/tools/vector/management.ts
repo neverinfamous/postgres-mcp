@@ -199,14 +199,14 @@ export function createVectorDimensionReduceTool(
       .string()
       .optional()
       .describe("ID column to include in results (default: id)"),
-    limit: z.any().optional().describe("Max rows to process (default: 100)"),
+    limit: z.coerce.number().optional().describe("Max rows to process (default: 100)"),
     // Common parameters - targetDimensions is required
     targetDimensions: z
-      .any()
+      .coerce.number()
       .optional()
       .describe("Target number of dimensions"),
-    dimensions: z.any().optional().describe("Alias for targetDimensions"),
-    seed: z.any().optional().describe("Random seed for reproducibility"),
+    dimensions: z.coerce.number().optional().describe("Alias for targetDimensions"),
+    seed: z.coerce.number().optional().describe("Random seed for reproducibility"),
     summarize: z
       .boolean()
       .optional()
@@ -432,7 +432,7 @@ export function createVectorEmbedTool(): ToolDefinition {
   // Base schema for MCP visibility — text optional to prevent MCP -32602 rejection
   const EmbedSchemaBase = z.object({
     text: z.string().optional().describe("Text to embed"),
-    dimensions: z.any().optional().describe("Vector dimensions (default: 384)"),
+    dimensions: z.coerce.number().optional().describe("Vector dimensions (default: 384)"),
     summarize: z
       .boolean()
       .optional()
@@ -463,7 +463,7 @@ export function createVectorEmbedTool(): ToolDefinition {
         }
 
         const dims =
-          parsed.dimensions != null ? Number(parsed.dimensions) : 384;
+          parsed.dimensions ?? 384;
 
         if (isNaN(dims)) {
           return Promise.resolve({
