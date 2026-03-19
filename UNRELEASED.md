@@ -56,3 +56,6 @@
 - **Output schema typing**: Replaced `z.any()` / `z.array(z.any())` with `z.record(z.string(), z.unknown())` / `z.array(z.record(...))` in 3 performance tool output schemas
 - **ZodError catch dedup**: Removed 33 redundant `if (error instanceof ZodError)` catch blocks across 13 tool files — centralized `formatHandlerErrorResponse` already handles ZodError
 - **Input schema coercion**: Replaced 40 `z.any().optional()` input fields with `z.coerce.number().optional()` across 13 schema/tool files for proper numeric validation at parse time. Removed redundant handler-side `Number()` wrappers.
+- **Residual `z.any()` cleanup**: Replaced 5 remaining `z.any()` fields with `z.coerce.number()` in `cron.ts` (limit, olderThanDays), `views.ts` (truncateDefinition, limit), and `objects.ts` (limit)
+- **Raw param cast removal**: Replaced 5 `(params ?? {}) as` raw casts with proper Zod `.parse()` in `catalog.ts` (pg_list_triggers, pg_list_constraints), `views.ts` (pg_list_views), `objects.ts` (pg_list_sequences), and `monitoring.ts` (pg_locks)
+- **Stale comment cleanup**: Updated 2 comments that incorrectly referenced `z.any()` after prior refactoring in `catalog.ts` and `cron.ts`

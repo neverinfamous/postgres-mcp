@@ -179,6 +179,18 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
 // pg_list_sequences
 // =============================================================================
 
+const ListSequencesSchema = z
+  .object({
+    schema: z.string().optional(),
+    limit: z.coerce
+      .number()
+      .optional()
+      .describe(
+        "Maximum number of sequences to return (default: 50). Use 0 for all.",
+      ),
+  })
+  .default({});
+
 export function createListSequencesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -186,25 +198,12 @@ export function createListSequencesTool(
     name: "pg_list_sequences",
     description: "List all sequences in the database.",
     group: "schema",
-    inputSchema: z
-      .object({
-        schema: z.string().optional(),
-        limit: z
-          .any()
-          .optional()
-          .describe(
-            "Maximum number of sequences to return (default: 50). Use 0 for all.",
-          ),
-      })
-      .default({}),
+    inputSchema: ListSequencesSchema,
     outputSchema: ListSequencesOutputSchema,
     annotations: readOnly("List Sequences"),
     icons: getToolIcons("schema", readOnly("List Sequences")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = (params ?? {}) as {
-        schema?: string;
-        limit?: unknown;
-      };
+      const parsed = ListSequencesSchema.parse(params ?? {});
       const queryParams: unknown[] = [];
 
       // Validate schema existence when filtering by schema

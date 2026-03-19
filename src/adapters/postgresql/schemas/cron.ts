@@ -283,16 +283,16 @@ export const CronJobRunDetailsSchema = z
       .string()
       .optional()
       .describe("Filter by status (running, succeeded, failed)"),
-    limit: z
-      .any()
+    limit: z.coerce
+      .number()
       .optional()
       .describe("Maximum records to return (default: 50)"),
   })
   .default({});
 
 export const CronCleanupHistorySchemaBase = z.object({
-  olderThanDays: z
-    .any()
+  olderThanDays: z.coerce
+    .number()
     .optional()
     .describe("Delete records older than N days (default: 7)"),
   days: z.coerce.number().optional().describe("Alias for olderThanDays"),
@@ -306,7 +306,7 @@ export const CronCleanupHistorySchema = z.preprocess(
     const coercedDays =
       rawDays !== undefined && rawDays !== null ? Number(rawDays) : undefined;
 
-    // Coerce jobId through CoercibleJobId for type safety (Base uses z.any())
+    // Coerce jobId through CoercibleJobId for type safety
     const rawJobId = data.jobId as unknown;
     let parsedJobId: number | undefined;
     if (rawJobId !== undefined && rawJobId !== null) {

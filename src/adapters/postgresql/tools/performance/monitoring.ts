@@ -57,20 +57,22 @@ async function validatePerformanceTableExists(
   return null;
 }
 
+const LocksSchema = z.object({
+  showBlocked: z.boolean().optional(),
+});
+
 export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_locks",
     description: "View current lock information.",
     group: "performance",
-    inputSchema: z.object({
-      showBlocked: z.boolean().optional(),
-    }),
+    inputSchema: LocksSchema,
     outputSchema: LocksOutputSchema,
     annotations: readOnly("Lock Information"),
     icons: getToolIcons("performance", readOnly("Lock Information")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = (params ?? {}) as { showBlocked?: boolean };
+        const parsed = LocksSchema.parse(params ?? {});
 
         let sql: string;
         if (parsed.showBlocked) {

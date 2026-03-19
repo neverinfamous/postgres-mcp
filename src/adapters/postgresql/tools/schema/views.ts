@@ -30,37 +30,34 @@ import {
 // pg_list_views
 // =============================================================================
 
+const ListViewsSchema = z.object({
+  schema: z.string().optional(),
+  includeMaterialized: z.boolean().optional(),
+  truncateDefinition: z.coerce
+    .number()
+    .optional()
+    .describe(
+      "Max length for view definitions (default: 500). Use 0 for no truncation.",
+    ),
+  limit: z.coerce
+    .number()
+    .optional()
+    .describe(
+      "Maximum number of views to return (default: 50). Use 0 for all views.",
+    ),
+});
+
 export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_list_views",
     description: "List all views and materialized views.",
     group: "schema",
-    inputSchema: z.object({
-      schema: z.string().optional(),
-      includeMaterialized: z.boolean().optional(),
-      truncateDefinition: z
-        .any()
-        .optional()
-        .describe(
-          "Max length for view definitions (default: 500). Use 0 for no truncation.",
-        ),
-      limit: z
-        .any()
-        .optional()
-        .describe(
-          "Maximum number of views to return (default: 50). Use 0 for all views.",
-        ),
-    }),
+    inputSchema: ListViewsSchema,
     outputSchema: ListViewsOutputSchema,
     annotations: readOnly("List Views"),
     icons: getToolIcons("schema", readOnly("List Views")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = (params ?? {}) as {
-        schema?: string;
-        includeMaterialized?: boolean;
-        truncateDefinition?: unknown;
-        limit?: unknown;
-      };
+      const parsed = ListViewsSchema.parse(params ?? {});
       const queryParams: unknown[] = [];
 
       // Validate schema existence when filtering by schema

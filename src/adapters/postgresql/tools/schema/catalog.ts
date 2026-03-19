@@ -110,7 +110,7 @@ export function createListFunctionsTool(
           conditions.push(`l.lanname = $${String(queryParams.length)}`);
         }
 
-        // Safe coercion for limit (z.any() in base schema)
+        // Safe coercion for limit
         const rawLimit = Number(parsed.limit);
         const limitVal = Number.isFinite(rawLimit) ? rawLimit : 500;
 
@@ -150,6 +150,11 @@ export function createListFunctionsTool(
 // pg_list_triggers
 // =============================================================================
 
+const ListTriggersSchema = z.object({
+  schema: z.string().optional(),
+  table: z.string().optional(),
+});
+
 export function createListTriggersTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -157,56 +162,55 @@ export function createListTriggersTool(
     name: "pg_list_triggers",
     description: "List all triggers.",
     group: "schema",
-    inputSchema: z.object({
-      schema: z.string().optional(),
-      table: z.string().optional(),
-    }),
+    inputSchema: ListTriggersSchema,
     outputSchema: ListTriggersOutputSchema,
     annotations: readOnly("List Triggers"),
     icons: getToolIcons("schema", readOnly("List Triggers")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = (params ?? {}) as { schema?: string; table?: string };
+        const parsed = ListTriggersSchema.parse(params ?? {});
 
         // Parse schema.table format
+        let tableName = parsed.table;
+        let schemaName = parsed.schema;
         if (
-          typeof parsed.table === "string" &&
-          parsed.table.includes(".") &&
-          !parsed.schema
+          typeof tableName === "string" &&
+          tableName.includes(".") &&
+          !schemaName
         ) {
-          const parts = parsed.table.split(".");
+          const parts = tableName.split(".");
           if (parts.length === 2 && parts[0] && parts[1]) {
-            parsed.schema = parts[0];
-            parsed.table = parts[1];
+            schemaName = parts[0];
+            tableName = parts[1];
           }
         }
 
-        const schemaName = parsed.schema ?? "public";
+        const resolvedSchema = schemaName ?? "public";
 
         // Validate schema existence when filtering by schema
-        if (parsed.schema) {
+        if (schemaName) {
           const schemaCheck = await adapter.executeQuery(
             `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
-            [parsed.schema],
+            [schemaName],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
             return {
               success: false,
-              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+              error: `Schema '${schemaName}' does not exist. Use pg_list_schemas to see available schemas.`,
             };
           }
         }
 
         // Validate table existence when filtering by table
-        if (parsed.table) {
+        if (tableName) {
           const tableCheck = await adapter.executeQuery(
             `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-            [schemaName, parsed.table],
+            [resolvedSchema, tableName],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
             return {
               success: false,
-              error: `Table '${schemaName}.${parsed.table}' not found. Use pg_list_tables to see available tables.`,
+              error: `Table '${resolvedSchema}.${tableName}' not found. Use pg_list_tables to see available tables.`,
             };
           }
         }
@@ -214,12 +218,12 @@ export function createListTriggersTool(
         const queryParams: unknown[] = [];
         let whereClause =
           "n.nspname NOT IN ('pg_catalog', 'information_schema')";
-        if (parsed.schema) {
-          queryParams.push(parsed.schema);
+        if (schemaName) {
+          queryParams.push(schemaName);
           whereClause += ` AND n.nspname = $${String(queryParams.length)}`;
         }
-        if (parsed.table) {
-          queryParams.push(parsed.table);
+        if (tableName) {
+          queryParams.push(tableName);
           whereClause += ` AND c.relname = $${String(queryParams.length)}`;
         }
 
@@ -257,6 +261,17 @@ export function createListTriggersTool(
 // pg_list_constraints
 // =============================================================================
 
+const ListConstraintsSchema = z.object({
+  table: z.string().optional(),
+  schema: z.string().optional(),
+  type: z
+    .string()
+    .optional()
+    .describe(
+      "Constraint type filter: 'primary_key', 'foreign_key', 'unique', 'check'",
+    ),
+});
+
 export function createListConstraintsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -265,26 +280,13 @@ export function createListConstraintsTool(
     description:
       "List table constraints (primary keys, foreign keys, unique, check).",
     group: "schema",
-    inputSchema: z.object({
-      table: z.string().optional(),
-      schema: z.string().optional(),
-      type: z
-        .string()
-        .optional()
-        .describe(
-          "Constraint type filter: 'primary_key', 'foreign_key', 'unique', 'check'",
-        ),
-    }),
+    inputSchema: ListConstraintsSchema,
     outputSchema: ListConstraintsOutputSchema,
     annotations: readOnly("List Constraints"),
     icons: getToolIcons("schema", readOnly("List Constraints")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = (params ?? {}) as {
-          table?: string;
-          schema?: string;
-          type?: string;
-        };
+        const parsed = ListConstraintsSchema.parse(params ?? {});
 
         // Validate type enum value if provided
         const validTypes = [
