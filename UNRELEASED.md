@@ -82,6 +82,7 @@
 
 ### Fixed
 - **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), `http.test.ts` (HTTP transport function extraction), and `schemas.test.ts` (partman/vector directory promotion)
+- **Code Mode readonly enforcement**: `pg_execute_code` with `readonly: true` now actually blocks write operations at the API binding level (previously only used for audit logging). Write-capable methods (identified via `readOnlyHint` annotations) are replaced with functions that throw `Readonly mode` errors synchronously, eliminating the async DB round-trip that caused intermittent 60s E2E test timeouts
 
 ### Changed (Audit)
 - **Prebuild clean**: Added `prebuild` script (`node -e "require('fs').rmSync('dist',{recursive:true,force:true})"`) to `package.json`, preventing stale compiled output from persisting across file renames

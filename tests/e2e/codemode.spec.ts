@@ -219,28 +219,20 @@ test.describe("Code Mode: Readonly Mode", () => {
   });
 
   test("readonly should block writes", async ({}, testInfo) => {
-    test.setTimeout(60_000);
+    test.setTimeout(90_000);
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_execute_code", {
         code: `
-          await pg.core.writeQuery({ query: "CREATE TABLE _e2e_readonly_test (id SERIAL)" });
+          await pg.core.writeQuery({ query: "SELECT 1" });
           return "should not reach here";
         `,
         readonly: true,
       });
-      // Readonly enforcement may happen at sandbox level or DB level.
-      if (p.success === false) {
-        expect(typeof p.error).toBe("string");
-      } else {
-        // Cleanup if the write unexpectedly succeeded
-        try {
-          await callToolAndParse(client, "pg_drop_table", {
-            table: "_e2e_readonly_test",
-            ifExists: true,
-          });
-        } catch { /* best effort cleanup */ }
-      }
+      // Readonly enforcement blocks write-capable methods at binding level
+      expect(p.success).toBe(false);
+      expect(typeof p.error).toBe("string");
+      expect(p.error).toContain("Readonly mode");
     } finally {
       await client.close();
     }

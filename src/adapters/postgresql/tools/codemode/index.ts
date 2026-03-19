@@ -11,6 +11,7 @@ import type { ToolDefinition } from "../../../../types/index.js";
 import { SandboxPool } from "../../../../codemode/sandbox.js";
 import { CodeModeSecurityManager } from "../../../../codemode/security.js";
 import { createPgApi } from "../../../../codemode/api/index.js";
+import { toolNameToMethodName } from "../../../../codemode/api/group-api.js";
 import type { ExecuteCodeOptions } from "../../../../codemode/types.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { ErrorResponseFields } from "../../schemas/error-response-fields.js";
@@ -154,6 +155,11 @@ return results;
       const pgApi = createPgApi(adapter);
       const bindings = pgApi.createSandboxBindings();
 
+      // Enforce readonly mode by wrapping write-capable methods
+      if (readonly === true) {
+        enforceReadonly(bindings, adapter);
+      }
+
       // Validate bindings are populated
       const totalMethods = Object.values(bindings).reduce(
         (sum: number, group) => {
@@ -225,6 +231,50 @@ return results;
  */
 export function getCodeModeTools(adapter: PostgresAdapter): ToolDefinition[] {
   return [createExecuteCodeTool(adapter)];
+}
+
+/**
+ * Enforce readonly mode by replacing write-capable API methods with
+ * functions that throw immediately. Uses each tool's `readOnlyHint`
+ * annotation to determine which methods are write-capable.
+ *
+ * Builds a forward lookup (toolName → methodName) using the same
+ * `toolNameToMethodName` that created the bindings, avoiding lossy
+ * reverse name reconstruction.
+ */
+function enforceReadonly(
+  bindings: Record<string, unknown>,
+  adapter: PostgresAdapter,
+): void {
+  // Build a set of writable (group, methodName) pairs using the same
+  // toolNameToMethodName conversion that created the API bindings
+  const writableMethods = new Set<string>();
+  for (const tool of adapter.getToolDefinitions()) {
+    if (tool.annotations?.readOnlyHint === false) {
+      const group = tool.group;
+      const methodName = toolNameToMethodName(tool.name, group);
+      writableMethods.add(`${group}.${methodName}`);
+    }
+  }
+
+  // For each group in bindings, wrap write methods to throw
+  for (const [groupKey, groupVal] of Object.entries(bindings)) {
+    if (typeof groupVal !== "object" || groupVal === null) continue;
+
+    const group = groupVal as Record<string, unknown>;
+    for (const [methodName, methodFn] of Object.entries(group)) {
+      if (typeof methodFn !== "function") continue;
+      if (methodName === "help") continue; // Never block help()
+
+      if (writableMethods.has(`${groupKey}.${methodName}`)) {
+        group[methodName] = () => {
+          throw new Error(
+            `Readonly mode: ${groupKey}.${methodName}() is a write operation and is blocked in readonly mode`,
+          );
+        };
+      }
+    }
+  }
 }
 
 /**

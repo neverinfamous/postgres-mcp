@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference of all **232 tools** organized by their 22 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
+Complete reference of all **245 tools** organized by their 22 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
 
 > Use [Tool Filtering](Tool-Filtering) to select the groups you need. See [Code Mode](Code-Mode) for the `pg.*` API that exposes every tool below through sandboxed JavaScript.
 
@@ -62,7 +62,7 @@ Transaction control for multi-statement operations with savepoint support.
 
 ---
 
-## jsonb (19 tools + Code Mode)
+## jsonb (20 tools + Code Mode)
 
 Comprehensive JSONB manipulation — read, write, transform, and analyze JSON documents stored in PostgreSQL.
 
@@ -87,6 +87,7 @@ Comprehensive JSONB manipulation — read, write, transform, and analyze JSON do
 | `pg_jsonb_diff` | Compare two JSONB objects. Returns top-level key differences only (shallow comparison). |
 | `pg_jsonb_index_suggest` | Analyze JSONB column and suggest indexes. Only works on object-type JSONB (not arrays). |
 | `pg_jsonb_security_scan` | Scan JSONB for security issues (PII, credentials, injection patterns). Only works on object-type JSONB. |
+| `pg_jsonb_pretty` | Pretty-print JSONB. Two modes: pass `json` for raw JSON string formatting, or pass `table`/`column` to apply `jsonb_pretty()` to a table column. |
 
 ---
 
@@ -145,7 +146,7 @@ Query analysis, execution plans, statistics, index recommendations, diagnostics,
 
 ---
 
-## admin (10 tools + Code Mode)
+## admin (11 tools + Code Mode)
 
 Database maintenance — vacuum, analyze, reindex, and configuration management.
 
@@ -161,6 +162,7 @@ Database maintenance — vacuum, analyze, reindex, and configuration management.
 | `pg_set_config` | Set a configuration parameter for the current session. |
 | `pg_reset_stats` | Reset statistics counters (requires superuser). |
 | `pg_cluster` | Physically reorder table data based on an index. Call with no args to re-cluster all previously-clustered tables. |
+| `pg_append_insight` | Append a business insight to the in-memory insights memo. Accessible via `postgres://insights` resource. Returns `{success, insightCount, message}`. |
 
 ---
 
@@ -268,9 +270,9 @@ Native PostgreSQL partition management (RANGE, LIST, HASH).
 
 ---
 
-## stats (8 tools + Code Mode)
+## stats (19 tools + Code Mode)
 
-Statistical analysis — descriptive stats, percentiles, correlation, regression, distributions, and sampling.
+Statistical analysis — descriptive stats, percentiles, correlation, regression, distributions, sampling, window functions, outlier detection, and advanced analysis.
 
 | Tool | Description |
 | ---- | ----------- |
@@ -282,6 +284,17 @@ Statistical analysis — descriptive stats, percentiles, correlation, regression
 | `pg_stats_distribution` | Analyze data distribution with histogram buckets, skewness, and kurtosis. Use `groupBy` for per-category distribution. |
 | `pg_stats_hypothesis` | Perform one-sample t-test or z-test against a hypothesized mean. For z-test, provide `populationStdDev`. Use `groupBy` to test each group. |
 | `pg_stats_sampling` | Get a random sample of rows. Use `sampleSize` for exact row count, or `percentage` for approximate sampling with bernoulli/system methods. |
+| `pg_stats_row_number` | Assign sequential row numbers using `ROW_NUMBER()`. Supports `partitionBy`, `selectColumns`, and `limit`. |
+| `pg_stats_rank` | Assign rank to rows using `RANK()`, `DENSE_RANK()`, or `PERCENT_RANK()`. Supports `partitionBy` and `selectColumns`. |
+| `pg_stats_lag_lead` | Access previous/next row values using `LAG()`/`LEAD()`. Set `direction` (`lag`/`lead`), `offset` (default 1), and optional `defaultValue`. |
+| `pg_stats_running_total` | Calculate cumulative running totals using `SUM() OVER()`. Supports `partitionBy` for per-group totals. |
+| `pg_stats_moving_avg` | Calculate moving averages using `AVG() OVER()`. Set `windowSize` (default 3) for the sliding window. |
+| `pg_stats_ntile` | Divide rows into N equal `buckets` using `NTILE()`. Supports `partitionBy` and `selectColumns`. |
+| `pg_stats_outliers` | Detect outliers using IQR (default) or Z-score method. Set `threshold` (IQR multiplier or Z-score) and `maxOutliers` cap. |
+| `pg_stats_top_n` | Get top N rows ordered by a column. Auto-excludes long-content columns (text/json). Set `direction` (`asc`/`desc`). |
+| `pg_stats_distinct` | Get distinct values of a column with count. Set `limit` to cap results (default 100). |
+| `pg_stats_frequency` | Get frequency distribution for a column. Returns value, count, and percentage. Set `limit` for top-N values. |
+| `pg_stats_summary` | Multi-column numeric summary (count, avg, min, max, stddev). Pass `columns` array or omit to auto-detect numeric columns. |
 
 ---
 
