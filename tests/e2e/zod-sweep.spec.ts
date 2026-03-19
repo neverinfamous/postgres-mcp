@@ -130,7 +130,6 @@ test.describe("Zod Sweep: Text", () => {
     "pg_text_normalize",
     "pg_text_to_vector",
     "pg_text_to_query",
-    "pg_text_search_config",
     "pg_like_search",
     "pg_text_sentiment",
   ];

@@ -157,7 +157,7 @@ test.describe("Code Mode Groups: Introspection", () => {
       const p = await callToolAndParse(client, "pg_execute_code", {
         code: `
           const result = await pg.introspection.schemaSnapshot({});
-          return { hasTables: Array.isArray(result.tables) };
+          return { hasTables: Array.isArray(result.snapshot?.tables ?? result.tables) };
         `,
       });
       expectSuccess(p);

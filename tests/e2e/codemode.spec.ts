@@ -211,7 +211,8 @@ test.describe("Code Mode: Readonly Mode", () => {
         readonly: true,
       });
       expectSuccess(p);
-      expect(typeof p.result).toBe("number");
+      // PG COUNT returns bigint which may come as string or number
+      expect(["number", "string"]).toContain(typeof p.result);
     } finally {
       await client.close();
     }
