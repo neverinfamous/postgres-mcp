@@ -23,6 +23,8 @@
   - `schemas/partitioning/range.ts` (545→~350) → extracted `preprocess.ts` (alias resolution, bounds construction)
   - `tools/monitoring/analysis.ts` (547) → split into `capacity-planning.ts` + `resource-usage.ts` + `alert-thresholds.ts`
   - `tools/jsonb/write.ts` (549→~360) → extracted `write-builders.ts` (object, array, stripNulls)
+  - `cli.ts` (532→~230) → extracted `cli/config.ts` (DB/OAuth config builders) + `cli/server.ts` (stdio/HTTP starters)
+  - `tools/core/error-helpers.ts` (516→~135) → extracted `error-parser.ts` (PG error code→message parser)
 - **Naming conventions**: Renamed 12 source + 9 test PascalCase files to kebab-case (`DatabaseAdapter.ts` → `database-adapter.ts`, `PostgresAdapter.ts` → `postgres-adapter.ts`, `McpServer.ts` → `mcp-server.ts`, etc.). Updated all import paths across ~80 files.
 
 ### Fixed
