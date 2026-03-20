@@ -155,7 +155,7 @@ transactions Tool Group (8 tools +1 for code mode):
 
 ### jsonb Group-Specific Testing
 
-jsonb Tool Group (19 tools +1 for code mode):
+jsonb Tool Group (20 tools +1 for code mode):
 
 1. 'pg_jsonb_extract'
 2. 'pg_jsonb_set'
@@ -176,7 +176,8 @@ jsonb Tool Group (19 tools +1 for code mode):
 17. 'pg_jsonb_diff'
 18. 'pg_jsonb_index_suggest'
 19. 'pg_jsonb_security_scan'
-20. 'pg_execute_code' (codemode, auto-added)
+20. 'pg_jsonb_pretty'
+21. 'pg_execute_code' (codemode, auto-added)
 
 > **Instructions**: Execute every numbered checklist item with the exact inputs shown. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
 
@@ -199,10 +200,19 @@ jsonb Tool Group (19 tools +1 for code mode):
 7. `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata"})` → verify `topKeys` present, `typeDistribution` present
 8. `pg_jsonb_validate_path({path: "$.a.b.c"})` → valid (note: validates JSONPath syntax, not dot-notation — `"a.b.c"` is invalid JSONPath)
 9. `pg_jsonb_diff({doc1: {"a": 1, "b": 2}, doc2: {"a": 1, "c": 3}})` → verify `differences` array with `status` field (`"added"`, `"removed"`, `"modified"`), `hasDifferences: true`
-10. 🔴 `pg_jsonb_extract({table: "nonexistent_xyz", column: "data", path: "key"})` → `{success: false, error: "..."}` handler error
-11. 🔴 `pg_jsonb_keys({})` → `{success: false, error: "..."}` (Zod validation)
-12. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
-13. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", value: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` to 100 and return valid results (wrong-type numeric param coercion)
+
+**pg_jsonb_pretty:**
+
+10. `pg_jsonb_pretty({json: "{\"a\":1,\"b\":2}"})` → verify pretty-printed JSON string with indentation
+11. `pg_jsonb_pretty({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → verify formatted output contains `"author": "Alice"` with indentation
+12. 🔴 `pg_jsonb_pretty({})` → `{success: false, error: "..."}` (Zod validation — must provide either `json` or `table`+`column`)
+
+**Domain error paths (🔴):**
+
+13. 🔴 `pg_jsonb_extract({table: "nonexistent_xyz", column: "data", path: "key"})` → `{success: false, error: "..."}` handler error
+14. 🔴 `pg_jsonb_keys({})` → `{success: false, error: "..."}` (Zod validation)
+15. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
+16. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", value: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` to 100 and return valid results (wrong-type numeric param coercion)
 
 ---
 
@@ -337,7 +347,7 @@ performance Tool Group (24 tools +1 code mode)
 
 ### admin Group-Specific Testing
 
-admin Tool Group (10 tools +1 code mode):
+admin Tool Group (11 tools +1 code mode):
 
 1. 'pg_vacuum'
 2. 'pg_vacuum_analyze'
@@ -349,7 +359,8 @@ admin Tool Group (10 tools +1 code mode):
 8. 'pg_set_config'
 9. 'pg_reset_stats'
 10. 'pg_cluster'
-11. 'pg_execute_code' (codemode, auto-added)
+11. 'pg_append_insight'
+12. 'pg_execute_code' (codemode, auto-added)
 
 > **Instructions**: Execute every numbered checklist item with the exact inputs shown. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
 
@@ -358,9 +369,18 @@ admin Tool Group (10 tools +1 code mode):
 3. `pg_reindex({target: "table", name: "test_products"})` → `{success: true}`
 4. `pg_cancel_backend({pid: 99999})` → `{success: false}` (invalid PID, no error thrown)
 5. `pg_set_config({name: "statement_timeout", value: "30000"})` → `{success: true}`
-6. 🔴 `pg_analyze({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
-7. 🔴 `pg_reindex({})` → `{success: false, error: "..."}` (Zod validation)
-8. 🔴 `pg_cancel_backend({pid: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or `{success: false}` (wrong-type numeric param)
+
+**pg_append_insight:**
+
+6. `pg_append_insight({text: "Test insight from checklist"})` → verify `{success: true, insightCount: N, message: "..."}` where `insightCount >= 1`
+7. `pg_append_insight({text: "Second insight for testing"})` → verify `insightCount` is previous value + 1
+8. 🔴 `pg_append_insight({})` → `{success: false, error: "..."}` (Zod validation — missing required `text`)
+
+**Domain error paths (🔴):**
+
+9. 🔴 `pg_analyze({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
+10. 🔴 `pg_reindex({})` → `{success: false, error: "..."}` (Zod validation)
+11. 🔴 `pg_cancel_backend({pid: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or `{success: false}` (wrong-type numeric param)
 
 ---
 
@@ -484,7 +504,7 @@ partitioning Tool Group (6 tools +1 for code mode)
 
 ### stats Group-Specific Testing
 
-stats Group (8 tools +1 for code mode)
+stats Group (19 tools +1 for code mode)
 
 1. 'pg_stats_descriptive'
 2. 'pg_stats_percentiles'
@@ -494,13 +514,24 @@ stats Group (8 tools +1 for code mode)
 6. 'pg_stats_distribution'
 7. 'pg_stats_hypothesis'
 8. 'pg_stats_sampling'
-9. 'pg_execute_code' (codemode, auto-added)
+9. 'pg_stats_row_number'
+10. 'pg_stats_rank'
+11. 'pg_stats_lag_lead'
+12. 'pg_stats_running_total'
+13. 'pg_stats_moving_avg'
+14. 'pg_stats_ntile'
+15. 'pg_stats_outliers'
+16. 'pg_stats_top_n'
+17. 'pg_stats_distinct'
+18. 'pg_stats_frequency'
+19. 'pg_stats_summary'
+20. 'pg_execute_code' (codemode, auto-added)
 
 > **Instructions**: Execute every numbered checklist item with the exact inputs shown. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
 
 **Test data:** Uses `test_measurements` (500 rows, sensor_id 1-6, columns: temperature, humidity, pressure, measured_at).
 
-**Checklist:**
+**Original 8 tools — Checklist:**
 
 1. `pg_stats_descriptive({table: "test_measurements", column: "temperature"})` → verify `mean`, `stddev`, `min`, `max` present
 2. `pg_stats_percentiles({table: "test_measurements", column: "temperature", percentiles: [0.25, 0.5, 0.75]})` → verify 3 percentile values
@@ -510,10 +541,50 @@ stats Group (8 tools +1 for code mode)
 6. `pg_stats_sampling({table: "test_measurements", sampleSize: 10})` → verify exactly 10 rows returned
 7. `pg_stats_sampling({table: "test_measurements", method: "bernoulli", percentage: 10})` → verify sample returned with `method: "bernoulli"`
 8. `pg_stats_hypothesis({table: "test_measurements", column: "temperature", hypothesizedMean: 27})` → verify `results.pValue` present
-9. 🔴 `pg_stats_descriptive({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
-10. 🔴 `pg_stats_percentiles({})` → `{success: false, error: "..."}` (Zod validation)
-11. 🔴 `pg_stats_sampling({table: "test_measurements", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `sampleSize` (wrong-type numeric param)
-12. 🔴 `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `buckets` (wrong-type numeric param)
+
+**Window function tools:**
+
+9. `pg_stats_row_number({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify 5 rows returned, each with `row_number` field (1-5)
+10. `pg_stats_row_number({table: "test_measurements", column: "temperature", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `row_number` resets per sensor_id partition
+11. `pg_stats_rank({table: "test_measurements", column: "temperature", orderBy: "temperature", limit: 5})` → verify rows with `rank` field
+12. `pg_stats_rank({table: "test_measurements", column: "temperature", orderBy: "temperature", method: "dense_rank", limit: 5})` → verify `dense_rank` — no gaps in ranking
+13. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lag", limit: 5})` → verify rows with `lag_value` field; first row's `lag_value` should be null
+14. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lead", offset: 2, limit: 5})` → verify `lead_value` with offset 2
+15. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify rows with `running_total` field, monotonically increasing
+16. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `running_total` resets per sensor_id
+17. `pg_stats_moving_avg({table: "test_measurements", column: "temperature", orderBy: "measured_at", windowSize: 5, limit: 5})` → verify rows with `moving_avg` field
+18. `pg_stats_ntile({table: "test_measurements", column: "temperature", orderBy: "temperature", buckets: 4, limit: 10})` → verify rows with `ntile` field (values 1-4)
+
+**Outlier detection and analysis tools:**
+
+19. `pg_stats_outliers({table: "test_measurements", column: "temperature"})` → verify `{outliers, outlierCount, method, stats}` where `method` is `"iqr"` (default)
+20. `pg_stats_outliers({table: "test_measurements", column: "temperature", method: "zscore", threshold: 2})` → verify same shape with `method: "zscore"`
+21. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3})` → verify exactly 3 rows, descending order by default
+22. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3, direction: "asc"})` → verify 3 rows in ascending order
+23. `pg_stats_distinct({table: "test_measurements", column: "sensor_id"})` → verify `{values, distinctCount}` with `distinctCount` of 6 (sensors 1-6)
+24. `pg_stats_frequency({table: "test_measurements", column: "sensor_id"})` → verify `{distribution}` array with value, count, and percentage for each sensor
+25. `pg_stats_summary({table: "test_measurements"})` → verify multi-column summary auto-detecting numeric columns (temperature, humidity, pressure)
+26. `pg_stats_summary({table: "test_measurements", columns: ["temperature", "humidity"]})` → verify summary for exactly 2 specified columns
+
+**Domain error paths (🔴):**
+
+27. 🔴 `pg_stats_descriptive({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
+28. 🔴 `pg_stats_percentiles({})` → `{success: false, error: "..."}` (Zod validation)
+29. 🔴 `pg_stats_row_number({})` → `{success: false, error: "..."}` (Zod validation — missing required `table`, `column`, `orderBy`)
+30. 🔴 `pg_stats_outliers({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
+31. 🔴 `pg_stats_frequency({table: "test_measurements", column: "nonexistent_col_xyz"})` → `{success: false, error: "..."}` handler error mentioning column
+
+**Wrong-type numeric param coercion (🔴):**
+
+32. 🔴 `pg_stats_sampling({table: "test_measurements", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `sampleSize` (wrong-type numeric param)
+33. 🔴 `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `buckets` (wrong-type numeric param)
+34. 🔴 `pg_stats_top_n({table: "test_measurements", column: "temperature", n: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `n` (wrong-type numeric param)
+
+**Code mode parity:**
+
+35. `pg_execute_code({code: "return await pg.stats.help()"})` → verify lists all 19 stats methods including `rowNumber`, `rank`, `lagLead`, `runningTotal`, `movingAvg`, `ntile`, `outliers`, `topN`, `distinct`, `frequency`, `summary`
+36. `pg_execute_code({code: "return await pg.stats.outliers({table: 'test_measurements', column: 'temperature'})"})` → verify returns same structure as item 19
+37. `pg_execute_code({code: "return await pg.stats.distinct({table: 'test_measurements', column: 'sensor_id'})"})` → verify returns same structure as item 23
 
 ---
 

@@ -18,9 +18,9 @@ The test database (`postgres`) contains these tables:
 | ------------------- | ---- | ---------------------------------------------------------------------------------- | ------------------------ | --------------------- |
 | `test_products`     | 15   | id, name, description, price, created_at                                           | —                        | Core, Stats           |
 | `test_orders`       | 20   | id, product_id (FK), quantity, total_price, status                                 | —                        | Core, Stats, Trans    |
-| `test_jsonb_docs`   | 3    | id                                                                                 | metadata, settings, tags | JSONB (19 tools)      |
+| `test_jsonb_docs`   | 3    | id                                                                                 | metadata, settings, tags | JSONB (20 tools)      |
 | `test_articles`     | 3    | id, title, body, search_vector (TSVECTOR)                                          | —                        | Text                  |
-| `test_measurements` | 500  | id, sensor_id (INT 1-6), temperature, humidity, pressure                           | —                        | Stats (8 tools)       |
+| `test_measurements` | 500  | id, sensor_id (INT 1-6), temperature, humidity, pressure                           | —                        | Stats (19 tools)      |
 | `test_embeddings`   | 50   | id, content, category, embedding (vector 384d)                                     | —                        | Vector (16 tools)     |
 | `test_locations`    | 5    | id, name, location (GEOMETRY POINT SRID 4326)                                      | —                        | PostGIS (15 tools)    |
 | `test_users`        | 3    | id, username (CITEXT), email (CITEXT)                                              | —                        | Citext (6 tools)      |
