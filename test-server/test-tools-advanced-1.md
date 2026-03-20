@@ -368,7 +368,7 @@ Verify `test_products` row count is still 15 and no `stress_*` tables remain.
 
 ## jsonb Group Advanced Tests
 
-### jsonb Group Tools (19 +1 code mode)
+### jsonb Group Tools (20 +1 code mode)
 
 1. pg_jsonb_extract
 2. pg_jsonb_set
@@ -389,7 +389,8 @@ Verify `test_products` row count is still 15 and no `stress_*` tables remain.
 17. pg_jsonb_diff
 18. pg_jsonb_index_suggest
 19. pg_jsonb_security_scan
-20. pg_execute_code (auto-added)
+20. pg_jsonb_pretty
+21. pg_execute_code (auto-added)
 
 ### Category 1: JSONB Mutation Workflow
 
@@ -401,12 +402,17 @@ Create `stress_jsonb_mut (id SERIAL PRIMARY KEY, data JSONB DEFAULT '{}')`, inse
 4. `pg_jsonb_delete({table: "stress_jsonb_mut", column: "data", path: "tags", where: "id = 1"})` → verify `tags` key removed
 5. `pg_jsonb_merge` — standalone merge requires `base` + `overlay` params (not `doc1`/`doc2`). Use via Code Mode: `pg.jsonb.merge({base: {"a": 1, "b": 2}, overlay: {"b": 3, "c": 4}})` → verify merge result `{"a": 1, "b": 3, "c": 4}` (overlay wins on conflicts)
 6. Verify final state via `pg_jsonb_extract` — confirm all mutations applied correctly
-7. Cleanup: Drop `stress_jsonb_mut`
+
+**pg_jsonb_pretty (mutation + standalone):**
+
+7. `pg_jsonb_pretty({table: "stress_jsonb_mut", column: "data", where: "id = 1"})` → verify the mutated JSONB is pretty-printed with indentation
+8. `pg_jsonb_pretty({json: "{\"compact\":true,\"nested\":{\"a\":1}}"})` → verify standalone pretty-print with indentation
+9. Cleanup: Drop `stress_jsonb_mut`
 
 ### Category 2: Error Message Quality
 
-8. `pg_stats_descriptive({table: "nonexistent_table_xyz", column: "price"})` → structured error
-9. `pg_jsonb_set({table: "test_jsonb_docs", column: "metadata", path: "author", value: "\"Modified\"", where: "id = 99999"})` → report behavior for nonexistent row
+10. `pg_stats_descriptive({table: "nonexistent_table_xyz", column: "price"})` → structured error
+11. `pg_jsonb_set({table: "test_jsonb_docs", column: "metadata", path: "author", value: "\"Modified\"", where: "id = 99999"})` → report behavior for nonexistent row
 
 ### Final Cleanup
 
@@ -448,7 +454,7 @@ Confirm `test_articles` row count is still 3.
 
 ## stats Group Advanced Tests
 
-### stats Group Tools (8 +1 code mode)
+### stats Group Tools (19 +1 code mode)
 
 1. pg_stats_descriptive
 2. pg_stats_percentiles
@@ -458,7 +464,18 @@ Confirm `test_articles` row count is still 3.
 6. pg_stats_distribution
 7. pg_stats_hypothesis
 8. pg_stats_sampling
-9. pg_execute_code (auto-added)
+9. pg_stats_row_number
+10. pg_stats_rank
+11. pg_stats_lag_lead
+12. pg_stats_running_total
+13. pg_stats_moving_avg
+14. pg_stats_ntile
+15. pg_stats_outliers
+16. pg_stats_top_n
+17. pg_stats_distinct
+18. pg_stats_frequency
+19. pg_stats_summary
+20. pg_execute_code (auto-added)
 
 ### Category 1: Boundary Values & Empty States
 
@@ -472,15 +489,138 @@ Confirm `test_articles` row count is still 3.
 4. `pg_stats_correlation` — on `stress_empty_table` with single row, use `id` and `value` → expect null or degenerate correlation (single point)
 5. `pg_stats_hypothesis` with `hypothesizedMean: 40` on single row → expect degenerate test result (n=1)
 
-### Category 2: Error Message Quality
+### Category 2: Window Function Boundary Values
 
-6. `pg_stats_descriptive({table: "nonexistent_table_xyz", column: "price"})` → structured error
-7. `pg_stats_descriptive({table: "test_products", column: "nonexistent_col"})` → structured error mentioning column name
-8. `pg_capacity_planning` with `days: -30` → expect rejection
+> Uses `stress_empty_table` (created in core Category 1). Insert data as needed for edge case testing.
+
+**2.1 Single-Row Window Functions**
+
+6. `pg_stats_row_number({table: "stress_empty_table", column: "value", orderBy: "id", limit: 5})` → with 1 row: verify `row_number: 1` returned
+7. `pg_stats_lag_lead({table: "stress_empty_table", column: "value", orderBy: "id", direction: "lag", limit: 5})` → with 1 row: verify `lag_value: null` (no previous row)
+8. `pg_stats_running_total({table: "stress_empty_table", column: "value", orderBy: "id", limit: 5})` → with 1 row: verify `running_total` equals the value itself
+
+**2.2 Identical Values (Ranking Edge Cases)**
+
+Insert 5 rows into `stress_empty_table` all with `value: 42.00`, then:
+
+9. `pg_stats_rank({table: "stress_empty_table", column: "value", orderBy: "value", limit: 10})` → verify all rows get `rank: 1` (all tied)
+10. `pg_stats_rank({table: "stress_empty_table", column: "value", orderBy: "value", method: "dense_rank", limit: 10})` → verify all rows get `dense_rank: 1`
+11. `pg_stats_ntile({table: "stress_empty_table", column: "value", orderBy: "value", buckets: 10, limit: 10})` → with 5 rows and 10 buckets: verify bucket assignment (some buckets empty, rows distributed across buckets 1-5)
+
+**2.3 Window Size Exceeds Data**
+
+12. `pg_stats_moving_avg({table: "stress_empty_table", column: "value", orderBy: "id", windowSize: 100, limit: 10})` → with 5 rows: verify graceful handling (window > data), moving averages still computed
+
+### Category 3: Analysis Tool Edge Cases
+
+**3.1 Outlier Detection Edge Cases**
+
+13. `pg_stats_outliers({table: "stress_empty_table", column: "value"})` → with all-identical values: verify `outlierCount: 0` (no deviation = no outliers)
+14. `pg_stats_outliers({table: "stress_empty_table", column: "value", method: "zscore"})` → with all-identical values: verify graceful handling (stddev=0, z-score undefined)
+
+**3.2 Top-N Edge Cases**
+
+15. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 0})` → report behavior (should error or return empty)
+16. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 1000})` → with 500 rows: verify returns all 500 or caps at configured max
+
+**3.3 Distinct/Frequency Edge Cases**
+
+17. `pg_stats_distinct({table: "stress_empty_table", column: "value"})` → with all same value: verify `distinctCount: 1`
+18. `pg_stats_frequency({table: "stress_empty_table", column: "value"})` → verify single entry with `count: 5` (or current row count) and `percentage: 100`
+
+**3.4 Summary Edge Cases**
+
+19. `pg_stats_summary({table: "test_articles"})` → table with no numeric columns: verify graceful error or empty summary
+20. `pg_stats_summary({table: "test_measurements", columns: ["sensor_id"]})` → integer column: verify it's included in summary
+
+### Category 4: Code Mode Chaining (Multi-Tool Analysis)
+
+```javascript
+// Window function pipeline: rank → filter top quartile → running total
+const ranked = await pg.stats.ntile({
+  table: "test_measurements", column: "temperature",
+  orderBy: "temperature", buckets: 4, limit: 500
+});
+const topQuartile = ranked.rows?.filter(r => r.ntile === 1).length ?? 0;
+const runningTotal = await pg.stats.runningTotal({
+  table: "test_measurements", column: "temperature",
+  orderBy: "measured_at", partitionBy: "sensor_id", limit: 10
+});
+return {
+  topQuartileCount: topQuartile,
+  runningTotalRows: runningTotal.rows?.length ?? 0
+};
+```
+
+21. Verify: `topQuartileCount > 0` and `runningTotalRows === 10`
+
+```javascript
+// Outlier → distinct → frequency pipeline
+const outliers = await pg.stats.outliers({
+  table: "test_measurements", column: "temperature"
+});
+const distinct = await pg.stats.distinct({
+  table: "test_measurements", column: "sensor_id"
+});
+const summary = await pg.stats.summary({table: "test_measurements"});
+return {
+  outlierMethod: outliers.method,
+  distinctSensors: distinct.distinctCount,
+  summaryColumns: summary.columns?.length ?? 0
+};
+```
+
+22. Verify: `outlierMethod: "iqr"`, `distinctSensors: 6`, `summaryColumns >= 3` (temperature, humidity, pressure)
+
+### Category 5: Error Message Quality
+
+23. `pg_stats_descriptive({table: "nonexistent_table_xyz", column: "price"})` → structured error
+24. `pg_stats_descriptive({table: "test_products", column: "nonexistent_col"})` → structured error mentioning column name
+25. `pg_capacity_planning` with `days: -30` → expect rejection
 
 ### Final Cleanup
 
 Confirm `test_measurements` row count is still 500.
+
+---
+
+## admin Group Advanced Tests
+
+### admin Group Tools (11 +1 code mode)
+
+1. pg_vacuum
+2. pg_vacuum_analyze
+3. pg_analyze
+4. pg_reindex
+5. pg_terminate_backend
+6. pg_cancel_backend
+7. pg_reload_conf
+8. pg_set_config
+9. pg_reset_stats
+10. pg_cluster
+11. pg_append_insight
+12. pg_execute_code (auto-added)
+
+### Category 1: Insight Memo Workflow
+
+1. `pg_append_insight({text: "First insight: High CPU usage detected"})` → verify `{success: true, insightCount: N}`
+2. `pg_append_insight({text: "Second insight: Index scan ratio low"})` → verify `insightCount` is previous value + 1
+3. Read `postgres://insights` resource → verify both insights appear in memo text
+4. Append 5 more insights rapidly via Code Mode loop → verify `insightCount` increments correctly for each
+5. Read `postgres://insights` resource again → verify all 7 insights present
+
+### Category 2: Edge Cases
+
+6. `pg_append_insight({text: ""})` → report behavior (empty string — should it be rejected?)
+7. Via Code Mode: append a very long insight (1000+ chars) → verify it is accepted or report truncation behavior
+
+### Category 3: Error Message Quality
+
+8. `pg_append_insight({})` → `{success: false}` structured validation error
+
+### Final Cleanup
+
+Insights are in-memory only — no cleanup needed.
 
 ---
 

@@ -525,7 +525,10 @@ All tools in this group are read-only — no cleanup needed. Confirm `test_produ
 3. `pg_jsonb_extract({table: "stress_pipeline", column: "data", path: "$.category"})` → verify extraction
 4. `pg_stats_descriptive({table: "stress_pipeline", column: "score"})` → verify mean, stddev, min, max
 5. `pg_stats_percentiles({table: "stress_pipeline", column: "score", percentiles: [25, 50, 75]})` → verify 3 values
-6. Cleanup: `pg_drop_table({table: "stress_pipeline"})`
+6. `pg_stats_outliers({table: "stress_pipeline", column: "score"})` → verify outlier detection on small dataset (5 rows)
+7. `pg_stats_frequency({table: "stress_pipeline", column: "score"})` → verify frequency distribution with value/count/percentage
+8. `pg_stats_summary({table: "stress_pipeline"})` → verify includes `score` column in multi-column summary
+9. Cleanup: `pg_drop_table({table: "stress_pipeline"})`
 
 ### Workflow 2: Core → Vector → Text (AI Search Pipeline)
 
