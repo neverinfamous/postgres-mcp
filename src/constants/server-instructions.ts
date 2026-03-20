@@ -37,8 +37,15 @@ Read \`postgres://help/{group}\` for group-specific tool reference (jsonb, text,
  * Help content keyed by group name.
  * 'gotchas' is the always-available help (postgres://help).
  * Other keys are tool groups (postgres://help/{group}).
+ *
+ * Lazy-initialized: the ~76 KB Map is only built on first access
+ * (during registerHelpResources), keeping startup allocation lean.
  */
-export const HELP_CONTENT: ReadonlyMap<string, string> = new Map([
+let _helpContentCache: ReadonlyMap<string, string> | null = null;
+
+export function getHelpContent(): ReadonlyMap<string, string> {
+  if (_helpContentCache) return _helpContentCache;
+  _helpContentCache = new Map([
   ["admin", `# Admin Tools
 
 Core: \`vacuum()\`, \`vacuumAnalyze()\`, \`analyze()\`, \`reindex()\`, \`cluster()\`, \`setConfig()\`, \`reloadConf()\`, \`resetStats()\`, \`cancelBackend()\`, \`terminateBackend()\`, \`appendInsight()\`
@@ -531,4 +538,6 @@ Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, 
 - ⛔ \`pg_vector_embed\`: Demo only (hash-based). Use OpenAI/Cohere for production.
 - \`pg_hybrid_search\`: Supports \`schema.table\` format (auto-parsed). Combines vector similarity and full-text search with weighted scoring. \`textColumn\` auto-detects type: uses tsvector columns directly, wraps text columns with \`to_tsvector()\`. Code mode alias: \`pg.hybridSearch()\` → \`pg.vector.hybridSearch()\`
 - 📝 **Error Handling**: Vector tools return \`{success: false, error: "...", suggestion: "..."}\` for validation/semantic errors (dimension mismatch, non-vector column, table not found). Check \`success\` field before processing results.`],
-]);
+  ]);
+  return _helpContentCache;
+}

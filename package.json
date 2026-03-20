@@ -10,7 +10,9 @@
     "postgres-mcp": "dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map",
+    "!dist/__tests__"
   ],
   "scripts": {
     "prebuild": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",

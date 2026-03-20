@@ -12,7 +12,7 @@ import type { ToolFilterConfig } from "../types/index.js";
 import { TOOL_GROUPS, parseToolFilter } from "../filtering/tool-filter.js";
 import type { ToolGroup } from "../types/index.js";
 import { logger } from "../utils/logger.js";
-import { INSTRUCTIONS, HELP_CONTENT } from "../constants/server-instructions.js";
+import { INSTRUCTIONS, getHelpContent } from "../constants/server-instructions.js";
 
 export interface ServerConfig {
   name: string;
@@ -101,8 +101,10 @@ export class PostgresMcpServer {
       }
     }
 
+    const helpContent = getHelpContent();
+
     // Always register postgres://help (gotchas + response structures + Code Mode API)
-    const gotchasContent = HELP_CONTENT.get("gotchas");
+    const gotchasContent = helpContent.get("gotchas");
     if (gotchasContent) {
       this.mcpServer.registerResource(
         "postgres_help",
@@ -123,7 +125,7 @@ export class PostgresMcpServer {
 
     // Register group-specific help resources based on tool filter
     const registeredHelp = ["postgres://help"];
-    for (const [key, content] of HELP_CONTENT) {
+    for (const [key, content] of helpContent) {
       if (key === "gotchas") continue; // Already registered above
       if (!enabledGroups.has(key)) continue; // Skip disabled groups
 

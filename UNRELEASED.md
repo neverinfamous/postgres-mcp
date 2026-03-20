@@ -85,6 +85,9 @@
 - **Code Mode readonly enforcement**: `pg_execute_code` with `readonly: true` now actually blocks write operations at the API binding level (previously only used for audit logging). Write-capable methods (identified via `readOnlyHint` annotations) are replaced with functions that throw `Readonly mode` errors synchronously, eliminating the async DB round-trip that caused intermittent 60s E2E test timeouts
 
 ### Changed (Audit)
+- **npm package slimming**: Added `!dist/**/*.map` and `!dist/__tests__` to `package.json` `files`, excluding 578 source map files (1.65 MB) and compiled test support from the npm package. Docker images unaffected (`.dockerignore` already excludes `dist/`).
+- **Bench file exclusion**: Added `**/*.bench.ts` to `tsconfig.json` `exclude`, preventing 52 benchmark files (139 KB) from compiling into `dist/`
+- **Lazy help content**: Converted eagerly-allocated `HELP_CONTENT` Map (76 KB) in `server-instructions.ts` to lazy-initialized `getHelpContent()` — only built on first access during `registerHelpResources()`
 - **Prebuild clean**: Added `prebuild` script (`node -e "require('fs').rmSync('dist',{recursive:true,force:true})"`) to `package.json`, preventing stale compiled output from persisting across file renames
 - **Logger dedup**: Consolidated duplicated 23-item sensitive-key list in `logger.ts` into a single `SENSITIVE_KEY_LIST` constant, deriving both the `Set` and `RegExp` from it
 - **ModuleLogger extraction**: Moved `ModuleLogger` class from `logger.ts` (513→~440 lines) to `module-logger.ts`
