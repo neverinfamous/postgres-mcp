@@ -193,7 +193,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
 ### After Testing
 
 1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed
-2. **Triage findings**: If issues were found, create an implementation plan. If the plan requires no user decisions, proceed directly to implementation
+2. **Triage findings**: If issues or potential optimizations were found, create an implementation plan consistent with the architecture, other tools, etc. If the plan requires no user decisions, proceed directly to implementation
 3. **Scope of fixes** includes corrections to any of:
    - Handler code
    - `server-instructions.md`
@@ -205,7 +205,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
 4. **Validate**: Run test suite and fix broken tests, run lint + typecheck and fix issues, update changelog (no duplicate headers)
 5. **Commit**: Stage and commit all changes — do NOT push
 6. **Live re-test**: Test fixes with direct MCP tool calls. I will have already rebuilt and restarted the server.
-7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live MCP re-testing confirms fixes are working. If the test prompt/database can be improved, suggest improvements.
+7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live MCP re-testing confirms fixes are working. If the test prompt/database can be improved, make the improvements.
 
 ---
 

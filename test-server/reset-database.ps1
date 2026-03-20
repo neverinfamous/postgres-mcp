@@ -181,6 +181,11 @@ DECLARE r RECORD;
 BEGIN
     -- Delete partman configs for test_* tables (prevents orphaned configs)
     IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config' AND schemaname IN ('public', 'partman')) THEN
+        -- Clean sub-partition configs first (FK to part_config)
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'part_config_sub' AND schemaname IN ('public', 'partman')) THEN
+            DELETE FROM public.part_config_sub WHERE sub_parent LIKE 'public.test_%';
+            DELETE FROM public.part_config_sub WHERE sub_parent LIKE 'public.temp_%';
+        END IF;
         DELETE FROM public.part_config WHERE parent_table LIKE 'public.test_%';
         DELETE FROM public.part_config WHERE parent_table LIKE 'public.temp_%';
     END IF;
@@ -209,6 +214,21 @@ $sql6 = @"
 DO `$`$
 DECLARE r RECORD;
 BEGIN
+    -- First, detach all child partitions from test_* partitioned parents
+    -- This prevents "cannot drop ... because other objects depend on it" errors
+    FOR r IN
+        SELECT inhrelid::regclass::text AS child, inhparent::regclass::text AS parent
+        FROM pg_inherits
+        WHERE inhparent::regclass::text LIKE 'public.test_%'
+           OR inhparent::regclass::text LIKE 'test_%'
+    LOOP
+        BEGIN
+            EXECUTE 'ALTER TABLE ' || r.parent || ' DETACH PARTITION ' || r.child;
+        EXCEPTION WHEN OTHERS THEN NULL;
+        END;
+    END LOOP;
+
+    -- Now drop all test_* tables (parents and former children)
     FOR r IN SELECT schemaname, tablename FROM pg_tables
              WHERE tablename LIKE 'test_%' AND schemaname = 'public'
     LOOP
@@ -346,25 +366,27 @@ if (-not $SkipVerify) {
     Write-Host "`n────────────────────────────────────────────────────────────" -ForegroundColor DarkGray
     Write-Host "Verification" -ForegroundColor Yellow
 
-    # Expected table counts
+    # Expected table counts (combined state after test-database.sql + test-resources.sql)
+    # test-resources.sql adds: +20 locations, +25 embeddings, +50 logs, +200/-~60 measurements
     $expectedTables = @{
         "test_products" = 15
         "test_orders" = 20
         "test_jsonb_docs" = 3
         "test_articles" = 3
-        "test_measurements" = 500
-        "test_embeddings" = 50
-        "test_locations" = 5
+        "test_measurements" = -1       # ~640 (depends on random deletions); verified as >= 600
+        "test_embeddings" = 75
+        "test_locations" = 25
         "test_users" = 3
         "test_categories" = 6
         "test_events" = 100
         "test_secure_data" = 0
-        "test_logs" = 0
+        "test_logs" = 50
         "test_departments" = 3
         "test_employees" = 5
         "test_projects" = 2
         "test_assignments" = 3
         "test_audit_log" = 3
+        "test_lock_target" = 1
     }
 
     Write-Host "`n  Table verification:" -ForegroundColor Yellow
@@ -377,7 +399,19 @@ if (-not $SkipVerify) {
         $countStr = if ($countResult -is [array]) { $countResult -join "" } else { $countResult }
         $actualCount = [int]($countStr -replace '\s','')
 
-        if ($actualCount -eq $expectedCount) {
+        if ($expectedCount -eq -1) {
+            # Approximate check (random deletes make exact count unpredictable)
+            if ($actualCount -ge 600) {
+                Write-Host "    [pass] " -ForegroundColor Green -NoNewline
+                Write-Host "$tableName" -NoNewline
+                Write-Host " ($actualCount rows, >=600 expected)" -ForegroundColor Gray
+            } else {
+                Write-Host "    [fail] " -ForegroundColor Red -NoNewline
+                Write-Host "$tableName" -NoNewline
+                Write-Host " (expected >=600, got $actualCount)" -ForegroundColor Red
+                $allPassed = $false
+            }
+        } elseif ($actualCount -eq $expectedCount) {
             Write-Host "    [pass] " -ForegroundColor Green -NoNewline
             Write-Host "$tableName" -NoNewline
             Write-Host " ($actualCount rows)" -ForegroundColor Gray
@@ -405,7 +439,14 @@ if (-not $SkipVerify) {
     foreach ($line in $tableLines) {
         $name = $line.Trim()
         if (-not $name) { continue }
-        if (-not $expectedTables.ContainsKey($name) -and $name -ne "spatial_ref_sys") {
+        # Allow pg_partman extension tables (part_config, part_config_sub) — these are not droppable
+        # Allow partition children of test_events and test_logs (created by seed SQL)
+        if (-not $expectedTables.ContainsKey($name) `
+            -and $name -ne "spatial_ref_sys" `
+            -and $name -notin @("part_config", "part_config_sub") `
+            -and $name -notmatch '^test_events_\d{4}_q\d$' `
+            -and $name -notmatch '^test_logs_' `
+            -and $name -notmatch '^template_public_test_') {
             $unexpectedTables += $name
         }
     }
