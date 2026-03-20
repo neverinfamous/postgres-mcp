@@ -43,6 +43,8 @@
   - Updated `e2e.yml` checkout action from v4 SHA to v6 SHA for consistency with all other workflows
   - Added `--provenance` flag to `npm publish` in `publish-npm.yml` for SLSA Build L3 attestation
   - Added `id-token: write` permission to `publish-npm.yml` for OIDC provenance token generation
+  - Added `npm audit --omit=dev` step to `lint-and-test.yml` for production-only dependency auditing
+  - Removed `continue-on-error: true` from Docker Hub description update in `docker-publish.yml`
 
 ## Added
 - **Help Resource Architecture**: Replaced monolithic `ServerInstructions.ts` (72KB) with 22 per-group `.md` files under `src/constants/server-instructions/`. Slim ~600 char instructions field points agents to `postgres://help` resources for on-demand reference. `McpServer.ts` registers `postgres://help` (always) + `postgres://help/{group}` filtered by `--tool-filter`. Supersedes instruction filter alignment.
