@@ -352,7 +352,7 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
  */
 export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
   // 1. General Use - All include codemode for token efficiency
-  starter: ["core", "transactions", "jsonb", "schema", "codemode"], // 60
+  starter: ["core", "transactions", "jsonb", "schema", "codemode"], // 61
   essential: ["core", "transactions", "jsonb", "codemode"], // 48
 
   // 2. Developer Workloads
