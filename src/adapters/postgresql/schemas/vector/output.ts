@@ -12,8 +12,8 @@ import { z } from "zod";
  */
 export const VectorCreateExtensionOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether extension was enabled"),
-    message: z.string().describe("Status message"),
+    success: z.boolean().optional().describe("Whether extension was enabled"),
+    message: z.string().optional().describe("Status message"),
   })
   .describe("Vector extension creation result");
 
@@ -386,7 +386,7 @@ export const VectorEmbedOutputSchema = z
  */
 export const VectorValidateOutputSchema = z
   .object({
-    valid: z.boolean().describe("Whether validation passed"),
+    valid: z.boolean().optional().describe("Whether validation passed"),
     vectorDimensions: z
       .number()
       .optional()
@@ -403,3 +403,19 @@ export const VectorValidateOutputSchema = z
     suggestion: z.string().optional().describe("Helpful suggestion"),
   })
   .describe("Vector validation result");
+
+/**
+ * Output schema for pg_vector_batch_insert
+ */
+export const VectorBatchInsertOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether batch insert succeeded"),
+    rowsInserted: z.number().optional().describe("Number of vectors inserted"),
+    rowsAffected: z.number().optional().describe("Rows affected by insert"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message"),
+    expectedDimensions: z.number().optional().describe("Expected dimensions"),
+    providedDimensions: z.number().optional().describe("Provided dimensions"),
+    suggestion: z.string().optional().describe("Helpful suggestion"),
+  })
+  .describe("Vector batch insert result");

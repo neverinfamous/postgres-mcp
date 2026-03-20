@@ -63,9 +63,9 @@ const TableInfoSchema = z.object({
 
 // Output schema for pg_list_tables
 export const TableListOutputSchema = z.object({
-  tables: z.array(TableInfoSchema).describe("List of tables"),
-  count: z.number().describe("Number of tables returned"),
-  totalCount: z.number().describe("Total number of tables"),
+  tables: z.array(TableInfoSchema).optional().describe("List of tables"),
+  count: z.number().optional().describe("Number of tables returned"),
+  totalCount: z.number().optional().describe("Total number of tables"),
   truncated: z.boolean().optional().describe("Whether results were truncated"),
   hint: z.string().optional().describe("Pagination hint"),
 }).extend(ErrorResponseFields.shape);
@@ -214,8 +214,8 @@ const ExtensionInfoSchema = z.object({
 
 // Output schema for pg_list_extensions
 export const ExtensionListOutputSchema = z.object({
-  extensions: z.array(ExtensionInfoSchema).describe("List of extensions"),
-  count: z.number().describe("Number of extensions"),
+  extensions: z.array(ExtensionInfoSchema).optional().describe("List of extensions"),
+  count: z.number().optional().describe("Number of extensions"),
 }).extend(ErrorResponseFields.shape);
 
 // Cache hit ratio schema for health analysis
@@ -264,6 +264,7 @@ export const HealthAnalysisOutputSchema = z.object({
 export const IndexRecommendationsOutputSchema = z.object({
   recommendations: z
     .array(z.record(z.string(), z.unknown()))
+    .optional()
     .describe("Index recommendations"),
   queriesAnalyzed: z.number().optional().describe("Number of queries analyzed"),
   hint: z.string().optional().describe("Additional information"),

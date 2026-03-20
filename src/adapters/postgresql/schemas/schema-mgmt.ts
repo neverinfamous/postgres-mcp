@@ -301,8 +301,8 @@ export const ListFunctionsSchema = z.preprocess(
  * pg_list_schemas output
  */
 export const ListSchemasOutputSchema = z.object({
-  schemas: z.array(z.string()).describe("Schema names"),
-  count: z.number().describe("Number of schemas"),
+  schemas: z.array(z.string()).optional().describe("Schema names"),
+  count: z.number().optional().describe("Number of schemas"),
 }).extend(ErrorResponseFields.shape);
 
 /**

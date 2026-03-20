@@ -11,8 +11,8 @@ import { z } from "zod";
  */
 export const PostgisCreateExtensionOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether extension was enabled"),
-    message: z.string().describe("Status message"),
+    success: z.boolean().optional().describe("Whether extension was enabled"),
+    message: z.string().optional().describe("Status message"),
   })
   .describe("PostGIS extension creation result");
 

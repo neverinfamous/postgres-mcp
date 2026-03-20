@@ -270,7 +270,7 @@ export const ClusterOutputSchema = z.object({
 // Output schema for backend operations (terminate/cancel)
 export const BackendOutputSchema = z.object({
   success: z.boolean().describe("Whether the operation succeeded"),
-  message: z.string().describe("Human-readable result message"),
+  message: z.string().optional().describe("Human-readable result message"),
   pid: z.number().optional().describe("Process ID that was affected"),
   hint: z.string().optional().describe("Additional information"),
 }).extend(ErrorResponseFields.shape);

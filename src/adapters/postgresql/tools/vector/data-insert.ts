@@ -18,7 +18,7 @@ import {
   sanitizeIdentifier,
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
-import { VectorInsertOutputSchema } from "../../schemas/index.js";
+import { VectorInsertOutputSchema, VectorBatchInsertOutputSchema } from "../../schemas/index.js";
 import { checkTableAndColumn } from "./data.js";
 
 export function createVectorInsertTool(
@@ -294,6 +294,7 @@ export function createVectorBatchInsertTool(
     group: "vector",
     // Use base schema for MCP visibility
     inputSchema: BatchInsertSchemaBase,
+    outputSchema: VectorBatchInsertOutputSchema,
     annotations: write("Batch Insert Vectors"),
     icons: getToolIcons("vector", write("Batch Insert Vectors")),
     handler: async (params: unknown, _context: RequestContext) => {

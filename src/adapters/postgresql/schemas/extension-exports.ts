@@ -113,6 +113,7 @@ export {
   VectorDimensionReduceOutputSchema,
   VectorEmbedOutputSchema,
   VectorValidateOutputSchema,
+  VectorBatchInsertOutputSchema,
 } from "./vector/index.js";
 
 // PostGIS schemas

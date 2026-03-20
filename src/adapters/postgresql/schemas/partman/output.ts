@@ -11,8 +11,8 @@ import { z } from "zod";
  */
 export const PartmanCreateExtensionOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether extension was enabled"),
-    message: z.string().describe("Status message"),
+    success: z.boolean().optional().describe("Whether extension was enabled"),
+    message: z.string().optional().describe("Status message"),
   })
   .describe("pg_partman extension creation result");
 
@@ -105,8 +105,9 @@ export const PartmanShowConfigOutputSchema = z
           }),
         ),
       )
+      .optional()
       .describe("Partition configurations"),
-    count: z.number().describe("Number of configs returned"),
+    count: z.number().optional().describe("Number of configs returned"),
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total available count"),
     orphanedCount: z.number().optional().describe("Number of orphaned configs"),

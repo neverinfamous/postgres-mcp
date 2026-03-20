@@ -338,8 +338,8 @@ export const CronCleanupHistorySchema = z.preprocess(
  */
 export const CronCreateExtensionOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether extension was enabled"),
-    message: z.string().describe("Status message"),
+    success: z.boolean().optional().describe("Whether extension was enabled"),
+    message: z.string().optional().describe("Status message"),
   })
   .describe("pg_cron extension creation result");
 
@@ -443,8 +443,9 @@ export const CronListJobsOutputSchema = z
           active: z.boolean().describe("Whether active"),
         }),
       )
+      .optional()
       .describe("Scheduled jobs"),
-    count: z.number().describe("Number of jobs returned"),
+    count: z.number().optional().describe("Number of jobs returned"),
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total available count"),
     hint: z.string().optional().describe("Hint about unnamed jobs"),
@@ -495,10 +496,10 @@ export const CronJobRunDetailsOutputSchema = z
  */
 export const CronCleanupHistoryOutputSchema = z
   .object({
-    success: z.boolean().describe("Whether cleanup succeeded"),
-    deletedCount: z.number().describe("Number of records deleted"),
-    olderThanDays: z.number().describe("Age threshold in days"),
-    jobId: z.number().nullable().describe("Job ID if filtered"),
-    message: z.string().describe("Status message"),
+    success: z.boolean().optional().describe("Whether cleanup succeeded"),
+    deletedCount: z.number().optional().describe("Number of records deleted"),
+    olderThanDays: z.number().optional().describe("Age threshold in days"),
+    jobId: z.number().nullable().optional().describe("Job ID if filtered"),
+    message: z.string().optional().describe("Status message"),
   })
   .describe("Cron history cleanup result");

@@ -21,19 +21,17 @@ beforeAll(() => {
 });
 
 describe("Tool Output Schema Invariants", () => {
-  it("should have outputSchema on all but known exceptions", () => {
-    // Known gap: pg_vector_batch_insert (needs schema remediation)
-    const KNOWN_MISSING = new Set(["pg_vector_batch_insert"]);
+  it("should have outputSchema on all tools", () => {
     const missing = tools.filter(
-      (t) => !t.outputSchema && !KNOWN_MISSING.has(t.name),
+      (t) => !t.outputSchema,
     );
     expect(
       missing.map((t) => t.name),
-      `Unexpected tools missing outputSchema (known: ${String(KNOWN_MISSING.size)})`,
+      "All tools should have an outputSchema",
     ).toEqual([]);
   });
 
-  it("outputSchemas should accept error responses (tracking known gaps)", () => {
+  it("outputSchemas should accept error responses", () => {
     const errorPayload = {
       success: false,
       error: "Test error message",
@@ -53,13 +51,11 @@ describe("Tool Output Schema Invariants", () => {
       }
     }
 
-    // Known gap: 18 schemas have required success-path fields that reject
-    // error-only payloads. These need ErrorFieldsMixin remediation.
-    // Track the exact count to catch regressions (new schemas should include the mixin).
+    // All schemas should accept error payloads — success-path fields are optional.
     expect(
       failures.length,
-      `Expected 18 known failures but got ${String(failures.length)}: ${failures.join(", ")}`,
-    ).toBe(18);
+      `Schemas rejecting error payloads: ${failures.join(", ")}`,
+    ).toBe(0);
   });
 
   it("no orphan tools without outputSchema among 200+ tool servers", () => {
