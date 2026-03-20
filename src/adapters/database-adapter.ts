@@ -190,6 +190,11 @@ export abstract class DatabaseAdapter {
       description: tool.description,
     };
 
+    // MCP 2025-11-25: title is a top-level tool field, not inside annotations
+    if (tool.annotations?.title) {
+      toolOptions["title"] = tool.annotations.title;
+    }
+
     // Pass full inputSchema (not just .shape) for proper validation
     if (tool.inputSchema !== undefined) {
       toolOptions["inputSchema"] = tool.inputSchema;
@@ -248,7 +253,7 @@ export abstract class DatabaseAdapter {
               content: [
                 {
                   type: "text" as const,
-                  text: JSON.stringify(result, null, 2),
+                  text: JSON.stringify(result),
                 },
               ],
               structuredContent: result as Record<string, unknown>,
@@ -268,11 +273,34 @@ export abstract class DatabaseAdapter {
             ],
           };
         } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+
+          if (hasOutputSchema) {
+            const errorResult = {
+              success: false,
+              error: errorMessage,
+              code: "INTERNAL_ERROR",
+              category: "internal",
+              recoverable: false,
+            };
+            return {
+              content: [
+                {
+                  type: "text" as const,
+                  text: JSON.stringify(errorResult),
+                },
+              ],
+              structuredContent: errorResult,
+              isError: true,
+            };
+          }
+
           return {
             content: [
               {
                 type: "text" as const,
-                text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+                text: `Error: ${errorMessage}`,
               },
             ],
             isError: true,

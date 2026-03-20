@@ -83,6 +83,9 @@
 - **Naming conventions**: Renamed 12 source + 9 test PascalCase files to kebab-case (`DatabaseAdapter.ts` → `database-adapter.ts`, `PostgresAdapter.ts` → `postgres-adapter.ts`, `McpServer.ts` → `mcp-server.ts`, etc.). Updated all import paths across ~80 files.
 
 ### Fixed
+- **Tool title propagation**: `registerTool()` now passes `title` as a top-level config key (SDK expects `title` outside `annotations`). Previously all 231 tools silently emitted no title in `tools/list` responses despite having titles set in annotations.
+- **Structured error on throw**: Outer catch block in `registerTool()` now returns `structuredContent` with error fields when the tool has `outputSchema`, ensuring SDK-aware clients receive parseable JSON on unhandled exceptions.
+- **Compact JSON serialization**: Switched `JSON.stringify(result, null, 2)` → `JSON.stringify(result)` for the `text` field when `structuredContent` is present (~15-20% payload reduction). Pretty-print retained for non-structured and error-only responses.
 - **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), `http.test.ts` (HTTP transport function extraction), and `schemas.test.ts` (partman/vector directory promotion)
 - **Code Mode readonly enforcement**: `pg_execute_code` with `readonly: true` now actually blocks write operations at the API binding level (previously only used for audit logging). Write-capable methods (identified via `readOnlyHint` annotations) are replaced with functions that throw `Readonly mode` errors synchronously, eliminating the async DB round-trip that caused intermittent 60s E2E test timeouts
 
