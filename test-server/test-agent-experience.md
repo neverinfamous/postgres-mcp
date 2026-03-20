@@ -8,15 +8,15 @@ Run **each pass** as a separate conversation with the corresponding `--tool-filt
 
 | Pass | `--tool-filter` | Tools | Scenarios |
 |------|-----------------|-------|-----------|
-| Pass 1 | `starter` | Core, Trans, JSONB, Schema (~60) | 1–12 |
-| Pass 2 | `dev-analytics` | Core, Trans, Stats, Partitioning (~43) | 13–16 |
-| Pass 3 | `ai-data` | Core, JSONB, Text, Trans (~61) | 17–19 |
-| Pass 4 | `ai-vector` | Core, Vector, Trans, Part (~51) | 20–22 |
-| Pass 5 | `geo` | Core, PostGIS, Trans (~44) | 23–25 |
-| Pass 6 | `dba-monitor` | Core, Monitoring, Perf, Trans (~64) | 26–28 |
-| Pass 7 | `dba-infra` | Core, Admin, Backup, Part (~46) | 29–31 |
-| Pass 8 | `core,introspection,migration` | Core, Introspection, Migration (~33) | 32–34 |
-| Pass 9 | `codemode` | Code Mode only (1+3) | 35–37 |
+| Pass 1 | `starter` | Core, Trans, JSONB, Schema (~60) | 1–13 |
+| Pass 2 | `dev-analytics` | Core, Trans, Stats, Partitioning (~54) | 14–19 |
+| Pass 3 | `ai-data` | Core, JSONB, Text, Trans (~61) | 20–22 |
+| Pass 4 | `ai-vector` | Core, Vector, Trans, Part (~51) | 23–25 |
+| Pass 5 | `geo` | Core, PostGIS, Trans (~44) | 26–28 |
+| Pass 6 | `dba-monitor` | Core, Monitoring, Perf, Trans (~64) | 29–31 |
+| Pass 7 | `dba-infra` | Core, Admin, Backup, Part (~46) | 32–35 |
+| Pass 8 | `core,introspection,migration` | Core, Introspection, Migration (~33) | 36–38 |
+| Pass 9 | `codemode` | Code Mode only (1+3) | 39–42 |
 
 > **Important:** Do NOT combine passes. Each pass is a fresh conversation with a clean context. The agent has never seen this database before.
 
@@ -91,36 +91,45 @@ Query for documents where `metadata->'nested'->'key'` has a specific value. Does
 #### Scenario 9 — JSONB analysis
 Analyze the structure of the `settings` column in `test_jsonb_docs`. What field types and nesting patterns exist?
 
+#### Scenario 10 — JSONB formatting
+Pretty-print the JSONB metadata for the first document in `test_jsonb_docs` in a human-readable format. Can the agent present nested JSON structures readably?
+
 ### Phase 4 — Schema Management
 
-#### Scenario 10 — Schema exploration
+#### Scenario 11 — Schema exploration
 List all schemas, views, sequences, and functions in the database. How many are user-created vs system?
 
-#### Scenario 11 — View management
+#### Scenario 12 — View management
 Create a view called `test_view_order_summary` that joins products and orders. Query it. Clean up after.
 
-#### Scenario 12 — Constraint analysis
+#### Scenario 13 — Constraint analysis
 List all constraints on `test_orders`. What types are they (PK, FK, CHECK, UNIQUE)?
 
 ---
 
 ## Pass 2: `dev-analytics`
 
-**Tool groups under test:** `core` (21), `transactions` (9), `stats` (9), `partitioning` (7), `codemode` (1)
+**Tool groups under test:** `core` (21), `transactions` (9), `stats` (20), `partitioning` (7), `codemode` (1)
 
 ### Phase 5 — Statistics
 
-#### Scenario 13 — Descriptive stats
+#### Scenario 14 — Descriptive stats
 Compute descriptive statistics (mean, median, std dev, min, max) for the `temperature` column in `test_measurements`. Break it down by `sensor_id`.
 
-#### Scenario 14 — Correlation
+#### Scenario 15 — Correlation
 Is there a correlation between temperature and humidity in `test_measurements`? How strong?
 
-#### Scenario 15 — Partition inspection
-How are `test_events` partitioned? List the partitions, their ranges, and row counts.
+#### Scenario 16 — Window function analysis
+Rank all sensors by their average temperature. For each sensor, show a running total of temperature readings over time. Which sensor shows the most temperature variation?
 
-#### Scenario 16 — Cross-table analysis
-Which products have the most orders? Join the data and present a ranked summary with product name, order count, and total revenue.
+#### Scenario 17 — Outlier detection
+Are there any anomalous temperature readings in `test_measurements`? Identify statistical outliers and explain what makes them unusual compared to the overall distribution.
+
+#### Scenario 18 — Multi-column summary
+Give me a quick statistical overview of all numeric columns in `test_measurements`. Which columns have the highest variance? How many distinct sensor IDs are there?
+
+#### Scenario 19 — Partition inspection
+How are `test_events` partitioned? List the partitions, their ranges, and row counts.
 
 ---
 
@@ -130,13 +139,13 @@ Which products have the most orders? Join the data and present a ranked summary 
 
 ### Phase 6 — Text & Full-Text Search
 
-#### Scenario 17 — Full-text search
+#### Scenario 20 — Full-text search
 Search `test_articles` for articles about "database" and "index". Rank results by relevance using the tsvector column.
 
-#### Scenario 18 — Fuzzy matching
+#### Scenario 21 — Fuzzy matching
 Find users in `test_users` whose names are similar to "jon" (case-insensitive, fuzzy). Did citext affect the results?
 
-#### Scenario 19 — JSONB + Text combo
+#### Scenario 22 — JSONB + Text combo
 Find events in `test_events` where the JSONB `payload` contains a specific key, and filter by event_type using text matching.
 
 ---
@@ -147,13 +156,13 @@ Find events in `test_events` where the JSONB `payload` contains a specific key, 
 
 ### Phase 7 — Vector & Semantic Search
 
-#### Scenario 20 — Similarity search
+#### Scenario 23 — Similarity search
 Find the 5 embeddings most similar to the first embedding in `test_embeddings`. What categories are they?
 
-#### Scenario 21 — Filtered vector search
+#### Scenario 24 — Filtered vector search
 Search for similar embeddings but only within the "tech" category. Can the agent combine metadata filters with vector search?
 
-#### Scenario 22 — Vector stats
+#### Scenario 25 — Vector stats
 What are the dimensions of the embeddings? How many vectors are stored? What index type is used?
 
 ---
@@ -164,13 +173,13 @@ What are the dimensions of the embeddings? How many vectors are stored? What ind
 
 ### Phase 8 — Geospatial
 
-#### Scenario 23 — Distance between cities
+#### Scenario 26 — Distance between cities
 What is the distance between New York (or NYC) and Tokyo based on the geometry data in `test_locations`?
 
-#### Scenario 24 — Nearby locations
+#### Scenario 27 — Nearby locations
 Find all locations within 10,000 km of London. How many are there?
 
-#### Scenario 25 — Spatial query
+#### Scenario 28 — Spatial query
 Find all locations within a bounding box covering North America. Which cities are included?
 
 ---
@@ -181,13 +190,13 @@ Find all locations within a bounding box covering North America. Which cities ar
 
 ### Phase 9 — Monitoring & Performance
 
-#### Scenario 26 — Database overview
+#### Scenario 29 — Database overview
 What are the current database size, active connections, and cache hit ratio?
 
-#### Scenario 27 — Slow query analysis
+#### Scenario 30 — Slow query analysis
 Are there any long-running queries? What are the top queries by total execution time?
 
-#### Scenario 28 — Table bloat
+#### Scenario 31 — Table bloat
 Check for table bloat across all test tables. Which tables, if any, would benefit from a VACUUM?
 
 ---
@@ -198,14 +207,17 @@ Check for table bloat across all test tables. Which tables, if any, would benefi
 
 ### Phase 10 — Admin & Infrastructure
 
-#### Scenario 29 — Database maintenance
+#### Scenario 32 — Database maintenance
 Run ANALYZE on all test tables. Then check the vacuum and analyze stats — when were tables last maintained?
 
-#### Scenario 30 — Backup
+#### Scenario 33 — Backup
 Create a logical dump of the `test_products` table. Verify the dump was created successfully.
 
-#### Scenario 31 — Partition management
+#### Scenario 34 — Partition management
 Inspect the partitioning setup for `test_events`. Can the agent identify the partition strategy and boundaries?
+
+#### Scenario 35 — Insight memo
+As you investigate the database health, record your key findings as insights so they can be reviewed later via the insights resource. Append at least 3 observations about the database state, then verify they're accessible.
 
 ---
 
@@ -215,13 +227,13 @@ Inspect the partitioning setup for `test_events`. Can the agent identify the par
 
 ### Phase 11 — Schema Analysis & Migration
 
-#### Scenario 32 — Dependency graph
+#### Scenario 36 — Dependency graph
 Map out the foreign key dependency graph starting from `test_departments`. What's the full cascade chain? Which tables depend on it?
 
-#### Scenario 33 — Cascade simulation
+#### Scenario 37 — Cascade simulation
 What would happen if `test_departments` row 1 were deleted? Simulate the cascade impact on employees, projects, and assignments.
 
-#### Scenario 34 — Migration workflow
+#### Scenario 38 — Migration workflow
 Initialize migration tracking, then create and apply a migration that adds a `description` column to `test_products`. Roll it back after verifying.
 
 ---
@@ -232,14 +244,17 @@ Initialize migration tracking, then create and apply a migration that adds a `de
 
 ### Phase 12 — Code Mode Discovery & Efficiency
 
-#### Scenario 35 — Cold-start Code Mode
+#### Scenario 39 — Cold-start Code Mode
 Using only `pg_execute_code`, list all tables, pick one, and run a query against it. Can the agent discover the `pg.*` API without external help?
 
-#### Scenario 36 — Multi-step workflow
+#### Scenario 40 — Multi-step workflow
 Using only `pg_execute_code`, find the top 5 products by order count with total revenue — in a single code execution.
 
-#### Scenario 37 — Cross-group orchestration
+#### Scenario 41 — Cross-group orchestration
 Using only `pg_execute_code`, do a full data quality audit: check for NULLs, orphaned FKs, missing indexes, and table bloat — all in one execution. Compare the token efficiency vs individual tool calls.
+
+#### Scenario 42 — Stats pipeline via Code Mode
+Using only `pg_execute_code`, compute outlier detection on `test_measurements.temperature`, then get the frequency distribution of `sensor_id`, and summarize all numeric columns — all in a single execution. Can the agent discover the `pg.stats.*` API methods?
 
 ---
 
@@ -251,4 +266,4 @@ Compile findings across all passes into:
 2. **Discovery friction** — cases where the agent struggled to find the right tool or resource
 3. **Suggested improvements** — specific additions to `src/constants/server-instructions/*.md`
 
-> **Key metric:** How many of the 37 scenarios did the agent complete on the first try with ≤1 help resource read? This measures whether the instructions + tool descriptions are self-sufficient.
+> **Key metric:** How many of the 42 scenarios did the agent complete on the first try with ≤1 help resource read? This measures whether the instructions + tool descriptions are self-sufficient.
