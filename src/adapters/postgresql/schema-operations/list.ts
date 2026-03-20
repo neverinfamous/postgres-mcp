@@ -160,10 +160,11 @@ export async function queryListTables(
       type: row["type"] as TableInfo["type"],
       owner: row["owner"] as string,
       rowCount: effectiveRowCount,
-      sizeBytes: Number(row["size_bytes"]) || undefined,
-      totalSizeBytes: Number(row["total_size_bytes"]) || undefined,
-      comment: row["comment"] as string | undefined,
-      statsStale,
+      // Omit zero/null/false defaults to reduce payload
+      ...(Number(row["size_bytes"]) > 0 ? { sizeBytes: Number(row["size_bytes"]) } : {}),
+      ...(Number(row["total_size_bytes"]) > 0 ? { totalSizeBytes: Number(row["total_size_bytes"]) } : {}),
+      ...(row["comment"] != null ? { comment: row["comment"] as string } : {}),
+      ...(statsStale ? { statsStale: true as const } : {}),
     };
   });
 

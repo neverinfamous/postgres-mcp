@@ -132,8 +132,6 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
             success: true,
             operation, // 'insert' or 'update'
             rowsAffected: result.rowsAffected ?? 0,
-            affectedRows: result.rowsAffected ?? 0, // Alias for common API naming
-            rowCount: 1, // Upsert always affects one row
             // Only include rows when RETURNING clause was explicitly requested
             ...(hasReturning &&
               cleanedRows &&
@@ -240,9 +238,6 @@ export function createBatchInsertTool(
         return {
           success: true,
           rowsAffected: totalAffected,
-          affectedRows: totalAffected,
-          insertedCount: totalAffected, // Semantic alias for insert operations
-          rowCount: parsed.rows.length,
           hint: "Used DEFAULT VALUES for SERIAL-only table (no columns specified)",
           ...(allRows.length > 0 && { rows: allRows }),
         };
@@ -290,9 +285,6 @@ export function createBatchInsertTool(
       return {
         success: true,
         rowsAffected: result.rowsAffected ?? 0,
-        affectedRows: result.rowsAffected ?? 0, // Alias for common API naming
-        insertedCount: result.rowsAffected ?? 0, // Semantic alias for insert operations
-        rowCount: parsed.rows.length,
         // Only include returned rows when RETURNING clause is used
         ...(result.rows && result.rows.length > 0 && { rows: result.rows }),
       };

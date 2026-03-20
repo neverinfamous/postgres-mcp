@@ -1584,7 +1584,7 @@ describe("PostgresAdapter", () => {
 
       // Non-generated column should NOT have generatedExpression
       const normalCol = result.columns?.find((c) => c.name === "first_name");
-      expect(normalCol?.isGenerated).toBe(false);
+      expect(normalCol?.isGenerated).toBeUndefined();
       expect(normalCol?.generatedExpression).toBeUndefined();
     });
   });

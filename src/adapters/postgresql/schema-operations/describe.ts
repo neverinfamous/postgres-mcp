@@ -355,24 +355,24 @@ export async function queryDescribeTable(
     return {
       name: row["name"] as string,
       type: row["type"] as string,
-      nullable,
-      notNull: !nullable, // Alias for consistency with createTable API
-      primaryKey: row["primary_key"] as boolean,
-      defaultValue: row["default_value"],
-      isGenerated,
-      // Only set generatedExpression for actual generated columns
-      generatedExpression: isGenerated
-        ? (row["generated_expression"] as string | undefined)
-        : undefined,
-      comment: row["comment"] as string | undefined,
-      // Include foreign key reference if present
-      foreignKey: fkRef
+      notNull: !nullable,
+      // Omit false/null defaults to reduce payload — only include when truthy/present
+      ...(row["primary_key"] === true ? { primaryKey: true as const } : {}),
+      ...(row["default_value"] != null ? { defaultValue: row["default_value"] } : {}),
+      ...(isGenerated ? { isGenerated: true as const } : {}),
+      ...(isGenerated && row["generated_expression"] != null
+        ? { generatedExpression: row["generated_expression"] as string }
+        : {}),
+      ...(row["comment"] != null ? { comment: row["comment"] as string } : {}),
+      ...(fkRef
         ? {
-            table: fkRef.table,
-            schema: fkRef.schema,
-            column: fkRef.column,
+            foreignKey: {
+              table: fkRef.table,
+              schema: fkRef.schema,
+              column: fkRef.column,
+            },
           }
-        : undefined,
+        : {}),
     };
   });
 
@@ -401,7 +401,7 @@ export async function queryDescribeTable(
   // Add NOT NULL "constraints" from column info (synthetic constraint entries)
   const notNullConstraints: typeof constraints = [];
   for (const col of columns) {
-    if (!col.nullable && !col.primaryKey) {
+    if (col.notNull === true && col.primaryKey !== true) {
       // Skip primary key columns as they have inherent NOT NULL
       notNullConstraints.push({
         name: `${col.name}_not_null`,
@@ -430,15 +430,16 @@ export async function queryDescribeTable(
     name: tableName,
     schema: schemaName,
     type: (tableRow?.["type"] as TableInfo["type"]) ?? "table",
-    owner: tableRow?.["owner"] as string | undefined,
+    ...(tableRow?.["owner"] != null ? { owner: tableRow["owner"] as string } : {}),
     rowCount: (() => {
       const rc = tableRow?.["row_count"];
       const liveEst = Number(tableRow?.["live_row_estimate"]) || 0;
       return rc !== null && rc !== undefined ? Number(rc) : liveEst;
     })(),
-    comment: tableRow?.["comment"] as string | undefined,
-    isPartitioned: tableRow?.["is_partitioned"] as boolean,
-    partitionKey: tableRow?.["partition_key"] as string | undefined,
+    // Omit null/false defaults to reduce payload
+    ...(tableRow?.["comment"] != null ? { comment: tableRow["comment"] as string } : {}),
+    ...(tableRow?.["is_partitioned"] === true ? { isPartitioned: true as const } : {}),
+    ...(tableRow?.["partition_key"] != null ? { partitionKey: tableRow["partition_key"] as string } : {}),
     columns,
     primaryKey,
     indexes,

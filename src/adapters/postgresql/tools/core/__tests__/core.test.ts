@@ -341,7 +341,6 @@ describe("Handler Execution", () => {
       )) as { rowsAffected: number; affectedRows: number; command: string };
 
       expect(result.rowsAffected).toBe(0);
-      expect(result.affectedRows).toBe(0);
       expect(result.command).toBe("CREATE");
     });
   });
@@ -2019,7 +2018,7 @@ describe("pg_write_query response fields", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should include affectedRows alias in response", async () => {
+  it("should include rowsAffected in response", async () => {
     mockAdapter.executeWriteQuery.mockResolvedValue({
       rows: [],
       rowsAffected: 10,
@@ -2033,14 +2032,12 @@ describe("pg_write_query response fields", () => {
         sql: "UPDATE users SET active = true WHERE created_at < NOW()",
       },
       mockContext,
-    )) as { rowsAffected: number; affectedRows: number; rowCount: number };
+    )) as { rowsAffected: number };
 
     expect(result.rowsAffected).toBe(10);
-    expect(result.affectedRows).toBe(10); // New alias
-    expect(result.rowCount).toBe(10);
   });
 
-  it("should include affectedRows for INSERT operations", async () => {
+  it("should include rowsAffected for INSERT operations", async () => {
     mockAdapter.executeWriteQuery.mockResolvedValue({
       rows: [],
       rowsAffected: 3,
@@ -2055,12 +2052,12 @@ describe("pg_write_query response fields", () => {
         params: ["msg1", "msg2", "msg3"],
       },
       mockContext,
-    )) as { affectedRows: number };
+    )) as { rowsAffected: number };
 
-    expect(result.affectedRows).toBe(3);
+    expect(result.rowsAffected).toBe(3);
   });
 
-  it("should include affectedRows for DELETE operations", async () => {
+  it("should include rowsAffected for DELETE operations", async () => {
     mockAdapter.executeWriteQuery.mockResolvedValue({
       rows: [],
       rowsAffected: 5,
@@ -2074,9 +2071,9 @@ describe("pg_write_query response fields", () => {
         sql: "DELETE FROM expired_sessions WHERE created_at < NOW()",
       },
       mockContext,
-    )) as { affectedRows: number };
+    )) as { rowsAffected: number };
 
-    expect(result.affectedRows).toBe(5);
+    expect(result.rowsAffected).toBe(5);
   });
 });
 
@@ -2480,7 +2477,6 @@ describe("pg_batch_insert", () => {
 
     expect(result.success).toBe(true);
     expect(result.rowsAffected).toBe(3);
-    expect(result.insertedCount).toBe(3);
 
     const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
     expect(sql).toContain("INSERT INTO");

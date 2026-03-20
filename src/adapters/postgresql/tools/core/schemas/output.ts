@@ -34,9 +34,6 @@ export const WriteQueryOutputSchema = z.object({
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   operation: z.string().optional().describe("Operation type (insert/update)"),
   rowsAffected: z.number().optional().describe("Number of rows affected"),
-  affectedRows: z.number().optional().describe("Alias for rowsAffected"),
-  rowCount: z.number().optional().describe("Alias for rowsAffected"),
-  insertedCount: z.number().optional().describe("Rows inserted (batch insert)"),
   command: z.string().optional().describe("SQL command executed"),
   executionTimeMs: z.number().optional().describe("Execution time in ms"),
   rows: z
@@ -74,7 +71,7 @@ export const TableListOutputSchema = z.object({
 const ColumnInfoSchema = z.object({
   name: z.string().describe("Column name"),
   type: z.string().describe("Data type"),
-  nullable: z.boolean().describe("Whether column allows nulls"),
+  notNull: z.boolean().describe("Whether column prohibits nulls"),
   default: z.string().optional().describe("Default value"),
   primaryKey: z.boolean().optional().describe("Whether column is primary key"),
 });
