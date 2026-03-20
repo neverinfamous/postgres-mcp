@@ -249,27 +249,45 @@ export function createAnalyzeWorkloadIndexesTool(
     annotations: readOnly("Analyze Workload Indexes"),
     icons: getToolIcons("core", readOnly("Analyze Workload Indexes")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { topQueries, minCalls, queryPreviewLength } =
-        AnalyzeWorkloadIndexesSchema.parse(params);
-      const limit = topQueries ?? 20;
-      const minCallThreshold = minCalls ?? 10;
-      const previewLen = queryPreviewLength ?? 200;
+      try {
+        const { topQueries, minCalls, queryPreviewLength } =
+          AnalyzeWorkloadIndexesSchema.parse(params);
+        const limit = topQueries ?? 20;
+        const minCallThreshold = minCalls ?? 10;
+        const previewLen = queryPreviewLength ?? 200;
 
-      // Check if pg_stat_statements is available
-      const extCheck = await adapter.executeQuery(
-        `SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'`,
-      );
+        // Validate non-negative limit
+        if (limit < 0) {
+          return {
+            success: false,
+            error: "Validation error: topQueries must be a non-negative number",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion: "Use topQueries: 0 to skip analysis, or a positive number.",
+            recoverable: false,
+          };
+        }
 
-      if (!extCheck.rows || extCheck.rows.length === 0) {
-        throw new Error(
-          "pg_stat_statements extension is not installed. " +
-            "This tool requires pg_stat_statements to analyze query workload. " +
-            "Install with: CREATE EXTENSION pg_stat_statements; (requires postgresql.conf: shared_preload_libraries)",
+        // Check if pg_stat_statements is available
+        const extCheck = await adapter.executeQuery(
+          `SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'`,
         );
-      }
 
-      // Get slow queries with sequential scans
-      const sql = `
+        if (!extCheck.rows || extCheck.rows.length === 0) {
+          return {
+            success: false,
+            error:
+              "pg_stat_statements extension is not installed. " +
+              "This tool requires pg_stat_statements to analyze query workload. " +
+              "Install with: CREATE EXTENSION pg_stat_statements; (requires postgresql.conf: shared_preload_libraries)",
+            code: "EXTENSION_MISSING",
+            category: "query",
+            recoverable: false,
+          };
+        }
+
+        // Get slow queries with sequential scans
+        const sql = `
                 SELECT
                     query,
                     calls,
@@ -284,73 +302,78 @@ export function createAnalyzeWorkloadIndexesTool(
                 LIMIT $2
             `;
 
-      const result = await adapter.executeQuery(sql, [minCallThreshold, limit]);
+        const result = await adapter.executeQuery(sql, [minCallThreshold, limit]);
 
-      const recommendations: {
-        query: string;
-        avgTimeMs: number;
-        calls: number;
-        recommendation: string;
-      }[] = [];
-
-      for (const row of result.rows ?? []) {
-        const queryRow = row as {
+        const recommendations: {
           query: string;
-          avg_time_ms: number;
+          avgTimeMs: number;
           calls: number;
-        };
-        const queryLower = queryRow.query.toLowerCase();
+          recommendation: string;
+        }[] = [];
 
-        let rec = "";
+        for (const row of result.rows ?? []) {
+          const queryRow = row as {
+            query: string;
+            avg_time_ms: number;
+            calls: number;
+          };
+          const queryLower = queryRow.query.toLowerCase();
 
-        // Simple heuristic analysis
-        if (
-          queryLower.includes("where") &&
-          !queryLower.includes("create index")
-        ) {
-          if (queryLower.includes("like") && queryLower.includes("%")) {
-            rec = "Consider GIN index with pg_trgm for LIKE queries";
-          } else if (
-            queryLower.includes(" = ") ||
-            queryLower.includes(" in (")
+          let rec = "";
+
+          // Simple heuristic analysis
+          if (
+            queryLower.includes("where") &&
+            !queryLower.includes("create index")
           ) {
-            rec = "Consider B-tree index on filtered columns";
-          } else if (
-            queryLower.includes(" between ") ||
-            queryLower.includes(" > ") ||
-            queryLower.includes(" < ")
-          ) {
-            rec = "Consider B-tree index for range queries";
+            if (queryLower.includes("like") && queryLower.includes("%")) {
+              rec = "Consider GIN index with pg_trgm for LIKE queries";
+            } else if (
+              queryLower.includes(" = ") ||
+              queryLower.includes(" in (")
+            ) {
+              rec = "Consider B-tree index on filtered columns";
+            } else if (
+              queryLower.includes(" between ") ||
+              queryLower.includes(" > ") ||
+              queryLower.includes(" < ")
+            ) {
+              rec = "Consider B-tree index for range queries";
+            }
+          }
+
+          if (queryLower.includes("order by") && queryLower.includes("limit")) {
+            rec += rec
+              ? "; Also consider index for ORDER BY columns"
+              : "Consider index for ORDER BY columns";
+          }
+
+          if (rec) {
+            recommendations.push({
+              query:
+                queryRow.query.length > previewLen
+                  ? queryRow.query.substring(0, previewLen) + "\u2026"
+                  : queryRow.query,
+              avgTimeMs: queryRow.avg_time_ms,
+              calls: queryRow.calls,
+              recommendation: rec,
+            });
           }
         }
 
-        if (queryLower.includes("order by") && queryLower.includes("limit")) {
-          rec += rec
-            ? "; Also consider index for ORDER BY columns"
-            : "Consider index for ORDER BY columns";
-        }
-
-        if (rec) {
-          recommendations.push({
-            query:
-              queryRow.query.length > previewLen
-                ? queryRow.query.substring(0, previewLen) + "\u2026"
-                : queryRow.query,
-            avgTimeMs: queryRow.avg_time_ms,
-            calls: queryRow.calls,
-            recommendation: rec,
+        return {
+          analyzedQueries: result.rows?.length ?? 0,
+          recommendations,
+          summary:
+            recommendations.length > 0
+              ? `Found ${String(recommendations.length)} queries that may benefit from indexes`
+              : "No obvious index recommendations found",
+        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+            tool: "pg_analyze_workload_indexes",
           });
-        }
       }
-
-      return {
-        analyzedQueries: result.rows?.length ?? 0,
-        recommendations,
-        summary:
-          recommendations.length > 0
-            ? `Found ${String(recommendations.length)} queries that may benefit from indexes`
-            : "No obvious index recommendations found",
-      };
     },
   };
 }
@@ -377,6 +400,19 @@ export function createAnalyzeQueryIndexesTool(
           params: queryParams,
           verbosity,
         } = AnalyzeQueryIndexesSchema.parse(params);
+
+        // Validate verbosity (handler-side since Base schema uses z.string())
+        const VALID_VERBOSITY = ["summary", "full"] as const;
+        if (!(VALID_VERBOSITY as readonly string[]).includes(verbosity)) {
+          return {
+            success: false,
+            error: `Validation error: Invalid verbosity "${verbosity}". Valid options: ${VALID_VERBOSITY.join(", ")}`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion: "Check the input parameters match the expected schema.",
+            recoverable: false,
+          };
+        }
 
         // CRITICAL: Block write queries - EXPLAIN ANALYZE executes them!
         const sqlUpper = sql.trim().toUpperCase();

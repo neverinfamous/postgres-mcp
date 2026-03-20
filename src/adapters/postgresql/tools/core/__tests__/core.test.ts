@@ -1078,12 +1078,18 @@ describe("Health Analysis Tools", () => {
   });
 
   describe("pg_analyze_workload_indexes", () => {
-    it("should throw error when pg_stat_statements not installed", async () => {
+    it("should return structured error when pg_stat_statements not installed", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_analyze_workload_indexes")!;
 
-      await expect(tool.handler({}, mockContext)).rejects.toThrow(
+      const result = (await tool.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(
         /pg_stat_statements extension is not installed/,
       );
     });

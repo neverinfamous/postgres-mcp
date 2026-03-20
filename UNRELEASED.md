@@ -90,6 +90,11 @@
 - **Missing `outputSchema` on `pg_vector_batch_insert`**: Added `VectorBatchInsertOutputSchema` with all response fields (success/rowsInserted/rowsAffected/error/expectedDimensions/providedDimensions/suggestion). Invariant test now enforces 100% outputSchema coverage with 0 exceptions.
 - **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), `http.test.ts` (HTTP transport function extraction), and `schemas.test.ts` (partman/vector directory promotion)
 - **Code Mode readonly enforcement**: `pg_execute_code` with `readonly: true` now actually blocks write operations at the API binding level (previously only used for audit logging). Write-capable methods (identified via `readOnlyHint` annotations) are replaced with functions that throw `Readonly mode` errors synchronously, eliminating the async DB round-trip that caused intermittent 60s E2E test timeouts
+- **Split Schema enum validation leaks**: Replaced `z.enum()` with `z.string()` in 3 Base schemas (`inputSchema`) so invalid values reach the handler's `try/catch` instead of triggering raw MCP `-32602` errors from the SDK:
+  - `pg_analyze_query_indexes` — `verbosity` param (handler-side validation against `["summary", "full"]`)
+  - `pg_list_objects` — `types` array items (handler-side validation against 8 valid object types)
+  - `pg_object_details` — `type`/`objectType` params (handler-side validation against 7 valid detail types)
+- **`pg_analyze_workload_indexes` raw error leak**: Wrapped handler in `try/catch` with `formatHandlerErrorResponse()` — previously had no error boundary, causing raw throws (e.g., `LIMIT must not be negative`) instead of structured `{success: false, error: ...}` responses. Also converted `throw new Error()` for missing `pg_stat_statements` to a structured return with `code: "EXTENSION_MISSING"`, and added handler-side `topQueries >= 0` validation
 
 ### Changed (Audit)
 - **npm package slimming**: Added `!dist/**/*.map` and `!dist/__tests__` to `package.json` `files`, excluding 578 source map files (1.65 MB) and compiled test support from the npm package. Docker images unaffected (`.dockerignore` already excludes `dist/`).

@@ -16,8 +16,10 @@ import { formatHandlerErrorResponse } from "./error-helpers.js";
 import {
   ListObjectsSchemaBase,
   ListObjectsSchema,
+  VALID_OBJECT_TYPES,
   ObjectDetailsSchema,
   ObjectDetailsSchemaBase,
+  VALID_OBJECT_DETAIL_TYPES,
   ObjectListOutputSchema,
   ObjectDetailsOutputSchema,
   ExtensionListOutputSchema,
@@ -41,6 +43,23 @@ export function createListObjectsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { schema, types, limit } = ListObjectsSchema.parse(params);
+
+        // Validate types against allowed values (handler-side since Base schema uses z.string())
+        if (types) {
+          const invalidTypes = types.filter(
+            (t) => !(VALID_OBJECT_TYPES as readonly string[]).includes(t),
+          );
+          if (invalidTypes.length > 0) {
+            return {
+              success: false,
+              error: `Validation error: Invalid type(s): ${invalidTypes.map((t) => `"${t}"`).join(", ")}. Valid types: ${VALID_OBJECT_TYPES.join(", ")}`,
+              code: "VALIDATION_ERROR",
+              category: "validation",
+              suggestion: "Check the input parameters match the expected schema.",
+              recoverable: false,
+            };
+          }
+        }
 
         const schemaFilter = schema
           ? `AND n.nspname = '${schema}'`
@@ -214,6 +233,21 @@ export function createObjectDetailsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { name, schema, type } = ObjectDetailsSchema.parse(params);
+
+        // Validate type against allowed values (handler-side since Base schema uses z.string())
+        if (
+          type &&
+          !(VALID_OBJECT_DETAIL_TYPES as readonly string[]).includes(type)
+        ) {
+          return {
+            success: false,
+            error: `Validation error: Invalid type "${type}". Valid types: ${VALID_OBJECT_DETAIL_TYPES.join(", ")}`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion: "Check the input parameters match the expected schema.",
+            recoverable: false,
+          };
+        }
         const schemaName = schema ?? "public";
 
         // Determine the actual object type
@@ -242,7 +276,7 @@ export function createObjectDetailsTool(
         ]);
         const detectedType = (
           detectResult.rows?.[0] as { object_type: string } | undefined
-        )?.object_type as typeof type;
+        )?.object_type;
 
         // Validate type if specified
         if (type && detectedType && type !== detectedType) {

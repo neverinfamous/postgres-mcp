@@ -40,24 +40,25 @@ function preprocessListObjectsParams(input: unknown): unknown {
 }
 
 // Base schema for MCP visibility - exposes all parameters without transform
+// Valid object types for ListObjects
+export const VALID_OBJECT_TYPES = [
+  "table",
+  "view",
+  "materialized_view",
+  "function",
+  "procedure",
+  "sequence",
+  "index",
+  "trigger",
+] as const;
+
 export const ListObjectsSchemaBase = z.object({
   schema: z
     .string()
     .optional()
     .describe("Schema name (default: all user schemas)"),
   types: z
-    .array(
-      z.enum([
-        "table",
-        "view",
-        "materialized_view",
-        "function",
-        "procedure",
-        "sequence",
-        "index",
-        "trigger",
-      ]),
-    )
+    .array(z.string())
     .optional()
     .describe("Object types to include"),
   type: z
@@ -77,6 +78,17 @@ export const ListObjectsSchema = z.preprocess(
 );
 
 // Inner schema for ObjectDetails (used by preprocess and as base for MCP visibility)
+// Valid object types for ObjectDetails
+export const VALID_OBJECT_DETAIL_TYPES = [
+  "table",
+  "view",
+  "materialized_view",
+  "partitioned_table",
+  "function",
+  "sequence",
+  "index",
+] as const;
+
 const ObjectDetailsInnerSchema = z.object({
   name: z
     .string()
@@ -86,30 +98,8 @@ const ObjectDetailsInnerSchema = z.object({
   objectName: z.string().optional().describe("Alias for name (Code Mode API)"),
   table: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name (default: public)"),
-  type: z
-    .enum([
-      "table",
-      "view",
-      "materialized_view",
-      "partitioned_table",
-      "function",
-      "sequence",
-      "index",
-    ])
-    .optional()
-    .describe("Object type hint (case-insensitive)"),
-  objectType: z
-    .enum([
-      "table",
-      "view",
-      "materialized_view",
-      "partitioned_table",
-      "function",
-      "sequence",
-      "index",
-    ])
-    .optional()
-    .describe("Alias for type"),
+  type: z.string().optional().describe("Object type hint (case-insensitive)"),
+  objectType: z.string().optional().describe("Alias for type"),
 });
 
 // Preprocess function for ObjectDetails
@@ -154,30 +144,8 @@ export const ObjectDetailsSchemaBase = z.object({
   objectName: z.string().optional().describe("Alias for name (Code Mode API)"),
   table: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name (default: public)"),
-  type: z
-    .enum([
-      "table",
-      "view",
-      "materialized_view",
-      "partitioned_table",
-      "function",
-      "sequence",
-      "index",
-    ])
-    .optional()
-    .describe("Object type hint (case-insensitive)"),
-  objectType: z
-    .enum([
-      "table",
-      "view",
-      "materialized_view",
-      "partitioned_table",
-      "function",
-      "sequence",
-      "index",
-    ])
-    .optional()
-    .describe("Alias for type"),
+  type: z.string().optional().describe("Object type hint (case-insensitive)"),
+  objectType: z.string().optional().describe("Alias for type"),
 });
 
 // Full schema with transform for handler parsing
@@ -240,7 +208,7 @@ export const AnalyzeQueryIndexesSchemaBase = z.object({
   query: z.string().optional().describe("Alias for sql"),
   params: z.array(z.unknown()).optional().describe("Query parameters"),
   verbosity: z
-    .enum(["summary", "full"])
+    .string()
     .optional()
     .describe(
       "Response detail level: 'summary' (compact), 'full' (include full plan). Default: summary",
