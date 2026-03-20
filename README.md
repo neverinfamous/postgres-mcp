@@ -219,8 +219,9 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 
 | Filter Pattern   | Example                   | Tools | Description               |
 | ---------------- | ------------------------- | ----- | ------------------------- |
-| Shortcut only    | `starter`                 | 60    | Use a predefined bundle   |
+| Shortcut only    | `starter`                 | 61    | Use a predefined bundle   |
 | Groups only      | `core,jsonb,transactions` | 48    | Combine individual groups |
+| Tool names       | `pg_read_query,pg_explain`| 2     | Custom tool selection     |
 | Shortcut + Group | `starter,+text`           | 73    | Extend a shortcut         |
 | Shortcut - Tool  | `starter,-pg_drop_table`  | 59    | Remove specific tools     |
 
