@@ -11,7 +11,9 @@
 - **Server Instructions**: Updated help content in `admin.md`, `jsonb.md`, `stats.md` with full parameter docs, response shapes, and top-level aliases for all 13 new tools
 - **Test Coverage for New Tools**: Added 24 vitest handler tests for 11 new stats tools (window, outlier, advanced) in `stats.test.ts`. Added 9 E2E Playwright tests: 6 stats payload contracts (`payloads-stats.spec.ts`), 1 jsonb pretty (`payloads-jsonb.spec.ts`), 1 admin insights (`payloads-admin.spec.ts`), 1 insights resource (`resources-extended.spec.ts`)
 - **Code Map Update**: Updated `code-map.md` with new handler files, schemas, resource, utility (245 tools, 21 resources)
-
+- **Help Resource Architecture**: Replaced monolithic `ServerInstructions.ts` (72KB) with 22 per-group `.md` files under `src/constants/server-instructions/`. Slim ~600 char instructions field points agents to `postgres://help` resources for on-demand reference. `McpServer.ts` registers `postgres://help` (always) + `postgres://help/{group}` filtered by `--tool-filter`. Supersedes instruction filter alignment.
+- **Agent Experience Test**: Added `test-server/test-agent-experience.md` with 9 passes (37 scenarios) covering all tool groups with explicit tool group annotations.
+- **Integration Test**: Added `test-server/test-instruction-levels.mjs` to verify instruction filtering behavior.
 
 - **Ported E2E Tests**: Ported 13 Playwright E2E test files from `db-mcp`, adapted for postgres-mcp tool names and PostgreSQL semantics:
   - Infrastructure: `rate-limiting.spec.ts` (429/Retry-After/health exemption), `session-advanced.spec.ts` (cross-protocol guard, sequential isolation, post-DELETE rejection), `streaming.spec.ts` (Streamable HTTP + Legacy SSE), `oauth-discovery.spec.ts` (RFC 9728 metadata)
@@ -45,11 +47,6 @@
   - Added `id-token: write` permission to `publish-npm.yml` for OIDC provenance token generation
   - Added `npm audit --omit=dev` step to `lint-and-test.yml` for production-only dependency auditing
   - Removed `continue-on-error: true` from Docker Hub description update in `docker-publish.yml`
-
-## Added
-- **Help Resource Architecture**: Replaced monolithic `ServerInstructions.ts` (72KB) with 22 per-group `.md` files under `src/constants/server-instructions/`. Slim ~600 char instructions field points agents to `postgres://help` resources for on-demand reference. `McpServer.ts` registers `postgres://help` (always) + `postgres://help/{group}` filtered by `--tool-filter`. Supersedes instruction filter alignment.
-- **Agent Experience Test**: Added `test-server/test-agent-experience.md` with 9 passes (37 scenarios) covering all tool groups with explicit tool group annotations.
-- **Integration Test**: Added `test-server/test-instruction-levels.mjs` to verify instruction filtering behavior.
 
 ### Changed
 - **Dependency Updates**:
@@ -86,10 +83,6 @@
 - **Tool title propagation**: `registerTool()` now passes `title` as a top-level config key (SDK expects `title` outside `annotations`). Previously all 231 tools silently emitted no title in `tools/list` responses despite having titles set in annotations.
 - **Structured error on throw**: Outer catch block in `registerTool()` now returns `structuredContent` with error fields when the tool has `outputSchema`, ensuring SDK-aware clients receive parseable JSON on unhandled exceptions.
 - **Compact JSON serialization**: Switched `JSON.stringify(result, null, 2)` → `JSON.stringify(result)` for the `text` field when `structuredContent` is present (~15-20% payload reduction). Pretty-print retained for non-structured and error-only responses.
-- **Core tool payload optimization**: Reduced token waste ~30-41% across core tool responses:
-  - `pg_describe_table` / `pg_object_details`: Dropped redundant `nullable` field (keep `notNull`), omit `primaryKey: false`, `isGenerated: false`, `comment: null`, `defaultValue: null` from columns, omit `isPartitioned: false`, `partitionKey: null`, `comment: null` from table level
-  - `pg_list_tables`: Omit `comment: null`, `statsStale: false`, `sizeBytes: 0`, `totalSizeBytes: 0` from table entries
-  - `pg_write_query` / `pg_upsert` / `pg_batch_insert`: Removed duplicate count aliases (`affectedRows`, `insertedCount`, `rowCount`), keep `rowsAffected` as canonical field
 - **Schema error acceptance (18 schemas)**: Made required success-path fields `.optional()` in 18 output schemas that previously rejected error-only payloads (`{success: false, error: ...}`). Affected schemas span core (TableList, ExtensionList, IndexRecommendations), admin (Backend), schema-mgmt (ListSchemas), vector (CreateExtension, Validate), postgis (CreateExtension), cron (CreateExtension, ListJobs, CleanupHistory), partman (CreateExtension, ShowConfig), and 4 inline performance diagnostics schemas.
 - **Missing `outputSchema` on `pg_vector_batch_insert`**: Added `VectorBatchInsertOutputSchema` with all response fields (success/rowsInserted/rowsAffected/error/expectedDimensions/providedDimensions/suggestion). Invariant test now enforces 100% outputSchema coverage with 0 exceptions.
 - **Test imports**: Fixed stale import paths in `admin.test.ts`, `security-injection.test.ts` (admin split), `http.test.ts` (HTTP transport function extraction), and `schemas.test.ts` (partman/vector directory promotion)
@@ -101,6 +94,10 @@
 - **`pg_analyze_workload_indexes` raw error leak**: Wrapped handler in `try/catch` with `formatHandlerErrorResponse()` — previously had no error boundary, causing raw throws (e.g., `LIMIT must not be negative`) instead of structured `{success: false, error: ...}` responses. Also converted `throw new Error()` for missing `pg_stat_statements` to a structured return with `code: "EXTENSION_MISSING"`, and added handler-side `topQueries >= 0` validation
 
 ### Changed (Audit)
+- **Core tool payload optimization**: Reduced token waste ~30-41% across core tool responses:
+  - `pg_describe_table` / `pg_object_details`: Dropped redundant `nullable` field (keep `notNull`), omit `primaryKey: false`, `isGenerated: false`, `comment: null`, `defaultValue: null` from columns, omit `isPartitioned: false`, `partitionKey: null`, `comment: null` from table level
+  - `pg_list_tables`: Omit `comment: null`, `statsStale: false`, `sizeBytes: 0`, `totalSizeBytes: 0` from table entries
+  - `pg_write_query` / `pg_upsert` / `pg_batch_insert`: Removed duplicate count aliases (`affectedRows`, `insertedCount`, `rowCount`), keep `rowsAffected` as canonical field
 - **npm package slimming**: Added `!dist/**/*.map` and `!dist/__tests__` to `package.json` `files`, excluding 578 source map files (1.65 MB) and compiled test support from the npm package. Docker images unaffected (`.dockerignore` already excludes `dist/`).
 - **Bench file exclusion**: Added `**/*.bench.ts` to `tsconfig.json` `exclude`, preventing 52 benchmark files (139 KB) from compiling into `dist/`
 - **Lazy help content**: Converted eagerly-allocated `HELP_CONTENT` Map (76 KB) in `server-instructions.ts` to lazy-initialized `getHelpContent()` — only built on first access during `registerHelpResources()`
