@@ -23,6 +23,7 @@ import { sanitizeFtsConfig } from "../../../../utils/fts-config.js";
 import {
   coerceLimit,
   buildLimitClause,
+  coerceNumber,
 } from "../../../../utils/query-helpers.js";
 import {
   TextSearchSchema,
@@ -129,9 +130,9 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
       .describe("Multiple columns to search (alternative to column)"),
     query: z.string().optional(),
     config: z.string().optional(),
-    normalization: z.coerce.number().optional(),
+    normalization: z.preprocess(coerceNumber, z.number().optional()),
     select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z.coerce.number().optional().describe("Max results"),
+    limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max results"),
     schema: z.string().optional().describe("Schema name (default: public)"),
   });
 
@@ -243,13 +244,13 @@ export function createTextHeadlineTool(
       .string()
       .optional()
       .describe("Stop selection marker (default: </b>)"),
-    maxWords: z.coerce.number().optional().describe("Maximum words in headline"),
-    minWords: z.coerce.number().optional().describe("Minimum words in headline"),
+    maxWords: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum words in headline"),
+    minWords: z.preprocess(coerceNumber, z.number().optional()).describe("Minimum words in headline"),
     select: z
       .array(z.string())
       .optional()
       .describe('Columns to return for row identification (e.g., ["id"])'),
-    limit: z.coerce.number().optional().describe("Max results"),
+    limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max results"),
     schema: z.string().optional().describe("Schema name (default: public)"),
   });
 

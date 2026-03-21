@@ -23,6 +23,7 @@ import {
   VectorDimensionReduceOutputSchema,
   VectorEmbedOutputSchema,
 } from "../../schemas/index.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export function createVectorIndexOptimizeTool(
   adapter: PostgresAdapter,
@@ -199,14 +200,13 @@ export function createVectorDimensionReduceTool(
       .string()
       .optional()
       .describe("ID column to include in results (default: id)"),
-    limit: z.coerce.number().optional().describe("Max rows to process (default: 100)"),
+    limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max rows to process (default: 100)"),
     // Common parameters - targetDimensions is required
     targetDimensions: z
-      .coerce.number()
-      .optional()
+      .preprocess(coerceNumber, z.number().optional())
       .describe("Target number of dimensions"),
-    dimensions: z.coerce.number().optional().describe("Alias for targetDimensions"),
-    seed: z.coerce.number().optional().describe("Random seed for reproducibility"),
+    dimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for targetDimensions"),
+    seed: z.preprocess(coerceNumber, z.number().optional()).describe("Random seed for reproducibility"),
     summarize: z
       .boolean()
       .optional()
@@ -432,7 +432,7 @@ export function createVectorEmbedTool(): ToolDefinition {
   // Base schema for MCP visibility — text optional to prevent MCP -32602 rejection
   const EmbedSchemaBase = z.object({
     text: z.string().optional().describe("Text to embed"),
-    dimensions: z.coerce.number().optional().describe("Vector dimensions (default: 384)"),
+    dimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Vector dimensions (default: 384)"),
     summarize: z
       .boolean()
       .optional()

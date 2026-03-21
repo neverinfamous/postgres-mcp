@@ -890,7 +890,7 @@ describe("cron.ts uncovered branches", () => {
   });
 
   // cron.ts L419-424: list_jobs limit coercion with NaN value
-  // z.coerce.number() rejects non-numeric strings at schema level → validation error
+  // coerceNumber returns undefined for non-numeric strings → falls back to default
   it("should return validation error when limit is non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
     const result = (await tool.handler(
@@ -898,7 +898,7 @@ describe("cron.ts uncovered branches", () => {
       mockContext,
     )) as { error: string };
 
-    // z.coerce.number() rejects "not_a_number" → structured error
+    // coerceNumber returns undefined for "not_a_number" → default limit used
     expect(result.error).toBeDefined();
   });
 

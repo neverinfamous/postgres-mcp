@@ -7,6 +7,7 @@
 import { z } from "zod";
 import { ErrorResponseFields } from "../error-response-fields.js";
 import { preprocessBasicStatsParams } from "./preprocessing.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Base Schemas (for MCP visibility)
@@ -25,13 +26,11 @@ export const StatsOutliersSchemaBase = z.object({
     .describe("IQR multiplier (default 1.5) or Z-score threshold (default 3)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Maximum rows to scan (default: 10000)"),
-  maxOutliers: z.coerce
-    .number()
-    .optional()
+  maxOutliers: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Maximum outliers to return (default: 50). Reduces payload for large datasets.",
     ),
@@ -40,9 +39,8 @@ export const StatsOutliersSchemaBase = z.object({
 export const StatsTopNSchemaBase = z.object({
   table: z.string().describe("Table name"),
   column: z.string().describe("Column to rank by"),
-  n: z.coerce
-    .number()
-    .optional()
+  n: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Number of top values (default: 10)"),
   orderDirection: z
     .enum(["asc", "desc"])
@@ -61,9 +59,8 @@ export const StatsDistinctSchemaBase = z.object({
   column: z.string().describe("Column to get distinct values from"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Maximum values to return (default: 100)"),
 });
 
@@ -72,9 +69,8 @@ export const StatsFrequencySchemaBase = z.object({
   column: z.string().describe("Column to count frequency"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Maximum frequency entries (default: 20)"),
 });
 

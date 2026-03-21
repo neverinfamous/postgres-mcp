@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { normalizeOptionalParams } from "./shared.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Input Schemas
@@ -26,7 +27,7 @@ export const KcacheQueryStatsSchemaBase = z.object({
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
-  minCalls: z.coerce.number().optional().describe("Minimum call count to include"),
+  minCalls: z.preprocess(coerceNumber, z.number().optional()).describe("Minimum call count to include"),
   queryPreviewLength: z
     .any()
     .optional()
@@ -118,7 +119,7 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .any()
     .optional()
     .describe("Maximum number of queries to return (default: 20)"),
-  minCalls: z.coerce.number().optional().describe("Minimum call count to include"),
+  minCalls: z.preprocess(coerceNumber, z.number().optional()).describe("Minimum call count to include"),
   queryPreviewLength: z
     .any()
     .optional()

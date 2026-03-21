@@ -9,6 +9,7 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { CapacityPlanningOutputSchema } from "../../schemas/index.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // pg_capacity_planning
@@ -20,11 +21,9 @@ export function createCapacityPlanningTool(
   // Schema with alias support and validation for non-negative days
   const CapacityPlanningSchema = z
     .object({
-      projectionDays: z.coerce
-        .number()
-        .optional()
+      projectionDays: z.preprocess(coerceNumber, z.number().optional())
         .describe("Days to project growth (default: 90)"),
-      days: z.coerce.number().optional().describe("Alias for projectionDays"),
+      days: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for projectionDays"),
     })
     .refine(
       (data) => {
@@ -46,11 +45,9 @@ export function createCapacityPlanningTool(
       "Analyze database growth trends and provide capacity planning forecasts. Note: Growth estimates are based on pg_stat_user_tables counters since last stats reset; accuracy depends on how long stats have been accumulating.",
     group: "monitoring",
     inputSchema: z.object({
-      projectionDays: z.coerce
-        .number()
-        .optional()
+      projectionDays: z.preprocess(coerceNumber, z.number().optional())
         .describe("Days to project growth (default: 90)"),
-      days: z.coerce.number().optional().describe("Alias for projectionDays"),
+      days: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for projectionDays"),
     }),
     outputSchema: CapacityPlanningOutputSchema,
     annotations: readOnly("Capacity Planning"),

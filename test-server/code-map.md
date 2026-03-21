@@ -400,7 +400,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | **Extension Tools** | citext, ltree, pgcrypto, kcache, partman, cron, PostGIS, pgvector — each requires extension installation. |
 | **Help Resources** | Slim `INSTRUCTIONS` (~600 chars) + on-demand `postgres://help` resources replace old 71KB monolith. `postgres://help/{group}` filtered by `--tool-filter`. |
 | **Barrel Re-exports** | Import from `./module/index.js` (with `.js` extension for ESM). |
-| **Input Coercion** | Numeric input fields use `z.preprocess(coerceNumber, z.number().optional())` for safe validation at parse time (not `z.any()` or `z.coerce.number()`). Migration from `z.coerce.number()` to `coerceNumber` in progress across non-JSONB groups. |
+| **Input Coercion** | All numeric input fields use `z.preprocess(coerceNumber, z.number().optional())` for safe validation at parse time. Zero `z.coerce.number()` remaining — fully migrated across 29 source files (15 schema + 14 handler). |
 
 ---
 

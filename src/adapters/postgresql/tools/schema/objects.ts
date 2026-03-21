@@ -15,6 +15,7 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 import {
   CreateSchemaSchemaBase,
   CreateSchemaSchema,
@@ -182,9 +183,8 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
 const ListSequencesSchema = z
   .object({
     schema: z.string().optional(),
-    limit: z.coerce
-      .number()
-      .optional()
+    limit: z
+      .preprocess(coerceNumber, z.number().optional())
       .describe(
         "Maximum number of sequences to return (default: 50). Use 0 for all.",
       ),

@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Input Schemas
@@ -322,7 +323,7 @@ export const MigrationApplySchema = MigrationRecordParseSchema;
  * pg_migration_rollback input
  */
 export const MigrationRollbackSchemaBase = z.object({
-  id: z.coerce.number().optional().describe("Migration ID to roll back"),
+  id: z.preprocess(coerceNumber, z.number().optional()).describe("Migration ID to roll back"),
   version: z
     .string()
     .optional()
@@ -346,8 +347,8 @@ export const MigrationHistorySchemaBase = z.object({
     .optional()
     .describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
-  limit: z.coerce.number().optional().describe("Maximum records to return (default: 50)"),
-  offset: z.coerce.number().optional().describe("Offset for pagination (default: 0)"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum records to return (default: 50)"),
+  offset: z.preprocess(coerceNumber, z.number().optional()).describe("Offset for pagination (default: 0)"),
 });
 
 // Internal parse schema — coerces limit/offset types to prevent Zod leaks
@@ -355,8 +356,8 @@ export const MigrationHistorySchema = z
   .object({
     status: z.enum(["applied", "recorded", "rolled_back", "failed"]).optional(),
     sourceSystem: z.string().optional(),
-    limit: z.coerce.number().optional(),
-    offset: z.coerce.number().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+    offset: z.preprocess(coerceNumber, z.number().optional()),
   })
   .default({});
 

@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Validates that an array contains only finite numbers (rejects Infinity, -Infinity, NaN).
@@ -97,11 +98,9 @@ export const VectorCreateIndexSchemaBase = z.object({
     .boolean()
     .optional()
     .describe("Skip if index already exists (default: false)"),
-  lists: z.coerce.number().optional().describe("Number of lists for IVFFlat"),
-  m: z.coerce.number().optional().describe("HNSW m parameter"),
-  efConstruction: z.coerce
-    .number()
-    .optional()
+  lists: z.preprocess(coerceNumber, z.number().optional()).describe("Number of lists for IVFFlat"),
+  m: z.preprocess(coerceNumber, z.number().optional()).describe("HNSW m parameter"),
+  efConstruction: z.preprocess(coerceNumber, z.number().optional())
     .describe("HNSW ef_construction parameter"),
   schema: z.string().optional().describe("Database schema (default: public)"),
 });

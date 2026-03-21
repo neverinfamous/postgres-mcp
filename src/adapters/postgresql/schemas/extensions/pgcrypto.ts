@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Input Schemas
@@ -130,9 +131,8 @@ export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
  * Base schema for MCP visibility — shows all parameters with relaxed validation.
  */
 export const PgcryptoRandomBytesSchemaBase = z.object({
-  length: z.coerce
-    .number()
-    .optional()
+  length: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Number of random bytes to generate (1-1024)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
 });
@@ -160,9 +160,8 @@ export const PgcryptoGenSaltSchemaBase = z.object({
     .string()
     .optional()
     .describe("Salt type: bf (bcrypt, recommended), md5, xdes, or des"),
-  iterations: z.coerce
-    .number()
-    .optional()
+  iterations: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
 });
 

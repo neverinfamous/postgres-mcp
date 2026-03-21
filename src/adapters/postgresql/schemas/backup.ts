@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
+import { coerceNumber } from "../../../utils/query-helpers.js";
 
 /**
  * Base schema for MCP visibility (shows all parameters in JSON Schema).
@@ -30,9 +31,8 @@ export const CopyExportSchemaBase = z.object({
     .describe("Output format (default: csv)"),
   header: z.boolean().optional().describe("Include header row (default: true)"),
   delimiter: z.string().optional().describe("Field delimiter"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Maximum number of rows to export (default: 500 to prevent large payloads). Use 0 for all rows",
     ),

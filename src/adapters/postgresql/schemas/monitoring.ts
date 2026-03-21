@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
+import { coerceNumber } from "../../../utils/query-helpers.js";
 
 // Helper to handle undefined params (allows tools to be called without {})
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
@@ -25,7 +26,7 @@ export const DatabaseSizeSchema = z.preprocess(
 
 export const TableSizesSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
-  limit: z.coerce.number().optional().describe("Max tables to return"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max tables to return"),
 });
 
 export const TableSizesSchema = z.preprocess(
@@ -46,9 +47,7 @@ export const ShowSettingsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Alias for pattern - setting name or pattern"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z.preprocess(coerceNumber, z.number().optional())
     .describe("Max settings to return (default: 50 when no pattern specified)"),
 });
 

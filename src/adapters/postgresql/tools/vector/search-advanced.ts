@@ -22,6 +22,7 @@ import {
   HybridSearchOutputSchema,
   VectorPerformanceOutputSchema,
 } from "../../schemas/index.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export function createHybridSearchTool(
   adapter: PostgresAdapter,
@@ -35,11 +36,9 @@ export function createHybridSearchTool(
     textColumn: z.string().describe("Text column for FTS"),
     vector: z.array(z.number()).describe("Query vector"),
     textQuery: z.string().describe("Text search query"),
-    vectorWeight: z.coerce
-      .number()
-      .optional()
+    vectorWeight: z.preprocess(coerceNumber, z.number().optional())
       .describe("Weight for vector score (0-1, default: 0.5)"),
-    limit: z.coerce.number().optional().describe("Max results"),
+    limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max results"),
     select: z
       .array(z.string())
       .optional()

@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { coerceNumber } from "../../../utils/query-helpers.js";
 
 /**
  * Helper type for raw cron input with common aliases
@@ -268,12 +269,12 @@ export const CronAlterJobSchema = z
   );
 
 export const CronJobRunDetailsSchemaBase = z.object({
-  jobId: z.coerce.number().optional().describe("Filter by job ID"),
+  jobId: z.preprocess(coerceNumber, z.number().optional()).describe("Filter by job ID"),
   status: z
     .string()
     .optional()
     .describe("Filter by status (running, succeeded, failed)"),
-  limit: z.coerce.number().optional().describe("Maximum records to return (default: 50)"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum records to return (default: 50)"),
 });
 
 export const CronJobRunDetailsSchema = z
@@ -283,20 +284,16 @@ export const CronJobRunDetailsSchema = z
       .string()
       .optional()
       .describe("Filter by status (running, succeeded, failed)"),
-    limit: z.coerce
-      .number()
-      .optional()
+    limit: z.preprocess(coerceNumber, z.number().optional())
       .describe("Maximum records to return (default: 50)"),
   })
   .default({});
 
 export const CronCleanupHistorySchemaBase = z.object({
-  olderThanDays: z.coerce
-    .number()
-    .optional()
+  olderThanDays: z.preprocess(coerceNumber, z.number().optional())
     .describe("Delete records older than N days (default: 7)"),
-  days: z.coerce.number().optional().describe("Alias for olderThanDays"),
-  jobId: z.coerce.number().optional().describe("Clean up only for specific job"),
+  days: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for olderThanDays"),
+  jobId: z.preprocess(coerceNumber, z.number().optional()).describe("Clean up only for specific job"),
 });
 
 export const CronCleanupHistorySchema = z.preprocess(

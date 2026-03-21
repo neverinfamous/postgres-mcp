@@ -7,6 +7,7 @@
 import { z } from "zod";
 import { ErrorResponseFields } from "../error-response-fields.js";
 import { preprocessBasicStatsParams } from "./preprocessing.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Base Schemas (for MCP visibility)
@@ -22,9 +23,8 @@ export const StatsRowNumberSchemaBase = z.object({
     .describe("Columns to include in result"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Maximum rows to return (default: 100)"),
 });
 
@@ -42,9 +42,8 @@ export const StatsRankSchemaBase = z.object({
     .describe("Rank function type (default: rank)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Maximum rows to return (default: 100)"),
 });
 
@@ -55,9 +54,8 @@ export const StatsLagLeadSchemaBase = z.object({
   direction: z
     .enum(["lag", "lead"])
     .describe("LAG (previous row) or LEAD (next row)"),
-  offset: z.coerce
-    .number()
-    .optional()
+  offset: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Number of rows to look back/ahead (default: 1)"),
   defaultValue: z
     .string()
@@ -70,9 +68,8 @@ export const StatsLagLeadSchemaBase = z.object({
     .describe("Columns to include in result"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Maximum rows to return (default: 100)"),
 });
 
@@ -90,9 +87,8 @@ export const StatsRunningTotalSchemaBase = z.object({
     .describe("Columns to include in result"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Maximum rows to return (default: 100)"),
 });
 
@@ -100,8 +96,8 @@ export const StatsMovingAvgSchemaBase = z.object({
   table: z.string().describe("Table name"),
   column: z.string().describe("Numeric column to average"),
   orderBy: z.string().describe("Column(s) to order by"),
-  windowSize: z.coerce
-    .number()
+  windowSize: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Number of rows in the moving window"),
   partitionBy: z.string().optional().describe("Column(s) to partition by"),
   selectColumns: z
@@ -110,17 +106,16 @@ export const StatsMovingAvgSchemaBase = z.object({
     .describe("Columns to include in result"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Maximum rows to return (default: 100)"),
 });
 
 export const StatsNtileSchemaBase = z.object({
   table: z.string().describe("Table name"),
   orderBy: z.string().describe("Column(s) to order by"),
-  buckets: z.coerce
-    .number()
+  buckets: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Number of buckets (e.g., 4 for quartiles)"),
   partitionBy: z.string().optional().describe("Column(s) to partition by"),
   selectColumns: z
@@ -129,9 +124,8 @@ export const StatsNtileSchemaBase = z.object({
     .describe("Columns to include in result"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Maximum rows to return (default: 100)"),
 });
 

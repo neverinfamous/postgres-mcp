@@ -23,6 +23,7 @@ import {
   sanitizeIdentifier,
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
   return {
@@ -37,9 +38,8 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         .boolean()
         .optional()
         .describe("Include INSERT statements for table data"),
-      limit: z.coerce
-        .number()
-        .optional()
+      limit: z
+        .preprocess(coerceNumber, z.number().optional())
         .describe(
           "Maximum rows to include when includeData is true (default: 500, use 0 for all rows)",
         ),

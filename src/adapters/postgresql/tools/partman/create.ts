@@ -139,7 +139,7 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
         ];
 
         // premake is passed directly to pg_partman create_parent
-        // Guard against NaN from z.coerce.number("abc")
+        // Guard against NaN (coerceNumber returns undefined for invalid input)
         if (premake !== undefined && !isNaN(premake)) {
           args.push(`p_premake := ${String(premake)}`);
         }

@@ -15,6 +15,7 @@ import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { PartmanAnalyzeHealthOutputSchema } from "../../schemas/index.js";
 import { getPartmanSchema } from "./helpers.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Analyze partition health and provide recommendations
@@ -95,7 +96,7 @@ stale maintenance, and retention configuration.`,
             },
             z.object({
               parentTable: z.string().optional(),
-              limit: z.coerce.number().optional(),
+              limit: z.preprocess(coerceNumber, z.number().optional()),
             }),
           )
           .default({});

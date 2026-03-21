@@ -20,6 +20,7 @@ import {
   KcacheResetOutputSchema,
 } from "../../schemas/index.js";
 import { getKcacheColumnNames } from "./helpers.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Enable the pg_stat_kcache extension
@@ -161,10 +162,10 @@ Helps identify the root cause of performance issues - is the query computation-h
         const parsed = z
           .object({
             queryId: z.string().optional(),
-            threshold: z.coerce.number().optional(),
-            limit: z.coerce.number().optional(),
-            minCalls: z.coerce.number().optional(),
-            queryPreviewLength: z.coerce.number().optional(),
+            threshold: z.preprocess(coerceNumber, z.number().optional()),
+            limit: z.preprocess(coerceNumber, z.number().optional()),
+            minCalls: z.preprocess(coerceNumber, z.number().optional()),
+            queryPreviewLength: z.preprocess(coerceNumber, z.number().optional()),
           })
           .parse(params ?? {});
 

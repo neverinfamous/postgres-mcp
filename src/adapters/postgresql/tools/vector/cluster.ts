@@ -20,6 +20,7 @@ import {
 } from "../../../../utils/identifiers.js";
 import { checkTableAndColumn, truncateVector } from "./data.js";
 import { VectorClusterOutputSchema } from "../../schemas/index.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Parse a PostgreSQL vector string to a number array.
@@ -43,10 +44,10 @@ export function createVectorClusterTool(
     tableName: z.string().optional().describe("Alias for table"),
     column: z.string().optional().describe("Vector column"),
     col: z.string().optional().describe("Alias for column"),
-    k: z.coerce.number().optional().describe("Number of clusters"),
-    clusters: z.coerce.number().optional().describe("Alias for k (number of clusters)"),
-    iterations: z.coerce.number().optional().describe("Max iterations (default: 10)"),
-    sampleSize: z.coerce.number().optional().describe("Sample size for large tables"),
+    k: z.preprocess(coerceNumber, z.number().optional()).describe("Number of clusters"),
+    clusters: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for k (number of clusters)"),
+    iterations: z.preprocess(coerceNumber, z.number().optional()).describe("Max iterations (default: 10)"),
+    sampleSize: z.preprocess(coerceNumber, z.number().optional()).describe("Sample size for large tables"),
     schema: z.string().optional().describe("Database schema (default: public)"),
   });
 

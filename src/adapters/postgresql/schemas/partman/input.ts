@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Helper type for raw partman input with common aliases
@@ -261,7 +262,7 @@ export const PartmanPartitionDataSchemaBase = z.object({
     .any()
     .optional()
     .describe("Rows to move per batch (default: varies by function)"),
-  lockWaitSeconds: z.coerce.number().optional().describe("Lock wait timeout in seconds"),
+  lockWaitSeconds: z.preprocess(coerceNumber, z.number().optional()).describe("Lock wait timeout in seconds"),
 });
 
 export const PartmanPartitionDataSchema = z
@@ -311,7 +312,7 @@ export const PartmanUndoPartitionSchemaBase = z.object({
     .describe(
       "Target table for consolidated data. Must exist before calling. Alias: target. Required.",
     ),
-  batchSize: z.coerce.number().optional().describe("Rows to move per batch"),
+  batchSize: z.preprocess(coerceNumber, z.number().optional()).describe("Rows to move per batch"),
   keepTable: z
     .boolean()
     .optional()

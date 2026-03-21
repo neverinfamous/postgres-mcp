@@ -13,6 +13,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 import {
   CreateBackupPlanOutputSchema,
   RestoreCommandOutputSchema,
@@ -32,9 +33,7 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
         .enum(["hourly", "daily", "weekly"])
         .optional()
         .describe("Backup frequency (default: daily)"),
-      retention: z.coerce
-        .number()
-        .optional()
+      retention: z.preprocess(coerceNumber, z.number().optional())
         .describe("Number of backups to retain (default: 7)"),
     }),
     outputSchema: CreateBackupPlanOutputSchema,
@@ -45,7 +44,7 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
         // Parse params through schema to validate enum values
         const schema = z.object({
           frequency: z.enum(["hourly", "daily", "weekly"]).optional(),
-          retention: z.coerce.number().optional(),
+          retention: z.preprocess(coerceNumber, z.number().optional()),
         });
         const parsed = schema.parse(params);
         const freq = parsed.frequency ?? "daily";
@@ -218,7 +217,7 @@ export function createPhysicalBackupTool(
         .enum(["fast", "spread"])
         .optional()
         .describe("Checkpoint mode"),
-      compress: z.coerce.number().optional().describe("Compression level 0-9"),
+      compress: z.preprocess(coerceNumber, z.number().optional()).describe("Compression level 0-9"),
     }),
     outputSchema: PhysicalBackupOutputSchema,
     annotations: readOnly("Physical Backup"),
@@ -232,7 +231,7 @@ export function createPhysicalBackupTool(
               targetDir: z.string().optional(),
               format: z.enum(["plain", "tar"]).optional(),
               checkpoint: z.enum(["fast", "spread"]).optional(),
-              compress: z.coerce.number().optional(),
+              compress: z.preprocess(coerceNumber, z.number().optional()),
             });
             const parsed = schema.parse(params);
 

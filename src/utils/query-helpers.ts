@@ -18,7 +18,7 @@ export const DEFAULT_QUERY_LIMIT = 100;
  *
  * Usage: `z.preprocess(coerceNumber, z.number().optional())`
  */
-export function coerceNumber(val: unknown): unknown {
+export function coerceNumber(val: unknown, _ctx?: unknown): unknown {
   if (val === undefined || val === null) return undefined;
   if (typeof val === "number") return Number.isNaN(val) ? undefined : val;
   if (typeof val === "string") {

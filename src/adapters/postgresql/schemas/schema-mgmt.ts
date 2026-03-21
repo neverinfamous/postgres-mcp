@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
+import { coerceNumber } from "../../../utils/query-helpers.js";
 
 // Base schema for MCP visibility — name is optional so MCP framework
 // doesn't reject {} calls; handler validates via the full schema.
@@ -42,10 +43,10 @@ export const CreateSequenceSchemaBase = z.object({
   name: z.string().optional().describe("Sequence name"),
   sequenceName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
-  start: z.coerce.number().optional().describe("Start value"),
-  increment: z.coerce.number().optional().describe("Increment by (default: 1)"),
-  minValue: z.coerce.number().optional().describe("Minimum value"),
-  maxValue: z.coerce.number().optional().describe("Maximum value"),
+  start: z.preprocess(coerceNumber, z.number().optional()).describe("Start value"),
+  increment: z.preprocess(coerceNumber, z.number().optional()).describe("Increment by (default: 1)"),
+  minValue: z.preprocess(coerceNumber, z.number().optional()).describe("Minimum value"),
+  maxValue: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum value"),
   cache: z
     .any()
     .optional()

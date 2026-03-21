@@ -2275,7 +2275,7 @@ describe("pg_migration_rollback — uncovered branches", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should return error when id is NaN (caught by Zod validation)", async () => {
+  it("should return error when id is NaN (coerceNumber returns undefined)", async () => {
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
     const result = (await tool.handler({ id: NaN }, mockContext)) as {
       success: boolean;
@@ -2283,8 +2283,8 @@ describe("pg_migration_rollback — uncovered branches", () => {
     };
 
     expect(result.success).toBe(false);
-    // NaN is caught by Zod validation before reaching the handler's isNaN check
-    expect(result.error).toContain("Invalid input");
+    // coerceNumber converts NaN → undefined, so handler sees no id/version
+    expect(result.error).toContain("Either");
   });
 
   it("should return error when migration is already rolled back", async () => {

@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { normalizeOptionalParams } from "./shared.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Compare Schema
@@ -143,7 +144,7 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
     .string()
     .optional()
     .describe("Table name to filter (analyzes single table)"),
-  limit: z.coerce.number().optional().describe("Maximum number of candidates to return"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum number of candidates to return"),
   excludeSystemSchemas: z
     .boolean()
     .optional()

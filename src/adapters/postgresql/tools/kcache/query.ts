@@ -19,6 +19,7 @@ import {
   KcacheTopIoOutputSchema,
 } from "../../schemas/index.js";
 import { getKcacheColumnNames } from "./helpers.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Query stats with CPU/IO metrics joined from pg_stat_statements
@@ -39,10 +40,10 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
       try {
         const parsed = z
           .object({
-            limit: z.coerce.number().optional(),
+            limit: z.preprocess(coerceNumber, z.number().optional()),
             orderBy: z.string().optional(),
-            minCalls: z.coerce.number().optional(),
-            queryPreviewLength: z.coerce.number().optional(),
+            minCalls: z.preprocess(coerceNumber, z.number().optional()),
+            queryPreviewLength: z.preprocess(coerceNumber, z.number().optional()),
           })
           .parse(params ?? {});
 
@@ -186,8 +187,8 @@ in user CPU (application code) vs system CPU (kernel operations).`,
       try {
         const parsed = z
           .object({
-            limit: z.coerce.number().optional(),
-            queryPreviewLength: z.coerce.number().optional(),
+            limit: z.preprocess(coerceNumber, z.number().optional()),
+            queryPreviewLength: z.preprocess(coerceNumber, z.number().optional()),
           })
           .parse(params ?? {});
         const DEFAULT_LIMIT = 10;
@@ -300,8 +301,8 @@ which represent actual disk access (not just shared buffer hits).`,
         const parsed = z
           .object({
             type: z.string().optional(),
-            limit: z.coerce.number().optional(),
-            queryPreviewLength: z.coerce.number().optional(),
+            limit: z.preprocess(coerceNumber, z.number().optional()),
+            queryPreviewLength: z.preprocess(coerceNumber, z.number().optional()),
           })
           .parse(preprocessed);
 

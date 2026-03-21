@@ -9,6 +9,7 @@ import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "./core/error-helpers.js";
+import { coerceNumber } from "../../../utils/query-helpers.js";
 import {
   PgcryptoHashSchema,
   PgcryptoHashSchemaBase,
@@ -221,20 +222,16 @@ function createPgcryptoGenRandomUuidTool(
 ): ToolDefinition {
   // Base schema for MCP visibility (count parameter exposed to clients, relaxed)
   const GenUuidSchemaBase = z.object({
-    count: z.coerce
-      .number()
-      .optional()
+    count: z
+      .preprocess(coerceNumber, z.number().optional())
       .describe("Number of UUIDs to generate (default: 1, max: 100)"),
   });
 
   // Full schema with strict validation for handler parsing
   const GenUuidSchema = z
     .object({
-      count: z.coerce
-        .number()
-        .min(1)
-        .max(100)
-        .optional()
+      count: z
+        .preprocess(coerceNumber, z.number().min(1).max(100).optional())
         .describe("Number of UUIDs to generate (default: 1, max: 100)"),
     })
     .default({});

@@ -15,6 +15,7 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 import {
   CreateViewSchemaBase,
   CreateViewSchema,
@@ -33,15 +34,13 @@ import {
 const ListViewsSchema = z.object({
   schema: z.string().optional(),
   includeMaterialized: z.boolean().optional(),
-  truncateDefinition: z.coerce
-    .number()
-    .optional()
+  truncateDefinition: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Max length for view definitions (default: 500). Use 0 for no truncation.",
     ),
-  limit: z.coerce
-    .number()
-    .optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Maximum number of views to return (default: 50). Use 0 for all views.",
     ),
