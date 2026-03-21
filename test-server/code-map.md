@@ -44,7 +44,7 @@ src/
 ├── utils/
 │   ├── logger.ts                   # Logger class (structured JSON, severity filtering, SENSITIVE_KEY_LIST)
 │   ├── module-logger.ts            # ModuleLogger class (per-module logger wrapper)
-│   ├── query-helpers.ts            # coerceLimit(), buildLimitClause(), DEFAULT_QUERY_LIMIT, toStr()
+│   ├── query-helpers.ts            # coerceNumber(), coerceLimit(), buildLimitClause(), DEFAULT_QUERY_LIMIT, toStr()
 │   ├── identifiers.ts              # SQL identifier validation/sanitization
 │   ├── annotations.ts              # MCP tool annotation presets (READ_ONLY, WRITE, etc. with openWorldHint)
 │   ├── icons.ts                    # MCP icon definitions per tool group
@@ -378,7 +378,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | Connection pool | `src/pool/connection-pool.ts` | pg-native pool wrapper |
 | Logger | `src/utils/logger.ts` | Structured logging with severity filtering, `SENSITIVE_KEY_LIST` constant |
 | Module logger | `src/utils/module-logger.ts` | Per-module `ModuleLogger` class |
-| Query helpers | `src/utils/query-helpers.ts` | `coerceLimit()`, `buildLimitClause()`, `DEFAULT_QUERY_LIMIT`, `toStr()`, `SMALL_TABLE_THRESHOLD` |
+| Query helpers | `src/utils/query-helpers.ts` | `coerceNumber()`, `coerceLimit()`, `buildLimitClause()`, `DEFAULT_QUERY_LIMIT`, `toStr()`, `SMALL_TABLE_THRESHOLD` |
 | Identifiers | `src/utils/identifiers.ts` | SQL identifier validation/sanitization |
 | FTS config | `src/utils/fts-config.ts` | Full-text search configuration helpers |
 | Version SSoT | `src/utils/version.ts` | Reads from `package.json` at build time |
@@ -400,7 +400,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | **Extension Tools** | citext, ltree, pgcrypto, kcache, partman, cron, PostGIS, pgvector — each requires extension installation. |
 | **Help Resources** | Slim `INSTRUCTIONS` (~600 chars) + on-demand `postgres://help` resources replace old 71KB monolith. `postgres://help/{group}` filtered by `--tool-filter`. |
 | **Barrel Re-exports** | Import from `./module/index.js` (with `.js` extension for ESM). |
-| **Input Coercion** | Numeric input fields use `z.coerce.number()` for proper validation at parse time (not `z.any()`). |
+| **Input Coercion** | Numeric input fields use `z.preprocess(coerceNumber, z.number().optional())` for safe validation at parse time (not `z.any()` or `z.coerce.number()`). Migration from `z.coerce.number()` to `coerceNumber` in progress across non-JSONB groups. |
 
 ---
 
