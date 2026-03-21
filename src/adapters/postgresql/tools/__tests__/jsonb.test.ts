@@ -1255,17 +1255,21 @@ describe("jsonb/read.ts — uncovered branches", () => {
 
   const findTool = (name: string) => tools.find((t) => t.name === name);
 
-  // z.coerce.number() rejects non-numeric strings at schema level → validation error
-  it("pg_jsonb_extract should return validation error for non-numeric limit", async () => {
+  // coerceNumber converts non-numeric strings to undefined → default limit is used
+  it("pg_jsonb_extract should silently default non-numeric limit", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ extracted_value: "test" }],
+    });
+
     const tool = findTool("pg_jsonb_extract")!;
     const result = (await tool.handler(
       { table: "users", column: "data", path: "$.name", limit: "abc" },
       mockContext,
-    )) as { success: boolean; error: string };
+    )) as { rows: unknown[]; count: number };
 
-    // z.coerce.number() rejects "abc" → structured error
-    expect(result.success).toBe(false);
-    expect(result.error).toBeDefined();
+    // coerceNumber converts "abc" → undefined → default limit is used
+    expect(result.rows).toBeDefined();
+    expect(result.count).toBe(1);
   });
 
   it("pg_jsonb_extract should return error when table is missing", async () => {
@@ -1901,7 +1905,7 @@ describe("jsonb/transform.ts — uncovered branches", () => {
     expect(result.error).toContain("table");
   });
 
-  // transform.ts L310: normalize with invalid mode
+  // transform.ts L310: normalize with invalid mode (now handler-validated, not z.enum)
   it("pg_jsonb_normalize should error for invalid mode", async () => {
     const tool = findTool("pg_jsonb_normalize")!;
     const result = (await tool.handler(
@@ -1909,7 +1913,7 @@ describe("jsonb/transform.ts — uncovered branches", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain("Invalid option");
+    expect(result.error).toContain("Invalid mode");
   });
 
   // transform.ts L155: deepMerge recursive on nested objects

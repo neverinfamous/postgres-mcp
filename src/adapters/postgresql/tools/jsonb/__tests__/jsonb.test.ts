@@ -1204,21 +1204,41 @@ describe("JSONB Validation and Error Paths", () => {
   });
 
   describe("wrong-type numeric param coercion", () => {
-    it("pg_jsonb_stats should return validation error for non-numeric sampleSize", async () => {
+    it("pg_jsonb_stats should silently default non-numeric sampleSize", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_stats")!;
+      // Mock the adapter calls that pg_jsonb_stats makes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [
+          {
+            total_rows: 10,
+            non_null_count: 10,
+            avg_size_bytes: 50,
+            max_size_bytes: 100,
+          },
+        ],
+      });
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // keys
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ type: "object", count: 10 }],
+      }); // type distribution
+
       const result = (await tool.handler(
         { table: "users", column: "metadata", sampleSize: "abc" },
         mockContext,
       )) as Record<string, unknown>;
 
-      // z.coerce.number() rejects "abc" at schema level → structured error
+      // coerceNumber converts "abc" → undefined → default sampleSize is used
       expect(result).toBeDefined();
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(result.success).not.toBe(false);
     });
 
-    it("pg_jsonb_contains should return validation error for non-numeric limit", async () => {
+    it("pg_jsonb_contains should silently default non-numeric limit", async () => {
       const tool = tools.find((t) => t.name === "pg_jsonb_contains")!;
+      // Mock the adapter call that pg_jsonb_contains makes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ id: 1 }],
+      });
+
       const result = (await tool.handler(
         {
           table: "users",
@@ -1229,10 +1249,9 @@ describe("JSONB Validation and Error Paths", () => {
         mockContext,
       )) as Record<string, unknown>;
 
-      // z.coerce.number() rejects "abc" at schema level → structured error
+      // coerceNumber converts "abc" → undefined → default limit is used
       expect(result).toBeDefined();
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      expect(result.success).not.toBe(false);
     });
   });
 });

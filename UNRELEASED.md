@@ -102,7 +102,7 @@
   - `pg_write_query` / `pg_upsert` / `pg_batch_insert`: Removed duplicate count aliases (`affectedRows`, `insertedCount`, `rowCount`), keep `rowsAffected` as canonical field
 - **npm package slimming**: Added `!dist/**/*.map` and `!dist/__tests__` to `package.json` `files`, excluding 578 source map files (1.65 MB) and compiled test support from the npm package. Docker images unaffected (`.dockerignore` already excludes `dist/`).
 - **Bench file exclusion**: Added `**/*.bench.ts` to `tsconfig.json` `exclude`, preventing 52 benchmark files (139 KB) from compiling into `dist/`
-- **Lazy help content**: Converted eagerly-allocated `HELP_CONTENT` Map (76 KB) in `server-instructions.ts` to lazy-initialized `getHelpContent()` — only built on first access during `registerHelpResources()`
+- **Safe numeric coercion**: Added `coerceNumber()` utility in `query-helpers.ts` for `z.preprocess()` in SchemaBase definitions — converts non-numeric values to `undefined` instead of `NaN`, allowing `.optional()` defaults to take effect instead of triggering raw MCP `-32602` errors at the SDK boundary
 - **Prebuild clean**: Added `prebuild` script (`node -e "require('fs').rmSync('dist',{recursive:true,force:true})"`) to `package.json`, preventing stale compiled output from persisting across file renames
 - **Logger dedup**: Consolidated duplicated 23-item sensitive-key list in `logger.ts` into a single `SENSITIVE_KEY_LIST` constant, deriving both the `Set` and `RegExp` from it
 - **ModuleLogger extraction**: Moved `ModuleLogger` class from `logger.ts` (513→~440 lines) to `module-logger.ts`
@@ -112,7 +112,7 @@
 - **Schema helper extraction**: Extracted `extractSchemaFromDottedName()` in `schema-mgmt.ts` to DRY 4 preprocessing functions
 - **Output schema typing**: Replaced `z.any()` / `z.array(z.any())` with `z.record(z.string(), z.unknown())` / `z.array(z.record(...))` in 3 performance tool output schemas
 - **ZodError catch dedup**: Removed 33 redundant `if (error instanceof ZodError)` catch blocks across 13 tool files — centralized `formatHandlerErrorResponse` already handles ZodError
-- **Input schema coercion**: Replaced 40 `z.any().optional()` input fields with `z.coerce.number().optional()` across 13 schema/tool files for proper numeric validation at parse time. Removed redundant handler-side `Number()` wrappers.
+- **Input schema coercion**: Replaced 40 `z.any().optional()` input fields with `z.preprocess(coerceNumber, z.number().optional())` across 13 schema/tool files for proper numeric validation at parse time. Uses `coerceNumber()` to safely convert non-numeric inputs to `undefined` (handler defaults apply) instead of `z.coerce.number()` which produces `NaN` and triggers raw MCP errors. Removed redundant handler-side `Number()` wrappers.
 - **Residual `z.any()` cleanup**: Replaced 5 remaining `z.any()` fields with `z.coerce.number()` in `cron.ts` (limit, olderThanDays), `views.ts` (truncateDefinition, limit), and `objects.ts` (limit)
 - **Raw param cast removal**: Replaced 5 `(params ?? {}) as` raw casts with proper Zod `.parse()` in `catalog.ts` (pg_list_triggers, pg_list_constraints), `views.ts` (pg_list_views), `objects.ts` (pg_list_sequences), and `monitoring.ts` (pg_locks)
 - **Stale comment cleanup**: Updated 2 comments that incorrectly referenced `z.any()` after prior refactoring in `catalog.ts` and `cron.ts`

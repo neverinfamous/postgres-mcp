@@ -9,6 +9,26 @@
 export const DEFAULT_QUERY_LIMIT = 100;
 
 /**
+ * Safe numeric coercion for z.preprocess() in SchemaBase definitions.
+ *
+ * z.coerce.number() converts "abc" → NaN, which Zod rejects at the SDK
+ * boundary with a raw MCP -32602 error before the handler's try/catch.
+ * This helper converts non-numeric values to undefined so the
+ * .optional() chain kicks in and the handler receives undefined instead.
+ *
+ * Usage: `z.preprocess(coerceNumber, z.number().optional())`
+ */
+export function coerceNumber(val: unknown): unknown {
+  if (val === undefined || val === null) return undefined;
+  if (typeof val === "number") return Number.isNaN(val) ? undefined : val;
+  if (typeof val === "string") {
+    const n = Number(val);
+    return Number.isNaN(n) ? undefined : n;
+  }
+  return undefined;
+}
+
+/**
  * Row-count threshold below which index recommendations are suppressed.
  * Used by resource handlers (vector, postgis) to skip index suggestions
  * on tables too small to benefit from them.

@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "../error-response-fields.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 import { preprocessJsonbParams } from "./utils.js";
 
 // =============================================================================
@@ -23,10 +24,10 @@ export const JsonbPrettySchemaBase = z.object({
   col: z.string().optional().describe("JSONB column name (alias for column)"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.coerce
-    .number()
-    .optional()
-    .describe("Maximum rows to format (default: 10)"),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Maximum rows to format (default: 10)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 

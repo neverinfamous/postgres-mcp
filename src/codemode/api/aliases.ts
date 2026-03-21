@@ -46,6 +46,7 @@ export const TOP_LEVEL_ALIASES: readonly {
     methodName: "securityScan",
   },
   { group: "jsonb", bindingName: "jsonbStats", methodName: "stats" },
+  { group: "jsonb", bindingName: "jsonbPretty", methodName: "pretty" },
   // text
   { group: "text", bindingName: "textSearch", methodName: "search" },
   { group: "text", bindingName: "textRank", methodName: "rank" },

@@ -193,7 +193,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
 ### After Testing
 
 1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed
-2. **Triage findings**: If issues or potential optimizations were found, create an implementation plan consistent with the architecture, other tools, etc. If the plan requires no user decisions, proceed directly to implementation
+2. **Triage findings**: If issues or potential optimizations were found, create an implementation plan consistent with the architecture, other tools, etc. If the plan requires no user decisions, proceed directly to implementation. Make sure fixes comply with `adamic\skills\mcp-builder` and use `code-map.md` as a source of truth for repairs.
 3. **Scope of fixes** includes corrections to any of:
    - Handler code
    - `server-instructions.md`
@@ -205,38 +205,6 @@ DROP TABLE IF EXISTS temp_my_test_table;
 4. **Validate**: Run test suite and fix broken tests, run lint + typecheck and fix issues, update changelog (no duplicate headers)
 5. **Commit**: Stage and commit all changes — do NOT push
 6. **Live re-test**: Test fixes with direct MCP tool calls. I will have already rebuilt and restarted the server.
-7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live MCP re-testing confirms fixes are working. If the test prompt/database can be improved, make the improvements.
-
----
-
-## Troubleshooting
-
-### Database is locked / connection refused
-
-1. Ensure postgres container is running: `docker ps | grep postgres-mcp`
-2. Start if needed: `docker start postgres-mcp`
-3. Check port binding: `docker port postgres-mcp` → should show `5432/tcp`
-
-### Reset script fails
-
-1. Run with `-Verbose` to see detailed output
-2. Try manual reset: `Get-Content .\test-server\test-database.sql -Raw | docker exec -i postgres-mcp psql -U postgres testdb`
-3. If tables have dependencies, reset drops `CASCADE`
-
-### Extension-dependent tools fail
-
-Some tools require PostgreSQL extensions that may not be installed in all environments:
-
-| Extension | Required For | Check |
-|---|---|---|
-| `pgvector` | Vector tools | `SELECT * FROM pg_available_extensions WHERE name = 'vector'` |
-| `pg_trgm` | Text similarity | `SELECT * FROM pg_available_extensions WHERE name = 'pg_trgm'` |
-| `postgis` | Spatial/PostGIS tools | `SELECT * FROM pg_available_extensions WHERE name = 'postgis'` |
-| `pg_stat_statements` | Performance resource | `SELECT * FROM pg_available_extensions WHERE name = 'pg_stat_statements'` |
-| `pg_cron` | Cron resource | `SELECT * FROM pg_available_extensions WHERE name = 'pg_cron'` |
-
-### Spatial functions return "unknown SRID"
-
-Ensure PostGIS is installed and the spatial_ref_sys table is populated: `SELECT COUNT(*) FROM spatial_ref_sys;`
+7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live MCP re-testing confirms fixes are working. If the test prompt/database or server instructions can be improved, make the improvements.
 
 ---

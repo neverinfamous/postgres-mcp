@@ -12,7 +12,7 @@ import type { ToolFilterConfig } from "../types/index.js";
 import { TOOL_GROUPS, parseToolFilter } from "../filtering/tool-filter.js";
 import type { ToolGroup } from "../types/index.js";
 import { logger } from "../utils/logger.js";
-import { INSTRUCTIONS, getHelpContent } from "../constants/server-instructions.js";
+import { INSTRUCTIONS, HELP_CONTENT } from "../constants/server-instructions.js";
 
 export interface ServerConfig {
   name: string;
@@ -101,7 +101,7 @@ export class PostgresMcpServer {
       }
     }
 
-    const helpContent = getHelpContent();
+    const helpContent = HELP_CONTENT;
 
     // Always register postgres://help (gotchas + response structures + Code Mode API)
     const gotchasContent = helpContent.get("gotchas");

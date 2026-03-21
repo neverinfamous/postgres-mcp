@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 import { preprocessJsonbParams } from "./utils.js";
 import { ErrorResponseFields } from "../error-response-fields.js";
 
@@ -18,10 +19,10 @@ export const JsonbNormalizeSchemaBase = z.object({
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
   mode: z
-    .enum(["keys", "array", "pairs", "flatten"])
+    .string()
     .optional()
     .describe(
-      "keys: text values (all converted to string). pairs: JSONB types preserved. array: for arrays. flatten: recursive.",
+      "keys: text values (all converted to string). pairs: JSONB types preserved. array: for arrays. flatten: recursive. Valid values: keys, array, pairs, flatten.",
     ),
   where: z.string().optional().describe("WHERE clause"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
@@ -55,7 +56,7 @@ export const JsonbStatsSchemaBase = z.object({
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
-  sampleSize: z.coerce.number().optional().describe("Sample rows to analyze"),
+  sampleSize: z.preprocess(coerceNumber, z.number().optional()).describe("Sample rows to analyze"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z
     .string()
@@ -89,7 +90,7 @@ export const JsonbIndexSuggestSchemaBase = z.object({
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
-  sampleSize: z.coerce.number().optional().describe("Sample rows to analyze"),
+  sampleSize: z.preprocess(coerceNumber, z.number().optional()).describe("Sample rows to analyze"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z
     .string()
@@ -119,7 +120,7 @@ export const JsonbSecurityScanSchemaBase = z.object({
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
-  sampleSize: z.coerce.number().optional().describe("Sample rows to scan"),
+  sampleSize: z.preprocess(coerceNumber, z.number().optional()).describe("Sample rows to scan"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z
     .string()

@@ -66,13 +66,16 @@ test.describe("E2E Tool Execution (via MCP SDK Client)", () => {
         expect(response.content[0].type).toBe("text");
         const errorText = (response.content[0] as any).text as string;
         expect(errorText.toLowerCase()).toContain("required");
-        expect(errorText).toContain('"success": false');
+        expect(errorText).toMatch(/"success":\s*false/);
       }
     } catch (error: unknown) {
-      // SDK may throw McpError -32602 when structuredContent doesn't match
-      // the tool's outputSchema — this also proves the server rejected the input
+      // SDK may throw McpError when structuredContent doesn't match the
+      // tool's outputSchema, or propagate the structured error payload.
+      // Either way, the server correctly rejected the invalid input.
       const message = error instanceof Error ? error.message : String(error);
-      expect(message).toMatch(/output schema|structured content/i);
+      expect(message).toMatch(
+        /output schema|structured content|"success":\s*false|VALIDATION_ERROR/i,
+      );
     }
   });
 });
