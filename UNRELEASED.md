@@ -93,6 +93,7 @@
   - `pg_object_details` — `type`/`objectType` params (handler-side validation against 7 valid detail types)
 - **`pg_analyze_workload_indexes` raw error leak**: Wrapped handler in `try/catch` with `formatHandlerErrorResponse()` — previously had no error boundary, causing raw throws (e.g., `LIMIT must not be negative`) instead of structured `{success: false, error: ...}` responses. Also converted `throw new Error()` for missing `pg_stat_statements` to a structured return with `code: "EXTENSION_MISSING"`, and added handler-side `topQueries >= 0` validation
 - **`pg_transaction_execute` wrong-type leak**: Changed `statements` in `TransactionExecuteSchemaBase` from `z.array(z.unknown())` to `z.unknown()` so passing a non-array type (e.g., a string) returns a structured handler error instead of a raw MCP `-32602` Zod validation error. Strict array validation still occurs inside the handler's `try/catch` via `TransactionExecuteValidationSchema`.
+- **`pg_jsonb_diff` wrong-type leak**: Changed `doc1`/`doc2` in `JsonbDiffSchemaBase` from `z.record(z.string(), z.unknown())` to `z.unknown()` so passing non-object types (arrays, primitives) returns a structured handler error instead of a raw MCP `-32602` Zod validation error. Object validation still occurs inside the handler via `JsonbDiffSchema.parse()`.
 
 ### Changed (Audit)
 - **Core tool payload optimization**: Reduced token waste ~30-41% across core tool responses:

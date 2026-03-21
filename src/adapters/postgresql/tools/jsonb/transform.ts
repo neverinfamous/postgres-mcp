@@ -435,14 +435,15 @@ export function createJsonbNormalizeTool(
  * Note: Uses jsonb_each() which requires object inputs, not arrays or primitives
  */
 // Schema for pg_jsonb_diff - requires objects (not arrays or primitives)
-// Base schema for MCP visibility (optional params to avoid MCP framework Zod rejection)
+// Base schema for MCP visibility — z.unknown() to avoid SDK-level Zod rejection
+// of non-object types (arrays, primitives). Handler validates internally.
 const JsonbDiffSchemaBase = z.object({
   doc1: z
-    .record(z.string(), z.unknown())
+    .unknown()
     .optional()
     .describe("First JSONB object to compare"),
   doc2: z
-    .record(z.string(), z.unknown())
+    .unknown()
     .optional()
     .describe("Second JSONB object to compare"),
 });
