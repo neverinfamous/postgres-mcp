@@ -133,7 +133,7 @@ export const ExecuteInTransactionSchema =
 // z.string() for isolationLevel so invalid values reach the handler's try/catch.
 export const TransactionExecuteSchemaBase = z.object({
   statements: z
-    .array(z.unknown())
+    .unknown()
     .optional()
     .describe(
       'Statements to execute atomically. Each must be an object with {sql: "..."} format.',
