@@ -27,6 +27,7 @@
   - `payloads-transactions.spec.ts` (3 tests) — savepoint lifecycle, rollback verification, transaction status
   - `payloads-convenience.spec.ts` (6 tests) — `pg_batch_insert`, `pg_upsert`, `pg_exists`, `pg_list_objects`, `pg_object_details`
   - `codemode-groups-extended.spec.ts` (4 tests) — transactions, backup, partitioning groups via Code Mode
+  - `oauth-scopes.spec.ts` (3 tests) — OAuth 2.1 scope enforcement via mock JWKS + RS256 JWTs (read/write/admin hierarchy)
   - `payloads-performance.spec.ts` (+4) — `pg_vacuum_stats`, `pg_locks`, `pg_unused_indexes`, `pg_diagnose_database_performance`
   - `payloads-schema.spec.ts` (+4) — `pg_list_sequences`, `pg_list_triggers`, `pg_topological_sort`, `pg_schema_snapshot`
 - **Test Helpers Enhancement**: Added `getBaseURL()`, `callToolRaw()`, `expectHandlerError()`, `startServer()`, `stopServer()` to `tests/e2e/helpers.ts`. `createClient()` now accepts optional `baseURL` parameter with retry logic.
