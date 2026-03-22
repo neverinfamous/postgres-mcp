@@ -85,6 +85,7 @@ src/
 │
 ├── codemode/                       # Code Mode sandbox (secure JS execution)
 │   ├── sandbox.ts                  # SandboxPool lifecycle manager
+│   ├── auto-return.ts              # Last-expression auto-return transform (IIFE helper)
 │   ├── security.ts                 # Code validation (blocked patterns, injection prevention)
 │   ├── types.ts                    # Sandbox TypeScript types (SecurityConfig, rateLimitWindowMs, resultPreviewLength)
 │   ├── index.ts                    # Barrel
