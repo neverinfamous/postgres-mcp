@@ -367,6 +367,7 @@ export const AuditListBackupsOutputSchema = z.object({
         type: z.enum(["ddl", "ddl+data"]).describe("Snapshot type"),
         requestId: z.string().describe("Audit request ID"),
         sizeBytes: z.number().describe("Snapshot file size"),
+        filename: z.string().optional().describe("Snapshot filename for restore/diff"),
       }),
     )
     .optional()

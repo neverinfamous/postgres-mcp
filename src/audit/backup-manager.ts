@@ -150,7 +150,7 @@ export class BackupManager {
         try {
           const content = await readFile(join(this.snapshotDir, file), "utf-8");
           const parsed = JSON.parse(content) as SnapshotContent;
-          snapshots.push(parsed.metadata);
+          snapshots.push({ ...parsed.metadata, filename: file });
         } catch {
           // Skip corrupt snapshot files
         }

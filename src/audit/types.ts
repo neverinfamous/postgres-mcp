@@ -105,6 +105,9 @@ export interface SnapshotMetadata {
 
   /** Size of snapshot file in bytes */
   sizeBytes: number;
+
+  /** Snapshot filename (populated by listSnapshots for getSnapshot lookup) */
+  filename?: string;
 }
 
 /** Stored snapshot file content */
