@@ -7,14 +7,14 @@
  */
 
 import { TOOL_GROUPS } from "../filtering/tool-constants.js";
-import { TOOL_GROUP_SCOPES } from "./scopes.js";
+import { TOOL_GROUP_SCOPES, TOOL_SCOPE_OVERRIDES } from "./scopes.js";
 import type { StandardScope } from "./scopes.js";
 import type { ToolGroup } from "../types/index.js";
 
 /**
  * Map from tool name to required minimum scope.
  * Built by inverting TOOL_GROUPS (group → tools[]) and
- * TOOL_GROUP_SCOPES (group → scope).
+ * TOOL_GROUP_SCOPES (group → scope), then applying per-tool overrides.
  */
 const toolScopeMap = new Map<string, StandardScope>();
 
@@ -25,6 +25,13 @@ for (const [group, tools] of Object.entries(TOOL_GROUPS)) {
     for (const toolName of tools) {
       toolScopeMap.set(toolName, scope);
     }
+  }
+}
+
+// Apply per-tool overrides (e.g., core write/destructive tools)
+for (const [toolName, scope] of Object.entries(TOOL_SCOPE_OVERRIDES)) {
+  if (scope) {
+    toolScopeMap.set(toolName, scope);
   }
 }
 

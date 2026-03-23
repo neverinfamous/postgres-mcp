@@ -102,6 +102,31 @@ export const TOOL_GROUP_SCOPES: Record<ToolGroup, StandardScope> = {
   codemode: SCOPES.ADMIN,
 };
 
+/**
+ * Per-tool scope overrides.
+ *
+ * The group-level mapping above is the default. These overrides raise
+ * individual tools to the correct scope when the group default is too
+ * permissive — most notably the `core` group, which contains both
+ * read-only and destructive tools.
+ *
+ * BREAKING CHANGE: OAuth users with only `read` scope will lose access
+ * to write/destructive core tools. They need `write` or `admin` scope.
+ */
+export const TOOL_SCOPE_OVERRIDES: Partial<Record<string, StandardScope>> = {
+  // Core group — write operations
+  pg_write_query: SCOPES.WRITE,
+  pg_create_table: SCOPES.WRITE,
+  pg_create_index: SCOPES.WRITE,
+  pg_upsert: SCOPES.WRITE,
+  pg_batch_insert: SCOPES.WRITE,
+
+  // Core group — destructive operations
+  pg_drop_table: SCOPES.ADMIN,
+  pg_drop_index: SCOPES.ADMIN,
+  pg_truncate: SCOPES.ADMIN,
+};
+
 // =============================================================================
 // Scope Utilities
 // =============================================================================
