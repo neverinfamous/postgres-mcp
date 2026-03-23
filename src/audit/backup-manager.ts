@@ -4,7 +4,12 @@
  * Pre-mutation snapshot capture for the audit trail.
  * Creates DDL snapshots (+ optional data) of database objects
  * before write/admin tools modify them. Snapshots are stored
- * as JSON files in a `snapshots/` directory alongside the audit log.
+ * as gzip-compressed JSON files in a `snapshots/` directory
+ * alongside the audit log.
+ *
+ * §3: Captures row_count + total_size_bytes from pg_class at snapshot time
+ *     for semantic diffing (volume drift detection).
+ * §4: Gzip compression, size-bounded data capture, and async fire-and-forget writes.
  *
  * Non-throwing by design: snapshot failures log to stderr
  * but never block tool execution.
@@ -12,6 +17,7 @@
 
 import { writeFile, readFile, readdir, mkdir, stat, unlink } from "node:fs/promises";
 import { join, dirname, basename } from "node:path";
+import { gzipSync, gunzipSync } from "node:zlib";
 import type {
   BackupConfig,
   SnapshotMetadata,
@@ -51,11 +57,17 @@ const SNAPSHOT_TOOL_ARGS: Record<string, { targetKey: string; schemaKey?: string
   pg_migration_rollback: { targetKey: "id" },
 };
 
-/** File extension for snapshot files */
-const SNAPSHOT_EXT = ".snapshot.json";
+/** File extension for compressed snapshot files */
+const SNAPSHOT_EXT = ".snapshot.json.gz";
+
+/** Legacy uncompressed extension for backward compatibility */
+const SNAPSHOT_EXT_LEGACY = ".snapshot.json";
 
 /** How many data rows to include in snapshot samples */
 const MAX_SAMPLE_ROWS = 100;
+
+/** Default max data size for snapshot data capture (50 MB) */
+const DEFAULT_MAX_DATA_SIZE_BYTES = 50 * 1024 * 1024;
 
 /**
  * Interface for database queries needed by the backup manager.
@@ -74,6 +86,7 @@ export class BackupManager {
   readonly config: BackupConfig;
   private readonly snapshotDir: string;
   private dirEnsured = false;
+  private readonly pendingWrites = new Set<Promise<void>>();
 
   constructor(config: BackupConfig, auditLogPath: string) {
     this.config = config;
@@ -146,11 +159,12 @@ export class BackupManager {
       const snapshots: SnapshotMetadata[] = [];
 
       for (const file of files) {
-        if (!file.endsWith(SNAPSHOT_EXT)) continue;
+        if (!file.endsWith(SNAPSHOT_EXT) && !file.endsWith(SNAPSHOT_EXT_LEGACY)) continue;
         try {
-          const content = await readFile(join(this.snapshotDir, file), "utf-8");
-          const parsed = JSON.parse(content) as SnapshotContent;
-          snapshots.push({ ...parsed.metadata, filename: file });
+          const parsed = await this.readSnapshotFile(file);
+          if (parsed) {
+            snapshots.push({ ...parsed.metadata, filename: file });
+          }
         } catch {
           // Skip corrupt snapshot files
         }
@@ -171,8 +185,7 @@ export class BackupManager {
     try {
       // Sanitize: only allow the basename to prevent path traversal
       const safe = basename(filename);
-      const content = await readFile(join(this.snapshotDir, safe), "utf-8");
-      return JSON.parse(content) as SnapshotContent;
+      return await this.readSnapshotFile(safe);
     } catch {
       return null;
     }
@@ -186,7 +199,9 @@ export class BackupManager {
 
     try {
       const files = await readdir(this.snapshotDir);
-      const snapshotFiles = files.filter((f) => f.endsWith(SNAPSHOT_EXT));
+      const snapshotFiles = files.filter(
+        (f) => f.endsWith(SNAPSHOT_EXT) || f.endsWith(SNAPSHOT_EXT_LEGACY),
+      );
 
       if (snapshotFiles.length === 0) return 0;
 
@@ -237,10 +252,22 @@ export class BackupManager {
   /**
    * Get backup stats for the audit resource.
    */
+  /**
+   * Flush all pending async snapshot writes.
+   * Call during graceful shutdown to ensure all snapshots are persisted.
+   */
+  async flush(): Promise<void> {
+    if (this.pendingWrites.size > 0) {
+      await Promise.allSettled(this.pendingWrites);
+    }
+  }
+
   async getStats(): Promise<{ count: number; oldestAge?: string; totalSizeKB: number }> {
     try {
       const files = await readdir(this.snapshotDir);
-      const snapshotFiles = files.filter((f) => f.endsWith(SNAPSHOT_EXT));
+      const snapshotFiles = files.filter(
+        (f) => f.endsWith(SNAPSHOT_EXT) || f.endsWith(SNAPSHOT_EXT_LEGACY),
+      );
       let totalSize = 0;
       let oldestMtime: Date | undefined;
 
@@ -306,38 +333,79 @@ export class BackupManager {
 
     const ddl = `CREATE TABLE "${schemaName}"."${tableName}" (\n${ddlLines.join(",\n")}\n);`;
 
-    // Optional data capture
+    // §3: Capture volume metadata from pg_class (near-zero cost catalog reads)
+    let rowCount: number | undefined;
+    let totalSizeBytes: number | undefined;
+    try {
+      const sizeResult = await adapter.executeQuery(
+        `SELECT reltuples::bigint AS row_count,
+                relpages * current_setting('block_size')::int AS total_size_bytes
+         FROM pg_class c
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE c.relname = $1 AND n.nspname = $2`,
+        [tableName, schemaName],
+      );
+      const sizeRow = sizeResult.rows?.[0] as { row_count?: number; total_size_bytes?: number } | undefined;
+      if (sizeRow) {
+        rowCount = typeof sizeRow.row_count === "number" ? sizeRow.row_count : undefined;
+        totalSizeBytes = typeof sizeRow.total_size_bytes === "number" ? sizeRow.total_size_bytes : undefined;
+      }
+    } catch {
+      // Volume metadata is best-effort — don't fail the snapshot
+    }
+
+    // §4: Size-bounded data capture
     let data: string | undefined;
+    let dataSkipped = false;
+    let dataSkippedReason: string | undefined;
+    const maxDataSize = this.config.maxDataSizeBytes || DEFAULT_MAX_DATA_SIZE_BYTES;
+
     if (this.config.includeData) {
-      try {
-        const result = await adapter.executeQuery(
-          `SELECT * FROM "${schemaName}"."${tableName}" LIMIT ${String(MAX_SAMPLE_ROWS)}`,
-        );
-        if (result.rows && result.rows.length > 0) {
-          const firstRow = result.rows[0];
-          if (firstRow) {
-            const cols = Object.keys(firstRow).map((c) => `"${c}"`).join(", ");
-            data = result.rows
-              .map((row) => {
-                const vals = Object.values(row)
-                  .map((v) => {
-                    if (v === null) return "NULL";
-                    if (typeof v === "string") return `'${v.replace(/'/g, "''")}'`;
-                    if (typeof v === "number" || typeof v === "boolean") return String(v);
-                    return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
-                  })
-                  .join(", ");
-                return `INSERT INTO "${schemaName}"."${tableName}" (${cols}) VALUES (${vals});`;
-              })
-              .join("\n");
+      // Check estimated size before capturing data
+      if (totalSizeBytes !== undefined && totalSizeBytes > maxDataSize) {
+        dataSkipped = true;
+        const sizeMB = Math.round(totalSizeBytes / (1024 * 1024));
+        const thresholdMB = Math.round(maxDataSize / (1024 * 1024));
+        dataSkippedReason = `Table size ~${String(sizeMB)}MB exceeds ${String(thresholdMB)}MB threshold`;
+      } else {
+        try {
+          const result = await adapter.executeQuery(
+            `SELECT * FROM "${schemaName}"."${tableName}" LIMIT ${String(MAX_SAMPLE_ROWS)}`,
+          );
+          if (result.rows && result.rows.length > 0) {
+            const firstRow = result.rows[0];
+            if (firstRow) {
+              const cols = Object.keys(firstRow).map((c) => `"${c}"`).join(", ");
+              data = result.rows
+                .map((row) => {
+                  const vals = Object.values(row)
+                    .map((v) => {
+                      if (v === null) return "NULL";
+                      if (typeof v === "string") return `'${v.replace(/'/g, "''")}'`;
+                      if (typeof v === "number" || typeof v === "boolean") return String(v);
+                      return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
+                    })
+                    .join(", ");
+                  return `INSERT INTO "${schemaName}"."${tableName}" (${cols}) VALUES (${vals});`;
+                })
+                .join("\n");
+            }
           }
+        } catch {
+          // Data capture is best-effort
         }
-      } catch {
-        // Data capture is best-effort
       }
     }
 
-    return this.writeSnapshot(toolName, tableName, schemaName, requestId, ddl, data);
+    return this.writeSnapshot(
+      toolName, tableName, schemaName, requestId, ddl, data,
+      {
+        ...(rowCount !== undefined && { rowCount }),
+        ...(totalSizeBytes !== undefined && { totalSizeBytes }),
+        ...(dataSkipped && { dataSkipped }),
+        ...(dataSkippedReason !== undefined && { dataSkippedReason }),
+      },
+    );
   }
 
   private async captureSchemaSnapshot(
@@ -387,6 +455,12 @@ export class BackupManager {
     requestId: string,
     ddl: string,
     data?: string,
+    volumeMeta?: {
+      rowCount?: number;
+      totalSizeBytes?: number;
+      dataSkipped?: boolean;
+      dataSkippedReason?: string;
+    },
   ): Promise<string | undefined> {
     await this.ensureDirectory();
 
@@ -404,6 +478,10 @@ export class BackupManager {
         type: data ? "ddl+data" : "ddl",
         requestId,
         sizeBytes: 0, // Updated after serialization
+        ...(volumeMeta?.rowCount !== undefined && { rowCount: volumeMeta.rowCount }),
+        ...(volumeMeta?.totalSizeBytes !== undefined && { totalSizeBytes: volumeMeta.totalSizeBytes }),
+        ...(volumeMeta?.dataSkipped && { dataSkipped: true }),
+        ...(volumeMeta?.dataSkippedReason && { dataSkippedReason: volumeMeta.dataSkippedReason }),
       },
       ddl,
       data,
@@ -413,10 +491,35 @@ export class BackupManager {
     content.metadata.sizeBytes = Buffer.byteLength(json, "utf-8");
     const finalJson = JSON.stringify(content, null, 2);
 
+    // §4: Gzip compress + async fire-and-forget write
+    const compressed = gzipSync(Buffer.from(finalJson, "utf-8"));
     const filePath = join(this.snapshotDir, filename);
-    await writeFile(filePath, finalJson, "utf-8");
+
+    const writePromise = writeFile(filePath, compressed).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`[AUDIT-BACKUP] Async write failed for ${filename}: ${msg}\n`);
+    });
+    this.pendingWrites.add(writePromise);
+    void writePromise.finally(() => { this.pendingWrites.delete(writePromise); });
 
     return filename;
+  }
+
+  /**
+   * Read and decompress a snapshot file (supports both gzip and legacy JSON).
+   */
+  private async readSnapshotFile(filename: string): Promise<SnapshotContent | null> {
+    const filePath = join(this.snapshotDir, filename);
+    const raw = await readFile(filePath);
+
+    // Gzip files start with 0x1f 0x8b magic bytes
+    if (raw[0] === 0x1f && raw[1] === 0x8b) {
+      const decompressed = gunzipSync(raw);
+      return JSON.parse(decompressed.toString("utf-8")) as SnapshotContent;
+    }
+
+    // Legacy uncompressed JSON
+    return JSON.parse(raw.toString("utf-8")) as SnapshotContent;
   }
 
   private async ensureDirectory(): Promise<void> {

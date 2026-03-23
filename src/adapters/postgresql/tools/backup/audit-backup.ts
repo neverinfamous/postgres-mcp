@@ -93,6 +93,13 @@ export function createAuditRestoreBackupTool(
         .boolean()
         .optional()
         .describe("If true, return the DDL without executing it (default: false)"),
+      restoreAs: z
+        .string()
+        .optional()
+        .describe(
+          "Create snapshot as a new table with this name instead of overwriting the original. " +
+          "Enables side-by-side comparison without disrupting live data.",
+        ),
     }),
     outputSchema: AuditRestoreBackupOutputSchema,
     annotations: admin("Audit Restore Backup"),
@@ -107,7 +114,7 @@ export function createAuditRestoreBackupTool(
           };
         }
 
-        const parsed = params as { filename?: string; dryRun?: boolean };
+        const parsed = params as { filename?: string; dryRun?: boolean; restoreAs?: string };
         if (!parsed.filename) {
           return {
             success: false,
@@ -123,14 +130,33 @@ export function createAuditRestoreBackupTool(
           };
         }
 
+        // §2: Rewrite DDL/data for restoreAs (side-by-side restore)
+        let ddl = snapshot.ddl;
+        let dataStatements = snapshot.data;
+        const originalTarget = snapshot.metadata.target;
+        const originalSchema = snapshot.metadata.schema;
+        const originalQualified = `"${originalSchema}"."${originalTarget}"`;
+
+        if (parsed.restoreAs) {
+          const restoreName = parsed.restoreAs;
+          const restoreQualified = `"${originalSchema}"."${restoreName}"`;
+          // Rewrite DDL: replace table name in CREATE TABLE statement
+          ddl = ddl.replace(originalQualified, restoreQualified);
+          // Rewrite data INSERT statements if present
+          if (dataStatements) {
+            dataStatements = dataStatements.replaceAll(originalQualified, restoreQualified);
+          }
+        }
+
         // Dry run: return DDL without executing
         if (parsed.dryRun === true) {
           return {
             success: true,
             dryRun: true,
             metadata: snapshot.metadata,
-            ddl: snapshot.ddl,
-            ...(snapshot.data && { dataStatements: snapshot.data.split("\n").length }),
+            ddl,
+            ...(dataStatements && { dataStatements: dataStatements.split("\n").length }),
+            ...(parsed.restoreAs && { restoreAs: parsed.restoreAs }),
           };
         }
 
@@ -138,11 +164,11 @@ export function createAuditRestoreBackupTool(
         await adapter.executeQuery("BEGIN");
         try {
           // Execute DDL
-          await adapter.executeQuery(snapshot.ddl);
+          await adapter.executeQuery(ddl);
 
           // Execute data INSERTs if present
-          if (snapshot.data) {
-            const statements = snapshot.data.split("\n").filter((s) => s.trim());
+          if (dataStatements) {
+            const statements = dataStatements.split("\n").filter((s) => s.trim());
             for (const stmt of statements) {
               await adapter.executeQuery(stmt);
             }
@@ -155,9 +181,14 @@ export function createAuditRestoreBackupTool(
             restored: true,
             metadata: snapshot.metadata,
             ddlExecuted: true,
-            dataRowsInserted: snapshot.data
-              ? snapshot.data.split("\n").filter((s) => s.trim()).length
+            dataRowsInserted: dataStatements
+              ? dataStatements.split("\n").filter((s) => s.trim()).length
               : 0,
+            ...(parsed.restoreAs && {
+              restoreAs: parsed.restoreAs,
+              hint: `Restored as "${originalSchema}"."${parsed.restoreAs}". ` +
+                "Use pg_read_query to compare with the live table, then merge needed rows.",
+            }),
           };
         } catch (restoreErr) {
           // Rollback on error
@@ -282,6 +313,61 @@ export function createAuditDiffBackupTool(
 
         const hasDrift = additions.length > 0 || removals.length > 0;
 
+        // §3: Volume drift analysis — compare snapshot metadata against current pg_class stats
+        let volumeDrift: {
+          rowCountSnapshot?: number;
+          rowCountCurrent?: number;
+          sizeBytesSnapshot?: number;
+          sizeBytesCurrent?: number;
+          summary: string;
+        } | undefined;
+
+        if (objectExists && (snapshot.metadata.rowCount !== undefined || snapshot.metadata.totalSizeBytes !== undefined)) {
+          try {
+            const sizeResult = await adapter.executeQuery(
+              `SELECT reltuples::bigint AS row_count,
+                      relpages * current_setting('block_size')::int AS total_size_bytes
+               FROM pg_class c
+               JOIN pg_namespace n ON n.oid = c.relnamespace
+               WHERE c.relname = $1 AND n.nspname = $2`,
+              [target, schema],
+            );
+            const currentStats = sizeResult.rows?.[0] as { row_count?: number; total_size_bytes?: number } | undefined;
+
+            if (currentStats) {
+              const rowSnap = snapshot.metadata.rowCount;
+              const rowCurr = typeof currentStats.row_count === "number" ? currentStats.row_count : undefined;
+              const sizeSnap = snapshot.metadata.totalSizeBytes;
+              const sizeCurr = typeof currentStats.total_size_bytes === "number" ? currentStats.total_size_bytes : undefined;
+
+              // Generate human-readable summary
+              const parts: string[] = [];
+              if (rowSnap !== undefined && rowCurr !== undefined) {
+                if (rowCurr === 0 && rowSnap > 0) {
+                  parts.push(`Row count dropped from ${String(rowSnap)} → 0`);
+                } else if (rowCurr !== rowSnap) {
+                  parts.push(`Row count changed from ${String(rowSnap)} → ${String(rowCurr)}`);
+                }
+              }
+              if (sizeSnap !== undefined && sizeCurr !== undefined && sizeCurr !== sizeSnap) {
+                const snapMB = (sizeSnap / (1024 * 1024)).toFixed(1);
+                const currMB = (sizeCurr / (1024 * 1024)).toFixed(1);
+                parts.push(`Size changed from ${snapMB}MB → ${currMB}MB`);
+              }
+
+              volumeDrift = {
+                ...(rowSnap !== undefined && { rowCountSnapshot: rowSnap }),
+                ...(rowCurr !== undefined && { rowCountCurrent: rowCurr }),
+                ...(sizeSnap !== undefined && { sizeBytesSnapshot: sizeSnap }),
+                ...(sizeCurr !== undefined && { sizeBytesCurrent: sizeCurr }),
+                summary: parts.length > 0 ? parts.join("; ") : "No volume change detected",
+              };
+            }
+          } catch {
+            // Volume drift is best-effort
+          }
+        }
+
         return {
           success: true,
           metadata: snapshot.metadata,
@@ -293,6 +379,7 @@ export function createAuditDiffBackupTool(
               removals,
             },
           }),
+          ...(volumeDrift && { volumeDrift }),
           snapshotDdl: snapshot.ddl,
           currentDdl,
         };

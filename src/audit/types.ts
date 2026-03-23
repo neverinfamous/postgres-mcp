@@ -81,6 +81,9 @@ export interface BackupConfig {
 
   /** Maximum number of snapshots to retain (default: 1000) */
   maxCount: number;
+
+  /** Maximum table size in bytes for data capture (default: 50MB). Tables exceeding this get DDL-only snapshots. */
+  maxDataSizeBytes: number;
 }
 
 /** Snapshot metadata stored alongside the DDL capture */
@@ -108,6 +111,18 @@ export interface SnapshotMetadata {
 
   /** Snapshot filename (populated by listSnapshots for getSnapshot lookup) */
   filename?: string;
+
+  /** Approximate row count at snapshot time (from pg_class.reltuples) */
+  rowCount?: number;
+
+  /** Approximate total size in bytes at snapshot time (from pg_class) */
+  totalSizeBytes?: number;
+
+  /** Whether data capture was skipped due to size exceeding threshold */
+  dataSkipped?: boolean;
+
+  /** Reason data capture was skipped (e.g., "Table exceeds 50MB threshold") */
+  dataSkippedReason?: string;
 }
 
 /** Stored snapshot file content */

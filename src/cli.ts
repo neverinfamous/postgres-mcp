@@ -54,6 +54,7 @@ interface CliOptions {
   auditBackupData?: boolean;
   auditBackupMaxAge?: number;
   auditBackupMaxCount?: number;
+  auditBackupMaxDataSize?: number;
 }
 
 interface ListToolsOptions {
@@ -172,6 +173,11 @@ program
     "Maximum number of snapshots to retain (default: 1000, env: AUDIT_BACKUP_MAX_COUNT)",
     parseInt,
   )
+  .option(
+    "--audit-backup-max-data-size <bytes>",
+    "Maximum table size in bytes for data capture in snapshots (default: 52428800 / 50MB, env: AUDIT_BACKUP_MAX_DATA_SIZE)",
+    parseInt,
+  )
   .action(async (options: CliOptions) => {
     // Set log level
     const logLevel =
@@ -226,6 +232,7 @@ program
                   includeData: options.auditBackupData ?? process.env["AUDIT_BACKUP_DATA"] === "true",
                   maxAgeDays: options.auditBackupMaxAge ?? Number(process.env["AUDIT_BACKUP_MAX_AGE"] ?? "30"),
                   maxCount: options.auditBackupMaxCount ?? Number(process.env["AUDIT_BACKUP_MAX_COUNT"] ?? "1000"),
+                  maxDataSizeBytes: options.auditBackupMaxDataSize ?? Number(process.env["AUDIT_BACKUP_MAX_DATA_SIZE"] ?? "52428800"),
                 }
               : undefined,
           }

@@ -54,6 +54,14 @@ export abstract class DatabaseAdapter {
     this.auditInterceptor = interceptor;
   }
 
+  /**
+   * Get the audit interceptor for wrapping tool calls in Code Mode.
+   * Returns null if audit is not enabled.
+   */
+  getAuditInterceptor(): AuditInterceptor | null {
+    return this.auditInterceptor;
+  }
+
   // =========================================================================
   // Connection Lifecycle
   // =========================================================================

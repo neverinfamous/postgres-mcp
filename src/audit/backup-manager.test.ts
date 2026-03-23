@@ -34,6 +34,7 @@ function defaultConfig(overrides: Partial<BackupConfig> = {}): BackupConfig {
     includeData: false,
     maxAgeDays: 30,
     maxCount: 100,
+    maxDataSizeBytes: 50 * 1024 * 1024,
     ...overrides,
   };
 }
@@ -110,7 +111,7 @@ describe("BackupManager", () => {
       expect(filename).toBeDefined();
       expect(filename).toContain("pg_drop_table");
       expect(filename).toContain("users");
-      expect(filename).toMatch(/\.snapshot\.json$/);
+      expect(filename).toMatch(/\.snapshot\.json\.gz$/);
       expect(adapter.describeTable).toHaveBeenCalledWith("users", "public");
     });
 
@@ -165,6 +166,9 @@ describe("BackupManager", () => {
 
       expect(filename).toBeDefined();
 
+      // Flush async writes before reading back
+      await mgr.flush();
+
       // Read the stored snapshot and verify data
       const snapshot = await mgr.getSnapshot(filename!);
       expect(snapshot).not.toBeNull();
@@ -185,6 +189,7 @@ describe("BackupManager", () => {
       );
 
       expect(filename).toBeDefined();
+      await mgr.flush();
       const snapshot = await mgr.getSnapshot(filename!);
       expect(snapshot!.ddl).toContain("Pre-migration schema snapshot");
     });
@@ -205,6 +210,7 @@ describe("BackupManager", () => {
       );
 
       expect(filename).toBeDefined();
+      await mgr.flush();
       const snapshot = await mgr.getSnapshot(filename!);
       expect(snapshot!.ddl).toContain('Pre-drop snapshot of schema "old_schema"');
       expect(snapshot!.ddl).toContain("users");
@@ -261,6 +267,7 @@ describe("BackupManager", () => {
       await new Promise((r) => setTimeout(r, 10));
       await mgr.createSnapshot("pg_vacuum", { table: "second" }, "req-b", adapter);
 
+      await mgr.flush();
       const snapshots = await mgr.listSnapshots();
       expect(snapshots).toHaveLength(2);
       // Newest first
@@ -287,6 +294,7 @@ describe("BackupManager", () => {
         adapter,
       );
 
+      await mgr.flush();
       const snapshot = await mgr.getSnapshot(filename!);
       expect(snapshot).not.toBeNull();
       expect(snapshot!.metadata.tool).toBe("pg_drop_table");
@@ -323,6 +331,7 @@ describe("BackupManager", () => {
       await new Promise((r) => setTimeout(r, 10));
       await mgr.createSnapshot("pg_drop_table", { table: "c" }, "req-c", adapter);
 
+      await mgr.flush();
       const stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
       const deleted = await mgr.cleanup();
       stderrSpy.mockRestore();
@@ -358,6 +367,7 @@ describe("BackupManager", () => {
 
       await mgr.createSnapshot("pg_drop_table", { table: "users" }, "req-s1", adapter);
 
+      await mgr.flush();
       const stats = await mgr.getStats();
       expect(stats.count).toBe(1);
       expect(stats.totalSizeKB).toBeGreaterThanOrEqual(0);
@@ -401,6 +411,7 @@ describe("BackupManager", () => {
       await mgr.createSnapshot("pg_drop_table", { table: "t" }, "req-x", adapter);
 
       // Write a non-snapshot file
+      await mgr.flush();
       const snapshotDir = join(dir, "snapshots");
       await writeFile(join(snapshotDir, "notes.txt"), "hello", "utf-8");
 
@@ -427,6 +438,7 @@ describe("BackupManager", () => {
       );
 
       expect(filename).toBeDefined();
+      await mgr.flush();
       const snapshot = await mgr.getSnapshot(filename!);
       expect(snapshot!.metadata.type).toBe("ddl");
       expect(snapshot!.data).toBeUndefined();
@@ -446,6 +458,7 @@ describe("BackupManager", () => {
       );
 
       expect(filename).toBeDefined();
+      await mgr.flush();
       const snapshot = await mgr.getSnapshot(filename!);
       expect(snapshot!.ddl).toContain("Could not enumerate schema objects");
     });

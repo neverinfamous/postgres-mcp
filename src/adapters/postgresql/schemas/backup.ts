@@ -389,6 +389,7 @@ export const AuditRestoreBackupOutputSchema = z
     ddlExecuted: z.boolean().optional().describe("Whether DDL was executed"),
     dataStatements: z.number().optional().describe("Number of data INSERT statements"),
     dataRowsInserted: z.number().optional().describe("Number of data rows inserted"),
+    restoreAs: z.string().optional().describe("Side-by-side table name (when restoreAs was used)"),
     error: z.string().optional().describe("Error message if failed"),
     hint: z.string().optional().describe("Hint for next steps"),
   })
@@ -410,6 +411,16 @@ export const AuditDiffBackupOutputSchema = z
       })
       .optional()
       .describe("Schema differences"),
+    volumeDrift: z
+      .object({
+        rowCountSnapshot: z.number().optional().describe("Row count at snapshot time"),
+        rowCountCurrent: z.number().optional().describe("Current row count"),
+        sizeBytesSnapshot: z.number().optional().describe("Size in bytes at snapshot time"),
+        sizeBytesCurrent: z.number().optional().describe("Current size in bytes"),
+        summary: z.string().describe("Human-readable volume drift summary"),
+      })
+      .optional()
+      .describe("Data volume drift since snapshot"),
     snapshotDdl: z.string().optional().describe("DDL from snapshot"),
     currentDdl: z.string().optional().describe("Current live DDL"),
     error: z.string().optional().describe("Error message if failed"),

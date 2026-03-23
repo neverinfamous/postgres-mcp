@@ -38,8 +38,8 @@ describe("getPostgresPrompts", () => {
     prompts = getPostgresPrompts(mockAdapter as unknown as PostgresAdapter);
   });
 
-  it("should return 19 prompts", () => {
-    expect(prompts).toHaveLength(19);
+  it("should return 20 prompts", () => {
+    expect(prompts).toHaveLength(20);
   });
 
   it("should have all expected prompt names", () => {
@@ -69,6 +69,9 @@ describe("getPostgresPrompts", () => {
     expect(promptNames).toContain("pg_setup_citext");
     expect(promptNames).toContain("pg_setup_ltree");
     expect(promptNames).toContain("pg_setup_pgcrypto");
+
+    // Audit & restore prompts
+    expect(promptNames).toContain("pg_safe_restore_workflow");
   });
 
   it("should have handler function for all prompts", () => {

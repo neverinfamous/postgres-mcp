@@ -218,6 +218,9 @@ export class PostgresMcpServer {
     logger.info("Stopping MCP Server...");
 
     try {
+      if (this.backupManager) {
+        await this.backupManager.flush();
+      }
       if (this.auditLogger) {
         await this.auditLogger.close();
       }

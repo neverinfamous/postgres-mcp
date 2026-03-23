@@ -7,6 +7,7 @@
 
 import type { PostgresAdapter } from "../../adapters/postgresql/postgres-adapter.js";
 import type { ToolDefinition } from "../../types/index.js";
+import type { AuditInterceptor } from "../../audit/index.js";
 import { METHOD_ALIASES, GROUP_EXAMPLES } from "./maps.js";
 import { TOP_LEVEL_ALIASES } from "./aliases.js";
 import { createGroupApi, toolNameToMethodName } from "./group-api.js";
@@ -56,111 +57,135 @@ export class PgApi {
     const allTools = adapter.getToolDefinitions();
     this.toolsByGroup = this.groupTools(allTools);
 
-    // Create group-specific APIs
+    // §1: Get audit interceptor for Code Mode blindspot fix
+    const audit: AuditInterceptor | null = adapter.getAuditInterceptor();
+
+    // Create group-specific APIs (all wrapped with audit interceptor when enabled)
     this.core = createGroupApi(
       adapter,
       "core",
       this.toolsByGroup.get("core") ?? [],
+      audit,
     );
     this.transactions = createGroupApi(
       adapter,
       "transactions",
       this.toolsByGroup.get("transactions") ?? [],
+      audit,
     );
     this.jsonb = createGroupApi(
       adapter,
       "jsonb",
       this.toolsByGroup.get("jsonb") ?? [],
+      audit,
     );
     this.text = createGroupApi(
       adapter,
       "text",
       this.toolsByGroup.get("text") ?? [],
+      audit,
     );
     this.performance = createGroupApi(
       adapter,
       "performance",
       this.toolsByGroup.get("performance") ?? [],
+      audit,
     );
     this.admin = createGroupApi(
       adapter,
       "admin",
       this.toolsByGroup.get("admin") ?? [],
+      audit,
     );
     this.monitoring = createGroupApi(
       adapter,
       "monitoring",
       this.toolsByGroup.get("monitoring") ?? [],
+      audit,
     );
     this.backup = createGroupApi(
       adapter,
       "backup",
       this.toolsByGroup.get("backup") ?? [],
+      audit,
     );
     this.schema = createGroupApi(
       adapter,
       "schema",
       this.toolsByGroup.get("schema") ?? [],
+      audit,
     );
     this.vector = createGroupApi(
       adapter,
       "vector",
       this.toolsByGroup.get("vector") ?? [],
+      audit,
     );
     this.postgis = createGroupApi(
       adapter,
       "postgis",
       this.toolsByGroup.get("postgis") ?? [],
+      audit,
     );
     this.partitioning = createGroupApi(
       adapter,
       "partitioning",
       this.toolsByGroup.get("partitioning") ?? [],
+      audit,
     );
     this.stats = createGroupApi(
       adapter,
       "stats",
       this.toolsByGroup.get("stats") ?? [],
+      audit,
     );
     this.cron = createGroupApi(
       adapter,
       "cron",
       this.toolsByGroup.get("cron") ?? [],
+      audit,
     );
     this.partman = createGroupApi(
       adapter,
       "partman",
       this.toolsByGroup.get("partman") ?? [],
+      audit,
     );
     this.kcache = createGroupApi(
       adapter,
       "kcache",
       this.toolsByGroup.get("kcache") ?? [],
+      audit,
     );
     this.citext = createGroupApi(
       adapter,
       "citext",
       this.toolsByGroup.get("citext") ?? [],
+      audit,
     );
     this.ltree = createGroupApi(
       adapter,
       "ltree",
       this.toolsByGroup.get("ltree") ?? [],
+      audit,
     );
     this.pgcrypto = createGroupApi(
       adapter,
       "pgcrypto",
       this.toolsByGroup.get("pgcrypto") ?? [],
+      audit,
     );
     this.introspection = createGroupApi(
       adapter,
       "introspection",
       this.toolsByGroup.get("introspection") ?? [],
+      audit,
     );
     this.migration = createGroupApi(
       adapter,
       "migration",
       this.toolsByGroup.get("migration") ?? [],
+      audit,
     );
   }
 

@@ -1,7 +1,7 @@
 /**
  * E2E Tests: MCP Prompt Reads via SDK Client
  *
- * Verifies all 19 prompts are registered and return structured
+ * Verifies all 20 prompts are registered and return structured
  * content when invoked via the MCP SDK client.
  */
 
@@ -49,13 +49,14 @@ test.describe("E2E Prompt Reads (via MCP SDK Client)", () => {
     "pg_setup_citext",
     "pg_setup_ltree",
     "pg_setup_pgcrypto",
+    "pg_safe_restore_workflow",
   ];
 
-  test("should list all 19 prompts", async () => {
+  test("should list all 20 prompts", async () => {
     const listResponse = await client.listPrompts();
 
     expect(listResponse.prompts).toBeDefined();
-    expect(listResponse.prompts.length).toBe(19);
+    expect(listResponse.prompts.length).toBe(20);
 
     const names = listResponse.prompts.map((p) => p.name);
     for (const expected of EXPECTED_PROMPTS) {
@@ -271,5 +272,16 @@ test.describe("E2E Prompt Reads (via MCP SDK Client)", () => {
     expect(response.messages).toBeDefined();
     const text = (response.messages[0].content as any).text as string;
     expect(text.toLowerCase()).toContain("pgcrypto");
+  });
+  test("should get pg_safe_restore_workflow prompt", async () => {
+    const response = await client.getPrompt({
+      name: "pg_safe_restore_workflow",
+      arguments: {},
+    });
+
+    expect(response.messages).toBeDefined();
+    const text = (response.messages[0].content as any).text as string;
+    expect(text.toLowerCase()).toContain("restore");
+    expect(text).toContain("restoreAs");
   });
 });

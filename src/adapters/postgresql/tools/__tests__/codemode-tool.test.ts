@@ -85,6 +85,7 @@ function createMockAdapter(): Partial<PostgresAdapter> {
       .fn()
       .mockResolvedValue({ rows: [], rowsAffected: 0, executionTimeMs: 1 }),
     getToolDefinitions: vi.fn().mockReturnValue([]),
+    getAuditInterceptor: vi.fn().mockReturnValue(null),
     // Transaction cleanup for code mode error recovery
     getActiveTransactionIds: vi.fn().mockReturnValue([]),
     cleanupTransaction: vi.fn().mockResolvedValue(false),
