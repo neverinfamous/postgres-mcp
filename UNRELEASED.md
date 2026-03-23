@@ -98,6 +98,7 @@
 - **Code Mode last-expression auto-return** — Bare expressions like `pg.help()` now correctly surface their return value from `pg_execute_code`. Previously, the async IIFE wrapper silently returned `undefined` for non-`return` statements. New `transformAutoReturn()` utility prepends `return` to the last expression statement, mimicking Node REPL semantics.
 
 ### Changed (Audit)
+- **Derived tool counts from source**: Replaced ~50 hardcoded tool count values across `performance.test.ts`, `tool-filter.test.ts`, and `tool-constants.ts` with dynamic derivations from `TOOL_GROUPS` arrays. Fixes stale counts (231→245 in performance test, 232→245 in Dockerfile LABEL). Tests now auto-update when tools are added — no manual count maintenance needed.
 - **Core tool payload optimization**: Reduced token waste ~30-41% across core tool responses:
   - `pg_describe_table` / `pg_object_details`: Dropped redundant `nullable` field (keep `notNull`), omit `primaryKey: false`, `isGenerated: false`, `comment: null`, `defaultValue: null` from columns, omit `isPartitioned: false`, `partitionKey: null`, `comment: null` from table level
   - `pg_list_tables`: Omit `comment: null`, `statsStale: false`, `sizeBytes: 0`, `totalSizeBytes: 0` from table entries

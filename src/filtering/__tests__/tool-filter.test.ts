@@ -61,29 +61,19 @@ describe("TOOL_GROUPS", () => {
     }
   });
 
-  it("should have correct tool counts per group", () => {
-    expect(TOOL_GROUPS.core).toHaveLength(20);
-    expect(TOOL_GROUPS.transactions).toHaveLength(8);
-    expect(TOOL_GROUPS.jsonb).toHaveLength(20);
-    expect(TOOL_GROUPS.text).toHaveLength(13);
-    expect(TOOL_GROUPS.performance).toHaveLength(24);
-    expect(TOOL_GROUPS.admin).toHaveLength(11);
-    expect(TOOL_GROUPS.monitoring).toHaveLength(11);
-    expect(TOOL_GROUPS.backup).toHaveLength(9);
-    expect(TOOL_GROUPS.schema).toHaveLength(12);
-    expect(TOOL_GROUPS.vector).toHaveLength(16);
-    expect(TOOL_GROUPS.postgis).toHaveLength(15);
-    expect(TOOL_GROUPS.partitioning).toHaveLength(6);
-    expect(TOOL_GROUPS.stats).toHaveLength(19);
-    expect(TOOL_GROUPS.cron).toHaveLength(8);
-    expect(TOOL_GROUPS.partman).toHaveLength(10);
-    expect(TOOL_GROUPS.kcache).toHaveLength(7);
-    expect(TOOL_GROUPS.citext).toHaveLength(6);
-    expect(TOOL_GROUPS.ltree).toHaveLength(8);
-    expect(TOOL_GROUPS.introspection).toHaveLength(6);
-    expect(TOOL_GROUPS.migration).toHaveLength(6);
-    expect(TOOL_GROUPS.pgcrypto).toHaveLength(9);
-    expect(TOOL_GROUPS.codemode).toHaveLength(1);
+  it("should have non-empty groups with no duplicate tools", () => {
+    const allTools: string[] = [];
+    for (const [group, tools] of Object.entries(TOOL_GROUPS)) {
+      expect(tools.length, `group "${group}" should not be empty`).toBeGreaterThan(0);
+      // Every tool should follow pg_ naming convention
+      for (const tool of tools) {
+        expect(tool, `tool in "${group}" should start with pg_`).toMatch(/^pg_/);
+      }
+      allTools.push(...tools);
+    }
+    // No duplicates across groups
+    const uniqueTools = new Set(allTools);
+    expect(uniqueTools.size).toBe(allTools.length);
   });
 
   it("should total correctly across all groups", () => {

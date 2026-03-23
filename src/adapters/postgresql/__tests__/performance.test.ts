@@ -6,9 +6,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { TOOL_GROUPS } from "../../../filtering/tool-constants.js";
 
 // Mock the adapter functions for benchmarking purposes
 // These tests verify caching behavior without requiring a real database
+
+/** Derived from canonical TOOL_GROUPS — auto-updates when tools are added */
+const TOTAL_TOOLS = Object.values(TOOL_GROUPS).flat().length;
 
 describe("Performance Benchmarks", () => {
   describe("Tool Definition Caching", () => {
@@ -17,7 +21,7 @@ describe("Performance Benchmarks", () => {
       let callCount = 0;
       const generateTools = () => {
         callCount++;
-        return Array.from({ length: 194 }, (_, i) => ({
+        return Array.from({ length: TOTAL_TOOLS }, (_, i) => ({
           name: `tool_${String(i)}`,
           description: `Tool ${String(i)} description`,
         }));
@@ -45,35 +49,19 @@ describe("Performance Benchmarks", () => {
       expect(secondDuration).toBeLessThan(firstDuration); // Cache is faster
     });
 
-    it("should generate 231 tool definitions across 21 groups", () => {
-      // Verify the tool count matches documentation (tool-groups-list.md)
-      // These are raw group counts; pg_execute_code (codemode) is auto-injected separately
-      const toolGroups = {
-        core: 20,
-        transactions: 8,
-        jsonb: 19,
-        text: 13,
-        performance: 24,
-        admin: 10,
-        monitoring: 11,
-        backup: 9,
-        schema: 12,
-        vector: 16,
-        postgis: 15,
-        partitioning: 6,
-        stats: 8,
-        cron: 8,
-        partman: 10,
-        kcache: 7,
-        citext: 6,
-        ltree: 8,
-        pgcrypto: 9,
-        introspection: 6,
-        migration: 6,
-      };
+    it("should have consistent tool counts derived from TOOL_GROUPS", () => {
+      // Derived from canonical TOOL_GROUPS arrays — no manual map needed
+      const groupCount = Object.keys(TOOL_GROUPS).length;
+      const total = Object.values(TOOL_GROUPS).flat().length;
 
-      const total = Object.values(toolGroups).reduce((a, b) => a + b, 0);
-      expect(total).toBe(231);
+      expect(groupCount).toBeGreaterThanOrEqual(22);
+      expect(total).toBe(TOTAL_TOOLS);
+      expect(total).toBeGreaterThan(200); // sanity: should be a large number
+
+      // Every group should have at least one tool
+      for (const [group, tools] of Object.entries(TOOL_GROUPS)) {
+        expect(tools.length, `group "${group}" should not be empty`).toBeGreaterThan(0);
+      }
     });
   });
 
