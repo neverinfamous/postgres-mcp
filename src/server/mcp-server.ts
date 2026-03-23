@@ -8,17 +8,18 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { DatabaseAdapter } from "../adapters/database-adapter.js";
-import type { ToolFilterConfig } from "../types/index.js";
-import { TOOL_GROUPS, parseToolFilter } from "../filtering/tool-filter.js";
-import type { ToolGroup } from "../types/index.js";
+import type { ToolFilterConfig, ToolGroup } from "../types/index.js";
+import { parseToolFilter, getEnabledGroups } from "../filtering/tool-filter.js";
 import { logger } from "../utils/logger.js";
-import { INSTRUCTIONS, HELP_CONTENT } from "../constants/server-instructions.js";
+import { generateInstructions, HELP_CONTENT } from "../constants/server-instructions.js";
+import type { InstructionLevel } from "../constants/server-instructions.js";
 
 export interface ServerConfig {
   name: string;
   version: string;
   adapter: DatabaseAdapter;
   toolFilter?: string | undefined;
+  instructionLevel?: InstructionLevel | undefined;
 }
 
 /**
@@ -34,7 +35,16 @@ export class PostgresMcpServer {
     this.adapter = config.adapter;
     this.filterConfig = parseToolFilter(config.toolFilter);
 
-    // Create MCP server with slim instructions pointing to postgres://help resources
+    // Generate dynamic instructions based on enabled tool groups and level
+    const enabledGroups = getEnabledGroups(this.filterConfig.enabledTools);
+    const level = config.instructionLevel ?? 'standard';
+    const instructions = generateInstructions(
+      enabledGroups,
+      level,
+      this.filterConfig.enabledTools.size,
+    );
+
+    // Create MCP server with contextual instructions
     this.mcpServer = new McpServer(
       {
         name: config.name,
@@ -44,7 +54,7 @@ export class PostgresMcpServer {
         capabilities: {
           logging: {},
         },
-        instructions: INSTRUCTIONS,
+        instructions,
       },
     );
 
@@ -56,6 +66,7 @@ export class PostgresMcpServer {
       name: config.name,
       version: config.version,
       toolFilter: config.toolFilter ?? "none",
+      instructionLevel: level,
       capabilities: ["logging"],
     });
   }
@@ -93,13 +104,8 @@ export class PostgresMcpServer {
    * by the tool filter configuration.
    */
   private registerHelpResources(): void {
-    // Derive enabled groups from the enabled tool names
-    const enabledGroups = new Set<string>();
-    for (const [group, tools] of Object.entries(TOOL_GROUPS) as [ToolGroup, string[]][]) {
-      if (tools.some((tool) => this.filterConfig.enabledTools.has(tool))) {
-        enabledGroups.add(group);
-      }
-    }
+    // Derive enabled groups using the centralized utility
+    const enabledGroups = getEnabledGroups(this.filterConfig.enabledTools);
 
     const helpContent = HELP_CONTENT;
 
@@ -127,7 +133,7 @@ export class PostgresMcpServer {
     const registeredHelp = ["postgres://help"];
     for (const [key, content] of helpContent) {
       if (key === "gotchas") continue; // Already registered above
-      if (!enabledGroups.has(key)) continue; // Skip disabled groups
+      if (!enabledGroups.has(key as ToolGroup)) continue; // Skip disabled groups
 
       this.mcpServer.registerResource(
         `postgres_help_${key}`,

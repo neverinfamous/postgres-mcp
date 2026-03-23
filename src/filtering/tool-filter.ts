@@ -75,6 +75,20 @@ export function getToolGroup(toolName: string): ToolGroup | undefined {
 }
 
 /**
+ * Derive the set of enabled ToolGroup names from a set of enabled tool names.
+ * A group is considered enabled if at least one of its tools is in the set.
+ */
+export function getEnabledGroups(enabledTools: Set<string>): Set<ToolGroup> {
+  const groups = new Set<ToolGroup>();
+  for (const [group, tools] of Object.entries(TOOL_GROUPS) as [ToolGroup, string[]][]) {
+    if (tools.some((tool) => enabledTools.has(tool))) {
+      groups.add(group);
+    }
+  }
+  return groups;
+}
+
+/**
  * Check if a name is a valid tool group
  */
 export function isToolGroup(name: string): name is ToolGroup {

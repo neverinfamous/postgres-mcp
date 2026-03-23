@@ -7,13 +7,29 @@
  *
  * Slim instructions are sent to MCP clients during initialization.
  * Detailed help is available on-demand via postgres://help resources.
+ * Instructions are dynamically generated based on enabled tool groups
+ * and instruction level for token efficiency.
  */
 
+import type { ToolGroup } from '../types/index.js'
+
 /**
- * Slim instructions for the MCP instructions field (~600 chars).
- * Points agents to postgres://help resources for detailed reference.
+ * Instruction detail level for token efficiency
+ * - essential: ~150 tokens - Core quick access only (for token-constrained clients)
+ * - standard: ~200-300 tokens - + dynamic help pointers for enabled groups
+ * - full: ~350-400 tokens - + active groups summary
  */
-export const INSTRUCTIONS = `# postgres-mcp (PostgreSQL MCP Server)
+export type InstructionLevel = 'essential' | 'standard' | 'full'
+
+// =============================================================================
+// Composable Instruction Segments
+// =============================================================================
+
+/**
+ * Core instructions — always included regardless of enabled groups.
+ * Contains quick access table, built-in tools, and base help pointer.
+ */
+const CORE_INSTRUCTIONS = `# postgres-mcp (PostgreSQL MCP Server)
 
 ## Quick Access
 
@@ -31,7 +47,94 @@ export const INSTRUCTIONS = `# postgres-mcp (PostgreSQL MCP Server)
 ## Help Resources
 
 Read \`postgres://help\` for gotchas and critical usage patterns.
-Read \`postgres://help/{group}\` for group-specific tool reference (jsonb, text, stats, vector, postgis, admin, etc.).`;
+Read \`postgres://help/{group}\` for group-specific tool reference (jsonb, text, stats, vector, postgis, admin, etc.).`
+
+/**
+ * Code Mode summary — only included when codemode group is enabled.
+ * Provides API mapping and sandbox constraints.
+ */
+const CODE_MODE_INSTRUCTIONS = `
+## Code Mode
+
+API: \`pg_group_action\` → \`pg.group.action()\` (e.g., \`pg_jsonb_extract\` → \`pg.jsonb.extract()\`)
+Top-level: \`pg.readQuery()\`, \`pg.writeQuery()\`, \`pg.listTables()\`, \`pg.describeTable()\`, \`pg.upsert()\`, etc.
+Positional: \`readQuery("SELECT...")\`, \`exists("users", "id=1")\`, \`createIndex("users", ["email"])\`
+Discovery: \`pg.help()\` → \`{group: methods[]}\`. \`pg.core.help()\`, \`pg.jsonb.help()\` for group-specific.
+Sandbox: No \`setTimeout\`, \`setInterval\`, \`fetch\`, or network access. Use \`pg.core.readQuery()\` for data.`
+
+/**
+ * All group keys that have help content (for dynamic help pointer generation).
+ */
+const HELP_GROUP_KEYS: readonly string[] = ["admin","backup","citext","cron","introspection","jsonb","kcache","ltree","migration","monitoring","partitioning","partman","performance","pgcrypto","postgis","schema","stats","text","transactions","vector"]
+
+/**
+ * Build dynamic help pointers listing only the enabled groups.
+ */
+function buildHelpPointers(groups: Set<ToolGroup>): string {
+    const enabledHelpGroups = HELP_GROUP_KEYS.filter((k) => groups.has(k as ToolGroup))
+    if (enabledHelpGroups.length === 0) {
+        return '\n\nRead `postgres://help` for gotchas and critical usage patterns.'
+    }
+    return '\n\n## Help Resources\n\n' +
+        'Read `postgres://help` for gotchas and critical usage patterns.\n' +
+        'Read `postgres://help/{group}` for: ' + enabledHelpGroups.join(', ') + '.'
+}
+
+/**
+ * Build active groups summary listing enabled group names with tool counts.
+ */
+function buildActiveGroupsSummary(groups: Set<ToolGroup>, enabledToolCount: number): string {
+    const groupList = [...groups].sort().join(', ')
+    return `\n\n## Active Tools (${String(enabledToolCount)})\n\nGroups: ${groupList}`
+}
+
+// =============================================================================
+// Public API
+// =============================================================================
+
+/**
+ * Generate dynamic instructions based on enabled tool groups and instruction level.
+ *
+ * Sections are conditionally included based on which tool groups are enabled:
+ * - Code Mode → only with `codemode` group
+ * - Help group listing → `standard`+ level, only lists enabled groups
+ * - Active tools summary → `full` level only
+ *
+ * @param enabledGroups - Set of enabled tool group names
+ * @param level - Instruction detail level (default: 'standard')
+ * @param enabledToolCount - Number of enabled tools (for full level summary)
+ */
+export function generateInstructions(
+    enabledGroups: Set<ToolGroup>,
+    level: InstructionLevel = 'standard',
+    enabledToolCount?: number,
+): string {
+    // Always start with core instructions
+    let instructions = CORE_INSTRUCTIONS
+
+    // Code Mode — only when codemode group is enabled
+    if (enabledGroups.has('codemode')) {
+        instructions += CODE_MODE_INSTRUCTIONS
+    }
+
+    // Standard and full levels include dynamic help pointers
+    if (level === 'standard' || level === 'full') {
+        instructions += buildHelpPointers(enabledGroups)
+    }
+
+    // Full level includes active groups summary
+    if (level === 'full' && enabledToolCount !== undefined) {
+        instructions += buildActiveGroupsSummary(enabledGroups, enabledToolCount)
+    }
+
+    return instructions
+}
+
+/**
+ * Static instructions for backward compatibility.
+ * @deprecated Use generateInstructions() instead for dynamic content
+ */
+export const INSTRUCTIONS = CORE_INSTRUCTIONS
 
 /**
  * Help content keyed by group name.

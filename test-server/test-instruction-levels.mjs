@@ -1,9 +1,9 @@
 /**
  * Integration Test: Instruction Levels + Filtered Instructions
  *
- * Starts the server with different --tool-filter values and verifies that
- * filtered instructions are shorter than unfiltered and contain/exclude
- * the expected sections.
+ * Starts the server with different --tool-filter and --instruction-level
+ * values and verifies that filtered instructions are shorter than unfiltered
+ * and contain/exclude the expected sections.
  *
  * Usage:
  *   npm run build
@@ -13,8 +13,11 @@
  */
 
 import { spawn } from 'child_process'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 
-const PROJECT_DIR = 'C:\\Users\\chris\\Desktop\\postgres-mcp'
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const PROJECT_DIR = resolve(__dirname, '..')
 
 /**
  * Start server with given args, send initialize, return instruction text
@@ -96,29 +99,18 @@ async function main() {
     console.log(`\n  Filtered < unfiltered: ${filterReduced ? '✅' : '❌'} (saved ${savings} chars, ${pct}%)`)
     if (!filterReduced) allPassed = false
 
-    // Filtered should NOT contain sections for disabled groups
-    const shouldExclude = [
-        'JSONB Tools',
-        'Vector Tools',
-        'Stats Tools',
-        'PostGIS Tools',
-        'Performance Tools',
-        'Backup Tools',
-        'pg_partman Tools',
-        'pg_stat_kcache Tools',
-        'citext Tools',
-        'ltree Tools',
-        'pgcrypto Tools',
-        'Cron Tools',
-    ]
-    for (const section of shouldExclude) {
-        const found = coreOnly.text.includes(section)
-        console.log(`  Excludes "${section}": ${found ? '❌ FOUND' : '✅'}`)
-        if (found) allPassed = false
-    }
+    // Core-only should NOT contain Code Mode section
+    const coreHasCodeMode = coreOnly.text.includes('## Code Mode')
+    console.log(`  Core excludes Code Mode: ${coreHasCodeMode ? '❌ FOUND' : '✅'}`)
+    if (coreHasCodeMode) allPassed = false
 
-    // Filtered SHOULD contain _always sections
-    const shouldInclude = ['Critical Gotchas', 'Code Mode Sandbox']
+    // Full should contain Code Mode section
+    const fullHasCodeMode = fullAll.text.includes('## Code Mode')
+    console.log(`  Full includes Code Mode: ${fullHasCodeMode ? '✅' : '❌ MISSING'}`)
+    if (!fullHasCodeMode) allPassed = false
+
+    // Filtered SHOULD contain always-present sections
+    const shouldInclude = ['Quick Access', 'Built-in Tools']
     for (const section of shouldInclude) {
         const found = coreOnly.text.includes(section)
         console.log(`  Includes "${section}": ${found ? '✅' : '❌ MISSING'}`)
@@ -135,14 +127,42 @@ async function main() {
     console.log(`  starter < all: ${starterSmaller ? '✅' : '❌'}`)
     if (!starterSmaller) allPassed = false
 
-    // starter = core + transactions + jsonb + schema + codemode
-    // Should include JSONB and Schema sections
-    const starterIncludes = ['JSONB Tools', 'Schema Tools', 'Transactions']
-    for (const section of starterIncludes) {
-        const found = starterFilter.text.includes(section)
-        console.log(`  starter includes "${section}": ${found ? '✅' : '❌ MISSING'}`)
-        if (!found) allPassed = false
-    }
+    // starter includes codemode (auto-injected)
+    const starterHasCodeMode = starterFilter.text.includes('## Code Mode')
+    console.log(`  starter includes Code Mode: ${starterHasCodeMode ? '✅' : '❌ MISSING'}`)
+    if (!starterHasCodeMode) allPassed = false
+
+    // ── Test 3: Instruction Levels ──
+    console.log('\n=== Test 3: Instruction Levels (--instruction-level) ===\n')
+
+    const essential = await testServer(['--instruction-level', 'essential'])
+    console.log(`  essential: ${essential.charCount} chars (~${essential.tokenEstimate} tokens)`)
+
+    const standard = await testServer(['--instruction-level', 'standard'])
+    console.log(`  standard:  ${standard.charCount} chars (~${standard.tokenEstimate} tokens)`)
+
+    const full = await testServer(['--instruction-level', 'full'])
+    console.log(`  full:      ${full.charCount} chars (~${full.tokenEstimate} tokens)`)
+
+    // essential <= standard <= full
+    const levelOrdering = essential.charCount <= standard.charCount && standard.charCount <= full.charCount
+    console.log(`\n  essential ≤ standard ≤ full: ${levelOrdering ? '✅' : '❌'}`)
+    if (!levelOrdering) allPassed = false
+
+    // essential should NOT have help group listing
+    const essentialHasHelp = essential.text.includes('postgres://help/{group}')
+    console.log(`  essential excludes help group list: ${essentialHasHelp ? '❌ FOUND' : '✅'}`)
+    if (essentialHasHelp) allPassed = false
+
+    // full should have active tools summary
+    const fullHasActive = full.text.includes('## Active Tools')
+    console.log(`  full includes Active Tools: ${fullHasActive ? '✅' : '❌ MISSING'}`)
+    if (!fullHasActive) allPassed = false
+
+    // standard should NOT have active tools summary
+    const standardHasActive = standard.text.includes('## Active Tools')
+    console.log(`  standard excludes Active Tools: ${standardHasActive ? '❌ FOUND' : '✅'}`)
+    if (standardHasActive) allPassed = false
 
     // ── Summary ──
     console.log(`\n=== Overall: ${allPassed ? '✅ ALL PASSED' : '❌ FAILURES'} ===`)

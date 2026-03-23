@@ -11,6 +11,7 @@ import { PostgresAdapter } from "./adapters/postgresql/index.js";
 import { parseToolFilter, getFilterSummary } from "./filtering/tool-filter.js";
 import { logger } from "./utils/logger.js";
 import type { TransportType } from "./types/index.js";
+import type { InstructionLevel } from "./constants/server-instructions.js";
 import { VERSION } from "./utils/version.js";
 import { buildDatabaseConfig, buildOAuthConfig } from "./cli/config.js";
 import { startStdioServer, startHttpServer } from "./cli/server.js";
@@ -25,6 +26,7 @@ interface CliOptions {
   ssl?: boolean;
   poolMax?: number;
   toolFilter?: string;
+  instructionLevel?: InstructionLevel;
   logLevel?:
     | "debug"
     | "info"
@@ -104,6 +106,10 @@ program
     "--log-level <level>",
     "Log level: debug, info, notice, warning, error, critical, alert, emergency (default: info)",
   )
+  .option(
+    "--instruction-level <level>",
+    "Instruction detail level: essential, standard, full (default: standard)",
+  )
   // OAuth options
   .option("--oauth-enabled, -o", "Enable OAuth 2.1 authentication")
   .option("--oauth-issuer <url>", "Authorization server URL (issuer)")
@@ -176,19 +182,24 @@ program
         process.env["MCP_TRANSPORT"] ??
         "stdio") as TransportType;
 
-      if (transport === "http" || transport === "sse") {
-        if (!oauthConfig?.enabled && !options.authToken && !process.env["MCP_AUTH_TOKEN"]) {
-          logger.warn(
-            "HTTP transport started WITHOUT authentication — all clients have unrestricted access. " +
-              "Enable OAuth with --oauth-enabled or use --auth-token for simple bearer auth.",
-          );
+        // Determine instruction level
+        const instructionLevel = (options.instructionLevel ??
+          process.env["MCP_INSTRUCTION_LEVEL"] ??
+          "standard") as InstructionLevel;
+
+        if (transport === "http" || transport === "sse") {
+          if (!oauthConfig?.enabled && !options.authToken && !process.env["MCP_AUTH_TOKEN"]) {
+            logger.warn(
+              "HTTP transport started WITHOUT authentication — all clients have unrestricted access. " +
+                "Enable OAuth with --oauth-enabled or use --auth-token for simple bearer auth.",
+            );
+          }
+          // Start with HTTP transport
+          await startHttpServer(adapter, toolFilter, instructionLevel, oauthConfig, options);
+        } else {
+          // Start with stdio transport (default)
+          await startStdioServer(adapter, toolFilter, instructionLevel);
         }
-        // Start with HTTP transport
-        await startHttpServer(adapter, toolFilter, oauthConfig, options);
-      } else {
-        // Start with stdio transport (default)
-        await startStdioServer(adapter, toolFilter);
-      }
     } catch (error) {
       logger.error("Failed to start server", {
         error: error instanceof Error ? error.message : String(error),

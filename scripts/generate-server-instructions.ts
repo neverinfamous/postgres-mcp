@@ -2,7 +2,9 @@
  * Generates src/constants/server-instructions.ts from per-group markdown files.
  *
  * Reads server-instructions/*.md, escapes for template literals, and wraps them
- * in a TypeScript module with a slim INSTRUCTIONS constant and a HELP_CONTENT map.
+ * in a TypeScript module with:
+ *   - HELP_CONTENT map (on-demand pull-based reference)
+ *   - generateInstructions() function (composable, filter-aware instructions)
  *
  * Usage: node scripts/generate-server-instructions.ts
  */
@@ -43,6 +45,11 @@ for (const file of helpFiles) {
   helpEntries.push({ key, content });
 }
 
+// Identify group-specific help entries (everything except gotchas)
+const groupHelpKeys = helpEntries
+  .filter((e) => e.key !== "gotchas")
+  .map((e) => e.key);
+
 // Use backtick char for building string to avoid nesting issues
 const BT = "`";
 
@@ -64,17 +71,216 @@ lines.push(
 lines.push(
   " * Detailed help is available on-demand via postgres://help resources.",
 );
+lines.push(
+  " * Instructions are dynamically generated based on enabled tool groups",
+);
+lines.push(" * and instruction level for token efficiency.");
 lines.push(" */");
 lines.push("");
-lines.push("/**");
-lines.push(" * Slim instructions for the MCP instructions field (~600 chars).");
 lines.push(
-  " * Points agents to postgres://help resources for detailed reference.",
+  "import type { ToolGroup } from '../types/index.js'",
+);
+lines.push("");
+lines.push("/**");
+lines.push(
+  " * Instruction detail level for token efficiency",
+);
+lines.push(
+  " * - essential: ~150 tokens - Core quick access only (for token-constrained clients)",
+);
+lines.push(
+  " * - standard: ~200-300 tokens - + dynamic help pointers for enabled groups",
+);
+lines.push(
+  " * - full: ~350-400 tokens - + active groups summary",
 );
 lines.push(" */");
 lines.push(
-  "export const INSTRUCTIONS = " + BT + overviewEscaped + BT + ";",
+  "export type InstructionLevel = 'essential' | 'standard' | 'full'",
 );
+lines.push("");
+lines.push("// =============================================================================");
+lines.push("// Composable Instruction Segments");
+lines.push("// =============================================================================");
+lines.push("");
+lines.push("/**");
+lines.push(
+  " * Core instructions — always included regardless of enabled groups.",
+);
+lines.push(
+  " * Contains quick access table, built-in tools, and base help pointer.",
+);
+lines.push(" */");
+lines.push(
+  "const CORE_INSTRUCTIONS = " + BT + overviewEscaped + BT,
+);
+lines.push("");
+lines.push("/**");
+lines.push(
+  " * Code Mode summary — only included when codemode group is enabled.",
+);
+lines.push(
+  " * Provides API mapping and sandbox constraints.",
+);
+lines.push(" */");
+lines.push(
+  "const CODE_MODE_INSTRUCTIONS = " +
+    BT +
+    escapeForTemplateLiteral(
+      [
+        "",
+        "## Code Mode",
+        "",
+        "API: `pg_group_action` → `pg.group.action()` (e.g., `pg_jsonb_extract` → `pg.jsonb.extract()`)",
+        "Top-level: `pg.readQuery()`, `pg.writeQuery()`, `pg.listTables()`, `pg.describeTable()`, `pg.upsert()`, etc.",
+        "Positional: `readQuery(\"SELECT...\")`, `exists(\"users\", \"id=1\")`, `createIndex(\"users\", [\"email\"])`",
+        "Discovery: `pg.help()` → `{group: methods[]}`. `pg.core.help()`, `pg.jsonb.help()` for group-specific.",
+        "Sandbox: No `setTimeout`, `setInterval`, `fetch`, or network access. Use `pg.core.readQuery()` for data.",
+      ].join("\n"),
+    ) +
+    BT,
+);
+lines.push("");
+lines.push("/**");
+lines.push(
+  " * All group keys that have help content (for dynamic help pointer generation).",
+);
+lines.push(" */");
+lines.push(
+  "const HELP_GROUP_KEYS: readonly string[] = " +
+    JSON.stringify(groupHelpKeys),
+);
+lines.push("");
+lines.push("/**");
+lines.push(
+  " * Build dynamic help pointers listing only the enabled groups.",
+);
+lines.push(" */");
+lines.push(
+  "function buildHelpPointers(groups: Set<ToolGroup>): string {",
+);
+lines.push(
+  "    const enabledHelpGroups = HELP_GROUP_KEYS.filter((k) => groups.has(k as ToolGroup))",
+);
+lines.push("    if (enabledHelpGroups.length === 0) {");
+lines.push(
+  "        return '\\n\\nRead `postgres://help` for gotchas and critical usage patterns.'",
+);
+lines.push("    }");
+lines.push(
+  "    return '\\n\\n## Help Resources\\n\\n' +",
+);
+lines.push(
+  "        'Read `postgres://help` for gotchas and critical usage patterns.\\n' +",
+);
+lines.push(
+  "        'Read `postgres://help/{group}` for: ' + enabledHelpGroups.join(', ') + '.'",
+);
+lines.push("}");
+lines.push("");
+lines.push("/**");
+lines.push(
+  " * Build active groups summary listing enabled group names with tool counts.",
+);
+lines.push(" */");
+lines.push(
+  "function buildActiveGroupsSummary(groups: Set<ToolGroup>, enabledToolCount: number): string {",
+);
+lines.push(
+  "    const groupList = [...groups].sort().join(', ')",
+);
+lines.push(
+  "    return `\\n\\n## Active Tools (${String(enabledToolCount)})\\n\\nGroups: ${groupList}`",
+);
+lines.push("}");
+lines.push("");
+lines.push("// =============================================================================");
+lines.push("// Public API");
+lines.push("// =============================================================================");
+lines.push("");
+lines.push("/**");
+lines.push(
+  " * Generate dynamic instructions based on enabled tool groups and instruction level.",
+);
+lines.push(" *");
+lines.push(
+  " * Sections are conditionally included based on which tool groups are enabled:",
+);
+lines.push(
+  " * - Code Mode → only with `codemode` group",
+);
+lines.push(
+  " * - Help group listing → `standard`+ level, only lists enabled groups",
+);
+lines.push(
+  " * - Active tools summary → `full` level only",
+);
+lines.push(" *");
+lines.push(
+  " * @param enabledGroups - Set of enabled tool group names",
+);
+lines.push(
+  " * @param level - Instruction detail level (default: 'standard')",
+);
+lines.push(
+  " * @param enabledToolCount - Number of enabled tools (for full level summary)",
+);
+lines.push(" */");
+lines.push(
+  "export function generateInstructions(",
+);
+lines.push(
+  "    enabledGroups: Set<ToolGroup>,",
+);
+lines.push(
+  "    level: InstructionLevel = 'standard',",
+);
+lines.push(
+  "    enabledToolCount?: number,",
+);
+lines.push("): string {");
+lines.push("    // Always start with core instructions");
+lines.push(
+  "    let instructions = CORE_INSTRUCTIONS",
+);
+lines.push("");
+lines.push("    // Code Mode — only when codemode group is enabled");
+lines.push("    if (enabledGroups.has('codemode')) {");
+lines.push(
+  "        instructions += CODE_MODE_INSTRUCTIONS",
+);
+lines.push("    }");
+lines.push("");
+lines.push(
+  "    // Standard and full levels include dynamic help pointers",
+);
+lines.push("    if (level === 'standard' || level === 'full') {");
+lines.push(
+  "        instructions += buildHelpPointers(enabledGroups)",
+);
+lines.push("    }");
+lines.push("");
+lines.push(
+  "    // Full level includes active groups summary",
+);
+lines.push("    if (level === 'full' && enabledToolCount !== undefined) {");
+lines.push(
+  "        instructions += buildActiveGroupsSummary(enabledGroups, enabledToolCount)",
+);
+lines.push("    }");
+lines.push("");
+lines.push("    return instructions");
+lines.push("}");
+lines.push("");
+lines.push("/**");
+lines.push(
+  " * Static instructions for backward compatibility.",
+);
+lines.push(
+  " * @deprecated Use generateInstructions() instead for dynamic content",
+);
+lines.push(" */");
+lines.push("export const INSTRUCTIONS = CORE_INSTRUCTIONS");
 lines.push("");
 lines.push("/**");
 lines.push(" * Help content keyed by group name.");
@@ -109,6 +315,8 @@ process.stderr.write(
       " markdown files",
     "   Overview: " + overviewMd.length.toLocaleString() + " chars",
     "   Help entries: " + helpEntries.map((e) => e.key).join(", "),
+    "   Group help keys: " + groupHelpKeys.join(", "),
+    "   Exports: generateInstructions(), INSTRUCTIONS (deprecated), HELP_CONTENT",
     "",
   ].join("\n"),
 );

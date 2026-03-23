@@ -34,12 +34,12 @@ src/
 │   └── adapters.ts                 # AdapterCapabilities, ToolDefinition, ResourceDefinition, PromptDefinition
 │
 ├── constants/
-│   ├── server-instructions.ts      # Generated: slim INSTRUCTIONS constant (~600 chars) + HELP_CONTENT map (per-group help)
+│   ├── server-instructions.ts      # Generated: generateInstructions() + HELP_CONTENT map (composable, filter-aware)
 │   └── server-instructions/        # Source .md files for each help resource (22 files: overview, gotchas, jsonb, text, stats, etc.)
 │
 ├── filtering/
 │   ├── tool-constants.ts           # TOOL_GROUPS arrays, META_GROUPS shortcuts, group→tools map
-│   └── tool-filter.ts              # ToolFilter class — parse/apply --tool-filter expressions
+│   └── tool-filter.ts              # ToolFilter class — parse/apply --tool-filter, getEnabledGroups()
 │
 ├── utils/
 │   ├── logger.ts                   # Logger class (structured JSON, severity filtering, SENSITIVE_KEY_LIST)
@@ -377,9 +377,9 @@ throw new ExtensionNotAvailableError("pgvector");
 
 | What | Where | Notes |
 |------|-------|-------|
-| Server instructions (agent prompt) | `src/constants/server-instructions.ts` | Generated: slim `INSTRUCTIONS` (~600 chars) + `HELP_CONTENT` map. Source: `server-instructions/*.md` (22 files) |
+| Server instructions (agent prompt) | `src/constants/server-instructions.ts` | Generated: `generateInstructions(enabledGroups, level, toolCount)` + `HELP_CONTENT` map. Composable segments gated by tool groups and `InstructionLevel`. Source: `server-instructions/*.md` (22 files) |
 | Tool group arrays | `src/filtering/tool-constants.ts` | `TOOL_GROUPS` map, `META_GROUPS` shortcuts |
-| Tool filter logic | `src/filtering/tool-filter.ts` | `ToolFilter` class |
+| Tool filter logic | `src/filtering/tool-filter.ts` | `ToolFilter` class, `getEnabledGroups()` utility |
 | Connection pool | `src/pool/connection-pool.ts` | pg-native pool wrapper |
 | Logger | `src/utils/logger.ts` | Structured logging with severity filtering, `SENSITIVE_KEY_LIST` constant |
 | Module logger | `src/utils/module-logger.ts` | Per-module `ModuleLogger` class |
@@ -403,7 +403,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | **Tool Aliases** | postgres-mcp has a dedicated alias system (`codemode/api/aliases.ts`, 15KB) for Code Mode. |
 | **Per-Group Schemas** | Zod schemas separated into `schemas/` subdir organized by group (vs mysql-mcp's monolithic file). |
 | **Extension Tools** | citext, ltree, pgcrypto, kcache, partman, cron, PostGIS, pgvector — each requires extension installation. |
-| **Help Resources** | Slim `INSTRUCTIONS` (~600 chars) + on-demand `postgres://help` resources replace old 71KB monolith. `postgres://help/{group}` filtered by `--tool-filter`. |
+| **Help Resources** | `generateInstructions()` produces composable, filter-aware instructions (Code Mode gated by `codemode` group, help pointers list only enabled groups, active tools summary at `full` level). On-demand `postgres://help/{group}` resources filtered by `--tool-filter`. Supports `--instruction-level` (`essential`/`standard`/`full`). |
 | **Barrel Re-exports** | Import from `./module/index.js` (with `.js` extension for ESM). |
 | **Input Coercion** | All numeric input fields use `z.preprocess(coerceNumber, z.number().optional())` for safe validation at parse time. Zero `z.coerce.number()` remaining — fully migrated across 29 source files (15 schema + 14 handler). |
 
@@ -433,7 +433,8 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/test-prompts.md` | Prompt testing plan (19 prompts) |
 | `test-server/test-preflight.md` | Pre-test environment validation |
 | `test-server/test-agent-experience.md` | Agent experience test (9 passes, 37 scenarios) |
-| `test-server/test-instruction-levels.mjs` | Instruction filtering behavior verification |
+| `test-server/test-instruction-levels.mjs` | Instruction filtering + level behavior verification |
+| `test-server/test-filter-instructions.mjs` | Filter-aware instruction validation (8-config matrix: section presence/absence per filter × level) |
 | `src/__tests__/` | Vitest unit tests (top-level) |
 | `tests/e2e/` | Playwright E2E suite (33 spec files) |
 | `tests/e2e/helpers.ts` | E2E helpers: `getBaseURL()`, `callToolRaw()`, `expectHandlerError()`, `startServer()`, `stopServer()`, `createClient()` |
