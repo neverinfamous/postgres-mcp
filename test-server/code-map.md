@@ -2,7 +2,7 @@
 
 > **Agent-optimized navigation reference.** Read this before searching the codebase. Covers directory layout, handler→tool mapping, type/schema locations, error hierarchy, and key constants.
 >
-> Last updated: March 19, 2026
+> Last updated: March 22, 2026
 
 ---
 
@@ -59,12 +59,13 @@ src/
 ├── pool/
 │   └── connection-pool.ts          # PostgreSQL connection pool manager (pg)
 │
-├── auth/                           # OAuth 2.1 implementation
-│   ├── middleware.ts               # Express-style OAuth middleware
+├── auth/                           # OAuth 2.1 implementation (11 files)
+│   ├── transport-agnostic.ts       # Transport-agnostic auth (createAuthenticatedContext, validateAuth, formatOAuthError)
+│   ├── middleware.ts               # Express-style middleware (re-exports shared types from transport-agnostic.ts)
 │   ├── token-validator.ts          # JWT/JWKS token validation
 │   ├── scopes.ts                   # Scope parsing, enforcement
 │   ├── scope-map.ts                # Tool→scope mapping
-│   ├── auth-context.ts             # Request context builder
+│   ├── auth-context.ts             # Request context builder (AsyncLocalStorage)
 │   ├── oauth-resource-server.ts    # RFC 9728 /.well-known/oauth-protected-resource
 │   ├── authorization-server-discovery.ts  # RFC 8414 auth server metadata discovery
 │   ├── errors.ts                   # OAuth-specific error classes
@@ -84,10 +85,13 @@ src/
 │       └── index.ts                # Barrel
 │
 ├── codemode/                       # Code Mode sandbox (secure JS execution)
-│   ├── sandbox.ts                  # SandboxPool lifecycle manager
+│   ├── sandbox.ts                  # VM-based SandboxPool lifecycle manager (default mode)
+│   ├── worker-sandbox.ts           # Worker-thread sandbox (true V8 isolate with ResourceLimits)
+│   ├── worker-script.ts            # Worker entry point (pg.* Proxy API + vm.createContext)
+│   ├── sandbox-factory.ts          # Mode selection factory (vm | worker)
 │   ├── auto-return.ts              # Last-expression auto-return transform (IIFE helper)
 │   ├── security.ts                 # Code validation (blocked patterns, injection prevention)
-│   ├── types.ts                    # Sandbox TypeScript types (SecurityConfig, rateLimitWindowMs, resultPreviewLength)
+│   ├── types.ts                    # Sandbox TypeScript types (SecurityConfig, RpcRequest/Response)
 │   ├── index.ts                    # Barrel
 │   └── api/                        # pg.* API bridge (unique to postgres-mcp)
 │       ├── index.ts                # Main API bridge — exposes tools to sandbox
@@ -395,7 +399,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | **Adapter Pattern** | `DatabaseAdapter` (abstract) → `PostgresAdapter`. Single adapter (no WASM variant). |
 | **Schema Cache** | Metadata caching via `schema-operations/` (describe + list). |
 | **Connection Pool** | `ConnectionPool` wraps `pg` module. Managed lifecycle with health checks. |
-| **Code Mode Bridge** | `pg.*` API in worker thread. Unique `api/` subdir with alias resolution + group-api generation. Security constants (`rateLimitWindowMs`, `resultPreviewLength`) in `SecurityConfig`. |
+| **Code Mode Bridge** | `pg.*` API in sandbox. Dual-mode: VM (default, `sandbox.ts`) or Worker (`worker-sandbox.ts` + `worker-script.ts`). Factory in `sandbox-factory.ts`. Unique `api/` subdir with alias resolution + group-api generation. Security constants in `SecurityConfig`. |
 | **Tool Aliases** | postgres-mcp has a dedicated alias system (`codemode/api/aliases.ts`, 15KB) for Code Mode. |
 | **Per-Group Schemas** | Zod schemas separated into `schemas/` subdir organized by group (vs mysql-mcp's monolithic file). |
 | **Extension Tools** | citext, ltree, pgcrypto, kcache, partman, cron, PostGIS, pgvector — each requires extension installation. |
