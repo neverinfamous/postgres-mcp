@@ -73,6 +73,7 @@ import { getMigrationTools } from "./tools/migration/index.js";
 import { getCodeModeTools } from "./tools/codemode/index.js";
 import { getPostgresResources } from "./resources/index.js";
 import { getPostgresPrompts } from "./prompts/index.js";
+import type { BackupManager } from "../../audit/backup-manager.js";
 
 /**
  * Metadata cache entry with TTL support
@@ -97,6 +98,7 @@ export class PostgresAdapter extends DatabaseAdapter {
 
   private pool: ConnectionPool | null = null;
   private activeTransactions = new Map<string, PoolClient>();
+  private backupManager: BackupManager | null = null;
 
   // Performance optimization: cache tool definitions (immutable after creation)
   private cachedToolDefinitions: ToolDefinition[] | null = null;
@@ -495,7 +497,7 @@ export class PostgresAdapter extends DatabaseAdapter {
       ...getPerformanceTools(this),
       ...getAdminTools(this),
       ...getMonitoringTools(this),
-      ...getBackupTools(this),
+      ...getBackupTools(this, this.backupManager),
       ...getSchemaTools(this),
       ...getVectorTools(this),
       ...getPostgisTools(this),
@@ -532,5 +534,15 @@ export class PostgresAdapter extends DatabaseAdapter {
    */
   getPool(): ConnectionPool | null {
     return this.pool;
+  }
+
+  /**
+   * Set the backup manager reference for audit backup tools.
+   * Called by PostgresMcpServer after creating the BackupManager.
+   */
+  setBackupManager(manager: BackupManager): void {
+    this.backupManager = manager;
+    // Invalidate cached tool definitions so new tools are included
+    this.cachedToolDefinitions = null;
   }
 }

@@ -125,6 +125,10 @@ export const TOOL_SCOPE_OVERRIDES: Partial<Record<string, StandardScope>> = {
   pg_drop_table: SCOPES.ADMIN,
   pg_drop_index: SCOPES.ADMIN,
   pg_truncate: SCOPES.ADMIN,
+
+  // Backup group — read-only audit tools (group default is admin)
+  pg_audit_list_backups: SCOPES.READ,
+  pg_audit_diff_backup: SCOPES.READ,
 };
 
 // =============================================================================

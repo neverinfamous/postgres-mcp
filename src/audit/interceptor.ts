@@ -5,12 +5,16 @@
  * operations. Reads OAuth identity from AsyncLocalStorage and
  * determines the tool's required scope via the scope-map.
  *
+ * Phase 2: When a BackupManager is provided, captures pre-mutation
+ * snapshots of target objects before destructive tool execution.
+ *
  * The interceptor is injected into `DatabaseAdapter.registerTool()`
  * so that all 245 tool handlers are audited without per-handler changes.
  */
 
 import { performance } from "node:perf_hooks";
 import type { AuditLogger } from "./logger.js";
+import type { BackupManager, SnapshotQueryAdapter } from "./backup-manager.js";
 import type { AuditCategory } from "./types.js";
 import { getAuthContext } from "../auth/auth-context.js";
 import { getRequiredScope } from "../auth/scope-map.js";
@@ -51,9 +55,15 @@ function scopeToCategory(scope: string): AuditCategory {
 
 /**
  * Create an audit interceptor bound to the given logger.
+ *
+ * @param auditLogger  The JSONL audit logger
+ * @param backupManager Optional backup manager for pre-mutation snapshots
+ * @param queryAdapter  Optional query adapter for snapshot DDL capture
  */
 export function createAuditInterceptor(
   auditLogger: AuditLogger,
+  backupManager?: BackupManager,
+  queryAdapter?: SnapshotQueryAdapter,
 ): AuditInterceptor {
   return {
     async around<T>(
@@ -73,6 +83,21 @@ export function createAuditInterceptor(
       const start = performance.now();
       let success = true;
       let error: string | undefined;
+      let backupRef: string | undefined;
+
+      // Phase 2: Pre-mutation snapshot (before tool executes)
+      if (backupManager && queryAdapter && backupManager.shouldSnapshot(toolName)) {
+        try {
+          backupRef = await backupManager.createSnapshot(
+            toolName,
+            (args ?? {}) as Record<string, unknown>,
+            requestId,
+            queryAdapter,
+          );
+        } catch {
+          // Snapshot failure must not block tool execution
+        }
+      }
 
       try {
         return await fn();
@@ -97,6 +122,7 @@ export function createAuditInterceptor(
           args: auditLogger.config.redact
             ? undefined
             : (args as Record<string, unknown>),
+          backup: backupRef,
         });
       }
     },

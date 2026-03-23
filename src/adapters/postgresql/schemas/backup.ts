@@ -351,3 +351,66 @@ export const BackupScheduleOptimizeOutputSchema = z.object({
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
 }).extend(ErrorResponseFields.shape);
+
+/**
+ * pg_audit_list_backups output - list of snapshots
+ */
+export const AuditListBackupsOutputSchema = z.object({
+  success: z.boolean().optional().describe("Whether the operation succeeded"),
+  snapshots: z
+    .array(
+      z.object({
+        timestamp: z.string().describe("ISO 8601 snapshot timestamp"),
+        tool: z.string().describe("Tool that triggered the snapshot"),
+        target: z.string().describe("Target object"),
+        schema: z.string().describe("Schema of target"),
+        type: z.enum(["ddl", "ddl+data"]).describe("Snapshot type"),
+        requestId: z.string().describe("Audit request ID"),
+        sizeBytes: z.number().describe("Snapshot file size"),
+      }),
+    )
+    .optional()
+    .describe("Available backup snapshots"),
+  count: z.number().optional().describe("Number of snapshots"),
+  error: z.string().optional().describe("Error message if failed"),
+}).extend(ErrorResponseFields.shape);
+
+/**
+ * pg_audit_restore_backup output - restore result
+ */
+export const AuditRestoreBackupOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    dryRun: z.boolean().optional().describe("Whether this was a dry run"),
+    restored: z.boolean().optional().describe("Whether restore was executed"),
+    metadata: z.record(z.string(), z.unknown()).optional().describe("Snapshot metadata"),
+    ddl: z.string().optional().describe("DDL content (dry run only)"),
+    ddlExecuted: z.boolean().optional().describe("Whether DDL was executed"),
+    dataStatements: z.number().optional().describe("Number of data INSERT statements"),
+    dataRowsInserted: z.number().optional().describe("Number of data rows inserted"),
+    error: z.string().optional().describe("Error message if failed"),
+    hint: z.string().optional().describe("Hint for next steps"),
+  })
+  .loose();
+
+/**
+ * pg_audit_diff_backup output - schema drift comparison
+ */
+export const AuditDiffBackupOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    metadata: z.record(z.string(), z.unknown()).optional().describe("Snapshot metadata"),
+    objectExists: z.boolean().optional().describe("Whether target object still exists"),
+    hasDrift: z.boolean().optional().describe("Whether schema has drifted"),
+    diff: z
+      .object({
+        additions: z.array(z.string()).describe("Lines added since snapshot"),
+        removals: z.array(z.string()).describe("Lines removed since snapshot"),
+      })
+      .optional()
+      .describe("Schema differences"),
+    snapshotDdl: z.string().optional().describe("DDL from snapshot"),
+    currentDdl: z.string().optional().describe("Current live DDL"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .loose();

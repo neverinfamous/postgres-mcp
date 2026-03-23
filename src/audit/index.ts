@@ -5,4 +5,13 @@
 export { AuditLogger } from "./logger.js";
 export { createAuditInterceptor } from "./interceptor.js";
 export type { AuditInterceptor } from "./interceptor.js";
-export type { AuditEntry, AuditCategory, AuditConfig } from "./types.js";
+export { BackupManager } from "./backup-manager.js";
+export type { SnapshotQueryAdapter } from "./backup-manager.js";
+export type {
+  AuditEntry,
+  AuditCategory,
+  AuditConfig,
+  BackupConfig,
+  SnapshotMetadata,
+  SnapshotContent,
+} from "./types.js";

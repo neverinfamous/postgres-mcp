@@ -23,8 +23,8 @@ describe("getBackupTools", () => {
     tools = getBackupTools(adapter);
   });
 
-  it("should return 9 backup tools", () => {
-    expect(tools).toHaveLength(9);
+  it("should return 12 backup tools", () => {
+    expect(tools).toHaveLength(12);
   });
 
   it("should have all expected tool names", () => {
@@ -38,6 +38,9 @@ describe("getBackupTools", () => {
     expect(toolNames).toContain("pg_backup_physical");
     expect(toolNames).toContain("pg_restore_validate");
     expect(toolNames).toContain("pg_backup_schedule_optimize");
+    expect(toolNames).toContain("pg_audit_list_backups");
+    expect(toolNames).toContain("pg_audit_restore_backup");
+    expect(toolNames).toContain("pg_audit_diff_backup");
   });
 
   it("should have group set to backup for all tools", () => {

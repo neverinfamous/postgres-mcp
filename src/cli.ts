@@ -50,6 +50,10 @@ interface CliOptions {
   trustProxy?: boolean;
   auditLog?: string;
   auditRedact?: boolean;
+  auditBackup?: boolean;
+  auditBackupData?: boolean;
+  auditBackupMaxAge?: number;
+  auditBackupMaxCount?: number;
 }
 
 interface ListToolsOptions {
@@ -150,6 +154,24 @@ program
     "--audit-redact",
     "Redact tool arguments from audit entries (env: AUDIT_REDACT)",
   )
+  .option(
+    "--audit-backup",
+    "Enable pre-mutation snapshots for destructive operations (env: AUDIT_BACKUP)",
+  )
+  .option(
+    "--audit-backup-data",
+    "Include sample data rows in backup snapshots (env: AUDIT_BACKUP_DATA)",
+  )
+  .option(
+    "--audit-backup-max-age <days>",
+    "Maximum snapshot age in days (default: 30, env: AUDIT_BACKUP_MAX_AGE)",
+    parseInt,
+  )
+  .option(
+    "--audit-backup-max-count <count>",
+    "Maximum number of snapshots to retain (default: 1000, env: AUDIT_BACKUP_MAX_COUNT)",
+    parseInt,
+  )
   .action(async (options: CliOptions) => {
     // Set log level
     const logLevel =
@@ -194,7 +216,19 @@ program
       const auditRedact =
         options.auditRedact ?? process.env["AUDIT_REDACT"] === "true";
       const auditConfig = auditLogPath
-        ? { enabled: true, logPath: auditLogPath, redact: auditRedact }
+        ? {
+            enabled: true,
+            logPath: auditLogPath,
+            redact: auditRedact,
+            backup: (options.auditBackup ?? process.env["AUDIT_BACKUP"] === "true")
+              ? {
+                  enabled: true,
+                  includeData: options.auditBackupData ?? process.env["AUDIT_BACKUP_DATA"] === "true",
+                  maxAgeDays: options.auditBackupMaxAge ?? Number(process.env["AUDIT_BACKUP_MAX_AGE"] ?? "30"),
+                  maxCount: options.auditBackupMaxCount ?? Number(process.env["AUDIT_BACKUP_MAX_COUNT"] ?? "1000"),
+                }
+              : undefined,
+          }
         : undefined;
 
       // Determine transport type

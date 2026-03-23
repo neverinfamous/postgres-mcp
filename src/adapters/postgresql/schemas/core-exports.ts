@@ -126,6 +126,9 @@ export {
   PhysicalBackupOutputSchema,
   RestoreValidateOutputSchema,
   BackupScheduleOptimizeOutputSchema,
+  AuditListBackupsOutputSchema,
+  AuditRestoreBackupOutputSchema,
+  AuditDiffBackupOutputSchema,
 } from "./backup.js";
 
 // Schema management schemas

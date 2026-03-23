@@ -63,4 +63,59 @@ export interface AuditConfig {
 
   /** When true, tool arguments are omitted from entries */
   redact: boolean;
+
+  /** Pre-mutation backup configuration (Phase 2) */
+  backup?: BackupConfig | undefined;
 }
+
+/** Pre-mutation backup configuration */
+export interface BackupConfig {
+  /** Enable pre-mutation snapshots */
+  enabled: boolean;
+
+  /** Include sample data rows in snapshots (default: schema-only) */
+  includeData: boolean;
+
+  /** Maximum snapshot age in days before cleanup (default: 30) */
+  maxAgeDays: number;
+
+  /** Maximum number of snapshots to retain (default: 1000) */
+  maxCount: number;
+}
+
+/** Snapshot metadata stored alongside the DDL capture */
+export interface SnapshotMetadata {
+  /** ISO 8601 timestamp */
+  timestamp: string;
+
+  /** Tool that triggered the snapshot */
+  tool: string;
+
+  /** Target object (table, index, schema) */
+  target: string;
+
+  /** Schema of the target object */
+  schema: string;
+
+  /** Snapshot type: ddl-only or ddl+data */
+  type: "ddl" | "ddl+data";
+
+  /** Original audit requestId for correlation */
+  requestId: string;
+
+  /** Size of snapshot file in bytes */
+  sizeBytes: number;
+}
+
+/** Stored snapshot file content */
+export interface SnapshotContent {
+  /** Snapshot metadata */
+  metadata: SnapshotMetadata;
+
+  /** CREATE TABLE / CREATE INDEX / etc. DDL */
+  ddl: string;
+
+  /** Optional INSERT statements for sample data */
+  data?: string | undefined;
+}
+

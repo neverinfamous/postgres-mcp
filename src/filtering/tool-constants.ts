@@ -159,6 +159,9 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_backup_physical",
     "pg_restore_validate",
     "pg_backup_schedule_optimize",
+    "pg_audit_list_backups",
+    "pg_audit_restore_backup",
+    "pg_audit_diff_backup",
   ],
   schema: [
     "pg_list_schemas",

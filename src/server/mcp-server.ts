@@ -13,8 +13,8 @@ import { parseToolFilter, getEnabledGroups } from "../filtering/tool-filter.js";
 import { logger } from "../utils/logger.js";
 import { generateInstructions, HELP_CONTENT } from "../constants/server-instructions.js";
 import type { InstructionLevel } from "../constants/server-instructions.js";
-import { AuditLogger, createAuditInterceptor } from "../audit/index.js";
-import type { AuditConfig } from "../audit/index.js";
+import { AuditLogger, createAuditInterceptor, BackupManager } from "../audit/index.js";
+import type { AuditConfig, SnapshotQueryAdapter } from "../audit/index.js";
 
 export interface ServerConfig {
   name: string;
@@ -34,6 +34,7 @@ export class PostgresMcpServer {
   private filterConfig: ToolFilterConfig;
   private transport: StdioServerTransport | null = null;
   private auditLogger: AuditLogger | null = null;
+  private backupManager: BackupManager | null = null;
 
   constructor(config: ServerConfig) {
     this.adapter = config.adapter;
@@ -77,11 +78,32 @@ export class PostgresMcpServer {
     // Set up audit logging if configured
     if (config.auditConfig?.enabled) {
       this.auditLogger = new AuditLogger(config.auditConfig);
-      const interceptor = createAuditInterceptor(this.auditLogger);
+
+      // Set up backup manager if configured
+      if (config.auditConfig.backup?.enabled && config.auditConfig.logPath !== "stderr") {
+        this.backupManager = new BackupManager(
+          config.auditConfig.backup,
+          config.auditConfig.logPath,
+        );
+        // Pass backup manager to adapter so audit backup tools can access it
+        if ("setBackupManager" in this.adapter) {
+          (this.adapter as { setBackupManager: (m: BackupManager) => void })
+            .setBackupManager(this.backupManager);
+        }
+      }
+
+      const interceptor = createAuditInterceptor(
+        this.auditLogger,
+        this.backupManager ?? undefined,
+        // The adapter implements SnapshotQueryAdapter (executeQuery + describeTable)
+        this.adapter as unknown as SnapshotQueryAdapter,
+      );
       this.adapter.setAuditInterceptor(interceptor);
       logger.info("Audit logging enabled", {
         path: config.auditConfig.logPath,
         redact: config.auditConfig.redact,
+        backup: config.auditConfig.backup?.enabled ?? false,
+        backupData: config.auditConfig.backup?.includeData ?? false,
       });
     }
   }
@@ -235,6 +257,7 @@ export class PostgresMcpServer {
    */
   private registerAuditResource(): void {
     const auditLogger = this.auditLogger;
+    const backupMgr = this.backupManager;
 
     this.mcpServer.registerResource(
       "postgres_audit",
@@ -262,12 +285,17 @@ export class PostgresMcpServer {
         }
 
         const entries = await auditLogger.recent();
+        const backups = backupMgr ? await backupMgr.getStats() : undefined;
         return {
           contents: [
             {
               uri: "postgres://audit",
               mimeType: "application/json",
-              text: JSON.stringify({ entries, total: entries.length }),
+              text: JSON.stringify({
+                entries,
+                total: entries.length,
+                ...(backups && { backups }),
+              }),
             },
           ],
         };

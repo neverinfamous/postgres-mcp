@@ -1,12 +1,13 @@
 /**
  * PostgreSQL Backup Tools
  *
- * COPY operations, dump commands, and backup planning.
- * 9 tools total.
+ * COPY operations, dump commands, backup planning, and audit backup management.
+ * 12 tools total.
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
+import type { BackupManager } from "../../../../audit/backup-manager.js";
 
 // Dump operations
 import {
@@ -29,10 +30,20 @@ import {
   createBackupScheduleOptimizeTool,
 } from "./planning.js";
 
+// Audit backup management
+import {
+  createAuditListBackupsTool,
+  createAuditRestoreBackupTool,
+  createAuditDiffBackupTool,
+} from "./audit-backup.js";
+
 /**
  * Get all backup tools
  */
-export function getBackupTools(adapter: PostgresAdapter): ToolDefinition[] {
+export function getBackupTools(
+  adapter: PostgresAdapter,
+  backupManager?: BackupManager | null,
+): ToolDefinition[] {
   return [
     createDumpTableTool(adapter),
     createDumpSchemaTool(adapter),
@@ -43,6 +54,9 @@ export function getBackupTools(adapter: PostgresAdapter): ToolDefinition[] {
     createPhysicalBackupTool(adapter),
     createRestoreValidateTool(adapter),
     createBackupScheduleOptimizeTool(adapter),
+    createAuditListBackupsTool(adapter, backupManager ?? null),
+    createAuditRestoreBackupTool(adapter, backupManager ?? null),
+    createAuditDiffBackupTool(adapter, backupManager ?? null),
   ];
 }
 
@@ -57,4 +71,7 @@ export {
   createPhysicalBackupTool,
   createRestoreValidateTool,
   createBackupScheduleOptimizeTool,
+  createAuditListBackupsTool,
+  createAuditRestoreBackupTool,
+  createAuditDiffBackupTool,
 };
