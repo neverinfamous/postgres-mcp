@@ -203,7 +203,7 @@ Check for table bloat across all test tables. Which tables, if any, would benefi
 
 ## Pass 7: `dba-infra`
 
-**Tool groups under test:** `core` (21), `admin` (11), `backup` (10), `partitioning` (7), `codemode` (1)
+**Tool groups under test:** `core` (21), `admin` (11), `backup` (12), `partitioning` (7), `codemode` (1)
 
 ### Phase 10 — Admin & Infrastructure
 
@@ -219,6 +219,9 @@ Inspect the partitioning setup for `test_events`. Can the agent identify the par
 #### Scenario 35 — Insight memo
 As you investigate the database health, record your key findings as insights so they can be reviewed later via the insights resource. Append at least 3 observations about the database state, then verify they're accessible.
 
+#### Scenario 36 — Audit trail & recovery
+Create a table, insert data, then truncate it (creating a pre-mutation snapshot). Use the audit backup tools to list the snapshot, compare it against the live schema (after adding a column to simulate drift), and restore the original state. Can the agent complete a full "oops → recover" workflow using only the backup tools and help resources?
+
 ---
 
 ## Pass 8: `core,introspection,migration`
@@ -227,13 +230,13 @@ As you investigate the database health, record your key findings as insights so 
 
 ### Phase 11 — Schema Analysis & Migration
 
-#### Scenario 36 — Dependency graph
+#### Scenario 37 — Dependency graph
 Map out the foreign key dependency graph starting from `test_departments`. What's the full cascade chain? Which tables depend on it?
 
-#### Scenario 37 — Cascade simulation
+#### Scenario 38 — Cascade simulation
 What would happen if `test_departments` row 1 were deleted? Simulate the cascade impact on employees, projects, and assignments.
 
-#### Scenario 38 — Migration workflow
+#### Scenario 39 — Migration workflow
 Initialize migration tracking, then create and apply a migration that adds a `description` column to `test_products`. Roll it back after verifying.
 
 ---
@@ -244,16 +247,16 @@ Initialize migration tracking, then create and apply a migration that adds a `de
 
 ### Phase 12 — Code Mode Discovery & Efficiency
 
-#### Scenario 39 — Cold-start Code Mode
+#### Scenario 40 — Cold-start Code Mode
 Using only `pg_execute_code`, list all tables, pick one, and run a query against it. Can the agent discover the `pg.*` API without external help?
 
-#### Scenario 40 — Multi-step workflow
+#### Scenario 41 — Multi-step workflow
 Using only `pg_execute_code`, find the top 5 products by order count with total revenue — in a single code execution.
 
-#### Scenario 41 — Cross-group orchestration
+#### Scenario 42 — Cross-group orchestration
 Using only `pg_execute_code`, do a full data quality audit: check for NULLs, orphaned FKs, missing indexes, and table bloat — all in one execution. Compare the token efficiency vs individual tool calls.
 
-#### Scenario 42 — Stats pipeline via Code Mode
+#### Scenario 43 — Stats pipeline via Code Mode
 Using only `pg_execute_code`, compute outlier detection on `test_measurements.temperature`, then get the frequency distribution of `sensor_id`, and summarize all numeric columns — all in a single execution. Can the agent discover the `pg.stats.*` API methods?
 
 ---
@@ -262,8 +265,8 @@ Using only `pg_execute_code`, compute outlier detection on `test_measurements.te
 
 Compile findings across all passes into:
 
-1. **Help resource gaps** — scenarios where help content was missing, incomplete, or misleading
+1. **Help resource gaps** — scenarios where help content was missing, incomplete, or misleading (43 scenarios total)
 2. **Discovery friction** — cases where the agent struggled to find the right tool or resource
 3. **Suggested improvements** — specific additions to `src/constants/server-instructions/*.md`
 
-> **Key metric:** How many of the 42 scenarios did the agent complete on the first try with ≤1 help resource read? This measures whether the instructions + tool descriptions are self-sufficient.
+> **Key metric:** How many of the 43 scenarios did the agent complete on the first try with ≤1 help resource read? This measures whether the instructions + tool descriptions are self-sufficient.

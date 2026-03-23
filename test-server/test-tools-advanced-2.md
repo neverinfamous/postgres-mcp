@@ -514,6 +514,81 @@ All tools in this group are read-only — no cleanup needed. Confirm `test_produ
 
 ---
 
+## backup Group Advanced Tests
+
+> Audit backup tools require `--audit-backup` enabled on test server. All 3 tools return `{success: false, error: "Audit backup not enabled"}` when disabled.
+
+### backup Group Tools (12 +1 code mode)
+
+1. pg_dump_table
+2. pg_dump_schema
+3. pg_copy_export
+4. pg_copy_import
+5. pg_create_backup_plan
+6. pg_restore_command
+7. pg_backup_physical
+8. pg_restore_validate
+9. pg_backup_schedule_optimize
+10. pg_audit_list_backups
+11. pg_audit_restore_backup
+12. pg_audit_diff_backup
+13. pg_execute_code (auto-added)
+
+### Category 1: Snapshot Lifecycle (Audit Backup)
+
+1. Create `stress_backup_lifecycle (id SERIAL PRIMARY KEY, name TEXT, status TEXT DEFAULT 'active')`, insert 3 rows via `pg_batch_insert`
+2. `pg_truncate({table: "stress_backup_lifecycle"})` → triggers pre-mutation snapshot capture
+3. `pg_audit_list_backups({target: "stress_backup_lifecycle"})` → verify snapshot exists with `filename`, `timestamp`, `tool: "pg_truncate"`, `target: "stress_backup_lifecycle"`
+4. `pg_write_query({sql: "ALTER TABLE stress_backup_lifecycle ADD COLUMN drift_col INT DEFAULT 0"})` → introduce schema drift post-snapshot
+5. `pg_audit_diff_backup({filename: <from step 3>})` → verify diff detects the `drift_col` addition
+6. `pg_audit_restore_backup({filename: <from step 3>, dryRun: true})` → verify DDL preview returned; `drift_col` still present on live table after dry run
+7. `pg_audit_restore_backup({filename: <from step 3>, confirm: true})` → verify restore executes successfully
+8. `pg_describe_table({table: "stress_backup_lifecycle"})` → confirm `drift_col` no longer exists (restored to pre-truncate schema)
+
+### Category 2: Multiple Snapshots & Filtering
+
+9. Create `stress_backup_multi (id INT PRIMARY KEY, val TEXT)`, insert 2 rows
+10. `pg_truncate({table: "stress_backup_multi"})` → first snapshot
+11. Insert 1 row, then `pg_truncate({table: "stress_backup_multi"})` → second snapshot
+12. `pg_audit_list_backups({target: "stress_backup_multi"})` → verify `count >= 2` (multiple snapshots for same table)
+13. `pg_audit_list_backups({tool: "pg_truncate"})` → verify tool filter returns only `pg_truncate` snapshots
+14. `pg_audit_list_backups()` → verify all snapshots across all tables returned
+
+### Category 3: Error Message Quality
+
+15. `pg_audit_diff_backup({filename: "nonexistent_snapshot_xyz.json"})` → structured error with `filename` context, NOT raw MCP error
+16. `pg_audit_restore_backup({filename: "valid.json"})` without `confirm` → structured error mentioning `confirm` is required
+17. `pg_audit_restore_backup({filename: "nonexistent_xyz.json", confirm: true})` → structured error for missing file
+18. All 3 audit tools called with `--audit-backup` **disabled**: verify each returns `{success: false, error: "..."}` structured error, NOT MCP error
+
+### Category 4: Code Mode Parity
+
+```javascript
+// Run via pg_execute_code
+const list = await pg.backup.listBackups();
+const hasSnapshots = (list.snapshots?.length ?? list.count ?? 0) > 0;
+return { hasSnapshots, count: list.count ?? list.snapshots?.length ?? 0 };
+```
+
+19. Verify: `hasSnapshots: true` and `count > 0` (from lifecycle snapshots above)
+
+```javascript
+// Diff via code mode
+const snapshots = await pg.backup.listBackups({ target: "stress_backup_lifecycle" });
+const filename = snapshots.snapshots?.[0]?.filename;
+if (!filename) return { error: "No snapshot found" };
+const diff = await pg.backup.diffBackup({ filename });
+return { hasDiff: !!diff, filename };
+```
+
+20. Verify: `hasDiff: true` (diff result returned)
+
+### Final Cleanup
+
+Drop `stress_backup_lifecycle` and `stress_backup_multi`. Confirm no `stress_*` tables remain.
+
+---
+
 ## Cross-Group Integration Workflows
 
 > **Purpose**: Test realistic multi-group pipelines that exercise tool chains spanning multiple groups. These catch state-management bugs that single-group tests miss (e.g., temp table metadata leaking between groups, transaction isolation issues).
