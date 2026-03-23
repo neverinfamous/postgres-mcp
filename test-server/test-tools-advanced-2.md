@@ -516,7 +516,7 @@ All tools in this group are read-only — no cleanup needed. Confirm `test_produ
 
 ## backup Group Advanced Tests
 
-> Audit backup tools require `--audit-backup` enabled on test server. All 3 tools return `{success: false, error: "Audit backup not enabled"}` when disabled.
+> Audit backup tools require `--audit-backup` enabled on test server. All 3 tools return `{success: false, error: "Audit backup not enabled"}` when disabled. When enabled, snapshot files are gzip-compressed (`.snapshot.json.gz`). **V2 features under test**: `restoreAs` (non-destructive side-by-side restore), `volumeDrift` (row count + size drift in diff output), and Code Mode audit coverage via the AuditInterceptor.
 
 ### backup Group Tools (12 +1 code mode)
 
@@ -545,23 +545,67 @@ All tools in this group are read-only — no cleanup needed. Confirm `test_produ
 7. `pg_audit_restore_backup({filename: <from step 3>, confirm: true})` → verify restore executes successfully
 8. `pg_describe_table({table: "stress_backup_lifecycle"})` → confirm `drift_col` no longer exists (restored to pre-truncate schema)
 
-### Category 2: Multiple Snapshots & Filtering
+### Category 2: Multiple Snapshots, Filtering, and volumeDrift
 
 9. Create `stress_backup_multi (id INT PRIMARY KEY, val TEXT)`, insert 2 rows
-10. `pg_truncate({table: "stress_backup_multi"})` → first snapshot
+10. `pg_truncate({table: "stress_backup_multi"})` → first snapshot; verify `{success: true}`
 11. Insert 1 row, then `pg_truncate({table: "stress_backup_multi"})` → second snapshot
 12. `pg_audit_list_backups({target: "stress_backup_multi"})` → verify `count >= 2` (multiple snapshots for same table)
 13. `pg_audit_list_backups({tool: "pg_truncate"})` → verify tool filter returns only `pg_truncate` snapshots
-14. `pg_audit_list_backups()` → verify all snapshots across all tables returned
+14. `pg_audit_list_backups()` → verify all snapshots across all tables returned; note snapshot filenames end in `.snapshot.json.gz`
 
-### Category 3: Error Message Quality
+**volumeDrift verification:**
 
-15. `pg_audit_diff_backup({filename: "nonexistent_snapshot_xyz.json"})` → structured error with `filename` context, NOT raw MCP error
-16. `pg_audit_restore_backup({filename: "valid.json"})` without `confirm` → structured error mentioning `confirm` is required
-17. `pg_audit_restore_backup({filename: "nonexistent_xyz.json", confirm: true})` → structured error for missing file
-18. All 3 audit tools called with `--audit-backup` **disabled**: verify each returns `{success: false, error: "..."}` structured error, NOT MCP error
+15. Capture the filename for the *first* `stress_backup_multi` snapshot (before 2nd truncate); at that point it had 2 rows
+16. `pg_audit_diff_backup({filename: <first snapshot>})` → verify `volumeDrift` object present:
+    - `rowCountSnapshot: 2` (row count at snapshot time)
+    - `rowCountCurrent: 0` (table was truncated twice, now 0 rows or 1 depending on test state)
+    - `summary` string describes the row count change
+    - `hasDifferences` is `true` if any schema drift exists OR `volumeDrift` row counts differ
+17. Verify `sizeBytesSnapshot` and `sizeBytesCurrent` fields present (may be `null` if size data unavailable)
 
-### Category 4: Code Mode Parity
+### Category 3b: restoreAs Non-Destructive Restore
+
+> Uses `stress_backup_lifecycle` snapshots from Category 1 above. Requires the table to have schema drift introduced (drift_col still present, or re-add it).
+
+22. `pg_write_query({sql: "ALTER TABLE stress_backup_lifecycle ADD COLUMN has_drifted BOOLEAN DEFAULT false"})` → introduce fresh drift for restoreAs test
+23. Capture any snapshot filename from `pg_audit_list_backups({target: "stress_backup_lifecycle"})`
+24. `pg_audit_restore_backup({filename: <captured>, restoreAs: "stress_backup_restored", dryRun: true})` → verify:
+    - Response `{success: true}` or dry-run preview returned
+    - `stress_backup_lifecycle` still exists with `has_drifted` column (original unmodified)
+    - `stress_backup_restored` does NOT yet exist (dry-run only previews)
+25. `pg_audit_restore_backup({filename: <captured>, restoreAs: "stress_backup_restored", confirm: true})` → verify:
+    - Response `{success: true}`
+    - `stress_backup_lifecycle` still has `has_drifted` column (unmodified)
+    - `pg_describe_table({table: "stress_backup_restored"})` → verify `has_drifted` column is NOT present (restored to snapshot's structure)
+    - `pg_count({table: "stress_backup_restored"})` → `{count: 0}` (DDL-only restore, no data copy)
+26. 🔴 `pg_audit_restore_backup({filename: <captured>, restoreAs: "stress_backup_restored", confirm: true})` → report behavior when `restoreAs` target already exists (conflicting table)
+
+### Category 4: Code Mode Audit Interceptor Coverage
+
+> Verifies that Code Mode calls through `pg_execute_code` that trigger destructive ops are captured by the AuditInterceptor.
+
+27. Via Code Mode:
+    ```javascript
+    await pg.core.dropTable({table: 'stress_codemode_audit', ifExists: true});
+    await pg.core.createTable({name: 'stress_codemode_audit', columns: [{name: 'id', type: 'SERIAL', primaryKey: true}, {name: 'tag', type: 'TEXT'}]});
+    await pg.core.batchInsert({table: 'stress_codemode_audit', rows: [{tag: 'a'}, {tag: 'b'}, {tag: 'c'}]});
+    await pg.core.dropTable({table: 'stress_codemode_audit', ifExists: true});
+    return 'done';
+    ```
+28. `pg_audit_list_backups({tool: "pg_execute_code"})` → verify:
+    - `count >= 1` — the `pg_drop_table` call inside Code Mode was intercepted
+    - Snapshot has `tool: "pg_execute_code"` and `target` containing `stress_codemode_audit`
+29. `pg_audit_diff_backup({filename: <from step 28>})` → verify diff reports the DDL of the dropped table
+
+### Category 5 (was 3): Error Message Quality
+
+30. `pg_audit_diff_backup({filename: "nonexistent_snapshot_xyz.json"})` → structured error with `filename` context, NOT raw MCP error
+31. `pg_audit_restore_backup({filename: "valid.json"})` without `confirm` → structured error mentioning `confirm` is required
+32. `pg_audit_restore_backup({filename: "nonexistent_xyz.json", confirm: true})` → structured error for missing file
+33. All 3 audit tools called with `--audit-backup` **disabled**: verify each returns `{success: false, error: "..."}` structured error, NOT MCP error
+
+### Category 6 (was 4): Code Mode Parity
 
 ```javascript
 // Run via pg_execute_code
@@ -570,22 +614,22 @@ const hasSnapshots = (list.snapshots?.length ?? list.count ?? 0) > 0;
 return { hasSnapshots, count: list.count ?? list.snapshots?.length ?? 0 };
 ```
 
-19. Verify: `hasSnapshots: true` and `count > 0` (from lifecycle snapshots above)
+34. Verify: `hasSnapshots: true` and `count > 0` (from lifecycle snapshots above)
 
 ```javascript
-// Diff via code mode
-const snapshots = await pg.backup.listBackups({ target: "stress_backup_lifecycle" });
+// Diff via code mode with volumeDrift check
+const snapshots = await pg.backup.listBackups({ target: "stress_backup_multi" });
 const filename = snapshots.snapshots?.[0]?.filename;
 if (!filename) return { error: "No snapshot found" };
 const diff = await pg.backup.diffBackup({ filename });
-return { hasDiff: !!diff, filename };
+return { hasDiff: !!diff, hasVolumeDrift: !!diff.volumeDrift, filename };
 ```
 
-20. Verify: `hasDiff: true` (diff result returned)
+35. Verify: `hasDiff: true`, `hasVolumeDrift: true`
 
 ### Final Cleanup
 
-Drop `stress_backup_lifecycle` and `stress_backup_multi`. Confirm no `stress_*` tables remain.
+Drop `stress_backup_lifecycle`, `stress_backup_multi`, `stress_backup_restored`, and `stress_codemode_audit`. Confirm no `stress_*` tables remain.
 
 ---
 
