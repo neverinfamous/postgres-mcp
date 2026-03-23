@@ -332,11 +332,12 @@ export function createAuditDiffBackupTool(
                WHERE c.relname = $1 AND n.nspname = $2`,
               [target, schema],
             );
-            const currentStats = sizeResult.rows?.[0] as { row_count?: number; total_size_bytes?: number } | undefined;
+            const currentStats = sizeResult.rows?.[0] as { row_count?: number | string; total_size_bytes?: number } | undefined;
 
             if (currentStats) {
               const rowSnap = snapshot.metadata.rowCount;
-              const rowCurr = typeof currentStats.row_count === "number" ? currentStats.row_count : undefined;
+              // reltuples::bigint is sent as a string by the pg driver — must parse
+              const rowCurr = currentStats.row_count !== undefined ? parseInt(String(currentStats.row_count), 10) : undefined;
               const sizeSnap = snapshot.metadata.totalSizeBytes;
               const sizeCurr = typeof currentStats.total_size_bytes === "number" ? currentStats.total_size_bytes : undefined;
 

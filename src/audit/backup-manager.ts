@@ -345,9 +345,10 @@ export class BackupManager {
          WHERE c.relname = $1 AND n.nspname = $2`,
         [tableName, schemaName],
       );
-      const sizeRow = sizeResult.rows?.[0] as { row_count?: number; total_size_bytes?: number } | undefined;
+      const sizeRow = sizeResult.rows?.[0] as { row_count?: number | string; total_size_bytes?: number } | undefined;
       if (sizeRow) {
-        rowCount = typeof sizeRow.row_count === "number" ? sizeRow.row_count : undefined;
+        // reltuples::bigint is sent as a string by the pg driver — must parse
+        rowCount = sizeRow.row_count !== undefined ? parseInt(String(sizeRow.row_count), 10) : undefined;
         totalSizeBytes = typeof sizeRow.total_size_bytes === "number" ? sizeRow.total_size_bytes : undefined;
       }
     } catch {
