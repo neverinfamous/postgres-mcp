@@ -201,3 +201,34 @@ export interface ExecuteCodeResult {
   /** Execution metrics */
   metrics: ExecutionMetrics;
 }
+
+// =============================================================================
+// Worker RPC Types
+// =============================================================================
+
+/**
+ * RPC request sent from worker thread to main thread via MessagePort.
+ */
+export interface RpcRequest {
+  /** Unique request identifier */
+  id: number;
+  /** API group name (e.g., 'core', 'admin', or '_topLevel') */
+  group: string;
+  /** Method name within the group */
+  method: string;
+  /** Arguments to pass to the method */
+  args: unknown[];
+}
+
+/**
+ * RPC response sent from main thread back to worker thread.
+ */
+export interface RpcResponse {
+  /** Matches the request id */
+  id: number;
+  /** Return value (if successful) */
+  result?: unknown;
+  /** Error message (if failed) */
+  error?: string;
+}
+

@@ -77,3 +77,11 @@ export type {
   AuthenticatedContext,
   AuthMiddlewareConfig,
 } from "./middleware.js";
+
+// Transport-agnostic utilities
+export {
+  createAuthenticatedContext,
+  validateAuth as validateAuthTransportAgnostic,
+  formatOAuthError as formatOAuthErrorTransportAgnostic,
+} from "./transport-agnostic.js";
+

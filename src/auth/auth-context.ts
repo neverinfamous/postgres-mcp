@@ -8,7 +8,7 @@
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { AuthenticatedContext } from "./middleware.js";
+import type { AuthenticatedContext } from "./transport-agnostic.js";
 
 /**
  * Singleton AsyncLocalStorage instance for auth context.

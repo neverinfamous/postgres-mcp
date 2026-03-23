@@ -1,6 +1,8 @@
 # Unreleased
 
 ## Added
+- **Transport-Agnostic Auth**: Added `src/auth/transport-agnostic.ts` with `createAuthenticatedContext()`, `validateAuth()`, and `formatOAuthError()` — transport-agnostic auth utilities usable by Streamable HTTP or future transports without Express coupling. `middleware.ts` re-exports shared types from the new module.
+- **Worker-Thread Code Mode**: Added `src/codemode/worker-sandbox.ts`, `worker-script.ts`, and `sandbox-factory.ts` — production V8 isolate sandbox using `node:worker_threads` with `ResourceLimits`, hard timeouts, and MessagePort RPC bridge. Factory defaults to `vm` mode (existing behavior); opt-in `worker` mode provides true process-level isolation. Added `RpcRequest`/`RpcResponse` types to `types.ts`.
 - **13 New Tools Ported from db-mcp/mysql-mcp**:
   - **Stats — Window Functions (6)**: `pg_stats_row_number`, `pg_stats_rank`, `pg_stats_lag_lead`, `pg_stats_running_total`, `pg_stats_moving_avg`, `pg_stats_ntile` — SQL window functions with `partitionBy`, `selectColumns`, and configurable limits
   - **Stats — Outlier Detection (1)**: `pg_stats_outliers` — IQR and Z-score outlier detection with configurable thresholds and `maxOutliers` cap
