@@ -2,7 +2,7 @@
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 245 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**245 Specialized Tools** · **21 Resources** · **19 AI-Powered Prompts**
+**245 Specialized Tools** · **22 Resources** · **19 AI-Powered Prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
@@ -29,6 +29,7 @@
 | **Code Mode (Massive Token Savings)**  | Execute complex database operations locally in a secure sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, AI agents use a single `pg_execute_code` execution to eliminate up to 90% of token overhead while reasoning faster. |
 | **Token-Optimized Payloads**           | Every tool response is designed for minimal token footprint. Tools include `limit`, `summary`, and `compact` parameters where applicable — letting agents control response size without losing data access. Monitoring tools default to bounded results, and large datasets include `limited`/`totalAvailable` metadata so agents always know the full picture. |
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                 |
+| **JSONL Audit Trail**                  | Structured audit log for write/admin tool invocations with OAuth identity, execution timing, and outcome. File output, `stderr` for containers, and agent-readable `postgres://audit` resource                                                              |
 | **Smart Tool Filtering**               | 22 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                          |
 | **Dual HTTP Transport**                | Streamable HTTP (`/mcp`) for modern clients + legacy SSE (`/sse`) for backward compatibility — both protocols supported simultaneously with security headers, rate limiting, health check, and stateless mode for serverless                                                                                 |
 | **High-Performance Pooling**           | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                   |
@@ -65,7 +66,7 @@
 
 > Extension tool counts include `create_extension` helpers but exclude Code Mode; the Tool Groups table below adds +1 per group for Code Mode.
 
-### MCP Resources (21)
+### MCP Resources (22)
 
 Real-time database meta-awareness - AI accesses these automatically:
 
@@ -77,6 +78,7 @@ Real-time database meta-awareness - AI accesses these automatically:
 | `postgres://capabilities` | Server features and extensions                |
 | `postgres://indexes`      | Index usage statistics                        |
 | `postgres://activity`     | Current connections and active queries        |
+| `postgres://audit`        | Recent write/admin audit entries              |
 
 **[Full resources list →](https://github.com/neverinfamous/postgres-mcp#resources)**
 
@@ -228,6 +230,8 @@ The agent writes JavaScript against the typed `pg.*` SDK — composing queries, 
 | `OAUTH_AUDIENCE` | — | Expected token audience |
 | `OAUTH_JWKS_URI` | _(auto)_ | JWKS URI (auto-discovered from issuer) |
 | `OAUTH_CLOCK_TOLERANCE` | `60` | Clock tolerance in seconds |
+| `AUDIT_LOG_PATH` | — | Audit log file path (`stderr` for container logs) |
+| `AUDIT_REDACT` | `false` | Omit tool arguments from audit entries |
 
 > **Aliases:** `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` are also supported (standard PostgreSQL client env vars).
 
