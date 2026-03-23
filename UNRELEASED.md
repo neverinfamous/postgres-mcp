@@ -1,6 +1,7 @@
 # Unreleased
 
 ## Added
+- **Inline Token Estimates**: All tool responses now include `_meta.tokenEstimate` in `content[].text` — gives agents zero-cost burn-rate feedback per turn. Estimate is `Math.ceil(Buffer.byteLength(json, 'utf8') / 4)`. Injected into text payload only — `structuredContent` remains schema-pure. Code Mode responses include `tokenEstimate` in `metrics`.
 - **Audit Log**: JSONL audit trail for write/admin tool invocations with OAuth identity, timing, and outcome. Enable with `--audit-log <path>` or `AUDIT_LOG_PATH`. Use `--audit-log stderr` for Docker/K8s deployments where container logs pipe to the orchestrator. Async-buffered writes ensure zero performance impact on tool execution.
 - **Audit Redaction**: `--audit-redact` / `AUDIT_REDACT=true` omits tool arguments from audit entries for sensitive environments.
 - **Audit Resource**: `postgres://audit` resource returns the 50 most recent audit entries as JSON — gives agents read access to the audit trail without parsing files.

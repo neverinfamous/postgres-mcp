@@ -409,13 +409,14 @@ throw new ExtensionNotAvailableError("pgvector");
 | **Adapter Pattern** | `DatabaseAdapter` (abstract) → `PostgresAdapter`. Single adapter (no WASM variant). |
 | **Schema Cache** | Metadata caching via `schema-operations/` (describe + list). |
 | **Connection Pool** | `ConnectionPool` wraps `pg` module. Managed lifecycle with health checks. |
-| **Code Mode Bridge** | `pg.*` API in sandbox. Dual-mode: VM (default, `sandbox.ts`) or Worker (`worker-sandbox.ts` + `worker-script.ts`). Factory in `sandbox-factory.ts`. Unique `api/` subdir with alias resolution + group-api generation. Security constants in `SecurityConfig`. |
+| **Code Mode Bridge** | `pg.*` API in sandbox. Dual-mode: VM (default, `sandbox.ts`) or Worker (`worker-sandbox.ts` + `worker-script.ts`). Factory in `sandbox-factory.ts`. Unique `api/` subdir with alias resolution + group-api generation. Security constants in `SecurityConfig`. Returns `metrics.tokenEstimate` for per-execution burn-rate feedback. |
 | **Tool Aliases** | postgres-mcp has a dedicated alias system (`codemode/api/aliases.ts`, 15KB) for Code Mode. |
 | **Per-Group Schemas** | Zod schemas separated into `schemas/` subdir organized by group (vs mysql-mcp's monolithic file). |
 | **Extension Tools** | citext, ltree, pgcrypto, kcache, partman, cron, PostGIS, pgvector — each requires extension installation. |
 | **Help Resources** | `generateInstructions()` produces composable, filter-aware instructions (Code Mode gated by `codemode` group, help pointers list only enabled groups, active tools summary at `full` level). On-demand `postgres://help/{group}` resources filtered by `--tool-filter`. Supports `--instruction-level` (`essential`/`standard`/`full`). |
 | **Barrel Re-exports** | Import from `./module/index.js` (with `.js` extension for ESM). |
 | **Input Coercion** | All numeric input fields use `z.preprocess(coerceNumber, z.number().optional())` for safe validation at parse time. Zero `z.coerce.number()` remaining — fully migrated across 29 source files (15 schema + 14 handler). |
+| **Token Estimates** | Every tool response includes `_meta.tokenEstimate` in `content[].text` (~4 bytes/token heuristic). `structuredContent` stays schema-pure. Injected in `database-adapter.ts` `registerTool()`. Code Mode adds `metrics.tokenEstimate` for sandbox result size. |
 
 ---
 

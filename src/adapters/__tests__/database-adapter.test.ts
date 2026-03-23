@@ -940,4 +940,150 @@ describe("DatabaseAdapter", () => {
       expect(content[0]?.text).toBe("no-auth-success");
     });
   });
+
+  describe("token estimate injection (_meta.tokenEstimate)", () => {
+    it("should inject _meta.tokenEstimate into text payload for structured responses", async () => {
+      const mockServer = {
+        registerTool: vi.fn(),
+      };
+
+      const mockHandler = vi
+        .fn()
+        .mockResolvedValue({ success: true, data: "hello" });
+      const tool: ToolDefinition = {
+        name: "pg_structured_tool",
+        description: "Tool with outputSchema",
+        group: "core",
+        tags: [],
+        inputSchema: {},
+        outputSchema: {} as unknown as ToolDefinition["outputSchema"],
+        handler: mockHandler,
+      };
+
+      adapter.testRegisterTool(mockServer, tool);
+
+      const registeredHandler = mockServer.registerTool.mock.calls[0]?.[2] as (
+        params: unknown,
+        extra: unknown,
+      ) => Promise<unknown>;
+      const result = await registeredHandler({}, {});
+
+      const response = result as {
+        content: Array<{ type: string; text: string }>;
+        structuredContent: Record<string, unknown>;
+      };
+
+      // Parse the text payload — should contain _meta.tokenEstimate
+      const parsed = JSON.parse(response.content[0]?.text ?? "{}") as {
+        _meta?: { tokenEstimate?: number };
+      };
+      expect(parsed._meta).toBeDefined();
+      expect(parsed._meta?.tokenEstimate).toBeTypeOf("number");
+      expect(parsed._meta!.tokenEstimate).toBeGreaterThan(0);
+    });
+
+    it("should NOT inject _meta into structuredContent", async () => {
+      const mockServer = {
+        registerTool: vi.fn(),
+      };
+
+      const mockHandler = vi
+        .fn()
+        .mockResolvedValue({ success: true, rows: [1, 2, 3] });
+      const tool: ToolDefinition = {
+        name: "pg_schema_pure_tool",
+        description: "Tool with outputSchema",
+        group: "core",
+        tags: [],
+        inputSchema: {},
+        outputSchema: {} as unknown as ToolDefinition["outputSchema"],
+        handler: mockHandler,
+      };
+
+      adapter.testRegisterTool(mockServer, tool);
+
+      const registeredHandler = mockServer.registerTool.mock.calls[0]?.[2] as (
+        params: unknown,
+        extra: unknown,
+      ) => Promise<unknown>;
+      const result = await registeredHandler({}, {});
+
+      const response = result as {
+        structuredContent: Record<string, unknown>;
+      };
+
+      // structuredContent must stay schema-pure — no _meta
+      expect(response.structuredContent).toBeDefined();
+      expect(response.structuredContent["_meta"]).toBeUndefined();
+    });
+
+    it("should inject _meta.tokenEstimate into standard object responses", async () => {
+      const mockServer = {
+        registerTool: vi.fn(),
+      };
+
+      const mockHandler = vi
+        .fn()
+        .mockResolvedValue({ count: 42, items: ["a", "b"] });
+      const tool: ToolDefinition = {
+        name: "pg_standard_tool",
+        description: "Tool without outputSchema",
+        group: "core",
+        tags: [],
+        inputSchema: {},
+        // No outputSchema
+        handler: mockHandler,
+      };
+
+      adapter.testRegisterTool(mockServer, tool);
+
+      const registeredHandler = mockServer.registerTool.mock.calls[0]?.[2] as (
+        params: unknown,
+        extra: unknown,
+      ) => Promise<unknown>;
+      const result = await registeredHandler({}, {});
+
+      const response = result as {
+        content: Array<{ type: string; text: string }>;
+      };
+
+      const parsed = JSON.parse(response.content[0]?.text ?? "{}") as {
+        _meta?: { tokenEstimate?: number };
+      };
+      expect(parsed._meta).toBeDefined();
+      expect(parsed._meta?.tokenEstimate).toBeTypeOf("number");
+      expect(parsed._meta!.tokenEstimate).toBeGreaterThan(0);
+    });
+
+    it("should NOT inject _meta into plain string responses", async () => {
+      const mockServer = {
+        registerTool: vi.fn(),
+      };
+
+      const mockHandler = vi.fn().mockResolvedValue("plain string result");
+      const tool: ToolDefinition = {
+        name: "pg_string_tool",
+        description: "Tool returning plain string",
+        group: "core",
+        tags: [],
+        inputSchema: {},
+        handler: mockHandler,
+      };
+
+      adapter.testRegisterTool(mockServer, tool);
+
+      const registeredHandler = mockServer.registerTool.mock.calls[0]?.[2] as (
+        params: unknown,
+        extra: unknown,
+      ) => Promise<unknown>;
+      const result = await registeredHandler({}, {});
+
+      const response = result as {
+        content: Array<{ type: string; text: string }>;
+      };
+
+      // Plain strings pass through unchanged — no _meta injection
+      expect(response.content[0]?.text).toBe("plain string result");
+    });
+  });
 });

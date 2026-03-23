@@ -12,7 +12,7 @@ Sandboxed JavaScript execution that exposes all 22 tool groups through the `pg.*
 
 | Tool | Description |
 | ---- | ----------- |
-| `pg_execute_code` | Execute JavaScript in a sandboxed environment with access to all tools via the `pg.*` API. Enables complex multi-step operations in a single call with 70–90% token savings. |
+| `pg_execute_code` | Execute JavaScript in a sandboxed environment with access to all tools via the `pg.*` API. Enables complex multi-step operations in a single call with 70–90% token savings. `metrics.tokenEstimate` provides per-execution token cost feedback. |
 
 ---
 
