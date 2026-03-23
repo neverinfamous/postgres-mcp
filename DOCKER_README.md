@@ -2,7 +2,7 @@
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**248 Specialized Tools** · **22 Resources** · **19 AI-Powered Prompts**
+**248 Specialized Tools** · **22 Resources** · **20 AI-Powered Prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
@@ -25,11 +25,12 @@
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **248 Specialized Tools**              | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, migration tracking, and 8 extension ecosystems                                                    |
 | **21 Observability Resources**         | Real-time schema, performance metrics, connection pool status, replication lag, vacuum stats, lock contention, extension diagnostics, and business insights                                                                                                                   |
-| **19 AI-Powered Prompts**              | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                                                                                |
+| **20 AI-Powered Prompts**              | Guided workflows for query building, schema design, performance tuning, extension setup, and safe restore                                                                                                                                                  |
 | **Code Mode (Massive Token Savings)**  | Execute complex database operations locally in a secure sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, AI agents use a single `pg_execute_code` execution to eliminate up to 90% of token overhead while reasoning faster. |
 | **Token-Optimized Payloads**           | Every tool response is designed for minimal token footprint. Tools include `limit`, `summary`, and `compact` parameters where applicable — letting agents control response size without losing data access. Monitoring tools default to bounded results, and large datasets include `limited`/`totalAvailable` metadata so agents always know the full picture. |
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                 |
 | **JSONL Audit Trail + Backup Snapshots** | Structured audit log for write/admin tool invocations with OAuth identity, execution timing, and outcome. Pre-mutation DDL snapshots with agent tools to list, restore, and diff backups. File output, `stderr` for containers, and agent-readable `postgres://audit` resource                                                              |
+| **Non-Destructive Restore & Semantic Diffing** | `restoreAs` creates side-by-side snapshot tables for safe comparison before merge. Semantic diffing detects volume drift (row count + size changes) alongside schema drift. Gzip-compressed async snapshots, full Code Mode audit coverage, and a guided 6-step safe restore workflow prompt                                                  |
 | **Smart Tool Filtering**               | 22 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                          |
 | **Dual HTTP Transport**                | Streamable HTTP (`/mcp`) for modern clients + legacy SSE (`/sse`) for backward compatibility — both protocols supported simultaneously with security headers, rate limiting, health check, and stateless mode for serverless                                                                                 |
 | **High-Performance Pooling**           | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                   |
@@ -82,7 +83,7 @@ Real-time database meta-awareness - AI accesses these automatically:
 
 **[Full resources list →](https://github.com/neverinfamous/postgres-mcp#resources)**
 
-### MCP Prompts (19)
+### MCP Prompts (20)
 
 Guided workflows for complex operations:
 
