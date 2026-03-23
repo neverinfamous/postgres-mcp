@@ -42,9 +42,10 @@ src/
 │   └── tool-filter.ts              # ToolFilter class — parse/apply --tool-filter, getEnabledGroups()
 │
 ├── audit/
-│   ├── types.ts                    # AuditEntry, AuditCategory, AuditConfig types
+│   ├── types.ts                    # AuditEntry, AuditCategory, AuditConfig, BackupConfig, SnapshotMetadata, SnapshotContent
 │   ├── logger.ts                   # AuditLogger — async-buffered JSONL writer, recent() tail reader
-│   ├── interceptor.ts              # createAuditInterceptor() — wraps tool dispatch for write/admin logging
+│   ├── interceptor.ts              # createAuditInterceptor() — wraps tool dispatch for write/admin logging + pre-mutation snapshots
+│   ├── backup-manager.ts           # BackupManager — pre-mutation DDL/data snapshot capture, retention, stats
 │   └── index.ts                    # Barrel
 │
 ├── utils/
@@ -127,7 +128,7 @@ src/
 
 ## Handler → Tool Mapping
 
-245 tools across 22 groups. Each handler file registers tools with `group` labels.
+248 tools across 22 groups. Each handler file registers tools with `group` labels.
 
 ### Tool Handlers (`src/adapters/postgresql/tools/`)
 
@@ -191,6 +192,7 @@ src/
 | **backup** | `backup/dump.ts` | 2 | `pg_dump_table`, `pg_dump_schema` |
 | | `backup/copy.ts` | 2 | `pg_copy_export`, `pg_copy_import` |
 | | `backup/planning.ts` | 5 | `pg_create_backup_plan`, `pg_restore_command`, `pg_backup_physical`, `pg_restore_validate`, `pg_backup_schedule_optimize` |
+| | `backup/audit-backup.ts` | 3 | `pg_audit_list_backups`, `pg_audit_restore_backup`, `pg_audit_diff_backup` |
 | **schema** | `schema/catalog.ts` | 3 | `pg_list_functions`, `pg_list_triggers`, `pg_list_constraints` |
 | | `schema/objects.ts` | 6 | `pg_list_schemas`, `pg_create_schema`, `pg_drop_schema`, `pg_list_sequences`, `pg_create_sequence`, `pg_drop_sequence` |
 | | `schema/views.ts` | 3 | `pg_list_views`, `pg_create_view`, `pg_drop_view` |
@@ -430,7 +432,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/README.md` | Agent testing orchestration doc |
 | `test-server/test-database.sql` | Core seed DDL+DML (16 tables, ~700+ rows) |
 | `test-server/reset-database.ps1` | Reset Docker container DB from seed data |
-| `test-server/Tool-Reference.md` | Complete 245-tool inventory with descriptions |
+| `test-server/Tool-Reference.md` | Complete 248-tool inventory with descriptions |
 | `test-server/tool-groups-list.md` | Canonical tool inventory (22 groups) |
 | `test-server/test-group-tools.md` | Per-group deterministic checklists (all 22 groups) |
 | `test-server/test-tools.md` | Entry-point protocol (schema ref, P154, reporting format) |

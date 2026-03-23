@@ -419,7 +419,7 @@ monitoring group (11 tools +1 for code mode)
 
 ### backup Group-Specific Testing
 
-backup Tool Group (9 tools +1 for code mode)
+backup Tool Group (12 tools +1 for code mode)
 
 1. 'pg_dump_table'
 2. 'pg_dump_schema'
@@ -430,7 +430,10 @@ backup Tool Group (9 tools +1 for code mode)
 7. 'pg_backup_physical'
 8. 'pg_restore_validate'
 9. 'pg_backup_schedule_optimize'
-10. 'pg_execute_code' (codemode, auto-added)
+10. 'pg_audit_list_backups'
+11. 'pg_audit_restore_backup'
+12. 'pg_audit_diff_backup'
+13. 'pg_execute_code' (codemode, auto-added)
 
 > **Instructions**: Execute every numbered checklist item with the exact inputs shown. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
 

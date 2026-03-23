@@ -9,7 +9,7 @@
  * snapshots of target objects before destructive tool execution.
  *
  * The interceptor is injected into `DatabaseAdapter.registerTool()`
- * so that all 245 tool handlers are audited without per-handler changes.
+ * so that all 248 tool handlers are audited without per-handler changes.
  */
 
 import { performance } from "node:perf_hooks";

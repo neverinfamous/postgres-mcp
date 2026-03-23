@@ -2,9 +2,9 @@
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp -->
 
-**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 245 tools through a single, secure JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
+**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a single, secure JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**245 Specialized Tools** · **21 Resources** · **19 AI-Powered Prompts**
+**248 Specialized Tools** · **21 Resources** · **19 AI-Powered Prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
@@ -25,13 +25,13 @@
 
 | Feature                                | Description                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **245 Specialized Tools**              | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, migration tracking, and 8 extension ecosystems                                                                                                      |
+| **248 Specialized Tools**              | The largest PostgreSQL tool collection for MCP — from core CRUD and native JSONB to pgvector, PostGIS, pg_cron, ltree, pgcrypto, introspection analysis, migration tracking, and 8 extension ecosystems                                                                                                      |
 | **21 Observability Resources**         | Real-time schema, performance metrics, connection pool status, replication lag, vacuum stats, lock contention, extension diagnostics, and business insights                                                                                                                                                   |
 | **19 AI-Powered Prompts**              | Guided workflows for query building, schema design, performance tuning, and extension setup                                                                                                                                                                                                                  |
-| **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, Code Mode exposes all 245 capabilities locally, reducing token overhead by up to 90% and supercharging AI agent reasoning. |
+| **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, Code Mode exposes all 248 capabilities locally, reducing token overhead by up to 90% and supercharging AI agent reasoning. |
 | **Token-Optimized Payloads**           | Every tool response is designed for minimal token footprint. Tools include `limit`, `summary`, and `compact` parameters where applicable — letting agents control response size without losing data access. Monitoring tools default to bounded results, and large datasets include `limited`/`totalAvailable` metadata so agents always know the full picture. |
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                                                                   |
-| **JSONL Audit Trail**                  | Structured audit log for write/admin tool invocations with OAuth identity, execution timing, and outcome. File output, `stderr` for containers, and agent-readable `postgres://audit` resource — no other MCP server has built-in audit logging                                                               |
+| **JSONL Audit Trail + Backup Snapshots** | Structured audit log for write/admin tool invocations with OAuth identity, execution timing, and outcome. Pre-mutation DDL snapshots with agent tools to list, restore, and diff backups. File output, `stderr` for containers, and agent-readable `postgres://audit` resource — no other MCP server has built-in audit logging                                                               |
 | **Smart Tool Filtering**               | 22 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                                                                            |
 | **Dual HTTP Transport**                | Streamable HTTP (`/mcp`) for modern clients + legacy SSE (`/sse`) for backward compatibility — both protocols supported simultaneously with security headers, rate limiting, health check, and stateless mode for serverless                                                                                 |
 | **High-Performance Pooling**           | Built-in connection pooling with health checks for efficient, concurrent database access                                                                                                                                                                                                                     |
@@ -93,7 +93,7 @@ Add to your `~/.cursor/mcp.json` or Claude Desktop config:
 }
 ```
 
-> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 245 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#️-tool-filtering) for alternatives.
+> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#️-tool-filtering) for alternatives.
 
 **Variants** (modify the canonical config above):
 
@@ -131,7 +131,7 @@ node dist/cli.js --transport stdio --postgres postgres://user:password@localhost
 
 ## Code Mode: Maximum Efficiency
 
-Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets. The Quick Start above uses `--tool-filter codemode` — this exposes just `pg_execute_code`, a single tool that provides access to all 245 tools' worth of capability through the `pg.*` API.
+Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets. The Quick Start above uses `--tool-filter codemode` — this exposes just `pg_execute_code`, a single tool that provides access to all 248 tools' worth of capability through the `pg.*` API.
 
 Code executes in a **sandboxed VM context** with multiple layers of security. All `pg.*` API calls execute against the database within the sandbox, providing:
 

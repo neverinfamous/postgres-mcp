@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference of all **245 tools** organized by their 22 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
+Complete reference of all **248 tools** organized by their 22 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
 
 > Use [Tool Filtering](Tool-Filtering) to select the groups you need. See [Code Mode](Code-Mode) for the `pg.*` API that exposes every tool below through sandboxed JavaScript.
 
@@ -186,9 +186,9 @@ Real-time database monitoring — sizes, connections, replication, capacity, and
 
 ---
 
-## backup (9 tools + Code Mode)
+## backup (12 tools + Code Mode)
 
-Backup and restore — pg_dump, COPY, backup planning, and restore validation.
+Backup and restore — pg_dump, COPY, backup planning, restore validation, and audit backup management.
 
 | Tool | Description |
 | ---- | ----------- |
@@ -201,6 +201,9 @@ Backup and restore — pg_dump, COPY, backup planning, and restore validation.
 | `pg_backup_physical` | Generate `pg_basebackup` command for physical (binary) backup. |
 | `pg_restore_validate` | Generate commands to validate backup integrity and restorability. |
 | `pg_backup_schedule_optimize` | Analyze database activity patterns and recommend optimal backup schedule. |
+| `pg_audit_list_backups` | List available pre-mutation snapshots with metadata. Filter by `tool` or `target`. Requires `--audit-backup`. |
+| `pg_audit_restore_backup` | Restore DDL (and optionally data) from a snapshot within a transaction. Supports `dryRun` preview. |
+| `pg_audit_diff_backup` | Compare a snapshot's DDL against the current live schema to detect drift. |
 
 ---
 
