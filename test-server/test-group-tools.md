@@ -456,32 +456,46 @@ backup Tool Group (12 tools +1 for code mode)
 12. `pg_audit_list_backups({tool: "pg_truncate"})` → verify filter returns only snapshots created by `pg_truncate`
 13. `pg_audit_list_backups()` → verify returns all snapshots; capture a `filename` from results for diff/restore tests
 
-**Audit diff workflow:**
+**Audit diff workflow (V2 — volumeDrift):**
 
 14. After item 10: `pg_write_query({sql: "ALTER TABLE temp_backup_test ADD COLUMN drift_col TEXT"})` → introduces schema drift
-15. `pg_audit_diff_backup({filename: <captured from item 13>})` → verify response contains DDL differences showing the drift (additions/removals)
-16. 🔴 `pg_audit_diff_backup({filename: "nonexistent_snapshot_xyz.json"})` → `{success: false, error: "..."}` handler error
+15. Also `pg_batch_insert({table: "temp_backup_test", rows: [{name: "Carol"}, {name: "Dave"}, {name: "Eve"}]})` → introduces row-count drift (now 5 rows vs 2 at snapshot time)
+16. `pg_audit_diff_backup({filename: <captured from item 13>})` → verify:
+    - `differences` array contains entries for `drift_col` (added)
+    - `volumeDrift` object present with `rowCountSnapshot: 2`, `rowCountCurrent: 5`, `summary: "..."` — row count changed
+    - `hasDifferences: true`
+17. 🔴 `pg_audit_diff_backup({filename: "nonexistent_snapshot_xyz.json"})` → `{success: false, error: "..."}` handler error
 
-**Audit restore workflow:**
+**Audit restore workflow (V2 — restoreAs non-destructive):**
 
-17. `pg_audit_restore_backup({filename: <captured from item 13>, dryRun: true})` → verify dry-run returns DDL preview without executing; `drift_col` still present on live table
-18. `pg_audit_restore_backup({filename: <captured from item 13>, confirm: true})` → verify restore applies DDL
-19. 🔴 `pg_audit_restore_backup({filename: "nonexistent_snapshot_xyz.json", confirm: true})` → `{success: false, error: "..."}` handler error
-20. 🔴 `pg_audit_restore_backup({filename: <valid filename>})` without `confirm` → `{success: false, error: "..."}` (confirm required)
+18. `pg_audit_restore_backup({filename: <captured from item 13>, dryRun: true})` → verify dry-run returns DDL preview without executing; `drift_col` still present on live table
+19. `pg_audit_restore_backup({filename: <captured from item 13>, restoreAs: "temp_backup_restored", confirm: true})` → verify:
+    - Response `{success: true}` — snapshot DDL applied under new name `temp_backup_restored`
+    - `temp_backup_test` still exists with `drift_col` (original unmodified)
+    - `pg_count({table: "temp_backup_restored"})` → `{count: 0}` (structure restored, data not copied by default)
+20. `pg_audit_restore_backup({filename: <captured from item 13>, confirm: true})` (no `restoreAs`) → verify in-place restore applies DDL (removes `drift_col`)
+21. 🔴 `pg_audit_restore_backup({filename: "nonexistent_snapshot_xyz.json", confirm: true})` → `{success: false, error: "..."}` handler error
+22. 🔴 `pg_audit_restore_backup({filename: <valid filename>})` without `confirm` → `{success: false, error: "..."}` (confirm required)
+
+**Code Mode audit coverage (Audit Interceptor integration):**
+
+23. `pg_execute_code({code: "await pg.core.dropTable({table: 'temp_codemode_audit', ifExists: true}); await pg.core.createTable({name: 'temp_codemode_audit', columns: [{name: 'id', type: 'SERIAL', primaryKey: true}]}); await pg.core.dropTable({table: 'temp_codemode_audit', ifExists: true}); return 'done'"})` → verify `{result: "done"}` then:
+24. `pg_audit_list_backups({tool: "pg_execute_code"})` → verify `count >= 1`; snapshots from Code Mode sandbox should appear with `tool: "pg_execute_code"` and a `target` matching `temp_codemode_audit`
 
 **Zod validation / disabled-state error paths (🔴):**
 
-21. 🔴 `pg_audit_diff_backup({})` → `{success: false, error: "..."}` (Zod validation — missing required `filename`)
-22. 🔴 `pg_audit_restore_backup({})` → `{success: false, error: "..."}` (Zod validation — missing required `filename`)
+25. 🔴 `pg_audit_diff_backup({})` → `{success: false, error: "..."}` (Zod validation — missing required `filename`)
+26. 🔴 `pg_audit_restore_backup({})` → `{success: false, error: "..."}` (Zod validation — missing required `filename`)
 
 **Code mode parity:**
 
-23. `pg_execute_code({code: "return await pg.backup.help()"})` → verify lists audit backup methods (`listBackups`, `diffBackup`, `restoreBackup`)
-24. `pg_execute_code({code: "return await pg.backup.listBackups()"})` → verify same structure as item 13
+27. `pg_execute_code({code: "return await pg.backup.help()"})` → verify lists audit backup methods (`listBackups`, `diffBackup`, `restoreBackup`)
+28. `pg_execute_code({code: "return await pg.backup.listBackups()"})` → verify same structure as item 13
 
 **Cleanup:**
 
-25. `pg_drop_table({table: "temp_backup_test", ifExists: true})` → cleanup
+29. `pg_drop_table({table: "temp_backup_test", ifExists: true})` → cleanup
+30. `pg_drop_table({table: "temp_backup_restored", ifExists: true})` → cleanup restoreAs target
 
 ---
 
