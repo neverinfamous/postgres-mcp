@@ -337,7 +337,9 @@ export function createAuditDiffBackupTool(
             if (currentStats) {
               const rowSnap = snapshot.metadata.rowCount;
               // reltuples::bigint is sent as a string by the pg driver — must parse
-              const rowCurr = currentStats.row_count !== undefined ? parseInt(String(currentStats.row_count), 10) : undefined;
+              // -1 is PostgreSQL's sentinel meaning "statistics not yet collected (unanalyzed)"
+              const rowCurrRaw = currentStats.row_count !== undefined ? parseInt(String(currentStats.row_count), 10) : undefined;
+              const rowCurr = rowCurrRaw === -1 ? undefined : rowCurrRaw;
               const sizeSnap = snapshot.metadata.totalSizeBytes;
               const sizeCurr = typeof currentStats.total_size_bytes === "number" ? currentStats.total_size_bytes : undefined;
 
