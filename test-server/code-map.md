@@ -2,7 +2,7 @@
 
 > **Agent-optimized navigation reference.** Read this before searching the codebase. Covers directory layout, handler→tool mapping, type/schema locations, error hierarchy, and key constants.
 >
-> Last updated: March 22, 2026
+> Last updated: March 23, 2026
 
 ---
 
@@ -45,7 +45,7 @@ src/
 │   ├── types.ts                    # AuditEntry, AuditCategory, AuditConfig, BackupConfig, SnapshotMetadata, SnapshotContent
 │   ├── logger.ts                   # AuditLogger — async-buffered JSONL writer, recent() tail reader
 │   ├── interceptor.ts              # createAuditInterceptor() — wraps tool dispatch for write/admin logging + pre-mutation snapshots
-│   ├── backup-manager.ts           # BackupManager — pre-mutation DDL/data snapshot capture, retention, stats
+│   ├── backup-manager.ts           # BackupManager — gzip-compressed async snapshot capture, retention, stats, flush()
 │   └── index.ts                    # Barrel
 │
 ├── utils/
@@ -61,7 +61,8 @@ src/
 │   ├── resource-annotations.ts     # MCP resource annotation helpers
 │   ├── version.ts                  # SSoT version constant (reads package.json)
 │   ├── where-clause.ts             # WHERE clause builder/validator
-│   └── error-suggestions.ts        # Pattern-based error suggestions + findSuggestion() (auto-refinement)
+│   ├── error-suggestions.ts        # Pattern-based error suggestions + findSuggestion() (auto-refinement)
+│   └── resource-suggestions.ts     # Threshold-based actionable suggestions for resources (vacuum POC)
 │
 ├── pool/
 │   └── connection-pool.ts          # PostgreSQL connection pool manager (pg)
@@ -101,7 +102,7 @@ src/
 │   ├── types.ts                    # Sandbox TypeScript types (SecurityConfig, RpcRequest/Response)
 │   ├── index.ts                    # Barrel
 │   └── api/                        # pg.* API bridge (unique to postgres-mcp)
-│       ├── index.ts                # Main API bridge — exposes tools to sandbox
+│       ├── index.ts                # Main API bridge — exposes tools to sandbox, integrates AuditInterceptor
 │       ├── maps.ts                 # Tool name → handler function mapping (22KB)
 │       ├── group-api.ts            # Per-group API surface generation
 │       ├── aliases.ts              # Tool alias resolution (15KB)
@@ -119,7 +120,7 @@ src/
 │       │   ├── list.ts             # List tables/schemas/indexes
 │       │   └── index.ts            # Barrel
 │       ├── schemas/                # Zod schemas (see § below)
-│       ├── prompts/                # 13+ MCP prompts (see § below)
+│       ├── prompts/                # 14+ MCP prompts (see § below)
 │       ├── resources/              # 21 MCP data resources (see § below)
 │       └── tools/                  # Tool handler files (see § Handler Map below)
 ```
@@ -300,6 +301,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `pgcrypto.ts` | `pg_crypto_setup` |
 | `pgvector.ts` | `pg_vector_setup` |
 | `postgis.ts` | `pg_postgis_setup` |
+| `safe-restore.ts` | `pg_safe_restore_workflow` |
 
 ---
 
@@ -438,7 +440,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/test-tools.md` | Entry-point protocol (schema ref, P154, reporting format) |
 | `test-server/advanced-test-tools.md` | Stress tests (boundary, concurrency, cross-group) |
 | `test-server/test-resources.md` | Resource testing plan (20 resources) |
-| `test-server/test-prompts.md` | Prompt testing plan (19 prompts) |
+| `test-server/test-prompts.md` | Prompt testing plan (20 prompts) |
 | `test-server/test-preflight.md` | Pre-test environment validation |
 | `test-server/test-agent-experience.md` | Agent experience test (9 passes, 37 scenarios) |
 | `test-server/test-instruction-levels.mjs` | Instruction filtering + level behavior verification |

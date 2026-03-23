@@ -202,8 +202,8 @@ Backup and restore — pg_dump, COPY, backup planning, restore validation, and a
 | `pg_restore_validate` | Generate commands to validate backup integrity and restorability. |
 | `pg_backup_schedule_optimize` | Analyze database activity patterns and recommend optimal backup schedule. |
 | `pg_audit_list_backups` | List available pre-mutation snapshots with metadata. Filter by `tool` or `target`. Requires `--audit-backup`. |
-| `pg_audit_restore_backup` | Restore DDL (and optionally data) from a snapshot within a transaction. Supports `dryRun` preview. |
-| `pg_audit_diff_backup` | Compare a snapshot's DDL against the current live schema to detect drift. |
+| `pg_audit_restore_backup` | Restore DDL (and optionally data) from a snapshot within a transaction. Supports `dryRun` preview and `restoreAs` for non-destructive side-by-side restore. |
+| `pg_audit_diff_backup` | Compare a snapshot's DDL against the current live schema to detect drift. Includes `volumeDrift` with row count and size changes since snapshot. |
 
 ---
 
