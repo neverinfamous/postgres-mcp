@@ -311,4 +311,185 @@ test.describe("Audit Backup Snapshots", () => {
       stopServer(port);
     }
   });
+
+  test("diff_backup returns volumeDrift with row count and size fields", async () => {
+    const TEMP_TABLE = "e2e_backup_volume_drift";
+    const port = BACKUP_PORT_BASE + 4;
+    const dir = auditDir("volumedrift");
+    await mkdir(dir, { recursive: true });
+    const logPath = join(dir, "audit.jsonl");
+
+    await startServer(
+      port,
+      [
+        "--audit-log", logPath,
+        "--audit-backup",
+        "--audit-backup-data",
+        "--tool-filter", "core,backup,schema",
+      ],
+      "backup-volumedrift",
+    );
+
+    let client: Client | undefined;
+    try {
+      client = await createClient(`http://localhost:${port}`);
+
+      // Create table and insert rows so volumeDrift has data to report
+      await callToolAndParse(client, "pg_create_table", {
+        name: TEMP_TABLE,
+        columns: [
+          { name: "id", type: "SERIAL", primaryKey: true },
+          { name: "payload", type: "TEXT" },
+        ],
+      });
+
+      await callToolAndParse(client, "pg_write_query", {
+        sql: `INSERT INTO ${TEMP_TABLE} (payload) VALUES ('row1'), ('row2'), ('row3')`,
+      });
+
+      // ANALYZE so pg_class.reltuples is populated before snapshot
+      await callToolAndParse(client, "pg_write_query", {
+        sql: `ANALYZE ${TEMP_TABLE}`,
+      });
+
+      // Truncate → triggers pre-mutation snapshot (includes row count + size)
+      await callToolAndParse(client, "pg_truncate", { table: TEMP_TABLE });
+
+      // ANALYZE the now-empty table so reltuples is 0 (not -1 sentinel)
+      await callToolAndParse(client, "pg_write_query", {
+        sql: `ANALYZE ${TEMP_TABLE}`,
+      });
+
+      // Wait for snapshot
+      const listResult = await waitForSnapshots(client, 1);
+      const snapshots = (listResult.snapshots as Array<Record<string, unknown>>)
+        .filter((s) => s.tool === "pg_truncate");
+      expect(snapshots.length).toBeGreaterThanOrEqual(1);
+
+      const filename = snapshots[snapshots.length - 1]!.filename as string;
+
+      // Diff — now that the table is empty, volumeDrift should show row count change
+      const diffResult = await callToolAndParse(client, "pg_audit_diff_backup", {
+        filename,
+      });
+
+      expect(diffResult.success).toBe(true);
+
+      // V2: volumeDrift must be present with summary
+      const volumeDrift = diffResult.volumeDrift as Record<string, unknown> | undefined;
+      expect(
+        volumeDrift,
+        "Expected volumeDrift field from pg_audit_diff_backup",
+      ).toBeDefined();
+      // summary is always present
+      expect(typeof volumeDrift!.summary).toBe("string");
+      // rowCountSnapshot is set from the snapshot metadata
+      expect(typeof volumeDrift!.rowCountSnapshot).toBe("number");
+      expect(volumeDrift!.rowCountSnapshot as number).toBe(3);
+      // rowCountCurrent should be 0 after ANALYZE on the truncated table
+      if (volumeDrift!.rowCountCurrent !== undefined) {
+        expect(volumeDrift!.rowCountCurrent as number).toBe(0);
+      }
+    } finally {
+      try {
+        if (client) {
+          await callToolAndParse(client, "pg_drop_table", {
+            table: TEMP_TABLE,
+            ifExists: true,
+          });
+        }
+      } catch { /* ignore cleanup errors */ }
+      if (client) await client.close();
+      stopServer(port);
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("restore_backup restoreAs creates alternate table without touching original", async () => {
+    const TEMP_TABLE = "e2e_backup_restore_as_src";
+    const RESTORE_AS_TABLE = "e2e_backup_restore_as_copy";
+    const port = BACKUP_PORT_BASE + 5;
+    const dir = auditDir("restoreas");
+    await mkdir(dir, { recursive: true });
+    const logPath = join(dir, "audit.jsonl");
+
+    await startServer(
+      port,
+      [
+        "--audit-log", logPath,
+        "--audit-backup",
+        "--tool-filter", "core,backup,schema",
+      ],
+      "backup-restoreas",
+    );
+
+    let client: Client | undefined;
+    try {
+      client = await createClient(`http://localhost:${port}`);
+
+      // Use simple column types — SERIAL creates a sequence that gets dropped
+      // with the table, causing restoreAs to fail on the dangling nextval()
+      await callToolAndParse(client, "pg_create_table", {
+        name: TEMP_TABLE,
+        columns: [
+          { name: "id", type: "INTEGER", notNull: true },
+          { name: "label", type: "TEXT", notNull: true },
+        ],
+      });
+
+      // Drop triggers snapshot
+      await callToolAndParse(client, "pg_drop_table", { table: TEMP_TABLE });
+
+      const listResult = await waitForSnapshots(client, 1);
+      const snapshots = (listResult.snapshots as Array<Record<string, unknown>>)
+        .filter((s) => s.tool === "pg_drop_table");
+      const filename = snapshots[snapshots.length - 1]!.filename as string;
+
+      // Restore the snapshot UNDER A NEW NAME (restoreAs)
+      const restoreResult = await callToolAndParse(
+        client,
+        "pg_audit_restore_backup",
+        { filename, restoreAs: RESTORE_AS_TABLE },
+      );
+
+      expect(restoreResult.success).toBe(true);
+      // dryRun must be false / absent (this was a real restore)
+      expect(restoreResult.dryRun).not.toBe(true);
+      // restoreAs echoed back in response
+      expect(restoreResult.restoreAs).toBe(RESTORE_AS_TABLE);
+
+      // The alternate table must now exist with the same column structure
+      const descCopy = await callToolAndParse(client, "pg_describe_table", {
+        table: RESTORE_AS_TABLE,
+      });
+      // pg_describe_table returns { columns: [...] } on success (no explicit success: true)
+      expect(descCopy.success).not.toBe(false);
+      const columns = descCopy.columns as Array<Record<string, unknown>>;
+      expect(Array.isArray(columns)).toBe(true);
+      expect(columns.some((c) => c.name === "id")).toBe(true);
+      expect(columns.some((c) => c.name === "label")).toBe(true);
+
+      // The original table must NOT exist (it was dropped before restore)
+      const descOrig = await callToolAndParse(client, "pg_describe_table", {
+        table: TEMP_TABLE,
+      });
+      expect(descOrig.success).toBe(false);
+    } finally {
+      try {
+        if (client) {
+          await callToolAndParse(client, "pg_drop_table", {
+            table: RESTORE_AS_TABLE,
+            ifExists: true,
+          });
+          await callToolAndParse(client, "pg_drop_table", {
+            table: TEMP_TABLE,
+            ifExists: true,
+          });
+        }
+      } catch { /* ignore cleanup errors */ }
+      if (client) await client.close();
+      stopServer(port);
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });

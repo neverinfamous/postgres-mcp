@@ -286,5 +286,27 @@ describe("Code Mode Tool", () => {
 
       expect(mockAdapter.cleanupTransaction).not.toHaveBeenCalled();
     });
+
+    it("should include metrics.tokenEstimate alongside existing metrics fields", async () => {
+      // Uses the default mock: { success: true, result: { test: "result" },
+      //   metrics: { wallTimeMs: 10, cpuTimeMs: 8, memoryUsedMb: 1 } }
+      const tool = createExecuteCodeTool(mockAdapter as PostgresAdapter);
+      const result = (await tool.handler(
+        { code: "return { rows: [1, 2, 3] }" },
+        { timestamp: new Date(), requestId: "test" },
+      )) as {
+        success: boolean;
+        metrics?: { wallTimeMs: number; cpuTimeMs: number; memoryUsedMb: number; tokenEstimate?: number };
+      };
+
+      expect(result.success).toBe(true);
+      expect(result.metrics).toBeDefined();
+      // tokenEstimate is injected by the handler into the metrics object
+      expect(typeof result.metrics?.tokenEstimate).toBe("number");
+      expect(result.metrics!.tokenEstimate!).toBeGreaterThan(0);
+      // Original metrics fields are preserved alongside tokenEstimate
+      expect(typeof result.metrics?.wallTimeMs).toBe("number");
+      expect(typeof result.metrics?.cpuTimeMs).toBe("number");
+    });
   });
 });
