@@ -41,6 +41,12 @@ src/
 │   ├── tool-constants.ts           # TOOL_GROUPS arrays, META_GROUPS shortcuts, group→tools map
 │   └── tool-filter.ts              # ToolFilter class — parse/apply --tool-filter, getEnabledGroups()
 │
+├── audit/
+│   ├── types.ts                    # AuditEntry, AuditCategory, AuditConfig types
+│   ├── logger.ts                   # AuditLogger — async-buffered JSONL writer, recent() tail reader
+│   ├── interceptor.ts              # createAuditInterceptor() — wraps tool dispatch for write/admin logging
+│   └── index.ts                    # Barrel
+│
 ├── utils/
 │   ├── logger.ts                   # Logger class (structured JSON, severity filtering, SENSITIVE_KEY_LIST)
 │   ├── module-logger.ts            # ModuleLogger class (per-module logger wrapper)

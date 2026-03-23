@@ -13,6 +13,8 @@ import { parseToolFilter, getEnabledGroups } from "../filtering/tool-filter.js";
 import { logger } from "../utils/logger.js";
 import { generateInstructions, HELP_CONTENT } from "../constants/server-instructions.js";
 import type { InstructionLevel } from "../constants/server-instructions.js";
+import { AuditLogger, createAuditInterceptor } from "../audit/index.js";
+import type { AuditConfig } from "../audit/index.js";
 
 export interface ServerConfig {
   name: string;
@@ -20,6 +22,7 @@ export interface ServerConfig {
   adapter: DatabaseAdapter;
   toolFilter?: string | undefined;
   instructionLevel?: InstructionLevel | undefined;
+  auditConfig?: AuditConfig | undefined;
 }
 
 /**
@@ -30,6 +33,7 @@ export class PostgresMcpServer {
   private adapter: DatabaseAdapter;
   private filterConfig: ToolFilterConfig;
   private transport: StdioServerTransport | null = null;
+  private auditLogger: AuditLogger | null = null;
 
   constructor(config: ServerConfig) {
     this.adapter = config.adapter;
@@ -69,6 +73,17 @@ export class PostgresMcpServer {
       instructionLevel: level,
       capabilities: ["logging"],
     });
+
+    // Set up audit logging if configured
+    if (config.auditConfig?.enabled) {
+      this.auditLogger = new AuditLogger(config.auditConfig);
+      const interceptor = createAuditInterceptor(this.auditLogger);
+      this.adapter.setAuditInterceptor(interceptor);
+      logger.info("Audit logging enabled", {
+        path: config.auditConfig.logPath,
+        redact: config.auditConfig.redact,
+      });
+    }
   }
 
   /**
@@ -83,6 +98,9 @@ export class PostgresMcpServer {
 
     // Register help resources (filtered by enabled tool groups)
     this.registerHelpResources();
+
+    // Register audit resource
+    this.registerAuditResource();
 
     // Register prompts
     this.adapter.registerPrompts(this.mcpServer);
@@ -178,6 +196,9 @@ export class PostgresMcpServer {
     logger.info("Stopping MCP Server...");
 
     try {
+      if (this.auditLogger) {
+        await this.auditLogger.close();
+      }
       await this.mcpServer.close();
       logger.info("MCP Server stopped");
     } catch (error) {
@@ -206,5 +227,51 @@ export class PostgresMcpServer {
    */
   getFilterConfig(): ToolFilterConfig {
     return this.filterConfig;
+  }
+
+  /**
+   * Register the postgres://audit resource for agent-readable audit trail.
+   * Returns recent audit entries when audit is enabled, or a disabled message.
+   */
+  private registerAuditResource(): void {
+    const auditLogger = this.auditLogger;
+
+    this.mcpServer.registerResource(
+      "postgres_audit",
+      "postgres://audit",
+      {
+        description:
+          "Recent audit log entries — write/admin tool invocations with user identity, timing, and outcome",
+        mimeType: "application/json",
+      },
+      async () => {
+        if (!auditLogger) {
+          return {
+            contents: [
+              {
+                uri: "postgres://audit",
+                mimeType: "application/json",
+                text: JSON.stringify({
+                  entries: [],
+                  message:
+                    "Audit logging not enabled. Start with --audit-log <path> to enable.",
+                }),
+              },
+            ],
+          };
+        }
+
+        const entries = await auditLogger.recent();
+        return {
+          contents: [
+            {
+              uri: "postgres://audit",
+              mimeType: "application/json",
+              text: JSON.stringify({ entries, total: entries.length }),
+            },
+          ],
+        };
+      },
+    );
   }
 }

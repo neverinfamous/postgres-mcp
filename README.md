@@ -492,6 +492,8 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `--log-level <level>` | Log verbosity |
 | `--oauth-enabled` | Enable OAuth 2.1 |
 | `--trust-proxy` | Trust reverse proxy headers |
+| `--audit-log <path>` | Enable JSONL audit trail for write/admin tool calls |
+| `--audit-redact` | Omit tool arguments from audit entries |
 
 ---
 
@@ -529,7 +531,7 @@ This server includes **19 intelligent prompts** for guided workflows:
 
 Resources give you instant snapshots of database state without writing queries. Perfect for quickly checking schema, health, or performance metrics — the AI can read these to understand your database context before suggesting changes.
 
-This server provides **21 resources** for structured data access:
+This server provides **22 resources** for structured data access:
 
 | Resource     | URI                       | Description                                        |
 | ------------ | ------------------------- | -------------------------------------------------- |
@@ -554,6 +556,7 @@ This server provides **21 resources** for structured data access:
 | PostGIS      | `postgres://postgis`      | PostGIS spatial columns and index status           |
 | Crypto       | `postgres://crypto`       | pgcrypto availability and security recommendations |
 | Insights     | `postgres://insights`     | AI-appended business insights and observations     |
+| Audit        | `postgres://audit`        | Recent write/admin audit entries with OAuth identity |
 
 ---
 

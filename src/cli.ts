@@ -48,6 +48,8 @@ interface CliOptions {
   oauthJwksUri?: string;
   oauthClockTolerance?: number;
   trustProxy?: boolean;
+  auditLog?: string;
+  auditRedact?: boolean;
 }
 
 interface ListToolsOptions {
@@ -139,6 +141,15 @@ program
     "--enable-hsts",
     "Enable HSTS header for HTTP transport (use when behind HTTPS, env: MCP_ENABLE_HSTS)",
   )
+  // Audit options
+  .option(
+    "--audit-log <path>",
+    "Enable audit logging to the specified JSONL file path (env: AUDIT_LOG_PATH)",
+  )
+  .option(
+    "--audit-redact",
+    "Redact tool arguments from audit entries (env: AUDIT_REDACT)",
+  )
   .action(async (options: CliOptions) => {
     // Set log level
     const logLevel =
@@ -177,6 +188,15 @@ program
         });
       }
 
+      // Build audit config from CLI options + env
+      const auditLogPath =
+        options.auditLog ?? process.env["AUDIT_LOG_PATH"];
+      const auditRedact =
+        options.auditRedact ?? process.env["AUDIT_REDACT"] === "true";
+      const auditConfig = auditLogPath
+        ? { enabled: true, logPath: auditLogPath, redact: auditRedact }
+        : undefined;
+
       // Determine transport type
       const transport = (options.transport ??
         process.env["MCP_TRANSPORT"] ??
@@ -195,10 +215,10 @@ program
             );
           }
           // Start with HTTP transport
-          await startHttpServer(adapter, toolFilter, instructionLevel, oauthConfig, options);
+          await startHttpServer(adapter, toolFilter, instructionLevel, oauthConfig, options, auditConfig);
         } else {
           // Start with stdio transport (default)
-          await startStdioServer(adapter, toolFilter, instructionLevel);
+          await startStdioServer(adapter, toolFilter, instructionLevel, auditConfig);
         }
     } catch (error) {
       logger.error("Failed to start server", {

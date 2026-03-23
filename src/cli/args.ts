@@ -46,6 +46,12 @@ export interface ParsedArgs {
 
   /** Whether to exit after printing help/version */
   shouldExit: boolean;
+
+  /** Audit log file path (enables audit logging when set) */
+  auditLogPath?: string;
+
+  /** Whether to redact tool arguments from audit entries */
+  auditRedact?: boolean;
 }
 
 import { VERSION } from "../utils/version.js";
@@ -233,6 +239,18 @@ export function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
         return result;
 
       default:
+        // Audit options (placed before default fallthrough)
+        if (arg === "--audit-log") {
+          if (nextArg && !nextArg.startsWith("-")) {
+            result.auditLogPath = nextArg;
+            i++;
+          }
+          break;
+        }
+        if (arg === "--audit-redact") {
+          result.auditRedact = true;
+          break;
+        }
         if (arg?.startsWith("-")) {
           console.error(`Unknown option: ${arg}`);
           printHelp();
@@ -426,5 +444,12 @@ Environment Variables:
   OAUTH_AUDIENCE            Expected token audience
   OAUTH_JWKS_URI            JWKS endpoint URL
   OAUTH_CLOCK_TOLERANCE     Clock tolerance in seconds
+
+Audit Options:
+  --audit-log <path>        Enable JSONL audit trail for write/admin tool calls
+  --audit-redact            Omit tool arguments from audit entries
+
+  AUDIT_LOG_PATH            Audit log file path
+  AUDIT_REDACT              Redact audit args (true/false)
 `);
 }

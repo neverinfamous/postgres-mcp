@@ -25,6 +25,7 @@ import type {
 import { getAuthContext } from "../auth/auth-context.js";
 import { getRequiredScope } from "../auth/scope-map.js";
 import { requireScope } from "../auth/middleware.js";
+import type { AuditInterceptor } from "../audit/index.js";
 
 /**
  * Abstract base class for database adapters
@@ -41,6 +42,17 @@ export abstract class DatabaseAdapter {
 
   /** Connection state */
   protected connected = false;
+
+  /** Optional audit interceptor for write/admin tools */
+  private auditInterceptor: AuditInterceptor | null = null;
+
+  /**
+   * Set the audit interceptor for write/admin tool logging.
+   * Called by PostgresMcpServer when audit is enabled.
+   */
+  setAuditInterceptor(interceptor: AuditInterceptor): void {
+    this.auditInterceptor = interceptor;
+  }
 
   // =========================================================================
   // Connection Lifecycle
@@ -242,7 +254,14 @@ export abstract class DatabaseAdapter {
 
           // Create context with progress support
           const context = this.createContext(undefined, server, progressToken);
-          const result = await tool.handler(args, context);
+          const result = this.auditInterceptor
+            ? await this.auditInterceptor.around(
+                tool.name,
+                args,
+                context.requestId,
+                () => tool.handler(args, context),
+              )
+            : await tool.handler(args, context);
 
           // MCP 2025-11-25: Return structuredContent if outputSchema present
           // P154 errors ({success: false, error: "..."}) are sent as structuredContent

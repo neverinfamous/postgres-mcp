@@ -8,6 +8,7 @@ import type { PostgresAdapter } from "../adapters/postgresql/index.js";
 import { PostgresMcpServer } from "../server/mcp-server.js";
 import { logger } from "../utils/logger.js";
 import type { InstructionLevel } from "../constants/server-instructions.js";
+import type { AuditConfig } from "../audit/index.js";
 import { HttpTransport, type HttpTransportConfig } from "../transports/http/index.js";
 import {
   OAuthResourceServer,
@@ -33,6 +34,7 @@ export async function startStdioServer(
   adapter: PostgresAdapter,
   toolFilter?: string,
   instructionLevel?: InstructionLevel,
+  auditConfig?: AuditConfig,
 ): Promise<void> {
   const server = new PostgresMcpServer({
     name: "postgres-mcp",
@@ -40,6 +42,7 @@ export async function startStdioServer(
     adapter,
     toolFilter,
     instructionLevel,
+    auditConfig,
   });
 
   // Handle shutdown
@@ -66,6 +69,7 @@ export async function startHttpServer(
   instructionLevel: InstructionLevel | undefined,
   oauthConfig: OAuthConfig | undefined,
   options: ServerCliOptions,
+  auditConfig?: AuditConfig,
 ): Promise<void> {
   const port = options.port ?? parseInt(process.env["PORT"] ?? "3000", 10);
   const host =
@@ -105,6 +109,7 @@ export async function startHttpServer(
     adapter,
     toolFilter,
     instructionLevel,
+    auditConfig,
   });
 
   // ALWAYS register components (tools, resources, prompts) regardless of transport
