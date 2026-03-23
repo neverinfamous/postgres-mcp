@@ -492,7 +492,7 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `--log-level <level>` | Log verbosity |
 | `--oauth-enabled` | Enable OAuth 2.1 |
 | `--trust-proxy` | Trust reverse proxy headers |
-| `--audit-log <path>` | Enable JSONL audit trail for write/admin tool calls |
+| `--audit-log <path>` | Enable JSONL audit trail (`stderr` for container logs) |
 | `--audit-redact` | Omit tool arguments from audit entries |
 
 ---

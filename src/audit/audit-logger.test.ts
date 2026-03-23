@@ -204,4 +204,81 @@ describe("AuditLogger", () => {
     expect(entry.user).toBeNull();
     expect(entry.scopes).toEqual([]);
   });
+
+  describe("stderr mode", () => {
+    it("should write JSONL entries to stderr", async () => {
+      const logger = new AuditLogger({
+        enabled: true,
+        logPath: "stderr",
+        redact: false,
+      });
+
+      const chunks: string[] = [];
+      const originalWrite = process.stderr.write;
+      process.stderr.write = ((chunk: string) => {
+        chunks.push(chunk);
+        return true;
+      }) as typeof process.stderr.write;
+
+      try {
+        logger.log(fakeEntry({ tool: "pg_write_query" }));
+        await logger.flush();
+
+        expect(chunks.length).toBeGreaterThan(0);
+        const entry = JSON.parse(chunks[0]!.trim()) as AuditEntry;
+        expect(entry.tool).toBe("pg_write_query");
+      } finally {
+        process.stderr.write = originalWrite;
+        await logger.close();
+      }
+    });
+
+    it("should return empty from recent() in stderr mode", async () => {
+      const logger = new AuditLogger({
+        enabled: true,
+        logPath: "stderr",
+        redact: false,
+      });
+
+      // Suppress stderr output during test
+      const originalWrite = process.stderr.write;
+      process.stderr.write = (() => true) as typeof process.stderr.write;
+
+      try {
+        logger.log(fakeEntry());
+        await logger.flush();
+
+        const recent = await logger.recent();
+        expect(recent).toEqual([]);
+      } finally {
+        process.stderr.write = originalWrite;
+        await logger.close();
+      }
+    });
+
+    it("should be case-insensitive for stderr sentinel", async () => {
+      const logger = new AuditLogger({
+        enabled: true,
+        logPath: "STDERR",
+        redact: false,
+      });
+
+      const chunks: string[] = [];
+      const originalWrite = process.stderr.write;
+      process.stderr.write = ((chunk: string) => {
+        chunks.push(chunk);
+        return true;
+      }) as typeof process.stderr.write;
+
+      try {
+        logger.log(fakeEntry({ tool: "pg_vacuum" }));
+        await logger.flush();
+
+        expect(chunks.length).toBeGreaterThan(0);
+      } finally {
+        process.stderr.write = originalWrite;
+        await logger.close();
+      }
+    });
+  });
 });

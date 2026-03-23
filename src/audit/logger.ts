@@ -2,9 +2,8 @@
  * postgres-mcp — Audit Logger
  *
  * Async-buffered JSONL writer for the audit trail. Appends one
- * JSON object per line to a configurable file path. Designed to
- * never block tool execution — if the filesystem is slow, entries
- * queue in memory and flush on the next tick.
+ * JSON object per line to a configurable file path, or writes to
+ * stderr for containerised deployments (`--audit-log stderr`).
  *
  * Non-throwing by design: audit failures log to stderr but never
  * propagate to tool callers.
@@ -24,6 +23,9 @@ const FLUSH_INTERVAL_MS = 100;
 /** Default number of recent entries returned by `recent()` */
 const DEFAULT_RECENT_COUNT = 50;
 
+/** Special logPath value that routes audit output to stderr */
+const STDERR_SENTINEL = "stderr";
+
 export class AuditLogger {
   readonly config: AuditConfig;
 
@@ -32,9 +34,12 @@ export class AuditLogger {
   private flushing = false;
   private closed = false;
   private dirEnsured = false;
+  private readonly stderrMode: boolean;
 
   constructor(config: AuditConfig) {
     this.config = config;
+    this.stderrMode =
+      config.logPath.toLowerCase() === STDERR_SENTINEL;
 
     if (config.enabled) {
       // Use unref() so the timer doesn't keep the process alive
@@ -74,9 +79,14 @@ export class AuditLogger {
     this.buffer = [];
 
     try {
-      await this.ensureDirectory();
-      // One appendFile call with all buffered lines — each terminated by \n
-      await appendFile(this.config.logPath, lines.join("\n") + "\n", "utf-8");
+      if (this.stderrMode) {
+        // Stderr mode: write directly, no buffering to disk
+        process.stderr.write(lines.join("\n") + "\n");
+      } else {
+        await this.ensureDirectory();
+        // One appendFile call with all buffered lines — each terminated by \n
+        await appendFile(this.config.logPath, lines.join("\n") + "\n", "utf-8");
+      }
     } catch (err) {
       // Never throw — audit must not break tool execution
       const message = err instanceof Error ? err.message : String(err);
@@ -109,6 +119,9 @@ export class AuditLogger {
    * @param count Maximum number of entries to return (default 50)
    */
   async recent(count: number = DEFAULT_RECENT_COUNT): Promise<AuditEntry[]> {
+    // Stderr mode has no file to read from
+    if (this.stderrMode) return [];
+
     try {
       const exists = await stat(this.config.logPath)
         .then(() => true)

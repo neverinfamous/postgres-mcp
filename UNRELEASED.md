@@ -1,7 +1,7 @@
 # Unreleased
 
 ## Added
-- **Audit Log**: JSONL audit trail for write/admin tool invocations with OAuth identity, timing, and outcome. Enable with `--audit-log <path>` or `AUDIT_LOG_PATH`. Async-buffered writes ensure zero performance impact on tool execution.
+- **Audit Log**: JSONL audit trail for write/admin tool invocations with OAuth identity, timing, and outcome. Enable with `--audit-log <path>` or `AUDIT_LOG_PATH`. Use `--audit-log stderr` for Docker/K8s deployments where container logs pipe to the orchestrator. Async-buffered writes ensure zero performance impact on tool execution.
 - **Audit Redaction**: `--audit-redact` / `AUDIT_REDACT=true` omits tool arguments from audit entries for sensitive environments.
 - **Audit Resource**: `postgres://audit` resource returns the 50 most recent audit entries as JSON — gives agents read access to the audit trail without parsing files.
 - **Transport-Agnostic Auth**: Added `src/auth/transport-agnostic.ts` with `createAuthenticatedContext()`, `validateAuth()`, and `formatOAuthError()` — transport-agnostic auth utilities usable by Streamable HTTP or future transports without Express coupling. `middleware.ts` re-exports shared types from the new module.
