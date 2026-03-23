@@ -20,8 +20,12 @@ import { hasScope, hasAnyScope, SCOPES } from "./scopes.js";
 export type { AuthenticatedContext } from "./transport-agnostic.js";
 export { formatOAuthError } from "./transport-agnostic.js";
 
-// Import type for local use
+// Re-export shared helper for backward compat
+export { extractBearerToken } from "./helpers.js";
+
+// Import for local use
 import type { AuthenticatedContext } from "./transport-agnostic.js";
+import { extractBearerToken } from "./helpers.js";
 
 /**
  * Auth middleware configuration
@@ -35,24 +39,6 @@ export interface AuthMiddlewareConfig {
 
   /** Required scopes (any of these) */
   requiredScopes?: string[];
-}
-
-/**
- * Extract bearer token from Authorization header
- */
-export function extractBearerToken(
-  authHeader: string | undefined,
-): string | null {
-  if (!authHeader) {
-    return null;
-  }
-
-  const parts = authHeader.split(" ");
-  if (parts.length !== 2 || parts[0]?.toLowerCase() !== "bearer") {
-    return null;
-  }
-
-  return parts[1] ?? null;
 }
 
 /**

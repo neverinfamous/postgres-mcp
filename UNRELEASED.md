@@ -40,7 +40,6 @@
 
 ### Security
 - **Dependency Updates**:
-  - Hono vulnerable to Prototype Pollution fixed via `v4.12.8`
   - Bumped `gitleaks-action` to `ff98106`
   - Bumped `trufflehog` to `v3.93.8` (`6c05c4a`)
   - Bumped `github/codeql-action` to `v4` (`0d579ff`)
@@ -53,7 +52,6 @@
 
 ### Changed
 - **Dependency Updates**:
-  - Bumped `hono` to `v4.12.8`
   - Bumped `jose` to `v6.2.2`
   - Bumped `@vitest/coverage-v8` to `v4.1.0`
   - Bumped `vitest` to `v4.1.0`
@@ -124,3 +122,5 @@
 - **Code mode magic values**: Added `rateLimitWindowMs` and `resultPreviewLength` to `SecurityConfig` and `DEFAULT_SECURITY_CONFIG` in `codemode/types.ts`, replacing hardcoded `60000` and `1000` in `codemode/security.ts`.
 - **Threshold documentation**: Added explanatory comments for intentionally different large-table warning thresholds: 10K (PostGIS — spatial queries expensive) vs 100K (pgvector — sequential scans tolerable on moderate tables).
 - **Advanced test prompt restructure**: Replaced monolithic `advanced-test-tools.md` (690 lines, 12 cross-cutting categories) with per-tool-group split files `test-tools-advanced-1.md` (core, transactions, jsonb, text, stats, vector) and `test-tools-advanced-2.md` (extensions, performance, introspection, migration, cross-group workflows) — aligning with db-mcp's proven strategy for AI tool-limited environments
+- **`extractBearerToken` dedup**: Extracted duplicated `extractBearerToken()` from `middleware.ts` and `transport-agnostic.ts` into shared `auth/helpers.ts`. Uses stricter implementation (trims token, rejects empty strings). Both modules now import from the shared helper.
+- **Removed unused `hono` dependency**: Removed `hono` from `dependencies` — zero imports existed in source code

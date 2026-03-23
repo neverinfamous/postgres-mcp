@@ -63,9 +63,11 @@ export {
   createOAuthResourceServer,
 } from "./oauth-resource-server.js";
 
+// Shared helpers
+export { extractBearerToken } from "./helpers.js";
+
 // Middleware
 export {
-  extractBearerToken,
   createAuthContext,
   validateAuth,
   requireScope,

@@ -14,23 +14,7 @@ import {
   InsufficientScopeError,
 } from "./errors.js";
 import { hasScope as checkScope } from "./scopes.js";
-
-/**
- * Extract a Bearer token from an Authorization header.
- * Local copy to avoid circular dependency with middleware.ts.
- */
-function extractBearerToken(
-  authHeader: string | undefined,
-): string | null {
-  if (!authHeader) return null;
-  const parts = authHeader.split(" ");
-  const scheme = parts[0];
-  const tokenPart = parts[1];
-  if (parts.length !== 2 || scheme?.toLowerCase() !== "bearer") return null;
-  if (tokenPart === undefined) return null;
-  const token = tokenPart.trim();
-  return token.length > 0 ? token : null;
-}
+import { extractBearerToken } from "./helpers.js";
 
 // =============================================================================
 // Transport-Agnostic Auth Context
