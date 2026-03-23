@@ -14,9 +14,9 @@ Run **each pass** as a separate conversation with the corresponding `--tool-filt
 | Pass 4 | `ai-vector` | Core, Vector, Trans, Part (~51) | 23–25 |
 | Pass 5 | `geo` | Core, PostGIS, Trans (~44) | 26–28 |
 | Pass 6 | `dba-monitor` | Core, Monitoring, Perf, Trans (~64) | 29–31 |
-| Pass 7 | `dba-infra` | Core, Admin, Backup, Part (~46) | 32–35 |
-| Pass 8 | `core,introspection,migration` | Core, Introspection, Migration (~33) | 36–38 |
-| Pass 9 | `codemode` | Code Mode only (1+3) | 39–42 |
+| Pass 7 | `dba-infra` | Core, Admin, Backup, Part (~46) | 32–36, 44 |
+| Pass 8 | `core,introspection,migration` | Core, Introspection, Migration (~33) | 37–39 |
+| Pass 9 | `codemode` | Code Mode only (1+3) | 40–43 |
 
 > **Important:** Do NOT combine passes. Each pass is a fresh conversation with a clean context. The agent has never seen this database before.
 
@@ -219,8 +219,11 @@ Inspect the partitioning setup for `test_events`. Can the agent identify the par
 #### Scenario 35 — Insight memo
 As you investigate the database health, record your key findings as insights so they can be reviewed later via the insights resource. Append at least 3 observations about the database state, then verify they're accessible.
 
-#### Scenario 36 — Audit trail & recovery
-Create a table, insert data, then truncate it (creating a pre-mutation snapshot). Use the audit backup tools to list the snapshot, compare it against the live schema (after adding a column to simulate drift), and restore the original state. Can the agent complete a full "oops → recover" workflow using only the backup tools and help resources?
+#### Scenario 36 — Audit trail, recovery, and non-destructive restore
+Create a table, insert data, then truncate it (triggering a pre-mutation snapshot). List the snapshot. Add a column to simulate schema drift, then diff the snapshot — can the agent read the `volumeDrift` information without being told it exists? Finally, restore — but use **non-destructive restore** (`restoreAs`) to recover the original schema alongside the current drifted table, rather than overwriting it. Can the agent complete the full "oops → recover safely" workflow using only the backup tools and help resources, without any prior knowledge of `restoreAs` or `volumeDrift`?
+
+#### Scenario 44 — Safe restore workflow prompt
+The server provides a prompt called `pg_safe_restore_workflow`. Without being told what it does, invoke it and follow its guidance to recover a table that has diverged from a known-good snapshot. Does the prompt provide enough context for the agent to complete the workflow safely?
 
 ---
 
@@ -265,8 +268,8 @@ Using only `pg_execute_code`, compute outlier detection on `test_measurements.te
 
 Compile findings across all passes into:
 
-1. **Help resource gaps** — scenarios where help content was missing, incomplete, or misleading (43 scenarios total)
+1. **Help resource gaps** — scenarios where help content was missing, incomplete, or misleading (44 scenarios total)
 2. **Discovery friction** — cases where the agent struggled to find the right tool or resource
 3. **Suggested improvements** — specific additions to `src/constants/server-instructions/*.md`
 
-> **Key metric:** How many of the 43 scenarios did the agent complete on the first try with ≤1 help resource read? This measures whether the instructions + tool descriptions are self-sufficient.
+> **Key metric:** How many of the 44 scenarios did the agent complete on the first try with ≤1 help resource read? This measures whether the instructions + tool descriptions are self-sufficient.
