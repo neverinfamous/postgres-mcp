@@ -127,6 +127,76 @@ export class PostgresAdapter extends DatabaseAdapter {
     this.metadataCache.set(key, { data, timestamp: Date.now() });
   }
 
+  /**
+   * Invalidate cached metadata for a specific table.
+   * Called after DDL operations that change table structure.
+   */
+  invalidateTableCache(tableName: string, schemaName = "public"): void {
+    this.metadataCache.delete(`describe:${schemaName}.${tableName}`);
+    this.metadataCache.delete("list_tables");
+    this.metadataCache.delete("all_indexes");
+  }
+
+  /**
+   * Invalidate all schema-related metadata caches.
+   * Used when the specific affected table cannot be determined.
+   */
+  invalidateSchemaCache(): void {
+    for (const key of this.metadataCache.keys()) {
+      if (key.startsWith("describe:") || key === "list_tables" || key === "all_indexes") {
+        this.metadataCache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Detect DDL statements and invalidate the appropriate cache entries.
+   * Extracts the table name from common DDL patterns; falls back to
+   * full schema cache invalidation for ambiguous statements.
+   */
+  private invalidateCacheForDdl(sql: string): void {
+    const normalized = sql.replace(/\s+/g, " ").trim().toUpperCase();
+
+    // Match: ALTER TABLE, CREATE TABLE, DROP TABLE, TRUNCATE
+    const tableMatch = /^(?:ALTER|CREATE|DROP)\s+TABLE\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?(?:"([^"]+)"\.)?("([^"]+)"|([a-z_][a-z0-9_]*))/i.exec(
+      sql.replace(/\s+/g, " ").trim(),
+    );
+    if (tableMatch) {
+      const schema = tableMatch[1] ?? "public";
+      const table = tableMatch[3] ?? tableMatch[4] ?? "";
+      if (table) {
+        this.invalidateTableCache(table, schema);
+        return;
+      }
+    }
+
+    // Match: TRUNCATE [TABLE]
+    const truncateMatch = /^TRUNCATE\s+(?:TABLE\s+)?(?:"([^"]+)"\.)?("([^"]+)"|([a-z_][a-z0-9_]*))/i.exec(
+      sql.replace(/\s+/g, " ").trim(),
+    );
+    if (truncateMatch) {
+      const schema = truncateMatch[1] ?? "public";
+      const table = truncateMatch[3] ?? truncateMatch[4] ?? "";
+      if (table) {
+        this.invalidateTableCache(table, schema);
+        return;
+      }
+    }
+
+    // Match: CREATE/DROP INDEX — invalidate all (index targets are harder to parse)
+    if (normalized.startsWith("CREATE INDEX") || normalized.startsWith("CREATE UNIQUE INDEX") ||
+        normalized.startsWith("DROP INDEX")) {
+      this.invalidateSchemaCache();
+      return;
+    }
+
+    // Any other DDL-like statement: broad invalidation as safety net
+    if (normalized.startsWith("ALTER ") || normalized.startsWith("CREATE ") ||
+        normalized.startsWith("DROP ")) {
+      this.invalidateSchemaCache();
+    }
+  }
+
   // =========================================================================
   // Connection Lifecycle
   // =========================================================================
@@ -217,7 +287,11 @@ export class PostgresAdapter extends DatabaseAdapter {
     params?: unknown[],
   ): Promise<QueryResult> {
     this.validateQuery(sql, false);
-    return this.executeQuery(sql, params);
+    const result = await this.executeQuery(sql, params);
+    // Invalidate metadata cache for DDL statements so subsequent
+    // describeTable / listTables calls return fresh results
+    this.invalidateCacheForDdl(sql);
+    return result;
   }
 
   async executeQuery(sql: string, params?: unknown[]): Promise<QueryResult> {
