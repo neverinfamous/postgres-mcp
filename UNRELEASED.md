@@ -66,7 +66,9 @@
 ### Changed
 - **Default 30s statement timeout**: Connection pool now applies `statement_timeout = 30000` by default, preventing runaway agent queries from holding connections indefinitely. Explicit `statementTimeout: 0` disables it; any positive value overrides the default.
 - **Streaming tail-read for audit log**: `AuditLogger.recent()` now reads only the last 64 KB of the file via `open()` + positioned `read()` instead of loading the entire file into memory. Prevents O(n) memory spikes for large audit logs while maintaining identical output.
-- **Single-stringify token estimate**: `registerTool()` now computes `_meta.tokenEstimate` from the final serialized response string, eliminating a redundant `JSON.stringify(result)` call per tool invocation.
+- **Single-stringify token estimate**: `registerTool()` now serializes each tool response once with a placeholder `tokenEstimate: 0`, computes byte length from the serialized string, then patches the estimate via string replacement — eliminating a redundant `JSON.stringify(result)` call per tool invocation on both the outputSchema and standard text paths.
+- **Async gzip snapshots**: `BackupManager.writeSnapshot()` now uses async `gzip()` (via `promisify`) instead of blocking `gzipSync()`, preventing event loop stalls during large snapshot compression. Also eliminated a double `JSON.stringify` for `sizeBytes` calculation with the same serialize-once-then-patch pattern.
+- **Incremental TypeScript compilation**: Added `incremental: true` and `tsBuildInfoFile: ".tsbuildinfo"` to `tsconfig.json` — subsequent builds skip re-checking unchanged files, reducing dev-loop rebuild times from ~25s to sub-second for small changes.
 - **Dependency Updates**:
   - Bumped `jose` to `v6.2.2`
   - Bumped `@vitest/coverage-v8` to `v4.1.0`

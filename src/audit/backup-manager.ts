@@ -17,7 +17,10 @@
 
 import { writeFile, readFile, readdir, mkdir, stat, unlink } from "node:fs/promises";
 import { join, dirname, basename } from "node:path";
-import { gzipSync, gunzipSync } from "node:zlib";
+import { gunzipSync, gzip as gzipCb } from "node:zlib";
+import { promisify } from "node:util";
+
+const gzipAsync = promisify(gzipCb);
 import type {
   BackupConfig,
   SnapshotMetadata,
@@ -492,12 +495,16 @@ export class BackupManager {
       data,
     };
 
+    // Serialize once, compute byte length, then patch sizeBytes inline
     const json = JSON.stringify(content, null, 2);
-    content.metadata.sizeBytes = Buffer.byteLength(json, "utf-8");
-    const finalJson = JSON.stringify(content, null, 2);
+    const sizeBytes = Buffer.byteLength(json, "utf-8");
+    const finalJson = json.replace(
+      '"sizeBytes": 0',
+      `"sizeBytes": ${String(sizeBytes)}`,
+    );
 
-    // §4: Gzip compress + async fire-and-forget write
-    const compressed = gzipSync(Buffer.from(finalJson, "utf-8"));
+    // §4: Async gzip compress + fire-and-forget write
+    const compressed = await gzipAsync(Buffer.from(finalJson, "utf-8"));
     const filePath = join(this.snapshotDir, filename);
 
     const writePromise = writeFile(filePath, compressed).catch((err: unknown) => {

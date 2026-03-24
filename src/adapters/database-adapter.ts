@@ -277,21 +277,24 @@ export abstract class DatabaseAdapter {
           // All output schemas accommodate both success and error shapes.
           // _meta is injected into text only — structuredContent stays schema-pure.
           if (hasOutputSchema) {
-            // Serialize once, then compute token estimate from the serialized string
-            // (~4 bytes per token, GPT/Claude heuristic)
-            const resultJson = JSON.stringify(result);
-            const tokenEstimate = Math.ceil(
-              Buffer.byteLength(resultJson, "utf8") / 4,
-            );
+            // Serialize once with placeholder, compute byte length, then
+            // patch the estimate via string replacement (~4 bytes per token).
             const enriched = JSON.stringify({
               ...(result as object),
-              _meta: { tokenEstimate },
+              _meta: { tokenEstimate: 0 },
             });
+            const tokenEstimate = Math.ceil(
+              Buffer.byteLength(enriched, "utf8") / 4,
+            );
+            const finalText = enriched.replace(
+              '"tokenEstimate":0',
+              `"tokenEstimate":${String(tokenEstimate)}`,
+            );
             return {
               content: [
                 {
                   type: "text" as const,
-                  text: enriched,
+                  text: finalText,
                 },
               ],
               structuredContent: result as Record<string, unknown>,
@@ -300,18 +303,22 @@ export abstract class DatabaseAdapter {
 
           // Standard text content response
           if (typeof result === "object" && result !== null) {
-            // Serialize once with _meta, then compute token estimate
-            const enriched = JSON.stringify(result, null, 2);
-            const tokenEstimate = Math.ceil(
-              Buffer.byteLength(enriched, "utf8") / 4,
-            );
+            // Single serialize with _meta included, then compute token
+            // estimate from the already-serialized string.
             const withMeta = JSON.stringify(
-              { ...result, _meta: { tokenEstimate } },
+              { ...(result as object), _meta: { tokenEstimate: 0 } },
               null,
               2,
             );
+            const tokenEstimate = Math.ceil(
+              Buffer.byteLength(withMeta, "utf8") / 4,
+            );
+            const finalText = withMeta.replace(
+              '"tokenEstimate": 0',
+              `"tokenEstimate": ${String(tokenEstimate)}`,
+            );
             return {
-              content: [{ type: "text" as const, text: withMeta }],
+              content: [{ type: "text" as const, text: finalText }],
             };
           }
           // Plain strings pass through unchanged
