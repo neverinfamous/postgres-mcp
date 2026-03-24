@@ -15,3 +15,9 @@ export type {
   SnapshotMetadata,
   SnapshotContent,
 } from "./types.js";
+export {
+  DEFAULT_AUDIT_LOG_MAX_SIZE_BYTES,
+  DEFAULT_AUDIT_BACKUP_MAX_DATA_SIZE_BYTES,
+  DEFAULT_AUDIT_BACKUP_MAX_AGE_DAYS,
+  DEFAULT_AUDIT_BACKUP_MAX_COUNT,
+} from "./types.js";

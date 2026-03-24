@@ -146,3 +146,19 @@ export interface SnapshotContent {
   data?: string | undefined;
 }
 
+// =============================================================================
+// Default configuration constants
+// =============================================================================
+
+/** Default maximum JSONL audit log size before rotation (10 MB). */
+export const DEFAULT_AUDIT_LOG_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+
+/** Default maximum table size for data capture in snapshots (50 MB). */
+export const DEFAULT_AUDIT_BACKUP_MAX_DATA_SIZE_BYTES = 50 * 1024 * 1024;
+
+/** Default maximum snapshot age in days before cleanup. */
+export const DEFAULT_AUDIT_BACKUP_MAX_AGE_DAYS = 30;
+
+/** Default maximum number of snapshots to retain. */
+export const DEFAULT_AUDIT_BACKUP_MAX_COUNT = 1_000;
+

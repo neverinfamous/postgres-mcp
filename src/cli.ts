@@ -15,6 +15,12 @@ import type { InstructionLevel } from "./constants/server-instructions.js";
 import { VERSION } from "./utils/version.js";
 import { buildDatabaseConfig, buildOAuthConfig } from "./cli/config.js";
 import { startStdioServer, startHttpServer } from "./cli/server.js";
+import {
+  DEFAULT_AUDIT_LOG_MAX_SIZE_BYTES,
+  DEFAULT_AUDIT_BACKUP_MAX_DATA_SIZE_BYTES,
+  DEFAULT_AUDIT_BACKUP_MAX_AGE_DAYS,
+  DEFAULT_AUDIT_BACKUP_MAX_COUNT,
+} from "./audit/index.js";
 
 interface CliOptions {
   postgres?: string;
@@ -235,7 +241,7 @@ program
       const auditReads =
         options.auditReads ?? process.env["AUDIT_READS"] === "true";
       const auditLogMaxSize =
-        options.auditLogMaxSize ?? Number(process.env["AUDIT_LOG_MAX_SIZE"] ?? "10485760");
+        options.auditLogMaxSize ?? Number(process.env["AUDIT_LOG_MAX_SIZE"] ?? DEFAULT_AUDIT_LOG_MAX_SIZE_BYTES);
       const auditConfig = auditLogPath
         ? {
             enabled: true,
@@ -247,9 +253,9 @@ program
               ? {
                   enabled: true,
                   includeData: options.auditBackupData ?? process.env["AUDIT_BACKUP_DATA"] === "true",
-                  maxAgeDays: options.auditBackupMaxAge ?? Number(process.env["AUDIT_BACKUP_MAX_AGE"] ?? "30"),
-                  maxCount: options.auditBackupMaxCount ?? Number(process.env["AUDIT_BACKUP_MAX_COUNT"] ?? "1000"),
-                  maxDataSizeBytes: options.auditBackupMaxDataSize ?? Number(process.env["AUDIT_BACKUP_MAX_DATA_SIZE"] ?? "52428800"),
+                  maxAgeDays: options.auditBackupMaxAge ?? Number(process.env["AUDIT_BACKUP_MAX_AGE"] ?? DEFAULT_AUDIT_BACKUP_MAX_AGE_DAYS),
+                  maxCount: options.auditBackupMaxCount ?? Number(process.env["AUDIT_BACKUP_MAX_COUNT"] ?? DEFAULT_AUDIT_BACKUP_MAX_COUNT),
+                  maxDataSizeBytes: options.auditBackupMaxDataSize ?? Number(process.env["AUDIT_BACKUP_MAX_DATA_SIZE"] ?? DEFAULT_AUDIT_BACKUP_MAX_DATA_SIZE_BYTES),
                 }
               : undefined,
           }

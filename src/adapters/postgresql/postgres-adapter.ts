@@ -240,8 +240,8 @@ export class PostgresAdapter extends DatabaseAdapter {
         })),
       };
     } catch (error) {
-      const err = error as Error;
-      throw new QueryError(`Query failed: ${err.message}`, { sql });
+      const message = error instanceof Error ? error.message : String(error);
+      throw new QueryError(`Query failed: ${message}`, { sql });
     }
   }
 
@@ -266,8 +266,8 @@ export class PostgresAdapter extends DatabaseAdapter {
         executionTimeMs,
       };
     } catch (error) {
-      const err = error as Error;
-      throw new QueryError(`Query failed: ${err.message}`, { sql });
+      const message = error instanceof Error ? error.message : String(error);
+      throw new QueryError(`Query failed: ${message}`, { sql });
     }
   }
 

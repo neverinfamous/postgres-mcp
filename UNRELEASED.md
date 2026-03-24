@@ -169,3 +169,7 @@
   - Removed stale "Phase 1 / Phase 2" development-phase labels from `audit/types.ts`, `audit/interceptor.ts` doc-comments — these phases are fully shipped; labels no longer communicate anything
   - Removed orphaned JSDoc block in `audit/backup-manager.ts` that was separated from `getStats()` when `flush()` was inserted between them
   - Replaced `void module; void code` lint-suppression idiom in `utils/logger.ts` with idiomatic underscore-prefix destructuring (`_module`, `_code`)
+- **Code quality audit (2026-03-24)** — chore:
+  - **Type safety**: Replaced two `error as Error` unsafe casts in `postgres-adapter.ts` (`executeQuery`, `executeOnConnection`) with `instanceof Error` guard — prevents `"Query failed: undefined"` if pg internals throw a non-Error value
+  - **Named constants**: Extracted four magic byte-limit literals from `cli.ts` into `audit/types.ts` (`DEFAULT_AUDIT_LOG_MAX_SIZE_BYTES` = 10MB, `DEFAULT_AUDIT_BACKUP_MAX_DATA_SIZE_BYTES` = 50MB, `DEFAULT_AUDIT_BACKUP_MAX_AGE_DAYS` = 30, `DEFAULT_AUDIT_BACKUP_MAX_COUNT` = 1000); exported via `audit/index.ts` barrel
+
