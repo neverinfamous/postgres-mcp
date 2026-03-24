@@ -31,7 +31,7 @@
 | **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, Code Mode exposes all 248 capabilities locally, reducing token overhead by up to 90% and supercharging AI agent reasoning. |
 | **Token-Optimized Payloads**           | Every response includes `_meta.tokenEstimate` — agents get zero-cost burn-rate visibility per turn. Tools include `limit`, `summary`, and `compact` parameters where applicable. Monitoring tools default to bounded results, and large datasets include `limited`/`totalAvailable` metadata so agents always know the full picture. |
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                                                                   |
-| **JSONL Audit Trail + Backup Snapshots** | Structured audit log for write/admin tool invocations with OAuth identity, execution timing, and outcome. Pre-mutation DDL snapshots with agent tools to list, restore, and diff backups. File output, `stderr` for containers, and agent-readable `postgres://audit` resource — no other MCP server has built-in audit logging                                                               |
+| **JSONL Audit Trail + Backup Snapshots** | Structured audit log with per-call token estimates, OAuth identity, timing, and outcome. Opt-in read logging, size-based rotation, pre-mutation DDL snapshots with restore/diff tools. File output, `stderr` for containers, and `postgres://audit` resource with session summary |
 | **Non-Destructive Restore & Semantic Diffing** | `restoreAs` creates side-by-side snapshot tables for safe comparison before merge. Semantic diffing detects volume drift (row count + size changes) alongside schema drift. Gzip-compressed async snapshots, full Code Mode audit coverage, and a guided 6-step safe restore workflow prompt                                                                                                    |
 | **Smart Tool Filtering**               | 22 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                                                                            |
 | **Dual HTTP Transport**                | Streamable HTTP (`/mcp`) for modern clients + legacy SSE (`/sse`) for backward compatibility — both protocols supported simultaneously with security headers, rate limiting, health check, and stateless mode for serverless                                                                                 |
@@ -468,6 +468,10 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `OAUTH_AUDIENCE` | — | Expected token audience | `--oauth-audience` |
 | `OAUTH_JWKS_URI` | _(auto)_ | JWKS URI (auto-discovered from issuer) | `--oauth-jwks-uri` |
 | `OAUTH_CLOCK_TOLERANCE` | `60` | Clock tolerance in seconds | `--oauth-clock-tolerance` |
+| `AUDIT_LOG_PATH` | — | Audit log file path (`stderr` for container logs) | `--audit-log` |
+| `AUDIT_REDACT` | `false` | Omit tool arguments from audit entries | `--audit-redact` |
+| `AUDIT_READS` | `false` | Log read-scoped tool calls (compact entries) | `--audit-reads` |
+| `AUDIT_LOG_MAX_SIZE` | `10485760` | Max log file size before rotation (bytes) | `--audit-log-max-size` |
 
 > **Aliases:** `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` are also supported (standard PostgreSQL client env vars).
 
@@ -496,6 +500,8 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `--trust-proxy` | Trust reverse proxy headers |
 | `--audit-log <path>` | Enable JSONL audit trail (`stderr` for container logs) |
 | `--audit-redact` | Omit tool arguments from audit entries |
+| `--audit-reads` | Log read-scoped tool calls (compact entries) |
+| `--audit-log-max-size <bytes>` | Max log file size before rotation (default: 10MB) |
 
 ---
 
@@ -559,7 +565,7 @@ This server provides **22 resources** for structured data access:
 | PostGIS      | `postgres://postgis`      | PostGIS spatial columns and index status           |
 | Crypto       | `postgres://crypto`       | pgcrypto availability and security recommendations |
 | Insights     | `postgres://insights`     | AI-appended business insights and observations     |
-| Audit        | `postgres://audit`        | Recent write/admin audit entries with OAuth identity |
+| Audit        | `postgres://audit`        | Audit trail with token summary and top tools  |
 
 ---
 

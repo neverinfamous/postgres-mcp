@@ -29,7 +29,7 @@
 | **Code Mode (Massive Token Savings)**  | Execute complex database operations locally in a secure sandbox. Instead of spending thousands of tokens on back-and-forth tool calls, AI agents use a single `pg_execute_code` execution to eliminate up to 90% of token overhead while reasoning faster. |
 | **Token-Optimized Payloads**           | Every response includes `_meta.tokenEstimate` — agents get zero-cost burn-rate visibility per turn. Tools include `limit`, `summary`, and `compact` parameters where applicable. Monitoring tools default to bounded results, and large datasets include `limited`/`totalAvailable` metadata so agents always know the full picture. |
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security with RFC 9728/8414 compliance, granular scopes (`read`, `write`, `admin`, `full`, `db:*`, `table:*:*`), and Keycloak integration                                                                                                 |
-| **JSONL Audit Trail + Backup Snapshots** | Structured audit log for write/admin tool invocations with OAuth identity, execution timing, and outcome. Pre-mutation DDL snapshots with agent tools to list, restore, and diff backups. File output, `stderr` for containers, and agent-readable `postgres://audit` resource                                                              |
+| **JSONL Audit Trail + Backup Snapshots** | Structured audit log with per-call token estimates, OAuth identity, timing, and outcome. Opt-in read logging, size-based rotation, pre-mutation DDL snapshots with restore/diff tools. File output, `stderr` for containers, and `postgres://audit` resource with session summary |
 | **Non-Destructive Restore & Semantic Diffing** | `restoreAs` creates side-by-side snapshot tables for safe comparison before merge. Semantic diffing detects volume drift (row count + size changes) alongside schema drift. Gzip-compressed async snapshots, full Code Mode audit coverage, and a guided 6-step safe restore workflow prompt                                                  |
 | **Smart Tool Filtering**               | 22 tool groups + 16 shortcuts let you stay within IDE limits while exposing exactly what you need                                                                                                                                                          |
 | **Dual HTTP Transport**                | Streamable HTTP (`/mcp`) for modern clients + legacy SSE (`/sse`) for backward compatibility — both protocols supported simultaneously with security headers, rate limiting, health check, and stateless mode for serverless                                                                                 |
@@ -79,7 +79,7 @@ Real-time database meta-awareness - AI accesses these automatically:
 | `postgres://capabilities` | Server features and extensions                |
 | `postgres://indexes`      | Index usage statistics                        |
 | `postgres://activity`     | Current connections and active queries        |
-| `postgres://audit`        | Recent write/admin audit entries              |
+| `postgres://audit`        | Audit trail with token summary                |
 
 **[Full resources list →](https://github.com/neverinfamous/postgres-mcp#resources)**
 
@@ -237,6 +237,8 @@ The agent writes JavaScript against the typed `pg.*` SDK — composing queries, 
 | `AUDIT_BACKUP_DATA` | `false` | Include sample data rows in snapshots |
 | `AUDIT_BACKUP_MAX_AGE` | `30` | Maximum snapshot age in days |
 | `AUDIT_BACKUP_MAX_COUNT` | `100` | Maximum number of snapshots to retain |
+| `AUDIT_READS` | `false` | Log read-scoped tool calls (compact entries) |
+| `AUDIT_LOG_MAX_SIZE` | `10485760` | Max log file size before rotation (bytes) |
 
 > **Aliases:** `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` are also supported (standard PostgreSQL client env vars).
 
