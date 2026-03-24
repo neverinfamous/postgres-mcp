@@ -285,7 +285,7 @@ Creates new partitions if needed for the data being moved.`,
         const sql = `CALL ${partmanSchema}.partition_data_proc(${args.join(", ")})`;
         try {
           await callPartmanProcedure(adapter, partmanSchema, sql);
-        } catch (e) {
+        } catch (e: unknown) {
           const errorMsg = e instanceof Error ? e.message : String(e);
           return {
             success: false,

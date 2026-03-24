@@ -167,7 +167,7 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
 
         try {
           await adapter.executeQuery(sql);
-        } catch (e) {
+        } catch (e: unknown) {
           const errorMsg = e instanceof Error ? e.message : String(e);
 
           // Wrap common PostgreSQL/pg_partman errors with clearer messages

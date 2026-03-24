@@ -28,9 +28,9 @@ import {
 } from "./objects.js";
 import {
   createAnalyzeDbHealthTool,
-  createAnalyzeWorkloadIndexesTool,
   createAnalyzeQueryIndexesTool,
 } from "./health.js";
+import { createAnalyzeWorkloadIndexesTool } from "./workload-indexes.js";
 import { getConvenienceTools } from "./utility.js";
 
 // Re-export schemas from core tools (moved to schemas dir)

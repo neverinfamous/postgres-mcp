@@ -5,6 +5,31 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
+import { ValidationError } from "../../../../types/index.js";
+
+/**
+ * Default row limit for partman list/analysis tools.
+ * Shared across show_partitions, show_config, and analyze_partition_health.
+ */
+export const DEFAULT_PARTMAN_LIMIT = 50;
+
+/**
+ * Validate a pg_partman table name before interpolation into SQL.
+ *
+ * pg_partman's function-call syntax requires string interpolation for named
+ * arguments (`p_parent_table := 'schema.table'`), which cannot use $1 params.
+ * This helper rejects names containing single quotes or semicolons to mitigate
+ * injection risk in that narrow context.
+ */
+export function sanitizePartmanTableName(tableName: string): string {
+  if (tableName.includes("'") || tableName.includes(";")) {
+    throw new ValidationError(
+      "Table name contains invalid characters for pg_partman operations",
+      { tableName },
+    );
+  }
+  return tableName;
+}
 /**
  * Detect the schema where pg_partman is installed.
  * Newer versions install to 'public' by default, older versions use 'partman'.

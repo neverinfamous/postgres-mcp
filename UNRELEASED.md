@@ -91,6 +91,7 @@
   - `tools/jsonb/write.ts` (549→~360) → extracted `write-builders.ts` (object, array, stripNulls)
   - `cli.ts` (532→~230) → extracted `cli/config.ts` (DB/OAuth config builders) + `cli/server.ts` (stdio/HTTP starters)
   - `tools/core/error-helpers.ts` (516→~135) → extracted `error-parser.ts` (PG error code→message parser)
+  - `tools/core/health.ts` (579→434) → extracted `workload-indexes.ts` (workload index analysis)
 - **Naming conventions**: Renamed 12 source + 9 test PascalCase files to kebab-case (`DatabaseAdapter.ts` → `database-adapter.ts`, `PostgresAdapter.ts` → `postgres-adapter.ts`, `McpServer.ts` → `mcp-server.ts`, etc.). Updated all import paths across ~80 files.
 
 ### Fixed
@@ -142,3 +143,9 @@
 - **Advanced test prompt restructure**: Replaced monolithic `advanced-test-tools.md` (690 lines, 12 cross-cutting categories) with per-tool-group split files `test-tools-advanced-1.md` (core, transactions, jsonb, text, stats, vector) and `test-tools-advanced-2.md` (extensions, performance, introspection, migration, cross-group workflows) — aligning with db-mcp's proven strategy for AI tool-limited environments
 - **`extractBearerToken` dedup**: Extracted duplicated `extractBearerToken()` from `middleware.ts` and `transport-agnostic.ts` into shared `auth/helpers.ts`. Uses stricter implementation (trims token, rejects empty strings). Both modules now import from the shared helper.
 - **Removed unused `hono` dependency**: Removed `hono` from `dependencies` — zero imports existed in source code
+- **Partman code quality** (audit fixes):
+  - Removed duplicate Zod preprocess block in `health-analysis.ts` — inputSchema already handles alias resolution and coercion; inner `AnalyzeHealthSchema` was redundant (25 lines removed)
+  - Replaced `z.any()` with `z.preprocess(coerceNumber, z.number().optional())` for `limit` field in `health-analysis.ts` inputSchema
+  - Added `: unknown` annotation to 4 inner `catch (e)` blocks across `operations.ts`, `management.ts`, `health-analysis.ts`, `create.ts` — aligns with project-wide `catch (error: unknown)` convention
+  - Extracted `DEFAULT_PARTMAN_LIMIT = 50` to `helpers.ts`, replacing 3 inline declarations across `management.ts` and `health-analysis.ts`
+  - Added `sanitizePartmanTableName()` in `helpers.ts` — rejects single quotes and semicolons in table names passed to pg_partman's non-parameterizable named-argument syntax

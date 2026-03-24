@@ -14,7 +14,7 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { PartmanAnalyzeHealthOutputSchema } from "../../schemas/index.js";
-import { getPartmanSchema } from "./helpers.js";
+import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT } from "./helpers.js";
 import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
@@ -58,8 +58,7 @@ stale maintenance, and retention configuration.`,
             .optional()
             .describe("Specific parent table to analyze (all if omitted)"),
           limit: z
-            .any()
-            .optional()
+            .preprocess(coerceNumber, z.number().optional())
             .describe(
               "Maximum number of partition sets to analyze (default: 50, use 0 for all)",
             ),
@@ -71,36 +70,11 @@ stale maintenance, and retention configuration.`,
     icons: getToolIcons("partman", readOnly("Analyze Partition Health")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const AnalyzeHealthSchema = z
-          .preprocess(
-            (input) => {
-              if (typeof input !== "object" || input === null) return input;
-              const raw = input as {
-                table?: string;
-                parentTable?: string;
-                limit?: unknown;
-              };
-              const result = { ...raw };
-
-              // Alias: table → parentTable
-              if (result.table && !result.parentTable) {
-                result.parentTable = result.table;
-              }
-
-              // Auto-prefix public. for parentTable when no schema specified
-              if (result.parentTable && !result.parentTable.includes(".")) {
-                result.parentTable = `public.${result.parentTable}`;
-              }
-
-              return result;
-            },
-            z.object({
-              parentTable: z.string().optional(),
-              limit: z.preprocess(coerceNumber, z.number().optional()),
-            }),
-          )
-          .default({});
-        const parsed = AnalyzeHealthSchema.parse(params ?? {});
+        // inputSchema handles alias resolution and coercion via preprocess
+        const parsed = (params ?? {}) as {
+          parentTable?: string;
+          limit?: number;
+        };
         const queryParams: unknown[] = [];
         const partmanSchema = await getPartmanSchema(adapter);
 
@@ -115,8 +89,8 @@ stale maintenance, and retention configuration.`,
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
         // Apply limit (default 50, 0 means no limit)
-        const rawLimit = parsed.limit ?? 50;
-        const limit = isNaN(rawLimit) ? 50 : rawLimit;
+        const rawLimit = parsed.limit ?? DEFAULT_PARTMAN_LIMIT;
+        const limit = isNaN(rawLimit) ? DEFAULT_PARTMAN_LIMIT : rawLimit;
         const applyLimit = limit > 0;
 
         let configSql = `
@@ -212,7 +186,7 @@ stale maintenance, and retention configuration.`,
               [parentTable],
             );
             partitionCount = Number(partCountResult.rows?.[0]?.["count"] ?? 0);
-          } catch (e) {
+          } catch (e: unknown) {
             // If show_partitions fails, provide detailed error info
             const errorMsg = e instanceof Error ? e.message : "Unknown error";
             healthChecks.push({

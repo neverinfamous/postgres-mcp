@@ -25,7 +25,7 @@ import {
   PartmanShowPartitionsOutputSchema,
   PartmanShowConfigOutputSchema,
 } from "../../schemas/index.js";
-import { getPartmanSchema } from "./helpers.js";
+import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT } from "./helpers.js";
 
 /**
  * Run partition maintenance
@@ -82,7 +82,7 @@ Maintains all partition sets if no specific parent table is specified.`,
               analyze: analyze ?? true,
               message: `Maintenance completed for ${parentTable}`,
             };
-          } catch (e) {
+          } catch (e: unknown) {
             // Extract clean error message (first line only, remove PL/pgSQL context)
             let errorMsg = e instanceof Error ? e.message : String(e);
             const fullError = errorMsg;
@@ -222,7 +222,7 @@ export function createPartmanShowPartitionsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   // Default limit for partitions (consistent with other partman tools)
-  const DEFAULT_PARTITION_LIMIT = 50;
+  const DEFAULT_PARTITION_LIMIT = DEFAULT_PARTMAN_LIMIT;
 
   return {
     name: "pg_partman_show_partitions",
@@ -385,8 +385,8 @@ export function createPartmanShowConfigTool(
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
         // Apply limit (default 50, 0 means no limit)
-        const rawLimit = (parsed.limit as number | undefined) ?? 50;
-        const limit = isNaN(rawLimit) ? 50 : rawLimit;
+        const rawLimit = (parsed.limit as number | undefined) ?? DEFAULT_PARTMAN_LIMIT;
+        const limit = isNaN(rawLimit) ? DEFAULT_PARTMAN_LIMIT : rawLimit;
         const applyLimit = limit > 0;
 
         let sql = `SELECT ${columns.join(", ")} FROM ${partmanSchema}.part_config`;
