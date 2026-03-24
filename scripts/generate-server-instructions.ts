@@ -252,9 +252,16 @@ lines.push(
 lines.push("    }");
 lines.push("");
 lines.push(
-  "    // Standard and full levels include dynamic help pointers",
+  "    // Essential: minimal help pointer (no group listing)",
 );
-lines.push("    if (level === 'standard' || level === 'full') {");
+lines.push(
+  "    // Standard+: dynamic help pointers listing enabled groups",
+);
+lines.push("    if (level === 'essential') {");
+lines.push(
+  "        instructions += '\\n\\nRead `postgres://help` for gotchas and critical usage patterns.'",
+);
+lines.push("    } else {");
 lines.push(
   "        instructions += buildHelpPointers(enabledGroups)",
 );

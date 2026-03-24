@@ -13,8 +13,3 @@
 ## Built-in Tools
 
 `pg_read_query`, `pg_write_query`, `pg_list_tables` — always available.
-
-## Help Resources
-
-Read `postgres://help` for gotchas and critical usage patterns.
-Read `postgres://help/{group}` for group-specific tool reference (jsonb, text, stats, vector, postgis, admin, etc.).
