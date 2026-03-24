@@ -1,9 +1,12 @@
 /**
  * postgres-mcp — Audit Interceptor
  *
- * Wraps tool execution to produce audit entries for write/admin
- * operations. Reads OAuth identity from AsyncLocalStorage and
- * determines the tool's required scope via the scope-map.
+ * Wraps tool execution to produce audit entries for all tool
+ * invocations. Write/admin tools are always logged; read-scoped
+ * tools are logged only when `--audit-reads` is enabled.
+ *
+ * Each entry includes a `tokenEstimate` (~4 bytes per token)
+ * computed from the serialized result size.
  *
  * Phase 2: When a BackupManager is provided, captures pre-mutation
  * snapshots of target objects before destructive tool execution.
@@ -41,16 +44,18 @@ export interface AuditInterceptor {
 }
 
 /**
- * Scope values that trigger audit logging
- * (read-only tools are skipped for log manageability).
+ * Write/admin scopes are always audited.
+ * Read scope is audited only when `auditReads` is enabled.
  */
-const AUDITED_SCOPES = new Set(["write", "admin"]);
+const ALWAYS_AUDITED_SCOPES = new Set(["write", "admin"]);
 
 /**
  * Map a scope string to an AuditCategory.
  */
 function scopeToCategory(scope: string): AuditCategory {
-  return scope === "admin" ? "admin" : "write";
+  if (scope === "admin") return "admin";
+  if (scope === "read") return "read";
+  return "write";
 }
 
 /**
@@ -65,6 +70,8 @@ export function createAuditInterceptor(
   backupManager?: BackupManager,
   queryAdapter?: SnapshotQueryAdapter,
 ): AuditInterceptor {
+  const auditReads = auditLogger.config.auditReads;
+
   return {
     async around<T>(
       toolName: string,
@@ -74,16 +81,18 @@ export function createAuditInterceptor(
     ): Promise<T> {
       const scope = getRequiredScope(toolName);
 
-      // Skip read-only tools — only audit write & admin
-      if (!AUDITED_SCOPES.has(scope)) {
+      // Read-scoped tools are only audited when --audit-reads is enabled
+      if (!ALWAYS_AUDITED_SCOPES.has(scope) && !auditReads) {
         return fn();
       }
 
+      const isReadScope = scope === "read";
       const authCtx = getAuthContext();
       const start = performance.now();
       let success = true;
       let error: string | undefined;
       let backupRef: string | undefined;
+      let tokenEstimate: number | undefined;
 
       // Phase 2: Pre-mutation snapshot (before tool executes)
       if (backupManager && queryAdapter && backupManager.shouldSnapshot(toolName)) {
@@ -100,7 +109,19 @@ export function createAuditInterceptor(
       }
 
       try {
-        return await fn();
+        const result = await fn();
+
+        // Compute token estimate from result (~4 bytes per token)
+        if (typeof result === "object" && result !== null) {
+          try {
+            const json = JSON.stringify(result);
+            tokenEstimate = Math.ceil(Buffer.byteLength(json, "utf8") / 4);
+          } catch {
+            // Serialization failure must not block tool execution
+          }
+        }
+
+        return result;
       } catch (err) {
         success = false;
         error = err instanceof Error ? err.message : String(err);
@@ -108,22 +129,40 @@ export function createAuditInterceptor(
       } finally {
         const durationMs = Math.round(performance.now() - start);
 
-        auditLogger.log({
-          timestamp: new Date().toISOString(),
-          requestId,
-          tool: toolName,
-          category: scopeToCategory(scope),
-          scope,
-          user: authCtx?.claims?.sub ?? null,
-          scopes: authCtx?.scopes ?? [],
-          durationMs,
-          success,
-          error,
-          args: auditLogger.config.redact
-            ? undefined
-            : (args as Record<string, unknown>),
-          backup: backupRef,
-        });
+        if (isReadScope) {
+          // Compact read entries — omit args, user, scopes for ~100 byte entries
+          auditLogger.log({
+            timestamp: new Date().toISOString(),
+            requestId,
+            tool: toolName,
+            category: "read" as AuditCategory,
+            scope,
+            user: null,
+            scopes: [],
+            durationMs,
+            success,
+            error,
+            tokenEstimate,
+          });
+        } else {
+          auditLogger.log({
+            timestamp: new Date().toISOString(),
+            requestId,
+            tool: toolName,
+            category: scopeToCategory(scope),
+            scope,
+            user: authCtx?.claims?.sub ?? null,
+            scopes: authCtx?.scopes ?? [],
+            durationMs,
+            success,
+            error,
+            args: auditLogger.config.redact
+              ? undefined
+              : (args as Record<string, unknown>),
+            backup: backupRef,
+            tokenEstimate,
+          });
+        }
       }
     },
   };

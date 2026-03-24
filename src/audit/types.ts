@@ -7,7 +7,7 @@
  */
 
 /** Category of the audited operation */
-export type AuditCategory = "write" | "admin" | "auth" | "error";
+export type AuditCategory = "read" | "write" | "admin" | "auth" | "error";
 
 /**
  * Single audit log entry — serialised as one line of JSONL.
@@ -51,6 +51,9 @@ export interface AuditEntry {
 
   /** Phase 2: path to the pre-mutation backup file */
   backup?: string | undefined;
+
+  /** Estimated token count of the tool response (~4 bytes per token) */
+  tokenEstimate?: number | undefined;
 }
 
 /** Audit log configuration */
@@ -63,6 +66,12 @@ export interface AuditConfig {
 
   /** When true, tool arguments are omitted from entries */
   redact: boolean;
+
+  /** When true, read-scoped tools are also logged (default: false) */
+  auditReads: boolean;
+
+  /** Maximum log file size in bytes before rotation (default: 10MB). 0 = no rotation. */
+  maxSizeBytes: number;
 
   /** Pre-mutation backup configuration (Phase 2) */
   backup?: BackupConfig | undefined;

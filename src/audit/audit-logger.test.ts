@@ -53,7 +53,7 @@ describe("AuditLogger", () => {
 
   it("should write JSONL entries to file", async () => {
     const logPath = join(dir, "audit.jsonl");
-    const logger = new AuditLogger({ enabled: true, logPath, redact: false });
+    const logger = new AuditLogger({ enabled: true, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
     logger.log(fakeEntry({ tool: "pg_write_query" }));
     logger.log(fakeEntry({ tool: "pg_create_table" }));
@@ -71,7 +71,7 @@ describe("AuditLogger", () => {
 
   it("should include args when redact is false", async () => {
     const logPath = join(dir, "audit.jsonl");
-    const logger = new AuditLogger({ enabled: true, logPath, redact: false });
+    const logger = new AuditLogger({ enabled: true, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
     logger.log(fakeEntry({ args: { sql: "INSERT INTO users VALUES (1)" } }));
     await logger.close();
@@ -83,7 +83,7 @@ describe("AuditLogger", () => {
 
   it("should omit args when redact is true", async () => {
     const logPath = join(dir, "audit.jsonl");
-    const logger = new AuditLogger({ enabled: true, logPath, redact: true });
+    const logger = new AuditLogger({ enabled: true, logPath, redact: true, auditReads: false, maxSizeBytes: 0 });
 
     // The logger itself doesn't strip args — the interceptor does.
     // But we can verify the logger faithfully writes whatever it receives.
@@ -97,7 +97,7 @@ describe("AuditLogger", () => {
 
   it("should create parent directories if they don't exist", async () => {
     const logPath = join(dir, "nested", "deep", "audit.jsonl");
-    const logger = new AuditLogger({ enabled: true, logPath, redact: false });
+    const logger = new AuditLogger({ enabled: true, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
     logger.log(fakeEntry());
     await logger.close();
@@ -108,7 +108,7 @@ describe("AuditLogger", () => {
 
   it("should not write when disabled", async () => {
     const logPath = join(dir, "audit.jsonl");
-    const logger = new AuditLogger({ enabled: false, logPath, redact: false });
+    const logger = new AuditLogger({ enabled: false, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
     logger.log(fakeEntry());
     await logger.close();
@@ -119,7 +119,7 @@ describe("AuditLogger", () => {
 
   it("should flush remaining entries on close", async () => {
     const logPath = join(dir, "audit.jsonl");
-    const logger = new AuditLogger({ enabled: true, logPath, redact: false });
+    const logger = new AuditLogger({ enabled: true, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
     // Log multiple entries rapidly
     for (let i = 0; i < 10; i++) {
@@ -135,7 +135,7 @@ describe("AuditLogger", () => {
 
   it("should record error entries with success=false", async () => {
     const logPath = join(dir, "audit.jsonl");
-    const logger = new AuditLogger({ enabled: true, logPath, redact: false });
+    const logger = new AuditLogger({ enabled: true, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
     logger.log(
       fakeEntry({
@@ -154,7 +154,7 @@ describe("AuditLogger", () => {
   describe("recent()", () => {
     it("should return the last N entries", async () => {
       const logPath = join(dir, "audit.jsonl");
-      const logger = new AuditLogger({ enabled: true, logPath, redact: false });
+      const logger = new AuditLogger({ enabled: true, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
       for (let i = 0; i < 20; i++) {
         logger.log(fakeEntry({ requestId: `req-${String(i)}` }));
@@ -169,7 +169,7 @@ describe("AuditLogger", () => {
 
     it("should return empty array when file does not exist", async () => {
       const logPath = join(dir, "nonexistent.jsonl");
-      const logger = new AuditLogger({ enabled: true, logPath, redact: false });
+      const logger = new AuditLogger({ enabled: true, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
       const recent = await logger.recent();
       expect(recent).toEqual([]);
@@ -179,7 +179,7 @@ describe("AuditLogger", () => {
 
     it("should return all entries when fewer than count exist", async () => {
       const logPath = join(dir, "audit.jsonl");
-      const logger = new AuditLogger({ enabled: true, logPath, redact: false });
+      const logger = new AuditLogger({ enabled: true, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
       logger.log(fakeEntry({ requestId: "only-one" }));
       await logger.flush();
@@ -194,7 +194,7 @@ describe("AuditLogger", () => {
 
   it("should preserve user=null when OAuth is not configured", async () => {
     const logPath = join(dir, "audit.jsonl");
-    const logger = new AuditLogger({ enabled: true, logPath, redact: false });
+    const logger = new AuditLogger({ enabled: true, logPath, redact: false, auditReads: false, maxSizeBytes: 0 });
 
     logger.log(fakeEntry({ user: null, scopes: [] }));
     await logger.close();
@@ -211,6 +211,8 @@ describe("AuditLogger", () => {
         enabled: true,
         logPath: "stderr",
         redact: false,
+        auditReads: false,
+        maxSizeBytes: 0,
       });
 
       const chunks: string[] = [];
@@ -238,6 +240,8 @@ describe("AuditLogger", () => {
         enabled: true,
         logPath: "stderr",
         redact: false,
+        auditReads: false,
+        maxSizeBytes: 0,
       });
 
       // Suppress stderr output during test
@@ -261,6 +265,8 @@ describe("AuditLogger", () => {
         enabled: true,
         logPath: "STDERR",
         redact: false,
+        auditReads: false,
+        maxSizeBytes: 0,
       });
 
       const chunks: string[] = [];

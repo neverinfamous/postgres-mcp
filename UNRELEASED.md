@@ -1,6 +1,10 @@
 # Unreleased
 
 ## Added
+- **Audit Token Estimates**: Every audit entry now includes `tokenEstimate` (~4 bytes per token) computed from the serialized tool response. Gives agents and users historical visibility into token burn-rate per tool call.
+- **Audit Read Logging (`--audit-reads`)**: Opt-in `--audit-reads` / `AUDIT_READS=true` flag enables audit logging for read-scoped tool calls. Read entries use compact format (omit `args`, `user`, `scopes`) for ~100 byte entries. Write/admin tools are always logged regardless of this flag.
+- **Audit Log Rotation (`--audit-log-max-size`)**: Size-based log rotation via `--audit-log-max-size <bytes>` / `AUDIT_LOG_MAX_SIZE` (default: 10MB). When the log exceeds the limit, it rotates to `.1` (keeping only 1 rotated file). Prevents unbounded JSONL growth.
+- **Audit Resource Session Summary**: `postgres://audit` resource now includes a `summary` block with `totalTokenEstimate`, `callCount`, `topToolsByTokens` (top 5 tools by aggregate token cost), and a human-readable `note`. Gives agents session-level token consumption visibility without parsing individual entries.
 - **Inline Token Estimates**: All tool responses now include `_meta.tokenEstimate` in `content[].text` — gives agents zero-cost burn-rate feedback per turn. Estimate is `Math.ceil(Buffer.byteLength(json, 'utf8') / 4)`. Injected into text payload only — `structuredContent` remains schema-pure. Code Mode responses include `tokenEstimate` in `metrics`.
 - **Audit Log**: JSONL audit trail for write/admin tool invocations with OAuth identity, timing, and outcome. Enable with `--audit-log <path>` or `AUDIT_LOG_PATH`. Use `--audit-log stderr` for Docker/K8s deployments where container logs pipe to the orchestrator. Async-buffered writes ensure zero performance impact on tool execution.
 - **Audit Redaction**: `--audit-redact` / `AUDIT_REDACT=true` omits tool arguments from audit entries for sensitive environments.

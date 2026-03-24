@@ -9,7 +9,7 @@
  * propagate to tool callers.
  */
 
-import { appendFile, mkdir, open } from "node:fs/promises";
+import { appendFile, mkdir, open, rename } from "node:fs/promises";
 import { stat } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { AuditConfig, AuditEntry } from "./types.js";
@@ -80,6 +80,9 @@ export class AuditLogger {
   async flush(): Promise<void> {
     if (this.flushing || this.buffer.length === 0) return;
     this.flushing = true;
+
+    // Rotate before writing if the log exceeds the configured size
+    await this.rotateIfNeeded();
 
     // Swap the buffer so new entries can accumulate while we write
     const lines = this.buffer;
@@ -174,6 +177,23 @@ export class AuditLogger {
     } catch {
       // Directory may already exist — that's fine
       this.dirEnsured = true;
+    }
+  }
+
+  /**
+   * Rotate the log file if it exceeds the configured size limit.
+   * Keeps only 1 rotated file (`.1`); older data is discarded.
+   * Rotation failure is non-fatal — audit must not block tool execution.
+   */
+  private async rotateIfNeeded(): Promise<void> {
+    if (this.stderrMode || !this.config.maxSizeBytes) return;
+    try {
+      const info = await stat(this.config.logPath).catch(() => null);
+      if (!info || info.size < this.config.maxSizeBytes) return;
+      const rotatedPath = `${this.config.logPath}.1`;
+      await rename(this.config.logPath, rotatedPath);
+    } catch {
+      // Rotation failure must not block logging
     }
   }
 }

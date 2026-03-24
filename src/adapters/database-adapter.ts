@@ -306,7 +306,7 @@ export abstract class DatabaseAdapter {
             // Single serialize with _meta included, then compute token
             // estimate from the already-serialized string.
             const withMeta = JSON.stringify(
-              { ...(result as object), _meta: { tokenEstimate: 0 } },
+              { ...result, _meta: { tokenEstimate: 0 } },
               null,
               2,
             );

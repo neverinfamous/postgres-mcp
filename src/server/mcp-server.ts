@@ -256,7 +256,8 @@ export class PostgresMcpServer {
 
   /**
    * Register the postgres://audit resource for agent-readable audit trail.
-   * Returns recent audit entries when audit is enabled, or a disabled message.
+   * Returns recent audit entries with a session summary including token
+   * consumption when audit is enabled, or a disabled message.
    */
   private registerAuditResource(): void {
     const auditLogger = this.auditLogger;
@@ -267,7 +268,7 @@ export class PostgresMcpServer {
       "postgres://audit",
       {
         description:
-          "Recent audit log entries — write/admin tool invocations with user identity, timing, and outcome",
+          "Audit trail with token estimates — all tool invocations with user identity, timing, outcome, and per-call token consumption",
         mimeType: "application/json",
       },
       async () => {
@@ -289,12 +290,38 @@ export class PostgresMcpServer {
 
         const entries = await auditLogger.recent();
         const backups = backupMgr ? await backupMgr.getStats() : undefined;
+
+        // Compute session summary from available entries
+        const totalTokenEstimate = entries.reduce(
+          (sum, e) => sum + (e.tokenEstimate ?? 0), 0,
+        );
+        const callCount = entries.length;
+
+        // Top 5 tools by aggregate token consumption
+        const toolTokenMap = new Map<string, { calls: number; tokens: number }>();
+        for (const e of entries) {
+          const existing = toolTokenMap.get(e.tool) ?? { calls: 0, tokens: 0 };
+          existing.calls++;
+          existing.tokens += e.tokenEstimate ?? 0;
+          toolTokenMap.set(e.tool, existing);
+        }
+        const topToolsByTokens = [...toolTokenMap.entries()]
+          .sort((a, b) => b[1].tokens - a[1].tokens)
+          .slice(0, 5)
+          .map(([tool, stats]) => ({ tool, calls: stats.calls, tokens: stats.tokens }));
+
         return {
           contents: [
             {
               uri: "postgres://audit",
               mimeType: "application/json",
               text: JSON.stringify({
+                summary: {
+                  totalTokenEstimate,
+                  callCount,
+                  topToolsByTokens,
+                  note: `Last ${String(callCount)} tool calls consumed ~${totalTokenEstimate.toLocaleString()} tokens`,
+                },
                 entries,
                 total: entries.length,
                 ...(backups && { backups }),

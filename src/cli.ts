@@ -50,6 +50,8 @@ interface CliOptions {
   trustProxy?: boolean;
   auditLog?: string;
   auditRedact?: boolean;
+  auditReads?: boolean;
+  auditLogMaxSize?: number;
   auditBackup?: boolean;
   auditBackupData?: boolean;
   auditBackupMaxAge?: number;
@@ -178,6 +180,15 @@ program
     "Maximum table size in bytes for data capture in snapshots (default: 52428800 / 50MB, env: AUDIT_BACKUP_MAX_DATA_SIZE)",
     parseInt,
   )
+  .option(
+    "--audit-reads",
+    "Enable audit logging for read-scoped tool calls (default: off, env: AUDIT_READS)",
+  )
+  .option(
+    "--audit-log-max-size <bytes>",
+    "Maximum audit log file size in bytes before rotation (default: 10485760 / 10MB, env: AUDIT_LOG_MAX_SIZE)",
+    parseInt,
+  )
   .action(async (options: CliOptions) => {
     // Set log level
     const logLevel =
@@ -221,11 +232,17 @@ program
         options.auditLog ?? process.env["AUDIT_LOG_PATH"];
       const auditRedact =
         options.auditRedact ?? process.env["AUDIT_REDACT"] === "true";
+      const auditReads =
+        options.auditReads ?? process.env["AUDIT_READS"] === "true";
+      const auditLogMaxSize =
+        options.auditLogMaxSize ?? Number(process.env["AUDIT_LOG_MAX_SIZE"] ?? "10485760");
       const auditConfig = auditLogPath
         ? {
             enabled: true,
             logPath: auditLogPath,
             redact: auditRedact,
+            auditReads,
+            maxSizeBytes: auditLogMaxSize,
             backup: (options.auditBackup ?? process.env["AUDIT_BACKUP"] === "true")
               ? {
                   enabled: true,
