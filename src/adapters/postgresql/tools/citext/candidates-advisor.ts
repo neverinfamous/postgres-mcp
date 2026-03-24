@@ -401,7 +401,7 @@ Requires the 'table' parameter to specify which table to analyze.`,
                 ]
               : ["No columns require conversion"],
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_citext_schema_advisor",
           });

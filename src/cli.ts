@@ -284,7 +284,7 @@ program
           // Start with stdio transport (default)
           await startStdioServer(adapter, toolFilter, instructionLevel, auditConfig);
         }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to start server", {
         error: error instanceof Error ? error.message : String(error),
       });

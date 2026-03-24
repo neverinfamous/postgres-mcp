@@ -133,7 +133,7 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
             : "createMissing=false: path must exist or value won't be set";
           return { rowsAffected: result.rowsAffected, hint };
         }
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_set",
           });
@@ -239,7 +239,7 @@ export function createJsonbInsertTool(
           parsed.insertAfter ?? false,
         ]);
         return { rowsAffected: result.rowsAffected };
-      } catch (error) {
+      } catch (error: unknown) {
         // Improve specific PostgreSQL error messages
         if (
           error instanceof Error &&
@@ -349,7 +349,7 @@ export function createJsonbDeleteTool(
           rowsAffected: result.rowsAffected,
           hint: "rowsAffected counts matched rows, not whether key existed",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_delete",
           });

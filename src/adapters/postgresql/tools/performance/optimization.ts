@@ -11,6 +11,8 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { toNum } from "../../../../utils/query-helpers.js";
+
 import {
   PerformanceBaselineOutputSchema,
   ConnectionPoolOptimizeOutputSchema,
@@ -19,10 +21,6 @@ import {
 
 // Helper to handle undefined params (allows tools to be called without {})
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
-
-// Helper to coerce string numbers to JavaScript numbers (PostgreSQL returns BIGINT as strings)
-const toNum = (val: unknown): number | null =>
-  val === null || val === undefined ? null : Number(val);
 
 // Preprocess partition strategy params with tableName/name aliases
 function preprocessPartitionStrategyParams(input: unknown): unknown {
@@ -426,7 +424,7 @@ export function createPartitionStrategySuggestTool(
           suggestions: suggestions.slice(0, 5),
           note: "Consider your query patterns when choosing partition key. Range partitioning on date columns is most common.",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_partition_strategy_suggest",
           });

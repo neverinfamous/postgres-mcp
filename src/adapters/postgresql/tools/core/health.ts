@@ -196,7 +196,7 @@ export function createAnalyzeDbHealthTool(
             tablesWithBloat: row.tables_with_bloat,
           };
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.warn("Bloat estimation unavailable", {
           error: error instanceof Error ? error.message : String(error),
         });
@@ -295,7 +295,7 @@ export function createAnalyzeQueryIndexesTool(
         let result;
         try {
           result = await adapter.executeQuery(explainSql, queryParams);
-        } catch (error) {
+        } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
               tool: "pg_analyze_query_indexes",
               sql,

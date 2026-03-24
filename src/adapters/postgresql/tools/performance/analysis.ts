@@ -11,15 +11,11 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
+import { coerceNumber, toNum } from "../../../../utils/query-helpers.js";
 import {
   SeqScanTablesOutputSchema,
   IndexRecommendationsOutputSchema,
 } from "../../schemas/index.js";
-
-// Helper to coerce string numbers to JavaScript numbers (PostgreSQL returns BIGINT as strings)
-const toNum = (val: unknown): number | null =>
-  val === null || val === undefined ? null : Number(val);
 
 /**
  * P154: Validate that a schema exists before executing performance queries.
@@ -472,7 +468,7 @@ export function createIndexRecommendationsTool(
           recommendations,
           hint: "Based on table statistics. Provide a SQL query for query-specific recommendations.",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_index_recommendations",
           });

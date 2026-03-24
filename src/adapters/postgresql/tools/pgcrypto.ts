@@ -96,7 +96,7 @@ function createPgcryptoHashTool(adapter: PostgresAdapter): ToolDefinition {
           hash: result.rows?.[0]?.["hash"] as string,
           inputLength: data.length,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_hash",
           });
@@ -133,7 +133,7 @@ function createPgcryptoHmacTool(adapter: PostgresAdapter): ToolDefinition {
           encoding: enc,
           hmac: result.rows?.[0]?.["hmac"] as string,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_hmac",
           });
@@ -167,7 +167,7 @@ function createPgcryptoEncryptTool(adapter: PostgresAdapter): ToolDefinition {
           encrypted: result.rows?.[0]?.["encrypted"] as string,
           encoding: "base64",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_encrypt",
           });
@@ -208,7 +208,7 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
           decrypted: decrypted as string,
           verified: true,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_decrypt",
           });
@@ -264,7 +264,7 @@ function createPgcryptoGenRandomUuidTool(
           response["uuid"] = uuids[0];
         }
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_gen_random_uuid",
           });
@@ -299,7 +299,7 @@ function createPgcryptoGenRandomBytesTool(
           length,
           encoding: enc,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_gen_random_bytes",
           });
@@ -332,7 +332,7 @@ function createPgcryptoGenSaltTool(adapter: PostgresAdapter): ToolDefinition {
           salt: result.rows?.[0]?.["salt"] as string,
           type,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_gen_salt",
           });
@@ -367,7 +367,7 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
                 ? "xdes"
                 : "des";
         return { success: true, hash, algorithm };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_pgcrypto_crypt",
           });

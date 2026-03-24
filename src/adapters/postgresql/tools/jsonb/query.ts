@@ -122,7 +122,7 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
           }
           return response;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_agg",
           });
@@ -170,7 +170,7 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
           count: keys?.length ?? 0,
           hint: "Returns unique keys deduplicated across all matching rows",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         // Improve error for array columns
         if (
           error instanceof Error &&
@@ -236,7 +236,7 @@ export function createJsonbTypeofTool(
         const columnNull =
           result.rows?.some((r) => r["column_null"] === true) ?? false;
         return { types, count: types?.length ?? 0, columnNull };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_typeof",
           });

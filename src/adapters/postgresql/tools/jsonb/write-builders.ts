@@ -80,7 +80,7 @@ export function createJsonbObjectTool(
         const sql = `SELECT jsonb_build_object(${placeholders}) as result`;
         const result = await adapter.executeQuery(sql, args);
         return { object: result.rows?.[0]?.["result"] ?? {} };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_object",
           });
@@ -132,7 +132,7 @@ export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
           values.map((v) => toJsonString(v)),
         );
         return { array: result.rows?.[0]?.["result"] };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_array",
           });
@@ -196,7 +196,7 @@ export function createJsonbStripNullsTool(
         const sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_strip_nulls("${column}") WHERE ${sanitizeWhereClause(whereClause)}`;
         const result = await adapter.executeQuery(sql);
         return { rowsAffected: result.rowsAffected };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_strip_nulls",
           });

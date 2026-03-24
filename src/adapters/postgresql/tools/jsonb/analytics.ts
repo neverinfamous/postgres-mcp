@@ -149,7 +149,7 @@ export function createJsonbIndexSuggestTool(
         }
 
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         if (
           error instanceof Error &&
           (error.message.includes("function jsonb_each") ||
@@ -290,7 +290,7 @@ export function createJsonbSecurityScanTool(
           riskLevel:
             issues.length === 0 ? "low" : issues.length < 3 ? "medium" : "high",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         if (
           error instanceof Error &&
           (error.message.includes("function jsonb_each") ||
@@ -395,7 +395,7 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
               frequency: Number(row["frequency"]),
             }),
           );
-        } catch (error) {
+        } catch (error: unknown) {
           // Gracefully handle array columns (jsonb_object_keys fails on arrays)
           if (
             error instanceof Error &&
@@ -442,7 +442,7 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
           sqlNullCount,
           hint,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_stats",
           });

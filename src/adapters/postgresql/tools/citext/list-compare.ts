@@ -128,7 +128,7 @@ Useful for auditing case-insensitive columns.`,
           ...(effectiveLimit !== undefined && { limit: effectiveLimit }),
           ...(schema !== undefined && { schema }),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_citext_list_columns",
           });
@@ -207,7 +207,7 @@ Useful for testing citext behavior before converting columns.`,
             hint: "Install citext extension for native case-insensitive comparisons",
           };
         }
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_citext_compare",
           });

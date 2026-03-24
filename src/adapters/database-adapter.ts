@@ -334,7 +334,7 @@ export abstract class DatabaseAdapter {
               },
             ],
           };
-        } catch (error) {
+        } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
 

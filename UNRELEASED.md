@@ -190,3 +190,7 @@
   - **`z.any()` replaced** (`performance/analysis.ts`): Replaced `z.any().optional()` on `minScans` and `limit` fields in `SeqScanTablesSchemaBase` with `z.preprocess(coerceNumber, z.number().optional())` — aligns with the project's fully-migrated coercion pattern.
   - **Trailing blank lines** (`performance/analysis.ts`): Removed 3 trailing blank lines at end of file.
   - **`coerceNumber` import** (`performance/analysis.ts`): Added import of `coerceNumber` from `utils/query-helpers.ts` to support the `z.preprocess` fix.
+
+- **Code quality audit (2026-03-24, pass 5)** — chore:
+  - **`toNum()` extraction**: Moved the `const toNum = (val: unknown): number | null` helper from `tools/performance/optimization.ts` and `tools/performance/analysis.ts` into `src/utils/query-helpers.ts` as a named export. Both files now import it from the shared location alongside `coerceNumber` and `coerceLimit`.
+  - **`catch (error)` convention sweep**: Replaced all `catch (error) {` blocks with `catch (error: unknown) {` across every production source file (24 files, 65+ blocks). No runtime behaviour changes — TypeScript strict mode already types catch bindings as `unknown`. Sweep excludes test files (`__tests__/`, `*.test.ts`, `*.bench.ts`) where `as any` casts are acceptable for mock adapters.

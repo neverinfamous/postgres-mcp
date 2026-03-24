@@ -177,7 +177,7 @@ export function createJsonbExtractTool(
             "All values are null - path may not exist in data. Use pg_jsonb_typeof to check.";
         }
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_extract",
           });
@@ -295,7 +295,7 @@ export function createJsonbContainsTool(
             "Empty {} matches ALL rows - this is PostgreSQL containment semantics";
         }
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_contains",
           });
@@ -375,7 +375,7 @@ export function createJsonbPathQueryTool(
           );
         }
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         // JSONPath-specific: invalid syntax
         if (
           error instanceof Error &&

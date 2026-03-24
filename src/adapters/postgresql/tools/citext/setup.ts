@@ -44,7 +44,7 @@ citext is ideal for emails, usernames, and other identifiers where case shouldn'
           usage:
             "Create columns with type CITEXT instead of TEXT for case-insensitive comparisons",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_citext_create_extension",
           });
@@ -211,7 +211,7 @@ Note: If views depend on this column, you must drop and recreate them manually b
                   )
                 : undefined,
           };
-        } catch (error) {
+        } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
           return {
@@ -227,7 +227,7 @@ Note: If views depend on this column, you must drop and recreate them manually b
                 : undefined,
           };
         }
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_citext_convert_column",
           });

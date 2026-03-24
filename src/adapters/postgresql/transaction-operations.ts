@@ -38,7 +38,7 @@ export async function beginTransaction(
     await client.query(beginCmd);
     activeTransactions.set(transactionId, client);
     return transactionId;
-  } catch (error) {
+  } catch (error: unknown) {
     client.release();
     throw new TransactionError(
       `Failed to begin transaction: ${String(error)}`,
@@ -134,7 +134,7 @@ export async function createSavepoint(
 
   try {
     await client.query(`SAVEPOINT ${quoteIdentifier(savepointName)}`);
-  } catch (error) {
+  } catch (error: unknown) {
     throw parsePostgresError(error, {
       tool: "pg_transaction_savepoint",
     });
@@ -156,7 +156,7 @@ export async function releaseSavepoint(
 
   try {
     await client.query(`RELEASE SAVEPOINT ${quoteIdentifier(savepointName)}`);
-  } catch (error) {
+  } catch (error: unknown) {
     throw parsePostgresError(error, {
       tool: "pg_transaction_release",
     });
@@ -180,7 +180,7 @@ export async function rollbackToSavepoint(
     await client.query(
       `ROLLBACK TO SAVEPOINT ${quoteIdentifier(savepointName)}`,
     );
-  } catch (error) {
+  } catch (error: unknown) {
     throw parsePostgresError(error, {
       tool: "pg_transaction_rollback_to",
     });
@@ -212,7 +212,7 @@ export async function cleanupTransaction(
       { module: "CODEMODE" as const },
     );
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     // Best effort cleanup - log and continue
     logger.error("Failed to cleanup orphaned transaction", {
       module: "CODEMODE" as const,

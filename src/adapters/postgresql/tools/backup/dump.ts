@@ -355,7 +355,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         return result;
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_dump_table" });
       }
     },

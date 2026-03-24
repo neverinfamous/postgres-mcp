@@ -216,7 +216,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
         throw new Error(
           'Binary format is not supported via MCP protocol. Use format: "csv" or "text" instead. For binary export, use pg_dump_schema to generate a pg_dump command.',
         );
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_copy_export" });
       }
     },

@@ -67,7 +67,7 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
           message:
             "Transaction started. Use this ID for subsequent operations.",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_begin",
           });
@@ -133,7 +133,7 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
               tool: "pg_transaction_status",
             });
         }
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_status",
           });
@@ -160,7 +160,7 @@ function createCommitTransactionTool(adapter: PostgresAdapter): ToolDefinition {
           transactionId,
           message: "Transaction committed successfully.",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_commit",
           });
@@ -189,7 +189,7 @@ function createRollbackTransactionTool(
           transactionId,
           message: "Transaction rolled back successfully.",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_rollback",
           });
@@ -218,7 +218,7 @@ function createSavepointTool(adapter: PostgresAdapter): ToolDefinition {
           savepoint: name,
           message: `Savepoint '${name}' created.`,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_savepoint",
           });
@@ -247,7 +247,7 @@ function createReleaseSavepointTool(adapter: PostgresAdapter): ToolDefinition {
           savepoint: name,
           message: `Savepoint '${name}' released.`,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_release",
           });
@@ -277,7 +277,7 @@ function createRollbackToSavepointTool(
           savepoint: name,
           message: `Rolled back to savepoint '${name}'.`,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_rollback_to",
           });
@@ -303,7 +303,7 @@ function createTransactionExecuteTool(
 
       try {
         parsed = await TransactionExecuteSchema.parseAsync(params);
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_transaction_execute",
           });
@@ -361,7 +361,7 @@ function createTransactionExecuteTool(
           // so caller knows transaction is still open
           ...(isJoiningExisting && { transactionId: txId }),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         // Only auto-rollback if we created a new transaction
         // If joining an existing transaction, let the caller control cleanup
         if (!isJoiningExisting) {

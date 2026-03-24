@@ -149,7 +149,7 @@ export class PostgresAdapter extends DatabaseAdapter {
         port: poolConfig.port,
         database: poolConfig.database,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.pool = null;
       throw new ConnectionError(`Failed to connect: ${String(error)}`);
     }
@@ -239,7 +239,7 @@ export class PostgresAdapter extends DatabaseAdapter {
           format: f.format,
         })),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       throw new QueryError(`Query failed: ${message}`, { sql });
     }
@@ -265,7 +265,7 @@ export class PostgresAdapter extends DatabaseAdapter {
         command: result.command,
         executionTimeMs,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       throw new QueryError(`Query failed: ${message}`, { sql });
     }

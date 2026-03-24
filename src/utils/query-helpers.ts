@@ -29,6 +29,14 @@ export function coerceNumber(val: unknown, _ctx?: unknown): unknown {
 }
 
 /**
+ * Coerce a database row value to a JS number.
+ * Handles BIGINT strings returned by the pg driver as strings.
+ * Returns null for null/undefined inputs.
+ */
+export const toNum = (val: unknown): number | null =>
+  val === null || val === undefined ? null : Number(val);
+
+/**
  * Row-count threshold below which index recommendations are suppressed.
  * Used by resource handlers (vector, postgis) to skip index suggestions
  * on tables too small to benefit from them.

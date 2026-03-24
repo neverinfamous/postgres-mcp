@@ -101,7 +101,7 @@ export function createJsonbValidatePathTool(
           await adapter.executeQuery(sql, [parsed.path]);
           return { valid: true, path: parsed.path };
         }
-      } catch (error) {
+      } catch (error: unknown) {
         return {
           valid: false,
           path: parsed.path,
@@ -264,7 +264,7 @@ export function createJsonbMergeTool(adapter: PostgresAdapter): ToolDefinition {
           ]);
           return { merged: result.rows?.[0]?.["result"], deep: false };
         }
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_merge",
           });
@@ -403,7 +403,7 @@ export function createJsonbNormalizeTool(
           }
         }
         return { rows: result.rows, count: result.rows?.length ?? 0, mode };
-      } catch (error) {
+      } catch (error: unknown) {
         // Improve error for array columns with object-only modes
         if (
           error instanceof Error &&
@@ -511,7 +511,7 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
           comparison: "shallow",
           hint: "Compares top-level keys only. Nested object changes show as modified.",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_diff",
           });

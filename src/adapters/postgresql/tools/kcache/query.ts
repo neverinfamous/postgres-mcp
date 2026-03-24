@@ -163,7 +163,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         };
 
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_kcache_query_stats" });
       }
     },
@@ -268,7 +268,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
         };
 
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_kcache_top_cpu" });
       }
     },
@@ -403,7 +403,7 @@ which represent actual disk access (not just shared buffer hits).`,
         };
 
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_kcache_top_io" });
       }
     },

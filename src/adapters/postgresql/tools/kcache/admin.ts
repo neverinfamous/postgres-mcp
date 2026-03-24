@@ -133,7 +133,7 @@ Shows total CPU time, I/O, and page faults across all queries.`,
           databaseStats: result.rows ?? [],
           count: result.rows?.length ?? 0,
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_kcache_database_stats",
           });
@@ -319,7 +319,7 @@ Helps identify the root cause of performance issues - is the query computation-h
         };
 
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_kcache_resource_analysis",
           });
@@ -349,7 +349,7 @@ Note: This also resets pg_stat_statements statistics.`,
           message: "pg_stat_kcache statistics reset",
           note: "pg_stat_statements statistics were also reset",
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_kcache_reset" });
       }
     },
