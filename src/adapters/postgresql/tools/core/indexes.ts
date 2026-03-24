@@ -328,15 +328,7 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
 
         const sql = `DROP INDEX ${concurrentlyClause}${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
 
-        try {
-          await adapter.executeQuery(sql);
-        } catch (error: unknown) {
-          return formatHandlerErrorResponse(error, {
-              tool: "pg_drop_index",
-              index: name,
-              schema: schemaName,
-            });
-        }
+        await adapter.executeQuery(sql);
         return {
           success: true,
           index: `${schemaName}.${name}`,
@@ -344,7 +336,12 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
           sql,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_drop_index" });
+        const parsed = DropIndexSchema.safeParse(params);
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_drop_index",
+          ...(parsed.success && parsed.data.name !== "" && { index: parsed.data.name }),
+          ...(parsed.success && parsed.data.schema && { schema: parsed.data.schema }),
+        });
       }
     },
   };

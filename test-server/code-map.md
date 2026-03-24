@@ -2,7 +2,7 @@
 
 > **Agent-optimized navigation reference.** Read this before searching the codebase. Covers directory layout, handler→tool mapping, type/schema locations, error hierarchy, and key constants.
 >
-> Last updated: March 23, 2026
+> Last updated: March 24, 2026
 
 ---
 
@@ -334,6 +334,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `vector.ts` | `postgres://vector/{table}` |
 | `crypto.ts` | `postgres://crypto/{info}` |
 | `insights.ts` | `postgres://insights` |
+| `audit.ts` | `postgres://audit` |
 
 ### Help Resources (registered dynamically by McpServer)
 

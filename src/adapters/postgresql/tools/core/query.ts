@@ -34,9 +34,12 @@ export function createReadQueryTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Read Query"),
     icons: getToolIcons("core", readOnly("Read Query")),
     handler: async (params: unknown, _context: RequestContext) => {
+      const sql = (params as Record<string, unknown> | null)?.[
+        "sql"
+      ] as string | undefined;
       try {
         const {
-          sql,
+          sql: parsedSql,
           params: queryParams,
           transactionId,
         } = ReadQuerySchema.parse(params);
@@ -50,27 +53,13 @@ export function createReadQueryTool(adapter: PostgresAdapter): ToolDefinition {
               error: `Invalid or expired transactionId: ${transactionId}. Use pg_transaction_begin to start a new transaction.`,
             };
           }
-          try {
-            result = await adapter.executeOnConnection(
-              client,
-              sql,
-              queryParams,
-            );
-          } catch (error: unknown) {
-            return formatHandlerErrorResponse(error, {
-                tool: "pg_read_query",
-                sql,
-              });
-          }
+          result = await adapter.executeOnConnection(
+            client,
+            parsedSql,
+            queryParams,
+          );
         } else {
-          try {
-            result = await adapter.executeReadQuery(sql, queryParams);
-          } catch (error: unknown) {
-            return formatHandlerErrorResponse(error, {
-                tool: "pg_read_query",
-                sql,
-              });
-          }
+          result = await adapter.executeReadQuery(parsedSql, queryParams);
         }
 
         return {
@@ -84,7 +73,10 @@ export function createReadQueryTool(adapter: PostgresAdapter): ToolDefinition {
           executionTimeMs: result.executionTimeMs,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_read_query" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_read_query",
+          ...(sql !== undefined && { sql }),
+        });
       }
     },
   };
@@ -104,15 +96,18 @@ export function createWriteQueryTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Write Query"),
     icons: getToolIcons("core", write("Write Query")),
     handler: async (params: unknown, _context: RequestContext) => {
+      const sql = (params as Record<string, unknown> | null)?.[
+        "sql"
+      ] as string | undefined;
       try {
         const {
-          sql,
+          sql: parsedSql,
           params: queryParams,
           transactionId,
         } = WriteQuerySchema.parse(params);
 
         // Block SELECT statements - use pg_read_query instead
-        const trimmedUpper = sql.trim().toUpperCase();
+        const trimmedUpper = parsedSql.trim().toUpperCase();
         if (trimmedUpper.startsWith("SELECT")) {
           return {
             success: false,
@@ -130,27 +125,13 @@ export function createWriteQueryTool(adapter: PostgresAdapter): ToolDefinition {
               error: `Invalid or expired transactionId: ${transactionId}. Use pg_transaction_begin to start a new transaction.`,
             };
           }
-          try {
-            result = await adapter.executeOnConnection(
-              client,
-              sql,
-              queryParams,
-            );
-          } catch (error: unknown) {
-            return formatHandlerErrorResponse(error, {
-                tool: "pg_write_query",
-                sql,
-              });
-          }
+          result = await adapter.executeOnConnection(
+            client,
+            parsedSql,
+            queryParams,
+          );
         } else {
-          try {
-            result = await adapter.executeWriteQuery(sql, queryParams);
-          } catch (error: unknown) {
-            return formatHandlerErrorResponse(error, {
-                tool: "pg_write_query",
-                sql,
-              });
-          }
+          result = await adapter.executeWriteQuery(parsedSql, queryParams);
         }
 
         return {
@@ -161,7 +142,10 @@ export function createWriteQueryTool(adapter: PostgresAdapter): ToolDefinition {
           ...(result.rows && result.rows.length > 0 && { rows: result.rows }),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_write_query" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_write_query",
+          ...(sql !== undefined && { sql }),
+        });
       }
     },
   };

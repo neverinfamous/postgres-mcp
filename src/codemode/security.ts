@@ -23,8 +23,14 @@ export class CodeModeSecurityManager {
     { count: number; resetTime: number }
   >();
 
+  private readonly cleanupTimer: ReturnType<typeof setInterval>;
+
   constructor(config?: Partial<SecurityConfig>) {
     this.config = { ...DEFAULT_SECURITY_CONFIG, ...config };
+    // Periodically purge expired rate-limit entries to prevent unbounded map growth
+    // in long-running deployments with many unique client IDs.
+    this.cleanupTimer = setInterval(() => { this.cleanupRateLimits(); }, 60_000);
+    this.cleanupTimer.unref();
   }
 
   /**

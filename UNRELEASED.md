@@ -178,3 +178,9 @@
   - **Removed deprecated `INSTRUCTIONS` export**: Deleted the `@deprecated INSTRUCTIONS = CORE_INSTRUCTIONS` constant from `constants/server-instructions.ts` — no callers existed; symbol risked confusing future contributors into using static text instead of `generateInstructions()`
   - **Removed redundant `outputSchema` tolerance test**: Deleted the `>= 0.95` coverage floor test from `tool-output-schemas.test.ts`; it was superseded by the zero-tolerance `should have outputSchema on all tools` test in the same file and its misleading "5% tolerance" comment contradicted the strict enforcement already in place
 
+- **Code quality audit (2026-03-24, pass 3)** — chore:
+  - **Nested try/catch simplification** (`core/query.ts`, `core/tables.ts`, `core/indexes.ts`): Removed 7 redundant inner `try/catch` blocks that duplicated the outer handler boundary. `sql`/`table`/`schema` context is extracted before the outer `try` block (conditional spreading for `exactOptionalPropertyTypes` compliance). `pg_create_index` inner catch retained — intentional race-condition logic for the `ifNotExists` path.
+  - **Rate-limit map cleanup** (`codemode/security.ts`): Wired `cleanupRateLimits()` to a 60s `setInterval` with `.unref()` in the `CodeModeSecurityManager` constructor — prevents unbounded in-memory map growth in long-running deployments.
+  - **Benchmark catch convention** (`__tests__/benchmarks/handler-dispatch.bench.ts`): `catch (e)` → `catch (error: unknown)`.
+  - **vitest version floor** (`package.json`): Bumped `vitest` and `@vitest/coverage-v8` floor `^4.0.18` → `^4.1.0`.
+  - **Code map updates** (`test-server/code-map.md`): Updated last-modified date; added missing `postgres://audit` row to the data resources table.

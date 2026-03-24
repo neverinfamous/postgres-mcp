@@ -258,15 +258,7 @@ export function createCreateTableTool(
 
         const sql = `CREATE TABLE ${ifNotExistsClause}${schemaPrefix}"${name}" (\n  ${columnDefs.join(",\n  ")}\n)`;
 
-        try {
-          await adapter.executeQuery(sql);
-        } catch (error: unknown) {
-          return formatHandlerErrorResponse(error, {
-              tool: "pg_create_table",
-              table: name,
-              schema: schema ?? "public",
-            });
-        }
+        await adapter.executeQuery(sql);
 
         return {
           success: true,
@@ -278,7 +270,13 @@ export function createCreateTableTool(
           }),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_create_table" });
+        const rawTable = (params as Record<string, unknown> | null)?.["name"];
+        const rawSchema = (params as Record<string, unknown> | null)?.["schema"];
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_create_table",
+          ...(typeof rawTable === "string" && { table: rawTable }),
+          ...(typeof rawSchema === "string" && { schema: rawSchema }),
+        });
       }
     },
   };
@@ -315,15 +313,7 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
 
         const sql = `DROP TABLE ${ifExistsClause}${schemaPrefix}"${table}"${cascadeClause}`;
 
-        try {
-          await adapter.executeQuery(sql);
-        } catch (error: unknown) {
-          return formatHandlerErrorResponse(error, {
-              tool: "pg_drop_table",
-              table,
-              schema: schemaName,
-            });
-        }
+        await adapter.executeQuery(sql);
 
         return {
           success: true,
