@@ -24,6 +24,13 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_DIR = resolve(__dirname, '..')
 
+// Ensure DB connection env vars are present (inherit from shell or use Docker defaults)
+if (!process.env.POSTGRES_CONNECTION_STRING && !process.env.DATABASE_URL) {
+    process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD ?? process.env.PGPASSWORD ?? 'postgres'
+    process.env.POSTGRES_USER = process.env.POSTGRES_USER ?? process.env.PGUSER ?? 'postgres'
+    process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE ?? process.env.PGDATABASE ?? 'postgres'
+}
+
 // Section markers — substrings we check for presence/absence in instructions
 const SECTIONS = {
     CORE: '## Quick Access', // Always present
@@ -68,13 +75,13 @@ const TEST_CONFIGS = [
         },
     },
     {
-        label: 'core only (no codemode)',
+        label: 'core only (codemode auto-injected)',
         filter: 'core',
         level: null,
         expect: {
             CORE: true,
-            CODE_MODE: false,
-            HELP_GROUPS: false, // core has no group help entry
+            CODE_MODE: true, // codemode auto-injected in whitelist mode
+            HELP_GROUPS: false, // core+codemode have no help content entries
             ACTIVE_TOOLS: false,
         },
     },

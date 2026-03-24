@@ -43,12 +43,7 @@ const CORE_INSTRUCTIONS = `# postgres-mcp (PostgreSQL MCP Server)
 
 ## Built-in Tools
 
-\`pg_read_query\`, \`pg_write_query\`, \`pg_list_tables\` — always available.
-
-## Help Resources
-
-Read \`postgres://help\` for gotchas and critical usage patterns.
-Read \`postgres://help/{group}\` for group-specific tool reference (jsonb, text, stats, vector, postgis, admin, etc.).`
+\`pg_read_query\`, \`pg_write_query\`, \`pg_list_tables\` — always available.`
 
 /**
  * Code Mode summary — only included when codemode group is enabled.
@@ -118,8 +113,11 @@ export function generateInstructions(
         instructions += CODE_MODE_INSTRUCTIONS
     }
 
-    // Standard and full levels include dynamic help pointers
-    if (level === 'standard' || level === 'full') {
+    // Essential: minimal help pointer (no group listing)
+    // Standard+: dynamic help pointers listing enabled groups
+    if (level === 'essential') {
+        instructions += '\n\nRead `postgres://help` for gotchas and critical usage patterns.'
+    } else {
         instructions += buildHelpPointers(enabledGroups)
     }
 

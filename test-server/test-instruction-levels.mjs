@@ -19,6 +19,13 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PROJECT_DIR = resolve(__dirname, '..')
 
+// Ensure DB connection env vars are present (inherit from shell or use Docker defaults)
+if (!process.env.POSTGRES_CONNECTION_STRING && !process.env.DATABASE_URL) {
+    process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD ?? process.env.PGPASSWORD ?? 'postgres'
+    process.env.POSTGRES_USER = process.env.POSTGRES_USER ?? process.env.PGUSER ?? 'postgres'
+    process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE ?? process.env.PGDATABASE ?? 'postgres'
+}
+
 /**
  * Start server with given args, send initialize, return instruction text
  */
@@ -99,10 +106,10 @@ async function main() {
     console.log(`\n  Filtered < unfiltered: ${filterReduced ? '✅' : '❌'} (saved ${savings} chars, ${pct}%)`)
     if (!filterReduced) allPassed = false
 
-    // Core-only should NOT contain Code Mode section
+    // Core includes Code Mode (auto-injected in whitelist mode)
     const coreHasCodeMode = coreOnly.text.includes('## Code Mode')
-    console.log(`  Core excludes Code Mode: ${coreHasCodeMode ? '❌ FOUND' : '✅'}`)
-    if (coreHasCodeMode) allPassed = false
+    console.log(`  Core includes Code Mode: ${coreHasCodeMode ? '✅' : '❌ MISSING'}`)
+    if (!coreHasCodeMode) allPassed = false
 
     // Full should contain Code Mode section
     const fullHasCodeMode = fullAll.text.includes('## Code Mode')
