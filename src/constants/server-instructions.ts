@@ -38,6 +38,7 @@ const CORE_INSTRUCTIONS = `# postgres-mcp (PostgreSQL MCP Server)
 | Health check    | \`pg_analyze_db_health\` tool |
 | Server info     | \`pg_server_version\` tool   |
 | Database schema | \`postgres://schema\` resource |
+| Audit log       | \`postgres://audit\` resource  |
 | Tool help       | \`postgres://help\` resource   |
 
 ## Built-in Tools
@@ -173,7 +174,7 @@ Aliases: \`tableName\`→\`table\`, \`indexName\`→\`index\`, \`param\`/\`setti
 - \`appendInsight()\`: \`{success, insightCount, message}\``],
   ["backup", `# Backup Tools
 
-Core: \`dumpTable()\`, \`dumpSchema()\`, \`copyExport()\`, \`copyImport()\`, \`createBackupPlan()\`, \`restoreCommand()\`, \`physical()\`, \`restoreValidate()\`, \`scheduleOptimize()\`
+Core: \`dumpTable()\`, \`dumpSchema()\`, \`copyExport()\`, \`copyImport()\`, \`createBackupPlan()\`, \`restoreCommand()\`, \`physical()\`, \`restoreValidate()\`, \`scheduleOptimize()\`, \`auditListBackups()\`, \`auditDiffBackup()\`, \`auditRestoreBackup()\`
 
 Response Structures:
 
@@ -197,8 +198,11 @@ Response Structures:
 - \`pg_backup_physical\`: Generates pg_basebackup command. \`format\`: 'plain'|'tar' (default: 'tar'), \`checkpoint\`: 'fast'|'spread', \`compress\`: 0-9
 - \`pg_restore_validate\`: Generates validation commands. \`backupType\`: 'pg_dump' (default)|'pg_basebackup'
 - \`pg_backup_schedule_optimize\`: Analyzes database activity patterns and recommends optimal backup schedule
+- \`pg_audit_list_backups\`: Reads \`.snapshot.json.gz\` files from backup dir. Optional \`tool?\`/\`target?\` filters. Returns \`{backups: [{filename, tool, target, schema, timestamp, sizeBytes, rowCount?}], count}\` — requires \`--audit-backup\`
+- \`pg_audit_diff_backup({filename})\`: Shows DDL + \`volumeDrift\` (row/size delta vs. live table). \`volumeDrift\` fields are conditional — only present when data exists. ⚠️ \`reltuples = -1\` means table unanalyzed — run \`ANALYZE <table>\` for accurate counts. Returns \`{ddl, volumeDrift?: {rowCountSnapshot?, rowCountCurrent?, sizeBytesSnapshot?, sizeBytesCurrent?, summary}}\`
+- \`pg_audit_restore_backup({filename, dryRun?, restoreAs?})\`: Transaction-wrapped restore. Use \`dryRun: true\` to preview. \`restoreAs\` creates a side-by-side copy instead of overwriting. ⚠️ SERIAL sequences dropped with table — DDL with \`nextval()\` fails on restore; use simple types or recreate sequences first. Returns \`{success, restored, restoreAs?}\`
 
-**Top-Level Aliases**: \`pg.dumpTable()\`, \`pg.dumpSchema()\`, \`pg.copyExport()\`, \`pg.copyImport()\`, \`pg.createBackupPlan()\`, \`pg.restoreCommand()\`, \`pg.restoreValidate()\`, \`pg.physical()\`, \`pg.backupPhysical()\`, \`pg.scheduleOptimize()\`, \`pg.backupScheduleOptimize()\``],
+**Top-Level Aliases**: \`pg.dumpTable()\`, \`pg.dumpSchema()\`, \`pg.copyExport()\`, \`pg.copyImport()\`, \`pg.createBackupPlan()\`, \`pg.restoreCommand()\`, \`pg.restoreValidate()\`, \`pg.physical()\`, \`pg.backupPhysical()\`, \`pg.scheduleOptimize()\`, \`pg.backupScheduleOptimize()\`, \`pg.auditListBackups()\`, \`pg.auditDiffBackup()\`, \`pg.auditRestoreBackup()\``],
   ["citext", `# citext Tools
 
 Core: \`createExtension()\`, \`convertColumn()\`, \`listColumns()\`, \`analyzeCandidates()\`, \`compare()\`, \`schemaAdvisor()\`
@@ -284,6 +288,7 @@ Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unsched
 | \`pg_duplicate_indexes\`        | \`{duplicateIndexes, count, hint, truncated?, totalCount?}\`                                                                                  | Default 50 rows. \`duplicate_type\`: EXACT_DUPLICATE, OVERLAPPING, SUBSET                                                                                                                                                                                |
 | \`pg_query_plan_compare\`       | \`{query1, query2, analysis, fullPlans}\`                                                                                                     | \`analysis.costDifference\` + \`recommendation\`                                                                                                                                                                                                           |
 | \`pg_unused_indexes\`           | \`{unusedIndexes, count, hint, truncated?, totalCount?}\`                                                                                     | Default 20 rows. \`summary: true\` → \`{summary, bySchema, totalCount}\`                                                                                                                                                                                   |
+| All tools                     | \`_meta.tokenEstimate\` in \`content[].text\`                                                                                                   | Every response wraps result with \`{ ...result, _meta: { tokenEstimate: N } }\`. Token cost heuristic: ~4 bytes/token (~4 chars). \`structuredContent\` stays schema-pure (no \`_meta\`). Code Mode adds \`metrics.tokenEstimate\` instead.                    |
 
 ## API Mapping
 
@@ -307,7 +312,7 @@ Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unsched
 
 No \`setTimeout\`, \`setInterval\`, \`fetch\`, or network access. Use \`pg.core.readQuery()\` for data access.
 
-📊 **Metrics Note**: \`memoryUsedMb\` measures heap delta (end - start). Negative values indicate memory freed during execution (e.g., GC ran).`],
+📊 **Metrics Note**: \`memoryUsedMb\` measures heap delta (end - start). Negative values indicate memory freed during execution (e.g., GC ran). \`metrics.tokenEstimate\` = estimated token cost of the sandbox result (~4 bytes/token).`],
   ["introspection", `# Introspection Tools
 
 Code Mode: \`pg.introspection.*\` — 6 read-only tools for schema analysis.

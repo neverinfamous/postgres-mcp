@@ -7,6 +7,7 @@
 | Health check    | `pg_analyze_db_health` tool |
 | Server info     | `pg_server_version` tool   |
 | Database schema | `postgres://schema` resource |
+| Audit log       | `postgres://audit` resource  |
 | Tool help       | `postgres://help` resource   |
 
 ## Built-in Tools

@@ -57,6 +57,7 @@
 | `pg_duplicate_indexes`        | `{duplicateIndexes, count, hint, truncated?, totalCount?}`                                                                                  | Default 50 rows. `duplicate_type`: EXACT_DUPLICATE, OVERLAPPING, SUBSET                                                                                                                                                                                |
 | `pg_query_plan_compare`       | `{query1, query2, analysis, fullPlans}`                                                                                                     | `analysis.costDifference` + `recommendation`                                                                                                                                                                                                           |
 | `pg_unused_indexes`           | `{unusedIndexes, count, hint, truncated?, totalCount?}`                                                                                     | Default 20 rows. `summary: true` → `{summary, bySchema, totalCount}`                                                                                                                                                                                   |
+| All tools                     | `_meta.tokenEstimate` in `content[].text`                                                                                                   | Every response wraps result with `{ ...result, _meta: { tokenEstimate: N } }`. Token cost heuristic: ~4 bytes/token (~4 chars). `structuredContent` stays schema-pure (no `_meta`). Code Mode adds `metrics.tokenEstimate` instead.                    |
 
 ## API Mapping
 
@@ -80,4 +81,4 @@
 
 No `setTimeout`, `setInterval`, `fetch`, or network access. Use `pg.core.readQuery()` for data access.
 
-📊 **Metrics Note**: `memoryUsedMb` measures heap delta (end - start). Negative values indicate memory freed during execution (e.g., GC ran).
+📊 **Metrics Note**: `memoryUsedMb` measures heap delta (end - start). Negative values indicate memory freed during execution (e.g., GC ran). `metrics.tokenEstimate` = estimated token cost of the sandbox result (~4 bytes/token).

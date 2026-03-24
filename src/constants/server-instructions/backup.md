@@ -1,6 +1,6 @@
 # Backup Tools
 
-Core: `dumpTable()`, `dumpSchema()`, `copyExport()`, `copyImport()`, `createBackupPlan()`, `restoreCommand()`, `physical()`, `restoreValidate()`, `scheduleOptimize()`
+Core: `dumpTable()`, `dumpSchema()`, `copyExport()`, `copyImport()`, `createBackupPlan()`, `restoreCommand()`, `physical()`, `restoreValidate()`, `scheduleOptimize()`, `auditListBackups()`, `auditDiffBackup()`, `auditRestoreBackup()`
 
 Response Structures:
 
@@ -24,5 +24,8 @@ Response Structures:
 - `pg_backup_physical`: Generates pg_basebackup command. `format`: 'plain'|'tar' (default: 'tar'), `checkpoint`: 'fast'|'spread', `compress`: 0-9
 - `pg_restore_validate`: Generates validation commands. `backupType`: 'pg_dump' (default)|'pg_basebackup'
 - `pg_backup_schedule_optimize`: Analyzes database activity patterns and recommends optimal backup schedule
+- `pg_audit_list_backups`: Reads `.snapshot.json.gz` files from backup dir. Optional `tool?`/`target?` filters. Returns `{backups: [{filename, tool, target, schema, timestamp, sizeBytes, rowCount?}], count}` — requires `--audit-backup`
+- `pg_audit_diff_backup({filename})`: Shows DDL + `volumeDrift` (row/size delta vs. live table). `volumeDrift` fields are conditional — only present when data exists. ⚠️ `reltuples = -1` means table unanalyzed — run `ANALYZE <table>` for accurate counts. Returns `{ddl, volumeDrift?: {rowCountSnapshot?, rowCountCurrent?, sizeBytesSnapshot?, sizeBytesCurrent?, summary}}`
+- `pg_audit_restore_backup({filename, dryRun?, restoreAs?})`: Transaction-wrapped restore. Use `dryRun: true` to preview. `restoreAs` creates a side-by-side copy instead of overwriting. ⚠️ SERIAL sequences dropped with table — DDL with `nextval()` fails on restore; use simple types or recreate sequences first. Returns `{success, restored, restoreAs?}`
 
-**Top-Level Aliases**: `pg.dumpTable()`, `pg.dumpSchema()`, `pg.copyExport()`, `pg.copyImport()`, `pg.createBackupPlan()`, `pg.restoreCommand()`, `pg.restoreValidate()`, `pg.physical()`, `pg.backupPhysical()`, `pg.scheduleOptimize()`, `pg.backupScheduleOptimize()`
+**Top-Level Aliases**: `pg.dumpTable()`, `pg.dumpSchema()`, `pg.copyExport()`, `pg.copyImport()`, `pg.createBackupPlan()`, `pg.restoreCommand()`, `pg.restoreValidate()`, `pg.physical()`, `pg.backupPhysical()`, `pg.scheduleOptimize()`, `pg.backupScheduleOptimize()`, `pg.auditListBackups()`, `pg.auditDiffBackup()`, `pg.auditRestoreBackup()`
