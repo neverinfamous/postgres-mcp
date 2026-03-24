@@ -160,6 +160,10 @@
   - Added `sanitizePartmanTableName()` in `helpers.ts` — rejects single quotes and semicolons in table names passed to pg_partman's non-parameterizable named-argument syntax
 - **JSONB limit coercion dedup** (audit fix): Replaced 3 inline limit coercion blocks in `jsonb/read.ts` (`pg_jsonb_extract`, `pg_jsonb_contains`, `pg_jsonb_path_query`) with `coerceLimit()` + `DEFAULT_QUERY_LIMIT` from `query-helpers.ts`, eliminating ~18 lines of duplicated logic and 2 redeclared constants
 - **Catch block documentation** (audit fix): Added explanatory comments to 5 empty `catch {}` blocks in `audit/backup-manager.ts` that lacked documentation of their non-throwing design intent
+- **Modularisation — file splits** (chore): Three files exceeding the 500-line target split into focused sub-modules:
+  - `postgres-adapter.ts` (623→~510 lines) → extracted `adapter-cache.ts` (TTL cache helpers: `getCached`, `setCache`, `invalidateTableCache`, `invalidateSchemaCache`, `invalidateCacheForDdl`, `MetadataCache`). Same pattern as `transaction-operations.ts`. No consumer import changes.
+  - `database-adapter.ts` (559→~515 lines) → extracted `utils/query-validation.ts` (`validateQuery()` + constants). `DatabaseAdapter.validateQuery()` delegates to the new function; call sites unchanged.
+  - `backup-manager.ts` (548→~420 lines) → split `captureObjectSnapshot()` (110-line monolith) into `buildTableDdl()`, `captureVolumeMetadata()`, and `captureTableData()` private helpers; coordinator reduced to ~45 lines.
 - **Code quality audit fixes** (chore):
   - Merged duplicate `import … from "node:fs/promises"` in `audit/logger.ts` (split `stat` import)
   - Removed stale "Phase 1 / Phase 2" development-phase labels from `audit/types.ts`, `audit/interceptor.ts` doc-comments — these phases are fully shipped; labels no longer communicate anything

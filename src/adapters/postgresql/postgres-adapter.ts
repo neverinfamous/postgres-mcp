@@ -9,6 +9,15 @@
 
 import type { PoolClient } from "pg";
 import { DatabaseAdapter } from "../database-adapter.js";
+import {
+  DEFAULT_CACHE_TTL_MS,
+  type MetadataCache,
+  getCached,
+  setCache,
+  invalidateTableCache,
+  invalidateSchemaCache,
+  invalidateCacheForDdl,
+} from "./adapter-cache.js";
 import { ConnectionPool } from "../../pool/connection-pool.js";
 import type {
   DatabaseConfig,
@@ -75,22 +84,6 @@ import { getPostgresResources } from "./resources/index.js";
 import { getPostgresPrompts } from "./prompts/index.js";
 import type { BackupManager } from "../../audit/backup-manager.js";
 
-/**
- * Metadata cache entry with TTL support
- */
-interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-}
-
-/**
- * Default cache TTL in milliseconds (configurable via METADATA_CACHE_TTL_MS env var)
- */
-const DEFAULT_CACHE_TTL_MS = parseInt(
-  process.env["METADATA_CACHE_TTL_MS"] ?? "30000",
-  10,
-);
-
 export class PostgresAdapter extends DatabaseAdapter {
   readonly type = "postgresql" as const;
   readonly name = "PostgreSQL Adapter";
@@ -104,37 +97,15 @@ export class PostgresAdapter extends DatabaseAdapter {
   private cachedToolDefinitions: ToolDefinition[] | null = null;
 
   // Performance optimization: cache metadata with TTL
-  private metadataCache = new Map<string, CacheEntry<unknown>>();
+  private metadataCache: MetadataCache = new Map();
   private cacheTtlMs = DEFAULT_CACHE_TTL_MS;
-
-  /**
-   * Get cached value if not expired
-   */
-  private getCached(key: string): unknown {
-    const entry = this.metadataCache.get(key);
-    if (!entry) return undefined;
-    if (Date.now() - entry.timestamp > this.cacheTtlMs) {
-      this.metadataCache.delete(key);
-      return undefined;
-    }
-    return entry.data;
-  }
-
-  /**
-   * Set cache value
-   */
-  private setCache(key: string, data: unknown): void {
-    this.metadataCache.set(key, { data, timestamp: Date.now() });
-  }
 
   /**
    * Invalidate cached metadata for a specific table.
    * Called after DDL operations that change table structure.
    */
   invalidateTableCache(tableName: string, schemaName = "public"): void {
-    this.metadataCache.delete(`describe:${schemaName}.${tableName}`);
-    this.metadataCache.delete("list_tables");
-    this.metadataCache.delete("all_indexes");
+    invalidateTableCache(this.metadataCache, tableName, schemaName);
   }
 
   /**
@@ -142,59 +113,7 @@ export class PostgresAdapter extends DatabaseAdapter {
    * Used when the specific affected table cannot be determined.
    */
   invalidateSchemaCache(): void {
-    for (const key of this.metadataCache.keys()) {
-      if (key.startsWith("describe:") || key === "list_tables" || key === "all_indexes") {
-        this.metadataCache.delete(key);
-      }
-    }
-  }
-
-  /**
-   * Detect DDL statements and invalidate the appropriate cache entries.
-   * Extracts the table name from common DDL patterns; falls back to
-   * full schema cache invalidation for ambiguous statements.
-   */
-  private invalidateCacheForDdl(sql: string): void {
-    const normalized = sql.replace(/\s+/g, " ").trim().toUpperCase();
-
-    // Match: ALTER TABLE, CREATE TABLE, DROP TABLE, TRUNCATE
-    const tableMatch = /^(?:ALTER|CREATE|DROP)\s+TABLE\s+(?:IF\s+(?:NOT\s+)?EXISTS\s+)?(?:"([^"]+)"\.)?("([^"]+)"|([a-z_][a-z0-9_]*))/i.exec(
-      sql.replace(/\s+/g, " ").trim(),
-    );
-    if (tableMatch) {
-      const schema = tableMatch[1] ?? "public";
-      const table = tableMatch[3] ?? tableMatch[4] ?? "";
-      if (table) {
-        this.invalidateTableCache(table, schema);
-        return;
-      }
-    }
-
-    // Match: TRUNCATE [TABLE]
-    const truncateMatch = /^TRUNCATE\s+(?:TABLE\s+)?(?:"([^"]+)"\.)?("([^"]+)"|([a-z_][a-z0-9_]*))/i.exec(
-      sql.replace(/\s+/g, " ").trim(),
-    );
-    if (truncateMatch) {
-      const schema = truncateMatch[1] ?? "public";
-      const table = truncateMatch[3] ?? truncateMatch[4] ?? "";
-      if (table) {
-        this.invalidateTableCache(table, schema);
-        return;
-      }
-    }
-
-    // Match: CREATE/DROP INDEX — invalidate all (index targets are harder to parse)
-    if (normalized.startsWith("CREATE INDEX") || normalized.startsWith("CREATE UNIQUE INDEX") ||
-        normalized.startsWith("DROP INDEX")) {
-      this.invalidateSchemaCache();
-      return;
-    }
-
-    // Any other DDL-like statement: broad invalidation as safety net
-    if (normalized.startsWith("ALTER ") || normalized.startsWith("CREATE ") ||
-        normalized.startsWith("DROP ")) {
-      this.invalidateSchemaCache();
-    }
+    invalidateSchemaCache(this.metadataCache);
   }
 
   // =========================================================================
@@ -290,7 +209,7 @@ export class PostgresAdapter extends DatabaseAdapter {
     const result = await this.executeQuery(sql, params);
     // Invalidate metadata cache for DDL statements so subsequent
     // describeTable / listTables calls return fresh results
-    this.invalidateCacheForDdl(sql);
+    invalidateCacheForDdl(this.metadataCache, sql);
     return result;
   }
 
@@ -433,9 +352,9 @@ export class PostgresAdapter extends DatabaseAdapter {
    */
   private get cacheHelpers(): CacheHelpers {
     return {
-      getCached: (key: string) => this.getCached(key),
+      getCached: (key: string) => getCached(this.metadataCache, key, this.cacheTtlMs),
       setCache: (key: string, data: unknown) => {
-        this.setCache(key, data);
+        setCache(this.metadataCache, key, data);
       },
     };
   }

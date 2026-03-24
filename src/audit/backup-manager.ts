@@ -319,27 +319,71 @@ export class BackupManager {
       }
     }
 
-    // Capture DDL via describeTable
+    const ddl = await this.buildTableDdl(tableName, schemaName, adapter);
+    const { rowCount, totalSizeBytes } = await this.captureVolumeMetadata(
+      tableName,
+      schemaName,
+      adapter,
+    );
+    const { data, dataSkipped, dataSkippedReason } = await this.captureTableData(
+      tableName,
+      schemaName,
+      totalSizeBytes,
+      adapter,
+    );
+
+    return this.writeSnapshot(
+      toolName,
+      tableName,
+      schemaName,
+      requestId,
+      ddl,
+      data,
+      {
+        ...(rowCount !== undefined && { rowCount }),
+        ...(totalSizeBytes !== undefined && { totalSizeBytes }),
+        ...(dataSkipped && { dataSkipped }),
+        ...(dataSkippedReason !== undefined && { dataSkippedReason }),
+      },
+    );
+  }
+
+  /**
+   * Build a CREATE TABLE DDL string from the adapter's table description.
+   */
+  private async buildTableDdl(
+    tableName: string,
+    schemaName: string,
+    adapter: SnapshotQueryAdapter,
+  ): Promise<string> {
     const tableInfo = await adapter.describeTable(tableName, schemaName);
     const columns = tableInfo.columns ?? [];
 
     const ddlLines = columns.map((col) => {
       let line = `    "${col.name}" ${col.type}`;
       if (col.defaultValue !== undefined && col.defaultValue !== null) {
-        const defVal = typeof col.defaultValue === "object"
-          ? JSON.stringify(col.defaultValue)
-          : String(col.defaultValue as string | number | boolean);
+        const defVal =
+          typeof col.defaultValue === "object"
+            ? JSON.stringify(col.defaultValue)
+            : String(col.defaultValue as string | number | boolean);
         line += ` DEFAULT ${defVal}`;
       }
       if (!col.nullable) line += " NOT NULL";
       return line;
     });
 
-    const ddl = `CREATE TABLE "${schemaName}"."${tableName}" (\n${ddlLines.join(",\n")}\n);`;
+    return `CREATE TABLE "${schemaName}"."${tableName}" (\n${ddlLines.join(",\n")}\n);`;
+  }
 
-    // §3: Capture volume metadata from pg_class (near-zero cost catalog reads)
-    let rowCount: number | undefined;
-    let totalSizeBytes: number | undefined;
+  /**
+   * Capture row count and total size bytes from pg_class catalog.
+   * Near-zero cost catalog reads; failures are silently ignored (best-effort).
+   */
+  private async captureVolumeMetadata(
+    tableName: string,
+    schemaName: string,
+    adapter: SnapshotQueryAdapter,
+  ): Promise<{ rowCount?: number; totalSizeBytes?: number }> {
     try {
       const sizeResult = await adapter.executeQuery(
         `SELECT reltuples::bigint AS row_count,
@@ -349,68 +393,93 @@ export class BackupManager {
          WHERE c.relname = $1 AND n.nspname = $2`,
         [tableName, schemaName],
       );
-      const sizeRow = sizeResult.rows?.[0] as { row_count?: number | string; total_size_bytes?: number } | undefined;
+      const sizeRow = sizeResult.rows?.[0] as
+        | { row_count?: number | string; total_size_bytes?: number }
+        | undefined;
       if (sizeRow) {
         // reltuples::bigint is sent as a string by the pg driver — must parse
-        rowCount = sizeRow.row_count !== undefined ? parseInt(String(sizeRow.row_count), 10) : undefined;
-        totalSizeBytes = typeof sizeRow.total_size_bytes === "number" ? sizeRow.total_size_bytes : undefined;
+        const rowCount =
+          sizeRow.row_count !== undefined
+            ? parseInt(String(sizeRow.row_count), 10)
+            : undefined;
+        const totalSizeBytes =
+          typeof sizeRow.total_size_bytes === "number"
+            ? sizeRow.total_size_bytes
+            : undefined;
+        return {
+          ...(rowCount !== undefined && { rowCount }),
+          ...(totalSizeBytes !== undefined && { totalSizeBytes }),
+        };
       }
     } catch {
       // Volume metadata is best-effort — don't fail the snapshot
     }
+    return {};
+  }
 
-    // §4: Size-bounded data capture
-    let data: string | undefined;
-    let dataSkipped = false;
-    let dataSkippedReason: string | undefined;
-    const maxDataSize = this.config.maxDataSizeBytes || DEFAULT_MAX_DATA_SIZE_BYTES;
-
-    if (this.config.includeData) {
-      // Check estimated size before capturing data
-      if (totalSizeBytes !== undefined && totalSizeBytes > maxDataSize) {
-        dataSkipped = true;
-        const sizeMB = Math.round(totalSizeBytes / (1024 * 1024));
-        const thresholdMB = Math.round(maxDataSize / (1024 * 1024));
-        dataSkippedReason = `Table size ~${String(sizeMB)}MB exceeds ${String(thresholdMB)}MB threshold`;
-      } else {
-        try {
-          const result = await adapter.executeQuery(
-            `SELECT * FROM "${schemaName}"."${tableName}" LIMIT ${String(MAX_SAMPLE_ROWS)}`,
-          );
-          if (result.rows && result.rows.length > 0) {
-            const firstRow = result.rows[0];
-            if (firstRow) {
-              const cols = Object.keys(firstRow).map((c) => `"${c}"`).join(", ");
-              data = result.rows
-                .map((row) => {
-                  const vals = Object.values(row)
-                    .map((v) => {
-                      if (v === null) return "NULL";
-                      if (typeof v === "string") return `'${v.replace(/'/g, "''")}'`;
-                      if (typeof v === "number" || typeof v === "boolean") return String(v);
-                      return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
-                    })
-                    .join(", ");
-                  return `INSERT INTO "${schemaName}"."${tableName}" (${cols}) VALUES (${vals});`;
-                })
-                .join("\n");
-            }
-          }
-        } catch {
-          // Data capture is best-effort
-        }
-      }
+  /**
+   * Capture row data as INSERT statements, subject to size bounds.
+   * Returns empty output (data: undefined, dataSkipped: false) when
+   * `includeData` is disabled in config, or when the table is too large.
+   */
+  private async captureTableData(
+    tableName: string,
+    schemaName: string,
+    totalSizeBytes: number | undefined,
+    adapter: SnapshotQueryAdapter,
+  ): Promise<{
+    data?: string;
+    dataSkipped: boolean;
+    dataSkippedReason?: string;
+  }> {
+    if (!this.config.includeData) {
+      return { dataSkipped: false };
     }
 
-    return this.writeSnapshot(
-      toolName, tableName, schemaName, requestId, ddl, data,
-      {
-        ...(rowCount !== undefined && { rowCount }),
-        ...(totalSizeBytes !== undefined && { totalSizeBytes }),
-        ...(dataSkipped && { dataSkipped }),
-        ...(dataSkippedReason !== undefined && { dataSkippedReason }),
-      },
-    );
+    const maxDataSize = this.config.maxDataSizeBytes || DEFAULT_MAX_DATA_SIZE_BYTES;
+
+    // Skip if table exceeds the configured size threshold
+    if (totalSizeBytes !== undefined && totalSizeBytes > maxDataSize) {
+      const sizeMB = Math.round(totalSizeBytes / (1024 * 1024));
+      const thresholdMB = Math.round(maxDataSize / (1024 * 1024));
+      return {
+        dataSkipped: true,
+        dataSkippedReason: `Table size ~${String(sizeMB)}MB exceeds ${String(thresholdMB)}MB threshold`,
+      };
+    }
+
+    try {
+      const result = await adapter.executeQuery(
+        `SELECT * FROM "${schemaName}"."${tableName}" LIMIT ${String(MAX_SAMPLE_ROWS)}`,
+      );
+      if (result.rows && result.rows.length > 0) {
+        const firstRow = result.rows[0];
+        if (firstRow) {
+          const cols = Object.keys(firstRow)
+            .map((c) => `"${c}"`)
+            .join(", ");
+          const data = result.rows
+            .map((row) => {
+              const vals = Object.values(row)
+                .map((v) => {
+                  if (v === null) return "NULL";
+                  if (typeof v === "string") return `'${v.replace(/'/g, "''")}'`;
+                  if (typeof v === "number" || typeof v === "boolean")
+                    return String(v);
+                  return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
+                })
+                .join(", ");
+              return `INSERT INTO "${schemaName}"."${tableName}" (${cols}) VALUES (${vals});`;
+            })
+            .join("\n");
+          return { data, dataSkipped: false };
+        }
+      }
+    } catch {
+      // Data capture is best-effort
+    }
+
+    return { dataSkipped: false };
   }
 
   private async captureSchemaSnapshot(

@@ -26,6 +26,7 @@ import { getAuthContext } from "../auth/auth-context.js";
 import { getRequiredScope } from "../auth/scope-map.js";
 import { requireScope } from "../auth/middleware.js";
 import type { AuditInterceptor } from "../audit/index.js";
+import { validateQuery as doValidateQuery } from "../utils/query-validation.js";
 
 /**
  * Abstract base class for database adapters
@@ -487,49 +488,7 @@ export abstract class DatabaseAdapter {
    * @param isReadOnly - Whether to enforce read-only restrictions
    */
   validateQuery(sql: string, isReadOnly: boolean): void {
-    if (!sql || typeof sql !== "string") {
-      throw new Error("Query must be a non-empty string");
-    }
-
-    const normalizedSql = sql.trim().toUpperCase();
-
-    // Check for dangerous patterns
-    const dangerousPatterns = [
-      /;\s*DROP\s+/i,
-      /;\s*DELETE\s+/i,
-      /;\s*TRUNCATE\s+/i,
-      /;\s*INSERT\s+/i,
-      /;\s*UPDATE\s+/i,
-      /--\s*$/m,
-    ];
-
-    for (const pattern of dangerousPatterns) {
-      if (pattern.test(sql)) {
-        throw new Error("Query contains potentially dangerous patterns");
-      }
-    }
-
-    // Enforce read-only for SELECT queries
-    if (isReadOnly) {
-      const writeKeywords = [
-        "INSERT",
-        "UPDATE",
-        "DELETE",
-        "DROP",
-        "CREATE",
-        "ALTER",
-        "TRUNCATE",
-        "GRANT",
-        "REVOKE",
-      ];
-      for (const keyword of writeKeywords) {
-        if (normalizedSql.startsWith(keyword)) {
-          throw new Error(
-            `Read-only mode: ${keyword} statements are not allowed`,
-          );
-        }
-      }
-    }
+    doValidateQuery(sql, isReadOnly);
   }
 
   /**
