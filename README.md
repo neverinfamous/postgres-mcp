@@ -44,6 +44,13 @@
 | **Strict TypeScript**                  | 100% type-safe codebase with strict mode, no `any` types, 3448 tests and 95.09% coverage                                                                                                                                                                                                                    |
 | **MCP 2025-11-25 Compliant**           | Full protocol support with tool safety hints, resource priorities, and progress notifications                                                                                                                                                                                                                |
 
+## Suggested Rule (Add to AGENTS.md, GEMINI.md, etc)
+
+**MCP TOKEN MANAGEMENT**:
+- **Token Visibility**: When interacting with `postgres-mcp`, always monitor the `_meta.tokenEstimate` (or `metrics.tokenEstimate` in Code Mode) returned in tool responses.
+- **Audit Resource**: Use the `postgres://audit` resource to review session-level token consumption and identify high-cost operations.
+- **Proactive Efficiency**: If operations are consuming high token counts, proactively use `limit` parameters, specify exact columns (avoid `SELECT *`), or combine multi-step operations into a single **Code Mode** (`pg_execute_code`) execution to minimize token burn rate.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
