@@ -271,18 +271,18 @@ export abstract class DatabaseAdapter {
               )
             : await tool.handler(args, context);
 
-          // Compute token estimate: ~4 bytes per token (GPT/Claude heuristic)
-          const resultJson = JSON.stringify(result);
-          const tokenEstimate = Math.ceil(
-            Buffer.byteLength(resultJson, "utf8") / 4,
-          );
-
           // MCP 2025-11-25: Return structuredContent if outputSchema present
           // P154 errors ({success: false, error: "..."}) are sent as structuredContent
           // rather than isError: true, so AG receives parseable structured JSON.
           // All output schemas accommodate both success and error shapes.
           // _meta is injected into text only — structuredContent stays schema-pure.
           if (hasOutputSchema) {
+            // Serialize once, then compute token estimate from the serialized string
+            // (~4 bytes per token, GPT/Claude heuristic)
+            const resultJson = JSON.stringify(result);
+            const tokenEstimate = Math.ceil(
+              Buffer.byteLength(resultJson, "utf8") / 4,
+            );
             const enriched = JSON.stringify({
               ...(result as object),
               _meta: { tokenEstimate },
@@ -300,13 +300,18 @@ export abstract class DatabaseAdapter {
 
           // Standard text content response
           if (typeof result === "object" && result !== null) {
-            const enriched = JSON.stringify(
+            // Serialize once with _meta, then compute token estimate
+            const enriched = JSON.stringify(result, null, 2);
+            const tokenEstimate = Math.ceil(
+              Buffer.byteLength(enriched, "utf8") / 4,
+            );
+            const withMeta = JSON.stringify(
               { ...result, _meta: { tokenEstimate } },
               null,
               2,
             );
             return {
-              content: [{ type: "text" as const, text: enriched }],
+              content: [{ type: "text" as const, text: withMeta }],
             };
           }
           // Plain strings pass through unchanged

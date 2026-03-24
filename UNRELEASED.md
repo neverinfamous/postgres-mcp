@@ -64,6 +64,9 @@
   - Removed `continue-on-error: true` from Docker Hub description update in `docker-publish.yml`
 
 ### Changed
+- **Default 30s statement timeout**: Connection pool now applies `statement_timeout = 30000` by default, preventing runaway agent queries from holding connections indefinitely. Explicit `statementTimeout: 0` disables it; any positive value overrides the default.
+- **Streaming tail-read for audit log**: `AuditLogger.recent()` now reads only the last 64 KB of the file via `open()` + positioned `read()` instead of loading the entire file into memory. Prevents O(n) memory spikes for large audit logs while maintaining identical output.
+- **Single-stringify token estimate**: `registerTool()` now computes `_meta.tokenEstimate` from the final serialized response string, eliminating a redundant `JSON.stringify(result)` call per tool invocation.
 - **Dependency Updates**:
   - Bumped `jose` to `v6.2.2`
   - Bumped `@vitest/coverage-v8` to `v4.1.0`

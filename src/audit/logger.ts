@@ -9,8 +9,8 @@
  * propagate to tool callers.
  */
 
-import { appendFile, mkdir } from "node:fs/promises";
-import { readFile, stat } from "node:fs/promises";
+import { appendFile, mkdir, open } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { AuditConfig, AuditEntry } from "./types.js";
 
@@ -25,6 +25,13 @@ const DEFAULT_RECENT_COUNT = 50;
 
 /** Special logPath value that routes audit output to stderr */
 const STDERR_SENTINEL = "stderr";
+
+/**
+ * Maximum bytes to read from the end of the audit log for `recent()`.
+ * 64 KB is enough for ~100+ typical JSONL audit entries (~500 bytes each).
+ * Files smaller than this are read in full; larger files only read the tail.
+ */
+const TAIL_READ_BYTES = 65_536;
 
 export class AuditLogger {
   readonly config: AuditConfig;
@@ -114,6 +121,8 @@ export class AuditLogger {
 
   /**
    * Read the most recent audit entries from the log file.
+   * Uses a streaming tail-read: only the last TAIL_READ_BYTES (64 KB) are
+   * read from disk, preventing O(n) memory spikes for large audit logs.
    * Used by the `postgres://audit` resource.
    *
    * @param count Maximum number of entries to return (default 50)
@@ -123,16 +132,32 @@ export class AuditLogger {
     if (this.stderrMode) return [];
 
     try {
-      const exists = await stat(this.config.logPath)
-        .then(() => true)
-        .catch(() => false);
-      if (!exists) return [];
+      const info = await stat(this.config.logPath).catch(() => null);
+      if (!info) return [];
 
-      const content = await readFile(this.config.logPath, "utf-8");
-      const lines = content.trim().split("\n").filter(Boolean);
-      const tail = lines.slice(-count);
+      const fileSize = info.size;
+      if (fileSize === 0) return [];
 
-      return tail.map((line) => JSON.parse(line) as AuditEntry);
+      // Read only the tail of the file — avoids loading entire log into memory
+      const readSize = Math.min(fileSize, TAIL_READ_BYTES);
+      const startOffset = fileSize - readSize;
+
+      const fh = await open(this.config.logPath, "r");
+      try {
+        const buf = Buffer.alloc(readSize);
+        await fh.read(buf, 0, readSize, startOffset);
+        const chunk = buf.toString("utf-8");
+
+        // Split into lines: if we started mid-file, discard the first
+        // (likely partial) line
+        const rawLines = chunk.split("\n").filter(Boolean);
+        const lines = startOffset > 0 ? rawLines.slice(1) : rawLines;
+        const tail = lines.slice(-count);
+
+        return tail.map((line) => JSON.parse(line) as AuditEntry);
+      } finally {
+        await fh.close();
+      }
     } catch {
       return [];
     }

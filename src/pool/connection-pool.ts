@@ -12,6 +12,13 @@ import { PoolError, ConnectionError } from "../types/index.js";
 import { logger } from "../utils/logger.js";
 
 /**
+ * Default statement timeout in milliseconds.
+ * Prevents runaway agent queries from holding connections indefinitely.
+ * Set to 0 to disable (not recommended for production).
+ */
+const DEFAULT_STATEMENT_TIMEOUT_MS = 30_000;
+
+/**
  * Connection pool configuration with defaults
  */
 export interface ConnectionPoolConfig {
@@ -82,11 +89,11 @@ export class ConnectionPool {
         poolConfig.ssl = this.config.ssl;
       }
 
-      if (
-        this.config.statementTimeout !== undefined &&
-        this.config.statementTimeout > 0
-      ) {
-        poolConfig.statement_timeout = this.config.statementTimeout;
+      // Apply statement timeout: defaults to 30s to prevent runaway queries.
+      // Explicit 0 disables it; explicit positive value overrides the default.
+      const timeout = this.config.statementTimeout ?? DEFAULT_STATEMENT_TIMEOUT_MS;
+      if (timeout > 0) {
+        poolConfig.statement_timeout = timeout;
       }
 
       this.pool = new pg.Pool(poolConfig);
