@@ -15,7 +15,7 @@
     "!dist/__tests__"
   ],
   "scripts": {
-    "prebuild": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prebuild": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true});require('fs').rmSync('.tsbuildinfo',{force:true})\"",
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint src/",
