@@ -160,3 +160,8 @@
   - Added `sanitizePartmanTableName()` in `helpers.ts` — rejects single quotes and semicolons in table names passed to pg_partman's non-parameterizable named-argument syntax
 - **JSONB limit coercion dedup** (audit fix): Replaced 3 inline limit coercion blocks in `jsonb/read.ts` (`pg_jsonb_extract`, `pg_jsonb_contains`, `pg_jsonb_path_query`) with `coerceLimit()` + `DEFAULT_QUERY_LIMIT` from `query-helpers.ts`, eliminating ~18 lines of duplicated logic and 2 redeclared constants
 - **Catch block documentation** (audit fix): Added explanatory comments to 5 empty `catch {}` blocks in `audit/backup-manager.ts` that lacked documentation of their non-throwing design intent
+- **Code quality audit fixes** (chore):
+  - Merged duplicate `import … from "node:fs/promises"` in `audit/logger.ts` (split `stat` import)
+  - Removed stale "Phase 1 / Phase 2" development-phase labels from `audit/types.ts`, `audit/interceptor.ts` doc-comments — these phases are fully shipped; labels no longer communicate anything
+  - Removed orphaned JSDoc block in `audit/backup-manager.ts` that was separated from `getStats()` when `flush()` was inserted between them
+  - Replaced `void module; void code` lint-suppression idiom in `utils/logger.ts` with idiomatic underscore-prefix destructuring (`_module`, `_code`)

@@ -8,7 +8,7 @@
  * Each entry includes a `tokenEstimate` (~4 bytes per token)
  * computed from the serialized result size.
  *
- * Phase 2: When a BackupManager is provided, captures pre-mutation
+ * When a BackupManager is provided, captures pre-mutation
  * snapshots of target objects before destructive tool execution.
  *
  * The interceptor is injected into `DatabaseAdapter.registerTool()`
@@ -94,7 +94,7 @@ export function createAuditInterceptor(
       let backupRef: string | undefined;
       let tokenEstimate: number | undefined;
 
-      // Phase 2: Pre-mutation snapshot (before tool executes)
+      // Pre-mutation snapshot (before tool executes)
       if (backupManager && queryAdapter && backupManager.shouldSnapshot(toolName)) {
         try {
           backupRef = await backupManager.createSnapshot(

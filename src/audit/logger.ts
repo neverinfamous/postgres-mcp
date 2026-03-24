@@ -9,8 +9,7 @@
  * propagate to tool callers.
  */
 
-import { appendFile, mkdir, open, rename } from "node:fs/promises";
-import { stat } from "node:fs/promises";
+import { appendFile, mkdir, open, rename, stat } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { AuditConfig, AuditEntry } from "./types.js";
 

@@ -256,9 +256,6 @@ export class BackupManager {
   }
 
   /**
-   * Get backup stats for the audit resource.
-   */
-  /**
    * Flush all pending async snapshot writes.
    * Call during graceful shutdown to ensure all snapshots are persisted.
    */

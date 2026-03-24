@@ -279,9 +279,7 @@ export class Logger {
     // Add context if present (excluding module and code which are already in the format)
     if (entry.context) {
       // Destructure out fields that are already in the log line format
-      const { module, code, ...restContext } = entry.context;
-      void module;
-      void code; // Intentionally unused - already in format
+      const { module: _module, code: _code, ...restContext } = entry.context;
       if (Object.keys(restContext).length > 0) {
         const sanitizedContext = this.sanitizeContext(restContext);
         parts.push(JSON.stringify(sanitizedContext));

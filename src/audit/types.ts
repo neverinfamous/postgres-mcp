@@ -12,8 +12,8 @@ export type AuditCategory = "read" | "write" | "admin" | "auth" | "error";
 /**
  * Single audit log entry — serialised as one line of JSONL.
  *
- * The `backup` field is reserved for Phase 2 (pre-mutation backup linking)
- * and is always `undefined` in Phase 1.
+ * The `backup` field holds the relative path to the pre-mutation snapshot
+ * file when audit backup is enabled, or `undefined` when disabled.
  */
 export interface AuditEntry {
   /** ISO 8601 timestamp */
@@ -49,7 +49,7 @@ export interface AuditEntry {
   /** Tool input arguments (omitted in redact mode) */
   args?: Record<string, unknown> | undefined;
 
-  /** Phase 2: path to the pre-mutation backup file */
+  /** Relative path to the pre-mutation snapshot file; undefined when audit backup is disabled. */
   backup?: string | undefined;
 
   /** Estimated token count of the tool response (~4 bytes per token) */
@@ -73,7 +73,7 @@ export interface AuditConfig {
   /** Maximum log file size in bytes before rotation (default: 10MB). 0 = no rotation. */
   maxSizeBytes: number;
 
-  /** Pre-mutation backup configuration (Phase 2) */
+  /** Pre-mutation backup configuration (optional — backup disabled when absent). */
   backup?: BackupConfig | undefined;
 }
 
