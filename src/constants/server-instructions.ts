@@ -38,7 +38,7 @@ const CORE_INSTRUCTIONS = `# postgres-mcp (PostgreSQL MCP Server)
 | Health check    | \`pg_analyze_db_health\` tool |
 | Server info     | \`pg_server_version\` tool   |
 | Database schema | \`postgres://schema\` resource |
-| Audit log       | \`postgres://audit\` resource  |
+| Audit & Tokens  | \`postgres://audit\` resource  |
 | Tool help       | \`postgres://help\` resource   |
 
 ## Built-in Tools
@@ -287,6 +287,8 @@ Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unsched
 | \`pg_query_plan_compare\`       | \`{query1, query2, analysis, fullPlans}\`                                                                                                     | \`analysis.costDifference\` + \`recommendation\`                                                                                                                                                                                                           |
 | \`pg_unused_indexes\`           | \`{unusedIndexes, count, hint, truncated?, totalCount?}\`                                                                                     | Default 20 rows. \`summary: true\` → \`{summary, bySchema, totalCount}\`                                                                                                                                                                                   |
 | All tools                     | \`_meta.tokenEstimate\` in \`content[].text\`                                                                                                   | Every response wraps result with \`{ ...result, _meta: { tokenEstimate: N } }\`. Token cost heuristic: ~4 bytes/token (~4 chars). \`structuredContent\` stays schema-pure (no \`_meta\`). Code Mode adds \`metrics.tokenEstimate\` instead.                    |
+
+💡 **Token Optimization**: Monitor \`_meta.tokenEstimate\` on responses. For multi-step tasks or large result sets, use **Code Mode** (\`pg_execute_code\`) to execute logic server-side. Check \`postgres://audit\` for a full session token summary.
 
 ## API Mapping
 

@@ -69,6 +69,7 @@
   - Removed `continue-on-error: true` from Docker Hub description update in `docker-publish.yml`
 
 ### Changed
+- **Token Optimization Visibility**: Added token insight instructions to `gotchas.md` and updated `overview.md` Quick Access table to explicitly highlight the `postgres://audit` resource for session token usage. Added explicit instructions to `GEMINI.md` to establish token efficiency principles across agents.
 - **Default 30s statement timeout**: Connection pool now applies `statement_timeout = 30000` by default, preventing runaway agent queries from holding connections indefinitely. Explicit `statementTimeout: 0` disables it; any positive value overrides the default.
 - **Streaming tail-read for audit log**: `AuditLogger.recent()` now reads only the last 64 KB of the file via `open()` + positioned `read()` instead of loading the entire file into memory. Prevents O(n) memory spikes for large audit logs while maintaining identical output.
 - **Single-stringify token estimate**: `registerTool()` now serializes each tool response once with a placeholder `tokenEstimate: 0`, computes byte length from the serialized string, then patches the estimate via string replacement — eliminating a redundant `JSON.stringify(result)` call per tool invocation on both the outputSchema and standard text paths.
