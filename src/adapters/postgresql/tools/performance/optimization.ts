@@ -57,6 +57,7 @@ export function createPerformanceBaselineTool(
     annotations: readOnly("Performance Baseline"),
     icons: getToolIcons("performance", readOnly("Performance Baseline")),
     handler: async (params: unknown, _context: RequestContext) => {
+      try {
       const parsed = PerformanceBaselineSchema.parse(params);
       const baselineName =
         parsed.name ?? `baseline_${new Date().toISOString()}`;
@@ -123,6 +124,9 @@ export function createPerformanceBaselineTool(
           databaseSize: coerceRow(dbSize.rows?.[0]),
         },
       };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, { tool: "pg_performance_baseline" });
+      }
     },
   };
 }
@@ -140,6 +144,7 @@ export function createConnectionPoolOptimizeTool(
     annotations: readOnly("Connection Pool Optimize"),
     icons: getToolIcons("performance", readOnly("Connection Pool Optimize")),
     handler: async (_params: unknown, _context: RequestContext) => {
+      try {
       const [connStats, settings, waitEvents] = await Promise.all([
         adapter.executeQuery(`
                     SELECT
@@ -241,6 +246,9 @@ export function createConnectionPoolOptimizeTool(
             ? recommendations
             : ["Connection pool appears healthy"],
       };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, { tool: "pg_connection_pool_optimize" });
+      }
     },
   };
 }

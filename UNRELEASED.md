@@ -184,3 +184,9 @@
   - **Benchmark catch convention** (`__tests__/benchmarks/handler-dispatch.bench.ts`): `catch (e)` → `catch (error: unknown)`.
   - **vitest version floor** (`package.json`): Bumped `vitest` and `@vitest/coverage-v8` floor `^4.0.18` → `^4.1.0`.
   - **Code map updates** (`test-server/code-map.md`): Updated last-modified date; added missing `postgres://audit` row to the data resources table.
+
+- **Code quality audit (2026-03-24, pass 4)** — chore:
+  - **Missing error boundaries** (`core/health.ts`, `performance/optimization.ts`): Wrapped `pg_analyze_db_health`, `pg_performance_baseline`, and `pg_connection_pool_optimize` handlers in `try/catch (error: unknown)` returning `formatHandlerErrorResponse()`. Without these, Zod parse errors and DB failures surfaced as generic `INTERNAL_ERROR` from the SDK outer catch instead of structured `VALIDATION_ERROR` / `DATABASE_ERROR` responses with proper context.
+  - **`z.any()` replaced** (`performance/analysis.ts`): Replaced `z.any().optional()` on `minScans` and `limit` fields in `SeqScanTablesSchemaBase` with `z.preprocess(coerceNumber, z.number().optional())` — aligns with the project's fully-migrated coercion pattern.
+  - **Trailing blank lines** (`performance/analysis.ts`): Removed 3 trailing blank lines at end of file.
+  - **`coerceNumber` import** (`performance/analysis.ts`): Added import of `coerceNumber` from `utils/query-helpers.ts` to support the `z.preprocess` fix.

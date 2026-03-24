@@ -38,6 +38,7 @@ export function createAnalyzeDbHealthTool(
     annotations: readOnly("Analyze Database Health"),
     icons: getToolIcons("core", readOnly("Analyze Database Health")),
     handler: async (params: unknown, _context: RequestContext) => {
+      try {
       const { includeIndexes, includeVacuum, includeConnections } =
         AnalyzeDbHealthSchema.parse(params);
 
@@ -226,6 +227,9 @@ export function createAnalyzeDbHealthTool(
         score >= 80 ? "healthy" : score >= 60 ? "needs_attention" : "critical";
 
       return health;
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, { tool: "pg_analyze_db_health" });
+      }
     },
   };
 }
