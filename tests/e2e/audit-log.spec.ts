@@ -206,4 +206,137 @@ test.describe("Audit Log", () => {
       await rm(logPath, { force: true });
     }
   });
+
+  test("--audit-reads logs read-scoped tools with compact entries", async () => {
+    const port = AUDIT_PORT_BASE + 4;
+    const logPath = auditLogPath("reads");
+
+    await startServer(
+      port,
+      ["--audit-log", logPath, "--audit-reads", "--tool-filter", AUDIT_FILTER],
+      "audit-reads",
+    );
+
+    let client: Client | undefined;
+    try {
+      client = await createClient(`http://localhost:${port}`);
+
+      // Execute a read-scope tool (core group = read scope)
+      await callToolRaw(client, "pg_read_query", { sql: "SELECT 1 AS n" });
+
+      const entries = await readAuditLogWithRetry(logPath);
+      expect(entries.length).toBeGreaterThanOrEqual(1);
+
+      // Find the read entry
+      const readEntry = entries.find((e) => e.tool === "pg_read_query");
+      expect(readEntry).toBeDefined();
+      expect(readEntry!.category).toBe("read");
+      expect(readEntry!.success).toBe(true);
+
+      // Compact format: no args, user, scopes
+      expect(readEntry!.args).toBeUndefined();
+      expect(readEntry!.user).toBeUndefined();
+      expect(readEntry!.scopes).toBeUndefined();
+    } finally {
+      if (client) await client.close();
+      stopServer(port);
+      await rm(logPath, { force: true });
+    }
+  });
+
+  test("audit entries include tokenEstimate > 0", async () => {
+    const port = AUDIT_PORT_BASE + 5;
+    const logPath = auditLogPath("tokens");
+
+    await startServer(
+      port,
+      ["--audit-log", logPath, "--tool-filter", AUDIT_FILTER],
+      "audit-tokens",
+    );
+
+    let client: Client | undefined;
+    try {
+      client = await createClient(`http://localhost:${port}`);
+
+      // Begin a transaction (write scope) — should be logged with tokenEstimate
+      await callToolRaw(client, "pg_transaction_begin", {});
+
+      const entries = await readAuditLogWithRetry(logPath);
+      expect(entries.length).toBeGreaterThanOrEqual(1);
+
+      const entry = entries[entries.length - 1]!;
+      expect(entry.tool).toBe("pg_transaction_begin");
+      expect(typeof entry.tokenEstimate).toBe("number");
+      expect(entry.tokenEstimate as number).toBeGreaterThan(0);
+
+      // Rollback to clean up
+      await callToolRaw(client, "pg_transaction_rollback", {});
+    } finally {
+      if (client) await client.close();
+      stopServer(port);
+      await rm(logPath, { force: true });
+    }
+  });
+
+  test("postgres://audit resource includes summary block", async () => {
+    const port = AUDIT_PORT_BASE + 6;
+    const logPath = auditLogPath("summary");
+
+    await startServer(
+      port,
+      ["--audit-log", logPath, "--tool-filter", AUDIT_FILTER],
+      "audit-summary",
+    );
+
+    let client: Client | undefined;
+    try {
+      client = await createClient(`http://localhost:${port}`);
+
+      // Create an audit entry via a write-scope tool
+      await callToolRaw(client, "pg_transaction_begin", {});
+
+      // Wait for the server's async buffer to flush to disk
+      await readAuditLogWithRetry(logPath);
+
+      // Read the audit resource
+      const resource = await client.readResource({ uri: "postgres://audit" });
+      expect(resource.contents).toBeDefined();
+      expect(resource.contents.length).toBeGreaterThan(0);
+
+      const text = resource.contents[0]!.text!;
+      const body = JSON.parse(text) as {
+        summary: {
+          totalTokenEstimate: number;
+          callCount: number;
+          topToolsByTokens: Array<{ tool: string; calls: number; tokens: number }>;
+          note: string;
+        };
+        entries: Array<Record<string, unknown>>;
+        total: number;
+      };
+
+      // Verify summary block structure
+      expect(body.summary).toBeDefined();
+      expect(typeof body.summary.totalTokenEstimate).toBe("number");
+      expect(body.summary.totalTokenEstimate).toBeGreaterThan(0);
+      expect(body.summary.callCount).toBeGreaterThanOrEqual(1);
+      expect(Array.isArray(body.summary.topToolsByTokens)).toBe(true);
+      expect(body.summary.topToolsByTokens.length).toBeGreaterThanOrEqual(1);
+      expect(typeof body.summary.note).toBe("string");
+
+      // Verify top tools structure
+      const topTool = body.summary.topToolsByTokens[0]!;
+      expect(topTool.tool).toBe("pg_transaction_begin");
+      expect(topTool.calls).toBeGreaterThanOrEqual(1);
+      expect(topTool.tokens).toBeGreaterThan(0);
+
+      // Rollback to clean up
+      await callToolRaw(client, "pg_transaction_rollback", {});
+    } finally {
+      if (client) await client.close();
+      stopServer(port);
+      await rm(logPath, { force: true });
+    }
+  });
 });
+

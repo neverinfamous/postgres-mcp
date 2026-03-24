@@ -137,13 +137,11 @@ export function createAuditInterceptor(
             tool: toolName,
             category: "read" as AuditCategory,
             scope,
-            user: null,
-            scopes: [],
             durationMs,
             success,
             error,
             tokenEstimate,
-          });
+          } as Parameters<typeof auditLogger.log>[0]);
         } else {
           auditLogger.log({
             timestamp: new Date().toISOString(),

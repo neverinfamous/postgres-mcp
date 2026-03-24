@@ -287,4 +287,52 @@ describe("AuditLogger", () => {
       }
     });
   });
+
+  describe("log rotation", () => {
+    it("should rotate the log file when maxSizeBytes is exceeded", async () => {
+      const logPath = join(dir, "audit.jsonl");
+      const logger = new AuditLogger({
+        enabled: true,
+        logPath,
+        redact: false,
+        auditReads: false,
+        maxSizeBytes: 500, // Very low limit to trigger rotation
+      });
+
+      // Write enough entries to exceed 500 bytes
+      for (let i = 0; i < 10; i++) {
+        logger.log(
+          fakeEntry({
+            tool: `pg_write_query`,
+            requestId: `rotation-${String(i)}`,
+          }),
+        );
+      }
+      await logger.flush();
+
+      // Write more to trigger rotation on next flush
+      for (let i = 10; i < 12; i++) {
+        logger.log(
+          fakeEntry({
+            tool: `pg_write_query`,
+            requestId: `rotation-${String(i)}`,
+          }),
+        );
+      }
+      await logger.flush();
+
+      // The rotated file should exist
+      const { stat } = await import("node:fs/promises");
+      const rotatedPath = `${logPath}.1`;
+      const rotatedStat = await stat(rotatedPath);
+      expect(rotatedStat.size).toBeGreaterThan(0);
+
+      // The current log should be smaller than the rotated one
+      // (it contains only the 2 entries written after rotation)
+      const currentStat = await stat(logPath);
+      expect(currentStat.size).toBeLessThan(rotatedStat.size);
+
+      await logger.close();
+    });
+  });
 });

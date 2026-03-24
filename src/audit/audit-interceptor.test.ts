@@ -46,6 +46,8 @@ describe("AuditInterceptor", () => {
       enabled: true,
       logPath: join(dir, "audit.jsonl"),
       redact: false,
+      auditReads: false,
+      maxSizeBytes: 0,
     });
     vi.clearAllMocks();
   });
@@ -225,6 +227,8 @@ describe("AuditInterceptor", () => {
       enabled: true,
       logPath: join(dir, "audit-redacted.jsonl"),
       redact: true,
+      auditReads: false,
+      maxSizeBytes: 0,
     });
 
     mockGetRequiredScope.mockReturnValue("write");
@@ -265,5 +269,102 @@ describe("AuditInterceptor", () => {
     );
 
     expect(result).toBe(expected); // Same reference — not cloned
+  });
+
+  it("should include tokenEstimate on write tool entries", async () => {
+    mockGetRequiredScope.mockReturnValue("write");
+    mockGetAuthContext.mockReturnValue(undefined);
+
+    const interceptor = createAuditInterceptor(logger);
+    await interceptor.around(
+      "pg_write_query",
+      { sql: "INSERT INTO t VALUES (1)" },
+      "req-010",
+      async () => ({ rowsAffected: 1, success: true }),
+    );
+    await logger.flush();
+
+    const content = await readFile(join(dir, "audit.jsonl"), "utf-8");
+    const entry = JSON.parse(content.trim()) as AuditEntry;
+
+    expect(typeof entry.tokenEstimate).toBe("number");
+    expect(entry.tokenEstimate).toBeGreaterThan(0);
+  });
+
+  it("should log read-scoped tools when auditReads is enabled", async () => {
+    await logger.close();
+    logger = new AuditLogger({
+      enabled: true,
+      logPath: join(dir, "audit-reads.jsonl"),
+      redact: false,
+      auditReads: true,
+      maxSizeBytes: 0,
+    });
+
+    mockGetRequiredScope.mockReturnValue("read");
+    mockGetAuthContext.mockReturnValue(undefined);
+
+    const interceptor = createAuditInterceptor(logger);
+    await interceptor.around(
+      "pg_read_query",
+      { sql: "SELECT 1" },
+      "req-011",
+      async () => ({ rows: [{ n: 1 }] }),
+    );
+    await logger.flush();
+
+    const content = await readFile(join(dir, "audit-reads.jsonl"), "utf-8");
+    const entry = JSON.parse(content.trim()) as AuditEntry;
+
+    expect(entry.tool).toBe("pg_read_query");
+    expect(entry.category).toBe("read");
+    expect(entry.success).toBe(true);
+    expect(typeof entry.tokenEstimate).toBe("number");
+    expect(entry.tokenEstimate).toBeGreaterThan(0);
+  });
+
+  it("should use compact format for read entries (no args, user, scopes)", async () => {
+    await logger.close();
+    logger = new AuditLogger({
+      enabled: true,
+      logPath: join(dir, "audit-compact.jsonl"),
+      redact: false,
+      auditReads: true,
+      maxSizeBytes: 0,
+    });
+
+    mockGetRequiredScope.mockReturnValue("read");
+    mockGetAuthContext.mockReturnValue({
+      authenticated: true,
+      claims: {
+        sub: "bob@team.com",
+        scopes: ["read"],
+        exp: Date.now() / 1000 + 3600,
+        iat: Date.now() / 1000,
+      },
+      scopes: ["read"],
+    });
+
+    const interceptor = createAuditInterceptor(logger);
+    await interceptor.around(
+      "pg_list_tables",
+      {},
+      "req-012",
+      async () => ({ tables: ["users"] }),
+    );
+    await logger.flush();
+
+    const content = await readFile(join(dir, "audit-compact.jsonl"), "utf-8");
+    const entry = JSON.parse(content.trim()) as AuditEntry;
+
+    // Compact format omits args, user, scopes
+    expect(entry.args).toBeUndefined();
+    expect(entry.user).toBeUndefined();
+    expect(entry.scopes).toBeUndefined();
+    // But retains essential fields
+    expect(entry.tool).toBe("pg_list_tables");
+    expect(entry.category).toBe("read");
+    expect(entry.success).toBe(true);
+    expect(entry.tokenEstimate).toBeGreaterThan(0);
   });
 });
