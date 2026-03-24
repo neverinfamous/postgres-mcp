@@ -13,6 +13,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   // Base schemas for MCP visibility
@@ -168,7 +169,7 @@ export function createStatsCorrelationTool(
         );
         const row = result.rows?.[0];
 
-        if (!row) throw new Error("No correlation data found");
+        if (!row) throw new ValidationError("No correlation data found");
 
         const response: Record<string, unknown> = {
           table: `${schema ?? "public"}.${table}`,

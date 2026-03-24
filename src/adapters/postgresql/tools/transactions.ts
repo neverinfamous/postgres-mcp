@@ -11,6 +11,7 @@ import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "./core/error-helpers.js";
+import { ValidationError } from "../../../types/errors.js";
 import {
   BeginTransactionSchemaBase,
   BeginTransactionSchema,
@@ -321,7 +322,7 @@ function createTransactionExecuteTool(
       try {
         const client = adapter.getTransactionConnection(txId);
         if (!client) {
-          throw new Error(
+          throw new ValidationError(
             isJoiningExisting
               ? `Transaction not found: ${txId}`
               : "Transaction connection lost",

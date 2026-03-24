@@ -172,4 +172,8 @@
 - **Code quality audit (2026-03-24)** — chore:
   - **Type safety**: Replaced two `error as Error` unsafe casts in `postgres-adapter.ts` (`executeQuery`, `executeOnConnection`) with `instanceof Error` guard — prevents `"Query failed: undefined"` if pg internals throw a non-Error value
   - **Named constants**: Extracted four magic byte-limit literals from `cli.ts` into `audit/types.ts` (`DEFAULT_AUDIT_LOG_MAX_SIZE_BYTES` = 10MB, `DEFAULT_AUDIT_BACKUP_MAX_DATA_SIZE_BYTES` = 50MB, `DEFAULT_AUDIT_BACKUP_MAX_AGE_DAYS` = 30, `DEFAULT_AUDIT_BACKUP_MAX_COUNT` = 1000); exported via `audit/index.ts` barrel
+- **Code quality audit (2026-03-24, pass 2)** — chore:
+  - **Typed error propagation**: Replaced 12 `throw new Error()` calls in handler helper functions with `throw new ValidationError()` across 7 files (`stats/validators.ts`, `stats/math-utils.ts`, `stats/time-series.ts`, `stats/descriptive.ts`, `stats/basic.ts`, `jsonb/transform.ts`, `performance/explain.ts`, `transactions.ts`) — errors now carry `VALIDATION_ERROR` code (auto-refined to `TABLE_NOT_FOUND`/`COLUMN_NOT_FOUND`) instead of `UNKNOWN_ERROR` in structured responses
+  - **Removed deprecated `INSTRUCTIONS` export**: Deleted the `@deprecated INSTRUCTIONS = CORE_INSTRUCTIONS` constant from `constants/server-instructions.ts` — no callers existed; symbol risked confusing future contributors into using static text instead of `generateInstructions()`
+  - **Removed redundant `outputSchema` tolerance test**: Deleted the `>= 0.95` coverage floor test from `tool-output-schemas.test.ts`; it was superseded by the zero-tolerance `should have outputSchema on all tools` test in the same file and its misleading "5% tolerance" comment contradicted the strict enforcement already in place
 

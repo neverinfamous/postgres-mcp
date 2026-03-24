@@ -13,6 +13,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   sanitizeIdentifier,
@@ -204,15 +205,15 @@ function parseMergeParams(params: unknown): {
   }
 
   if (base === undefined) {
-    throw new Error("pg_jsonb_merge requires base document");
+    throw new ValidationError("pg_jsonb_merge requires base document");
   }
   if (overlay === undefined) {
-    throw new Error("pg_jsonb_merge requires overlay document");
+    throw new ValidationError("pg_jsonb_merge requires overlay document");
   }
 
   // Validate base and overlay are objects (not primitives or arrays)
   if (typeof base !== "object" || base === null || Array.isArray(base)) {
-    throw new Error(
+    throw new ValidationError(
       "pg_jsonb_merge base must be an object. For arrays or primitives, use pg_jsonb_set.",
     );
   }
@@ -221,7 +222,7 @@ function parseMergeParams(params: unknown): {
     overlay === null ||
     Array.isArray(overlay)
   ) {
-    throw new Error(
+    throw new ValidationError(
       "pg_jsonb_merge overlay must be an object. For arrays or primitives, use pg_jsonb_set.",
     );
   }

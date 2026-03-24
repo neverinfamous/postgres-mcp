@@ -14,6 +14,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   ExplainSchema,
   ExplainSchemaBase,
@@ -37,7 +38,7 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
           params: queryParams,
         } = ExplainSchema.parse(params);
         if (!sql) {
-          throw new Error("Missing required parameter: sql (or query alias)");
+          throw new ValidationError("Missing required parameter: sql (or query alias)");
         }
         const fmt = format ?? "text";
         const explainSql = `EXPLAIN (FORMAT ${fmt.toUpperCase()}) ${sql}`;
@@ -78,7 +79,7 @@ export function createExplainAnalyzeTool(
           params: queryParams,
         } = ExplainSchema.parse(params);
         if (!sql) {
-          throw new Error("Missing required parameter: sql (or query alias)");
+          throw new ValidationError("Missing required parameter: sql (or query alias)");
         }
         const fmt = format ?? "text";
         const explainSql = `EXPLAIN (ANALYZE, FORMAT ${fmt.toUpperCase()}) ${sql}`;
@@ -119,7 +120,7 @@ export function createExplainBuffersTool(
           params: queryParams,
         } = ExplainSchema.parse(params);
         if (!sql) {
-          throw new Error("Missing required parameter: sql (or query alias)");
+          throw new ValidationError("Missing required parameter: sql (or query alias)");
         }
         const fmt = format ?? "json";
         const explainSql = `EXPLAIN (ANALYZE, BUFFERS, FORMAT ${fmt.toUpperCase()}) ${sql}`;

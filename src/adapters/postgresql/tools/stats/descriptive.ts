@@ -13,6 +13,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   // Base schemas for MCP visibility
@@ -91,9 +92,9 @@ export function createStatsDescriptiveTool(
             table,
           ]);
           if (tableResult.rows?.length === 0) {
-            throw new Error(`Table "${schema ?? "public"}.${table}" not found`);
+            throw new ValidationError(`Table "${schema ?? "public"}.${table}" not found`);
           }
-          throw new Error(
+          throw new ValidationError(
             `Column "${column}" not found in table "${schema ?? "public"}.${table}"`,
           );
         }
@@ -109,7 +110,7 @@ export function createStatsDescriptiveTool(
           "money",
         ];
         if (!numericTypes.includes(typeRow.data_type)) {
-          throw new Error(
+          throw new ValidationError(
             `Column "${column}" is type "${typeRow.data_type}" but must be a numeric type for statistical analysis`,
           );
         }
@@ -204,7 +205,7 @@ export function createStatsDescriptiveTool(
         );
         const stats = result.rows?.[0];
 
-        if (!stats) throw new Error("No stats found");
+        if (!stats) throw new ValidationError("No stats found");
 
         return {
           table: `${schema ?? "public"}.${table}`,

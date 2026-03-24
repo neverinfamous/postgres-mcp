@@ -57,12 +57,4 @@ describe("Tool Output Schema Invariants", () => {
       `Schemas rejecting error payloads: ${failures.join(", ")}`,
     ).toBe(0);
   });
-
-  it("no orphan tools without outputSchema among 200+ tool servers", () => {
-    const total = tools.length;
-    const withSchema = tools.filter((t) => t.outputSchema).length;
-    // Allow up to 5% without outputSchema (legacy or special-purpose tools)
-    const coverage = withSchema / total;
-    expect(coverage).toBeGreaterThanOrEqual(0.95);
-  });
 });

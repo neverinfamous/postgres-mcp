@@ -12,6 +12,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   // Base schemas for MCP visibility
@@ -90,7 +91,7 @@ export function createStatsTimeSeriesTool(
           table,
         ]);
         if (tableCheckResult.rows?.length === 0) {
-          throw new Error(`Table "${schemaName}.${table}" not found`);
+          throw new ValidationError(`Table "${schemaName}.${table}" not found`);
         }
 
         // Validate timeColumn is a timestamp/date type
@@ -111,7 +112,7 @@ export function createStatsTimeSeriesTool(
           | undefined;
 
         if (!typeRow) {
-          throw new Error(
+          throw new ValidationError(
             `Column "${timeColumn}" not found in table "${schemaName}.${table}"`,
           );
         }
@@ -125,7 +126,7 @@ export function createStatsTimeSeriesTool(
           "time with time zone",
         ];
         if (!validTypes.includes(typeRow.data_type)) {
-          throw new Error(
+          throw new ValidationError(
             `Column "${timeColumn}" is type "${typeRow.data_type}" but must be a timestamp or date type for time series analysis`,
           );
         }
@@ -160,13 +161,13 @@ export function createStatsTimeSeriesTool(
           | undefined;
 
         if (!valueTypeRow) {
-          throw new Error(
+          throw new ValidationError(
             `Column "${valueColumn}" not found in table "${schemaName}.${table}"`,
           );
         }
 
         if (!numericTypes.includes(valueTypeRow.data_type)) {
-          throw new Error(
+          throw new ValidationError(
             `Column "${valueColumn}" is type "${valueTypeRow.data_type}" but must be a numeric type for time series aggregation`,
           );
         }

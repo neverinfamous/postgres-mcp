@@ -5,6 +5,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
+import { ValidationError } from "../../../../types/errors.js";
 
 /**
  * Numeric types supported by PostgreSQL statistical functions.
@@ -55,15 +56,15 @@ export async function validateNumericColumn(
       table,
     ]);
     if (tableResult.rows?.length === 0) {
-      throw new Error(`Table "${schema}.${table}" not found`);
+      throw new ValidationError(`Table "${schema}.${table}" not found`);
     }
-    throw new Error(
+    throw new ValidationError(
       `Column "${column}" not found in table "${schema}.${table}"`,
     );
   }
 
   if (!NUMERIC_TYPES.includes(typeRow.data_type)) {
-    throw new Error(
+    throw new ValidationError(
       `Column "${column}" is type "${typeRow.data_type}" but must be a numeric type for statistical analysis`,
     );
   }
