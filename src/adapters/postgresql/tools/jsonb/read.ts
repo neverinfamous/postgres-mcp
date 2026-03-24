@@ -14,6 +14,7 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
+import { coerceLimit, DEFAULT_QUERY_LIMIT } from "../../../../utils/query-helpers.js";
 import {
   sanitizeTableName,
   sanitizeIdentifier,
@@ -85,18 +86,12 @@ export function createJsonbExtractTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = JsonbExtractSchema.parse(params);
-        const rawLimit = Number(parsed.limit);
-        const limit =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
+        const limit = coerceLimit(parsed.limit, undefined);
         const whereClause = parsed.where
           ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
         const limitClause =
-          limit !== undefined ? ` LIMIT ${String(limit)}` : "";
+          limit !== null && limit !== undefined ? ` LIMIT ${String(limit)}` : "";
 
         // After preprocess and refine, table, column, and path are guaranteed set
         const table = parsed.table ?? parsed.tableName;
@@ -225,17 +220,9 @@ export function createJsonbContainsTool(
         // Parse JSON string values from MCP clients
         const value = parseJsonbValue(parsed.value);
 
-        // Apply default limit (100) to prevent large payloads
-        const DEFAULT_LIMIT = 100;
-        const rawLimit = Number(parsed.limit);
-        const requestedLimit =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
-        const effectiveLimit =
-          requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
+        // Coerce limit (default 100, 0 = unlimited)
+        const resolvedLimit = coerceLimit(parsed.limit, DEFAULT_QUERY_LIMIT);
+        const effectiveLimit = resolvedLimit ?? 0;
 
         const selectCols =
           select !== undefined && select.length > 0
@@ -351,17 +338,9 @@ export function createJsonbPathQueryTool(
         const whereClause = where ? ` WHERE ${sanitizeWhereClause(where)}` : "";
         const varsJson = vars ? JSON.stringify(vars) : "{}";
 
-        // Apply default limit (100) to prevent large payloads
-        const DEFAULT_LIMIT = 100;
-        const rawLimit = Number(parsed.limit);
-        const requestedLimit =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
-        const effectiveLimit =
-          requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
+        // Coerce limit (default 100, 0 = unlimited)
+        const resolvedLimit = coerceLimit(parsed.limit, DEFAULT_QUERY_LIMIT);
+        const effectiveLimit = resolvedLimit ?? 0;
 
         const baseSql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
 

@@ -174,6 +174,7 @@ export class BackupManager {
       snapshots.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
       return snapshots;
     } catch {
+      // Intentional: listSnapshots is best-effort — return empty on error
       return [];
     }
   }
@@ -187,6 +188,7 @@ export class BackupManager {
       const safe = basename(filename);
       return await this.readSnapshotFile(safe);
     } catch {
+      // Intentional: getSnapshot is best-effort — return null on corrupt/missing file
       return null;
     }
   }
@@ -245,6 +247,7 @@ export class BackupManager {
 
       return deleted;
     } catch {
+      // Intentional: cleanup is best-effort — don't fail on inaccessible directory
       return 0;
     }
   }
@@ -289,6 +292,7 @@ export class BackupManager {
         totalSizeKB: Math.round(totalSize / 1024),
       };
     } catch {
+      // Intentional: stats gathering is best-effort — return zero counts
       return { count: 0, totalSizeKB: 0 };
     }
   }
@@ -529,6 +533,7 @@ export class BackupManager {
       await mkdir(this.snapshotDir, { recursive: true });
       this.dirEnsured = true;
     } catch {
+      // Intentional: directory already exists or permission error — proceed regardless
       this.dirEnsured = true;
     }
   }

@@ -149,3 +149,5 @@
   - Added `: unknown` annotation to 4 inner `catch (e)` blocks across `operations.ts`, `management.ts`, `health-analysis.ts`, `create.ts` — aligns with project-wide `catch (error: unknown)` convention
   - Extracted `DEFAULT_PARTMAN_LIMIT = 50` to `helpers.ts`, replacing 3 inline declarations across `management.ts` and `health-analysis.ts`
   - Added `sanitizePartmanTableName()` in `helpers.ts` — rejects single quotes and semicolons in table names passed to pg_partman's non-parameterizable named-argument syntax
+- **JSONB limit coercion dedup** (audit fix): Replaced 3 inline limit coercion blocks in `jsonb/read.ts` (`pg_jsonb_extract`, `pg_jsonb_contains`, `pg_jsonb_path_query`) with `coerceLimit()` + `DEFAULT_QUERY_LIMIT` from `query-helpers.ts`, eliminating ~18 lines of duplicated logic and 2 redeclared constants
+- **Catch block documentation** (audit fix): Added explanatory comments to 5 empty `catch {}` blocks in `audit/backup-manager.ts` that lacked documentation of their non-throwing design intent
