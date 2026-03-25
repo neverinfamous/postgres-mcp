@@ -58,30 +58,12 @@ import {
   cleanupTransaction as txCleanup,
 } from "./transaction-operations.js";
 
-import { getCoreTools } from "./tools/core/index.js";
-import { getTransactionTools } from "./tools/transactions.js";
-import { getJsonbTools } from "./tools/jsonb/index.js";
-import { getTextTools } from "./tools/text/index.js";
-import { getPerformanceTools } from "./tools/performance/index.js";
-import { getAdminTools } from "./tools/admin/index.js";
-import { getMonitoringTools } from "./tools/monitoring/index.js";
-import { getBackupTools } from "./tools/backup/index.js";
-import { getSchemaTools } from "./tools/schema/index.js";
-import { getVectorTools } from "./tools/vector/index.js";
-import { getPostgisTools } from "./tools/postgis/index.js";
-import { getPartitioningTools } from "./tools/partitioning/index.js";
-import { getStatsTools } from "./tools/stats/index.js";
-import { getCronTools } from "./tools/cron/index.js";
-import { getPartmanTools } from "./tools/partman/index.js";
-import { getKcacheTools } from "./tools/kcache/index.js";
-import { getCitextTools } from "./tools/citext/index.js";
-import { getLtreeTools } from "./tools/ltree/index.js";
-import { getPgcryptoTools } from "./tools/pgcrypto.js";
-import { getIntrospectionTools } from "./tools/introspection/index.js";
-import { getMigrationTools } from "./tools/migration/index.js";
-import { getCodeModeTools } from "./tools/codemode/index.js";
-import { getPostgresResources } from "./resources/index.js";
-import { getPostgresPrompts } from "./prompts/index.js";
+import {
+  getSupportedPostgresToolGroups,
+  buildPostgresToolDefinitions,
+  buildPostgresResourceDefinitions,
+  buildPostgresPromptDefinitions,
+} from "./tool-registry.js";
 import type { BackupManager } from "../../audit/backup-manager.js";
 
 export class PostgresAdapter extends DatabaseAdapter {
@@ -446,30 +428,7 @@ export class PostgresAdapter extends DatabaseAdapter {
   }
 
   getSupportedToolGroups(): ToolGroup[] {
-    return [
-      "core",
-      "transactions",
-      "jsonb",
-      "text",
-      "performance",
-      "admin",
-      "monitoring",
-      "backup",
-      "schema",
-      "vector",
-      "postgis",
-      "partitioning",
-      "stats",
-      "cron",
-      "partman",
-      "kcache",
-      "citext",
-      "ltree",
-      "pgcrypto",
-      "introspection",
-      "migration",
-      "codemode",
-    ];
+    return getSupportedPostgresToolGroups();
   }
 
   // =========================================================================
@@ -482,40 +441,20 @@ export class PostgresAdapter extends DatabaseAdapter {
       return this.cachedToolDefinitions;
     }
 
-    this.cachedToolDefinitions = [
-      ...getCoreTools(this),
-      ...getTransactionTools(this),
-      ...getJsonbTools(this),
-      ...getTextTools(this),
-      ...getPerformanceTools(this),
-      ...getAdminTools(this),
-      ...getMonitoringTools(this),
-      ...getBackupTools(this, this.backupManager),
-      ...getSchemaTools(this),
-      ...getVectorTools(this),
-      ...getPostgisTools(this),
-      ...getPartitioningTools(this),
-      ...getStatsTools(this),
-      ...getCronTools(this),
-      ...getPartmanTools(this),
-      ...getKcacheTools(this),
-      ...getCitextTools(this),
-      ...getLtreeTools(this),
-      ...getPgcryptoTools(this),
-      ...getIntrospectionTools(this),
-      ...getMigrationTools(this),
-      ...getCodeModeTools(this),
-    ];
+    this.cachedToolDefinitions = buildPostgresToolDefinitions(
+      this,
+      this.backupManager,
+    );
 
     return this.cachedToolDefinitions;
   }
 
   getResourceDefinitions(): ResourceDefinition[] {
-    return getPostgresResources(this);
+    return buildPostgresResourceDefinitions(this);
   }
 
   getPromptDefinitions(): PromptDefinition[] {
-    return getPostgresPrompts(this);
+    return buildPostgresPromptDefinitions(this);
   }
 
   // =========================================================================

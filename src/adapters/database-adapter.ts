@@ -6,8 +6,6 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { z } from "zod";
-import { logger } from "../utils/logger.js";
 import type {
   DatabaseType,
   DatabaseConfig,
@@ -22,9 +20,11 @@ import type {
   RequestContext,
   ToolGroup,
 } from "../types/index.js";
-import { getAuthContext } from "../auth/auth-context.js";
-import { getRequiredScope } from "../auth/scope-map.js";
-import { requireScope } from "../auth/middleware.js";
+import {
+  registerAdapterTools,
+  registerAdapterResources,
+  registerAdapterPrompts,
+} from "./mcp-registry.js";
 import type { AuditInterceptor } from "../audit/index.js";
 import { validateQuery as doValidateQuery } from "../utils/query-validation.js";
 
@@ -185,296 +185,21 @@ export abstract class DatabaseAdapter {
    * @param enabledTools - Set of enabled tool names (from filtering)
    */
   registerTools(server: McpServer, enabledTools: Set<string>): void {
-    const tools = this.getToolDefinitions();
-    let registered = 0;
-
-    for (const tool of tools) {
-      if (enabledTools.has(tool.name)) {
-        this.registerTool(server, tool);
-        registered++;
-      }
-    }
-
-    logger.info(
-      `Registered ${String(registered)}/${String(tools.length)} tools from ${this.name}`,
-      { module: "SERVER" },
-    );
-  }
-
-  /**
-   * Register a single tool with the MCP server
-   * Uses modern registerTool() API for MCP 2025-11-25 compliance
-   */
-  protected registerTool(server: McpServer, tool: ToolDefinition): void {
-    // Build tool options for registerTool()
-    const toolOptions: Record<string, unknown> = {
-      description: tool.description,
-    };
-
-    // MCP 2025-11-25: title is a top-level tool field, not inside annotations
-    if (tool.annotations?.title) {
-      toolOptions["title"] = tool.annotations.title;
-    }
-
-    // Pass full inputSchema (not just .shape) for proper validation
-    if (tool.inputSchema !== undefined) {
-      toolOptions["inputSchema"] = tool.inputSchema;
-    }
-
-    // MCP 2025-11-25: Pass outputSchema for structured responses
-    if (tool.outputSchema !== undefined) {
-      toolOptions["outputSchema"] = tool.outputSchema;
-    }
-
-    // MCP 2025-11-25: Pass annotations for behavioral hints
-    if (tool.annotations) {
-      toolOptions["annotations"] = tool.annotations;
-    }
-
-    // Pass icons if defined (SDK 1.25+)
-    if (tool.icons && tool.icons.length > 0) {
-      toolOptions["icons"] = tool.icons;
-    }
-
-    // Track whether tool has outputSchema for response handling
-    const hasOutputSchema = Boolean(tool.outputSchema);
-
-    server.registerTool(
-      tool.name,
-      toolOptions as {
-        description?: string;
-        inputSchema?: z.ZodType;
-        outputSchema?: z.ZodType;
-      },
-      async (args: unknown, extra: unknown) => {
-        try {
-          // Enforce OAuth scope if auth context is present
-          const authCtx = getAuthContext();
-          if (authCtx?.authenticated) {
-            const requiredScope = getRequiredScope(tool.name);
-            requireScope(authCtx, requiredScope);
-          }
-
-          // Extract progressToken from extra._meta (SDK passes RequestHandlerExtra)
-          const extraMeta = extra as {
-            _meta?: { progressToken?: string | number };
-          };
-          const progressToken = extraMeta?._meta?.progressToken;
-
-          // Create context with progress support
-          const context = this.createContext(undefined, server, progressToken);
-          const result = this.auditInterceptor
-            ? await this.auditInterceptor.around(
-                tool.name,
-                args,
-                context.requestId,
-                () => tool.handler(args, context),
-              )
-            : await tool.handler(args, context);
-
-          // MCP 2025-11-25: Return structuredContent if outputSchema present
-          // P154 errors ({success: false, error: "..."}) are sent as structuredContent
-          // rather than isError: true, so AG receives parseable structured JSON.
-          // All output schemas accommodate both success and error shapes.
-          // _meta is injected into text only — structuredContent stays schema-pure.
-          if (hasOutputSchema) {
-            // Serialize once with placeholder, compute byte length, then
-            // patch the estimate via string replacement (~4 bytes per token).
-            const enriched = JSON.stringify({
-              ...(result as object),
-              _meta: { tokenEstimate: 0 },
-            });
-            const tokenEstimate = Math.ceil(
-              Buffer.byteLength(enriched, "utf8") / 4,
-            );
-            const finalText = enriched.replace(
-              '"tokenEstimate":0',
-              `"tokenEstimate":${String(tokenEstimate)}`,
-            );
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: finalText,
-                },
-              ],
-              structuredContent: result as Record<string, unknown>,
-            };
-          }
-
-          // Standard text content response
-          if (typeof result === "object" && result !== null) {
-            // Single serialize with _meta included, then compute token
-            // estimate from the already-serialized string.
-            const withMeta = JSON.stringify(
-              { ...result, _meta: { tokenEstimate: 0 } },
-              null,
-              2,
-            );
-            const tokenEstimate = Math.ceil(
-              Buffer.byteLength(withMeta, "utf8") / 4,
-            );
-            const finalText = withMeta.replace(
-              '"tokenEstimate": 0',
-              `"tokenEstimate": ${String(tokenEstimate)}`,
-            );
-            return {
-              content: [{ type: "text" as const, text: finalText }],
-            };
-          }
-          // Plain strings pass through unchanged
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text:
-                  typeof result === "string"
-                    ? result
-                    : JSON.stringify(result, null, 2),
-              },
-            ],
-          };
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-
-          if (hasOutputSchema) {
-            const errorResult = {
-              success: false,
-              error: errorMessage,
-              code: "INTERNAL_ERROR",
-              category: "internal",
-              recoverable: false,
-            };
-            return {
-              content: [
-                {
-                  type: "text" as const,
-                  text: JSON.stringify(errorResult),
-                },
-              ],
-              structuredContent: errorResult,
-              isError: true,
-            };
-          }
-
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: `Error: ${errorMessage}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      },
-    );
+    registerAdapterTools(this, server, enabledTools);
   }
 
   /**
    * Register resources with the MCP server
    */
   registerResources(server: McpServer): void {
-    const resources = this.getResourceDefinitions();
-    for (const resource of resources) {
-      this.registerResource(server, resource);
-    }
-    logger.info(
-      `Registered ${String(resources.length)} resources from ${this.name}`,
-      { module: "SERVER" },
-    );
-  }
-
-  /**
-   * Register a single resource with the MCP server
-   */
-  protected registerResource(
-    server: McpServer,
-    resource: ResourceDefinition,
-  ): void {
-    server.registerResource(
-      resource.name,
-      resource.uri,
-      {
-        description: resource.description,
-        mimeType: resource.mimeType ?? "application/json",
-        // Pass annotations if defined (SDK 1.25+)
-        ...(resource.annotations && { annotations: resource.annotations }),
-      },
-      async (uri: URL) => {
-        const context = this.createContext();
-        const result = await resource.handler(uri.toString(), context);
-        return {
-          contents: [
-            {
-              uri: uri.toString(),
-              mimeType: resource.mimeType ?? "application/json",
-              text:
-                typeof result === "string"
-                  ? result
-                  : JSON.stringify(result, null, 2),
-              // Include annotations in contents response for resource reads
-              ...(resource.annotations && {
-                annotations: resource.annotations,
-              }),
-            },
-          ],
-        };
-      },
-    );
+    registerAdapterResources(this, server);
   }
 
   /**
    * Register prompts with the MCP server
    */
   registerPrompts(server: McpServer): void {
-    const prompts = this.getPromptDefinitions();
-    for (const prompt of prompts) {
-      this.registerPrompt(server, prompt);
-    }
-    logger.info(
-      `Registered ${String(prompts.length)} prompts from ${this.name}`,
-      { module: "SERVER" },
-    );
-  }
-
-  /**
-   * Register a single prompt with the MCP server
-   */
-  protected registerPrompt(server: McpServer, prompt: PromptDefinition): void {
-    // Never set argsSchema on prompts.
-    //
-    // SDK gotcha: argsSchema triggers z.object(shape).parse(request.params.arguments)
-    // which rejects `undefined`. Current MCP clients (AntiGravity/Go) always send
-    // `undefined` for the arguments field in prompts/get requests, even when the user
-    // provides args inline (e.g., `/pg_query_builder tables:users operation:JOIN`).
-    // Without argsSchema, the SDK uses the no-args callback path: cb(extra).
-    //
-    // All prompt handlers already gracefully default missing args via ?? "".
-    server.registerPrompt(
-      prompt.name,
-      { description: prompt.description },
-      async (providedArgs) => {
-        const context = this.createContext();
-        const args = (providedArgs ?? {}) as Record<string, string>;
-        const result = await prompt.handler(args, context);
-        return {
-          messages: [
-            {
-              role: "user" as const,
-              content: {
-                type: "text" as const,
-                text:
-                  typeof result === "string"
-                    ? result
-                    : JSON.stringify(result, null, 2),
-              },
-            },
-          ],
-        };
-      },
-    );
+    registerAdapterPrompts(this, server);
   }
 
   /**

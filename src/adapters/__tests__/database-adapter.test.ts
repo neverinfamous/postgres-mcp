@@ -10,6 +10,12 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DatabaseAdapter } from "../database-adapter.js";
+import {
+  registerSingleTool,
+  registerSingleResource,
+  registerSinglePrompt,
+} from "../mcp-registry.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type {
   DatabaseConfig,
   QueryResult,
@@ -144,21 +150,15 @@ class TestAdapter extends DatabaseAdapter {
 
   // Expose protected method for testing
   testRegisterTool(server: unknown, tool: ToolDefinition): void {
-    this.registerTool(server as Parameters<typeof this.registerTool>[0], tool);
+    registerSingleTool(this, server as McpServer, tool);
   }
 
   testRegisterResource(server: unknown, resource: ResourceDefinition): void {
-    this.registerResource(
-      server as Parameters<typeof this.registerResource>[0],
-      resource,
-    );
+    registerSingleResource(this, server as McpServer, resource);
   }
 
   testRegisterPrompt(server: unknown, prompt: PromptDefinition): void {
-    this.registerPrompt(
-      server as Parameters<typeof this.registerPrompt>[0],
-      prompt,
-    );
+    registerSinglePrompt(this, server as McpServer, prompt);
   }
 }
 
