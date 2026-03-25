@@ -15,11 +15,13 @@ import { toolNameToMethodName } from "../../../../codemode/api/group-api.js";
 import type { ExecuteCodeOptions } from "../../../../codemode/types.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { ErrorResponseFields } from "../../schemas/error-response-fields.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 
 // Schema for pg_execute_code input
-export const ExecuteCodeSchema = z.object({
+export const ExecuteCodeSchemaBase = z.object({
   code: z
     .string()
+    .optional()
     .describe(
       "TypeScript/JavaScript code to execute. Use pg.{group}.{method}() for database operations.",
     ),
@@ -31,6 +33,31 @@ export const ExecuteCodeSchema = z.object({
     .boolean()
     .optional()
     .describe("If true, restricts to read-only operations"),
+});
+
+const ExecuteCodeParseSchema = z.object({
+  code: z
+    .string()
+    .optional()
+    .describe(
+      "TypeScript/JavaScript code to execute. Use pg.{group}.{method}() for database operations.",
+    ),
+  timeout: z
+    .number()
+    .optional()
+    .describe("Execution timeout in milliseconds (max 30000, default 30000)"),
+  readonly: z
+    .boolean()
+    .optional()
+    .describe("If true, restricts to read-only operations"),
+});
+
+export const ExecuteCodeSchema = ExecuteCodeParseSchema.transform((data) => ({
+  code: data.code ?? "",
+  timeout: data.timeout,
+  readonly: data.readonly,
+})).refine((data) => data.code !== "", {
+  message: "code is required",
 });
 
 // Schema for pg_execute_code output
@@ -118,7 +145,7 @@ return results;
 \`\`\``,
     group: "codemode",
     tags: ["code", "execute", "sandbox", "script", "batch"],
-    inputSchema: ExecuteCodeSchema,
+    inputSchema: ExecuteCodeSchemaBase,
     outputSchema: ExecuteCodeOutputSchema,
     requiredScopes: ["admin"],
     annotations: {
@@ -130,9 +157,10 @@ return results;
     },
     icons: getToolIcons("codemode", { destructiveHint: true }),
     handler: async (params: unknown) => {
-      const { code, readonly } = params as ExecuteCodeOptions;
+      try {
+        const { code, readonly } = ExecuteCodeSchema.parse(params) as ExecuteCodeOptions;
 
-      // Initialize infrastructure
+        // Initialize infrastructure
       const { pool, security } = ensureInitialized();
 
       // Validate code
@@ -235,8 +263,11 @@ return results;
           : undefined,
         hint: helpHint,
       };
-    },
-  };
+    } catch (error) {
+      return formatHandlerErrorResponse(error, { tool: "pg_execute_code" });
+    }
+  },
+};
 }
 
 /**
