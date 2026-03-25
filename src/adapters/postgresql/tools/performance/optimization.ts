@@ -283,6 +283,9 @@ export function createPartitionStrategySuggestTool(
           return {
             success: false as const,
             error: "Missing required parameter: table is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
 

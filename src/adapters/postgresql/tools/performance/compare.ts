@@ -110,6 +110,9 @@ export function createQueryPlanCompareTool(
             success: false as const,
             error:
               "Missing required parameters: both query1 and query2 are required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
 
