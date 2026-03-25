@@ -29,7 +29,7 @@ export function createStatStatementsTool(
       .optional()
       .describe("Max statements to return (default: 20, use 0 for all)"),
     orderBy: z
-      .enum(["total_time", "calls", "mean_time", "rows"])
+      .unknown()
       .optional()
       .describe("Sort order (default: total_time)"),
   });
@@ -60,7 +60,11 @@ export function createStatStatementsTool(
               : rawLimit === 0
                 ? null
                 : rawLimit;
-        const orderBy = parsed.orderBy ?? "total_time";
+        const rawOrderBy: unknown = parsed.orderBy;
+        let orderBy = "total_time";
+        if (typeof rawOrderBy === "string" && ["total_time", "calls", "mean_time", "rows"].includes(rawOrderBy)) {
+          orderBy = rawOrderBy;
+        }
 
         const sql = `SELECT query, calls, total_exec_time as total_time,
                         mean_exec_time as mean_time, rows,
@@ -105,7 +109,7 @@ export function createStatActivityTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const StatActivitySchemaBase = z.object({
-    includeIdle: z.boolean().optional(),
+    includeIdle: z.unknown().optional(),
   });
 
   const StatActivitySchema = z.preprocess(
@@ -124,8 +128,8 @@ export function createStatActivityTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = StatActivitySchema.parse(params);
-        const idleClause =
-          parsed.includeIdle === true ? "" : "AND state != 'idle'";
+        const includeIdle = parsed.includeIdle === true || parsed.includeIdle === "true";
+        const idleClause = includeIdle ? "" : "AND state != 'idle'";
 
         const sql = `SELECT pid, usename, datname, client_addr, state,
                         query_start, state_change,

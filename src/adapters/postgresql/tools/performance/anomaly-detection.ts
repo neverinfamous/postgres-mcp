@@ -157,8 +157,10 @@ export function createDetectQueryAnomaliesTool(
         );
 
         const anomalyCount = anomalies.length;
-        const maxZScore =
-          anomalies.length > 0 ? (anomalies[0]?.zScore ?? 0) : 0;
+        const maxZScore = anomalies.length > 0 ? (anomalies[0]?.zScore ?? 0) : 0;
+
+        // Truncate payload after extracting metrics
+        const truncatedAnomalies = anomalies.slice(0, 10);
 
         // Risk based on count and severity
         let riskScore = 0;
@@ -178,7 +180,7 @@ export function createDetectQueryAnomaliesTool(
             : `${String(anomalyCount)} anomalous queries detected out of ${String(totalAnalyzed)} analyzed (threshold: ${String(threshold)}σ, max z-score: ${String(maxZScore)})`;
 
         return {
-          anomalies,
+          anomalies: truncatedAnomalies,
           riskLevel,
           totalAnalyzed,
           anomalyCount,
@@ -397,8 +399,11 @@ export function createDetectBloatRiskTool(
             ? `No high-risk bloat detected across ${String(tables.length)} tables`
             : `${String(highRiskCount)} table(s) at high bloat risk out of ${String(tables.length)} analyzed`;
 
+        // Optmization: To reduce payload size, omit fully detailed low-risk tables if we have many
+        const filteredTables = tables.filter((t: { riskScore: number }, index: number) => t.riskScore >= 40 || index < 5);
+
         return {
-          tables,
+          tables: filteredTables,
           highRiskCount,
           totalAnalyzed: tables.length,
           summary,

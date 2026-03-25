@@ -58,7 +58,7 @@ async function validatePerformanceTableExists(
 }
 
 const LocksSchema = z.object({
-  showBlocked: z.boolean().optional(),
+  showBlocked: z.unknown().optional(),
 });
 
 export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
@@ -74,8 +74,9 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = LocksSchema.parse(params ?? {});
 
+        const showBlocked = parsed.showBlocked === true || parsed.showBlocked === "true";
         let sql: string;
-        if (parsed.showBlocked) {
+        if (showBlocked) {
           sql = `SELECT blocked.pid as blocked_pid, blocked.query as blocked_query,
                         blocking.pid as blocking_pid, blocking.query as blocking_query
                         FROM pg_stat_activity blocked
@@ -106,10 +107,10 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
 export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
   const BloatCheckSchemaBase = z.object({
     table: z
-      .string()
+      .unknown()
       .optional()
       .describe("Table name to check (all tables if omitted)"),
-    schema: z.string().optional().describe("Schema name to filter"),
+    schema: z.unknown().optional().describe("Schema name to filter"),
   });
 
   const BloatCheckSchema = z.preprocess(
@@ -130,8 +131,8 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = BloatCheckSchema.parse(params);
         // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
-        let tableName = parsed.table;
-        let schemaName = parsed.schema;
+        let tableName = typeof parsed.table === "string" || typeof parsed.table === "number" ? String(parsed.table) : undefined;
+        let schemaName = typeof parsed.schema === "string" || typeof parsed.schema === "number" ? String(parsed.schema) : undefined;
         if (tableName?.includes(".")) {
           const parts = tableName.split(".");
           schemaName = schemaName ?? parts[0];
