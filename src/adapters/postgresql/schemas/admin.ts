@@ -133,8 +133,9 @@ function preprocessReindexParams(input: unknown): unknown {
 // Base schema for MCP visibility (shows all parameters including aliases)
 export const ReindexSchemaBase = z.object({
   target: z
-    .enum(["table", "index", "schema", "database"])
-    .describe("What to reindex"),
+    .string()
+    .optional()
+    .describe("What to reindex (table, index, schema, database)"),
   name: z
     .string()
     .optional()
@@ -159,8 +160,8 @@ export const ReindexSchema = z
     preprocessReindexParams,
     z.object({
       target: z
-        .enum(["table", "index", "schema", "database"])
-        .describe("What to reindex"),
+        .string()
+        .describe("What to reindex (table, index, schema, database)"),
       name: z
         .string()
         .optional()
@@ -169,6 +170,19 @@ export const ReindexSchema = z
         ),
       concurrently: z.boolean().optional().describe("Reindex concurrently"),
     }),
+  )
+  .refine(
+    (data) => {
+      const validTargets = ["table", "index", "schema", "database"];
+      const parsed = data as { target: string; name?: string };
+      if (!validTargets.includes(parsed.target)) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "target must be one of 'table', 'index', 'schema', or 'database'",
+    }
   )
   .refine(
     (data) => {
