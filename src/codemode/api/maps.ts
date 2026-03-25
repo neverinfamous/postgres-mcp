@@ -236,6 +236,12 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     detach: "detachPartition", // detach() → detachPartition()
     remove: "detachPartition", // remove() → detachPartition()
   },
+  // Backup: intuive aliases for audit backup methods
+  backup: {
+    listBackups: "auditListBackups",
+    diffBackup: "auditDiffBackup",
+    restoreBackup: "auditRestoreBackup",
+  },
   // Introspection: shorthand aliases for common operations
   introspection: {
     deps: "dependencyGraph", // deps() → dependencyGraph()

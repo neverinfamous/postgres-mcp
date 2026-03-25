@@ -123,7 +123,8 @@ export function createRestoreCommandTool(
     description: "Generate pg_restore command for restoring backups.",
     group: "backup",
     inputSchema: z.object({
-      backupFile: z.string(),
+      backupFile: z.string().optional(),
+      filename: z.string().optional().describe("Alias for backupFile"),
       database: z
         .string()
         .optional()
@@ -142,6 +143,7 @@ export function createRestoreCommandTool(
           .then(() => {
             const parsed = params as {
               backupFile?: string;
+              filename?: string;
               database?: string;
               schema?: string;
               table?: string;
@@ -149,9 +151,10 @@ export function createRestoreCommandTool(
               schemaOnly?: boolean;
             };
 
+            const backupFile = parsed.backupFile ?? parsed.filename;
             // Validate required param
-            if (parsed.backupFile === undefined || parsed.backupFile === "") {
-              throw new Error("backupFile parameter is required");
+            if (backupFile === undefined || backupFile === "") {
+              throw new Error("backupFile (or filename) parameter is required");
             }
 
             // Validate mutually exclusive options
@@ -178,7 +181,7 @@ export function createRestoreCommandTool(
             if (parsed.dataOnly === true) command += " --data-only";
             if (parsed.schemaOnly === true) command += " --schema-only";
 
-            command += ` "${parsed.backupFile}"`;
+            command += ` "${backupFile}"`;
 
             return {
               command,
@@ -211,7 +214,7 @@ export function createPhysicalBackupTool(
     description: "Generate pg_basebackup command for physical (binary) backup.",
     group: "backup",
     inputSchema: z.object({
-      targetDir: z.string().describe("Target directory for backup"),
+      targetDir: z.string().optional().describe("Target directory for backup"),
       format: z.enum(["plain", "tar"]).optional().describe("Backup format"),
       checkpoint: z
         .enum(["fast", "spread"])
@@ -309,7 +312,8 @@ export function createRestoreValidateTool(
       "Generate commands to validate backup integrity and restorability.",
     group: "backup",
     inputSchema: z.object({
-      backupFile: z.string().describe("Path to backup file"),
+      backupFile: z.string().optional().describe("Path to backup file"),
+      filename: z.string().optional().describe("Alias for backupFile"),
       backupType: z.enum(["pg_dump", "pg_basebackup"]).optional(),
     }),
     outputSchema: RestoreValidateOutputSchema,
@@ -322,13 +326,15 @@ export function createRestoreValidateTool(
             // Parse params through schema to validate enum values
             const schema = z.object({
               backupFile: z.string().optional(),
+              filename: z.string().optional(),
               backupType: z.enum(["pg_dump", "pg_basebackup"]).optional(),
             });
             const parsed = schema.parse(params);
 
+            const backupFile = parsed.backupFile ?? parsed.filename;
             // Validate required param
-            if (parsed.backupFile === undefined || parsed.backupFile === "") {
-              throw new Error("backupFile parameter is required");
+            if (backupFile === undefined || backupFile === "") {
+              throw new Error("backupFile (or filename) parameter is required");
             }
 
             const backupType = parsed.backupType ?? "pg_dump";
@@ -343,14 +349,14 @@ export function createRestoreValidateTool(
                   {
                     step: 1,
                     name: "Check backup file integrity",
-                    command: `pg_restore --list "${parsed.backupFile}"`,
+                    command: `pg_restore --list "${backupFile}"`,
                   },
                   {
                     step: 2,
                     name: "Test restore to temporary database",
                     commands: [
                       "createdb test_restore",
-                      `pg_restore --dbname=test_restore "${parsed.backupFile}"`,
+                      `pg_restore --dbname=test_restore "${backupFile}"`,
                       "-- Run validation queries",
                       "dropdb test_restore",
                     ],
@@ -373,17 +379,17 @@ export function createRestoreValidateTool(
                   {
                     step: 1,
                     name: "Verify backup with pg_verifybackup (PostgreSQL 13+)",
-                    command: `pg_verifybackup "${parsed.backupFile}"`,
+                    command: `pg_verifybackup "${backupFile}"`,
                   },
                   {
                     step: 2,
                     name: "Verify base backup files",
-                    command: `ls -la "${parsed.backupFile}"/`,
+                    command: `ls -la "${backupFile}"/`,
                   },
                   {
                     step: 3,
                     name: "Check backup_label file",
-                    command: `cat "${parsed.backupFile}"/backup_label`,
+                    command: `cat "${backupFile}"/backup_label`,
                   },
                   {
                     step: 4,
