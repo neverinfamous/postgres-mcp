@@ -15,7 +15,6 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 import {
   CreateSchemaSchemaBase,
   CreateSchemaSchema,
@@ -25,6 +24,8 @@ import {
   CreateSequenceSchema,
   DropSequenceSchemaBase,
   DropSequenceSchema,
+  ListSequencesSchemaBase,
+  ListSequencesSchema,
   // Output schemas
   ListSchemasOutputSchema,
   CreateSchemaOutputSchema,
@@ -180,17 +181,6 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
 // pg_list_sequences
 // =============================================================================
 
-const ListSequencesSchema = z
-  .object({
-    schema: z.string().optional(),
-    limit: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe(
-        "Maximum number of sequences to return (default: 50). Use 0 for all.",
-      ),
-  })
-  .default({});
-
 export function createListSequencesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -198,7 +188,7 @@ export function createListSequencesTool(
     name: "pg_list_sequences",
     description: "List all sequences in the database.",
     group: "schema",
-    inputSchema: ListSequencesSchema,
+    inputSchema: ListSequencesSchemaBase,
     outputSchema: ListSequencesOutputSchema,
     annotations: readOnly("List Sequences"),
     icons: getToolIcons("schema", readOnly("List Sequences")),

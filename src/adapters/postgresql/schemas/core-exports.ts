@@ -115,7 +115,15 @@ export {
 export {
   CopyExportSchema,
   CopyExportSchemaBase,
+  CreateBackupPlanSchemaBase,
+  CreateBackupPlanSchema,
+  PhysicalBackupSchemaBase,
+  PhysicalBackupSchema,
   DumpSchemaSchema,
+  AuditListBackupsSchemaBase,
+  AuditListBackupsSchema,
+  AuditRestoreBackupSchema,
+  AuditDiffBackupSchema,
   // Output schemas
   DumpTableOutputSchema,
   DumpSchemaOutputSchema,
@@ -142,11 +150,15 @@ export {
   CreateSequenceSchema,
   DropSequenceSchemaBase,
   DropSequenceSchema,
+  ListSequencesSchemaBase,
+  ListSequencesSchema,
   // View schemas - Split Schema pattern for MCP visibility
   CreateViewSchemaBase,
   CreateViewSchema,
   DropViewSchemaBase,
   DropViewSchema,
+  ListViewsSchemaBase,
+  ListViewsSchema,
   // List functions schemas - Split Schema pattern for MCP visibility
   ListFunctionsSchemaBase,
   ListFunctionsSchema,

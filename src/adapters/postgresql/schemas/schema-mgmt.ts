@@ -6,7 +6,6 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
-import { coerceNumber } from "../../../utils/query-helpers.js";
 
 // Base schema for MCP visibility — name is optional so MCP framework
 // doesn't reject {} calls; handler validates via the full schema.
@@ -43,10 +42,10 @@ export const CreateSequenceSchemaBase = z.object({
   name: z.string().optional().describe("Sequence name"),
   sequenceName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
-  start: z.preprocess(coerceNumber, z.number().optional()).describe("Start value"),
-  increment: z.preprocess(coerceNumber, z.number().optional()).describe("Increment by (default: 1)"),
-  minValue: z.preprocess(coerceNumber, z.number().optional()).describe("Minimum value"),
-  maxValue: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum value"),
+  start: z.number().optional().describe("Start value"),
+  increment: z.number().optional().describe("Increment by (default: 1)"),
+  minValue: z.number().optional().describe("Minimum value"),
+  maxValue: z.number().optional().describe("Maximum value"),
   cache: z
     .any()
     .optional()
@@ -256,6 +255,39 @@ export const DropViewSchema = z
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
     message: "name is required",
   });
+
+// =============================================================================
+// List Functions Schema - Split Schema pattern for MCP visibility
+// =============================================================================
+
+export const ListSequencesSchemaBase = z.object({
+  schema: z.string().optional().describe("Schema name"),
+  limit: z.number().optional().describe("Maximum number of sequences to return (default: 50). Use 0 for all."),
+});
+
+export const ListSequencesSchema = z.preprocess((input: unknown) => {
+  const val = input ?? {};
+  if (typeof val !== "object" || val === null) return val;
+  const result = { ...(val as Record<string, unknown>) };
+  if (result["limit"] !== undefined) result["limit"] = safeCoerceNumber(result["limit"]);
+  return result;
+}, ListSequencesSchemaBase);
+
+export const ListViewsSchemaBase = z.object({
+  schema: z.string().optional().describe("Schema name"),
+  includeMaterialized: z.boolean().optional().describe("Whether to include materialized views"),
+  truncateDefinition: z.number().optional().describe("Max length for view definitions (default: 500). Use 0 for no truncation."),
+  limit: z.number().optional().describe("Maximum number of views to return (default: 50). Use 0 for all views."),
+});
+
+export const ListViewsSchema = z.preprocess((input: unknown) => {
+  const val = input ?? {};
+  if (typeof val !== "object" || val === null) return val;
+  const result = { ...(val as Record<string, unknown>) };
+  if (result["limit"] !== undefined) result["limit"] = safeCoerceNumber(result["limit"]);
+  if (result["truncateDefinition"] !== undefined) result["truncateDefinition"] = safeCoerceNumber(result["truncateDefinition"]);
+  return result;
+}, ListViewsSchemaBase);
 
 // =============================================================================
 // List Functions Schema - Split Schema pattern for MCP visibility
