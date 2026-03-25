@@ -1,7 +1,5 @@
 # Group-Specific Tool Testing Instructions
 
-> **Smoke test**: Before starting any group's checklist, run `pg_server_version()` → verify `{version: "X.Y", version_num: N}` to confirm the MCP server is responding. This is the equivalent of db-mcp's `server_info` / `server_health` / `list_adapters` built-in tool checks.
-
 ### core Group-Specific Testing
 
 core Tool Group (20 tools +1 for code mode):
