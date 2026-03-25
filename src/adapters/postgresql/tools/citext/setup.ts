@@ -31,7 +31,7 @@ export function createCitextExtensionTool(
     description: `Enable the citext extension for case-insensitive text columns.
 citext is ideal for emails, usernames, and other identifiers where case shouldn't matter.`,
     group: "citext",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: CitextCreateExtensionOutputSchema,
     annotations: write("Create Citext Extension"),
     icons: getToolIcons("citext", write("Create Citext Extension")),

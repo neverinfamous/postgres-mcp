@@ -159,7 +159,7 @@ Maintains all partition sets if no specific parent table is specified.`,
             const sql = `SELECT ${partmanSchema}.run_maintenance(${args.join(", ")})`;
             await adapter.executeQuery(sql);
             maintained.push(table);
-          } catch (error) {
+          } catch (error: unknown) {
             // Extract clean error message (first line only, remove PL/pgSQL context)
             let reason =
               error instanceof Error ? error.message : "Unknown error";

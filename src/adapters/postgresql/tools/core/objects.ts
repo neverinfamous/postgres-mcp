@@ -451,7 +451,7 @@ export function createListExtensionsTool(
     name: "pg_list_extensions",
     description: "List installed PostgreSQL extensions with versions.",
     group: "core",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: ExtensionListOutputSchema,
     annotations: readOnly("List Extensions"),
     icons: getToolIcons("core", readOnly("List Extensions")),

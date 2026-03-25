@@ -36,7 +36,7 @@ export function createPostgisExtensionTool(
     name: "pg_postgis_create_extension",
     description: "Enable the PostGIS extension for geospatial operations.",
     group: "postgis",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: PostgisCreateExtensionOutputSchema,
     annotations: write("Create PostGIS Extension"),
     icons: getToolIcons("postgis", write("Create PostGIS Extension")),

@@ -5,9 +5,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  ValidationError,
+  type ToolDefinition,
+  type RequestContext,
 } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
@@ -278,7 +279,7 @@ export function createVectorDimensionReduceTool(
         // Refine guarantees targetDimensions is defined, but add explicit check for type narrowing
         const targetDim = parsed.targetDimensions;
         if (targetDim === undefined) {
-          throw new Error("targetDimensions (or dimensions alias) is required");
+          throw new ValidationError("targetDimensions (or dimensions alias) is required");
         }
         if (isNaN(targetDim)) {
           return {

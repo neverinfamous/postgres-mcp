@@ -35,7 +35,7 @@ export function createPartmanExtensionTool(
     description:
       "Enable the pg_partman extension for automated partition management. Requires superuser privileges.",
     group: "partman",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: PartmanCreateExtensionOutputSchema,
     annotations: write("Create Partman Extension"),
     icons: getToolIcons("partman", write("Create Partman Extension")),

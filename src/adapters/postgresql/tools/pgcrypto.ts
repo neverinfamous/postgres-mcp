@@ -56,7 +56,7 @@ function createPgcryptoExtensionTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_pgcrypto_create_extension",
     description: "Enable the pgcrypto extension for cryptographic functions.",
     group: "pgcrypto",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: PgcryptoCreateExtensionOutputSchema,
     annotations: write("Create Pgcrypto Extension"),
     icons: getToolIcons("pgcrypto", write("Create Pgcrypto Extension")),

@@ -105,7 +105,7 @@ export function createVectorExtensionTool(
     name: "pg_vector_create_extension",
     description: "Enable the pgvector extension for vector similarity search.",
     group: "vector",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: VectorCreateExtensionOutputSchema,
     annotations: write("Create Vector Extension"),
     icons: getToolIcons("vector", write("Create Vector Extension")),

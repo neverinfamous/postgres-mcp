@@ -53,7 +53,7 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
         return {
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_explain" });
       }
     },
@@ -94,7 +94,7 @@ export function createExplainAnalyzeTool(
         return {
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_explain_analyze" });
       }
     },
@@ -135,7 +135,7 @@ export function createExplainBuffersTool(
         return {
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_explain_buffers" });
       }
     },

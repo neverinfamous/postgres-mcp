@@ -34,7 +34,7 @@ export function createCronExtensionTool(adapter: PostgresAdapter): ToolDefinitio
     description:
       "Enable the pg_cron extension for job scheduling. Requires superuser privileges.",
     group: "cron",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: CronCreateExtensionOutputSchema,
     annotations: write("Create Cron Extension"),
     icons: getToolIcons("cron", write("Create Cron Extension")),

@@ -45,7 +45,7 @@ export function createListSchemasTool(
     name: "pg_list_schemas",
     description: "List all schemas in the database.",
     group: "schema",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: ListSchemasOutputSchema,
     annotations: readOnly("List Schemas"),
     icons: getToolIcons("schema", readOnly("List Schemas")),

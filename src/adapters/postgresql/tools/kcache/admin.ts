@@ -31,7 +31,7 @@ export function createKcacheExtensionTool(adapter: PostgresAdapter): ToolDefinit
     description: `Enable the pg_stat_kcache extension for OS-level performance metrics.
 Requires pg_stat_statements to be installed first. Both extensions must be in shared_preload_libraries.`,
     group: "kcache",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: KcacheCreateExtensionOutputSchema,
     annotations: write("Create Kcache Extension"),
     icons: getToolIcons("kcache", write("Create Kcache Extension")),
@@ -337,7 +337,7 @@ export function createKcacheResetTool(adapter: PostgresAdapter): ToolDefinition 
     description: `Reset pg_stat_kcache statistics. Use this to start fresh measurements.
 Note: This also resets pg_stat_statements statistics.`,
     group: "kcache",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: KcacheResetOutputSchema,
     annotations: destructive("Reset Kcache Stats"),
     icons: getToolIcons("kcache", destructive("Reset Kcache Stats")),

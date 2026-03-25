@@ -1,6 +1,8 @@
 # Unreleased
 
 ## Added
+- **Zod Schema Hardening**: Tightened `inputSchema` definitions for 23 parameter-less tools from permissive `z.object({})` to `z.object({}).strict()` to prevent arbitrary LLM argument passthrough.
+- **Vector Error Handling**: Replaced generic `Error` throws with structured `ValidationError` classes in `pg_vector_cluster` and `pg_vector_dimension_reduce` for correct error categorization.
 - **Audit Token Estimates**: Every audit entry now includes `tokenEstimate` (~4 bytes per token) computed from the serialized tool response. Gives agents and users historical visibility into token burn-rate per tool call.
 - **Audit Read Logging (`--audit-reads`)**: Opt-in `--audit-reads` / `AUDIT_READS=true` flag enables audit logging for read-scoped tool calls. Read entries use compact format (omit `args`, `user`, `scopes`) for ~100 byte entries. Write/admin tools are always logged regardless of this flag.
 - **Audit Log Rotation (`--audit-log-max-size`)**: Size-based log rotation via `--audit-log-max-size <bytes>` / `AUDIT_LOG_MAX_SIZE` (default: 10MB). When the log exceeds the limit, it rotates to `.1` (keeping only 1 rotated file). Prevents unbounded JSONL growth.

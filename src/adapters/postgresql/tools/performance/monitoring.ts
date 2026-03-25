@@ -195,7 +195,7 @@ export function createCacheHitRatioTool(
     name: "pg_cache_hit_ratio",
     description: "Get buffer cache hit ratio statistics.",
     group: "performance",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: CacheHitRatioOutputSchema,
     annotations: readOnly("Cache Hit Ratio"),
     icons: getToolIcons("performance", readOnly("Cache Hit Ratio")),

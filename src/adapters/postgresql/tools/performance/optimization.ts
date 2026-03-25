@@ -137,7 +137,7 @@ export function createConnectionPoolOptimizeTool(
     description:
       "Analyze connection usage and provide pool optimization recommendations.",
     group: "performance",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: ConnectionPoolOptimizeOutputSchema,
     annotations: readOnly("Connection Pool Optimize"),
     icons: getToolIcons("performance", readOnly("Connection Pool Optimize")),

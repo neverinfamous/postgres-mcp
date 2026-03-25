@@ -418,7 +418,7 @@ export function createBackupScheduleOptimizeTool(
     description:
       "Analyze database activity patterns and recommend optimal backup schedule.",
     group: "backup",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: BackupScheduleOptimizeOutputSchema,
     annotations: readOnly("Backup Schedule Optimize"),
     icons: getToolIcons("backup", readOnly("Backup Schedule Optimize")),

@@ -18,7 +18,7 @@ export function createResourceUsageAnalyzeTool(
     description:
       "Analyze current resource usage including CPU, memory, and I/O patterns.",
     group: "monitoring",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: ResourceUsageAnalyzeOutputSchema,
     annotations: readOnly("Resource Usage Analysis"),
     icons: getToolIcons("monitoring", readOnly("Resource Usage Analysis")),

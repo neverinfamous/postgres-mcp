@@ -6,9 +6,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  ValidationError,
+  type ToolDefinition,
+  type RequestContext,
 } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
@@ -82,7 +83,7 @@ export function createVectorClusterTool(
         // Refine guarantees k is defined, but add explicit check for TypeScript
         const k = parsed.k;
         if (k === undefined) {
-          throw new Error("k (or clusters alias) is required");
+          throw new ValidationError("k (or clusters alias) is required");
         }
         if (isNaN(k)) {
           return {

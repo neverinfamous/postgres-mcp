@@ -46,7 +46,7 @@ function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Enable the ltree extension for hierarchical tree-structured labels.",
     group: "ltree",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: LtreeCreateExtensionOutputSchema,
     annotations: write("Create Ltree Extension"),
     icons: getToolIcons("ltree", write("Create Ltree Extension")),

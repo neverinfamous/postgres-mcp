@@ -206,7 +206,7 @@ export function createTextSearchConfigTool(
     description:
       "List available full-text search configurations (e.g., english, german, simple).",
     group: "text",
-    inputSchema: z.object({}).default({}),
+    inputSchema: z.object({}).strict().default({}),
     outputSchema: TextSearchConfigOutputSchema,
     annotations: readOnly("Search Configurations"),
     icons: getToolIcons("text", readOnly("Search Configurations")),

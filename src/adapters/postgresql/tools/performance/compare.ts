@@ -187,7 +187,7 @@ export function createQueryPlanCompareTool(
         }
 
         return comparison;
-      } catch (error) {
+      } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_query_plan_compare",
           });
