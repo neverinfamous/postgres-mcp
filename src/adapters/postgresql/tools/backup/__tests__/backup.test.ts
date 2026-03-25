@@ -131,6 +131,7 @@ describe("pg_dump_table", () => {
       type: "table",
       columns: [{ name: "id", type: "integer", nullable: false }],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1 }, { id: 2 }],
     });
@@ -315,6 +316,7 @@ describe("pg_dump_table", () => {
       type: "table",
       columns: [{ name: "id", type: "integer", nullable: false }],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [],
     });
@@ -345,6 +347,7 @@ describe("pg_dump_table", () => {
       type: "table",
       columns: [{ name: "id", type: "integer", nullable: false }],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     // Mock query result with undefined in rows array
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [undefined],
@@ -1153,6 +1156,7 @@ describe("pg_dump_table timestamp serialization", () => {
         { name: "created_at", type: "timestamp", nullable: true },
       ],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1, created_at: "2025-12-22T05:06:15.242Z" }],
     });
@@ -1185,6 +1189,7 @@ describe("pg_dump_table timestamp serialization", () => {
         { name: "created_at", type: "timestamp", nullable: true },
       ],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     const testDate = new Date("2025-12-22T10:30:00.000Z");
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1, created_at: testDate }],
@@ -1216,6 +1221,7 @@ describe("pg_dump_table timestamp serialization", () => {
         { name: "data", type: "jsonb", nullable: true },
       ],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1, data: { key: "value" } }],
     });

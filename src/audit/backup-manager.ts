@@ -115,6 +115,7 @@ export class BackupManager {
     args: Record<string, unknown>,
     requestId: string,
     adapter: SnapshotQueryAdapter,
+    logAs?: string,
   ): Promise<string | undefined> {
     if (!this.shouldSnapshot(toolName)) return undefined;
 
@@ -129,17 +130,17 @@ export class BackupManager {
 
       // Migration tools get a full-schema snapshot
       if (toolName === "pg_migration_apply" || toolName === "pg_migration_rollback") {
-        return await this.captureSchemaSnapshot(toolName, target, requestId);
+        return await this.captureSchemaSnapshot(logAs ?? toolName, target, requestId);
       }
 
       // Schema drop gets a schema-level snapshot
       if (toolName === "pg_drop_schema") {
-        return await this.captureSchemaDropSnapshot(target, requestId, adapter);
+        return await this.captureSchemaDropSnapshot(logAs ?? toolName, target, requestId, adapter);
       }
 
       // All others get a table/object DDL snapshot
       return await this.captureObjectSnapshot(
-        toolName,
+        logAs ?? toolName,
         target,
         schema,
         requestId,
@@ -356,6 +357,25 @@ export class BackupManager {
     schemaName: string,
     adapter: SnapshotQueryAdapter,
   ): Promise<string> {
+    let sequenceDdls = "";
+    try {
+      const seqResult = await adapter.executeQuery(
+        `SELECT s.relname as seq_name
+         FROM pg_class s
+         JOIN pg_depend d ON d.objid = s.oid
+         JOIN pg_class t ON d.refobjid = t.oid
+         JOIN pg_namespace n ON t.relnamespace = n.oid
+         WHERE s.relkind = 'S' AND t.relname = $1 AND n.nspname = $2`,
+        [tableName, schemaName],
+      );
+      const ownedSeqs = seqResult.rows?.map((r) => String(r["seq_name"])) ?? [];
+      for (const seq of ownedSeqs) {
+        sequenceDdls += `CREATE SEQUENCE IF NOT EXISTS "${schemaName}"."${seq}";\n`;
+      }
+    } catch {
+      // Best effort for sequences
+    }
+
     const tableInfo = await adapter.describeTable(tableName, schemaName);
     const columns = tableInfo.columns ?? [];
 
@@ -372,7 +392,7 @@ export class BackupManager {
       return line;
     });
 
-    return `CREATE TABLE "${schemaName}"."${tableName}" (\n${ddlLines.join(",\n")}\n);`;
+    return `${sequenceDdls}CREATE TABLE "${schemaName}"."${tableName}" (\n${ddlLines.join(",\n")}\n);`;
   }
 
   /**
@@ -494,6 +514,7 @@ export class BackupManager {
   }
 
   private async captureSchemaDropSnapshot(
+    toolName: string,
     schema: string,
     requestId: string,
     adapter: SnapshotQueryAdapter,
@@ -519,7 +540,7 @@ export class BackupManager {
       ddl += "-- Could not enumerate schema objects\n";
     }
 
-    return this.writeSnapshot("pg_drop_schema", schema, schema, requestId, ddl);
+    return this.writeSnapshot(toolName, schema, schema, requestId, ddl);
   }
 
   private async writeSnapshot(
