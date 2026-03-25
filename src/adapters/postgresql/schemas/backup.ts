@@ -32,7 +32,8 @@ export const CopyExportSchemaBase = z.object({
   header: z.boolean().optional().describe("Include header row (default: true)"),
   delimiter: z.string().optional().describe("Field delimiter"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
+    .optional()
     .describe(
       "Maximum number of rows to export (default: 500 to prevent large payloads). Use 0 for all rows",
     ),
@@ -41,10 +42,14 @@ export const CopyExportSchemaBase = z.object({
 /** Default limit for copyExport when not specified */
 const DEFAULT_EXPORT_LIMIT = 500;
 
+const CopyExportSchemaParser = CopyExportSchemaBase.extend({
+  limit: z.preprocess(coerceNumber, z.number().optional()),
+});
+
 /**
  * Transformed schema with alias resolution, table shortcut, and schema.table parsing.
  */
-export const CopyExportSchema = CopyExportSchemaBase.transform((input) => {
+export const CopyExportSchema = CopyExportSchemaParser.transform((input) => {
   // Apply alias: sql → query
   let query = input.query ?? input.sql;
   let conflictWarning: string | undefined;
@@ -127,6 +132,39 @@ export const DumpSchemaSchema = z.object({
     .string()
     .optional()
     .describe("Output filename (default: backup.dump)"),
+});
+
+export const CreateBackupPlanSchemaBase = z.object({
+  frequency: z
+    .enum(["hourly", "daily", "weekly"])
+    .optional()
+    .describe("Backup frequency (default: daily)"),
+  retention: z
+    .number()
+    .optional()
+    .describe("Number of backups to retain (default: 7)"),
+});
+
+export const CreateBackupPlanSchema = z.object({
+  frequency: z.enum(["hourly", "daily", "weekly"]).optional(),
+  retention: z.preprocess(coerceNumber, z.number().optional()),
+});
+
+export const PhysicalBackupSchemaBase = z.object({
+  targetDir: z.string().optional().describe("Target directory for backup"),
+  format: z.enum(["plain", "tar"]).optional().describe("Backup format"),
+  checkpoint: z
+    .enum(["fast", "spread"])
+    .optional()
+    .describe("Checkpoint mode"),
+  compress: z.number().optional().describe("Compression level 0-9"),
+});
+
+export const PhysicalBackupSchema = z.object({
+  targetDir: z.string().optional(),
+  format: z.enum(["plain", "tar"]).optional(),
+  checkpoint: z.enum(["fast", "spread"]).optional(),
+  compress: z.preprocess(coerceNumber, z.number().optional()),
 });
 
 // ============================================================================
@@ -353,6 +391,44 @@ export const BackupScheduleOptimizeOutputSchema = z.object({
 }).extend(ErrorResponseFields.shape);
 
 /**
+ * pg_audit_list_backups input schema
+ */
+export const AuditListBackupsSchemaBase = z.object({
+  tool: z.string().optional().describe("Filter by tool name"),
+  target: z.string().optional().describe("Filter by target object name"),
+  limit: z.number().optional().describe("Max snapshots to return (default: 50)"),
+});
+
+export const AuditListBackupsSchema = z.object({
+  tool: z.string().optional(),
+  target: z.string().optional(),
+  limit: z.preprocess(coerceNumber, z.number().optional()),
+});
+
+/**
+ * pg_audit_restore_backup input schema
+ */
+export const AuditRestoreBackupSchema = z.object({
+  filename: z.string().optional().describe("Snapshot filename from pg_audit_list_backups"),
+  dryRun: z.boolean().optional().describe("If true, return the DDL without executing it (default: false)"),
+  restoreAs: z
+    .string()
+    .optional()
+    .describe(
+      "Create snapshot as a new table with this name instead of overwriting the original. " +
+      "Enables side-by-side comparison without disrupting live data.",
+    ),
+  confirm: z.boolean().optional().describe("Required confirmation flag for destructive restore operations"),
+});
+
+/**
+ * pg_audit_diff_backup input schema
+ */
+export const AuditDiffBackupSchema = z.object({
+  filename: z.string().optional().describe("Snapshot filename from pg_audit_list_backups"),
+});
+
+/**
  * pg_audit_list_backups output - list of snapshots
  */
 export const AuditListBackupsOutputSchema = z.object({
@@ -372,7 +448,9 @@ export const AuditListBackupsOutputSchema = z.object({
     )
     .optional()
     .describe("Available backup snapshots"),
-  count: z.number().optional().describe("Number of snapshots"),
+  count: z.number().optional().describe("Number of snapshots returned"),
+  truncated: z.boolean().optional().describe("Whether results were truncated by limit"),
+  limit: z.number().optional().describe("Limit that was applied"),
   error: z.string().optional().describe("Error message if failed"),
 }).extend(ErrorResponseFields.shape);
 

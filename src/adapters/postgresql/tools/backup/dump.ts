@@ -32,7 +32,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
       "Generate DDL for a table or sequence. Returns CREATE TABLE for tables, CREATE SEQUENCE for sequences.",
     group: "backup",
     inputSchema: z.object({
-      table: z.string().describe("Table or sequence name"),
+      table: z.string().optional().describe("Table or sequence name"),
       schema: z.string().optional().describe("Schema name (default: public)"),
       includeData: z
         .boolean()
@@ -255,6 +255,22 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
           }
         }
 
+        // Check for owned sequences
+        const ownedSeqsResult = await adapter.executeQuery(
+          `SELECT s.relname as seq_name
+           FROM pg_class s
+           JOIN pg_depend d ON d.objid = s.oid
+           JOIN pg_class t ON d.refobjid = t.oid
+           JOIN pg_namespace n ON t.relnamespace = n.oid
+           WHERE s.relkind = 'S' AND t.relname = $1 AND n.nspname = $2`,
+          [tableName, schemaName],
+        );
+        const ownedSeqs = ownedSeqsResult.rows?.map(r => String(r['seq_name'])) ?? [];
+        let sequenceDdls = "";
+        for (const seq of ownedSeqs) {
+           sequenceDdls += `CREATE SEQUENCE IF NOT EXISTS ${sanitizeTableName(seq, schemaName)};\n`;
+        }
+
         const tableInfo = await adapter.describeTable(tableName, schemaName);
 
         const columns =
@@ -281,7 +297,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
             })
             .join(",\n") ?? "";
 
-        const createTable = `CREATE TABLE ${sanitizeTableName(tableName, schemaName)} (\n${columns}\n)${partitionClause};`;
+        const createTable = `${sequenceDdls}CREATE TABLE ${sanitizeTableName(tableName, schemaName)} (\n${columns}\n)${partitionClause};`;
 
         const result: {
           ddl: string;

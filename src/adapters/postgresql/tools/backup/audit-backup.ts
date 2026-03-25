@@ -15,6 +15,10 @@ import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import type { BackupManager } from "../../../../audit/backup-manager.js";
 import {
+  AuditListBackupsSchemaBase,
+  AuditListBackupsSchema,
+  AuditRestoreBackupSchema,
+  AuditDiffBackupSchema,
   AuditListBackupsOutputSchema,
   AuditRestoreBackupOutputSchema,
   AuditDiffBackupOutputSchema,
@@ -32,10 +36,7 @@ export function createAuditListBackupsTool(
     description:
       "List available pre-mutation backup snapshots with metadata (tool, target, timestamp, type, size).",
     group: "backup",
-    inputSchema: z.object({
-      tool: z.string().optional().describe("Filter by tool name"),
-      target: z.string().optional().describe("Filter by target object name"),
-    }),
+    inputSchema: AuditListBackupsSchemaBase,
     outputSchema: AuditListBackupsOutputSchema,
     annotations: readOnly("Audit List Backups"),
     icons: getToolIcons("backup", readOnly("Audit List Backups")),
@@ -49,7 +50,7 @@ export function createAuditListBackupsTool(
           };
         }
 
-        const parsed = params as { tool?: string; target?: string };
+        const parsed = AuditListBackupsSchema.parse(params);
         let snapshots = await backupManager.listSnapshots();
 
         // Apply optional filters
@@ -62,11 +63,21 @@ export function createAuditListBackupsTool(
             s.target.toLowerCase().includes(targetFilter),
           );
         }
+        
+        const count = snapshots.length;
+        const limit = parsed.limit ?? 50;
+        let truncated = false;
+        if (limit > 0 && snapshots.length > limit) {
+          snapshots = snapshots.slice(0, limit);
+          truncated = true;
+        }
 
         return {
           success: true,
           snapshots,
-          count: snapshots.length,
+          count,
+          limit,
+          ...(truncated && { truncated: true }),
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_audit_list_backups" });
@@ -87,20 +98,7 @@ export function createAuditRestoreBackupTool(
     description:
       "Restore a pre-mutation backup snapshot. Executes the captured DDL (and optional data INSERTs) within a transaction.",
     group: "backup",
-    inputSchema: z.object({
-      filename: z.string().describe("Snapshot filename from pg_audit_list_backups"),
-      dryRun: z
-        .boolean()
-        .optional()
-        .describe("If true, return the DDL without executing it (default: false)"),
-      restoreAs: z
-        .string()
-        .optional()
-        .describe(
-          "Create snapshot as a new table with this name instead of overwriting the original. " +
-          "Enables side-by-side comparison without disrupting live data.",
-        ),
-    }),
+    inputSchema: AuditRestoreBackupSchema,
     outputSchema: AuditRestoreBackupOutputSchema,
     annotations: admin("Audit Restore Backup"),
     icons: getToolIcons("backup", admin("Audit Restore Backup")),
@@ -114,11 +112,18 @@ export function createAuditRestoreBackupTool(
           };
         }
 
-        const parsed = params as { filename?: string; dryRun?: boolean; restoreAs?: string };
+        const parsed = AuditRestoreBackupSchema.parse(params);
         if (!parsed.filename) {
           return {
             success: false,
             error: "filename parameter is required",
+          };
+        }
+
+        if (!parsed.dryRun && !parsed.restoreAs && !parsed.confirm) {
+          return {
+            success: false,
+            error: "confirm: true is required for in-place destructive restores",
           };
         }
 
@@ -145,6 +150,13 @@ export function createAuditRestoreBackupTool(
           // Rewrite data INSERT statements if present
           if (dataStatements) {
             dataStatements = dataStatements.replaceAll(originalQualified, restoreQualified);
+          }
+        } else {
+          // If we are doing in-place restore (no restoreAs) and it's a CREATE TABLE statement
+          const ddlMatch = /^\s*CREATE\s+(TABLE|VIEW|MATERIALIZED VIEW|SEQUENCE)\s+/i.exec(ddl);
+          if (ddlMatch?.[1]) {
+            const typeMatched = ddlMatch[1].toUpperCase();
+            ddl = `DROP ${typeMatched} IF EXISTS ${originalQualified} CASCADE;\n` + ddl;
           }
         }
 
@@ -224,9 +236,7 @@ export function createAuditDiffBackupTool(
     description:
       "Compare a backup snapshot's DDL against the current live schema to show drift since the snapshot was taken.",
     group: "backup",
-    inputSchema: z.object({
-      filename: z.string().describe("Snapshot filename from pg_audit_list_backups"),
-    }),
+    inputSchema: AuditDiffBackupSchema,
     outputSchema: AuditDiffBackupOutputSchema,
     annotations: readOnly("Audit Diff Backup"),
     icons: getToolIcons("backup", readOnly("Audit Diff Backup")),
@@ -240,7 +250,7 @@ export function createAuditDiffBackupTool(
           };
         }
 
-        const parsed = params as { filename?: string };
+        const parsed = AuditDiffBackupSchema.parse(params);
         if (!parsed.filename) {
           return {
             success: false,
