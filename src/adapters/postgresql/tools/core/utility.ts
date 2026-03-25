@@ -187,12 +187,21 @@ export function createTruncateTool(adapter: PostgresAdapter): ToolDefinition {
           sql += " CASCADE";
         }
 
+        let rowCount = -1;
+        try {
+          const countResult = await adapter.executeQuery(`SELECT count(*) as c FROM ${qualifiedTable}`);
+          rowCount = Number(countResult.rows?.[0]?.['c'] ?? -1);
+        } catch {
+          // Ignore failures
+        }
+
         await adapter.executeQuery(sql);
         return {
           success: true,
           table: `${schemaName}.${parsed.table}`,
           cascade: parsed.cascade ?? false,
           restartIdentity: parsed.restartIdentity ?? false,
+          rowCount,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_truncate" });

@@ -13,13 +13,16 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 import {
   CreateBackupPlanOutputSchema,
   RestoreCommandOutputSchema,
   PhysicalBackupOutputSchema,
   RestoreValidateOutputSchema,
   BackupScheduleOptimizeOutputSchema,
+  CreateBackupPlanSchemaBase,
+  CreateBackupPlanSchema,
+  PhysicalBackupSchemaBase,
+  PhysicalBackupSchema,
 } from "../../schemas/index.js";
 
 export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
@@ -28,25 +31,14 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Generate a backup strategy recommendation with cron schedule.",
     group: "backup",
-    inputSchema: z.object({
-      frequency: z
-        .enum(["hourly", "daily", "weekly"])
-        .optional()
-        .describe("Backup frequency (default: daily)"),
-      retention: z.preprocess(coerceNumber, z.number().optional())
-        .describe("Number of backups to retain (default: 7)"),
-    }),
+    inputSchema: CreateBackupPlanSchemaBase,
     outputSchema: CreateBackupPlanOutputSchema,
     annotations: readOnly("Create Backup Plan"),
     icons: getToolIcons("backup", readOnly("Create Backup Plan")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Parse params through schema to validate enum values
-        const schema = z.object({
-          frequency: z.enum(["hourly", "daily", "weekly"]).optional(),
-          retention: z.preprocess(coerceNumber, z.number().optional()),
-        });
-        const parsed = schema.parse(params);
+        const parsed = CreateBackupPlanSchema.parse(params);
         const freq = parsed.frequency ?? "daily";
 
         // Validate retention - must be at least 1
@@ -213,15 +205,7 @@ export function createPhysicalBackupTool(
     name: "pg_backup_physical",
     description: "Generate pg_basebackup command for physical (binary) backup.",
     group: "backup",
-    inputSchema: z.object({
-      targetDir: z.string().optional().describe("Target directory for backup"),
-      format: z.enum(["plain", "tar"]).optional().describe("Backup format"),
-      checkpoint: z
-        .enum(["fast", "spread"])
-        .optional()
-        .describe("Checkpoint mode"),
-      compress: z.preprocess(coerceNumber, z.number().optional()).describe("Compression level 0-9"),
-    }),
+    inputSchema: PhysicalBackupSchemaBase,
     outputSchema: PhysicalBackupOutputSchema,
     annotations: readOnly("Physical Backup"),
     icons: getToolIcons("backup", readOnly("Physical Backup")),
@@ -230,13 +214,7 @@ export function createPhysicalBackupTool(
         return Promise.resolve()
           .then(() => {
             // Parse params through schema to validate enum values
-            const schema = z.object({
-              targetDir: z.string().optional(),
-              format: z.enum(["plain", "tar"]).optional(),
-              checkpoint: z.enum(["fast", "spread"]).optional(),
-              compress: z.preprocess(coerceNumber, z.number().optional()),
-            });
-            const parsed = schema.parse(params);
+            const parsed = PhysicalBackupSchema.parse(params);
 
             // Validate required param
             if (parsed.targetDir === undefined || parsed.targetDir === "") {

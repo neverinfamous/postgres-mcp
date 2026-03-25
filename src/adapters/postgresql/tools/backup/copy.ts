@@ -231,7 +231,7 @@ export function createCopyImportTool(
     description: "Generate COPY FROM command for importing data.",
     group: "backup",
     inputSchema: z.object({
-      table: z.string(),
+      table: z.string().optional(),
       schema: z.string().optional(),
       filePath: z
         .string()

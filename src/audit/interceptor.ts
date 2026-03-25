@@ -34,12 +34,14 @@ export interface AuditInterceptor {
    * @param args      Tool input arguments
    * @param requestId Request ID from RequestContext
    * @param fn        The actual tool handler to execute
+   * @param options   Optional configuration, such as overriding the recorded tool name
    */
   around<T>(
     toolName: string,
     args: unknown,
     requestId: string,
     fn: () => Promise<T>,
+    options?: { logAs?: string },
   ): Promise<T>;
 }
 
@@ -78,6 +80,7 @@ export function createAuditInterceptor(
       args: unknown,
       requestId: string,
       fn: () => Promise<T>,
+      options?: { logAs?: string },
     ): Promise<T> {
       const scope = getRequiredScope(toolName);
 
@@ -102,6 +105,7 @@ export function createAuditInterceptor(
             (args ?? {}) as Record<string, unknown>,
             requestId,
             queryAdapter,
+            options?.logAs,
           );
         } catch {
           // Snapshot failure must not block tool execution
@@ -134,7 +138,7 @@ export function createAuditInterceptor(
           auditLogger.log({
             timestamp: new Date().toISOString(),
             requestId,
-            tool: toolName,
+            tool: options?.logAs ?? toolName,
             category: "read" as AuditCategory,
             scope,
             durationMs,
@@ -146,7 +150,7 @@ export function createAuditInterceptor(
           auditLogger.log({
             timestamp: new Date().toISOString(),
             requestId,
-            tool: toolName,
+            tool: options?.logAs ?? toolName,
             category: scopeToCategory(scope),
             scope,
             user: authCtx?.claims?.sub ?? null,

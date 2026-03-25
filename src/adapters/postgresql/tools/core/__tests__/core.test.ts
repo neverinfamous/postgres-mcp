@@ -2779,6 +2779,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2790,7 +2791,7 @@ describe("pg_truncate", () => {
     expect(result.success).toBe(true);
     expect(result.table).toBe("public.logs");
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain("TRUNCATE TABLE");
     expect(sql).not.toContain("CASCADE");
     expect(sql).not.toContain("RESTART IDENTITY");
@@ -2800,6 +2801,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2813,7 +2815,7 @@ describe("pg_truncate", () => {
 
     expect(result.cascade).toBe(true);
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain("CASCADE");
   });
 
@@ -2821,6 +2823,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2834,7 +2837,7 @@ describe("pg_truncate", () => {
 
     expect(result.restartIdentity).toBe(true);
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain("RESTART IDENTITY");
   });
 
@@ -2842,6 +2845,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2854,7 +2858,7 @@ describe("pg_truncate", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain("RESTART IDENTITY");
     expect(sql).toContain("CASCADE");
   });
@@ -2863,12 +2867,13 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
     await tool.handler({ tableName: "sessions" }, mockContext);
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain('"sessions"');
   });
 
@@ -2876,6 +2881,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2886,7 +2892,7 @@ describe("pg_truncate", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain('"archive"."old_events"');
   });
 });

@@ -401,7 +401,11 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
       });
-      // Mock 3: actual TRUNCATE query
+      // Mock 3: COUNT query
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ c: 0 }],
+      });
+      // Mock 4: actual TRUNCATE query
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [],
         rowsAffected: 0,
