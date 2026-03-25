@@ -127,7 +127,7 @@ export function createListFunctionsTool(
                           JOIN pg_language l ON l.oid = p.prolang
                           WHERE ${conditions.join(" AND ")}
                           ORDER BY n.nspname, p.proname
-                          ${limitVal > 0 ? `LIMIT ${limitVal}` : ""}`;
+                          ${limitVal > 0 ? `LIMIT ${String(limitVal)}` : ""}`;
 
         const result =
           queryParams.length > 0
@@ -245,7 +245,7 @@ export function createListTriggersTool(
 
         const rawLimit = Number(parsed.limit);
         const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
-        const finalSql = limitVal > 0 ? `${sql} LIMIT ${limitVal}` : sql;
+        const finalSql = limitVal > 0 ? `${sql} LIMIT ${String(limitVal)}` : sql;
 
         const result =
           queryParams.length > 0
@@ -257,7 +257,7 @@ export function createListTriggersTool(
           count: result.rows?.length ?? 0,
           limit: limitVal,
           note: limitVal > 0 && (result.rows?.length ?? 0) >= limitVal
-              ? `Results limited to ${limitVal}. Use 'limit' param for more.`
+              ? `Results limited to ${String(limitVal)}. Use 'limit' param for more.`
               : undefined,
         };
       } catch (error: unknown) {
@@ -385,7 +385,7 @@ export function createListConstraintsTool(
 
         const rawLimit = Number(parsed.limit);
         const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
-        const finalSql = limitVal > 0 ? `${sql} LIMIT ${limitVal}` : sql;
+        const finalSql = limitVal > 0 ? `${sql} LIMIT ${String(limitVal)}` : sql;
 
         const result =
           queryParams.length > 0
@@ -397,7 +397,7 @@ export function createListConstraintsTool(
           count: result.rows?.length ?? 0,
           limit: limitVal,
           note: limitVal > 0 && (result.rows?.length ?? 0) >= limitVal
-              ? `Results limited to ${limitVal}. Use 'limit' param for more.`
+              ? `Results limited to ${String(limitVal)}. Use 'limit' param for more.`
               : undefined,
         };
       } catch (error: unknown) {
