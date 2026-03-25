@@ -29,6 +29,21 @@ export function coerceNumber(val: unknown, _ctx?: unknown): unknown {
 }
 
 /**
+ * Strict numeric coercion for z.preprocess() in schemas where silent defaulting is not desired.
+ * Returns the original invalid value so Zod can catch it and yield a type error.
+ */
+export function coerceStrictNumber(val: unknown, _ctx?: unknown): unknown {
+  if (val === undefined || val === null) return undefined;
+  if (typeof val === "number") return Number.isNaN(val) ? val : val;
+  if (typeof val === "string") {
+    if (val.trim() === "") return undefined;
+    const n = Number(val);
+    return Number.isNaN(n) ? val : n;
+  }
+  return val;
+}
+
+/**
  * Coerce a database row value to a JS number.
  * Handles BIGINT strings returned by the pg driver as strings.
  * Returns null for null/undefined inputs.

@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
-import { coerceNumber } from "../../../utils/query-helpers.js";
+import { coerceNumber, coerceStrictNumber } from "../../../utils/query-helpers.js";
 
 // Base schema for MCP visibility — name is optional so MCP framework
 // doesn't reject {} calls; handler validates via the full schema.
@@ -43,13 +43,14 @@ export const CreateSequenceSchemaBase = z.object({
   name: z.string().optional().describe("Sequence name"),
   sequenceName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
-  start: z.preprocess(coerceNumber, z.number().optional()).describe("Start value"),
-  increment: z.preprocess(coerceNumber, z.number().optional()).describe("Increment by (default: 1)"),
-  minValue: z.preprocess(coerceNumber, z.number().optional()).describe("Minimum value"),
-  maxValue: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum value"),
+  start: z.unknown().optional().describe("Start value (number)"),
+  increment: z.unknown().optional().describe("Increment by (number, default: 1)"),
+  minValue: z.unknown().optional().describe("Minimum value (number)"),
+  maxValue: z.unknown().optional().describe("Maximum value (number)"),
   cache: z
-    .preprocess(coerceNumber, z.number().optional())
-    .describe("Number of sequence values to pre-allocate (default: 1)"),
+    .unknown()
+    .optional()
+    .describe("Number of sequence values to pre-allocate (number, default: 1)"),
   cycle: z
     .boolean()
     .optional()
@@ -107,7 +108,19 @@ function preprocessCreateSequenceParams(input: unknown): unknown {
 // Transformed schema with alias resolution and schema.name preprocessing
 export const CreateSequenceSchema = z.preprocess(
   preprocessCreateSequenceParams,
-  CreateSequenceSchemaBase.transform((data) => ({
+  z.object({
+    name: z.string().optional(),
+    sequenceName: z.string().optional(),
+    schema: z.string().optional(),
+    start: z.preprocess(coerceStrictNumber, z.number().optional()),
+    increment: z.preprocess(coerceStrictNumber, z.number().optional()),
+    minValue: z.preprocess(coerceStrictNumber, z.number().optional()),
+    maxValue: z.preprocess(coerceStrictNumber, z.number().optional()),
+    cache: z.preprocess(coerceStrictNumber, z.number().optional()),
+    cycle: z.boolean().optional(),
+    ownedBy: z.string().optional(),
+    ifNotExists: z.boolean().optional(),
+  }).transform((data) => ({
     name: data.name ?? data.sequenceName ?? "",
     schema: data.schema,
     start: data.start,
@@ -253,7 +266,7 @@ export const DropViewSchema = z
 
 export const ListSequencesSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum number of sequences to return (default: 50). Use 0 for all."),
+  limit: z.unknown().optional().describe("Maximum number of sequences to return (number, default: 50). Use 0 for all."),
 });
 
 export const ListSequencesSchema = z.preprocess((input: unknown) => {
@@ -261,13 +274,16 @@ export const ListSequencesSchema = z.preprocess((input: unknown) => {
   if (typeof val !== "object" || val === null) return val;
   const result = { ...(val as Record<string, unknown>) };
   return result;
-}, ListSequencesSchemaBase);
+}, z.object({
+  schema: z.string().optional(),
+  limit: z.preprocess(coerceNumber, z.number().optional()),
+}));
 
 export const ListViewsSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
   includeMaterialized: z.boolean().optional().describe("Whether to include materialized views"),
-  truncateDefinition: z.preprocess(coerceNumber, z.number().optional()).describe("Max length for view definitions (default: 500). Use 0 for no truncation."),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum number of views to return (default: 50). Use 0 for all views."),
+  truncateDefinition: z.unknown().optional().describe("Max length for view definitions (number, default: 500). Use 0 for no truncation."),
+  limit: z.unknown().optional().describe("Maximum number of views to return (number, default: 50). Use 0 for all views."),
 });
 
 export const ListViewsSchema = z.preprocess((input: unknown) => {
@@ -275,7 +291,12 @@ export const ListViewsSchema = z.preprocess((input: unknown) => {
   if (typeof val !== "object" || val === null) return val;
   const result = { ...(val as Record<string, unknown>) };
   return result;
-}, ListViewsSchemaBase);
+}, z.object({
+  schema: z.string().optional(),
+  includeMaterialized: z.boolean().optional(),
+  truncateDefinition: z.preprocess(coerceNumber, z.number().optional()),
+  limit: z.preprocess(coerceNumber, z.number().optional()),
+}));
 
 // =============================================================================
 // List Functions Schema - Split Schema pattern for MCP visibility
@@ -298,9 +319,10 @@ export const ListFunctionsSchemaBase = z.object({
     .optional()
     .describe('Filter by language (e.g., "plpgsql", "sql", "c")'),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .unknown()
+    .optional()
     .describe(
-      "Max results (default: 500). Increase for databases with many extensions.",
+      "Max results (number, default: 500). Increase for databases with many extensions.",
     ),
 });
 
@@ -310,7 +332,12 @@ export const ListFunctionsSchemaBase = z.object({
  */
 export const ListFunctionsSchema = z.preprocess(
   (val: unknown) => val ?? {},
-  ListFunctionsSchemaBase,
+  z.object({
+    schema: z.string().optional(),
+    exclude: z.array(z.string()).optional(),
+    language: z.string().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+  })
 );
 
 // ============================================================================
