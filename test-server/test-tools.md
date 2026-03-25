@@ -1,8 +1,6 @@
 # Tool Group Testing
 
-**Step 1:** Read `C:\Users\chris\Desktop\postgres-mcp\src\constants\server-instructions.ts` using `view_file` (not grep or search) — to understand documented behaviors, edge cases, and response structures for this tool group.
-
-**Step 2:** Please conduct an exhaustive test of the tool group listed below using BOTH code mode (pg_execute_code) and direct tool calls, not scripts/terminal! Do not modify or skip any tests! Follow the instructions!
+**Instructions:** Please conduct an exhaustive test of the tool group listed below using BOTH code mode (pg_execute_code) and direct tool calls, not scripts/terminal! Do not modify or skip any tests to save tokens! Doing so will waste tokens since I will have to retest all over again. Follow the instructions!
 
 ## Reporting Format
 
@@ -48,8 +46,11 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
 6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
 7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
-8. **Deterministic checklist first**: Complete ALL items in the Deterministic Checklist below before moving to freeform exploration. The checklist uses exact inputs and expected outputs to ensure reproducible coverage every run.
-9. **Audit backup tools**: The 3 `pg_audit_*` tools require `--audit-backup` to be enabled on the test server. When enabled, destructive operations (`pg_truncate`, `pg_drop_table`, `pg_vacuum`, etc.) create gzip-compressed `.snapshot.json.gz` files alongside the audit log. **V2 features to verify**: `pg_audit_diff_backup` now returns a `volumeDrift` field (row count + size changes); `pg_audit_restore_backup` supports `restoreAs` for side-by-side non-destructive restore; and Code Mode calls through `pg_execute_code` that trigger destructive operations are also captured by the interceptor. When disabled, all 3 tools return `{success: false, error: "Audit backup not enabled"}`.
+8. **Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md`. For EVERY tool in the group, you must explicitly log: Direct Call (Happy Path), Code Mode (Happy Path), Domain Error (Direct Call), Zod Empty Param (Direct Call), and Alias Acceptance (if applicable). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
+9. **No Scripted Loops**: You must test each error path by writing an individual, distinct tool call. Do not write a JavaScript `for` loop inside `pg_execute_code` to test multiple tools at once.
+10. **Pacing**: Test a maximum of 3-5 tools at a time. Report the results, update your matrix, and then move on to the next chunk.
+11. **Deterministic checklist first**: Complete ALL items in the Deterministic Checklist below before moving to the Strict Coverage Matrix exploration. The checklist uses exact inputs and expected outputs to ensure reproducible coverage every run.
+12. **Audit backup tools**: The 3 `pg_audit_*` tools require `--audit-backup` to be enabled on the test server. When enabled, destructive operations (`pg_truncate`, `pg_drop_table`, `pg_vacuum`, etc.) create gzip-compressed `.snapshot.json.gz` files alongside the audit log. **V2 features to verify**: `pg_audit_diff_backup` now returns a `volumeDrift` field (row count + size changes); `pg_audit_restore_backup` supports `restoreAs` for side-by-side non-destructive restore; and Code Mode calls through `pg_execute_code` that trigger destructive operations are also captured by the interceptor. When disabled, all 3 tools return `{success: false, error: "Audit backup not enabled"}`.
 
 Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) now return as parseable JSON objects via direct tool calls — not as raw MCP error strings. During error path testing, verify this: if a direct tool call for a nonexistent schema/table returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
 
