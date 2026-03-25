@@ -471,7 +471,8 @@ export const AuditRestoreBackupOutputSchema = z
     error: z.string().optional().describe("Error message if failed"),
     hint: z.string().optional().describe("Hint for next steps"),
   })
-  .loose();
+  .loose()
+  .extend(ErrorResponseFields.shape);
 
 /**
  * pg_audit_diff_backup output - schema drift comparison
@@ -503,4 +504,5 @@ export const AuditDiffBackupOutputSchema = z
     currentDdl: z.string().optional().describe("Current live DDL"),
     error: z.string().optional().describe("Error message if failed"),
   })
-  .loose();
+  .loose()
+  .extend(ErrorResponseFields.shape);

@@ -9,7 +9,7 @@
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
-import { z } from "zod";
+// import { z } from "zod";
 import { readOnly, admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -114,25 +114,16 @@ export function createAuditRestoreBackupTool(
 
         const parsed = AuditRestoreBackupSchema.parse(params);
         if (!parsed.filename) {
-          return {
-            success: false,
-            error: "filename parameter is required",
-          };
+          throw new Error("Validation error: filename parameter is required");
         }
 
         if (!parsed.dryRun && !parsed.restoreAs && !parsed.confirm) {
-          return {
-            success: false,
-            error: "confirm: true is required for in-place destructive restores",
-          };
+          throw new Error("Validation error: confirm: true is required for in-place destructive restores");
         }
 
         const snapshot = await backupManager.getSnapshot(parsed.filename);
         if (!snapshot) {
-          return {
-            success: false,
-            error: `Snapshot not found: ${parsed.filename}`,
-          };
+          throw new Error(`Query failed: Snapshot not found: ${parsed.filename}`);
         }
 
         // §2: Rewrite DDL/data for restoreAs (side-by-side restore)
@@ -152,12 +143,13 @@ export function createAuditRestoreBackupTool(
             dataStatements = dataStatements.replaceAll(originalQualified, restoreQualified);
           }
         } else {
-          // If we are doing in-place restore (no restoreAs) and it's a CREATE TABLE statement
-          const ddlMatch = /^\s*CREATE\s+(TABLE|VIEW|MATERIALIZED VIEW|SEQUENCE)\s+/i.exec(ddl);
-          if (ddlMatch?.[1]) {
-            const typeMatched = ddlMatch[1].toUpperCase();
-            ddl = `DROP ${typeMatched} IF EXISTS ${originalQualified} CASCADE;\n` + ddl;
-          }
+          // If we are doing in-place restore (no restoreAs)
+          // The target object could be a TABLE, VIEW, MATERIALIZED VIEW, or SEQUENCE.
+          // Since we might not know exactly which one, generate conditional drops for all possibilities.
+          ddl = `DROP TABLE IF EXISTS ${originalQualified} CASCADE;\n` +
+                `DROP VIEW IF EXISTS ${originalQualified} CASCADE;\n` +
+                `DROP MATERIALIZED VIEW IF EXISTS ${originalQualified} CASCADE;\n` +
+                `DROP SEQUENCE IF EXISTS ${originalQualified} CASCADE;\n` + ddl;
         }
 
         // Dry run: return DDL without executing
@@ -252,18 +244,12 @@ export function createAuditDiffBackupTool(
 
         const parsed = AuditDiffBackupSchema.parse(params);
         if (!parsed.filename) {
-          return {
-            success: false,
-            error: "filename parameter is required",
-          };
+          throw new Error("Validation error: filename parameter is required");
         }
 
         const snapshot = await backupManager.getSnapshot(parsed.filename);
         if (!snapshot) {
-          return {
-            success: false,
-            error: `Snapshot not found: ${parsed.filename}`,
-          };
+          throw new Error(`Query failed: Snapshot not found: ${parsed.filename}`);
         }
 
         // Get current live schema for the target object
