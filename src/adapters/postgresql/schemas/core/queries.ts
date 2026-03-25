@@ -214,13 +214,13 @@ export const CreateTableSchemaBase = z.object({
         primaryKey: z.boolean().optional(),
         unique: z.boolean().optional(),
         default: z
-          .union([z.string(), z.number(), z.boolean()])
+          .unknown()
           .optional()
           .describe(
             "Default value (raw SQL expression). Numbers/booleans auto-coerced to string.",
           ),
         defaultValue: z
-          .union([z.string(), z.number(), z.boolean()])
+          .unknown()
           .optional()
           .describe(
             "Alias for default. Numbers/booleans auto-coerced to string.",
@@ -228,15 +228,7 @@ export const CreateTableSchemaBase = z.object({
         check: z.string().optional().describe("CHECK constraint expression"),
         // Support both object {table, column} and string 'table(column)' syntax
         references: z
-          .union([
-            z.object({
-              table: z.string(),
-              column: z.string(),
-              onDelete: z.string().optional(),
-              onUpdate: z.string().optional(),
-            }),
-            z.string().describe('String syntax: "table(column)"'),
-          ])
+          .unknown()
           .optional()
           .describe(
             'Foreign key reference: {table, column} or "table(column)"',
@@ -356,7 +348,9 @@ export const CreateTableSchema = z
       let defaultValue: string | undefined;
       if (rawDefault !== undefined && rawDefault !== null) {
         defaultValue =
-          typeof rawDefault === "string" ? rawDefault : String(rawDefault);
+          typeof rawDefault === "object"
+            ? JSON.stringify(rawDefault)
+            : String(rawDefault as string | number | boolean);
 
         // Auto-convert common function shortcuts to valid SQL expressions
         // e.g., now() → CURRENT_TIMESTAMP (PostgreSQL rejects now() as column reference)

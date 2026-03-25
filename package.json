@@ -68,6 +68,7 @@
     "globals": "^17.4.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
+    "unplugin-swc": "^1.5.9",
     "vitest": "^4.1.0"
   },
   "overrides": {

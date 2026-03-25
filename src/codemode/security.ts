@@ -107,7 +107,25 @@ export class CodeModeSecurityManager {
    * Sanitize and truncate result if too large
    */
   sanitizeResult(result: unknown): unknown {
+    if (result === null || typeof result !== "object") {
+      return result;
+    }
+
     try {
+      // Fast path heuristic for large arrays: slice before stringify to save CPU
+      if (Array.isArray(result) && result.length > 500) {
+        const sample = result.slice(0, 500);
+        const serialized = JSON.stringify(sample);
+        return {
+          _truncated: true,
+          _originalSize: result.length,
+          _maxSize: this.config.maxResultSize,
+          preview:
+            serialized.substring(0, this.config.resultPreviewLength) +
+            `... (and ${String(result.length - 500)} more rows)`,
+        };
+      }
+
       const serialized = JSON.stringify(result);
       if (serialized.length > this.config.maxResultSize) {
         return {
