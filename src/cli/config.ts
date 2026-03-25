@@ -120,7 +120,7 @@ export async function buildOAuthConfig(
       });
       jwksUri = await discovery.getJwksUri();
       logger.debug("JWKS URI discovered from issuer", { jwksUri });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn("Failed to discover JWKS URI, OAuth may not work correctly", {
         error: String(error),
       });

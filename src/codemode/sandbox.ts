@@ -168,7 +168,7 @@ export class CodeModeSandbox {
         result,
         metrics: this.calculateMetrics(startTime, endTime, startRss, endRss),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const endTime = performance.now();
       const endRss = process.memoryUsage.rss();
 

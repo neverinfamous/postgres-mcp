@@ -132,7 +132,7 @@ export class ConnectionPool {
       logger.info("PostgreSQL connection pool initialized", {
         version: version?.version ?? "unknown",
       });
-    } catch (error) {
+    } catch (error: unknown) {
       // Clean up pool on initialization failure
       if (this.pool !== null) {
         try {
@@ -165,7 +165,7 @@ export class ConnectionPool {
       const client = await this.pool.connect();
       this.stats.waiting = Math.max(0, this.stats.waiting - 1);
       return client;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.waiting = Math.max(0, this.stats.waiting - 1);
       const message = error instanceof Error ? error.message : "Unknown error";
       throw new PoolError(`Failed to acquire connection: ${message}`);
@@ -178,7 +178,7 @@ export class ConnectionPool {
   releaseConnection(client: PoolClient): void {
     try {
       client.release();
-    } catch (error) {
+    } catch (error: unknown) {
       logger.warn("Error releasing connection", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
@@ -209,7 +209,7 @@ export class ConnectionPool {
       });
 
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Unknown error";
       logger.error("Query failed", {
         sql: sql.substring(0, 100),
@@ -266,7 +266,7 @@ export class ConnectionPool {
           database: row?.current_database,
         },
       };
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         connected: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -290,7 +290,7 @@ export class ConnectionPool {
       await this.pool.end();
       this.pool = null;
       logger.info("Connection pool shut down successfully");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error during pool shutdown", {
         error: error instanceof Error ? error.message : "Unknown error",
       });

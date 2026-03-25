@@ -81,7 +81,7 @@ export class AuthorizationServerDiscovery {
       });
 
       return metadata;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Auth server discovery failed", {
         url: this.config.authServerUrl,
         error: String(error),

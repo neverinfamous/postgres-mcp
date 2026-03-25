@@ -336,7 +336,7 @@ export class HttpTransport {
             tokenValidator: this.config.tokenValidator,
             required: true,
           });
-        } catch (error) {
+        } catch (error: unknown) {
           const { status, body } = formatOAuthError(error);
           res.writeHead(status, {
             "Content-Type": "application/json",

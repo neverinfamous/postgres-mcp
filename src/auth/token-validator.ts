@@ -74,7 +74,7 @@ export class TokenValidator {
       logger.debug("Token validated successfully", { sub: claims.sub });
 
       return { valid: true, claims };
-    } catch (error) {
+    } catch (error: unknown) {
       return this.handleValidationError(error);
     }
   }
@@ -99,7 +99,7 @@ export class TokenValidator {
       logger.debug("JWKS cache refreshed", { uri: this.config.jwksUri });
 
       return this.jwksCache;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Failed to fetch JWKS", {
         uri: this.config.jwksUri,
         error: String(error),

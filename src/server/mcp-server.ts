@@ -226,7 +226,7 @@ export class PostgresMcpServer {
       }
       await this.mcpServer.close();
       logger.info("MCP Server stopped");
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error stopping server", {
         error: error instanceof Error ? error.message : "Unknown error",
       });
