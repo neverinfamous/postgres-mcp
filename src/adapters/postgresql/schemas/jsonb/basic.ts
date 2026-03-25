@@ -41,12 +41,14 @@ export const JsonbExtractSchemaBase = z.object({
     ),
   where: z.string().optional().describe("WHERE clause"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum number of rows to return"),
+  limit: z.number().optional().describe("Maximum number of rows to return"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Internal schema with refine (for handler validation)
-const JsonbExtractSchemaRefined = JsonbExtractSchemaBase.refine(
+const JsonbExtractSchemaRefined = JsonbExtractSchemaBase.extend({
+  limit: z.preprocess(coerceNumber, z.number().optional()),
+}).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
 )
@@ -143,17 +145,16 @@ export const JsonbContainsSchemaBase = z.object({
     .describe("Columns to select in result"),
   where: z.string().optional().describe("Additional WHERE clause filter"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe(
+  limit: z.number().optional().describe(
     "Maximum number of rows to return (default: 100). Use 0 for all rows.",
   ),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Internal schema with refine (for handler validation)
-const JsonbContainsSchemaRefined = JsonbContainsSchemaBase.refine(
+const JsonbContainsSchemaRefined = JsonbContainsSchemaBase.extend({
+  limit: z.preprocess(coerceNumber, z.number().optional()),
+}).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
 ).refine((data) => data.column !== undefined || data.col !== undefined, {
@@ -185,17 +186,16 @@ export const JsonbPathQuerySchemaBase = z.object({
     .describe("Variables for JSONPath (access with $var_name)"),
   where: z.string().optional().describe("WHERE clause"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe(
+  limit: z.number().optional().describe(
     "Maximum number of results to return (default: 100). Use 0 for all results.",
   ),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Internal schema with refine (for handler validation)
-const JsonbPathQuerySchemaRefined = JsonbPathQuerySchemaBase.refine(
+const JsonbPathQuerySchemaRefined = JsonbPathQuerySchemaBase.extend({
+  limit: z.preprocess(coerceNumber, z.number().optional()),
+}).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
 )
@@ -414,12 +414,14 @@ export const JsonbAggSchemaBase = z.object({
     .string()
     .optional()
     .describe('ORDER BY clause (e.g., "id DESC", "name ASC")'),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum number of rows to aggregate"),
+  limit: z.number().optional().describe("Maximum number of rows to aggregate"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Internal schema with refine (for handler validation)
-const JsonbAggSchemaRefined = JsonbAggSchemaBase.refine(
+const JsonbAggSchemaRefined = JsonbAggSchemaBase.extend({
+  limit: z.preprocess(coerceNumber, z.number().optional()),
+}).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
 );

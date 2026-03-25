@@ -24,17 +24,16 @@ export const JsonbPrettySchemaBase = z.object({
   col: z.string().optional().describe("JSONB column name (alias for column)"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Maximum rows to format (default: 10)"),
+  limit: z.number().optional().describe("Maximum rows to format (default: 10)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Preprocessed schema for handler parsing
 export const JsonbPrettySchema = z.preprocess(
   preprocessJsonbParams,
-  JsonbPrettySchemaBase,
+  JsonbPrettySchemaBase.extend({
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+  }),
 );
 
 // =============================================================================

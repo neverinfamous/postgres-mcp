@@ -56,7 +56,7 @@ export const JsonbStatsSchemaBase = z.object({
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
-  sampleSize: z.preprocess(coerceNumber, z.number().optional()).describe("Sample rows to analyze"),
+  sampleSize: z.number().optional().describe("Sample rows to analyze"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z
     .string()
@@ -70,7 +70,9 @@ export const JsonbStatsSchemaBase = z.object({
 });
 
 // Internal schema with refine (for handler validation)
-const JsonbStatsSchemaRefined = JsonbStatsSchemaBase.refine(
+const JsonbStatsSchemaRefined = JsonbStatsSchemaBase.extend({
+  sampleSize: z.preprocess(coerceNumber, z.number().optional()),
+}).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
 ).refine((data) => data.column !== undefined || data.col !== undefined, {
@@ -90,7 +92,7 @@ export const JsonbIndexSuggestSchemaBase = z.object({
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
-  sampleSize: z.preprocess(coerceNumber, z.number().optional()).describe("Sample rows to analyze"),
+  sampleSize: z.number().optional().describe("Sample rows to analyze"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z
     .string()
@@ -100,7 +102,9 @@ export const JsonbIndexSuggestSchemaBase = z.object({
 });
 
 // Internal schema with refine (for handler validation)
-const JsonbIndexSuggestSchemaRefined = JsonbIndexSuggestSchemaBase.refine(
+const JsonbIndexSuggestSchemaRefined = JsonbIndexSuggestSchemaBase.extend({
+  sampleSize: z.preprocess(coerceNumber, z.number().optional()),
+}).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
 ).refine((data) => data.column !== undefined || data.col !== undefined, {
@@ -120,7 +124,7 @@ export const JsonbSecurityScanSchemaBase = z.object({
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
-  sampleSize: z.preprocess(coerceNumber, z.number().optional()).describe("Sample rows to scan"),
+  sampleSize: z.number().optional().describe("Sample rows to scan"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z
     .string()
@@ -130,7 +134,9 @@ export const JsonbSecurityScanSchemaBase = z.object({
 });
 
 // Internal schema with refine (for handler validation)
-const JsonbSecurityScanSchemaRefined = JsonbSecurityScanSchemaBase.refine(
+const JsonbSecurityScanSchemaRefined = JsonbSecurityScanSchemaBase.extend({
+  sampleSize: z.preprocess(coerceNumber, z.number().optional()),
+}).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
 ).refine((data) => data.column !== undefined || data.col !== undefined, {
