@@ -50,9 +50,12 @@ if (-not (Test-Path $SqlFile)) {
     exit 1
 }
 
+$DB_PASSWORD = $env:POSTGRES_PASSWORD
+if ([string]::IsNullOrWhiteSpace($DB_PASSWORD)) { $DB_PASSWORD = "postgres" }
+
 # Check Docker is running and container exists
-$containerCheck = docker ps --filter "name=postgres-server" --format "{{.Names}}" 2>&1
-if ($containerCheck -ne "postgres-server") {
+$containerCheck = (docker container inspect -f '{{.State.Running}}' postgres-server 2>&1) -join ""
+if ($containerCheck -notmatch "true") {
     Write-Error "postgres-server container is not running. Start it first."
     exit 1
 }
@@ -77,7 +80,7 @@ BEGIN
     END LOOP;
 END`$`$;
 "@
-$result = docker exec postgres-server psql -U postgres -d postgres -c $sql1 2>&1
+$result = $sql1 | docker exec -i -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Dropped test_schema and test_vector_schema"
 } else {
@@ -102,7 +105,7 @@ BEGIN
     DROP VIEW IF EXISTS test_order_summary CASCADE;
 END`$`$;
 "@
-$result = docker exec postgres-server psql -U postgres -d postgres -c $sql2 2>&1
+$result = $sql2 | docker exec -i -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Dropped test views"
 } else {
@@ -140,7 +143,7 @@ BEGIN
     END LOOP;
 END`$`$;
 "@
-$result = docker exec postgres-server psql -U postgres -d postgres -c $sql3a 2>&1
+$result = $sql3a | docker exec -i -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Dropped test functions, triggers, and sequences"
 } else {
@@ -163,7 +166,7 @@ BEGIN
     END LOOP;
 END`$`$;
 "@
-$result = docker exec postgres-server psql -U postgres -d postgres -c $sql4 2>&1
+$result = $sql4 | docker exec -i -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Dropped all temp_* tables"
 } else {
@@ -198,7 +201,7 @@ BEGIN
     END LOOP;
 END`$`$;
 "@
-$result = docker exec postgres-server psql -U postgres -d postgres -c $sql5 2>&1
+$result = $sql5 | docker exec -i -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Cleaned up pg_partman configurations and template tables"
 } else {
@@ -236,7 +239,7 @@ BEGIN
     END LOOP;
 END`$`$;
 "@
-$result = docker exec postgres-server psql -U postgres -d postgres -c $sql6 2>&1
+$result = $sql6 | docker exec -i -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Dropped all test_* tables"
 } else {
@@ -259,7 +262,7 @@ BEGIN
     END LOOP;
 END`$`$;
 "@
-$result = docker exec postgres-server psql -U postgres -d postgres -c $sql7 2>&1
+$result = $sql7 | docker exec -i -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Dropped all ai_test_* tables"
 } else {
@@ -300,7 +303,7 @@ BEGIN
     END LOOP;
 END`$`$;
 "@
-$result = docker exec postgres-server psql -U postgres -d postgres -c $sql8 2>&1
+$result = $sql8 | docker exec -i -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Dropped all accumulated artifact tables"
 } else {
@@ -320,7 +323,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # Execute the SQL file
-$seedResult = docker exec postgres-server psql -U postgres -d postgres -f /tmp/test-database.sql 2>&1
+$seedResult = docker exec -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres -f /tmp/test-database.sql 2>&1
 if ($LASTEXITCODE -eq 0) {
     Write-Success "Database re-seeded from test-database.sql"
     if ($Verbose) {
@@ -345,7 +348,7 @@ if (Test-Path $ResourceSqlFile) {
         exit 1
     }
 
-    $resourceResult = docker exec postgres-server psql -U postgres -d postgres -f /tmp/test-resources.sql 2>&1
+    $resourceResult = docker exec -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres -f /tmp/test-resources.sql 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Success "Resource test data seeded from test-resources.sql"
         if ($Verbose) {
@@ -395,7 +398,7 @@ if (-not $SkipVerify) {
     foreach ($entry in $expectedTables.GetEnumerator()) {
         $tableName = $entry.Key
         $expectedCount = $entry.Value
-        $countResult = docker exec postgres-server psql -U postgres -d postgres -t -c "SELECT COUNT(*) FROM public.$tableName;" 2>&1
+        $countResult = docker exec -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres -t -c "SELECT COUNT(*) FROM public.$tableName;" 2>&1
         $countStr = if ($countResult -is [array]) { $countResult -join "" } else { $countResult }
         $actualCount = [int]($countStr -replace '\s','')
 
@@ -433,7 +436,7 @@ if (-not $SkipVerify) {
 
     # Check for unexpected non-seed tables
     Write-Host "`n  Artifact check:" -ForegroundColor Yellow
-    $allTablesResult = docker exec postgres-server psql -U postgres -d postgres -t -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;" 2>&1
+    $allTablesResult = docker exec -e PGPASSWORD=$DB_PASSWORD postgres-server psql -U postgres -d postgres -t -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;" 2>&1
     $tableLines = if ($allTablesResult -is [array]) { $allTablesResult } else { $allTablesResult -split "`n" }
     $unexpectedTables = @()
     foreach ($line in $tableLines) {
