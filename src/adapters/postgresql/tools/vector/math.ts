@@ -25,7 +25,7 @@ export function createVectorDistanceTool(
   const DistanceSchemaBase = z.object({
     vector1: z.array(z.number()).optional(),
     vector2: z.array(z.number()).optional(),
-    metric: z.enum(["l2", "cosine", "inner_product"]).optional(),
+    metric: z.string().optional(),
   });
 
   return {
@@ -64,6 +64,14 @@ export function createVectorDistanceTool(
         const v1 = `[${parsed.vector1.join(",")}]`;
         const v2 = `[${parsed.vector2.join(",")}]`;
         const metric = parsed.metric ?? "l2";
+
+        if (!["l2", "cosine", "inner_product"].includes(metric)) {
+          return {
+            success: false,
+            error: \`Validation error: Invalid metric '\${metric}'\`,
+            suggestion: "Metric must be one of: 'l2', 'cosine', 'inner_product'",
+          };
+        }
 
         let op: string;
         switch (metric) {

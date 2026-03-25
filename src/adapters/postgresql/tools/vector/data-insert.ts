@@ -30,7 +30,7 @@ export function createVectorInsertTool(
     tableName: z.string().optional().describe("Alias for table"),
     column: z.string().optional().describe("Column name"),
     col: z.string().optional().describe("Alias for column"),
-    vector: z.array(z.number()),
+    vector: z.array(z.number()).optional(),
     additionalColumns: z.record(z.string(), z.unknown()).optional(),
     schema: z.string().optional(),
     updateExisting: z
@@ -275,6 +275,7 @@ export function createVectorBatchInsertTool(
             .describe("Additional column values"),
         }),
       )
+      .optional()
       .describe("Array of vectors with optional additional data"),
     schema: z.string().optional().describe("Database schema (default: public)"),
   });
@@ -300,6 +301,14 @@ export function createVectorBatchInsertTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = BatchInsertSchema.parse(params);
+
+        if (!parsed.vectors || !Array.isArray(parsed.vectors)) {
+          return {
+            success: false,
+            error: "Validation error: vectors parameter is required and must be a non-empty array",
+            suggestion: "Provide an array of vector objects"
+          };
+        }
 
         // Parse schema.table format (embedded schema takes priority over explicit schema param)
         let resolvedTable = parsed.table;

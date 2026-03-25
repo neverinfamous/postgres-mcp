@@ -33,9 +33,9 @@ export function createHybridSearchTool(
     tableName: z.string().optional().describe("Alias for table"),
     vectorColumn: z.string().optional().describe("Vector column"),
     vectorCol: z.string().optional().describe("Alias for vectorColumn"),
-    textColumn: z.string().describe("Text column for FTS"),
-    vector: z.array(z.number()).describe("Query vector"),
-    textQuery: z.string().describe("Text search query"),
+    textColumn: z.string().optional().describe("Text column for FTS"),
+    vector: z.array(z.number()).optional().describe("Query vector"),
+    textQuery: z.string().optional().describe("Text search query"),
     vectorWeight: z.preprocess(coerceNumber, z.number().optional())
       .describe("Weight for vector score (0-1, default: 0.5)"),
     limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max results"),
@@ -94,6 +94,24 @@ export function createHybridSearchTool(
               "vector",
               "textQuery",
             ],
+          };
+        }
+        if (!parsed.textColumn) {
+          return {
+            success: false,
+            error: "Validation error: textColumn is required",
+          };
+        }
+        if (!parsed.vector || !Array.isArray(parsed.vector)) {
+          return {
+            success: false,
+            error: "Validation error: vector is required",
+          };
+        }
+        if (!parsed.textQuery) {
+          return {
+            success: false,
+            error: "Validation error: textQuery is required",
           };
         }
 

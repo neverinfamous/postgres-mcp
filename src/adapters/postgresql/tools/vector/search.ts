@@ -62,6 +62,13 @@ export function createVectorSearchTool(
             requiredParams: ["table", "column", "vector"],
           };
         }
+        if (!vector || !Array.isArray(vector)) {
+          return {
+            success: false,
+            error: "Validation error: vector parameter is required and must be an array of numbers",
+            suggestion: "Provide a query vector array"
+          };
+        }
 
         const tableName = sanitizeTableName(table, schema);
         const columnName = sanitizeIdentifier(column);
