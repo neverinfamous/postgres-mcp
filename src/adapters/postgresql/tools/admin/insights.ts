@@ -11,6 +11,7 @@ import type {
 } from "../../../../types/index.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { insightsManager } from "../../../../utils/insights-manager.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { z } from "zod";
 import { ErrorResponseFields } from "../../schemas/error-response-fields.js";
 
@@ -82,10 +83,7 @@ export function createAppendInsightTool(): ToolDefinition {
           message: `Insight recorded (${String(insightsManager.count())} total)`,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : "Failed to append insight",
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_append_insight" });
       }
     },
   };

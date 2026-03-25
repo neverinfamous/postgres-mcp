@@ -66,7 +66,7 @@ const SetConfigSchemaBase = z.object({
   name: z.string().optional().describe("Configuration parameter name"),
   param: z.string().optional().describe("Alias for name"),
   setting: z.string().optional().describe("Alias for name"),
-  value: z.string().describe("New value"),
+  value: z.string().optional().describe("New value"),
   isLocal: z.boolean().optional().describe("Apply only to current transaction"),
 });
 
