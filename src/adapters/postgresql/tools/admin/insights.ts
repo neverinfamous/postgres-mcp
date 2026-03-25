@@ -20,10 +20,23 @@ import { ErrorResponseFields } from "../../schemas/error-response-fields.js";
 // =============================================================================
 
 export const AppendInsightSchemaBase = z.object({
-  insight: z.string().describe("Business insight to record"),
+  insight: z.string().optional().describe("Business insight to record"),
+  text: z.string().optional().describe("Alias for insight"),
 });
 
-export const AppendInsightSchema = AppendInsightSchemaBase;
+export const AppendInsightSchema = z.preprocess(
+  (input: unknown) => {
+    if (typeof input !== "object" || input === null) return input;
+    const result = { ...(input as Record<string, unknown>) };
+    if (result["text"] !== undefined && result["insight"] === undefined) {
+      result["insight"] = result["text"];
+    }
+    return result;
+  },
+  z.object({
+    insight: z.string().describe("Business insight to record"),
+  })
+);
 
 export const AppendInsightOutputSchema = z
   .object({

@@ -10,7 +10,6 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
-import { coerceNumber } from "../../../utils/query-helpers.js";
 
 /**
  * Preprocess vacuum/analyze parameters:
@@ -217,8 +216,8 @@ function preprocessPidParams(input: unknown): unknown {
 
 // Base schema for MCP visibility (shows pid and alias)
 export const TerminateBackendSchemaBase = z.object({
-  pid: z.preprocess(coerceNumber, z.number().optional()).describe("Process ID to terminate"),
-  processId: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for pid"),
+  pid: z.number().optional().describe("Process ID to terminate"),
+  processId: z.number().optional().describe("Alias for pid"),
 });
 
 // Preprocess schema for handlers
@@ -231,8 +230,8 @@ export const TerminateBackendSchema = z.preprocess(
 
 // Base schema for MCP visibility (shows pid and alias)
 export const CancelBackendSchemaBase = z.object({
-  pid: z.preprocess(coerceNumber, z.number().optional()).describe("Process ID to cancel"),
-  processId: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for pid"),
+  pid: z.number().optional().describe("Process ID to cancel"),
+  processId: z.number().optional().describe("Alias for pid"),
 });
 
 // Preprocess schema for handlers
