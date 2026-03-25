@@ -10,13 +10,16 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   ListFunctionsSchemaBase,
   ListFunctionsSchema,
+  ListTriggersSchemaBase,
+  ListTriggersSchema,
+  ListConstraintsSchemaBase,
+  ListConstraintsSchema,
   // Output schemas
   ListFunctionsOutputSchema,
   ListTriggersOutputSchema,
@@ -112,7 +115,7 @@ export function createListFunctionsTool(
 
         // Safe coercion for limit
         const rawLimit = Number(parsed.limit);
-        const limitVal = Number.isFinite(rawLimit) ? rawLimit : 500;
+        const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
 
         const sql = `SELECT n.nspname as schema, p.proname as name,
                           pg_get_function_arguments(p.oid) as arguments,
@@ -124,7 +127,7 @@ export function createListFunctionsTool(
                           JOIN pg_language l ON l.oid = p.prolang
                           WHERE ${conditions.join(" AND ")}
                           ORDER BY n.nspname, p.proname
-                          LIMIT ${String(limitVal)}`;
+                          ${limitVal > 0 ? `LIMIT ${limitVal}` : ""}`;
 
         const result =
           queryParams.length > 0
@@ -135,7 +138,7 @@ export function createListFunctionsTool(
           count: result.rows?.length ?? 0,
           limit: limitVal,
           note:
-            (result.rows?.length ?? 0) >= limitVal
+            limitVal > 0 && (result.rows?.length ?? 0) >= limitVal
               ? `Results limited to ${String(limitVal)}. Use 'limit' param for more, or 'exclude' to filter out extension schemas.`
               : undefined,
         };
@@ -150,11 +153,6 @@ export function createListFunctionsTool(
 // pg_list_triggers
 // =============================================================================
 
-const ListTriggersSchema = z.object({
-  schema: z.string().optional(),
-  table: z.string().optional(),
-});
-
 export function createListTriggersTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -162,7 +160,7 @@ export function createListTriggersTool(
     name: "pg_list_triggers",
     description: "List all triggers.",
     group: "schema",
-    inputSchema: ListTriggersSchema,
+    inputSchema: ListTriggersSchemaBase,
     outputSchema: ListTriggersOutputSchema,
     annotations: readOnly("List Triggers"),
     icons: getToolIcons("schema", readOnly("List Triggers")),
@@ -245,11 +243,23 @@ export function createListTriggersTool(
                           AND ${whereClause}
                           ORDER BY n.nspname, c.relname, t.tgname`;
 
+        const rawLimit = Number(parsed.limit);
+        const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
+        const finalSql = limitVal > 0 ? `${sql} LIMIT ${limitVal}` : sql;
+
         const result =
           queryParams.length > 0
-            ? await adapter.executeQuery(sql, queryParams)
-            : await adapter.executeQuery(sql);
-        return { triggers: result.rows, count: result.rows?.length ?? 0 };
+            ? await adapter.executeQuery(finalSql, queryParams)
+            : await adapter.executeQuery(finalSql);
+            
+        return { 
+          triggers: result.rows, 
+          count: result.rows?.length ?? 0,
+          limit: limitVal,
+          note: limitVal > 0 && (result.rows?.length ?? 0) >= limitVal
+              ? `Results limited to ${limitVal}. Use 'limit' param for more.`
+              : undefined,
+        };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_list_triggers" });
       }
@@ -261,17 +271,6 @@ export function createListTriggersTool(
 // pg_list_constraints
 // =============================================================================
 
-const ListConstraintsSchema = z.object({
-  table: z.string().optional(),
-  schema: z.string().optional(),
-  type: z
-    .string()
-    .optional()
-    .describe(
-      "Constraint type filter: 'primary_key', 'foreign_key', 'unique', 'check'",
-    ),
-});
-
 export function createListConstraintsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -280,7 +279,7 @@ export function createListConstraintsTool(
     description:
       "List table constraints (primary keys, foreign keys, unique, check).",
     group: "schema",
-    inputSchema: ListConstraintsSchema,
+    inputSchema: ListConstraintsSchemaBase,
     outputSchema: ListConstraintsOutputSchema,
     annotations: readOnly("List Constraints"),
     icons: getToolIcons("schema", readOnly("List Constraints")),
@@ -384,11 +383,23 @@ export function createListConstraintsTool(
                           WHERE ${whereClause}
                           ORDER BY n.nspname, c.relname, con.conname`;
 
+        const rawLimit = Number(parsed.limit);
+        const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
+        const finalSql = limitVal > 0 ? `${sql} LIMIT ${limitVal}` : sql;
+
         const result =
           queryParams.length > 0
-            ? await adapter.executeQuery(sql, queryParams)
-            : await adapter.executeQuery(sql);
-        return { constraints: result.rows, count: result.rows?.length ?? 0 };
+            ? await adapter.executeQuery(finalSql, queryParams)
+            : await adapter.executeQuery(finalSql);
+            
+        return { 
+          constraints: result.rows, 
+          count: result.rows?.length ?? 0,
+          limit: limitVal,
+          note: limitVal > 0 && (result.rows?.length ?? 0) >= limitVal
+              ? `Results limited to ${limitVal}. Use 'limit' param for more.`
+              : undefined,
+        };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_list_constraints" });
       }
