@@ -1,6 +1,6 @@
 # Tool Group Testing
 
-**Step 1:** Read `postgres-mcp\src\constants\server-instructions.md` using `view_file` (not grep or search) — to understand documented behaviors, edge cases, and response structures for this tool group.
+**Step 1:** Read `C:\Users\chris\Desktop\postgres-mcp\src\constants\server-instructions.ts` using `view_file` (not grep or search) — to understand documented behaviors, edge cases, and response structures for this tool group.
 
 **Step 2:** Please conduct an exhaustive test of the tool group listed below using BOTH code mode (pg_execute_code) and direct tool calls, not scripts/terminal! Do not modify or skip any tests! Follow the instructions!
 
