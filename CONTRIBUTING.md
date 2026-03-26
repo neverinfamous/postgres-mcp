@@ -207,7 +207,7 @@ Use the centralized logger with structured payloads. Include: `module`, `operati
 
 ## 🔧 Adding or Modifying Tools
 
-postgres-mcp organizes tools into groups covering: `schema`, `introspection`, `migration`, `monitoring`, `performance`, `stats`, `text`, `jsonb`, `vector`, `admin`, `transactions`, `partitioning`, `backup`, `codemode`, and PostgreSQL extensions (`postgis`, `ltree`, `citext`, `pgcrypto`, `partman`, `cron`, `kcache`). When adding a new tool:
+postgres-mcp organizes tools into groups covering: `core`, `schema`, `introspection`, `migration`, `monitoring`, `performance`, `stats`, `text`, `jsonb`, `vector`, `admin`, `transactions`, `partitioning`, `backup`, `codemode`, and PostgreSQL extensions (`postgis`, `ltree`, `citext`, `pgcrypto`, `partman`, `cron`, `kcache`). When adding a new tool:
 
 1. **Define the tool** with its Zod input schema in the appropriate group under `src/constants/`
 2. **Implement the handler** in the corresponding adapter directory
@@ -302,6 +302,7 @@ Log all changes in **[`UNRELEASED.md`](UNRELEASED.md)** at the project root usin
 ```
 src/
 ├── adapters/       # PostgreSQL query execution and result mapping
+├── audit/          # JSONL audit trail, pre-mutation snapshots, interceptor
 ├── auth/           # OAuth 2.1, bearer token, scope enforcement
 ├── cli/            # CLI argument parsing and server bootstrap
 ├── cli.ts          # Entry point

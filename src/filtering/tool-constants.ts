@@ -2,19 +2,11 @@
  * postgres-mcp - Tool Constants
  *
  * Defines the tool groups and meta-groups used for filtering.
- * STRICT LIMIT: No shortcut may exceed 50 tools.
  *
  * TOOL COUNT NOTES:
- *   Counts are validated by unit tests in tool-filter.test.ts.
- *   Published "specialized tools" = array total - utility tools.
- *
- *   Utility tools excluded from published count:
- *     - 8 create_extension helpers (one per extension group):
- *       pg_vector_create_extension, pg_postgis_create_extension,
- *       pg_cron_create_extension, pg_partman_create_extension,
- *       pg_kcache_create_extension, pg_citext_create_extension,
- *       pg_ltree_create_extension, pg_pgcrypto_create_extension
- *     - 1 codemode meta-tool: pg_execute_code
+ *   Counts and shortcut capacities are validated by unit tests in tool-filter.test.ts.
+ *   The 248 "Specialized Tools" total encompasses all tools defined below,
+ *   including Code Mode and extension utilities.
  *
  *   When adding new tools: update the group array below.
  *   Tests will catch inconsistencies automatically.
