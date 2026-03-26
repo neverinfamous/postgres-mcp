@@ -200,11 +200,36 @@ export function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return formatHandlerErrorResponse(error, {
-              tool: "pg_create_view",
-              objectType: "view",
-              ...(schema !== undefined && { schema }),
-            });
+          // If orReplace is true and the error is "cannot drop columns from view" (42P16),
+          // we must drop the view first and then recreate it.
+          const errMsg = error instanceof Error ? error.message : String(error);
+          if (
+            orReplace &&
+            !materialized &&
+            (errMsg.includes("cannot drop columns from view") ||
+             errMsg.includes("cannot change data type of view column") ||
+             (typeof error === "object" && error !== null && "code" in error && (error as Record<string, unknown>)["code"] === "42P16"))
+          ) {
+            try {
+              // Execute a clean drop
+              await adapter.executeQuery(`DROP VIEW IF EXISTS ${schemaPrefix}${viewName}`);
+              // Retry the create (without OR REPLACE since we just dropped it)
+              const retrySql = `CREATE VIEW ${schemaPrefix}${viewName} AS ${query}${checkClause}`;
+              await adapter.executeQuery(retrySql);
+            } catch (retryError: unknown) {
+              return formatHandlerErrorResponse(retryError, {
+                tool: "pg_create_view",
+                objectType: "view",
+                ...(schema !== undefined && { schema }),
+              });
+            }
+          } else {
+            return formatHandlerErrorResponse(error, {
+                tool: "pg_create_view",
+                objectType: "view",
+                ...(schema !== undefined && { schema }),
+              });
+          }
         }
 
         const result: Record<string, unknown> = {

@@ -3794,6 +3794,14 @@ describe("pg_stats_summary", () => {
   });
 
   it("should return summary statistics for specified columns", async () => {
+    // Mock column validation
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { column_name: "price", data_type: "numeric" },
+        { column_name: "quantity", data_type: "integer" },
+      ],
+    });
+    // Mock summary query
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [
         {
@@ -3867,6 +3875,41 @@ describe("pg_stats_summary", () => {
       expect.stringContaining("information_schema"),
       expect.any(Array),
     );
+  });
+
+  it("should throw validation error when explicitly specified column is not numeric", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { column_name: "price", data_type: "numeric" },
+        { column_name: "status", data_type: "varchar" },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_summary")!;
+    const result = (await tool.handler(
+      { table: "orders", columns: ["price", "status"] },
+      mockContext,
+    )) as { success: boolean; error: string; code?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("should throw validation error when explicitly specified column does not exist", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { column_name: "price", data_type: "numeric" },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_summary")!;
+    const result = (await tool.handler(
+      { table: "orders", columns: ["price", "not_real"] },
+      mockContext,
+    )) as { success: boolean; error: string; code?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 });
 

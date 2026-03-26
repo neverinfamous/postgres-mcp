@@ -14,6 +14,7 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   StatsTopNSchemaBase,
   StatsTopNSchema,
@@ -367,6 +368,42 @@ export function createStatsSummaryTool(
         let targetColumns: string[];
 
         if (parsed.columns && parsed.columns.length > 0) {
+          // Validate requested columns
+          const colQuery = `
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_schema = $1
+              AND table_name = $2
+              AND column_name = ANY($3)
+          `;
+          const colResult = await adapter.executeQuery(colQuery, [
+            schemaName,
+            table,
+            parsed.columns,
+          ]);
+          const foundCols = (colResult.rows ?? []) as {
+            column_name: string;
+            data_type: string;
+          }[];
+
+          if (foundCols.length !== parsed.columns.length) {
+            const foundNames = new Set(foundCols.map((r) => r.column_name));
+            const missing = parsed.columns.filter((c) => !foundNames.has(c));
+            throw new ValidationError(
+              `Columns not found in table "${schemaName}.${table}": ${missing.join(", ")}`,
+            );
+          }
+
+          const nonNumeric = foundCols.filter(
+            (r) => !NUMERIC_TYPES.has(r.data_type.toLowerCase()),
+          );
+          if (nonNumeric.length > 0) {
+            const invalidNames = nonNumeric.map((r) => r.column_name);
+            throw new ValidationError(
+              `Columns must be numeric types for summary statistics: ${invalidNames.join(", ")}`,
+            );
+          }
+
           targetColumns = parsed.columns;
         } else {
           // Auto-detect numeric columns
