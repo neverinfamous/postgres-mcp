@@ -56,6 +56,22 @@ export function createVectorIndexOptimizeTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = IndexOptimizeSchema.parse(params ?? {});
+
+        if (parsed.table === "") {
+          return {
+            success: false,
+            error: "table (or tableName) parameter is required",
+            requiredParams: ["table", "column"],
+          };
+        }
+        if (parsed.column === "") {
+          return {
+            success: false,
+            error: "column (or col) parameter is required",
+            requiredParams: ["table", "column"],
+          };
+        }
+
         const tableName = sanitizeTableName(parsed.table, parsed.schema);
         const columnName = sanitizeIdentifier(parsed.column);
         const schemaName = parsed.schema ?? "public";
@@ -341,9 +357,9 @@ export function createVectorDimensionReduceTool(
 
           if ((result.rows?.length ?? 0) === 0) {
             return {
+              success: false,
               error: "No vectors found in table",
-              table: parsed.table,
-              column: parsed.column,
+              suggestion: "Ensure the table is populated",
             };
           }
 
@@ -412,13 +428,11 @@ export function createVectorDimensionReduceTool(
         }
 
         return {
+          success: false,
           error:
             "Either vector (for direct mode) or table+column (for table mode) must be provided",
-          usage: {
-            directMode: "{ vector: [0.1, 0.2, ...], targetDimensions: 50 }",
-            tableMode:
-              '{ table: "embeddings", column: "vector", targetDimensions: 50, limit: 100 }',
-          },
+          suggestion:
+            "Provide vector: [...] OR table: '...' and column: '...'",
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {

@@ -302,6 +302,21 @@ export function createVectorBatchInsertTool(
       try {
         const parsed = BatchInsertSchema.parse(params);
 
+        if (parsed.table === "") {
+          return {
+            success: false,
+            error: "table (or tableName) parameter is required",
+            requiredParams: ["table", "column", "vectors"],
+          };
+        }
+        if (parsed.column === "") {
+          return {
+            success: false,
+            error: "column (or col) parameter is required",
+            requiredParams: ["table", "column", "vectors"],
+          };
+        }
+
         if (!parsed.vectors || !Array.isArray(parsed.vectors)) {
           return {
             success: false,
