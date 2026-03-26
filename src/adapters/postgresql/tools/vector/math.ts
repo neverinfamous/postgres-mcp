@@ -17,6 +17,8 @@ import {
   VectorDistanceOutputSchema,
   VectorNormalizeOutputSchema,
 } from "../../schemas/index.js";
+import { PostgresMcpError } from "../../../../types/errors.js";
+import { ErrorCategory } from "../../../../types/error-types.js";
 
 export function createVectorDistanceTool(
   adapter: PostgresAdapter,
@@ -53,12 +55,12 @@ export function createVectorDistanceTool(
 
         // Validate dimension match before query
         if (parsed.vector1.length !== parsed.vector2.length) {
-          return {
-            success: false,
-            error: `Vector dimensions must match: vector1 has ${String(parsed.vector1.length)} dimensions, vector2 has ${String(parsed.vector2.length)} dimensions`,
-            suggestion:
-              "Ensure both vectors have the same number of dimensions",
-          };
+          return new PostgresMcpError(
+            `Vector dimensions must match: vector1 has ${String(parsed.vector1.length)} dimensions, vector2 has ${String(parsed.vector2.length)} dimensions`,
+            "DIMENSION_MISMATCH",
+            ErrorCategory.VALIDATION,
+            { suggestion: "Ensure both vectors have the same number of dimensions" }
+          ).toResponse();
         }
 
         const v1 = `[${parsed.vector1.join(",")}]`;

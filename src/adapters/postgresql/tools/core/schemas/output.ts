@@ -34,6 +34,7 @@ export const WriteQueryOutputSchema = z.object({
   success: z.boolean().optional().describe("Whether the operation succeeded"),
   operation: z.string().optional().describe("Operation type (insert/update)"),
   rowsAffected: z.number().optional().describe("Number of rows affected"),
+  insertedCount: z.number().optional().describe("Number of rows inserted (batch/bulk)"),
   command: z.string().optional().describe("SQL command executed"),
   executionTimeMs: z.number().optional().describe("Execution time in ms"),
   rows: z

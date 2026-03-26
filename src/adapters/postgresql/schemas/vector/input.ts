@@ -37,6 +37,7 @@ export const VectorSearchSchemaBase = z.object({
   column: z.string().optional().describe("Vector column name"),
   col: z.string().optional().describe("Alias for column"),
   vector: FiniteNumberArray.optional().describe("Query vector"),
+  queryVector: FiniteNumberArray.optional().describe("Alias for vector"),
   metric: z
     .enum(["l2", "cosine", "inner_product"])
     .optional()
@@ -96,7 +97,7 @@ export const VectorSearchSchema = VectorSearchSchemaBase.transform((data, ctx) =
   return {
     table: resolvedTable,
     column: data.column ?? data.col ?? "",
-    vector: data.vector,
+    vector: data.vector ?? data.queryVector,
     metric: resolvedMetric,
     limit: rawLimit,
     select: data.select,

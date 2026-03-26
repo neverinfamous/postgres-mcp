@@ -12,15 +12,31 @@ import { coerceNumber, coerceStrictNumber } from "../../../utils/query-helpers.j
 // doesn't reject {} calls; handler validates via the full schema.
 export const CreateSchemaSchemaBase = z.object({
   name: z.string().optional().describe("Schema name"),
+  schema: z.string().optional().describe("Alias for name"),
   authorization: z.string().optional().describe("Owner role"),
   ifNotExists: z.boolean().optional().describe("Use IF NOT EXISTS"),
 });
 
+function preprocessCreateSchemaParams(input: unknown): unknown {
+  if (typeof input !== "object" || input === null) return input;
+  const result = { ...(input as Record<string, unknown>) };
+
+  if (result["name"] === undefined && result["schema"] !== undefined) {
+    result["name"] = result["schema"];
+  }
+  return result;
+}
+
 // Full schema parsed inside the handler
 export const CreateSchemaSchema = z
-  .preprocess((val: unknown) => val ?? {}, CreateSchemaSchemaBase)
-  .refine((data) => typeof data.name === "string" && data.name.length > 0, {
-    message: "name is required",
+  .preprocess(preprocessCreateSchemaParams, CreateSchemaSchemaBase)
+  .transform((data) => ({
+    name: data.name ?? data.schema ?? "",
+    authorization: data.authorization,
+    ifNotExists: data.ifNotExists,
+  }))
+  .refine((data) => data.name !== "", {
+    message: "name (or schema alias) is required",
   });
 
 // Base schema for MCP visibility — name is optional
@@ -147,6 +163,7 @@ export const CreateViewSchemaBase = z.object({
     .optional()
     .describe("View name (supports schema.name format)"),
   viewName: z.string().optional().describe("Alias for name"),
+  view: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
   query: z.string().optional().describe("SELECT query for view"),
   sql: z.string().optional().describe("Alias for query"),
@@ -166,9 +183,13 @@ function preprocessCreateViewParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
   const result = { ...(input as Record<string, unknown>) };
 
-  // Resolve viewName alias to name before dotted-name extraction
-  if (result["name"] === undefined && result["viewName"] !== undefined) {
-    result["name"] = result["viewName"];
+  // Resolve viewName/view alias to name before dotted-name extraction
+  if (result["name"] === undefined) {
+    if (result["viewName"] !== undefined) {
+      result["name"] = result["viewName"];
+    } else if (result["view"] !== undefined) {
+      result["name"] = result["view"];
+    }
   }
 
   return extractSchemaFromDottedName(result);
@@ -178,7 +199,7 @@ function preprocessCreateViewParams(input: unknown): unknown {
 export const CreateViewSchema = z
   .preprocess(preprocessCreateViewParams, CreateViewSchemaBase)
   .transform((data) => ({
-    name: data.name ?? data.viewName ?? "",
+    name: data.name ?? data.viewName ?? data.view ?? "",
     schema: data.schema,
     query: data.query ?? data.sql ?? data.definition ?? "",
     materialized: data.materialized,

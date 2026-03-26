@@ -210,9 +210,17 @@ export function preprocessRegressionParams(input: unknown): unknown {
   if (result["x"] !== undefined && result["xColumn"] === undefined) {
     result["xColumn"] = result["x"];
   }
+  // Alias: independentColumn → xColumn
+  if (result["independentColumn"] !== undefined && result["xColumn"] === undefined) {
+    result["xColumn"] = result["independentColumn"];
+  }
   // Alias: y → yColumn
   if (result["y"] !== undefined && result["yColumn"] === undefined) {
     result["yColumn"] = result["y"];
+  }
+  // Alias: dependentColumn → yColumn
+  if (result["dependentColumn"] !== undefined && result["yColumn"] === undefined) {
+    result["yColumn"] = result["dependentColumn"];
   }
   // Alias: column1 → xColumn (for consistency with correlation)
   if (result["column1"] !== undefined && result["xColumn"] === undefined) {

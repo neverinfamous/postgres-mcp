@@ -61,6 +61,8 @@ export const StatsRegressionSchemaBase = z.object({
   table: z.string().describe("Table name"),
   xColumn: z.string().optional().describe("Independent variable (X)"),
   yColumn: z.string().optional().describe("Dependent variable (Y)"),
+  independentColumn: z.string().optional().describe("Alias for xColumn"),
+  dependentColumn: z.string().optional().describe("Alias for yColumn"),
   x: z.string().optional().describe("Alias for xColumn"),
   y: z.string().optional().describe("Alias for yColumn"),
   column1: z

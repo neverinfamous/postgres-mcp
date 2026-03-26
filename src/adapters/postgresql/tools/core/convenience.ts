@@ -237,7 +237,7 @@ export function createBatchInsertTool(
         }
         return {
           success: true,
-          rowsAffected: totalAffected,
+          insertedCount: totalAffected,
           hint: "Used DEFAULT VALUES for SERIAL-only table (no columns specified)",
           ...(allRows.length > 0 && { rows: allRows }),
         };
@@ -284,7 +284,7 @@ export function createBatchInsertTool(
       }
       return {
         success: true,
-        rowsAffected: result.rowsAffected ?? 0,
+        insertedCount: result.rowsAffected ?? 0,
         // Only include returned rows when RETURNING clause is used
         ...(result.rows && result.rows.length > 0 && { rows: result.rows }),
       };

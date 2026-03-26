@@ -14,6 +14,7 @@ import { insightsManager } from "../../../../utils/insights-manager.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { z } from "zod";
 import { ErrorResponseFields } from "../../schemas/error-response-fields.js";
+import { ValidationError } from "../../../../types/errors.js";
 
 // =============================================================================
 // Schemas
@@ -82,10 +83,7 @@ export function createAppendInsightTool(): ToolDefinition {
         const parsed = await Promise.resolve(AppendInsightSchema.parse(params));
 
         if (!parsed.insight?.trim()) {
-          return {
-            success: false,
-            error: "Insight text cannot be empty",
-          };
+          return new ValidationError("Insight text cannot be empty").toResponse();
         }
 
         insightsManager.append(parsed.insight);

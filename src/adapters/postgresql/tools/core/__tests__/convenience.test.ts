@@ -345,10 +345,10 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
           rows: [{ name: "Alice" }, { name: "Bob" }],
         },
         mockContext,
-      )) as { success: boolean; rowsAffected: number };
+      )) as { success: boolean; insertedCount: number };
 
       expect(result.success).toBe(true);
-      expect(result.rowsAffected).toBe(2);
+      expect(result.insertedCount).toBe(2);
     });
   });
 

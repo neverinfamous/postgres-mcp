@@ -2473,10 +2473,10 @@ describe("pg_batch_insert", () => {
         ],
       },
       mockContext,
-    )) as { success: boolean; rowsAffected: number; insertedCount: number };
+    )) as { success: boolean; insertedCount: number };
 
     expect(result.success).toBe(true);
-    expect(result.rowsAffected).toBe(3);
+    expect(result.insertedCount).toBe(3);
 
     const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
     expect(sql).toContain("INSERT INTO");
@@ -2564,11 +2564,11 @@ describe("pg_batch_insert", () => {
         returning: ["id"],
       },
       mockContext,
-    )) as { success: boolean; hint: string; rowsAffected: number };
+    )) as { success: boolean; hint: string; insertedCount: number };
 
     expect(result.success).toBe(true);
     expect(result.hint).toContain("DEFAULT VALUES");
-    expect(result.rowsAffected).toBe(2);
+    expect(result.insertedCount).toBe(2);
   });
 
   it("should reject empty rows array", async () => {
