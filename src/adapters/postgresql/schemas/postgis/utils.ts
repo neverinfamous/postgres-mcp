@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Preprocess PostGIS parameters:
@@ -133,11 +134,11 @@ export function convertToMeters(distance: number, unit?: string): number {
 // Point schema (reused across multiple tools)
 // =============================================================================
 export const PointSchemaBase = z.object({
-  lat: z.number().optional(),
-  latitude: z.number().optional(),
-  y: z.number().optional(),
-  lng: z.number().optional(),
-  lon: z.number().optional(),
-  longitude: z.number().optional(),
-  x: z.number().optional(),
+  lat: z.preprocess(coerceNumber, z.number().min(-90, "must be between -90 and 90 degrees").max(90, "must be between -90 and 90 degrees").optional()),
+  latitude: z.preprocess(coerceNumber, z.number().min(-90, "must be between -90 and 90 degrees").max(90, "must be between -90 and 90 degrees").optional()),
+  y: z.preprocess(coerceNumber, z.number().optional()),
+  lng: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()),
+  lon: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()),
+  longitude: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()),
+  x: z.preprocess(coerceNumber, z.number().optional()),
 });

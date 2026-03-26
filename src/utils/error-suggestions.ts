@@ -90,6 +90,20 @@ const ERROR_SUGGESTIONS: {
     category: ErrorCategory.RESOURCE,
     code: "DATABASE_NOT_FOUND",
   },
+  {
+    pattern: /wrong key or corrupt data/i,
+    suggestion:
+      "Decryption failed. Ensure the correct passphrase and cipher algorithm are used.",
+    category: ErrorCategory.VALIDATION,
+    code: "DECRYPTION_FAILED",
+  },
+  {
+    pattern: /invalid base64 end sequence/i,
+    suggestion:
+      "Decryption failed. The provided text is not a valid base64 encoded string.",
+    category: ErrorCategory.VALIDATION,
+    code: "INVALID_BASE64",
+  },
 
   // Query errors
   {
