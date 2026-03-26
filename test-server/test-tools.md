@@ -1,6 +1,6 @@
 # Tool Group Testing
 
-**Instructions:** Please conduct an exhaustive test of the tool group listed below using BOTH code mode (pg_execute_code) and direct tool calls, not scripts/terminal! DO NOT MODIFY OR SKIP TESTS! FOLLOW INSTRUCTONS! All changes must be consistent with `code-map.md`.
+**Instructions:** Please conduct an exhaustive test of the tool group listed below using BOTH code mode (pg_execute_code) and direct tool calls, not scripts/terminal! DO NOT MODIFY OR SKIP TESTS! FOLLOW INSTRUCTONS! All changes must be consistent with `code-map.md` and the other postgres-mcp tools.
 
 ## Reporting Format
 
@@ -197,7 +197,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
 ### After Testing
 
 1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed
-2. **Triage findings**: If issues or potential optimizations were found, create an implementation plan consistent with the architecture, other tools, etc., which the user must approve before implemnenting. Plan for fixes to comply with `adamic\skills\mcp-builder` and use `code-map.md` as a source of truth for repairs.
+2. **Triage findings**: If issues or potential optimizations were found, create an implementation plan consistent with the architecture, other tools, etc., which the user must approve before implemnenting. Plan for fixes to comply with `code-map.md` as a source of truth for repairs.
 3. **Scope of fixes** includes corrections to any of:
    - Handler code
    - `server-instructions.md`
