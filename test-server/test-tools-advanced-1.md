@@ -1,8 +1,8 @@
 # Advanced Stress Test — postgres-mcp — Part 1
 
-Execute each numbered stress test below using both code mode (`pg_execute_code`) and direct tool calls, not with scripts/terminal!
+Execute each numbered stress test below using both code mode (`pg_execute_code`) and direct tool calls.
 
-**Do NOT modify or skip tests! All changes must be consistent with `code-map.md` and the other postgres-mcp tools.**
+**DO NOT USE SCRIPTS/TERMINAL TO TEST! DO NOT MODIFY OR SKIP TESTS! All changes MUST be consistent with `code-map.md` and the other postgres-mcp tools!**
 
 ## Code Mode Execution
 
