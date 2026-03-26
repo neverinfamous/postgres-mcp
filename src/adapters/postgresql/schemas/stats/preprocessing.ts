@@ -87,6 +87,10 @@ export function preprocessBasicStatsParams(input: unknown): unknown {
   if (result["filter"] !== undefined && result["where"] === undefined) {
     result["where"] = result["filter"];
   }
+  // Alias: fractions → percentiles
+  if (result["fractions"] !== undefined && result["percentiles"] === undefined) {
+    result["percentiles"] = result["fractions"];
+  }
   // Parse schema.table format (embedded schema takes priority)
   if (typeof result["table"] === "string" && result["table"].includes(".")) {
     const parsed = parseSchemaTable(

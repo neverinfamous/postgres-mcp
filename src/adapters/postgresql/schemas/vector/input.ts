@@ -48,6 +48,7 @@ export const VectorSearchSchemaBase = z.object({
     .describe("Additional columns to return"),
   where: z.string().optional().describe("Filter condition"),
   filter: z.string().optional().describe("Alias for where"),
+  distanceMetric: z.string().optional().describe("Alias for metric"),
   schema: z.string().optional().describe("Database schema (default: public)"),
   excludeNull: z
     .boolean()
@@ -56,7 +57,7 @@ export const VectorSearchSchemaBase = z.object({
 });
 
 // Transformed schema with alias resolution and schema.table parsing
-export const VectorSearchSchema = VectorSearchSchemaBase.transform((data) => {
+export const VectorSearchSchema = VectorSearchSchemaBase.transform((data, ctx) => {
   // Parse schema.table format (embedded schema takes priority over explicit schema param)
   let resolvedTable = data.table ?? data.tableName ?? "";
   let resolvedSchema = data.schema;
@@ -66,15 +67,38 @@ export const VectorSearchSchema = VectorSearchSchemaBase.transform((data) => {
     resolvedTable = parts[1] ?? resolvedTable;
   }
 
-  const rawLimit = Number(data.limit);
-  const limit =
-    Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : undefined;
+  const rawLimit = data.limit !== undefined ? Number(data.limit) : undefined;
+  
+  if (rawLimit !== undefined && (!Number.isFinite(rawLimit) || rawLimit <= 0)) {
+    ctx.addIssue({
+      code: "custom",
+      message: `limit must be a positive number, received: ${String(data.limit)}`,
+      path: ["limit"],
+    });
+    return z.NEVER;
+  }
+  
+  // Resolve metric vs distanceMetric
+  const resolvedMetric = data.metric ?? 
+    (data.distanceMetric === "cosine" || data.distanceMetric === "l2" || data.distanceMetric === "inner_product" 
+      ? data.distanceMetric 
+      : undefined);
+
+  if (data.distanceMetric && !resolvedMetric) {
+     ctx.addIssue({
+       code: "custom",
+       message: `Invalid distance metric: ${data.distanceMetric}. Must be l2, cosine, or inner_product`,
+       path: ["distanceMetric"],
+     });
+     return z.NEVER;
+  }
+
   return {
     table: resolvedTable,
     column: data.column ?? data.col ?? "",
     vector: data.vector,
-    metric: data.metric,
-    limit,
+    metric: resolvedMetric,
+    limit: rawLimit,
     select: data.select,
     where: data.where ?? data.filter,
     schema: resolvedSchema,

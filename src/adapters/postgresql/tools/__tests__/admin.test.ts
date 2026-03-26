@@ -516,11 +516,13 @@ describe("pg_terminate_backend", () => {
     const tool = tools.find((t) => t.name === "pg_terminate_backend")!;
     const result = (await tool.handler({ pid: 99999 }, mockContext)) as {
       success: boolean;
-      message: string;
+      error: string;
+      code: string;
     };
 
     expect(result.success).toBe(false);
-    expect(result.message).toBe("Failed to terminate");
+    expect(result.error).toContain("Failed to terminate");
+    expect(result.code).toBe("OPERATION_FAILED");
   });
 
   it("should expose parameters in schema for MCP visibility", () => {
@@ -572,11 +574,13 @@ describe("pg_cancel_backend", () => {
     const tool = tools.find((t) => t.name === "pg_cancel_backend")!;
     const result = (await tool.handler({ pid: 99999 }, mockContext)) as {
       success: boolean;
-      message: string;
+      error: string;
+      code: string;
     };
 
     expect(result.success).toBe(false);
-    expect(result.message).toBe("Failed to cancel");
+    expect(result.error).toContain("Failed to cancel");
+    expect(result.code).toBe("OPERATION_FAILED");
   });
 
   it("should expose parameters in schema for MCP visibility", () => {

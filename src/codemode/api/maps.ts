@@ -145,6 +145,8 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     statsFrequency: "frequency",
     statsSummary: "summary",
     // Intuitive aliases
+    trend: "timeSeries",
+    // Intuitive aliases
     percentile: "percentiles", // percentile() → percentiles()
     histogram: "distribution", // histogram() → distribution()
     movingAverage: "movingAvg", // movingAverage() → movingAvg()
@@ -529,6 +531,8 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   statsHypothesis: ["table", "column", "test", "hypothesizedMean"],
   statsSampling: ["table", "sampleSize"],
   statsRegression: ["table", "xColumn", "yColumn"],
+  statsTrend: ["table", "timeColumn", "valueColumn", "interval"],
+  trend: ["table", "timeColumn", "valueColumn", "interval"],
 
   // Window function positional params
   rowNumber: ["table", "orderBy"],

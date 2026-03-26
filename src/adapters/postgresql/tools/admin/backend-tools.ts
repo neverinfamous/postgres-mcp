@@ -105,10 +105,22 @@ export function createTerminateBackendTool(adapter: PostgresAdapter): ToolDefini
         const sql = `SELECT pg_terminate_backend($1)`;
         const result = await adapter.executeQuery(sql, [pid]);
         const terminated = result.rows?.[0]?.["pg_terminate_backend"] === true;
+        
+        if (!terminated) {
+          return {
+            success: false,
+            error: "Failed to terminate backend. Process may not exist or permission denied.",
+            code: "OPERATION_FAILED",
+            category: "query",
+            suggestion: "Verify the PID exists and you have permission to terminate it.",
+            recoverable: false,
+            pid
+          };
+        }
         return {
-          success: terminated,
+          success: true,
           pid,
-          message: terminated ? "Backend terminated" : "Failed to terminate",
+          message: "Backend terminated",
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
@@ -134,10 +146,22 @@ export function createCancelBackendTool(adapter: PostgresAdapter): ToolDefinitio
         const sql = `SELECT pg_cancel_backend($1)`;
         const result = await adapter.executeQuery(sql, [pid]);
         const cancelled = result.rows?.[0]?.["pg_cancel_backend"] === true;
+        
+        if (!cancelled) {
+          return {
+            success: false,
+            error: "Failed to cancel query. Process may not exist or permission denied.",
+            code: "OPERATION_FAILED",
+            category: "query",
+            suggestion: "Verify the PID exists and you have permission to cancel its query.",
+            recoverable: false,
+            pid
+          };
+        }
         return {
-          success: cancelled,
+          success: true,
           pid,
-          message: cancelled ? "Query cancelled" : "Failed to cancel",
+          message: "Query cancelled",
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
