@@ -121,6 +121,13 @@ const ERROR_SUGGESTIONS: {
 
   // Query errors
   {
+    pattern: /cannot drop columns from view/i,
+    suggestion:
+      "Cannot drop columns from an existing view. Use pg_drop_view to drop it first, or use pg_create_view with orReplace: true.",
+    category: ErrorCategory.VALIDATION,
+    code: "VIEW_COLUMN_DROP",
+  },
+  {
     pattern: /syntax error/i,
     suggestion:
       "Check SQL syntax. Common issues: missing quotes, commas, parentheses, or reserved word conflicts.",
