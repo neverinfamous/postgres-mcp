@@ -48,6 +48,22 @@ export const GeoTransformSchema = z
   });
 
 // =============================================================================
+// pg_geo_index_optimize
+// =============================================================================
+export const GeoIndexOptimizeSchemaBase = z.object({
+  table: z.string().optional().describe("Specific table to analyze (or all spatial tables)"),
+  tableName: z.string().optional().describe("Alias for table"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+export const GeoIndexOptimizeSchema = z
+  .preprocess(preprocessPostgisParams, GeoIndexOptimizeSchemaBase)
+  .transform((data) => ({
+    table: data.table ?? data.tableName,
+    schema: data.schema,
+  }));
+
+// =============================================================================
 // pg_geo_cluster
 // =============================================================================
 export const GeoClusterSchemaBase = z.object({

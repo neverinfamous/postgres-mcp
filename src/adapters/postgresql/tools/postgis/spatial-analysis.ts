@@ -10,13 +10,14 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeTableName } from "../../../../utils/identifiers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
+  GeoIndexOptimizeSchemaBase,
+  GeoIndexOptimizeSchema,
   GeoClusterSchemaBase,
   GeoClusterSchema,
   // Output schemas
@@ -39,19 +40,14 @@ export function createGeoIndexOptimizeTool(
     description:
       "Analyze spatial indexes and provide optimization recommendations.",
     group: "postgis",
-    inputSchema: z.object({
-      table: z
-        .string()
-        .optional()
-        .describe("Specific table to analyze (or all spatial tables)"),
-      schema: z.string().optional().describe("Schema name"),
-    }),
+    inputSchema: GeoIndexOptimizeSchemaBase,
     outputSchema: GeoIndexOptimizeOutputSchema,
     annotations: readOnly("Geo Index Optimize"),
     icons: getToolIcons("postgis", readOnly("Geo Index Optimize")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = params as { table?: string; schema?: string };
-      const schemaName = parsed.schema ?? "public";
+      try {
+        const parsed = GeoIndexOptimizeSchema.parse(params ?? {});
+        const schemaName = parsed.schema ?? "public";
 
       const indexQuery = `
                 SELECT
@@ -171,6 +167,12 @@ export function createGeoIndexOptimizeTool(
           "Use BRIN indexes for very large, sorted spatial data",
         ],
       };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_geo_index_optimize",
+          table: ((params as Record<string, unknown>)?.["table"] as string) ?? undefined,
+        });
+      }
     },
   };
 }
