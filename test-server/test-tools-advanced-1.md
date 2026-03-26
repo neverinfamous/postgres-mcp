@@ -2,9 +2,7 @@
 
 **Step 1:** Read `C:\Users\chris\Desktop\postgres-mcp\src\constants\server-instructions.md` using `view_file` (not grep or search) to understand documented behaviors, edge cases, and response structures.
 
-**Step 2:** Execute each numbered stress test below using both code mode (`pg_execute_code`) and direct tool calls, not scripts/terminal.
-
-**Note**: If your attempt to clean up after testing fails, move on. I will drop them.
+**Step 2:** Execute each numbered stress test below using both code mode (`pg_execute_code`) and direct tool calls, not scripts/terminal! DO NOT MODIFY OR SKIP TESTS! FOLLOW INSTRUCTONS! All changes must be consistent with `code-map.md` and the other postgres-mcp tools.
 
 ## Code Mode Execution
 
