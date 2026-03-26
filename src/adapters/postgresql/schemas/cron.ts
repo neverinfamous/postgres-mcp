@@ -106,6 +106,7 @@ const CoercibleJobId = z
 export const CronScheduleSchemaBase = z.object({
   schedule: z
     .string()
+    .optional()
     .describe(
       'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
     ),
@@ -119,17 +120,21 @@ export const CronScheduleSchemaBase = z.object({
 export const CronScheduleSchema = z.preprocess(
   preprocessCronParams,
   CronScheduleSchemaBase.refine(
-    (data) =>
-      data.command !== undefined ||
-      data.sql !== undefined ||
-      data.query !== undefined,
-    {
-      message: "Either command, sql, or query must be provided",
-    },
+    (data) => data.schedule !== undefined,
+    { message: "schedule is required" }
   )
     .refine(
+      (data) =>
+        data.command !== undefined ||
+        data.sql !== undefined ||
+        data.query !== undefined,
+      {
+        message: "Either command, sql, or query must be provided",
+      },
+    )
+    .refine(
       (data) => {
-        const error = validateIntervalSchedule(data.schedule);
+        const error = validateIntervalSchedule(String(data.schedule));
         return error === undefined;
       },
       {
@@ -141,7 +146,7 @@ export const CronScheduleSchema = z.preprocess(
       // Handle alias: name -> jobName
       const resolvedJobName = data.jobName ?? data.name;
       return {
-        schedule: data.schedule,
+        schedule: String(data.schedule),
         command: data.command ?? "", // Guaranteed by refine + preprocessing
         jobName: resolvedJobName,
       };
@@ -160,6 +165,7 @@ export const CronScheduleInDatabaseSchemaBase = z.object({
   name: z.string().optional().describe("Alias for jobName"),
   schedule: z
     .string()
+    .optional()
     .describe(
       'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
     ),
@@ -178,20 +184,24 @@ export const CronScheduleInDatabaseSchemaBase = z.object({
 export const CronScheduleInDatabaseSchema = z.preprocess(
   preprocessCronParams,
   CronScheduleInDatabaseSchemaBase.refine(
-    (data) =>
-      data.command !== undefined ||
-      data.sql !== undefined ||
-      data.query !== undefined,
-    {
-      message: "Either command, sql, or query must be provided",
-    },
+    (data) => data.schedule !== undefined,
+    { message: "schedule is required" }
   )
+    .refine(
+      (data) =>
+        data.command !== undefined ||
+        data.sql !== undefined ||
+        data.query !== undefined,
+      {
+        message: "Either command, sql, or query must be provided",
+      },
+    )
     .refine((data) => data.database !== undefined || data.db !== undefined, {
       message: "Either database or db must be provided",
     })
     .refine(
       (data) => {
-        const error = validateIntervalSchedule(data.schedule);
+        const error = validateIntervalSchedule(String(data.schedule));
         return error === undefined;
       },
       {
@@ -204,7 +214,7 @@ export const CronScheduleInDatabaseSchema = z.preprocess(
       const resolvedJobName = data.jobName ?? data.name;
       return {
         jobName: resolvedJobName,
-        schedule: data.schedule,
+        schedule: String(data.schedule),
         command: data.command ?? "", // Guaranteed by refine + preprocessing
         database: data.database ?? "", // Guaranteed by refine + preprocessing
         username: data.username,
@@ -229,7 +239,7 @@ export const CronUnscheduleSchema = CronUnscheduleSchemaBase.refine(
 );
 
 export const CronAlterJobSchemaBase = z.object({
-  jobId: z.union([z.number(), z.string()]).describe("Job ID to modify"),
+  jobId: CoercibleJobId.optional().describe("Job ID to modify"),
   schedule: z
     .string()
     .optional()
@@ -244,7 +254,7 @@ export const CronAlterJobSchemaBase = z.object({
 
 export const CronAlterJobSchema = z
   .object({
-    jobId: CoercibleJobId.describe("Job ID to modify"),
+    jobId: CoercibleJobId.optional().describe("Job ID to modify"),
     schedule: z
       .string()
       .optional()
@@ -266,11 +276,19 @@ export const CronAlterJobSchema = z
       message:
         "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
     },
-  );
+  )
+  .refine(
+    (data) => data.jobId !== undefined,
+    { message: "jobId is required" }
+  )
+  .transform((data) => ({
+    ...data,
+    jobId: Number(data.jobId),
+  }));
 
 export const CronListJobsSchemaBase = z.object({
   active: z.boolean().optional().describe("Filter by active status"),
-  limit: z.number().optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum jobs to return (default: 50, use 0 for all)"),
 });
 
 export const CronListJobsSchema = z.object({
@@ -279,12 +297,12 @@ export const CronListJobsSchema = z.object({
 });
 
 export const CronJobRunDetailsSchemaBase = z.object({
-  jobId: z.number().optional().describe("Filter by job ID"),
+  jobId: CoercibleJobId.optional().describe("Filter by job ID"),
   status: z
     .string()
     .optional()
     .describe("Filter by status (running, succeeded, failed)"),
-  limit: z.number().optional().describe("Maximum records to return (default: 50)"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum records to return (default: 50)"),
 });
 
 export const CronJobRunDetailsSchema = z
@@ -300,10 +318,10 @@ export const CronJobRunDetailsSchema = z
   .default({});
 
 export const CronCleanupHistorySchemaBase = z.object({
-  olderThanDays: z.number().optional()
+  olderThanDays: z.preprocess(coerceNumber, z.number().optional())
     .describe("Delete records older than N days (default: 7)"),
-  days: z.number().optional().describe("Alias for olderThanDays"),
-  jobId: z.number().optional().describe("Clean up only for specific job"),
+  days: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for olderThanDays"),
+  jobId: CoercibleJobId.optional().describe("Clean up only for specific job"),
 });
 
 export const CronCleanupHistorySchema = z.preprocess(
