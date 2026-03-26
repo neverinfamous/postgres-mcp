@@ -56,7 +56,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 
 ## Post-Test Procedures
 
-At the end, confirm cleanup of all `stress_*` objects, then **fix every finding** — not just ❌ Fails, but also ⚠️ Issues (behavioral improvements, missing warnings, error code consistency) and 📦 Payload problems (responses that should be truncated or offer a `limit` param). Create a plan covering all findings; if the plan does not require important decision choices, proceed with implementation. When complete, run the full test suite and fix any broken tests, run lint + typecheck and fix issues, run prettier, update the changelog (being careful not to create duplicate headers), and commit without pushing. Then re-test your fixes with direct MCP tool calls.
+At the end, confirm cleanup of all `stress_*` objects, then **fix every finding** — not just ❌ Fails, but also ⚠️ Issues (behavioral improvements, missing warnings, error code consistency) and 📦 Payload problems (responses that should be truncated or offer a `limit` param). Create a plan covering all findings. When complete, update the changelog (being careful not to create duplicate headers), and commit without pushing. Then stop so the user can verify changes before you re-test your fixes with direct MCP tool calls.
 
 ---
 
