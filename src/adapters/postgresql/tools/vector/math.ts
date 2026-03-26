@@ -68,7 +68,7 @@ export function createVectorDistanceTool(
         if (!["l2", "cosine", "inner_product"].includes(metric)) {
           return {
             success: false,
-            error: \`Validation error: Invalid metric '\${metric}'\`,
+            error: `Validation error: Invalid metric '${metric}'`,
             suggestion: "Metric must be one of: 'l2', 'cosine', 'inner_product'",
           };
         }
