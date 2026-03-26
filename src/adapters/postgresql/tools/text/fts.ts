@@ -14,6 +14,7 @@ import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   sanitizeIdentifier,
   sanitizeIdentifiers,
@@ -60,20 +61,14 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
         } else if (parsed.column !== undefined) {
           cols = [parsed.column];
         } else {
-          return {
-            success: false,
-            error: "Either 'columns' (array) or 'column' (string) is required",
-          };
+          throw new ValidationError("Either 'columns' (array) or 'column' (string) is required");
         }
 
         // Build qualified table name with schema support
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          return {
-            success: false,
-            error: "Either 'table' or 'tableName' is required",
-          };
+          throw new ValidationError("Either 'table' or 'tableName' is required");
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         const sanitizedCols = sanitizeIdentifiers(cols);
@@ -163,19 +158,13 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         } else if (parsed.column !== undefined) {
           cols = [parsed.column];
         } else {
-          return {
-            success: false,
-            error: "Either column or columns parameter is required",
-          };
+          throw new ValidationError("Either column or columns parameter is required");
         }
 
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          return {
-            success: false,
-            error: "Either 'table' or 'tableName' is required",
-          };
+          throw new ValidationError("Either 'table' or 'tableName' is required");
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         const sanitizedCols = sanitizeIdentifiers(cols);
@@ -302,17 +291,11 @@ export function createTextHeadlineTool(
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          return {
-            success: false,
-            error: "Either 'table' or 'tableName' is required",
-          };
+          throw new ValidationError("Either 'table' or 'tableName' is required");
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.query) {
-          return {
-            success: false,
-            error: "column and query are required",
-          };
+          throw new ValidationError("column and query are required");
         }
         const columnName = sanitizeIdentifier(parsed.column);
         // Use provided select columns, or default to * (user should specify PK for stable identification)
@@ -386,16 +369,10 @@ export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          return {
-            success: false,
-            error: "Either 'table' or 'tableName' is required",
-          };
+          throw new ValidationError("Either 'table' or 'tableName' is required");
         }
         if (!parsed.column) {
-          return {
-            success: false,
-            error: "column is required",
-          };
+          throw new ValidationError("column is required");
         }
         const defaultIndexName = `idx_${resolvedTable}_${parsed.column}_fts`;
         const resolvedIndexName = parsed.name ?? defaultIndexName;

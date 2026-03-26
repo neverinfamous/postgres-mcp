@@ -247,8 +247,8 @@ export function parsePostgresError(
   // 42704 — undefined object (index, type, etc.)
   if (pgCode === "42704" || /does not exist/i.test(msg)) {
     // Schema-specific: "schema X does not exist" (e.g., CREATE TABLE in nonexistent schema)
-    if (/schema ".*" does not exist/i.test(msg)) {
-      const schemaMatch = /schema "([^"]+)"/i.exec(msg);
+    if (/schema ["'].*["'] does not exist/i.test(msg)) {
+      const schemaMatch = /schema ["']([^"']+)["']/i.exec(msg);
       const schemaName = schemaMatch?.[1] ?? context.schema ?? "unknown";
       throw new Error(
         `Schema '${schemaName}' does not exist. Create it with pg_create_schema or use pg_list_schemas to see available schemas.`,
@@ -327,8 +327,8 @@ export function parsePostgresError(
 
     // Generic "does not exist" fallback
     const match =
-      /(?:table|relation) "([^"]+)"/i.exec(msg) ??
-      /"([^"]+)" does not exist/i.exec(msg);
+      /(?:table|relation|object) ["']([^"']+)["']/i.exec(msg) ??
+      /["']([^"']+)["'] does not exist/i.exec(msg);
     const objectName = match?.[1] ?? context.table ?? "unknown";
     throw new Error(
       `Object '${objectName}' not found. Use ifExists: true to avoid this error.`,

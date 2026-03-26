@@ -149,10 +149,10 @@ export function createStatsDescriptiveTool(
                         COUNT("${column}") as count,
                         MIN("${column}") as min,
                         MAX("${column}") as max,
-                        AVG("${column}")::numeric(20,6) as avg,
-                        STDDEV("${column}")::numeric(20,6) as stddev,
-                        VARIANCE("${column}")::numeric(20,6) as variance,
-                        SUM("${column}")::numeric(20,6) as sum,
+                        AVG("${column}")::numeric as avg,
+                        STDDEV("${column}")::numeric as stddev,
+                        VARIANCE("${column}")::numeric as variance,
+                        SUM("${column}")::numeric as sum,
                         MODE() WITHIN GROUP (ORDER BY "${column}") as mode
                     FROM ${schemaPrefix}"${table}"
                     ${whereClause}
@@ -188,10 +188,10 @@ export function createStatsDescriptiveTool(
                     COUNT("${column}") as count,
                     MIN("${column}") as min,
                     MAX("${column}") as max,
-                    AVG("${column}")::numeric(20,6) as avg,
-                    STDDEV("${column}")::numeric(20,6) as stddev,
-                    VARIANCE("${column}")::numeric(20,6) as variance,
-                    SUM("${column}")::numeric(20,6) as sum,
+                    AVG("${column}")::numeric as avg,
+                    STDDEV("${column}")::numeric as stddev,
+                    VARIANCE("${column}")::numeric as variance,
+                    SUM("${column}")::numeric as sum,
                     (SELECT MODE() WITHIN GROUP (ORDER BY "${column}") FROM ${schemaPrefix}"${table}" ${whereClause}) as mode
                 FROM ${schemaPrefix}"${table}"
                 ${whereClause}

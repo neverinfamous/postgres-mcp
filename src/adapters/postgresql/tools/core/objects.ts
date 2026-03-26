@@ -280,29 +280,18 @@ export function createObjectDetailsTool(
 
         // Validate type if specified
         if (type && detectedType && type !== detectedType) {
-          return {
-            success: false,
-            error:
-              `Object '${schemaName}.${name}' is a ${detectedType}, not a ${type}. ` +
-              `Use type: '${detectedType}' or omit type to auto-detect.`,
-          };
+          throw new Error(`Object '${schemaName}.${name}' is a ${detectedType}, not a ${type}. Use type: '${detectedType}' or omit type to auto-detect.`);
         }
 
         // If type was provided but object not found, return clear error
         if (type && !detectedType) {
-          return {
-            success: false,
-            error: `Object '${schemaName}.${name}' not found (searched as ${type}). Use pg_list_objects to discover available objects.`,
-          };
+          throw new Error(`Object '${schemaName}.${name}' not found (searched as ${type}). Use pg_list_objects to discover available objects.`);
         }
 
         const objectType = type ?? detectedType;
 
         if (!objectType) {
-          return {
-            success: false,
-            error: `Object '${schemaName}.${name}' not found. Use pg_list_objects to discover available objects.`,
-          };
+          throw new Error(`Object '${schemaName}.${name}' not found. Use pg_list_objects to discover available objects.`);
         }
 
         let details: Record<string, unknown> = {

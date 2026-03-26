@@ -47,7 +47,7 @@
 **MCP TOKEN MANAGEMENT**:
 - **Token Visibility**: When interacting with `postgres-mcp`, always monitor the `_meta.tokenEstimate` (or `metrics.tokenEstimate` in Code Mode) returned in tool responses.
 - **Audit Resource**: Use the `postgres://audit` resource to review session-level token consumption and identify high-cost operations.
-- **Proactive Efficiency**: If operations are consuming high token counts, proactively use `limit` parameters, specify exact columns (avoid `SELECT *`), or combine multi-step operations into a single **Code Mode** (`pg_execute_code`) execution to minimize token burn rate.
+- **Proactive Efficiency**: If operations are consuming high token counts, prefer code mode and proactively use `limit` parameters.
 
 ## 🚀 Quick Start
 
@@ -99,19 +99,6 @@ Add to your `~/.cursor/mcp.json` or Claude Desktop config:
 }
 ```
 
-> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#️-tool-filtering) for alternatives.
-
-**Variants** (modify the canonical config above):
-
-| Variant | Change |
-|---------|--------|
-| **Starter (61 tools)** | Replace `"codemode"` with `"starter"` in `--tool-filter` |
-| **npm (no Docker)** | Replace `"command"` with `"postgres-mcp"`, remove Docker args/env passthrough |
-| **From source** | Replace `"command"` with `"node"`, use `"args": ["dist/cli.js", "--transport", "stdio", "--tool-filter", "codemode"]` |
-| **Connection string** | Replace individual env vars with `"POSTGRES_URL": "postgres://user:pass@host:5432/db"` |
-| **Host PostgreSQL** | Use `"POSTGRES_HOST": "localhost"` instead of `host.docker.internal` |
-| **Disable Code Mode** | Use `"starter,-codemode"` as tool filter |
-
 > **Note for Docker**: Use `host.docker.internal` to connect to PostgreSQL running on your host machine.
 
 📖 **Full Docker guide:** [DOCKER_README.md](DOCKER_README.md) · [Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp)
@@ -132,36 +119,6 @@ npm install
 npm run build
 node dist/cli.js --transport stdio --postgres postgres://user:password@localhost:5432/database
 ```
-
----
-
-## Code Mode: Maximum Efficiency
-
-Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets. The Quick Start above uses `--tool-filter codemode` — this exposes just `pg_execute_code`, a single tool that provides access to all 248 tools' worth of capability through the `pg.*` API.
-
-Code executes in a **sandboxed VM context** with multiple layers of security. All `pg.*` API calls execute against the database within the sandbox, providing:
-
-- **Static code validation** — blocked patterns include `require()`, `process`, `eval()`, and filesystem access
-- **Rate limiting** — 60 executions per minute per client
-- **Hard timeouts** — configurable execution limit (default 30s)
-- **Full API access** — all 22 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`, `pg.migration.migrationStatus()`)
-- **Requires `admin` OAuth scope** — execution is logged for audit
-
-The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 22 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
-
-#### Disabling Code Mode (Non-Admin Users)
-
-If you don't have admin access or prefer individual tool calls, exclude codemode:
-
-```json
-{
-  "args": ["--tool-filter", "starter,-codemode"]
-}
-```
-
-📖 **Full documentation:** [docs/CODE_MODE.md](docs/CODE_MODE.md)
-
----
 
 ## Development
 
@@ -195,8 +152,6 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 
 > Full benchmark results and methodology are available on the [Performance wiki page](https://github.com/neverinfamous/postgres-mcp/wiki/Performance).
 
----
-
 ## 🔗 Database Connection Scenarios
 
 | Scenario                       | Host to Use                           | Example Connection String                         |
@@ -213,12 +168,16 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 | Supabase           | `db.xxxx.supabase.co`                            |
 | Neon               | `ep-xxx.us-east-1.aws.neon.tech`                 |
 
----
-
-## 🛠️ Tool Filtering
+### 🛠️ Tool Filtering
 
 > [!IMPORTANT]
-> All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default for token-efficient operations. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
+> All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
+
+> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#️-tool-filtering) for alternatives.`)
+
+- **Requires `admin` OAuth scope** — execution is logged for audit
+
+**📖 [See Full Installation Guide →](https://github.com/neverinfamous/postgres-mcp#readme)**
 
 ### What Can You Filter?
 
@@ -234,24 +193,24 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 
 ### Shortcuts (Predefined Bundles)
 
-| Shortcut        | Tools  | Use Case                 | What's Included                                          |
-| --------------- | ------ | ------------------------ | -------------------------------------------------------- |
-| `starter`       | **61** | Standard Package         | Core, trans, JSONB, schema, codemode                     |
-| `essential`     | 49     | Minimal footprint        | Core, trans, JSONB, codemode                             |
-| `dev-schema`    | 53     | Dev Schema & Migrations  | Core, trans, schema, introspection, migration, codemode  |
-| `dev-analytics` | 54     | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
-| `ai-data`       | 62     | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
-| `ai-vector`     | 51     | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
-| `dba-monitor`   | 64     | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
-| `dba-schema`    | 45     | DBA Schema & Migrations  | Core, schema, introspection, migration, codemode         |
-| `dba-infra`     | 47     | DBA Infrastructure       | Core, admin, backup, partitioning, codemode              |
-| `dba-stats`     | 70     | DBA Stats                | Core, admin, monitoring, trans, stats, codemode          |
-| `geo`           | 44     | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
-| `base-ops`      | 63     | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
-| `ext-ai`        | 26     | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
-| `ext-geo`       | 24     | Extension: Spatial       | PostGIS, ltree, codemode                                 |
-| `ext-schedule`  | 19     | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
-| `ext-perf`      | 32     | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
+| Shortcut        | Tools | Use Case                 | What's Included                                          |
+| --------------- | ----- | ------------------------ | -------------------------------------------------------- |
+| `starter`       | 61    | Standard Package         | Core, trans, JSONB, schema, codemode                     |
+| `essential`     | 49    | Minimal footprint        | Core, trans, JSONB, codemode                             |
+| `dev-schema`    | 53    | Dev Schema & Migrations  | Core, trans, schema, introspection, migration, codemode  |
+| `dev-analytics` | 54    | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
+| `ai-data`       | 62    | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
+| `ai-vector`     | 51    | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
+| `dba-monitor`   | 64    | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
+| `dba-schema`    | 45    | DBA Schema & Migrations  | Core, schema, introspection, migration, codemode         |
+| `dba-infra`     | 47    | DBA Infrastructure       | Core, admin, backup, partitioning, codemode              |
+| `dba-stats`     | 70    | DBA Stats                | Core, admin, monitoring, trans, stats, codemode          |
+| `geo`           | 44    | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
+| `base-ops`      | 63    | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
+| `ext-ai`        | 26    | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
+| `ext-geo`       | 24    | Extension: Spatial       | PostGIS, ltree, codemode                                 |
+| `ext-schedule`  | 19    | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
+| `ext-perf`      | 32    | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
 
 ### Tool Groups (22 Available)
 
@@ -280,8 +239,6 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 | `ltree`         | 9     | ltree (hierarchical data)                                             |
 | `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                          |
 
----
-
 ### Syntax Reference
 
 | Prefix   | Target   | Example          | Effect                                        |
@@ -293,28 +250,6 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 | `-`      | Group    | `-admin`         | Remove tools in this group from current set   |
 | `+`      | Tool     | `+pg_explain`    | Add one specific tool                         |
 | `-`      | Tool     | `-pg_drop_table` | Remove one specific tool                      |
-
-### Custom Tool Selection
-
-You can list individual tool names (without `+` prefix) to create a fully custom whitelist — only the tools you specify will be enabled:
-
-```bash
-# Enable exactly 3 tools (whitelist mode)
---tool-filter "pg_read_query,pg_write_query,pg_list_tables"
-
-# Mix tools from different groups
---tool-filter "pg_read_query,pg_explain,pg_vector_search"
-
-# Combine with a shortcut or group
---tool-filter "starter,+pg_vector_search,+pg_fuzzy_match"
-```
-
-This is useful for scripted or automated clients that need a minimal, precise set of capabilities.
-
-**Legacy Syntax (still supported):**
-If you start with a negative filter (e.g., `-base,-extensions`), it assumes you want to start with _all_ tools enabled and then subtract.
-
----
 
 ## 🌐 HTTP/SSE Transport (Remote Access)
 
@@ -374,8 +309,6 @@ Legacy protocol (MCP 2024-11-05) — for clients like Python `mcp.client.sse`:
 | Method | Endpoint  | Purpose                                          |
 | ------ | --------- | ------------------------------------------------ |
 | `GET`  | `/health` | Health check (bypasses rate limiting, always available for monitoring) |
-
----
 
 ## 🔐 Authentication
 
@@ -445,8 +378,6 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 
 > **Priority:** When both `--auth-token` and `--oauth-enabled` are set, OAuth 2.1 takes precedence. If neither is configured, the server warns and runs without authentication.
 
----
-
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -508,8 +439,6 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `--audit-reads` | Log read-scoped tool calls (compact entries) |
 | `--audit-log-max-size <bytes>` | Max log file size before rotation (default: 10MB) |
 
----
-
 ## 🤖 AI-Powered Prompts
 
 Prompts provide step-by-step guidance for complex database tasks. Instead of figuring out which tools to use and in what order, simply invoke a prompt and follow its workflow — great for learning PostgreSQL best practices or automating repetitive DBA tasks.
@@ -538,8 +467,6 @@ This server includes **20 intelligent prompts** for guided workflows:
 | `pg_setup_ltree`           | Complete ltree setup for hierarchical data         | core, ltree                   | `ext-geo`      |
 | `pg_setup_pgcrypto`        | Complete pgcrypto setup for cryptographic funcs    | core, pgcrypto                | `ext-ai`       |
 | `pg_safe_restore_workflow` | 6-step safe restore playbook with `restoreAs`      | backup                        | `dba-infra`    |
-
----
 
 ## 📦 Resources
 
@@ -572,8 +499,6 @@ This server provides **22 resources** for structured data access:
 | Insights     | `postgres://insights`     | AI-appended business insights and observations     |
 | Audit        | `postgres://audit`        | Audit trail with token summary and top tools  |
 
----
-
 ## 🔧 Extension Support
 
 | Extension            | Purpose                        | Tools                      |
@@ -592,8 +517,6 @@ This server provides **22 resources** for structured data access:
 | `pgcrypto`           | Hashing, encryption, UUIDs     | 9 pgcrypto tools           |
 
 > Extension tools gracefully handle cases where extensions are not installed. Extension tool counts include `create_extension` helpers but exclude Code Mode; the [Tool Groups](#-tool-filtering) table above adds +1 per group for Code Mode.
-
----
 
 ## Contributing
 

@@ -26,6 +26,7 @@ import {
   VectorSearchOutputSchema,
   VectorCreateIndexOutputSchema,
 } from "../../schemas/index.js";
+import { ValidationError } from "../../../../types/errors.js";
 
 export function createVectorSearchTool(
   adapter: PostgresAdapter,
@@ -48,26 +49,13 @@ export function createVectorSearchTool(
 
         // Validate required params with clear errors
         if (table === "") {
-          return {
-            success: false,
-            error: "table (or tableName) parameter is required",
-            requiredParams: ["table", "column", "vector"],
-          };
+          throw new ValidationError("table (or tableName) parameter is required");
         }
         if (column === "") {
-          return {
-            success: false,
-            error:
-              "column (or col) parameter is required for the vector column name",
-            requiredParams: ["table", "column", "vector"],
-          };
+          throw new ValidationError("column (or col) parameter is required for the vector column name");
         }
         if (!vector || !Array.isArray(vector)) {
-          return {
-            success: false,
-            error: "Validation error: vector parameter is required and must be an array of numbers",
-            suggestion: "Provide a query vector array"
-          };
+          throw new ValidationError("vector parameter is required and must be an array of numbers");
         }
 
         const tableName = sanitizeTableName(table, schema);
@@ -220,27 +208,14 @@ export function createVectorCreateIndexTool(
 
         // Validate required params with clear errors
         if (table === "") {
-          return {
-            success: false,
-            error: "table (or tableName) parameter is required",
-            requiredParams: ["table", "column", "type"],
-          };
+          throw new ValidationError("table (or tableName) parameter is required");
         }
         if (column === "") {
-          return {
-            success: false,
-            error:
-              "column (or col) parameter is required for the vector column name",
-            requiredParams: ["table", "column", "type"],
-          };
+          throw new ValidationError("column (or col) parameter is required for the vector column name");
         }
         // Refine guarantees type is defined, but TypeScript can't narrow through .refine()
         if (type === undefined) {
-          return {
-            success: false,
-            error: "type (or method alias) is required",
-            requiredParams: ["table", "column", "type"],
-          };
+          throw new ValidationError("type (or method alias) is required");
         }
 
         // P154: Verify table and column exist before attempting index creation

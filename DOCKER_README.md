@@ -1,6 +1,6 @@
 # postgres-mcp
 
-**PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
+**PostgreSQL MCP Server** enabling AI assistants to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
 **248 Specialized Tools** · **22 Resources** · **20 AI-Powered Prompts**
 
@@ -45,13 +45,7 @@
 **MCP TOKEN MANAGEMENT**:
 - **Token Visibility**: When interacting with `postgres-mcp`, always monitor the `_meta.tokenEstimate` (or `metrics.tokenEstimate` in Code Mode) returned in tool responses.
 - **Audit Resource**: Use the `postgres://audit` resource to review session-level token consumption and identify high-cost operations.
-- **Proactive Efficiency**: If operations are consuming high token counts, proactively use `limit` parameters, specify exact columns (avoid `SELECT *`), or combine multi-step operations into a single **Code Mode** (`pg_execute_code`) execution to minimize token burn rate.
-
-### Deployment Options
-
-- **[Docker Hub](https://hub.docker.com/r/writenotenow/postgres-mcp)** - Node.js Alpine-based multi-platform support
-- **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** - Simple `npm install -g` for local deployment
-- **[MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.neverinfamous/postgres-mcp)**
+- **Proactive Efficiency**: If operations are consuming high token counts, prefer code mode and proactively use `limit` parameters.
 
 ### Extension Support
 
@@ -103,8 +97,6 @@ Guided workflows for complex operations:
 
 **[Full prompts list →](https://github.com/neverinfamous/postgres-mcp#-ai-powered-prompts)**
 
----
-
 ## 🚀 Quick Start (2 Minutes)
 
 ### 1. Pull the Image
@@ -152,45 +144,7 @@ Add this to your MCP client config (e.g., `~/.cursor/mcp.json` for Cursor):
 }
 ```
 
-> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#️-tool-filtering) for alternatives.
-
-### 3. Restart & Query!
-
-Restart Cursor or your MCP client and start querying PostgreSQL!
-
 > **Note for Docker**: Use `host.docker.internal` to connect to PostgreSQL running on your host machine.
-
----
-
-## Code Mode: Maximum Efficiency
-
-Code Mode (`pg_execute_code`) dramatically reduces token usage (70–90%) and is included by default in all presets. The Quick Start above uses `--tool-filter codemode` — this exposes just `pg_execute_code`, a single tool that provides access to all 248 tools' worth of capability through the `pg.*` API.
-
-Code executes in a **sandboxed VM context** with multiple layers of security. All `pg.*` API calls execute against the database within the sandbox, providing:
-
-- **Static code validation** — blocked patterns include `require()`, `process`, `eval()`, and filesystem access
-- **Rate limiting** — 60 executions per minute per client
-- **Hard timeouts** — configurable execution limit (default 30s)
-- **Full API access** — all 22 tool groups are available via `pg.*` (e.g., `pg.core.readQuery()`, `pg.jsonb.extract()`, `pg.introspection.dependencyGraph()`, `pg.migration.migrationStatus()`)
-- **Requires `admin` OAuth scope** — execution is logged for audit
-
-The agent writes JavaScript against the typed `pg.*` SDK — composing queries, chaining operations across all 22 tool groups, and returning exactly the data it needs — in one execution. This mirrors the [Code Mode pattern](https://blog.cloudflare.com/code-mode-mcp/) pioneered by Cloudflare for their entire API: fixed token cost regardless of how many capabilities exist.
-
-> [!TIP]
-> **Maximize Token Savings:** Instruct your AI agent to prefer Code Mode over individual tool calls:
->
-> _"When using postgres-mcp, prefer `pg_execute_code` (Code Mode) for multi-step database operations to minimize token usage."_
->
-> For maximum savings, use `--tool-filter codemode` to run with Code Mode as your only tool. See the [Code Mode wiki](https://github.com/neverinfamous/postgres-mcp/wiki/Code-Mode) for full API documentation.
-
-### Prerequisites
-
-- ✅ Docker installed and running
-- ✅ PostgreSQL database accessible
-
-**📖 [See Full Installation Guide →](https://github.com/neverinfamous/postgres-mcp#readme)**
-
----
 
 ## 🔧 Configuration
 
@@ -250,7 +204,13 @@ The agent writes JavaScript against the typed `pg.*` SDK — composing queries, 
 ### 🛠️ Tool Filtering
 
 > [!IMPORTANT]
-> All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default for token-efficient operations. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
+> All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
+
+> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#️-tool-filtering) for alternatives.`)
+
+- **Requires `admin` OAuth scope** — execution is logged for audit
+
+**📖 [See Full Installation Guide →](https://github.com/neverinfamous/postgres-mcp#readme)**
 
 ### What Can You Filter?
 
@@ -263,18 +223,6 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 | Tool names       | `pg_read_query,pg_explain`| 2     | Custom tool selection     |
 | Shortcut + Group | `starter,+text`           | 73    | Extend a shortcut         |
 | Shortcut - Tool  | `starter,-pg_drop_table`  | 59    | Remove specific tools     |
-
-#### Custom Tool Selection
-
-You can list individual tool names (without `+` prefix) to create a fully custom whitelist — only the tools you specify will be enabled:
-
-```bash
-# Enable exactly 3 tools
---tool-filter "pg_read_query,pg_write_query,pg_list_tables"
-
-# Mix tools from different groups
---tool-filter "pg_read_query,pg_explain,pg_vector_search"
-```
 
 ### Shortcuts (Predefined Bundles)
 
@@ -323,8 +271,6 @@ You can list individual tool names (without `+` prefix) to create a fully custom
 | `citext`        | 7     | citext (case-insensitive text)                                        |
 | `ltree`         | 9     | ltree (hierarchical data)                                             |
 | `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                          |
-
----
 
 ## 🌐 HTTP/SSE Transport (Remote Access)
 
@@ -386,132 +332,18 @@ Modern protocol (MCP 2025-03-26) — single endpoint, session-based:
 
 Sessions are managed via the `Mcp-Session-Id` header.
 
-### Legacy SSE (Backward Compatibility)
+**Docker Health Check:** Built-in `HEALTHCHECK` is transport-aware and validates database and HTTP endpoint connectivity.
 
-Legacy protocol (MCP 2024-11-05) — for clients like Python `mcp.client.sse`:
-
-| Method | Endpoint                   | Purpose                                                       |
-| ------ | -------------------------- | ------------------------------------------------------------- |
-| `GET`  | `/sse`                     | Opens SSE stream, returns `/messages?sessionId=<id>` endpoint |
-| `POST` | `/messages?sessionId=<id>` | Send JSON-RPC messages to the session                         |
-
-### Utility Endpoints
-
-| Method | Endpoint  | Purpose                                          |
-| ------ | --------- | ------------------------------------------------ |
-| `GET`  | `/health` | Health check (bypasses rate limiting, always available for monitoring) |
-
-**Docker Health Check:** The built-in `HEALTHCHECK` is transport-aware. When running with `--transport http` or `--transport sse`, it uses native `node -e "fetch(...)"` to verify the `/health` endpoint (confirming both HTTP server and database connectivity). In stdio mode (default), it falls back to a Node.js process check since no HTTP endpoint is available.
-
----
+> For Legacy SSE usage and utility endpoints, see the **[Wiki](https://github.com/neverinfamous/postgres-mcp/wiki)**.
 
 ## 🛡️ Supply Chain Security
 
-For enhanced security and reproducible builds, use SHA-pinned images:
-
-**Find SHA tags:** https://hub.docker.com/r/writenotenow/postgres-mcp/tags
-
-**Option 1: Multi-arch manifest (recommended)**
-
-```bash
-docker pull writenotenow/postgres-mcp:sha256-<manifest-digest>
-```
-
-**Option 2: Direct digest (maximum security)**
+For reproducible builds, use SHA-pinned images:
 
 ```bash
 docker pull writenotenow/postgres-mcp@sha256:<manifest-digest>
 ```
-
-**Security Features:**
-
-- ✅ **Build Provenance** - Cryptographic proof of build process
-- ✅ **SBOM Available** - Complete software bill of materials
-- ✅ **Supply Chain Attestations** - Verifiable build integrity
-- ✅ **Non-root Execution** - Minimal attack surface
-- ✅ **No Native Dependencies** - Pure JS stack reduces attack surface
-- ✅ **7 Security Headers** - X-Content-Type-Options, X-Frame-Options, CSP, Cache-Control, Referrer-Policy (no-referrer), Permissions-Policy, opt-in HSTS
-- ✅ **Server Timeouts** - Request, keep-alive, and headers timeouts prevent slowloris-style DoS
-- ✅ **Retry-After Rate Limiting** - 429 responses include Retry-After header for well-behaved clients
-- ✅ **trustProxy Support** - Correct client IP extraction behind reverse proxies via X-Forwarded-For
-- ✅ **Wildcard Subdomain CORS** - Pattern-based origin matching (e.g., `*.example.com`)
-
----
-
-## 📦 Image Details
-
-| Platform                  | Features                              |
-| ------------------------- | ------------------------------------- |
-| **AMD64** (x86_64)        | Complete: all tools, OAuth, Code Mode |
-| **ARM64** (Apple Silicon) | Complete: all tools, OAuth, Code Mode |
-
-**TypeScript Image Benefits:**
-
-- **Node.js 24 on Alpine Linux** - Minimal footprint (~80MB compressed)
-- **Pure JS Stack** - No native compilation, identical features on all platforms
-- **pg driver** - Native PostgreSQL protocol support
-- **Instant Startup** - No ML model loading required
-- **Production/Stable** - Comprehensive error handling
-
-**Available Tags:**
-
-- `latest` - Always the newest version
-- `x.y.z` - Specific version tag (recommended for production — see [releases](https://github.com/neverinfamous/postgres-mcp/releases))
-- `sha256-<digest>` - SHA-pinned for maximum security
-
----
-
-## 🏗️ Build from Source
-
-**Step 1: Clone the repository**
-
-```bash
-git clone https://github.com/neverinfamous/postgres-mcp.git
-cd postgres-mcp
-```
-
-**Step 2: Build the Docker image**
-
-```bash
-docker build -f Dockerfile -t postgres-mcp-local .
-```
-
-**Step 3: Add to MCP config**
-
-Update your `~/.cursor/mcp.json` to use the local build:
-
-```json
-{
-  "mcpServers": {
-    "postgres-mcp": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "-e",
-        "POSTGRES_URL",
-        "postgres-mcp-local",
-        "--tool-filter",
-        "codemode"
-      ],
-      "env": {
-        "POSTGRES_URL": "postgres://user:pass@host.docker.internal:5432/database"
-      }
-    }
-  }
-}
-```
-
----
-
-## 📚 Documentation & Resources
-
-- **[GitHub Repository](https://github.com/neverinfamous/postgres-mcp)** - Source code & full documentation
-- **[npm Package](https://www.npmjs.com/package/@neverinfamous/postgres-mcp)** - Node.js distribution
-- **[Issues](https://github.com/neverinfamous/postgres-mcp/issues)** - Bug reports & feature requests
-
----
+**[Find SHA tags here](https://hub.docker.com/r/writenotenow/postgres-mcp/tags)**
 
 ## 📄 License
 

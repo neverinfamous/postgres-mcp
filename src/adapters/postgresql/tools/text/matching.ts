@@ -14,6 +14,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   sanitizeIdentifier,
   sanitizeIdentifiers,
@@ -70,17 +71,11 @@ export function createTrigramSimilarityTool(
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          return {
-            success: false,
-            error: "Either 'table' or 'tableName' is required",
-          };
+          throw new ValidationError("Either 'table' or 'tableName' is required");
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.value) {
-          return {
-            success: false,
-            error: "column and value are required",
-          };
+          throw new ValidationError("column and value are required");
         }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =
@@ -177,10 +172,7 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         ];
         const rawMethod = parsed.method ?? "levenshtein";
         if (!VALID_METHODS.includes(rawMethod as FuzzyMethod)) {
-          return {
-            success: false,
-            error: `Invalid method "${rawMethod}". Valid methods: ${VALID_METHODS.join(", ")}`,
-          };
+          throw new ValidationError(`Invalid method "${rawMethod}". Valid methods: ${VALID_METHODS.join(", ")}`);
         }
         const method: FuzzyMethod = rawMethod as FuzzyMethod;
 
@@ -197,17 +189,11 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          return {
-            success: false,
-            error: "Either 'table' or 'tableName' is required",
-          };
+          throw new ValidationError("Either 'table' or 'tableName' is required");
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.value) {
-          return {
-            success: false,
-            error: "column and value are required",
-          };
+          throw new ValidationError("column and value are required");
         }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =
@@ -271,17 +257,11 @@ export function createRegexpMatchTool(
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          return {
-            success: false,
-            error: "Either 'table' or 'tableName' is required",
-          };
+          throw new ValidationError("Either 'table' or 'tableName' is required");
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.pattern) {
-          return {
-            success: false,
-            error: "column and pattern are required",
-          };
+          throw new ValidationError("column and pattern are required");
         }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =
