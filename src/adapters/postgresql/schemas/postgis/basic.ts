@@ -365,10 +365,10 @@ export const BoundingBoxSchemaBase = z.object({
   column: z.string().optional().describe("Geometry column"),
   geom: z.string().optional().describe("Alias for column"),
   geometryColumn: z.string().optional().describe("Alias for column"),
-  minLng: z.number().describe("Minimum longitude"),
-  minLat: z.number().describe("Minimum latitude"),
-  maxLng: z.number().describe("Maximum longitude"),
-  maxLat: z.number().describe("Maximum latitude"),
+  minLng: z.number().optional().describe("Minimum longitude"),
+  minLat: z.number().optional().describe("Minimum latitude"),
+  maxLng: z.number().optional().describe("Maximum longitude"),
+  maxLat: z.number().optional().describe("Maximum latitude"),
   select: z.array(z.string()).optional().describe("Columns to select"),
 });
 
@@ -389,6 +389,18 @@ export const BoundingBoxSchema = z
   })
   .refine((data) => data.column !== "", {
     message: "column (or geom/geometryColumn alias) is required",
+  })
+  .refine((data) => data.minLng !== undefined, {
+    message: "minLng is required",
+  })
+  .refine((data) => data.minLat !== undefined, {
+    message: "minLat is required",
+  })
+  .refine((data) => data.maxLng !== undefined, {
+    message: "maxLng is required",
+  })
+  .refine((data) => data.maxLat !== undefined, {
+    message: "maxLat is required",
   });
 
 // =============================================================================

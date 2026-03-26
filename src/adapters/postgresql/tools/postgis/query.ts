@@ -452,19 +452,19 @@ export function createBoundingBoxTool(
 
         // Auto-correct swapped bounds
         const corrections: string[] = [];
-        let actualMinLng = parsed.minLng;
-        let actualMaxLng = parsed.maxLng;
-        let actualMinLat = parsed.minLat;
-        let actualMaxLat = parsed.maxLat;
+        let actualMinLng = Number(parsed.minLng);
+        let actualMaxLng = Number(parsed.maxLng);
+        let actualMinLat = Number(parsed.minLat);
+        let actualMaxLat = Number(parsed.maxLat);
 
-        if (parsed.minLng > parsed.maxLng) {
-          actualMinLng = parsed.maxLng;
-          actualMaxLng = parsed.minLng;
+        if (actualMinLng > actualMaxLng) {
+          actualMinLng = Number(parsed.maxLng);
+          actualMaxLng = Number(parsed.minLng);
           corrections.push("minLng/maxLng were swapped");
         }
-        if (parsed.minLat > parsed.maxLat) {
-          actualMinLat = parsed.maxLat;
-          actualMaxLat = parsed.minLat;
+        if (actualMinLat > actualMaxLat) {
+          actualMinLat = Number(parsed.maxLat);
+          actualMaxLat = Number(parsed.minLat);
           corrections.push("minLat/maxLat were swapped");
         }
 
