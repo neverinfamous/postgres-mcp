@@ -39,8 +39,14 @@ export function createCronExtensionTool(adapter: PostgresAdapter): ToolDefinitio
     annotations: write("Create Cron Extension"),
     icons: getToolIcons("cron", write("Create Cron Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS pg_cron");
-      return { success: true, message: "pg_cron extension enabled" };
+      try {
+        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS pg_cron");
+        return { success: true, message: "pg_cron extension enabled" };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_cron_create_extension",
+        });
+      }
     },
   };
 }

@@ -991,13 +991,11 @@ describe("cron.ts uncovered branches", () => {
     const tool = tools.find((t) => t.name === "pg_cron_cleanup_history")!;
     const result = (await tool.handler({ olderThanDays: -1 }, mockContext)) as {
       success: boolean;
-      message: string;
-      olderThanDays: number;
+      error: string;
     };
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain("non-negative");
-    expect(result.olderThanDays).toBe(-1);
+    expect(result.error).toContain("non-negative");
   });
 
   // cron.ts L715-724: cleanup_history ZodError catch path

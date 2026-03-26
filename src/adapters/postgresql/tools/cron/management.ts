@@ -235,12 +235,14 @@ Useful for monitoring and debugging scheduled jobs.`,
             ? Math.floor(coercedLimit)
             : undefined;
 
-        // Handler-level validation for status (relaxed from z.enum to z.string for structured errors)
         const VALID_STATUSES = ["running", "succeeded", "failed"];
         if (status !== undefined && !VALID_STATUSES.includes(status)) {
           return {
             success: false,
             error: `Invalid status "${status}". Valid statuses: ${VALID_STATUSES.join(", ")}`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
 
@@ -381,10 +383,10 @@ from growing too large. By default, removes records older than 7 days.`,
         if (days < 0) {
           return {
             success: false,
-            deletedCount: 0,
-            olderThanDays: days,
-            jobId: jobId ?? null,
-            message: `olderThanDays must be non-negative, got ${String(days)}`,
+            error: `olderThanDays must be non-negative, got ${String(days)}`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
 

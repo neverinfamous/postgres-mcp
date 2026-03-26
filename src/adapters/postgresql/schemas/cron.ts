@@ -530,5 +530,6 @@ export const CronCleanupHistoryOutputSchema = z
     olderThanDays: z.number().optional().describe("Age threshold in days"),
     jobId: z.number().nullable().optional().describe("Job ID if filtered"),
     message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron history cleanup result");
