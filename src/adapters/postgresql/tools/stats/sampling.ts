@@ -31,7 +31,7 @@ export function createStatsSamplingTool(
     description:
       "Get a random sample of rows. Use sampleSize for exact row count (any method), or percentage for approximate sampling with bernoulli/system methods.",
     group: "stats",
-    inputSchema: StatsSamplingSchemaBase, // Base schema for MCP visibility
+    inputSchema: StatsSamplingSchemaBase.partial(), // Base schema for MCP visibility
     outputSchema: SamplingOutputSchema,
     annotations: readOnly("Random Sampling"),
     icons: getToolIcons("stats", readOnly("Random Sampling")),

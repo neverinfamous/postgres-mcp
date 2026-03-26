@@ -68,7 +68,7 @@ export function createStatsTopNTool(
     description:
       "Get the top N rows ranked by a column. Auto-excludes long-content columns (text, json, bytea) from output unless selectColumns is specified.",
     group: "stats",
-    inputSchema: StatsTopNSchemaBase,
+    inputSchema: StatsTopNSchemaBase.partial(),
     outputSchema: StatsTopNOutputSchema,
     annotations: readOnly("Top N Values"),
     icons: getToolIcons("stats", readOnly("Top N Values")),
@@ -187,7 +187,7 @@ export function createStatsDistinctTool(
     description:
       "Get distinct values from a column with count. Useful for understanding cardinality and unique value distribution.",
     group: "stats",
-    inputSchema: StatsDistinctSchemaBase,
+    inputSchema: StatsDistinctSchemaBase.partial(),
     outputSchema: StatsDistinctOutputSchema,
     annotations: readOnly("Distinct Values"),
     icons: getToolIcons("stats", readOnly("Distinct Values")),
@@ -262,7 +262,7 @@ export function createStatsFrequencyTool(
     description:
       "Get value frequency distribution (count per unique value) ordered by frequency descending. Shows the most common values first.",
     group: "stats",
-    inputSchema: StatsFrequencySchemaBase,
+    inputSchema: StatsFrequencySchemaBase.partial(),
     outputSchema: StatsFrequencyOutputSchema,
     annotations: readOnly("Frequency Distribution"),
     icons: getToolIcons("stats", readOnly("Frequency Distribution")),
@@ -343,7 +343,7 @@ export function createStatsSummaryTool(
     description:
       "Get summary statistics (count, avg, min, max, stddev) for multiple numeric columns. Defaults to all numeric columns if none specified.",
     group: "stats",
-    inputSchema: StatsSummarySchemaBase,
+    inputSchema: StatsSummarySchemaBase.partial(),
     outputSchema: StatsSummaryOutputSchema,
     annotations: readOnly("Summary Statistics"),
     icons: getToolIcons("stats", readOnly("Summary Statistics")),
@@ -383,12 +383,22 @@ export function createStatsSummaryTool(
             table,
             [...NUMERIC_TYPES],
           ]);
-          targetColumns = (colResult.rows ?? []).map(
-            (row) => (row as { column_name: string }).column_name,
-          );
+          const colRows = (colResult.rows ?? []) as { column_name: string }[];
+          targetColumns = colRows.map((row) => row.column_name);
         }
 
         if (targetColumns.length === 0) {
+          // Check if table actually exists or if it just has no numeric columns
+          if (!parsed.columns || parsed.columns.length === 0) {
+            const tableCheck = await adapter.executeQuery(
+              `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+              [schemaName, table],
+            );
+            if (!tableCheck.rows || tableCheck.rows.length === 0) {
+              throw new Error(`Table "${schemaName}.${table}" not found`);
+            }
+          }
+
           return {
             success: true,
             table: `${schemaName}.${table}`,

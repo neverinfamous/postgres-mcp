@@ -88,7 +88,7 @@ export function createStatsRowNumberTool(
     description:
       "Assign sequential row numbers within an ordered result set. Use partitionBy to restart numbering per group.",
     group: "stats",
-    inputSchema: StatsRowNumberSchemaBase,
+    inputSchema: StatsRowNumberSchemaBase.partial(),
     outputSchema: WindowRowNumberOutputSchema,
     annotations: readOnly("Window ROW_NUMBER"),
     icons: getToolIcons("stats", readOnly("Window ROW_NUMBER")),
@@ -145,7 +145,7 @@ export function createStatsRankTool(
     description:
       "Assign rank within an ordered result set. Supports rank (gaps), dense_rank (no gaps), and percent_rank (0-1). Use partitionBy to rank within groups.",
     group: "stats",
-    inputSchema: StatsRankSchemaBase,
+    inputSchema: StatsRankSchemaBase.partial(),
     outputSchema: WindowRankOutputSchema,
     annotations: readOnly("Window RANK"),
     icons: getToolIcons("stats", readOnly("Window RANK")),
@@ -204,7 +204,7 @@ export function createStatsLagLeadTool(
     description:
       "Access data from previous (LAG) or next (LEAD) rows in an ordered set. Useful for comparisons, deltas, and change detection.",
     group: "stats",
-    inputSchema: StatsLagLeadSchemaBase,
+    inputSchema: StatsLagLeadSchemaBase.partial(),
     outputSchema: WindowLagLeadOutputSchema,
     annotations: readOnly("Window LAG/LEAD"),
     icons: getToolIcons("stats", readOnly("Window LAG/LEAD")),
@@ -274,7 +274,7 @@ export function createStatsRunningTotalTool(
     description:
       "Calculate cumulative running total (SUM OVER) for a numeric column. Use partitionBy to reset total per group.",
     group: "stats",
-    inputSchema: StatsRunningTotalSchemaBase,
+    inputSchema: StatsRunningTotalSchemaBase.partial(),
     outputSchema: WindowRunningTotalOutputSchema,
     annotations: readOnly("Window Running Total"),
     icons: getToolIcons("stats", readOnly("Window Running Total")),
@@ -333,7 +333,7 @@ export function createStatsMovingAvgTool(
     description:
       "Calculate moving average (AVG OVER sliding window) for a numeric column. Specify windowSize for the number of preceding rows to include.",
     group: "stats",
-    inputSchema: StatsMovingAvgSchemaBase,
+    inputSchema: StatsMovingAvgSchemaBase.partial(),
     outputSchema: WindowMovingAvgOutputSchema,
     annotations: readOnly("Window Moving Average"),
     icons: getToolIcons("stats", readOnly("Window Moving Average")),
@@ -398,7 +398,7 @@ export function createStatsNtileTool(
     description:
       "Divide ordered rows into N equal buckets (e.g., quartiles with buckets=4). Returns bucket assignment per row.",
     group: "stats",
-    inputSchema: StatsNtileSchemaBase,
+    inputSchema: StatsNtileSchemaBase.partial(),
     outputSchema: WindowNtileOutputSchema,
     annotations: readOnly("Window NTILE"),
     icons: getToolIcons("stats", readOnly("Window NTILE")),

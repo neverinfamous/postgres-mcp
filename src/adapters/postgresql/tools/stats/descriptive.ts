@@ -39,7 +39,7 @@ export function createStatsDescriptiveTool(
     description:
       "Calculate descriptive statistics (count, min, max, avg, stddev, variance, sum) for a numeric column. Use groupBy to get statistics per category.",
     group: "stats",
-    inputSchema: StatsDescriptiveSchemaBase, // Base schema for MCP visibility
+    inputSchema: StatsDescriptiveSchemaBase.partial(), // Base schema for MCP visibility
     outputSchema: DescriptiveOutputSchema,
     annotations: readOnly("Descriptive Statistics"),
     icons: getToolIcons("stats", readOnly("Descriptive Statistics")),
@@ -230,7 +230,7 @@ export function createStatsPercentilesTool(
     description:
       "Calculate percentiles (quartiles, custom percentiles) for a numeric column. Use groupBy to get percentiles per category.",
     group: "stats",
-    inputSchema: StatsPercentilesSchemaBase, // Base schema for MCP visibility
+    inputSchema: StatsPercentilesSchemaBase.partial(), // Base schema for MCP visibility
     outputSchema: PercentilesOutputSchema,
     annotations: readOnly("Percentiles"),
     icons: getToolIcons("stats", readOnly("Percentiles")),

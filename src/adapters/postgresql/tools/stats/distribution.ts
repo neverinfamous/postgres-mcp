@@ -31,7 +31,7 @@ export function createStatsDistributionTool(
     description:
       "Analyze data distribution with histogram buckets, skewness, and kurtosis. Use groupBy to get distribution per category.",
     group: "stats",
-    inputSchema: StatsDistributionSchemaBase, // Base schema for MCP visibility
+    inputSchema: StatsDistributionSchemaBase.partial(), // Base schema for MCP visibility
     outputSchema: DistributionOutputSchema,
     annotations: readOnly("Distribution Analysis"),
     icons: getToolIcons("stats", readOnly("Distribution Analysis")),

@@ -322,7 +322,7 @@ export const ListFunctionsSchemaBase = z.object({
     .unknown()
     .optional()
     .describe(
-      "Max results (number, default: 500). Increase for databases with many extensions.",
+      "Max results (number, default: 50). Increase for databases with many extensions.",
     ),
 });
 
@@ -336,6 +336,51 @@ export const ListFunctionsSchema = z.preprocess(
     schema: z.string().optional(),
     exclude: z.array(z.string()).optional(),
     language: z.string().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+  })
+);
+
+// =============================================================================
+// List Triggers Schema - Split Schema pattern for MCP visibility
+// =============================================================================
+
+export const ListTriggersSchemaBase = z.object({
+  schema: z.string().optional().describe("Schema name"),
+  table: z.string().optional().describe("Table name"),
+  limit: z.unknown().optional().describe("Maximum number of triggers to return (number, default: 50). Use 0 for all."),
+});
+
+export const ListTriggersSchema = z.preprocess(
+  (val: unknown) => val ?? {},
+  z.object({
+    schema: z.string().optional(),
+    table: z.string().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+  })
+);
+
+// =============================================================================
+// List Constraints Schema - Split Schema pattern for MCP visibility
+// =============================================================================
+
+export const ListConstraintsSchemaBase = z.object({
+  table: z.string().optional().describe("Table name"),
+  schema: z.string().optional().describe("Schema name"),
+  type: z
+    .string()
+    .optional()
+    .describe(
+      "Constraint type filter: 'primary_key', 'foreign_key', 'unique', 'check'",
+    ),
+  limit: z.unknown().optional().describe("Maximum number of constraints to return (number, default: 50). Use 0 for all."),
+});
+
+export const ListConstraintsSchema = z.preprocess(
+  (val: unknown) => val ?? {},
+  z.object({
+    table: z.string().optional(),
+    schema: z.string().optional(),
+    type: z.string().optional(),
     limit: z.preprocess(coerceNumber, z.number().optional()),
   })
 );
@@ -538,6 +583,8 @@ export const ListTriggersOutputSchema = z
       .optional()
       .describe("Trigger list"),
     count: z.number().optional().describe("Number of triggers"),
+    limit: z.number().optional().describe("Limit used"),
+    note: z.string().optional().describe("Note about truncation"),
     success: z.boolean().optional().describe("Whether the operation succeeded"),
     error: z.string().optional().describe("Error message if operation failed"),
   })
@@ -553,6 +600,8 @@ export const ListConstraintsOutputSchema = z
       .optional()
       .describe("Constraint list"),
     count: z.number().optional().describe("Number of constraints"),
+    limit: z.number().optional().describe("Limit used"),
+    note: z.string().optional().describe("Note about truncation"),
     success: z.boolean().optional().describe("Whether the operation succeeded"),
     error: z.string().optional().describe("Error message if operation failed"),
   })

@@ -34,7 +34,7 @@ export function createStatsTimeSeriesTool(
     description:
       "Aggregate data into time buckets for time series analysis. Use groupBy to get separate time series per category.",
     group: "stats",
-    inputSchema: StatsTimeSeriesSchemaBase, // Base schema for MCP visibility
+    inputSchema: StatsTimeSeriesSchemaBase.partial(), // Base schema for MCP visibility
     outputSchema: TimeSeriesOutputSchema,
     annotations: readOnly("Time Series Analysis"),
     icons: getToolIcons("stats", readOnly("Time Series Analysis")),

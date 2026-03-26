@@ -35,7 +35,7 @@ export function createStatsHypothesisTool(
     description:
       "Perform one-sample t-test or z-test against a hypothesized mean. For z-test, provide populationStdDev (sigma) for accurate results. Use groupBy to test each group separately.",
     group: "stats",
-    inputSchema: StatsHypothesisSchemaBase, // Base schema for MCP visibility
+    inputSchema: StatsHypothesisSchemaBase.partial(), // Base schema for MCP visibility
     outputSchema: HypothesisOutputSchema,
     annotations: readOnly("Hypothesis Testing"),
     icons: getToolIcons("stats", readOnly("Hypothesis Testing")),

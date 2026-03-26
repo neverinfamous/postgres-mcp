@@ -294,7 +294,7 @@ export function createVectorValidateTool(
 
         if (!hasVector && !hasTableColumn && !hasDimensions) {
           return {
-            valid: false,
+            success: false,
             error:
               "Validation error: at least one of vector, table+column, or dimensions is required",
             suggestion:
@@ -329,13 +329,13 @@ export function createVectorValidateTool(
             ]);
             if ((tableCheckResult.rows?.length ?? 0) === 0) {
               return {
-                valid: false,
+                success: false,
                 error: `Table '${parsed.table}' does not exist in schema '${schemaName}'`,
                 suggestion: "Use pg_list_tables to find available tables",
               };
             }
             return {
-              valid: false,
+              success: false,
               error: `Column '${parsed.column}' does not exist in table '${parsed.table}'`,
               suggestion: "Use pg_describe_table to find available columns",
             };
@@ -356,7 +356,7 @@ export function createVectorValidateTool(
             | undefined;
           if (udtName !== "vector") {
             return {
-              valid: false,
+              success: false,
               error: `Column '${parsed.column}' is not a vector column (type: ${udtName ?? "unknown"})`,
               suggestion:
                 "Use a column with vector type, or use pg_vector_add_column to create one",

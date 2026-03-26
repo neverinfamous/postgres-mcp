@@ -61,6 +61,7 @@ function preprocessCreatePartitionedTable(input: unknown): unknown {
 // Validation enforced via .refine() on the preprocessed Schema (handler-side try/catch).
 export const CreatePartitionedTableSchemaBase = z.object({
   name: z.string().optional().describe("Table name"),
+  table: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
   columns: z
     .array(
@@ -91,6 +92,7 @@ export const CreatePartitionedTableSchemaBase = z.object({
     .optional()
     .describe("Partition strategy (range, list, or hash)"),
   partitionKey: z.string().optional().describe("Partition key column(s)"),
+  key: z.string().optional().describe("Alias for partitionKey"),
   primaryKey: z
     .array(z.string())
     .optional()
@@ -140,6 +142,7 @@ export const CreatePartitionSchemaBase = z.object({
   parentTable: z.string().optional().describe("Alias for parent"),
   table: z.string().optional().describe("Alias for parent"),
   name: z.string().optional().describe("Partition name (alias: partitionName)"),
+  partitionName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
   forValues: z
     .string()
@@ -153,6 +156,17 @@ export const CreatePartitionSchemaBase = z.object({
     .describe(
       "Create DEFAULT partition. Use instead of forValues for default partitions.",
     ),
+  default: z.boolean().optional().describe("Alias for isDefault"),
+  from: z.string().optional().describe("RANGE bound start"),
+  to: z.string().optional().describe("RANGE bound end"),
+  rangeFrom: z.string().optional().describe("RANGE bound start"),
+  rangeTo: z.string().optional().describe("RANGE bound end"),
+  values: z.array(z.string()).optional().describe("LIST partition values"),
+  listValues: z.array(z.string()).optional().describe("LIST partition values"),
+  modulus: z.number().optional().describe("HASH partition modulus"),
+  remainder: z.number().optional().describe("HASH partition remainder"),
+  hashModulus: z.number().optional().describe("HASH partition modulus"),
+  hashRemainder: z.number().optional().describe("HASH partition remainder"),
   // Sub-partitioning support for multi-level partitions
   subpartitionBy: z
     .enum(["range", "list", "hash"])
@@ -217,6 +231,17 @@ export const AttachPartitionSchemaBase = z.object({
     .describe(
       "Attach as DEFAULT partition. Use instead of forValues for default partitions.",
     ),
+  default: z.boolean().optional().describe("Alias for isDefault"),
+  from: z.string().optional().describe("RANGE bound start"),
+  to: z.string().optional().describe("RANGE bound end"),
+  rangeFrom: z.string().optional().describe("RANGE bound start"),
+  rangeTo: z.string().optional().describe("RANGE bound end"),
+  values: z.array(z.string()).optional().describe("LIST partition values"),
+  listValues: z.array(z.string()).optional().describe("LIST partition values"),
+  modulus: z.number().optional().describe("HASH partition modulus"),
+  remainder: z.number().optional().describe("HASH partition remainder"),
+  hashModulus: z.number().optional().describe("HASH partition modulus"),
+  hashRemainder: z.number().optional().describe("HASH partition remainder"),
 });
 
 // Preprocessed schema for handler parsing (with alias support)

@@ -6,7 +6,6 @@
  */
 
 import { z } from "zod";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Preprocess list/info parameters:
@@ -63,7 +62,7 @@ export const ListPartitionsSchemaBase = z.object({
   parentTable: z.string().optional().describe("Alias for table"),
   name: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum partitions to return"),
+  limit: z.number().optional().describe("Maximum partitions to return"),
 });
 
 // Preprocessed schema for handler parsing (with alias support)

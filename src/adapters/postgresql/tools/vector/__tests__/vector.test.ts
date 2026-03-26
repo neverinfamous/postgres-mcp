@@ -1182,7 +1182,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
 
-      expect(result.valid).toBe(false);
+      expect(result.success).toBe(false);
       expect(result.error).toContain("not a vector column");
       expect(result.error).toContain("text");
       expect(result.suggestion).toContain("pg_vector_add_column");
@@ -1805,7 +1805,7 @@ describe("Coverage: Missing Param Validation", () => {
         { table: "nonexistent", column: "vec" },
         mockContext,
       )) as Record<string, unknown>;
-      expect(result.valid).toBe(false);
+      expect(result.success).toBe(false);
       expect(result.error).toContain("Table");
     });
 
@@ -1818,7 +1818,7 @@ describe("Coverage: Missing Param Validation", () => {
         { table: "t", column: "bad" },
         mockContext,
       )) as Record<string, unknown>;
-      expect(result.valid).toBe(false);
+      expect(result.success).toBe(false);
       expect(result.error).toContain("Column");
     });
 

@@ -32,7 +32,7 @@ export function createStatsOutliersTool(
     description:
       "Detect statistical outliers in a numeric column using IQR (interquartile range) or Z-score method. IQR is robust against non-normal distributions.",
     group: "stats",
-    inputSchema: StatsOutliersSchemaBase,
+    inputSchema: StatsOutliersSchemaBase.partial(),
     outputSchema: StatsOutliersOutputSchema,
     annotations: readOnly("Outlier Detection"),
     icons: getToolIcons("stats", readOnly("Outlier Detection")),

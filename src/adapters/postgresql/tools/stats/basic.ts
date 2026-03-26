@@ -39,7 +39,7 @@ export function createStatsCorrelationTool(
     description:
       "Calculate Pearson correlation coefficient between two numeric columns. Use groupBy to get correlation per category.",
     group: "stats",
-    inputSchema: StatsCorrelationSchemaBase, // Base schema for MCP visibility
+    inputSchema: StatsCorrelationSchemaBase.partial(), // Base schema for MCP visibility
     outputSchema: CorrelationOutputSchema,
     annotations: readOnly("Correlation Analysis"),
     icons: getToolIcons("stats", readOnly("Correlation Analysis")),
@@ -201,7 +201,7 @@ export function createStatsRegressionTool(
     description:
       "Perform linear regression analysis (y = mx + b) between two columns. Use groupBy to get regression per category.",
     group: "stats",
-    inputSchema: StatsRegressionSchemaBase, // Base schema for MCP visibility
+    inputSchema: StatsRegressionSchemaBase.partial(), // Base schema for MCP visibility
     outputSchema: RegressionOutputSchema,
     annotations: readOnly("Linear Regression"),
     icons: getToolIcons("stats", readOnly("Linear Regression")),
