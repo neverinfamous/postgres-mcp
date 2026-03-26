@@ -12,7 +12,7 @@
  *   Tests will catch inconsistencies automatically.
  */
 
-import type { ToolGroup, MetaGroup } from "../types/index.js";
+import type { ToolGroup } from "../types/index.js";
 
 /**
  * Default tool groups and their member tools.
@@ -312,75 +312,4 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
   codemode: ["pg_execute_code"],
 };
 
-/**
- * Meta-groups that expand to multiple tool groups.
- * These provide shortcuts for common use cases.
- *
- * ALL presets include codemode (pg_execute_code) by default for token efficiency.
- * Per-group sizes and shortcut totals are validated by tool-filter.test.ts.
- */
-export const META_GROUPS: Record<MetaGroup, ToolGroup[]> = {
-  // 1. General Use - All include codemode for token efficiency
-  starter: ["core", "transactions", "jsonb", "schema", "codemode"],
-  essential: ["core", "transactions", "jsonb", "codemode"],
 
-  // 2. Developer Workloads
-  "dev-schema": [
-    "core",
-    "transactions",
-    "schema",
-    "introspection",
-    "migration",
-    "codemode",
-  ],
-  "dev-analytics": [
-    "core",
-    "transactions",
-    "stats",
-    "partitioning",
-    "codemode",
-  ],
-
-  // 3. AI Workloads
-  "ai-data": ["core", "jsonb", "text", "transactions", "codemode"],
-  "ai-vector": ["core", "vector", "transactions", "partitioning", "codemode"],
-
-  // 4. DBA Workloads
-  "dba-monitor": [
-    "core",
-    "monitoring",
-    "performance",
-    "transactions",
-    "codemode",
-  ],
-  "dba-schema": ["core", "schema", "introspection", "migration", "codemode"],
-  "dba-infra": ["core", "admin", "backup", "partitioning", "codemode"],
-  "dba-stats": [
-    "core",
-    "admin",
-    "monitoring",
-    "transactions",
-    "stats",
-    "codemode",
-  ],
-
-  // 5. Specialty Workloads
-  geo: ["core", "postgis", "transactions", "codemode"],
-
-  // 6. Building Blocks (for combining)
-  "base-ops": [
-    "admin",
-    "monitoring",
-    "backup",
-    "partitioning",
-    "stats",
-    "citext",
-    "codemode",
-  ],
-
-  // 7. Extension Bundles (for adding extension capabilities)
-  "ext-ai": ["vector", "pgcrypto", "codemode"],
-  "ext-geo": ["postgis", "ltree", "codemode"],
-  "ext-schedule": ["cron", "partman", "codemode"],
-  "ext-perf": ["kcache", "performance", "codemode"],
-};

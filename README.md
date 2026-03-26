@@ -171,7 +171,7 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 ### 🛠️ Tool Filtering
 
 > [!IMPORTANT]
-> All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
+> All tool groups include **Code Mode** (`pg_execute_code`) by default. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
 
 > **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#%EF%B8%8F-tool-filtering) for alternatives.
 
@@ -181,36 +181,14 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 
 ### What Can You Filter?
 
-The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names** — mix and match freely:
+The `--tool-filter` argument accepts **groups** or **tool names** — mix and match freely:
 
-| Filter Pattern   | Example                   | Tools | Description               |
-| ---------------- | ------------------------- | ----- | ------------------------- |
-| Shortcut only    | `starter`                 | 61    | Use a predefined bundle   |
-| Groups only      | `core,jsonb,transactions` | 48    | Combine individual groups |
-| Tool names       | `pg_read_query,pg_explain`| 2     | Custom tool selection     |
-| Shortcut + Group | `starter,+text`           | 73    | Extend a shortcut         |
-| Shortcut - Tool  | `starter,-pg_drop_table`  | 59    | Remove specific tools     |
-
-### Shortcuts (Predefined Bundles)
-
-| Shortcut        | Tools | Use Case                 | What's Included                                          |
-| --------------- | ----- | ------------------------ | -------------------------------------------------------- |
-| `starter`       | 61    | Standard Package         | Core, trans, JSONB, schema, codemode                     |
-| `essential`     | 49    | Minimal footprint        | Core, trans, JSONB, codemode                             |
-| `dev-schema`    | 53    | Dev Schema & Migrations  | Core, trans, schema, introspection, migration, codemode  |
-| `dev-analytics` | 54    | Dev Analytics            | Core, trans, stats, partitioning, codemode               |
-| `ai-data`       | 62    | AI Data Analyst          | Core, JSONB, text, trans, codemode                       |
-| `ai-vector`     | 51    | AI/ML with pgvector      | Core, vector, trans, part, codemode                      |
-| `dba-monitor`   | 64    | DBA Monitoring           | Core, monitoring, perf, trans, codemode                  |
-| `dba-schema`    | 45    | DBA Schema & Migrations  | Core, schema, introspection, migration, codemode         |
-| `dba-infra`     | 47    | DBA Infrastructure       | Core, admin, backup, partitioning, codemode              |
-| `dba-stats`     | 70    | DBA Stats                | Core, admin, monitoring, trans, stats, codemode          |
-| `geo`           | 44    | Geospatial Workloads     | Core, PostGIS, trans, codemode                           |
-| `base-ops`      | 63    | Operations Block         | Admin, monitoring, backup, part, stats, citext, codemode |
-| `ext-ai`        | 26    | Extension: AI/Security   | pgvector, pgcrypto, codemode                             |
-| `ext-geo`       | 24    | Extension: Spatial       | PostGIS, ltree, codemode                                 |
-| `ext-schedule`  | 19    | Extension: Scheduling    | pg_cron, pg_partman, codemode                            |
-| `ext-perf`      | 32    | Extension: Perf/Analysis | pg_stat_kcache, performance, codemode                    |
+| Filter Pattern   | Example                   | Description               |
+| ---------------- | ------------------------- | ------------------------- |
+| Groups only      | `core,jsonb,transactions` | Combine individual groups |
+| Tool names       | `pg_read_query,pg_explain`| Custom tool selection     |
+| Group + Tool     | `core,+pg_stat_statements`| Extend a group            |
+| Group - Tool     | `core,-pg_drop_table`     | Remove specific tools     |
 
 ### Tool Groups (22 Available)
 
@@ -243,7 +221,6 @@ The `--tool-filter` argument accepts **shortcuts**, **groups**, or **tool names*
 
 | Prefix   | Target   | Example          | Effect                                        |
 | -------- | -------- | ---------------- | --------------------------------------------- |
-| _(none)_ | Shortcut | `starter`        | **Whitelist Mode:** Enable ONLY this shortcut |
 | _(none)_ | Group    | `core`           | **Whitelist Mode:** Enable ONLY this group    |
 | _(none)_ | Tool     | `pg_read_query`  | **Whitelist Mode:** Enable ONLY this tool     |
 | `+`      | Group    | `+vector`        | Add tools from this group to current set      |

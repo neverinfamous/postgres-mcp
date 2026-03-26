@@ -38,7 +38,7 @@ src/
 │   └── server-instructions/        # Source .md files for each help resource (22 files: overview, gotchas, jsonb, text, stats, etc.)
 │
 ├── filtering/
-│   ├── tool-constants.ts           # TOOL_GROUPS arrays, META_GROUPS shortcuts, group→tools map
+│   ├── tool-constants.ts           # TOOL_GROUPS arrays, group→tools map
 │   └── tool-filter.ts              # ToolFilter class — parse/apply --tool-filter, getEnabledGroups()
 │
 ├── audit/

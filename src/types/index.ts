@@ -38,7 +38,6 @@ export type {
 // Tool filtering types
 export type {
   ToolGroup,
-  MetaGroup,
   ToolFilterRule,
   ToolFilterConfig,
 } from "./filtering.js";

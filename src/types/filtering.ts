@@ -31,36 +31,6 @@ export type ToolGroup =
   | "migration" // Schema migration tracking & management
   | "codemode"; // Code Mode - sandboxed code execution
 
-/**
- * Meta-group identifiers for common multi-group selections
- * These are shortcuts that expand to multiple ToolGroups
- *
- * STRICT LIMIT: All shortcuts must stay ≤50 tools
- */
-export type MetaGroup =
-  // General Use
-  | "starter" // 🌟 Recommended default (core, transactions, jsonb, schema) 59 tools
-  | "essential" // Minimal footprint (core, transactions, jsonb) 47 tools
-  // Developer Workloads
-  | "dev-schema" // Dev Schema & Migrations (core, trans, schema, introspection) 52 tools
-  | "dev-analytics" // Dev Analytics (core, trans, stats, partitioning) 42 tools
-  // AI Workloads
-  | "ai-data" // AI Data Analyst (core, jsonb, text, transactions) 60 tools
-  | "ai-vector" // AI/ML with pgvector (core, vector, trans, partitioning) 50 tools
-  // DBA Workloads
-  | "dba-monitor" // DBA Monitoring (core, monitoring, performance, trans) 59 tools
-  | "dba-schema" // DBA Schema (core, schema, introspection) 45 tools
-  | "dba-infra" // DBA Infrastructure (core, admin, backup, partitioning) 46 tools
-  | "dba-stats" // DBA Stats (core, admin, monitoring, trans, stats) 57 tools
-  // Specialty
-  | "geo" // Geospatial Workloads (core, postgis, transactions) 43 tools
-  // Building Blocks
-  | "base-ops" // Operations Block (admin, monitoring, backup, part, stats, citext) 51 tools
-  // Extension Bundles
-  | "ext-ai" // Extension: AI/Security (vector, pgcrypto) 26 tools
-  | "ext-geo" // Extension: Spatial/Hierarchical (postgis, ltree) 24 tools
-  | "ext-schedule" // Extension: Scheduling (cron, partman) 19 tools
-  | "ext-perf"; // Extension: Performance/Analysis (kcache, performance) 32 tools
 
 /**
  * Tool filter rule

@@ -127,16 +127,16 @@ async function main() {
     // ── Test 2: Multi-group filter ──
     console.log('\n=== Test 2: Multi-group Filter ===\n')
 
-    const starterFilter = await testServer(['--tool-filter', 'starter'])
-    console.log(`  starter preset: ${starterFilter.charCount} chars (~${starterFilter.tokenEstimate} tokens)`)
+    const starterFilter = await testServer(['--tool-filter', 'core,transactions,jsonb,schema,codemode'])
+    console.log(`  explicit groups: ${starterFilter.charCount} chars (~${starterFilter.tokenEstimate} tokens)`)
 
     const starterSmaller = starterFilter.charCount < fullAll.charCount
-    console.log(`  starter < all: ${starterSmaller ? '✅' : '❌'}`)
+    console.log(`  explicit groups < all: ${starterSmaller ? '✅' : '❌'}`)
     if (!starterSmaller) allPassed = false
 
-    // starter includes codemode (auto-injected)
+    // groups include codemode
     const starterHasCodeMode = starterFilter.text.includes('## Code Mode')
-    console.log(`  starter includes Code Mode: ${starterHasCodeMode ? '✅' : '❌ MISSING'}`)
+    console.log(`  explicit groups includes Code Mode: ${starterHasCodeMode ? '✅' : '❌ MISSING'}`)
     if (!starterHasCodeMode) allPassed = false
 
     // ── Test 3: Instruction Levels ──

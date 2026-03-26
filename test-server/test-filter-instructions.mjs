@@ -86,8 +86,8 @@ const TEST_CONFIGS = [
         },
     },
     {
-        label: 'starter preset (core+transactions+jsonb+schema+codemode)',
-        filter: 'starter',
+        label: 'multiple groups test (core,transactions,jsonb,schema,codemode)',
+        filter: 'core,transactions,jsonb,schema,codemode',
         level: null,
         expect: {
             CORE: true,
@@ -97,8 +97,8 @@ const TEST_CONFIGS = [
         },
     },
     {
-        label: 'starter preset + full level',
-        filter: 'starter',
+        label: 'multiple groups test + full level',
+        filter: 'core,transactions,jsonb,schema,codemode',
         level: 'full',
         expect: {
             CORE: true,

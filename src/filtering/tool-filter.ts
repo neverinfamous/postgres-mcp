@@ -13,7 +13,6 @@
 
 import type {
   ToolGroup,
-  MetaGroup,
   ToolFilterConfig,
   ToolDefinition,
 } from "../types/index.js";
@@ -34,8 +33,8 @@ let toolToGroupMap: Map<string, ToolGroup> | null = null;
  * Default tool groups and their member tools.
  * This serves as the canonical mapping of tools to groups.
  */
-export { TOOL_GROUPS, META_GROUPS } from "./tool-constants.js";
-import { TOOL_GROUPS, META_GROUPS } from "./tool-constants.js";
+export { TOOL_GROUPS } from "./tool-constants.js";
+import { TOOL_GROUPS } from "./tool-constants.js";
 
 /**
  * Get all tool names from all groups (cached)
@@ -95,23 +94,7 @@ export function isToolGroup(name: string): name is ToolGroup {
   return name in TOOL_GROUPS;
 }
 
-/**
- * Check if a name is a valid meta-group
- */
-export function isMetaGroup(name: string): name is MetaGroup {
-  return name in META_GROUPS;
-}
 
-/**
- * Get all tool names from a meta-group
- */
-export function getMetaGroupTools(metaGroup: MetaGroup): string[] {
-  const tools: string[] = [];
-  for (const group of META_GROUPS[metaGroup]) {
-    tools.push(...TOOL_GROUPS[group]);
-  }
-  return tools;
-}
 
 /**
  * Parse a tool filter string into structured rules
@@ -191,28 +174,15 @@ export function parseToolFilter(
       continue;
     }
 
-    const targetIsMetaGroup = isMetaGroup(target);
     const targetIsGroup = isToolGroup(target);
 
     rules.push({
       type: isInclude ? "include" : "exclude",
       target,
-      isGroup: targetIsGroup || targetIsMetaGroup,
+      isGroup: targetIsGroup,
     });
 
-    if (targetIsMetaGroup) {
-      // Expand meta-group to all its underlying groups' tools
-      const metaGroupTools = getMetaGroupTools(target as MetaGroup);
-      if (isExclude) {
-        for (const tool of metaGroupTools) {
-          enabledTools.delete(tool);
-        }
-      } else {
-        for (const tool of metaGroupTools) {
-          enabledTools.add(tool);
-        }
-      }
-    } else if (targetIsGroup) {
+    if (targetIsGroup) {
       const groupTools = TOOL_GROUPS[target as ToolGroup];
       if (isExclude) {
         for (const tool of groupTools) {
@@ -295,15 +265,7 @@ export function getFilterSummary(config: ToolFilterConfig): string {
     lines.push(`  Rules applied:`);
     for (const rule of config.rules) {
       const prefix = rule.type === "include" ? "+" : "-";
-      // Determine type: meta-group, group, or tool
-      let type: string;
-      if (isMetaGroup(rule.target)) {
-        type = "meta-group";
-      } else if (rule.isGroup) {
-        type = "group";
-      } else {
-        type = "tool";
-      }
+      const type = rule.isGroup ? "group" : "tool";
       lines.push(`    ${prefix}${rule.target} (${type})`);
     }
   }

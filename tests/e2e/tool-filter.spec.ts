@@ -42,37 +42,6 @@ test.describe("Tool Filter Runtime Behavior", () => {
     }
   });
 
-  test("--tool-filter starter exposes ~60 tools including transactions but not vector", async () => {
-    const port = FILTER_PORT_BASE + 1;
-    await startServer(port, ["--tool-filter", "starter"], "filter-starter");
-
-    try {
-      const client = await createClient(`http://localhost:${port}`);
-      try {
-        const list = await client.listTools();
-        const names = list.tools.map((t) => t.name);
-
-        // Starter = core + trans + jsonb + schema + codemode ≈ 60
-        expect(list.tools.length).toBeGreaterThanOrEqual(40);
-        expect(list.tools.length).toBeLessThanOrEqual(80);
-
-        // Included groups
-        expect(names).toContain("pg_read_query");
-        expect(names).toContain("pg_transaction_begin");
-        expect(names).toContain("pg_jsonb_extract");
-        expect(names).toContain("pg_execute_code");
-
-        // Excluded groups
-        expect(names).not.toContain("pg_vector_search");
-        expect(names).not.toContain("pg_cron_schedule");
-      } finally {
-        await client.close();
-      }
-    } finally {
-      stopServer(port);
-    }
-  });
-
   test("--tool-filter core,-codemode excludes pg_execute_code", async () => {
     const port = FILTER_PORT_BASE + 2;
     await startServer(

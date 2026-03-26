@@ -7,10 +7,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   TOOL_GROUPS,
-  META_GROUPS,
   getAllToolNames,
   getToolGroup,
-  getMetaGroupTools,
   parseToolFilter,
   filterTools,
   getFilterSummary,
@@ -82,54 +80,7 @@ describe("TOOL_GROUPS", () => {
   });
 });
 
-describe("META_GROUPS", () => {
-  it("should contain all 16 meta-groups", () => {
-    const expectedMetaGroups = [
-      "starter",
-      "essential",
-      "dev-schema",
-      "dev-analytics",
-      "ai-data",
-      "ai-vector",
-      "dba-monitor",
-      "dba-schema",
-      "dba-infra",
-      "dba-stats",
-      "geo",
-      "base-ops",
-      "ext-ai",
-      "ext-geo",
-      "ext-schedule",
-      "ext-perf",
-    ];
-    expect(Object.keys(META_GROUPS)).toHaveLength(16);
-    for (const metaGroup of expectedMetaGroups) {
-      expect(META_GROUPS).toHaveProperty(metaGroup);
-    }
-  });
 
-  it("should have correct group expansions", () => {
-    expect(META_GROUPS.starter).toContain("core");
-    expect(META_GROUPS.starter).toContain("transactions");
-    expect(META_GROUPS.starter).toContain("jsonb");
-    expect(META_GROUPS.starter).toContain("schema");
-    expect(META_GROUPS.starter).toContain("codemode");
-
-    expect(META_GROUPS.essential).toContain("core");
-    expect(META_GROUPS.essential).toContain("transactions");
-    expect(META_GROUPS.essential).toContain("codemode");
-
-    expect(META_GROUPS["ext-ai"]).toContain("vector");
-    expect(META_GROUPS["ext-ai"]).toContain("pgcrypto");
-    expect(META_GROUPS["ext-ai"]).toContain("codemode");
-  });
-
-  it("should include codemode in every meta-group", () => {
-    for (const [, groups] of Object.entries(META_GROUPS)) {
-      expect(groups).toContain("codemode");
-    }
-  });
-});
 
 describe("getAllToolNames", () => {
   it("should return all tool names", () => {
@@ -169,67 +120,7 @@ describe("getToolGroup", () => {
   });
 });
 
-describe("getMetaGroupTools", () => {
-  it("should return all tools for starter meta-group", () => {
-    const tools = getMetaGroupTools("starter");
-    // starter = core + transactions + jsonb + schema + codemode
-    expect(tools).toHaveLength(groupSum("core", "transactions", "jsonb", "schema", "codemode"));
-  });
 
-  it("should return all tools for essential meta-group", () => {
-    const tools = getMetaGroupTools("essential");
-    // essential = core + transactions + jsonb + codemode
-    expect(tools).toHaveLength(groupSum("core", "transactions", "jsonb", "codemode"));
-  });
-
-  it("should return correct tools for ext-ai meta-group", () => {
-    const tools = getMetaGroupTools("ext-ai");
-    // ext-ai = vector + pgcrypto + codemode
-    expect(tools).toHaveLength(groupSum("vector", "pgcrypto", "codemode"));
-  });
-
-  it("should return correct tools for dev-schema meta-group", () => {
-    const tools = getMetaGroupTools("dev-schema");
-    // dev-schema = core + transactions + schema + introspection + migration + codemode
-    expect(tools).toHaveLength(groupSum("core", "transactions", "schema", "introspection", "migration", "codemode"));
-  });
-
-  it("should return correct tools for dev-analytics meta-group", () => {
-    const tools = getMetaGroupTools("dev-analytics");
-    // dev-analytics = core + transactions + stats + partitioning + codemode
-    expect(tools).toHaveLength(groupSum("core", "transactions", "stats", "partitioning", "codemode"));
-  });
-
-  it("should return correct tools for base-ops meta-group", () => {
-    const tools = getMetaGroupTools("base-ops");
-    // base-ops = admin + monitoring + backup + partitioning + stats + citext + codemode
-    expect(tools).toHaveLength(groupSum("admin", "monitoring", "backup", "partitioning", "stats", "citext", "codemode"));
-  });
-
-  it("should return correct tools for dba-monitor meta-group", () => {
-    const tools = getMetaGroupTools("dba-monitor");
-    // dba-monitor = core + monitoring + performance + transactions + codemode
-    expect(tools).toHaveLength(groupSum("core", "monitoring", "performance", "transactions", "codemode"));
-  });
-
-  it("should return correct tools for dba-schema meta-group", () => {
-    const tools = getMetaGroupTools("dba-schema");
-    // dba-schema = core + schema + introspection + migration + codemode
-    expect(tools).toHaveLength(groupSum("core", "schema", "introspection", "migration", "codemode"));
-  });
-
-  it("should return correct tools for dba-infra meta-group", () => {
-    const tools = getMetaGroupTools("dba-infra");
-    // dba-infra = core + admin + backup + partitioning + codemode
-    expect(tools).toHaveLength(groupSum("core", "admin", "backup", "partitioning", "codemode"));
-  });
-
-  it("should return correct tools for dba-stats meta-group", () => {
-    const tools = getMetaGroupTools("dba-stats");
-    // dba-stats = core + admin + monitoring + transactions + stats + codemode
-    expect(tools).toHaveLength(groupSum("core", "admin", "monitoring", "transactions", "stats", "codemode"));
-  });
-});
 
 describe("parseToolFilter", () => {
   it("should return all tools enabled for empty filter", () => {
@@ -259,14 +150,7 @@ describe("parseToolFilter", () => {
     expect(config.enabledTools.has("pg_jsonb_extract")).toBe(true);
   });
 
-  it("should disable a meta-group", () => {
-    const config = parseToolFilter("-starter");
-    const starterSize = groupSum("core", "transactions", "jsonb", "schema", "codemode");
-    expect(config.enabledTools.size).toBe(TOTAL_TOOLS - starterSize);
-    expect(config.enabledTools.has("pg_read_query")).toBe(false);
-    expect(config.enabledTools.has("pg_jsonb_extract")).toBe(false);
-    expect(config.enabledTools.has("pg_vector_search")).toBe(true);
-  });
+
 
   it("should enable tools with + prefix", () => {
     const config = parseToolFilter("-core,+pg_read_query");
@@ -275,23 +159,7 @@ describe("parseToolFilter", () => {
     expect(config.enabledTools.has("pg_write_query")).toBe(false);
   });
 
-  it("should handle whitelist with a meta-group", () => {
-    const config = parseToolFilter("starter");
-    const starterSize = groupSum("core", "transactions", "jsonb", "schema", "codemode");
-    expect(config.enabledTools.size).toBe(starterSize);
-  });
 
-  it("should handle explicit whitelist syntax (+group)", () => {
-    const config = parseToolFilter("+starter");
-    const starterSize = groupSum("core", "transactions", "jsonb", "schema", "codemode");
-    expect(config.enabledTools.size).toBe(starterSize);
-  });
-
-  it("should handle whitelist with exclusion (starter,-jsonb)", () => {
-    const starterMinusJsonb = groupSum("core", "transactions", "schema", "codemode");
-    const config = parseToolFilter("starter,-jsonb");
-    expect(config.enabledTools.size).toBe(starterMinusJsonb);
-  });
 
   it("should process rules left-to-right", () => {
     // First enable core, then disable pg_read_query
@@ -408,12 +276,7 @@ describe("getFilterSummary", () => {
     expect(summary).toContain("group");
   });
 
-  it("should show meta-group rules", () => {
-    const config = parseToolFilter("-starter");
-    const summary = getFilterSummary(config);
-    expect(summary).toContain("-starter");
-    expect(summary).toContain("meta-group");
-  });
+
 
   it("should show per-group breakdown", () => {
     const config = parseToolFilter("-vector");
