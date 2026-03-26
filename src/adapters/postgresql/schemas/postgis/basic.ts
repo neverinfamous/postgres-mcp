@@ -77,9 +77,16 @@ export const GeometryDistanceSchemaBase = z.object({
   geom: z.string().optional().describe("Alias for column"),
   geometry: z.string().optional().describe("Alias for column"),
   geometryColumn: z.string().optional().describe("Alias for column"),
-  point: PointSchemaBase.describe(
+  point: PointSchemaBase.optional().describe(
     "Reference point (supports lat/lng, latitude/longitude, or x/y)",
   ),
+  lat: z.number().optional().describe("Latitude (-90 to 90)"),
+  latitude: z.number().optional().describe("Alias for lat"),
+  lng: z.number().optional().describe("Longitude (-180 to 180)"),
+  lon: z.number().optional().describe("Alias for lng"),
+  longitude: z.number().optional().describe("Alias for lng"),
+  x: z.number().optional().describe("X coordinate"),
+  y: z.number().optional().describe("Y coordinate"),
   limit: z.number().optional().describe("Max results"),
   maxDistance: z
     .number()
@@ -133,9 +140,16 @@ export const PointInPolygonSchemaBase = z.object({
   geom: z.string().optional().describe("Alias for column"),
   geometry: z.string().optional().describe("Alias for column"),
   geometryColumn: z.string().optional().describe("Alias for column"),
-  point: PointSchemaBase.describe(
+  point: PointSchemaBase.optional().describe(
     "Point to check (supports lat/lng, latitude/longitude, or x/y)",
   ),
+  lat: z.number().optional().describe("Latitude (-90 to 90)"),
+  latitude: z.number().optional().describe("Alias for lat"),
+  lng: z.number().optional().describe("Longitude (-180 to 180)"),
+  lon: z.number().optional().describe("Alias for lng"),
+  longitude: z.number().optional().describe("Alias for lng"),
+  x: z.number().optional().describe("X coordinate"),
+  y: z.number().optional().describe("Y coordinate"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 

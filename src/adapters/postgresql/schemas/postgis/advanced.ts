@@ -176,11 +176,21 @@ export const GeometryBufferSchema = GeometryBufferSchemaBase.transform(
 
 // pg_geometry_intersection
 export const GeometryIntersectionSchemaBase = z.object({
-  geometry1: z.string().describe("First WKT or GeoJSON geometry"),
-  geometry2: z.string().describe("Second WKT or GeoJSON geometry"),
+  geometry1: z.string().optional().describe("First WKT or GeoJSON geometry"),
+  geometry2: z.string().optional().describe("Second WKT or GeoJSON geometry"),
 });
 
-export const GeometryIntersectionSchema = GeometryIntersectionSchemaBase;
+export const GeometryIntersectionSchema = GeometryIntersectionSchemaBase.partial()
+  .transform((data) => ({
+    geometry1: data.geometry1 ?? "",
+    geometry2: data.geometry2 ?? "",
+  }))
+  .refine((data) => data.geometry1 !== "", {
+    message: "geometry1 is required",
+  })
+  .refine((data) => data.geometry2 !== "", {
+    message: "geometry2 is required",
+  });
 
 // pg_geometry_transform
 export const GeometryTransformSchemaBase = z.object({
