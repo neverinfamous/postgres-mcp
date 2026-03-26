@@ -138,14 +138,11 @@ export function createGeoIndexOptimizeTool(
         (tableStats.rows?.length ?? 0) === 0
       ) {
         return {
-          warning: `Table "${parsed.table}" not found in schema "${schemaName}" or has no spatial columns/indexes.`,
+          success: false,
+          error: `Table "${parsed.table}" not found in schema "${schemaName}" or has no spatial columns/indexes.`,
           table: parsed.table,
           schema: schemaName,
-          spatialIndexes: [],
-          tableStats: [],
-          recommendations: [
-            `Verify table "${parsed.table}" exists and has geometry/geography columns.`,
-          ],
+          suggestion: `Verify table "${parsed.table}" exists and has geometry/geography columns.`,
         };
       }
 

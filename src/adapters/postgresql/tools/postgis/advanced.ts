@@ -165,8 +165,8 @@ export function createGeoTransformTool(
         // Select non-geometry columns + transformed geometry representations
         const selectCols =
           nonGeomCols.length > 0
-            ? `${nonGeomCols}, ST_AsGeoJSON(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_geojson, ST_AsText(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_wkt, ${String(parsed.toSrid)} as output_srid`
-            : `ST_AsGeoJSON(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_geojson, ST_AsText(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_wkt, ${String(parsed.toSrid)} as output_srid`;
+            ? `${nonGeomCols}, ST_AsGeoJSON(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_geojson, ${String(parsed.toSrid)} as output_srid`
+            : `ST_AsGeoJSON(ST_Transform(ST_SetSRID(${columnName}, ${String(fromSrid)}), ${String(parsed.toSrid)})) as transformed_geojson, ${String(parsed.toSrid)} as output_srid`;
 
         const sql = `SELECT ${selectCols} FROM ${qualifiedTable} ${whereClause} ${limitClause}`;
 

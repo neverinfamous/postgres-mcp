@@ -176,6 +176,9 @@ export const GeoTransformOutputSchema = z
  */
 export const GeoIndexOptimizeOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    error: z.string().optional().describe("Error message"),
+    suggestion: z.string().optional().describe("Helpful suggestion"),
     spatialIndexes: z
       .array(z.record(z.string(), z.unknown()))
       .optional()

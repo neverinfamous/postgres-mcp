@@ -248,8 +248,8 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
         // Select non-geometry columns + readable geometry representations
         const selectCols =
           nonGeomCols.length > 0
-            ? `${nonGeomCols}, ST_AsText(${columnName}) as geometry_text, ST_AsGeoJSON(${bufferExpr}) as buffer_geojson`
-            : `ST_AsText(${columnName}) as geometry_text, ST_AsGeoJSON(${bufferExpr}) as buffer_geojson`;
+            ? `${nonGeomCols}, ST_AsGeoJSON(${bufferExpr}) as buffer_geojson`
+            : `ST_AsGeoJSON(${bufferExpr}) as buffer_geojson`;
 
         const limitClause =
           effectiveLimit > 0 ? ` LIMIT ${String(effectiveLimit)}` : "";
