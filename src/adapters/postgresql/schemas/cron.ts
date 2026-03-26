@@ -269,12 +269,12 @@ export const CronAlterJobSchema = z
   );
 
 export const CronJobRunDetailsSchemaBase = z.object({
-  jobId: z.preprocess(coerceNumber, z.number().optional()).describe("Filter by job ID"),
+  jobId: z.number().optional().describe("Filter by job ID"),
   status: z
     .string()
     .optional()
     .describe("Filter by status (running, succeeded, failed)"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum records to return (default: 50)"),
+  limit: z.number().optional().describe("Maximum records to return (default: 50)"),
 });
 
 export const CronJobRunDetailsSchema = z
@@ -290,21 +290,25 @@ export const CronJobRunDetailsSchema = z
   .default({});
 
 export const CronCleanupHistorySchemaBase = z.object({
-  olderThanDays: z.preprocess(coerceNumber, z.number().optional())
+  olderThanDays: z.number().optional()
     .describe("Delete records older than N days (default: 7)"),
-  days: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for olderThanDays"),
-  jobId: z.preprocess(coerceNumber, z.number().optional()).describe("Clean up only for specific job"),
+  days: z.number().optional().describe("Alias for olderThanDays"),
+  jobId: z.number().optional().describe("Clean up only for specific job"),
 });
 
 export const CronCleanupHistorySchema = z.preprocess(
   (input) => preprocessCronParams(input ?? {}),
-  CronCleanupHistorySchemaBase.transform((data) => {
+  z.object({
+    olderThanDays: z.preprocess(coerceNumber, z.number().optional()),
+    days: z.preprocess(coerceNumber, z.number().optional()),
+    jobId: z.unknown().optional(),
+  }).transform((data) => {
     const rawDays = data.olderThanDays as unknown;
     const coercedDays =
       rawDays !== undefined && rawDays !== null ? Number(rawDays) : undefined;
 
     // Coerce jobId through CoercibleJobId for type safety
-    const rawJobId = data.jobId as unknown;
+    const rawJobId = data.jobId;
     let parsedJobId: number | undefined;
     if (rawJobId !== undefined && rawJobId !== null) {
       const coerced = CoercibleJobId.safeParse(rawJobId);
