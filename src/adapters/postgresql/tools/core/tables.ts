@@ -178,6 +178,28 @@ export function createCreateTableTool(
         const schemaPrefix = schema ? `"${schema}".` : "";
         const ifNotExistsClause = ifNotExists ? "IF NOT EXISTS " : "";
 
+        // If ifNotExists is true, check if table already exists BEFORE creating
+        if (ifNotExists === true) {
+          const schemaName = schema ?? "public";
+          const checkSql = `
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = $1 AND table_name = $2
+          `;
+          const checkResult = await adapter.executeQuery(checkSql, [
+            schemaName,
+            name,
+          ]);
+          if (checkResult.rows && checkResult.rows.length > 0) {
+            return {
+              success: true,
+              table: `${schemaName}.${name}`,
+              ifNotExists: true,
+              alreadyExists: true,
+              message: `Table ${name} already exists`,
+            };
+          }
+        }
+
         // Determine primary key: prefer explicit primaryKey array, else column-level
         const explicitPK =
           primaryKey && primaryKey.length > 0 ? primaryKey : null;

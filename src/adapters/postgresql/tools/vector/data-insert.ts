@@ -219,7 +219,10 @@ export function createVectorInsertTool(
               const providedDim = dimMatch[2] ?? "0";
               return {
                 success: false,
-                error: "Vector dimension mismatch",
+                error: `Vector dimension mismatch: column '${columnName}' expects ${expectedDim} dimensions, but you provided ${providedDim} dimensions.`,
+                code: "DIMENSION_MISMATCH",
+                category: "validation",
+                recoverable: false,
                 expectedDimensions: parseInt(expectedDim, 10),
                 providedDimensions: parseInt(providedDim, 10),
                 suggestion: `Column expects ${expectedDim} dimensions but vector has ${providedDim}. Resize vector or check embedding model.`,
@@ -405,7 +408,10 @@ export function createVectorBatchInsertTool(
               const providedDim = dimMatch[2] ?? "0";
               return {
                 success: false,
-                error: "Vector dimension mismatch",
+                error: `Vector dimension mismatch: column '${columnName}' expects ${expectedDim} dimensions, but you provided ${providedDim} dimensions.`,
+                code: "DIMENSION_MISMATCH",
+                category: "validation",
+                recoverable: false,
                 expectedDimensions: parseInt(expectedDim, 10),
                 providedDimensions: parseInt(providedDim, 10),
                 suggestion: `Column expects ${expectedDim} dimensions but vectors have ${providedDim}. Resize vectors or check embedding model.`,

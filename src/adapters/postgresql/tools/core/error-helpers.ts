@@ -7,7 +7,7 @@
 
 import { ErrorCategory } from "../../../../types/error-types.js";
 import type { ErrorResponse } from "../../../../types/error-types.js";
-import { PostgresMcpError } from "../../../../types/errors.js";
+import { PostgresMcpError, QueryError } from "../../../../types/errors.js";
 import { parsePostgresError } from "./error-parser.js";
 import type { ErrorContext } from "./error-parser.js";
 
@@ -116,15 +116,16 @@ export function formatHandlerErrorResponse(
   } catch (structured: unknown) {
     const message =
       structured instanceof Error ? structured.message : String(structured);
-    return {
-      success: false,
-      error: message,
-      code: "QUERY_ERROR",
-      category: ErrorCategory.QUERY,
-      suggestion: undefined,
-      recoverable: false,
-      details: undefined,
-    };
+    
+    // Instantiate a QueryError to seamlessly apply auto-refinements via findSuggestion mapped to ERROR_SUGGESTIONS
+    // This allows converting "Query error: Table X not found" into "TABLE_NOT_FOUND" code.
+    const queryError = new QueryError(
+      message, 
+      undefined, 
+      structured instanceof Error ? { cause: structured } : undefined
+    );
+    
+    return queryError.toResponse();
   }
 
   // Fallback for non-PG errors

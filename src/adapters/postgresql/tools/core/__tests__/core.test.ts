@@ -1878,7 +1878,7 @@ describe("Create Table with Advanced Column Options", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain("IF NOT EXISTS");
   });
 

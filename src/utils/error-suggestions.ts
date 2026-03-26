@@ -63,6 +63,20 @@ const ERROR_SUGGESTIONS: {
     code: "TABLE_NOT_FOUND",
   },
   {
+    pattern: /table (?:or view )?['"].*['"] not found/i,
+    suggestion:
+      "Table or view not found. Run pg_list_tables to see available tables.",
+    category: ErrorCategory.RESOURCE,
+    code: "TABLE_NOT_FOUND",
+  },
+  {
+    pattern: /object ['"].*['"] not found/i,
+    suggestion:
+      "Object not found. Use pg_list_objects to discover database objects.",
+    category: ErrorCategory.RESOURCE,
+    code: "OBJECT_NOT_FOUND",
+  },
+  {
     pattern: /column ".*" does not exist/i,
     suggestion:
       "Column not found. Use pg_describe_table to see available columns.",
