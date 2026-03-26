@@ -37,13 +37,14 @@ Looks for common patterns like email, username, name, slug, etc.`,
     annotations: readOnly("Analyze Citext Candidates"),
     icons: getToolIcons("citext", readOnly("Analyze Citext Candidates")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = CitextAnalyzeCandidatesSchema.parse(params) as {
-        patterns?: string[];
-        schema?: string;
-        table?: string;
-        limit?: unknown;
-        excludeSystemSchemas?: boolean;
-      };
+      try {
+        const parsed = CitextAnalyzeCandidatesSchema.parse(params) as {
+          patterns?: string[];
+          schema?: string;
+          table?: string;
+          limit?: unknown;
+          excludeSystemSchemas?: boolean;
+        };
       const {
         patterns,
         schema,
@@ -59,6 +60,16 @@ Looks for common patterns like email, username, name, slug, etc.`,
             : Number(rawLimit);
       const safeLimit =
         userLimit !== undefined && isNaN(userLimit) ? undefined : userLimit;
+
+      if (safeLimit !== undefined && safeLimit < 0) {
+        return {
+          success: false,
+          error: "Validation error: limit must be non-negative",
+          code: "VALIDATION_ERROR",
+          category: "validation",
+          recoverable: false,
+        };
+      }
 
       // Validate table/schema existence before querying
       if (table !== undefined) {
@@ -238,6 +249,11 @@ Looks for common patterns like email, username, name, slug, etc.`,
         // Include patterns used for transparency
         patternsUsed: searchPatterns,
       };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+            tool: "pg_citext_analyze_candidates",
+          });
+      }
     },
   };
 }

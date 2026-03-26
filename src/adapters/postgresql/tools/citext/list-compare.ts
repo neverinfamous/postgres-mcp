@@ -53,6 +53,15 @@ Useful for auditing case-insensitive columns.`,
         const safeLimit =
           userLimit !== undefined && isNaN(userLimit) ? undefined : userLimit;
 
+        if (safeLimit !== undefined && safeLimit < 0) {
+          return {
+            success: false,
+            error: "Validation error: limit must be non-negative",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
+          };
+        }
         // Validate schema existence when specified
         if (schema !== undefined) {
           const schemaCheck = await adapter.executeQuery(

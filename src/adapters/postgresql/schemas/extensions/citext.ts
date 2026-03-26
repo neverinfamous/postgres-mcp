@@ -128,7 +128,7 @@ export const CitextListColumnsSchema = z.preprocess(
   (input) => {
     const obj = normalizeOptionalParams(input);
     if (typeof obj === "object" && obj !== null && "limit" in obj) {
-      (obj as Record<string, unknown>)["limit"] = coerceNumber((obj as Record<string, unknown>)["limit"]);
+      obj["limit"] = coerceNumber(obj["limit"]);
     }
     return obj;
   },
