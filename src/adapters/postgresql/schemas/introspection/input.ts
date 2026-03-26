@@ -323,7 +323,7 @@ export const MigrationApplySchema = MigrationRecordParseSchema;
  * pg_migration_rollback input
  */
 export const MigrationRollbackSchemaBase = z.object({
-  id: z.preprocess(coerceNumber, z.number().optional()).describe("Migration ID to roll back"),
+  id: z.number().optional().describe("Migration ID to roll back"),
   version: z
     .string()
     .optional()
@@ -336,19 +336,23 @@ export const MigrationRollbackSchemaBase = z.object({
     ),
 });
 
-export const MigrationRollbackSchema = MigrationRollbackSchemaBase;
+export const MigrationRollbackSchema = z.object({
+  id: z.preprocess(coerceNumber, z.number().optional()),
+  version: z.string().optional(),
+  dryRun: z.boolean().optional(),
+});
 
 /**
  * pg_migration_history input
  */
 export const MigrationHistorySchemaBase = z.object({
   status: z
-    .enum(["applied", "recorded", "rolled_back", "failed"])
+    .string()
     .optional()
     .describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum records to return (default: 50)"),
-  offset: z.preprocess(coerceNumber, z.number().optional()).describe("Offset for pagination (default: 0)"),
+  limit: z.number().optional().describe("Maximum records to return (default: 50)"),
+  offset: z.number().optional().describe("Offset for pagination (default: 0)"),
 });
 
 // Internal parse schema — coerces limit/offset types to prevent Zod leaks

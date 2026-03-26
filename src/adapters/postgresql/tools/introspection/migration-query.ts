@@ -291,7 +291,7 @@ export function createMigrationStatusTool(
             initialized: false,
             latestVersion: null,
             latestAppliedAt: null,
-            counts: { total: 0, applied: 0, rolledBack: 0, failed: 0 },
+            counts: { total: 0, applied: 0, recorded: 0, rolledBack: 0, failed: 0 },
             sourceSystems: [],
           };
         }
