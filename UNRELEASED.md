@@ -111,6 +111,8 @@
 - **Naming conventions**: Renamed 12 source + 9 test PascalCase files to kebab-case (`DatabaseAdapter.ts` → `database-adapter.ts`, `PostgresAdapter.ts` → `postgres-adapter.ts`, `McpServer.ts` → `mcp-server.ts`, etc.). Updated all import paths across ~80 files.
 
 ### Fixed
+- **Introspection payload bloat (`pg_schema_snapshot`)**: The snapshot payload no longer outputs empty arrays for sections without objects (like sequences or customTypes), significantly reducing JSON payload token usage.
+- **Admin tools validation limit (`pg_append_insight`)**: The tool now restricts insights to a maximum of 1000 characters to prevent in-memory token bloat.
 - **Schema view replacement error handling (`pg_create_view`)**: Fixed an issue where using `orReplace: true` to change a view's column data type threw a raw PostgreSQL `QUERY_ERROR` (`cannot change data type of view column`). The tool now catches `42P16` error messages to automatically drop and safely recreate the view.
 - **Stats summary query error leak (`pg_stats_summary`)**: Added strict column data type pre-validation against `information_schema.columns`. Explicitly requested non-numeric columns now return a structured `VALIDATION_ERROR` instead of surfacing raw PostgreSQL function exceptions (`function avg(character varying) does not exist`).
 - **Core idempotency bug (`pg_create_table`)**: Fixed an issue where the `ifNotExists: true` flag did not emit `alreadyExists: true` in the response when the table already existed, as the execution silently succeeded via PostgreSQL's `IF NOT EXISTS` clause. The tool now runs a lightweight schema verification pre-check to accurately report the table's state in the payload.
