@@ -24,7 +24,7 @@
 | Feature                                | Description                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **248 Specialized Tools**              | The largest PostgreSQL tool collection for MCP. Covers everything from basic CRUD and JSONB to advanced AI vector search, geospatial data, and job scheduling.                                                                                                                                               |
-| **21 Observability Resources**         | Get instant snapshots of your database health. Monitor performance, connection pools, replication lag, and locks in real-time.                                                                                                                                                                               |
+| **22 Observability Resources**         | Get instant snapshots of your database health. Monitor performance, connection pools, replication lag, and locks in real-time.                                                                                                                                                                               |
 | **20 AI-Powered Prompts**              | Let the AI guide you. Built-in workflows help you smoothly build queries, design schemas, tune performance, and manage backups safely.                                                                                                                                                                       |
 | **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Stop burning tokens on back-and-forth tool calls and reduce your AI overhead by up to 90%.                                                                                                       |
 | **Token-Optimized Payloads**           | Never guess your token spend. Every response includes a zero-cost token estimate, and our tools smartly summarize large datasets so agents always see the big picture without blowing the budget.                                                                                                            |
@@ -195,7 +195,8 @@ Add this to your MCP client config (e.g., `~/.cursor/mcp.json` for Cursor):
 | `AUDIT_BACKUP` | `false` | Enable pre-mutation DDL snapshots |
 | `AUDIT_BACKUP_DATA` | `false` | Include sample data rows in snapshots |
 | `AUDIT_BACKUP_MAX_AGE` | `30` | Maximum snapshot age in days |
-| `AUDIT_BACKUP_MAX_COUNT` | `100` | Maximum number of snapshots to retain |
+| `AUDIT_BACKUP_MAX_COUNT` | `1000` | Maximum number of snapshots to retain |
+| `AUDIT_BACKUP_MAX_DATA_SIZE` | `52428800` | Maximum table size for data capture (bytes) |
 | `AUDIT_READS` | `false` | Log read-scoped tool calls (compact entries) |
 | `AUDIT_LOG_MAX_SIZE` | `10485760` | Max log file size before rotation (bytes) |
 
@@ -206,7 +207,7 @@ Add this to your MCP client config (e.g., `~/.cursor/mcp.json` for Cursor):
 > [!IMPORTANT]
 > All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
 
-> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#️-tool-filtering) for alternatives.`)
+> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#%EF%B8%8F-tool-filtering) for alternatives.
 
 - **Requires `admin` OAuth scope** — execution is logged for audit
 

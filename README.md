@@ -4,7 +4,7 @@
 
 **PostgreSQL MCP Server** enabling AI assistants (AntiGravity, Claude, Cursor, etc.) to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a single, secure JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**248 Specialized Tools** · **21 Resources** · **20 AI-Powered Prompts**
+**248 Specialized Tools** · **22 Resources** · **20 AI-Powered Prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
@@ -26,7 +26,7 @@
 | Feature                                | Description                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **248 Specialized Tools**              | The largest PostgreSQL tool collection for MCP. Covers everything from basic CRUD and JSONB to advanced AI vector search, geospatial data, and job scheduling.                                                                                                                                               |
-| **21 Observability Resources**         | Get instant snapshots of your database health. Monitor performance, connection pools, replication lag, and locks in real-time.                                                                                                                                                                               |
+| **22 Observability Resources**         | Get instant snapshots of your database health. Monitor performance, connection pools, replication lag, and locks in real-time.                                                                                                                                                                               |
 | **20 AI-Powered Prompts**              | Let the AI guide you. Built-in workflows help you smoothly build queries, design schemas, tune performance, and manage backups safely.                                                                                                                                                                       |
 | **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Stop burning tokens on back-and-forth tool calls and reduce your AI overhead by up to 90%.                                                                                                       |
 | **Token-Optimized Payloads**           | Never guess your token spend. Every response includes a zero-cost token estimate, and our tools smartly summarize large datasets so agents always see the big picture without blowing the budget.                                                                                                            |
@@ -173,7 +173,7 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 > [!IMPORTANT]
 > All shortcuts and tool groups include **Code Mode** (`pg_execute_code`) by default. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
 
-> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#️-tool-filtering) for alternatives.`)
+> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#%EF%B8%8F-tool-filtering) for alternatives.
 
 - **Requires `admin` OAuth scope** — execution is logged for audit
 
@@ -406,6 +406,11 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `OAUTH_CLOCK_TOLERANCE` | `60` | Clock tolerance in seconds | `--oauth-clock-tolerance` |
 | `AUDIT_LOG_PATH` | — | Audit log file path (`stderr` for container logs) | `--audit-log` |
 | `AUDIT_REDACT` | `false` | Omit tool arguments from audit entries | `--audit-redact` |
+| `AUDIT_BACKUP` | `false` | Enable pre-mutation DDL snapshots | `--audit-backup` |
+| `AUDIT_BACKUP_DATA` | `false` | Include sample data rows in snapshots | `--audit-backup-data` |
+| `AUDIT_BACKUP_MAX_AGE` | `30` | Maximum snapshot age in days | `--audit-backup-max-age` |
+| `AUDIT_BACKUP_MAX_COUNT` | `1000` | Maximum number of snapshots to retain | `--audit-backup-max-count` |
+| `AUDIT_BACKUP_MAX_DATA_SIZE` | `52428800` | Maximum table size for data capture (bytes) | `--audit-backup-max-data-size` |
 | `AUDIT_READS` | `false` | Log read-scoped tool calls (compact entries) | `--audit-reads` |
 | `AUDIT_LOG_MAX_SIZE` | `10485760` | Max log file size before rotation (bytes) | `--audit-log-max-size` |
 
@@ -436,6 +441,11 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `--trust-proxy` | Trust reverse proxy headers |
 | `--audit-log <path>` | Enable JSONL audit trail (`stderr` for container logs) |
 | `--audit-redact` | Omit tool arguments from audit entries |
+| `--audit-backup` | Enable pre-mutation DDL snapshots |
+| `--audit-backup-data` | Include sample data rows in snapshots |
+| `--audit-backup-max-age <days>` | Maximum snapshot age in days (default: 30) |
+| `--audit-backup-max-count <count>` | Maximum number of snapshots to retain (default: 1000) |
+| `--audit-backup-max-data-size <bytes>` | Maximum table size for data capture (default: 52428800) |
 | `--audit-reads` | Log read-scoped tool calls (compact entries) |
 | `--audit-log-max-size <bytes>` | Max log file size before rotation (default: 10MB) |
 
