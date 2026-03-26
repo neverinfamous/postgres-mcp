@@ -1,6 +1,6 @@
 # Tool Group Testing
 
-**Instructions:** Please conduct an exhaustive test of the tool group listed below using BOTH code mode (pg_execute_code) and direct tool calls, not scripts/terminal! DO NOT MODIFY OR SKIP TESTS! FOLLOW INSTRUCTONS!
+**Instructions:** Please conduct an exhaustive test of the tool group listed below using BOTH code mode (pg_execute_code) and direct tool calls, not scripts/terminal! DO NOT MODIFY OR SKIP TESTS! FOLLOW INSTRUCTONS! All changes must be consistent with `code-map.md`.
 
 ## Reporting Format
 
