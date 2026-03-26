@@ -115,7 +115,7 @@ export const CitextListColumnsSchemaBase = z.object({
     .optional()
     .describe("Schema name to filter (all schemas if omitted)"),
   limit: z
-    .any()
+    .number()
     .optional()
     .describe("Maximum number of columns to return (default: 100, 0 for all)"),
 });
@@ -125,7 +125,13 @@ export const CitextListColumnsSchemaBase = z.object({
  * Preprocesses to handle empty/null params.
  */
 export const CitextListColumnsSchema = z.preprocess(
-  normalizeOptionalParams,
+  (input) => {
+    const obj = normalizeOptionalParams(input);
+    if (typeof obj === "object" && obj !== null && "limit" in obj) {
+      (obj as Record<string, unknown>)["limit"] = coerceNumber((obj as Record<string, unknown>)["limit"]);
+    }
+    return obj;
+  },
   CitextListColumnsSchemaBase,
 );
 
@@ -144,7 +150,7 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
     .string()
     .optional()
     .describe("Table name to filter (analyzes single table)"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum number of candidates to return"),
+  limit: z.number().optional().describe("Maximum number of candidates to return"),
   excludeSystemSchemas: z
     .boolean()
     .optional()
@@ -158,7 +164,13 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
  * Preprocesses to handle empty/null params.
  */
 export const CitextAnalyzeCandidatesSchema = z.preprocess(
-  (input) => preprocessCitextTableParams(normalizeOptionalParams(input)),
+  (input) => {
+    const obj = preprocessCitextTableParams(normalizeOptionalParams(input));
+    if (typeof obj === "object" && obj !== null && "limit" in obj) {
+      (obj as Record<string, unknown>)["limit"] = coerceNumber((obj as Record<string, unknown>)["limit"]);
+    }
+    return obj;
+  },
   CitextAnalyzeCandidatesSchemaBase,
 );
 
