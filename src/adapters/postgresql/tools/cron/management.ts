@@ -7,7 +7,6 @@
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -16,6 +15,8 @@ import {
   CronAlterJobSchema,
   CronJobRunDetailsSchemaBase,
   CronJobRunDetailsSchema,
+  CronListJobsSchemaBase,
+  CronListJobsSchema,
   CronCleanupHistorySchema,
   CronCleanupHistorySchemaBase,
   // Output schemas
@@ -85,34 +86,18 @@ or active status. Only specify the parameters you want to change.`,
  * List all scheduled jobs
  */
 export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
-  const ListJobsSchemaBase = z.object({
-    active: z.boolean().optional().describe("Filter by active status"),
-    limit: z
-      .coerce.number()
-      .optional()
-      .describe("Maximum jobs to return (default: 50, use 0 for all)"),
-  });
-
-  const ListJobsSchema = z.object({
-    active: z.boolean().optional().describe("Filter by active status"),
-    limit: z
-      .coerce.number()
-      .optional()
-      .describe("Maximum jobs to return (default: 50, use 0 for all)"),
-  });
-
   return {
     name: "pg_cron_list_jobs",
     description:
       "List all scheduled cron jobs. Shows job ID, name, schedule, command, and status. Jobs without names (jobname: null) must be referenced by jobId. Default limit: 50 rows.",
     group: "cron",
-    inputSchema: ListJobsSchemaBase,
+    inputSchema: CronListJobsSchemaBase,
     outputSchema: CronListJobsOutputSchema,
     annotations: readOnly("List Cron Jobs"),
     icons: getToolIcons("cron", readOnly("List Cron Jobs")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = ListJobsSchema.parse(params ?? {});
+        const parsed = CronListJobsSchema.parse(params ?? {});
 
         let sql = `
                 SELECT

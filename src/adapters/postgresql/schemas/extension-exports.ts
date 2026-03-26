@@ -207,6 +207,8 @@ export {
   CronAlterJobSchema,
   CronJobRunDetailsSchemaBase,
   CronJobRunDetailsSchema,
+  CronListJobsSchemaBase,
+  CronListJobsSchema,
   CronCleanupHistorySchema,
   CronCleanupHistorySchemaBase,
   // Output schemas

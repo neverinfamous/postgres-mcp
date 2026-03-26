@@ -268,6 +268,16 @@ export const CronAlterJobSchema = z
     },
   );
 
+export const CronListJobsSchemaBase = z.object({
+  active: z.boolean().optional().describe("Filter by active status"),
+  limit: z.number().optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
+});
+
+export const CronListJobsSchema = z.object({
+  active: z.boolean().optional().describe("Filter by active status"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum jobs to return (default: 50, use 0 for all)"),
+});
+
 export const CronJobRunDetailsSchemaBase = z.object({
   jobId: z.number().optional().describe("Filter by job ID"),
   status: z
