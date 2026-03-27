@@ -4,6 +4,7 @@
 - **Shortcut Context Deprecation (`META_GROUPS`)**: Removed all 16 predefined shortcut bundles (e.g. `starter`, `dev-schema`, `dba-monitor`) from the internal configuration and `--tool-filter` logic. Agents and developers are now strongly encouraged to rely on the granular `TOOL_GROUPS` definitions or utilize the recommended Code Mode framework (`codemode`) for token-efficient maximum access. The `--tool-filter` flag continues to fully support mix-and-match filtering of exact `TOOL_GROUPS` and individual tool names (e.g., `--tool-filter core,transactions,jsonb,schema,codemode`).
 
 ## Added
+- **Test Scripts**: Ported `test-tool-annotations.mjs` to validate tool annotation structures (e.g., `openWorldHint` presence) across all 248 tools via direct MCP client execution.
 - **Zod Schema Hardening**: Tightened `inputSchema` definitions for 23 parameter-less tools from permissive `z.object({})` to `z.object({}).strict()` to prevent arbitrary LLM argument passthrough.
 - **Vector Error Handling**: Replaced generic `Error` throws with structured `ValidationError` classes in `pg_vector_cluster` and `pg_vector_dimension_reduce` for correct error categorization.
 - **Audit Token Estimates**: Every audit entry now includes `tokenEstimate` (~4 bytes per token) computed from the serialized tool response. Gives agents and users historical visibility into token burn-rate per tool call.

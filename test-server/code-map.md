@@ -447,6 +447,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/test-agent-experience.md` | Agent experience test (9 passes, 37 scenarios) |
 | `test-server/test-instruction-levels.mjs` | Instruction filtering + level behavior verification |
 | `test-server/test-filter-instructions.mjs` | Filter-aware instruction validation (8-config matrix: section presence/absence per filter × level) |
+| `test-server/test-tool-annotations.mjs` | Tool annotations structural validation (`openWorldHint` tracking) |
 | `src/__tests__/` | Vitest unit tests (top-level) |
 | `tests/e2e/` | Playwright E2E suite (33 spec files) |
 | `tests/e2e/helpers.ts` | E2E helpers: `getBaseURL()`, `callToolRaw()`, `expectHandlerError()`, `startServer()`, `stopServer()`, `createClient()` |
