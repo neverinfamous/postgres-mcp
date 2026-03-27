@@ -1,2 +1,4 @@
 # Normalize line endings to LF on all platforms
 * text=auto eol=lf
+
+.github/workflows/*.lock.yml linguist-generated=true merge=ours
