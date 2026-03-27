@@ -5,7 +5,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -312,10 +312,10 @@ which represent actual disk access (not just shared buffer hits).`,
         if (
           !VALID_IO_TYPES.includes(rawIoType as (typeof VALID_IO_TYPES)[number])
         ) {
-          return {
-            success: false,
-            error: `Invalid type/ioType value "${rawIoType}". Valid options: ${VALID_IO_TYPES.join(", ")}`,
-          };
+          throw new ValidationError(
+            `Invalid type/ioType value "${rawIoType}". Valid options: ${VALID_IO_TYPES.join(", ")}`,
+            { validOptions: VALID_IO_TYPES }
+          );
         }
         const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
         const DEFAULT_LIMIT = 10;

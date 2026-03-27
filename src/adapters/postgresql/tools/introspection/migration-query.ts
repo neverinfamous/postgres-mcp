@@ -10,6 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
+import { ValidationError } from "../../../../types/index.js";
 import { readOnly, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -57,11 +58,9 @@ export function createMigrationRollbackTool(
         await ensureTrackingTable(adapter);
 
         if (parsed.id === undefined && parsed.version === undefined) {
-          return {
-            success: false,
-            error:
-              "Either 'id' or 'version' is required to identify the migration to roll back.",
-          };
+          throw new ValidationError(
+            "Either 'id' or 'version' is required to identify the migration to roll back.",
+          );
         }
 
         // Coerce id: functional param, return error on wrong type
@@ -69,10 +68,7 @@ export function createMigrationRollbackTool(
         if (parsed.id !== undefined) {
           const num = parsed.id;
           if (isNaN(num)) {
-            return {
-              success: false,
-              error: `Invalid migration id: expected a number, got "${String(parsed.id)}"`,
-            };
+            throw new ValidationError(`Invalid migration id: expected a number, got "${String(parsed.id)}"`);
           }
           coercedId = num;
         }
@@ -96,6 +92,9 @@ export function createMigrationRollbackTool(
           return {
             success: false,
             error: `Migration not found: ${identifier}`,
+            code: "NOT_FOUND",
+            category: "validation",
+            recoverable: true
           };
         }
 
@@ -106,17 +105,11 @@ export function createMigrationRollbackTool(
         const rollbackSql = (row["rollback_sql"] as string | null) ?? null;
 
         if (rowStatus === "rolled_back") {
-          return {
-            success: false,
-            error: `Migration "${rowVersion}" (id: ${String(rowId)}) has already been rolled back.`,
-          };
+          throw new ValidationError(`Migration "${rowVersion}" (id: ${String(rowId)}) has already been rolled back.`);
         }
 
         if (rollbackSql === null) {
-          return {
-            success: false,
-            error: `Migration "${rowVersion}" (id: ${String(rowId)}) has no rollback SQL stored. Manual rollback required.`,
-          };
+          throw new ValidationError(`Migration "${rowVersion}" (id: ${String(rowId)}) has no rollback SQL stored. Manual rollback required.`);
         }
 
         if (parsed.dryRun === true) {
@@ -149,11 +142,8 @@ export function createMigrationRollbackTool(
           };
         } catch (err: unknown) {
           await adapter.executeQuery("ROLLBACK");
-          const message = err instanceof Error ? err.message : "Unknown error";
-          return {
-            success: false,
-            error: `Rollback failed for migration "${rowVersion}" (id: ${String(rowId)}): ${message}. Transaction was rolled back.`,
-          };
+          const msg = err instanceof Error ? err.message : String(err);
+          throw new ValidationError(`Rollback failed for migration "${rowVersion}" (id: ${String(rowId)}): ${msg}. Transaction was rolled back.`);
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {

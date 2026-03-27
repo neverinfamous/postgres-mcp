@@ -6,7 +6,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
 import { z } from "zod";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -96,6 +96,9 @@ or interval syntax (e.g., "30 seconds"). Note: pg_cron allows duplicate job name
             : undefined,
         };
       } catch (error: unknown) {
+        if (error instanceof Error && error.message.includes("invalid schedule")) {
+          return formatHandlerErrorResponse(new ValidationError(`Invalid cron schedule expression provided`, { params }), { tool: "pg_cron_schedule" });
+        }
         return formatHandlerErrorResponse(error, { tool: "pg_cron_schedule" });
       }
     },

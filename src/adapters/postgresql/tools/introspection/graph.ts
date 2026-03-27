@@ -75,8 +75,7 @@ export function createDependencyGraphTool(
         const parsed = DependencyGraphSchema.parse(params);
 
         // Validate schema existence when filtering by schema
-        const schemaError = await checkSchemaExists(adapter, parsed.schema);
-        if (schemaError) return schemaError;
+        await checkSchemaExists(adapter, parsed.schema);
 
         const includeRowCounts = parsed.includeRowCounts !== false;
 
@@ -201,8 +200,7 @@ export function createTopologicalSortTool(
         const parsed = TopologicalSortSchema.parse(params);
 
         // Validate schema existence when filtering by schema
-        const schemaError = await checkSchemaExists(adapter, parsed.schema);
-        if (schemaError) return schemaError;
+        await checkSchemaExists(adapter, parsed.schema);
 
         const direction = parsed.direction ?? "create";
 

@@ -51,16 +51,14 @@ export function createConstraintAnalysisTool(
         const parsed = ConstraintAnalysisSchema.parse(params);
 
         // Validate schema existence when filtering by schema
-        const schemaError = await checkSchemaExists(adapter, parsed.schema);
-        if (schemaError) return schemaError;
+        await checkSchemaExists(adapter, parsed.schema);
 
         // Validate table existence when filtering by table
-        const tableError = await checkTableExists(
+        await checkTableExists(
           adapter,
           parsed.table,
           parsed.schema,
         );
-        if (tableError) return tableError;
 
         const runAll = !parsed.checks || parsed.checks.length === 0;
         const checks = new Set(parsed.checks ?? []);

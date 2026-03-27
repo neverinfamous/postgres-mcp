@@ -6,7 +6,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -106,10 +106,10 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
         }
         const udtName = colCheck.rows[0]?.["udt_name"] as string;
         if (udtName !== "ltree") {
-          return {
-            success: false,
-            error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
-          };
+          throw new ValidationError(
+            `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+            { foundType: udtName, column }
+          );
         }
 
         // Detect if path contains lquery pattern characters
@@ -206,12 +206,10 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
         // Validate offset is within bounds
         const effectiveOffset = offset < 0 ? pathDepth + offset : offset;
         if (effectiveOffset < 0 || effectiveOffset >= pathDepth) {
-          return {
-            success: false,
-            error: `Invalid offset: ${String(offset)}. Path "${path}" has ${String(pathDepth)} labels (valid offset range: 0 to ${String(pathDepth - 1)}, or -${String(pathDepth)} to -1 for negative indexing).`,
-            originalPath: path,
-            pathDepth,
-          };
+          throw new ValidationError(
+            `Invalid offset: ${String(offset)}. Path "${path}" has ${String(pathDepth)} labels (valid offset range: 0 to ${String(pathDepth - 1)}, or -${String(pathDepth)} to -1 for negative indexing).`,
+            { originalPath: path, pathDepth }
+          );
         }
 
         const sql =

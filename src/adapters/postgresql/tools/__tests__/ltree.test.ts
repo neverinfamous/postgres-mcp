@@ -1033,11 +1033,11 @@ describe("Ltree Tools", () => {
           offset: 5,
         },
         mockContext,
-      )) as { success: boolean; error: string; pathDepth: number };
+      )) as { success: boolean; error: string; code: string };
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid offset");
-      expect(result.pathDepth).toBe(3);
+      expect(result.code).toBe("VALIDATION_ERROR");
     });
   });
 

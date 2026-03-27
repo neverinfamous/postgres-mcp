@@ -195,12 +195,7 @@ export function createAuditRestoreBackupTool(
             // Rollback failure is secondary
           }
           const msg = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
-          return {
-            success: false,
-            error: `Restore failed: ${msg}`,
-            metadata: snapshot.metadata,
-            hint: "Use dryRun: true to inspect the DDL before executing",
-          };
+          throw new ValidationError(`Restore failed: ${msg}`);
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_audit_restore_backup" });
@@ -320,7 +315,8 @@ export function createAuditDiffBackupTool(
             const currentStats = sizeResult.rows?.[0] as { row_count?: number | string; total_size_bytes?: number } | undefined;
 
             if (currentStats) {
-              const rowSnap = snapshot.metadata.rowCount;
+              const rowSnapRaw = snapshot.metadata.rowCount;
+              const rowSnap = rowSnapRaw === -1 ? undefined : rowSnapRaw;
               // reltuples::bigint is sent as a string by the pg driver — must parse
               // -1 is PostgreSQL's sentinel meaning "statistics not yet collected (unanalyzed)"
               const rowCurrRaw = currentStats.row_count !== undefined ? parseInt(String(currentStats.row_count), 10) : undefined;

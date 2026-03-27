@@ -6,6 +6,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
+import { ValidationError } from "../../../../types/index.js";
 
 // =============================================================================
 // Internal types
@@ -182,19 +183,15 @@ export function qualifiedName(schema: string, table: string): string {
 export async function checkSchemaExists(
   adapter: PostgresAdapter,
   schemaFilter?: string,
-): Promise<{ success: false; error: string } | null> {
-  if (!schemaFilter) return null;
+): Promise<void> {
+  if (!schemaFilter) return;
   const result = await adapter.executeQuery(
     `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
     [schemaFilter],
   );
   if ((result.rows?.length ?? 0) === 0) {
-    return {
-      success: false as const,
-      error: `Schema '${schemaFilter}' does not exist. Use pg_list_schemas to see available schemas.`,
-    };
+    throw new ValidationError(`Schema '${schemaFilter}' does not exist. Use pg_list_schemas to see available schemas.`);
   }
-  return null;
 }
 
 /**
@@ -205,8 +202,8 @@ export async function checkTableExists(
   adapter: PostgresAdapter,
   tableFilter?: string,
   schemaFilter?: string,
-): Promise<{ success: false; error: string } | null> {
-  if (!tableFilter) return null;
+): Promise<void> {
+  if (!tableFilter) return;
   const schema = schemaFilter ?? "public";
   const result = await adapter.executeQuery(
     `SELECT 1 FROM pg_class c
@@ -215,10 +212,6 @@ export async function checkTableExists(
     [tableFilter, schema],
   );
   if ((result.rows?.length ?? 0) === 0) {
-    return {
-      success: false as const,
-      error: `Table '${schema}.${tableFilter}' does not exist. Use pg_list_tables to verify.`,
-    };
+    throw new ValidationError(`Table '${schema}.${tableFilter}' does not exist. Use pg_list_tables to verify.`);
   }
-  return null;
 }

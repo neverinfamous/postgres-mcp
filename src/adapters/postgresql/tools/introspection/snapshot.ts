@@ -41,8 +41,7 @@ export function createSchemaSnapshotTool(
         const parsed = SchemaSnapshotSchema.parse(params);
 
         // Validate schema existence when filtering by schema
-        const schemaError = await checkSchemaExists(adapter, parsed.schema);
-        if (schemaError) return schemaError;
+        await checkSchemaExists(adapter, parsed.schema);
 
         const includeAll = !parsed.sections || parsed.sections.length === 0;
         const sections = new Set(parsed.sections ?? []);
