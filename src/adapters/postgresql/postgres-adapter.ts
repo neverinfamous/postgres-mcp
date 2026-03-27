@@ -223,7 +223,11 @@ export class PostgresAdapter extends DatabaseAdapter {
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new QueryError(`Query failed: ${message}`, { sql });
+      throw new QueryError(
+        `Query failed: ${message}`,
+        { sql },
+        error instanceof Error ? { cause: error } : undefined,
+      );
     }
   }
 
@@ -249,7 +253,11 @@ export class PostgresAdapter extends DatabaseAdapter {
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new QueryError(`Query failed: ${message}`, { sql });
+      throw new QueryError(
+        `Query failed: ${message}`,
+        { sql },
+        error instanceof Error ? { cause: error } : undefined,
+      );
     }
   }
 

@@ -94,7 +94,13 @@ export function formatHandlerErrorResponse(
 ): ErrorResponse {
   // Typed postgres-mcp errors — use toResponse() directly
   if (error instanceof PostgresMcpError) {
-    return error.toResponse();
+    // If it's a QueryError wrapping a raw PG error, unwrap it so
+    // parsePostgresError gets a chance to format it first natively.
+    if (error.name === "QueryError" && error.cause !== undefined) {
+      error = error.cause;
+    } else {
+      return error.toResponse();
+    }
   }
 
   // Zod validation errors — shared formatter
