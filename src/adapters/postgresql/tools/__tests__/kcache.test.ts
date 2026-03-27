@@ -515,17 +515,17 @@ describe("Kcache Tools", () => {
   describe("Error Handling", () => {
     it("pg_kcache_query_stats should return structured error on query failure", async () => {
       mockAdapter.executeQuery.mockRejectedValueOnce(
-        new Error("LIMIT must not be negative"),
+        new Error("database timeout"),
       );
 
       const tool = findTool("pg_kcache_query_stats");
-      const result = (await tool!.handler({ limit: -1 }, mockContext)) as {
+      const result = (await tool!.handler({ limit: 5 }, mockContext)) as {
         success: boolean;
         error: string;
       };
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("LIMIT must not be negative");
+      expect(result.error).toContain("database timeout");
     });
 
     it("pg_kcache_top_cpu should return structured error on query failure", async () => {
@@ -585,17 +585,17 @@ describe("Kcache Tools", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
       // Second call: COUNT query fails
       mockAdapter.executeQuery.mockRejectedValueOnce(
-        new Error("LIMIT must not be negative"),
+        new Error("database timeout"),
       );
 
       const tool = findTool("pg_kcache_resource_analysis");
-      const result = (await tool!.handler({ limit: -1 }, mockContext)) as {
+      const result = (await tool!.handler({ limit: 5 }, mockContext)) as {
         success: boolean;
         error: string;
       };
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("LIMIT must not be negative");
+      expect(result.error).toContain("database timeout");
     });
   });
 

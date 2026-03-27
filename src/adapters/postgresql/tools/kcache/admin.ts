@@ -5,7 +5,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -178,6 +178,10 @@ Helps identify the root cause of performance issues - is the query computation-h
           parsed.limit !== undefined && !isNaN(parsed.limit)
             ? parsed.limit
             : undefined;
+
+        if (limit !== undefined && (limit < 0 || limit > 100)) {
+          throw new ValidationError("limit must be between 0 (no limit) and 100");
+        }
         const minCalls =
           parsed.minCalls !== undefined && !isNaN(parsed.minCalls)
             ? parsed.minCalls

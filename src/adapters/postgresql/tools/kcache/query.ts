@@ -51,6 +51,10 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
           parsed.limit !== undefined && !isNaN(parsed.limit)
             ? parsed.limit
             : undefined;
+
+        if (limit !== undefined && (limit < 0 || limit > 100)) {
+          throw new ValidationError("limit must be between 0 (no limit) and 100");
+        }
         const orderBy = parsed.orderBy;
         const minCalls =
           parsed.minCalls !== undefined && !isNaN(parsed.minCalls)
@@ -191,15 +195,13 @@ in user CPU (application code) vs system CPU (kernel operations).`,
             queryPreviewLength: z.preprocess(coerceNumber, z.number().optional()),
           })
           .parse(params ?? {});
+        if (parsed.limit !== undefined && !isNaN(parsed.limit) && (parsed.limit < 0 || parsed.limit > 100)) {
+          throw new ValidationError("limit must be between 0 (no limit) and 100");
+        }
         const DEFAULT_LIMIT = 10;
-        // limit: 0 means "no limit" (return all rows), undefined means use default
-        const limitVal =
-          parsed.limit === 0 ||
-          (parsed.limit !== undefined && isNaN(parsed.limit))
-            ? parsed.limit !== undefined && isNaN(parsed.limit)
-              ? DEFAULT_LIMIT
-              : null
-            : (parsed.limit ?? DEFAULT_LIMIT);
+        const validLimit = parsed.limit !== undefined && !isNaN(parsed.limit) ? parsed.limit : DEFAULT_LIMIT;
+        // limit: 0 means "no limit" (return all rows)
+        const limitVal = validLimit === 0 ? null : validLimit;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
@@ -318,15 +320,13 @@ which represent actual disk access (not just shared buffer hits).`,
           );
         }
         const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
+        if (parsed.limit !== undefined && !isNaN(parsed.limit) && (parsed.limit < 0 || parsed.limit > 100)) {
+          throw new ValidationError("limit must be between 0 (no limit) and 100");
+        }
         const DEFAULT_LIMIT = 10;
-        // limit: 0 means "no limit" (return all rows), undefined means use default
-        const limitVal =
-          parsed.limit === 0 ||
-          (parsed.limit !== undefined && isNaN(parsed.limit))
-            ? parsed.limit !== undefined && isNaN(parsed.limit)
-              ? DEFAULT_LIMIT
-              : null
-            : (parsed.limit ?? DEFAULT_LIMIT);
+        const validLimit = parsed.limit !== undefined && !isNaN(parsed.limit) ? parsed.limit : DEFAULT_LIMIT;
+        // limit: 0 means "no limit" (return all rows)
+        const limitVal = validLimit === 0 ? null : validLimit;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
