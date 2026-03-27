@@ -19,7 +19,6 @@ import {
   KcacheTopIoOutputSchema,
 } from "../../schemas/index.js";
 import { getKcacheColumnNames } from "./helpers.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Query stats with CPU/IO metrics joined from pg_stat_statements
@@ -40,31 +39,22 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
       try {
         const parsed = z
           .object({
-            limit: z.preprocess(coerceNumber, z.number().optional()),
+            limit: z.coerce.number().optional(),
             orderBy: z.string().optional(),
-            minCalls: z.preprocess(coerceNumber, z.number().optional()),
-            queryPreviewLength: z.preprocess(coerceNumber, z.number().optional()),
+            minCalls: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
           })
           .parse(params ?? {});
 
-        const limit =
-          parsed.limit !== undefined && !isNaN(parsed.limit)
-            ? parsed.limit
-            : undefined;
+        const limit = parsed.limit;
 
         if (limit !== undefined && (limit < 0 || limit > 100)) {
           throw new ValidationError("limit must be between 0 (no limit) and 100");
         }
+
         const orderBy = parsed.orderBy;
-        const minCalls =
-          parsed.minCalls !== undefined && !isNaN(parsed.minCalls)
-            ? parsed.minCalls
-            : undefined;
-        const queryPreviewLength =
-          parsed.queryPreviewLength !== undefined &&
-          !isNaN(parsed.queryPreviewLength)
-            ? parsed.queryPreviewLength
-            : undefined;
+        const minCalls = parsed.minCalls;
+        const queryPreviewLength = parsed.queryPreviewLength;
 
         // Validate orderBy inside handler for structured error response
         const VALID_ORDER_BY = [
@@ -191,15 +181,16 @@ in user CPU (application code) vs system CPU (kernel operations).`,
       try {
         const parsed = z
           .object({
-            limit: z.preprocess(coerceNumber, z.number().optional()),
-            queryPreviewLength: z.preprocess(coerceNumber, z.number().optional()),
+            limit: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
           })
           .parse(params ?? {});
-        if (parsed.limit !== undefined && !isNaN(parsed.limit) && (parsed.limit < 0 || parsed.limit > 100)) {
+        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 100)) {
           throw new ValidationError("limit must be between 0 (no limit) and 100");
         }
+
         const DEFAULT_LIMIT = 10;
-        const validLimit = parsed.limit !== undefined && !isNaN(parsed.limit) ? parsed.limit : DEFAULT_LIMIT;
+        const validLimit = parsed.limit ?? DEFAULT_LIMIT;
         // limit: 0 means "no limit" (return all rows)
         const limitVal = validLimit === 0 ? null : validLimit;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
@@ -207,10 +198,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
           parsed.queryPreviewLength === 0
             ? 10000
             : Math.min(
-                parsed.queryPreviewLength !== undefined &&
-                  !isNaN(parsed.queryPreviewLength)
-                  ? parsed.queryPreviewLength
-                  : 100,
+                parsed.queryPreviewLength ?? 100,
                 500,
               );
         const cols = await getKcacheColumnNames(adapter);
@@ -303,8 +291,8 @@ which represent actual disk access (not just shared buffer hits).`,
         const parsed = z
           .object({
             type: z.string().optional(),
-            limit: z.preprocess(coerceNumber, z.number().optional()),
-            queryPreviewLength: z.preprocess(coerceNumber, z.number().optional()),
+            limit: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
           })
           .parse(preprocessed);
 
@@ -320,11 +308,12 @@ which represent actual disk access (not just shared buffer hits).`,
           );
         }
         const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
-        if (parsed.limit !== undefined && !isNaN(parsed.limit) && (parsed.limit < 0 || parsed.limit > 100)) {
+        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 100)) {
           throw new ValidationError("limit must be between 0 (no limit) and 100");
         }
+
         const DEFAULT_LIMIT = 10;
-        const validLimit = parsed.limit !== undefined && !isNaN(parsed.limit) ? parsed.limit : DEFAULT_LIMIT;
+        const validLimit = parsed.limit ?? DEFAULT_LIMIT;
         // limit: 0 means "no limit" (return all rows)
         const limitVal = validLimit === 0 ? null : validLimit;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
@@ -332,10 +321,7 @@ which represent actual disk access (not just shared buffer hits).`,
           parsed.queryPreviewLength === 0
             ? 10000
             : Math.min(
-                parsed.queryPreviewLength !== undefined &&
-                  !isNaN(parsed.queryPreviewLength)
-                  ? parsed.queryPreviewLength
-                  : 100,
+                parsed.queryPreviewLength ?? 100,
                 500,
               );
         const cols = await getKcacheColumnNames(adapter);

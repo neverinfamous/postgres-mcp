@@ -20,7 +20,6 @@ import {
   KcacheResetOutputSchema,
 } from "../../schemas/index.js";
 import { getKcacheColumnNames } from "./helpers.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Enable the pg_stat_kcache extension
@@ -162,35 +161,22 @@ Helps identify the root cause of performance issues - is the query computation-h
         const parsed = z
           .object({
             queryId: z.string().optional(),
-            threshold: z.preprocess(coerceNumber, z.number().optional()),
-            limit: z.preprocess(coerceNumber, z.number().optional()),
-            minCalls: z.preprocess(coerceNumber, z.number().optional()),
-            queryPreviewLength: z.preprocess(coerceNumber, z.number().optional()),
+            threshold: z.coerce.number().optional(),
+            limit: z.coerce.number().optional(),
+            minCalls: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
           })
           .parse(params ?? {});
 
         const queryId = parsed.queryId;
-        const threshold =
-          parsed.threshold !== undefined && !isNaN(parsed.threshold)
-            ? parsed.threshold
-            : undefined;
-        const limit =
-          parsed.limit !== undefined && !isNaN(parsed.limit)
-            ? parsed.limit
-            : undefined;
+        const threshold = parsed.threshold;
+        const limit = parsed.limit;
 
         if (limit !== undefined && (limit < 0 || limit > 100)) {
           throw new ValidationError("limit must be between 0 (no limit) and 100");
         }
-        const minCalls =
-          parsed.minCalls !== undefined && !isNaN(parsed.minCalls)
-            ? parsed.minCalls
-            : undefined;
-        const queryPreviewLength =
-          parsed.queryPreviewLength !== undefined &&
-          !isNaN(parsed.queryPreviewLength)
-            ? parsed.queryPreviewLength
-            : undefined;
+        const minCalls = parsed.minCalls;
+        const queryPreviewLength = parsed.queryPreviewLength;
 
         const thresholdVal = threshold ?? 0.5;
         const DEFAULT_LIMIT = 20;
