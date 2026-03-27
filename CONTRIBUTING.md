@@ -44,10 +44,10 @@ npm run check   # Runs ESLint + TypeScript strict-mode type checking
 
 ```bash
 # Connect to a local PostgreSQL instance via stdio
-node dist/cli.js --transport stdio --connection-string "postgresql://user:pass@localhost:5432/mydb"
+node dist/cli.js --transport stdio --postgres "postgresql://user:pass@localhost:5432/mydb"
 
 # HTTP transport (for testing with an MCP client)
-node dist/cli.js --transport http --port 3000 --connection-string "postgresql://user:pass@localhost:5432/mydb"
+node dist/cli.js --transport http --port 3000 --postgres "postgresql://user:pass@localhost:5432/mydb"
 ```
 
 > **Connection string required.** The server requires a valid PostgreSQL connection string. For local testing, you can use a `.env` file or pass the string directly. Never commit credentials to version control.
@@ -59,7 +59,7 @@ node dist/cli.js --transport http --port 3000 --connection-string "postgresql://
 docker build -f Dockerfile -t postgres-mcp-dev .
 
 # Run with a connection string
-docker run --rm -i postgres-mcp-dev --transport stdio --connection-string "postgresql://user:pass@host:5432/mydb"
+docker run --rm -i postgres-mcp-dev --transport stdio --postgres "postgresql://user:pass@host:5432/mydb"
 ```
 
 ## 📋 What We're Looking For
@@ -137,7 +137,7 @@ Add your local build to `~/.cursor/mcp.json`:
         "path/to/your/postgres-mcp/dist/cli.js",
         "--transport",
         "stdio",
-        "--connection-string",
+        "--postgres",
         "postgresql://user:pass@localhost:5432/mydb"
       ]
     }
@@ -150,7 +150,7 @@ Add your local build to `~/.cursor/mcp.json`:
 ```bash
 # Build and run locally
 docker build -f Dockerfile -t postgres-mcp-dev .
-docker run --rm -i postgres-mcp-dev --transport stdio --connection-string "postgresql://user:pass@host:5432/mydb"
+docker run --rm -i postgres-mcp-dev --transport stdio --postgres "postgresql://user:pass@host:5432/mydb"
 ```
 
 ## 📝 Coding Standards

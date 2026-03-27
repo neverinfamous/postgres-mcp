@@ -288,26 +288,26 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 
 | File | Prompts |
 |------|---------| 
-| `index.ts` | Barrel + `pg_optimization`, `pg_health_check` |
+| `index.ts` | Barrel + `pg_query_builder`, `pg_schema_design`, `pg_performance_analysis`, `pg_migration`, `pg_tool_index`, `pg_quick_query`, `pg_quick_schema` |
 | `backup.ts` | `pg_backup_strategy` |
-| `citext.ts` | `pg_citext_setup` |
+| `citext.ts` | `pg_setup_citext` |
 | `extension-setup.ts` | `pg_extension_setup` |
-| `health.ts` | `pg_health_diagnosis` |
+| `health.ts` | `pg_database_health_check` |
 | `index-tuning.ts` | `pg_index_tuning` |
-| `kcache.ts` | `pg_kcache_setup` |
-| `ltree.ts` | `pg_ltree_setup` |
-| `partman.ts` | `pg_partman_setup` |
-| `pgcron.ts` | `pg_cron_setup` |
-| `pgcrypto.ts` | `pg_crypto_setup` |
-| `pgvector.ts` | `pg_vector_setup` |
-| `postgis.ts` | `pg_postgis_setup` |
+| `kcache.ts` | `pg_setup_kcache` |
+| `ltree.ts` | `pg_setup_ltree` |
+| `partman.ts` | `pg_setup_partman` |
+| `pgcron.ts` | `pg_setup_pgcron` |
+| `pgcrypto.ts` | `pg_setup_pgcrypto` |
+| `pgvector.ts` | `pg_setup_pgvector` |
+| `postgis.ts` | `pg_setup_postgis` |
 | `safe-restore.ts` | `pg_safe_restore_workflow` |
 
 ---
 
 ## Resources (`src/adapters/postgresql/resources/`)
 
-21 data resources + 22 help resources providing read-only metadata and agent guidance:
+22 data resources + 22 help resources providing read-only metadata and agent guidance:
 
 ### Data Resources
 

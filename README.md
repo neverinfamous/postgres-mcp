@@ -33,7 +33,7 @@
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security. Control exactly who can read, write, or administer your database with granular scopes down to the specific table level.                                                                                                                                                           |
 | **Audit Trails & Snapshots**           | Total accountability. Track exactly what your AI is doing with detailed JSON logs, and automatically snapshot your schema before making any changes.                                                                                                                                                         |
 | **Safe Restores & Semantic Diffing**   | Confidently review changes before they go live. Compare rows and table sizes side-by-side, and quickly revert anything that doesn't look right.                                                                                                                                                              |
-| **Smart Tool Filtering**               | Give your agent exactly what it needs. Choose from 22 tool groups or 16 convenient bundles to easily fit within your IDE's limits.                                                                                                                                                                           |
+| **Smart Tool Filtering**               | Give your agent exactly what it needs. Choose from 22 tool groups to easily fit within your IDE's limits.                                                                                                                                                                           |
 | **Universal Transport Support**        | Works everywhere. Connect seamlessly using modern Streamable HTTP or legacy SSE protocols, making it fully compatible with any MCP client.                                                                                                                                                                   |
 | **High-Performance Pooling**           | Keep your database fast and reliable. Built-in connection pooling ensures snappy, concurrent access without overloading your server.                                                                                                                                                                         |
 | **8 Extension Ecosystems**             | Ready for your advanced workloads. First-class support for **pgvector**, **PostGIS**, **pg_cron**, and more—all out of the box.                                                                                                                                                                              |
@@ -432,28 +432,28 @@ Prompts provide step-by-step guidance for complex database tasks. Instead of fig
 
 This server includes **20 intelligent prompts** for guided workflows:
 
-| Prompt                     | Description                                        | Required Groups               | Shortcut       |
-| -------------------------- | -------------------------------------------------- | ----------------------------- | -------------- |
-| `pg_query_builder`         | Construct queries with CTEs and window functions   | core                          | `starter`      |
-| `pg_schema_design`         | Design schemas with constraints and indexes        | core                          | `starter`      |
-| `pg_performance_analysis`  | Analyze queries with EXPLAIN and optimization      | core, performance             | `dba-monitor`  |
-| `pg_migration`             | Generate migration scripts with rollback support   | core                          | `starter`      |
-| `pg_tool_index`            | Lazy hydration - compact index of all tools        | —                             | any            |
-| `pg_quick_query`           | Quick SQL query guidance for common operations     | core                          | `starter`      |
-| `pg_quick_schema`          | Quick reference for exploring database schema      | core                          | `starter`      |
-| `pg_database_health_check` | Comprehensive database health assessment           | core, performance, monitoring | `dba-monitor`  |
-| `pg_backup_strategy`       | Enterprise backup planning with RTO/RPO            | core, monitoring, backup      | `dba-infra`    |
-| `pg_index_tuning`          | Index analysis and optimization workflow           | core, performance             | `dba-monitor`  |
-| `pg_extension_setup`       | Extension installation and configuration guide     | core                          | `starter`      |
-| `pg_setup_pgvector`        | Complete pgvector setup for semantic search        | core, vector                  | `ai-vector`    |
-| `pg_setup_postgis`         | Complete PostGIS setup for geospatial operations   | core, postgis                 | `geo`          |
-| `pg_setup_pgcron`          | Complete pg_cron setup for job scheduling          | core                          | `ext-schedule` |
-| `pg_setup_partman`         | Complete pg_partman setup for partition management | core, partman                 | `ext-schedule` |
-| `pg_setup_kcache`          | Complete pg_stat_kcache setup for OS monitoring    | core, kcache                  | `ext-perf`     |
-| `pg_setup_citext`          | Complete citext setup for case-insensitive text    | core, citext                  | `base-ops`     |
-| `pg_setup_ltree`           | Complete ltree setup for hierarchical data         | core, ltree                   | `ext-geo`      |
-| `pg_setup_pgcrypto`        | Complete pgcrypto setup for cryptographic funcs    | core, pgcrypto                | `ext-ai`       |
-| `pg_safe_restore_workflow` | 6-step safe restore playbook with `restoreAs`      | backup                        | `dba-infra`    |
+| Prompt                     | Description                                        | Required Groups               |
+| -------------------------- | -------------------------------------------------- | ----------------------------- |
+| `pg_query_builder`         | Construct queries with CTEs and window functions   | core                          |
+| `pg_schema_design`         | Design schemas with constraints and indexes        | core                          |
+| `pg_performance_analysis`  | Analyze queries with EXPLAIN and optimization      | core, performance             |
+| `pg_migration`             | Generate migration scripts with rollback support   | core                          |
+| `pg_tool_index`            | Lazy hydration - compact index of all tools        | —                             |
+| `pg_quick_query`           | Quick SQL query guidance for common operations     | core                          |
+| `pg_quick_schema`          | Quick reference for exploring database schema      | core                          |
+| `pg_database_health_check` | Comprehensive database health assessment           | core, performance, monitoring |
+| `pg_backup_strategy`       | Enterprise backup planning with RTO/RPO            | core, monitoring, backup      |
+| `pg_index_tuning`          | Index analysis and optimization workflow           | core, performance             |
+| `pg_extension_setup`       | Extension installation and configuration guide     | core                          |
+| `pg_setup_pgvector`        | Complete pgvector setup for semantic search        | core, vector                  |
+| `pg_setup_postgis`         | Complete PostGIS setup for geospatial operations   | core, postgis                 |
+| `pg_setup_pgcron`          | Complete pg_cron setup for job scheduling          | core                          |
+| `pg_setup_partman`         | Complete pg_partman setup for partition management | core, partman                 |
+| `pg_setup_kcache`          | Complete pg_stat_kcache setup for OS monitoring    | core, kcache                  |
+| `pg_setup_citext`          | Complete citext setup for case-insensitive text    | core, citext                  |
+| `pg_setup_ltree`           | Complete ltree setup for hierarchical data         | core, ltree                   |
+| `pg_setup_pgcrypto`        | Complete pgcrypto setup for cryptographic funcs    | core, pgcrypto                |
+| `pg_safe_restore_workflow` | 6-step safe restore playbook with `restoreAs`      | backup                        |
 
 ## 📦 Resources
 
