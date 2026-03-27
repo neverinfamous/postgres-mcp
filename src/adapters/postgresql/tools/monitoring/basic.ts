@@ -48,7 +48,14 @@ export function createDatabaseSizeTool(
     annotations: readOnly("Database Size"),
     icons: getToolIcons("monitoring", readOnly("Database Size")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const { database } = DatabaseSizeSchema.parse(params);
+      let database: string | undefined;
+      try {
+        const parsed = DatabaseSizeSchema.parse(params) as { database?: string };
+        database = parsed.database;
+      } catch (err) {
+        return formatHandlerErrorResponse(err, { tool: "pg_database_size" });
+      }
+
       const sql = database
         ? `SELECT pg_database_size($1) as bytes, pg_size_pretty(pg_database_size($1)) as size`
         : `SELECT pg_database_size(current_database()) as bytes, pg_size_pretty(pg_database_size(current_database())) as size`;
