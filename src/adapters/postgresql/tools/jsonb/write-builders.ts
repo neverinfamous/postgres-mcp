@@ -114,11 +114,12 @@ export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
         // Support both 'values' and 'elements' parameter names
         const values = parsed.values ?? parsed.elements;
         if (values === undefined) {
-          return {
-            success: false,
-            error:
-              "Validation error: Either 'values' or 'elements' must be provided",
-          };
+          throw new Error(
+            "Validation error: Either 'values' or 'elements' must be provided",
+          );
+        }
+        if (!Array.isArray(values)) {
+          throw new Error("Validation error: 'values' must be an array");
         }
         if (values.length === 0) {
           return { array: [] };
@@ -161,7 +162,7 @@ export function createJsonbStripNullsTool(
         const column = parsed.column;
         const whereClause = parsed.where;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new Error("Validation error: table and column are required");
         }
 
         // Validate schema and build qualified table name
@@ -173,12 +174,10 @@ export function createJsonbStripNullsTool(
         if (tableError) return tableError;
 
         // Validate required 'where' parameter before SQL execution
-        if (!whereClause || whereClause.trim() === "") {
-          return {
-            success: false,
-            error:
-              'pg_jsonb_strip_nulls requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
-          };
+        if (whereClause === undefined || typeof whereClause !== "string" || whereClause.trim() === "") {
+          throw new Error(
+            'Validation error: pg_jsonb_strip_nulls requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
+          );
         }
 
         if (parsed.preview === true) {
