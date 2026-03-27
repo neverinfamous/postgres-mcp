@@ -120,8 +120,8 @@ src/
 │       │   ├── list.ts             # List tables/schemas/indexes
 │       │   └── index.ts            # Barrel
 │       ├── schemas/                # Zod schemas (see § below)
-│       ├── prompts/                # 14+ MCP prompts (see § below)
-│       ├── resources/              # 21 MCP data resources (see § below)
+│       ├── prompts/                # 20 MCP prompts (see § below)
+│       ├── resources/              # 22 MCP data resources (see § below)
 │       └── tools/                  # Tool handler files (see § Handler Map below)
 ```
 
@@ -284,7 +284,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 
 ## Prompts (`src/adapters/postgresql/prompts/`)
 
-13+ prompt definitions:
+20 prompt definitions:
 
 | File | Prompts |
 |------|---------| 
@@ -307,7 +307,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 
 ## Resources (`src/adapters/postgresql/resources/`)
 
-21 data resources + 22+ help resources providing read-only metadata and agent guidance:
+21 data resources + 22 help resources providing read-only metadata and agent guidance:
 
 ### Data Resources
 

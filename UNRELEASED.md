@@ -30,11 +30,11 @@
   - **Stats — Advanced Analysis (4)**: `pg_stats_top_n` (auto-excludes long-content columns), `pg_stats_distinct`, `pg_stats_frequency`, `pg_stats_summary` (multi-column numeric summary)
   - **Admin — Insights (1)**: `pg_append_insight` — in-memory business insight memo accessible via `postgres://insights` resource
   - **JSONB — Pretty Print (1)**: `pg_jsonb_pretty` — dual-mode (raw JSON string or table column via `jsonb_pretty()`)
-- **Insights Resource**: Added `postgres://insights` resource (21 total resources) for reading AI-appended business insights
+- **Insights Resource**: Added `postgres://insights` resource (22 total resources) for reading AI-appended business insights
 - **Server Instructions**: Updated help content in `admin.md`, `jsonb.md`, `stats.md` with full parameter docs, response shapes, and top-level aliases for all 13 new tools
 - **Server Instructions (audit + token visibility)**: Updated `overview.md` (added `postgres://audit` to Quick Access table), `gotchas.md` (added `_meta.tokenEstimate` row to Response Structures table; updated Code Mode metrics note with `metrics.tokenEstimate`), and `backup.md` (added `pg_audit_list_backups`, `pg_audit_diff_backup`, `pg_audit_restore_backup` with `volumeDrift` gotchas and Code Mode aliases). Regenerated `server-instructions.ts`.
 - **Test Coverage for New Tools**: Added 24 vitest handler tests for 11 new stats tools (window, outlier, advanced) in `stats.test.ts`. Added 9 E2E Playwright tests: 6 stats payload contracts (`payloads-stats.spec.ts`), 1 jsonb pretty (`payloads-jsonb.spec.ts`), 1 admin insights (`payloads-admin.spec.ts`), 1 insights resource (`resources-extended.spec.ts`)
-- **Code Map Update**: Updated `code-map.md` with new handler files, schemas, resource, utility (245 tools, 21 resources)
+- **Code Map Update**: Updated `code-map.md` with new handler files, schemas, resource, utility (248 tools, 22 resources)
 - **Help Resource Architecture**: Replaced monolithic `ServerInstructions.ts` (72KB) with 22 per-group `.md` files under `src/constants/server-instructions/`. Slim ~600 char instructions field points agents to `postgres://help` resources for on-demand reference. `McpServer.ts` registers `postgres://help` (always) + `postgres://help/{group}` filtered by `--tool-filter`. Supersedes instruction filter alignment.
 - **Agent Experience Test**: Added `test-server/test-agent-experience.md` with 9 passes (37 scenarios) covering all tool groups with explicit tool group annotations.
 - **Integration Test**: Added `test-server/test-instruction-levels.mjs` to verify instruction filtering behavior.

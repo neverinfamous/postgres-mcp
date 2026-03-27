@@ -236,7 +236,7 @@ The `--tool-filter` argument accepts **groups** or **tool names** — mix and ma
 | `performance`   | 25    | EXPLAIN, query analysis, optimization, diagnostics, anomaly detection |
 | `admin`         | 12    | VACUUM, ANALYZE, REINDEX, insights                                    |
 | `monitoring`    | 12    | Database sizes, connections, status                                   |
-| `backup`        | 10    | pg_dump, COPY, restore                                                |
+| `backup`        | 13    | pg_dump, COPY, restore, audit backups                                 |
 | `schema`        | 13    | Schemas, views, sequences, functions, triggers                        |
 | `introspection` | 7     | Dependency graphs, cascade simulation, schema analysis                |
 | `migration`     | 7     | Schema migration tracking and management                              |
