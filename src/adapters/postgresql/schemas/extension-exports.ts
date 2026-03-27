@@ -197,6 +197,8 @@ export {
 
 // pg_cron schemas
 export {
+  CronCreateExtensionSchema,
+  CronCreateExtensionSchemaBase,
   CronScheduleSchema,
   CronScheduleSchemaBase,
   CronScheduleInDatabaseSchema,

@@ -103,6 +103,13 @@ const CoercibleJobId = z
  * Accepts 'sql' or 'query' as alias for 'command'.
  * Uses base schema for MCP exposure and transform schema for validation.
  */
+export const CronCreateExtensionSchemaBase = z.object({});
+
+export const CronCreateExtensionSchema = z.preprocess(
+  (input) => (typeof input === "object" && input !== null ? input : {}),
+  z.object({}).strict()
+);
+
 export const CronScheduleSchemaBase = z.object({
   schedule: z
     .string()

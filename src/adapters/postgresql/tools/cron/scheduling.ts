@@ -7,11 +7,12 @@
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
-import { z } from "zod";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  CronCreateExtensionSchema,
+  CronCreateExtensionSchemaBase,
   CronScheduleSchema,
   CronScheduleSchemaBase,
   CronScheduleInDatabaseSchema,
@@ -34,12 +35,13 @@ export function createCronExtensionTool(adapter: PostgresAdapter): ToolDefinitio
     description:
       "Enable the pg_cron extension for job scheduling. Requires superuser privileges.",
     group: "cron",
-    inputSchema: z.object({}).strict(),
+    inputSchema: CronCreateExtensionSchemaBase,
     outputSchema: CronCreateExtensionOutputSchema,
     annotations: write("Create Cron Extension"),
     icons: getToolIcons("cron", write("Create Cron Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
       try {
+        CronCreateExtensionSchema.parse(_params ?? {});
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS pg_cron");
         return { success: true, message: "pg_cron extension enabled" };
       } catch (error: unknown) {
