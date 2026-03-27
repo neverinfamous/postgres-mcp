@@ -206,7 +206,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 ### After Implementation
 
-4. **Validate**: Update changelog (no duplicate headers) and then stop so user can run test suite, lint + typecheck.
+4. **Validate**: Update changelog (no duplicate headers) and then stop so user can run test suite, lint + typecheck, tests and rebuild for re-testing.
 5. **Commit**: Stage and commit all changes — do NOT push
 6. **Live re-test**: Test fixes using Code Mode calls. User will have already rebuilt and restarted the server.
 7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live Code Mode testing confirms fixes are working. If the test prompt/database or server instructions can be improved, make the improvements.
