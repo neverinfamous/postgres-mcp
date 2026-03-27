@@ -69,6 +69,8 @@
   - Bumped `gitleaks-action` to `ff98106`
   - Bumped `trufflehog` to `v3.93.8` (`6c05c4a`)
   - Bumped `github/codeql-action` to `v4` (`0d579ff`)
+  - Patched `flatted`, `picomatch`, and `hono` in package.json overrides to resolve prototype pollution and method injection vulnerabilities
+  - Updated Dockerfile patched npm transitive dependencies `diff` to `8.0.4` and `tar` to `7.5.13`
 - **CI/CD Hardening**:
   - Updated `e2e.yml` checkout action from v4 SHA to v6 SHA for consistency with all other workflows
   - Added `--provenance` flag to `npm publish` in `publish-npm.yml` for SLSA Build L3 attestation
@@ -87,9 +89,12 @@
 - **Incremental TypeScript compilation**: Added `incremental: true` and `tsBuildInfoFile: ".tsbuildinfo"` to `tsconfig.json` — subsequent builds skip re-checking unchanged files, reducing dev-loop rebuild times from ~25s to sub-second for small changes.
 - **Dependency Updates**:
   - Bumped `jose` to `v6.2.2`
-  - Bumped `@vitest/coverage-v8` to `v4.1.0`
-  - Bumped `vitest` to `v4.1.0`
-  - Bumped `typescript-eslint` to `v8.57.1`
+  - Bumped `@modelcontextprotocol/sdk` to `v1.28.0`
+  - Bumped `@types/pg` to `v8.20.0`
+  - Bumped `@vitest/coverage-v8` to `v4.1.2`
+  - Bumped `eslint` to `v10.1.0`
+  - Bumped `vitest` to `v4.1.2`
+  - Bumped `typescript-eslint` to `v8.57.2`
   - Bumped `@types/node` to `v25.5.0`
   - Bumped `actions/upload-artifact` to `v7.0.0`
   - Bumped `docker/metadata-action` to `v6.0.0`
