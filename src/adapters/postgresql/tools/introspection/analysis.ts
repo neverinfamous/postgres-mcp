@@ -386,69 +386,72 @@ export function createMigrationRisksTool(
     outputSchema: MigrationRisksOutputSchema,
     annotations: readOnly("Migration Risks"),
     icons: getToolIcons("introspection", readOnly("Migration Risks")),
-    handler: (params: unknown, _context: RequestContext) =>
-      Promise.resolve()
-        .then(() => {
-          // Suppress unused-var — adapter captured by closure per tool factory pattern
-          void adapter;
-          const parsed = MigrationRisksSchema.parse(params);
+    handler: async (params: unknown, _context: RequestContext) => {
+      try {
+        const parsed = MigrationRisksSchema.parse(params);
 
-          interface Risk {
-            statement: string;
-            statementIndex: number;
-            riskLevel: "low" | "medium" | "high" | "critical";
-            category: string;
-            description: string;
-            mitigation?: string | undefined;
-          }
+        if (parsed.schema) {
+          await checkSchemaExists(adapter, parsed.schema);
+        }
 
-          const risks: Risk[] = [];
-          let requiresDowntime = false;
-          let highestRiskLevel: "low" | "medium" | "high" | "critical" = "low";
-          const lockImpacts = new Set<string>();
+        interface Risk {
+          statement: string;
+          statementIndex: number;
+          riskLevel: "low" | "medium" | "high" | "critical";
+          category: string;
+          description: string;
+          mitigation?: string | undefined;
+        }
 
-          const riskOrder = { low: 0, medium: 1, high: 2, critical: 3 };
+        const risks: Risk[] = [];
+        let requiresDowntime = false;
+        let highestRiskLevel: "low" | "medium" | "high" | "critical" = "low";
+        const lockImpacts = new Set<string>();
 
-          for (let i = 0; i < parsed.statements.length; i++) {
-            const stmt = parsed.statements[i] ?? "";
+        const riskOrder = { low: 0, medium: 1, high: 2, critical: 3 };
 
-            for (const pattern of DDL_RISK_PATTERNS) {
-              if (pattern.pattern.test(stmt)) {
-                risks.push({
-                  statement:
-                    stmt.length > 200 ? stmt.slice(0, 200) + "..." : stmt,
-                  statementIndex: i,
-                  riskLevel: pattern.riskLevel,
-                  category: pattern.category,
-                  description: pattern.description,
-                  mitigation: pattern.mitigation,
-                });
+        for (let i = 0; i < parsed.statements.length; i++) {
+          const stmt = parsed.statements[i] ?? "";
 
-                if (pattern.requiresDowntime) {
-                  requiresDowntime = true;
-                }
-                if (
-                  riskOrder[pattern.riskLevel] > riskOrder[highestRiskLevel]
-                ) {
-                  highestRiskLevel = pattern.riskLevel;
-                }
-                lockImpacts.add(pattern.lockImpact);
+          for (const pattern of DDL_RISK_PATTERNS) {
+            if (pattern.pattern.test(stmt)) {
+              risks.push({
+                statement:
+                  stmt.length > 200 ? stmt.slice(0, 200) + "..." : stmt,
+                statementIndex: i,
+                riskLevel: pattern.riskLevel,
+                category: pattern.category,
+                description: pattern.description,
+                mitigation: pattern.mitigation,
+              });
+
+              if (pattern.requiresDowntime) {
+                requiresDowntime = true;
               }
+              if (
+                riskOrder[pattern.riskLevel] > riskOrder[highestRiskLevel]
+              ) {
+                highestRiskLevel = pattern.riskLevel;
+              }
+              lockImpacts.add(pattern.lockImpact);
             }
           }
+        }
 
-          return {
-            risks,
-            summary: {
-              totalStatements: parsed.statements.length,
-              totalRisks: risks.length,
-              highestRisk: highestRiskLevel,
-              requiresDowntime,
-              estimatedLockImpact:
-                lockImpacts.size > 0 ? [...lockImpacts].join("; ") : "None",
-            },
-          };
-        })
-        .catch((error: unknown) => formatHandlerErrorResponse(error, { tool: "pg_migration_risks" })),
+        return {
+          risks,
+          summary: {
+            totalStatements: parsed.statements.length,
+            totalRisks: risks.length,
+            highestRisk: highestRiskLevel,
+            requiresDowntime,
+            estimatedLockImpact:
+              lockImpacts.size > 0 ? [...lockImpacts].join("; ") : "None",
+          },
+        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, { tool: "pg_migration_risks" });
+      }
+    },
   };
 }
