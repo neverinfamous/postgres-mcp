@@ -380,7 +380,7 @@ export function createPartmanShowConfigTool(
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
         // Apply limit (default 50, 0 means no limit)
-        const rawLimit = (parsed.limit as number | undefined) ?? DEFAULT_PARTMAN_LIMIT;
+        const rawLimit = parsed.limit ?? DEFAULT_PARTMAN_LIMIT;
         const limit = isNaN(rawLimit) ? DEFAULT_PARTMAN_LIMIT : rawLimit;
         const applyLimit = limit > 0;
 

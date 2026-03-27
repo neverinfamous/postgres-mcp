@@ -133,9 +133,7 @@ export const PartmanCreateParentSchemaBase = z.object({
     .describe(
       'Partition interval using PostgreSQL syntax (e.g., "1 month", "1 day", "1 week", "10000" for integer). Required.',
     ),
-  premake: z
-    .any()
-    .optional()
+  premake: z.preprocess(coerceNumber, z.number().optional())
     .describe("Number of partitions to create in advance (default: 4)"),
   startPartition: z
     .string()
@@ -197,9 +195,7 @@ export const PartmanShowPartitionsSchemaBase = z.object({
     .enum(["asc", "desc"])
     .optional()
     .describe("Order of partitions by boundary"),
-  limit: z
-    .any()
-    .optional()
+  limit: z.preprocess(coerceNumber, z.number().optional())
     .describe(
       "Maximum number of partitions to return (default: 50, use 0 for all)",
     ),
@@ -218,9 +214,7 @@ export const PartmanShowConfigSchemaBase = z.object({
     .string()
     .optional()
     .describe("Parent table name (all configs if omitted)"),
-  limit: z
-    .any()
-    .optional()
+  limit: z.preprocess(coerceNumber, z.number().optional())
     .describe(
       "Maximum number of configs to return (default: 50, use 0 for all)",
     ),
@@ -258,9 +252,7 @@ export const PartmanPartitionDataSchemaBase = z.object({
     .describe(
       "Parent table name (schema.table format). Required - specify table to partition data.",
     ),
-  batchSize: z
-    .any()
-    .optional()
+  batchSize: z.preprocess(coerceNumber, z.number().optional())
     .describe("Rows to move per batch (default: varies by function)"),
   lockWaitSeconds: z.preprocess(coerceNumber, z.number().optional()).describe("Lock wait timeout in seconds"),
 });
