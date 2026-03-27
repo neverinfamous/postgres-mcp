@@ -202,7 +202,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
    - Handler code
    - `server-instructions.md`
    - Test database (`test-database.sql`)
-   - This prompt (`test-tools.md`) and group file (`test-group-tools.md`)
+   - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
 
 ### After Implementation
 
