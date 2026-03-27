@@ -450,17 +450,20 @@ describe("Error Handling", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should propagate database errors from extension check", async () => {
+  it("should return structured error for database errors from extension check", async () => {
     const dbError = new Error('extension "postgis" is not available');
     mockAdapter.executeQuery.mockRejectedValue(dbError);
 
     const tool = tools.find((t) => t.name === "pg_postgis_create_extension")!;
 
-    // pg_postgis_create_extension does not have structured error handling (no try/catch)
-    // so it still throws raw errors
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
-      'extension "postgis" is not available',
-    );
+    // pg_postgis_create_extension now has structured error handling
+    const result = await tool.handler({}, mockContext);
+    expect(result).toMatchObject({
+      success: false,
+      error: 'extension "postgis" is not available',
+      code: 'QUERY_ERROR',
+      category: 'query'
+    });
   });
 });
 

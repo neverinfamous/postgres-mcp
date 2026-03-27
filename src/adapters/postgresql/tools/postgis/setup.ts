@@ -41,8 +41,16 @@ export function createPostgisExtensionTool(
     annotations: write("Create PostGIS Extension"),
     icons: getToolIcons("postgis", write("Create PostGIS Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS postgis");
-      return { success: true, message: "PostGIS extension enabled" };
+      try {
+        // Strict input schema means this should only accept {}, but we also ensure
+        // any execution errors (e.g. permission issues) return structured P154 JSON.
+        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS postgis");
+        return { success: true, message: "PostGIS extension enabled" };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_postgis_create_extension",
+        });
+      }
     },
   };
 }
