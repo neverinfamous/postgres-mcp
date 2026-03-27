@@ -59,6 +59,9 @@ export function createAuditListBackupsTool(
           snapshots = snapshots.filter((s) =>
             s.target.toLowerCase().includes(targetFilter),
           );
+        } else if (!parsed.tool) {
+          // Default: filter out verbose anonymous snapshots from Code Mode tracking
+          snapshots = snapshots.filter((s) => s.target !== "unknown");
         }
         
         const count = snapshots.length;
@@ -195,6 +198,12 @@ export function createAuditRestoreBackupTool(
             // Rollback failure is secondary
           }
           const msg = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
+          
+          if (msg.includes("already exists") || msg.includes("duplicate")) {
+               const err = new ValidationError(`Restore failed: ${msg}`);
+               Object.assign(err, { code: "ALREADY_EXISTS" });
+               throw err;
+          }
           throw new ValidationError(`Restore failed: ${msg}`);
         }
       } catch (error: unknown) {

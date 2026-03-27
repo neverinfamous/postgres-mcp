@@ -10,6 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
+import { QueryError } from "../../../../types/index.js";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -267,10 +268,7 @@ export function createMigrationApplyTool(
             // Best-effort: if we can't record the failure, still return the error
           }
 
-          return {
-            success: false,
-            error: `Migration "${parsed.version}" failed: ${message}. Transaction was rolled back.`,
-          };
+          throw new QueryError(`Migration "${parsed.version}" failed: ${message}. Transaction was rolled back.`);
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
