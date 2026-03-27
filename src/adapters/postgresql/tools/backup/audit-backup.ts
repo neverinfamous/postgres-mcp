@@ -13,6 +13,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { readOnly, admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/index.js";
 import type { BackupManager } from "../../../../audit/backup-manager.js";
 import {
   AuditListBackupsSchemaBase,
@@ -43,11 +44,7 @@ export function createAuditListBackupsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         if (!backupManager) {
-          return {
-            success: false,
-            error:
-              "Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.",
-          };
+          throw new ValidationError("Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.");
         }
 
         const parsed = AuditListBackupsSchema.parse(params);
@@ -105,20 +102,16 @@ export function createAuditRestoreBackupTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         if (!backupManager) {
-          return {
-            success: false,
-            error:
-              "Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.",
-          };
+          throw new ValidationError("Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.");
         }
 
         const parsed = AuditRestoreBackupSchema.parse(params);
         if (!parsed.filename) {
-          throw new Error("Validation error: filename parameter is required");
+          throw new ValidationError("filename parameter is required");
         }
 
         if (!parsed.dryRun && !parsed.restoreAs && !parsed.confirm) {
-          throw new Error("Validation error: confirm: true is required for in-place destructive restores");
+          throw new ValidationError("confirm: true is required for in-place destructive restores");
         }
 
         const snapshot = await backupManager.getSnapshot(parsed.filename);
@@ -235,16 +228,12 @@ export function createAuditDiffBackupTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         if (!backupManager) {
-          return {
-            success: false,
-            error:
-              "Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.",
-          };
+          throw new ValidationError("Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.");
         }
 
         const parsed = AuditDiffBackupSchema.parse(params);
         if (!parsed.filename) {
-          throw new Error("Validation error: filename parameter is required");
+          throw new ValidationError("filename parameter is required");
         }
 
         const snapshot = await backupManager.getSnapshot(parsed.filename);

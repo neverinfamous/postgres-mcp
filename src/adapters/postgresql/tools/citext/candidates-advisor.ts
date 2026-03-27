@@ -5,9 +5,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -62,13 +63,7 @@ Looks for common patterns like email, username, name, slug, etc.`,
         userLimit !== undefined && isNaN(userLimit) ? undefined : userLimit;
 
       if (safeLimit !== undefined && safeLimit < 0) {
-        return {
-          success: false,
-          error: "Validation error: limit must be non-negative",
-          code: "VALIDATION_ERROR",
-          category: "validation",
-          recoverable: false,
-        };
+        throw new ValidationError("limit must be non-negative");
       }
 
       // Validate table/schema existence before querying
@@ -81,10 +76,7 @@ Looks for common patterns like email, username, name, slug, etc.`,
           [schemaName, table],
         );
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Table ${qualifiedTable} does not exist. Verify the table name and schema.`,
-          };
+          throw new ValidationError(`Table ${qualifiedTable} does not exist. Verify the table name and schema.`);
         }
       } else if (schema !== undefined) {
         const schemaCheck = await adapter.executeQuery(
@@ -93,10 +85,7 @@ Looks for common patterns like email, username, name, slug, etc.`,
           [schema],
         );
         if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Schema '${schema}' does not exist. Verify the schema name.`,
-          };
+          throw new ValidationError(`Schema '${schema}' does not exist. Verify the schema name.`);
         }
       }
 
@@ -290,10 +279,7 @@ Requires the 'table' parameter to specify which table to analyze.`,
         );
 
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Table ${qualifiedTable} not found. Verify the table name and schema.`,
-          };
+          throw new ValidationError(`Table ${qualifiedTable} not found. Verify the table name and schema.`);
         }
 
         const colResult = await adapter.executeQuery(

@@ -6,9 +6,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
 } from "../../../../types/index.js";
 import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
@@ -110,6 +111,9 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
           return {
             success: false,
             error: `Missing required parameters: ${missing.join(", ")}.`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
             hint: 'Example: pg_partman_create_parent({ parentTable: "public.events", controlColumn: "created_at", interval: "1 month" })',
             aliases: { control: "controlColumn" },
           };
@@ -122,6 +126,9 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
           return {
             success: false,
             error: `Deprecated interval '${interval}'. Use PostgreSQL interval syntax instead: '${deprecatedReplacement}'.`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
             hint: "Valid examples: '1 day', '1 week', '1 month', '3 months', '1 year'. Do NOT use keywords like 'daily' or 'monthly'.",
           };
         }
@@ -175,80 +182,71 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
             errorMsg.includes("duplicate key") ||
             errorMsg.includes("already exists in part_config")
           ) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' is already managed by pg_partman.`,
-              hint:
-                "Use pg_partman_show_config to view existing configuration. " +
-                "To recreate: use pg_partman_undo_partition first, or if the table was dropped, clean up with: " +
-                `DELETE FROM ${partmanSchema}.part_config WHERE parent_table = '${validatedParentTable}';`,
-            };
+            throw new ValidationError(
+              `Table '${validatedParentTable}' is already managed by pg_partman.`,
+              {
+                hint:
+                  "Use pg_partman_show_config to view existing configuration. " +
+                  "To recreate: use pg_partman_undo_partition first, or if the table was dropped, clean up with: " +
+                  `DELETE FROM ${partmanSchema}.part_config WHERE parent_table = '${validatedParentTable}';`,
+              }
+            );
           }
           if (
             errorMsg.includes("does not exist") &&
             errorMsg.includes("relation")
           ) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' does not exist.`,
-              hint: "Create the parent table first with appropriate columns, then call pg_partman_create_parent.",
-            };
+            throw new Error(`Table '${validatedParentTable}' does not exist. Create the parent table first with appropriate columns, then call pg_partman_create_parent.`, { cause: e });
           }
           if (errorMsg.includes("Unable to find given parent table")) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' does not exist.`,
-              hint: "Create the parent table first with PARTITION BY clause, then call pg_partman_create_parent.",
-            };
+            throw new Error(`Table '${validatedParentTable}' does not exist. Create the parent table first with PARTITION BY clause, then call pg_partman_create_parent.`, { cause: e });
           }
           // Check 'is not partitioned' BEFORE 'NOT NULL' - if table isn't partitioned, that's the primary issue
           if (errorMsg.includes("is not partitioned")) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' is not a partitioned table.`,
-              hint: "Create the table with PARTITION BY clause. Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);",
-            };
+            throw new ValidationError(
+              `Table '${validatedParentTable}' is not a partitioned table.`,
+              { hint: "Create the table with PARTITION BY clause. Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);" }
+            );
           }
           if (
             errorMsg.includes("cannot be null") ||
             errorMsg.includes("NOT NULL")
           ) {
-            return {
-              success: false,
-              error: `Control column '${validatedControlColumn}' must have a NOT NULL constraint.`,
-              hint: "Add NOT NULL constraint to the control column. Example: ALTER TABLE events ALTER COLUMN ts SET NOT NULL;",
-            };
+            throw new ValidationError(
+              `Control column '${validatedControlColumn}' must have a NOT NULL constraint.`,
+              { hint: "Add NOT NULL constraint to the control column. Example: ALTER TABLE events ALTER COLUMN ts SET NOT NULL;" }
+            );
           }
           // Catch pg_partman's partition type requirement error
           if (
             errorMsg.includes("ranged or list partitioned") ||
             errorMsg.includes("must have created the given parent table")
           ) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' must be created as RANGE or LIST partitioned before calling createParent.`,
-              hint:
-                "Create the table with PARTITION BY RANGE or PARTITION BY LIST clause first. " +
-                "Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);",
-            };
+            throw new ValidationError(
+              `Table '${validatedParentTable}' must be created as RANGE or LIST partitioned before calling createParent.`,
+              { hint:
+                  "Create the table with PARTITION BY RANGE or PARTITION BY LIST clause first. " +
+                  "Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);" }
+            );
           }
           // Catch invalid interval format error with user-friendly message
           if (errorMsg.includes("invalid input syntax for type interval")) {
-            return {
-              success: false,
-              error: `Invalid interval format: '${validatedInterval}'.`,
-              hint:
-                "Use PostgreSQL interval syntax. Valid examples: '1 day', '1 week', '1 month', '3 months', '1 year'. " +
-                "Do NOT use keywords like 'daily' or 'monthly'.",
-              examples: [
-                "1 day",
-                "1 week",
-                "2 weeks",
-                "1 month",
-                "3 months",
-                "1 year",
-              ],
-            };
+            throw new ValidationError(
+              `Invalid interval format: '${validatedInterval}'.`,
+              {
+                hint:
+                  "Use PostgreSQL interval syntax. Valid examples: '1 day', '1 week', '1 month', '3 months', '1 year'. " +
+                  "Do NOT use keywords like 'daily' or 'monthly'.",
+                examples: [
+                  "1 day",
+                  "1 week",
+                  "2 weeks",
+                  "1 month",
+                  "3 months",
+                  "1 year",
+                ],
+              }
+            );
           }
 
           // Re-throw other errors — outer catch will format them

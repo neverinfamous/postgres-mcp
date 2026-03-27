@@ -111,6 +111,8 @@
 - **Naming conventions**: Renamed 12 source + 9 test PascalCase files to kebab-case (`DatabaseAdapter.ts` → `database-adapter.ts`, `PostgresAdapter.ts` → `postgres-adapter.ts`, `McpServer.ts` → `mcp-server.ts`, etc.). Updated all import paths across ~80 files.
 
 ### Fixed
+- **P154 Structured Error fixes**: Replaced manual `{success: false, error: ...}` returns and generic `throw new Error()` calls with proper `PostgresMcpError` (e.g. `ValidationError`, `ConfigurationError`, `ExtensionNotAvailableError`) classes across the `citext`, `partman`, and `backup` tool groups. This ensures compliant structured error formatting in output schemas instead of SDK validation passthrough exceptions.
+- **Unit Test Parity**: Updated assertions in `citext.test.ts` and `partman.test.ts` to expect P154-compliant structured error payloads instead of matching on raw error string fragments.
 - **Introspection payload bloat (`pg_schema_snapshot`)**: The snapshot payload no longer outputs empty arrays for sections without objects (like sequences or customTypes), significantly reducing JSON payload token usage.
 - **Admin tools validation limit (`pg_append_insight`)**: The tool now restricts insights to a maximum of 1000 characters to prevent in-memory token bloat.
 - **Schema view replacement error handling (`pg_create_view`)**: Fixed an issue where using `orReplace: true` to change a view's column data type threw a raw PostgreSQL `QUERY_ERROR` (`cannot change data type of view column`). The tool now catches `42P16` error messages to automatically drop and safely recreate the view.

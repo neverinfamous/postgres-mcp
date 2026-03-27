@@ -298,7 +298,7 @@ describe("pg_partman_create_parent", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("already managed by pg_partman");
-    expect(result.hint).toBeDefined();
+    expect(result.suggestion).toBeDefined();
   });
 
   it("should return error when table does not exist", async () => {
@@ -343,7 +343,7 @@ describe("pg_partman_create_parent", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("not a partitioned table");
-    expect(result.hint).toContain("PARTITION BY");
+    expect(result.details?.hint).toContain("PARTITION BY");
   });
 
   it("should return error for invalid interval format", async () => {
@@ -366,7 +366,7 @@ describe("pg_partman_create_parent", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Invalid interval format");
-    expect(result.examples).toContain("1 day");
+    expect(result.details?.examples).toContain("1 day");
   });
 
   it("should return error when control column lacks NOT NULL constraint", async () => {
@@ -389,7 +389,7 @@ describe("pg_partman_create_parent", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("NOT NULL constraint");
-    expect(result.hint).toContain("NOT NULL");
+    expect(result.error).toContain("NOT NULL");
   });
 
   it("should return error when table does not exist globally", async () => {
@@ -1168,7 +1168,7 @@ describe("pg_partman_partition_data", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("pg_partman extension not found");
+    expect(result.error).toContain("is not installed or enabled");
   });
 
   it("should handle partition_data procedure failing", async () => {
@@ -1683,8 +1683,8 @@ describe("pg_partman_partition_data", () => {
     )) as { success: boolean; error: string; hint: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("pg_partman extension not found");
-    expect(result.hint).toContain("pg_partman_create_extension");
+    expect(result.error).toContain("is not installed or enabled");
+    expect(result.suggestion).toContain("CREATE EXTENSION");
   });
 
   it("should include batch size parameter when specified", async () => {
@@ -1833,7 +1833,7 @@ describe("pg_partman_set_retention", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("No pg_partman configuration found");
-    expect(result.hint).toContain("pg_partman_show_config");
+    expect(result.details?.hint).toContain("pg_partman_show_config");
   });
 });
 
@@ -1989,7 +1989,7 @@ describe("pg_partman_undo_partition", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("No pg_partman configuration found");
-    expect(result.hint).toContain("pg_partman_show_config");
+    expect(result.details?.hint).toContain("pg_partman_show_config");
   });
 });
 
@@ -2405,7 +2405,7 @@ describe("pg_partman_check_default — uncovered branches", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("parentTable");
-    expect(result.hint).toBeDefined();
+    expect(result.details?.hint).toBeDefined();
   });
 
   it("should return error when table does not exist", async () => {
@@ -2420,7 +2420,7 @@ describe("pg_partman_check_default — uncovered branches", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("does not exist");
-    expect(result.hint).toBeDefined();
+    expect(result.details?.hint).toBeDefined();
   });
 
   it("should report table not partitioned (relkind != 'p', no children)", async () => {
@@ -2570,7 +2570,7 @@ describe("pg_partman_partition_data — uncovered branches", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("parentTable");
-    expect(result.hint).toBeDefined();
+    expect(result.details?.hint).toBeDefined();
   });
 
   it("should return error when partman extension is not found", async () => {
@@ -2588,8 +2588,8 @@ describe("pg_partman_partition_data — uncovered branches", () => {
     )) as { success: boolean; error: string; hint: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("pg_partman extension not found");
-    expect(result.hint).toBeDefined();
+    expect(result.error).toContain("is not installed or enabled");
+    expect(result.suggestion).toBeDefined();
   });
 
   it("should return error when no config found for table", async () => {
@@ -2638,7 +2638,7 @@ describe("pg_partman_partition_data — uncovered branches", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Failed to move data");
-    expect(result.hint).toBeDefined();
+    expect(result.details?.hint).toBeDefined();
   });
 });
 
@@ -2762,7 +2762,7 @@ describe("pg_partman_create_parent — uncovered branches", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Invalid interval format");
-    expect(result.examples).toBeDefined();
+    expect(result.details?.examples).toBeDefined();
   });
 });
 

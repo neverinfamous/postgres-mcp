@@ -5,9 +5,11 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ExtensionNotAvailableError,
+  ValidationError,
 } from "../../../../types/index.js";
 import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
@@ -84,11 +86,7 @@ Note: If views depend on this column, you must drop and recreate them manually b
 
         const hasExt = (extCheck.rows?.[0]?.["installed"] as boolean) ?? false;
         if (!hasExt) {
-          return {
-            success: false,
-            error:
-              "citext extension is not installed. Run pg_citext_create_extension first.",
-          };
+          throw new ExtensionNotAvailableError("citext");
         }
 
         // Check if table exists before checking column
@@ -101,10 +99,7 @@ Note: If views depend on this column, you must drop and recreate them manually b
         );
 
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Table ${qualifiedTable} does not exist. Verify the table name and schema.`,
-          };
+          throw new ValidationError(`Table ${qualifiedTable} does not exist. Verify the table name and schema.`);
         }
 
         const colCheck = await adapter.executeQuery(
@@ -119,10 +114,7 @@ Note: If views depend on this column, you must drop and recreate them manually b
         );
 
         if (!colCheck.rows || colCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
-          };
+          throw new ValidationError(`Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`);
         }
 
         const dataType = colCheck.rows[0]?.["data_type"] as string;
@@ -147,13 +139,10 @@ Note: If views depend on this column, you must drop and recreate them manually b
         ];
         const normalizedType = dataType.toLowerCase();
         if (!allowedTypes.includes(normalizedType)) {
-          return {
-            success: false,
-            error: `Column "${column}" is type "${currentType}", not a text-based type`,
-            currentType,
-            allowedTypes: ["text", "varchar", "character varying"],
-            suggestion: `citext conversion only works for text-based columns. Column "${column}" is "${currentType}" which cannot be converted.`,
-          };
+          throw new ValidationError(
+            `Column "${column}" is type "${currentType}", not a text-based type. citext conversion only works for text-based columns.Column "${column}" is "${currentType}" which cannot be converted.`,
+            { currentType, allowedTypes: ["text", "varchar", "character varying"] }
+          );
         }
 
         // Check for dependent views before attempting the conversion
@@ -180,16 +169,16 @@ Note: If views depend on this column, you must drop and recreate them manually b
         const dependentViews = depCheck.rows ?? [];
 
         if (dependentViews.length > 0) {
-          return {
-            success: false,
-            error:
-              "Column has dependent views that must be dropped before conversion",
-            dependentViews: dependentViews.map(
-              (v) =>
-                `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
-            ),
-            hint: "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
-          };
+          throw new ValidationError(
+            "Column has dependent views that must be dropped before conversion. " +
+            "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
+            {
+              dependentViews: dependentViews.map(
+                (v) =>
+                  `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
+              )
+            }
+          );
         }
 
         try {

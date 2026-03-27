@@ -48,9 +48,18 @@ const ERROR_SUGGESTIONS: {
     code: "DIMENSION_MISMATCH",
   },
   {
-    pattern: /insufficient data/i,
-    suggestion:
-      "Not enough data points for the requested analysis. Add more data or reduce the degree.",
+    pattern: /invalid schedule: invalid cron/i,
+    suggestion: "Use a valid cron schedule expression (e.g. '0 0 * * *').",
+    category: ErrorCategory.VALIDATION,
+  },
+  {
+    pattern: /is already managed by pg_partman/i,
+    suggestion: "Use pg_partman_show_config to view existing configuration, or pg_partman_undo_partition to recreate.",
+    category: ErrorCategory.VALIDATION,
+  },
+  {
+    pattern: /^Missing required parameters:/i,
+    suggestion: "Provide all required parameters in your request.",
     category: ErrorCategory.VALIDATION,
   },
 
@@ -66,6 +75,13 @@ const ERROR_SUGGESTIONS: {
     pattern: /table (?:or view )?['"].*['"] not found/i,
     suggestion:
       "Table or view not found. Run pg_list_tables to see available tables.",
+    category: ErrorCategory.RESOURCE,
+    code: "TABLE_NOT_FOUND",
+  },
+  {
+    pattern: /table ['"].*['"] does not exist/i,
+    suggestion:
+      "Table not found. Run pg_list_tables to see available tables.",
     category: ErrorCategory.RESOURCE,
     code: "TABLE_NOT_FOUND",
   },
@@ -110,6 +126,13 @@ const ERROR_SUGGESTIONS: {
       "Decryption failed. Ensure the correct passphrase and cipher algorithm are used.",
     category: ErrorCategory.VALIDATION,
     code: "DECRYPTION_FAILED",
+  },
+  {
+    pattern: /snapshot not found:/i,
+    suggestion:
+      "The specified backup snapshot file does not exist or has been deleted.",
+    category: ErrorCategory.RESOURCE,
+    code: "RESOURCE_NOT_FOUND",
   },
   {
     pattern: /invalid base64 end sequence/i,

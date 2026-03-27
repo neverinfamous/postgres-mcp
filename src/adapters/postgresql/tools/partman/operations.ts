@@ -5,9 +5,11 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
+  ExtensionNotAvailableError,
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -42,12 +44,10 @@ Data in default indicates partitions may be missing for certain time/value range
 
         // parentTable is required - provide clear error if missing
         if (!parentTable) {
-          return {
-            success: false,
-            error:
-              'parentTable parameter is required. Specify the parent table (e.g., "public.events") to check its default partition.',
-            hint: "Use pg_partman_show_config to list all partition sets first.",
-          };
+          throw new ValidationError(
+            'parentTable parameter is required. Specify the parent table (e.g., "public.events") to check its default partition.',
+            { hint: "Use pg_partman_show_config to list all partition sets first." }
+          );
         }
 
         // Check if parent table exists in pg_class (handles orphaned configs)
@@ -64,11 +64,10 @@ Data in default indicates partitions may be missing for certain time/value range
         );
 
         if ((tableExistsResult.rows?.length ?? 0) === 0) {
-          return {
-            success: false,
-            error: `Table '${parentTable}' does not exist. Cannot check default partition for non-existent table.`,
-            hint: "Verify the table name or use pg_partman_show_config to list existing partition sets.",
-          };
+          throw new ValidationError(
+            `Table '${parentTable}' does not exist. Cannot check default partition for non-existent table.`,
+            { hint: "Verify the table name or use pg_partman_show_config to list existing partition sets." }
+          );
         }
 
         // First, find the default partition
@@ -216,12 +215,10 @@ Creates new partitions if needed for the data being moved.`,
 
         // parentTable is required - provide clear error if missing
         if (!parentTable) {
-          return {
-            success: false,
-            error:
-              'parentTable parameter is required. Specify the parent table (e.g., "public.events") to move data from its default partition.',
-            hint: "Use pg_partman_show_config to list all partition sets first.",
-          };
+          throw new ValidationError(
+            'parentTable parameter is required. Specify the parent table (e.g., "public.events") to move data from its default partition.',
+            { hint: "Use pg_partman_show_config to list all partition sets first." }
+          );
         }
 
         const args: string[] = [`p_parent_table := '${parentTable}'`];
@@ -245,19 +242,12 @@ Creates new partitions if needed for the data being moved.`,
             [parentTable],
           );
         } catch {
-          return {
-            success: false,
-            error: "pg_partman extension not found or not properly installed.",
-            hint: "Install pg_partman with pg_partman_create_extension, then configure the partition set with pg_partman_create_parent.",
-          };
+          throw new ExtensionNotAvailableError("pg_partman");
         }
 
         const config = configResult.rows?.[0];
         if (!config) {
-          return {
-            success: false,
-            error: `No pg_partman configuration found for ${parentTable}`,
-          };
+          throw new ValidationError(`No pg_partman configuration found for ${parentTable}`);
         }
 
         // Get row count in default partition before moving data
@@ -287,14 +277,15 @@ Creates new partitions if needed for the data being moved.`,
           await callPartmanProcedure(adapter, partmanSchema, sql);
         } catch (e: unknown) {
           const errorMsg = e instanceof Error ? e.message : String(e);
-          return {
-            success: false,
-            parentTable,
-            error: `Failed to move data from default partition: ${errorMsg.split("\n")[0] ?? errorMsg}`,
-            hint:
-              "Ensure pg_partman is properly installed and the partition set is configured correctly. " +
-              "Use pg_partman_show_config to verify configuration.",
-          };
+          throw new ValidationError(
+            `Failed to move data from default partition: ${errorMsg.split("\n")[0] ?? errorMsg}`,
+            {
+              parentTable,
+              hint:
+                "Ensure pg_partman is properly installed and the partition set is configured correctly. " +
+                "Use pg_partman_show_config to verify configuration.",
+            }
+          );
         }
 
         // Get row count in default partition after moving data

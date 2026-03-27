@@ -5,9 +5,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -54,13 +55,7 @@ Useful for auditing case-insensitive columns.`,
           userLimit !== undefined && isNaN(userLimit) ? undefined : userLimit;
 
         if (safeLimit !== undefined && safeLimit < 0) {
-          return {
-            success: false,
-            error: "Validation error: limit must be non-negative",
-            code: "VALIDATION_ERROR",
-            category: "validation",
-            recoverable: false,
-          };
+          throw new ValidationError("limit must be non-negative");
         }
         // Validate schema existence when specified
         if (schema !== undefined) {
@@ -70,10 +65,7 @@ Useful for auditing case-insensitive columns.`,
             [schema],
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-            return {
-              success: false,
-              error: `Schema '${schema}' does not exist. Verify the schema name.`,
-            };
+            throw new ValidationError(`Schema '${schema}' does not exist. Verify the schema name.`);
           }
         }
 

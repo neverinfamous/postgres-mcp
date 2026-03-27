@@ -6,9 +6,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -59,12 +60,13 @@ Maintains all partition sets if no specific parent table is specified.`,
           );
 
           if ((configCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              parentTable,
-              error: `Table '${parentTable}' is not managed by pg_partman.`,
-              hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables.",
-            };
+            throw new ValidationError(
+              `Table '${parentTable}' is not managed by pg_partman.`,
+              {
+                parentTable,
+                hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables.",
+              }
+            );
           }
 
           const args: string[] = [`p_parent_table := '${parentTable}'`];
@@ -94,25 +96,21 @@ Maintains all partition sets if no specific parent table is specified.`,
               fullError.includes("Child table given does not exist") ||
               fullError.includes("<NULL>")
             ) {
-              return {
-                success: false,
+              throw new ValidationError("Partition set has no child partitions yet.", {
                 parentTable,
-                error: "Partition set has no child partitions yet.",
                 hint:
                   "For new partition sets, ensure startPartition is valid for your data. " +
                   "Insert data first, then run maintenance, or specify a valid startPartition when creating the parent.",
-              };
+              });
             }
 
             // Return clean error response instead of throwing with stack trace
-            return {
-              success: false,
+            throw new ValidationError(errorMsg, {
               parentTable,
-              error: errorMsg,
               hint:
                 "Check that the parent table exists, is properly partitioned, and has valid pg_partman configuration. " +
                 "Use pg_partman_show_config to verify configuration.",
-            };
+            });
           }
         }
 
@@ -247,12 +245,10 @@ export function createPartmanShowPartitionsTool(
 
         // parentTable is required - provide clear error if missing
         if (!parentTable) {
-          return {
-            success: false,
-            error:
-              'parentTable parameter is required. Specify the parent table (e.g., "public.events") to list its partitions.',
-            hint: "Use pg_partman_show_config to list all partition sets first.",
-          };
+          throw new ValidationError(
+            'parentTable parameter is required. Specify the parent table (e.g., "public.events") to list its partitions.',
+            { hint: "Use pg_partman_show_config to list all partition sets first." }
+          );
         }
 
         const orderDir = order === "desc" ? "DESC" : "ASC";
@@ -267,11 +263,10 @@ export function createPartmanShowPartitionsTool(
         );
 
         if ((configCheck.rows?.length ?? 0) === 0) {
-          return {
-            success: false,
-            error: `Table '${parentTable}' is not managed by pg_partman.`,
-            hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables.",
-          };
+          throw new ValidationError(
+            `Table '${parentTable}' is not managed by pg_partman.`,
+            { hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables." }
+          );
         }
 
         // First get total count for pagination

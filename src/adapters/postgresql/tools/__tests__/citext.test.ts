@@ -60,7 +60,7 @@ describe("Citext Tools", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("citext extension is not installed");
+      expect(result.error).toContain("is not installed or enabled");
     });
 
     it("should return structured error if table not found", async () => {
@@ -686,8 +686,8 @@ describe("Citext Tools", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("not a text-based type");
-      expect(result.currentType).toBe("integer");
-      expect(result.allowedTypes).toEqual([
+      expect(result.details?.currentType).toBe("integer");
+      expect(result.details?.allowedTypes).toEqual([
         "text",
         "varchar",
         "character varying",
@@ -725,11 +725,11 @@ describe("Citext Tools", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("dependent views");
-      expect(result.dependentViews).toEqual([
+      expect(result.details?.dependentViews).toEqual([
         "public.user_emails_view",
         "app.active_users_view",
       ]);
-      expect(result.hint).toContain("Drop the listed views");
+      expect(result.error).toContain("Drop the listed views");
     });
 
     // setup.ts L217-232: ALTER TABLE conversion failure
