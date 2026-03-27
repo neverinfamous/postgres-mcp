@@ -3,6 +3,9 @@ import swc from "unplugin-swc";
 
 export default defineConfig({
   plugins: [swc.vite()],
+  esbuild: false,
+  // @ts-expect-error oxc is a new option not fully typed in all vitest ecosystem yet
+  oxc: false,
   test: {
     reporters: ["default", "json"],
     outputFile: {
