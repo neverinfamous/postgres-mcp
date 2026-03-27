@@ -41,115 +41,119 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("List Views"),
     icons: getToolIcons("schema", readOnly("List Views")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = ListViewsSchema.parse(params ?? {});
-      const queryParams: unknown[] = [];
+      try {
+        const parsed = ListViewsSchema.parse(params ?? {});
+        const queryParams: unknown[] = [];
 
-      // Validate schema existence when filtering by schema
-      if (parsed.schema) {
-        const schemaCheck = await adapter.executeQuery(
-          `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
-          [parsed.schema],
-        );
-        if ((schemaCheck.rows?.length ?? 0) === 0) {
-          return {
-            success: false,
-            error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-          };
-        }
-      }
-
-      const schemaClause = parsed.schema
-        ? (queryParams.push(parsed.schema),
-          `AND n.nspname = $${String(queryParams.length)}`)
-        : "";
-      const kindClause =
-        parsed.includeMaterialized !== false ? "IN ('v', 'm')" : "= 'v'";
-
-      // Default truncation: 500 chars, 0 = no truncation (safe coercion)
-      const rawTruncate = Number(parsed.truncateDefinition);
-      const truncateLimit = Number.isFinite(rawTruncate) ? rawTruncate : 500;
-
-      // Default limit: 50, 0 = no limit (safe coercion)
-      const rawLimit = Number(parsed.limit);
-      const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
-      const limitClause = limitVal > 0 ? `LIMIT ${String(limitVal + 1)}` : "";
-
-      const sql = `SELECT n.nspname as schema, c.relname as name,
-                        CASE c.relkind WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END as type,
-                        TRIM(pg_get_viewdef(c.oid, true)) as definition
-                        FROM pg_class c
-                        JOIN pg_namespace n ON n.oid = c.relnamespace
-                        WHERE c.relkind ${kindClause}
-                        AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                        ${schemaClause}
-                        ORDER BY n.nspname, c.relname
-                        ${limitClause}`;
-
-      const result =
-        queryParams.length > 0
-          ? await adapter.executeQuery(sql, queryParams)
-          : await adapter.executeQuery(sql);
-      let views = result.rows ?? [];
-
-      // Check if there are more results than the limit
-      const hasMore = limitVal > 0 && views.length > limitVal;
-      if (hasMore) {
-        views = views.slice(0, limitVal);
-      }
-
-      // Truncate definitions if limit is set
-      let truncatedCount = 0;
-      if (truncateLimit > 0) {
-        views = views.map((v: Record<string, unknown>) => {
-          const def = v["definition"];
-          if (typeof def === "string" && def.length > truncateLimit) {
-            truncatedCount++;
+        // Validate schema existence when filtering by schema
+        if (parsed.schema) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+            [parsed.schema],
+          );
+          if ((schemaCheck.rows?.length ?? 0) === 0) {
             return {
-              ...v,
-              definition: def.slice(0, truncateLimit) + "...",
-              definitionTruncated: true,
+              success: false,
+              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
             };
           }
-          return v;
-        });
-      }
+        }
 
-      const hasMatViews = views.some(
-        (v: Record<string, unknown>) => v["type"] === "materialized_view",
-      );
-
-      const response: Record<string, unknown> = {
-        views,
-        count: views.length,
-        hasMatViews,
-      };
-      if (truncatedCount > 0) {
-        response["truncatedDefinitions"] = truncatedCount;
-      }
-      // Always include truncated field for consistent response structure
-      response["truncated"] = hasMore;
-      if (hasMore) {
-        // Get total count
-        const countParams: unknown[] = [];
-        const countSchemaClause = parsed.schema
-          ? (countParams.push(parsed.schema),
-            `AND n.nspname = $${String(countParams.length)}`)
+        const schemaClause = parsed.schema
+          ? (queryParams.push(parsed.schema),
+            `AND n.nspname = $${String(queryParams.length)}`)
           : "";
-        const countSql = `SELECT COUNT(*)::int as total FROM pg_class c
+        const kindClause =
+          parsed.includeMaterialized !== false ? "IN ('v', 'm')" : "= 'v'";
+
+        // Default truncation: 500 chars, 0 = no truncation (safe coercion)
+        const rawTruncate = Number(parsed.truncateDefinition);
+        const truncateLimit = Number.isFinite(rawTruncate) ? rawTruncate : 500;
+
+        // Default limit: 50, 0 = no limit (safe coercion)
+        const rawLimit = Number(parsed.limit);
+        const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
+        const limitClause = limitVal > 0 ? `LIMIT ${String(limitVal + 1)}` : "";
+
+        const sql = `SELECT n.nspname as schema, c.relname as name,
+                          CASE c.relkind WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END as type,
+                          TRIM(pg_get_viewdef(c.oid, true)) as definition
+                          FROM pg_class c
                           JOIN pg_namespace n ON n.oid = c.relnamespace
                           WHERE c.relkind ${kindClause}
                           AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                          ${countSchemaClause}`;
-        const countResult =
-          countParams.length > 0
-            ? await adapter.executeQuery(countSql, countParams)
-            : await adapter.executeQuery(countSql);
-        response["totalCount"] =
-          countResult.rows?.[0]?.["total"] ?? views.length;
-        response["note"] =
-          `Results limited to ${String(limitVal)}. Use 'limit: 0' for all views.`;
+                          ${schemaClause}
+                          ORDER BY n.nspname, c.relname
+                          ${limitClause}`;
+
+        const result =
+          queryParams.length > 0
+            ? await adapter.executeQuery(sql, queryParams)
+            : await adapter.executeQuery(sql);
+        let views = result.rows ?? [];
+
+        // Check if there are more results than the limit
+        const hasMore = limitVal > 0 && views.length > limitVal;
+        if (hasMore) {
+          views = views.slice(0, limitVal);
+        }
+
+        // Truncate definitions if limit is set
+        let truncatedCount = 0;
+        if (truncateLimit > 0) {
+          views = views.map((v: Record<string, unknown>) => {
+            const def = v["definition"];
+            if (typeof def === "string" && def.length > truncateLimit) {
+              truncatedCount++;
+              return {
+                ...v,
+                definition: def.slice(0, truncateLimit) + "...",
+                definitionTruncated: true,
+              };
+            }
+            return v;
+          });
+        }
+
+        const hasMatViews = views.some(
+          (v: Record<string, unknown>) => v["type"] === "materialized_view",
+        );
+
+        const response: Record<string, unknown> = {
+          views,
+          count: views.length,
+          hasMatViews,
+        };
+        if (truncatedCount > 0) {
+          response["truncatedDefinitions"] = truncatedCount;
+        }
+        // Always include truncated field for consistent response structure
+        response["truncated"] = hasMore;
+        if (hasMore) {
+          // Get total count
+          const countParams: unknown[] = [];
+          const countSchemaClause = parsed.schema
+            ? (countParams.push(parsed.schema),
+              `AND n.nspname = $${String(countParams.length)}`)
+            : "";
+          const countSql = `SELECT COUNT(*)::int as total FROM pg_class c
+                            JOIN pg_namespace n ON n.oid = c.relnamespace
+                            WHERE c.relkind ${kindClause}
+                            AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                            ${countSchemaClause}`;
+          const countResult =
+            countParams.length > 0
+              ? await adapter.executeQuery(countSql, countParams)
+              : await adapter.executeQuery(countSql);
+          response["totalCount"] =
+            countResult.rows?.[0]?.["total"] ?? views.length;
+          response["note"] =
+            `Results limited to ${String(limitVal)}. Use 'limit: 0' for all views.`;
+        }
+        return response;
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, { tool: "pg_list_views" });
       }
-      return response;
     },
   };
 }

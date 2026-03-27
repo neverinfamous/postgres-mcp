@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
-import { coerceNumber, coerceStrictNumber } from "../../../utils/query-helpers.js";
+import { coerceStrictNumber } from "../../../utils/query-helpers.js";
 
 // Base schema for MCP visibility — name is optional so MCP framework
 // doesn't reject {} calls; handler validates via the full schema.
@@ -297,7 +297,7 @@ export const ListSequencesSchema = z.preprocess((input: unknown) => {
   return result;
 }, z.object({
   schema: z.string().optional(),
-  limit: z.preprocess(coerceNumber, z.number().optional()),
+  limit: z.preprocess(coerceStrictNumber, z.number().optional()),
 }));
 
 export const ListViewsSchemaBase = z.object({
@@ -315,8 +315,8 @@ export const ListViewsSchema = z.preprocess((input: unknown) => {
 }, z.object({
   schema: z.string().optional(),
   includeMaterialized: z.boolean().optional(),
-  truncateDefinition: z.preprocess(coerceNumber, z.number().optional()),
-  limit: z.preprocess(coerceNumber, z.number().optional()),
+  truncateDefinition: z.preprocess(coerceStrictNumber, z.number().optional()),
+  limit: z.preprocess(coerceStrictNumber, z.number().optional()),
 }));
 
 // =============================================================================
@@ -357,7 +357,7 @@ export const ListFunctionsSchema = z.preprocess(
     schema: z.string().optional(),
     exclude: z.array(z.string()).optional(),
     language: z.string().optional(),
-    limit: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceStrictNumber, z.number().optional()),
   })
 );
 
@@ -376,7 +376,7 @@ export const ListTriggersSchema = z.preprocess(
   z.object({
     schema: z.string().optional(),
     table: z.string().optional(),
-    limit: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceStrictNumber, z.number().optional()),
   })
 );
 
@@ -402,7 +402,7 @@ export const ListConstraintsSchema = z.preprocess(
     table: z.string().optional(),
     schema: z.string().optional(),
     type: z.string().optional(),
-    limit: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceStrictNumber, z.number().optional()),
   })
 );
 
