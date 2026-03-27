@@ -11,6 +11,7 @@
 | `advanced-test-tools.md` | 26 KB | **Second-pass stress tests** — 8 categories: boundary values, state pollution, alias matrix, error quality, concurrency/transactions, extension edge cases, payload truncation, code mode parity. | After basic checklist passes |
 | `test-preflight.md` | ~2KB | **Pre-flight check** — validates slim instructions, help resources, data resources, and tool-filter alignment in 5 steps | Before any test pass |
 | `test-tool-annotations.mjs` | ~3 KB | **Tool annotations script** — validates `openWorldHint` presence and values across all tools | Structural validation |
+| `test-prompts.mjs` | ~4 KB | **Prompts validation script** — validates MCP prompt arguments and execution | Structural validation |
 | `test-resources.md` | 5 KB | Resource testing plan (20 `postgres://` resources via `read_resource`) | When testing resources |
 | `test-resources.sql` | 10 KB | Seed SQL for resource-specific test data (`resource_test_job` cron, vacuum stats, etc.) | Run before resource testing |
 | `test-prompts.md` | 8 KB | Prompt testing plan (19 prompts). Tested manually since agents typically don't invoke prompts yet. | When testing prompts |

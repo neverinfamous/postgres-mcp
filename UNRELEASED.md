@@ -5,6 +5,7 @@
 
 ## Added
 - **Test Scripts**: Ported `test-tool-annotations.mjs` to validate tool annotation structures (e.g., `openWorldHint` presence) across all 248 tools via direct MCP client execution.
+- **Test Scripts**: Ported `test-prompts.mjs` to validate structural invocation and message generation for all 20 Postgres prompts.
 - **Zod Schema Hardening**: Tightened `inputSchema` definitions for 23 parameter-less tools from permissive `z.object({})` to `z.object({}).strict()` to prevent arbitrary LLM argument passthrough.
 - **Vector Error Handling**: Replaced generic `Error` throws with structured `ValidationError` classes in `pg_vector_cluster` and `pg_vector_dimension_reduce` for correct error categorization.
 - **Audit Token Estimates**: Every audit entry now includes `tokenEstimate` (~4 bytes per token) computed from the serialized tool response. Gives agents and users historical visibility into token burn-rate per tool call.
