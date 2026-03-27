@@ -58,11 +58,11 @@ export function parsePostgresError(
   // Regex anchored: must NOT be preceded by "of " (which indicates 42703 column errors)
   if (
     pgCode === "42P01" ||
-    (/relation ".*" does not exist/i.test(msg) && !/of relation/i.test(msg))
+    (/(?:relation|view|sequence|materialized view) ".*" does not exist/i.test(msg) && !/of relation/i.test(msg))
   ) {
     // pg_reindex with target=index: index-specific message
     if (context.tool === "pg_reindex" && context.target === "index") {
-      const match = /relation "([^"]+)"/i.exec(msg);
+      const match = /(?:relation|view|sequence|materialized view) "([^"]+)"/i.exec(msg);
       const indexName = match?.[1] ?? context.index ?? "unknown";
       throw new Error(
         `Index '${indexName}' not found. Use pg_get_indexes to see available indexes.`,
@@ -70,10 +70,16 @@ export function parsePostgresError(
       );
     }
 
-    const match = /relation "([^"]+)"/i.exec(msg);
+    const match = /(?:relation|view|sequence|materialized view) "([^"]+)"/i.exec(msg);
     const objectName = match?.[1] ?? context.table ?? "unknown";
+    
+    let entityTypeStr = "Table or view";
+    if (context.objectType === "sequence" || /sequence/i.test(msg)) {
+      entityTypeStr = "Sequence";
+    }
+
     throw new Error(
-      `Table or view '${objectName}' not found. Use pg_list_tables to see available tables.`,
+      `${entityTypeStr} '${objectName}' not found. Use pg_list_tables to see available tables.`,
       { cause: error },
     );
   }
