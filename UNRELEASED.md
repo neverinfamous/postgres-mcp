@@ -74,6 +74,7 @@
   - Removed `continue-on-error: true` from Docker Hub description update in `docker-publish.yml`
 
 ### Changed
+- **Testing Prompts**: Removed legacy `direct tool call` references from `test-tools-codemode.md`, enforcing pure Code Mode (`pg_execute_code`) testing isolation.
 - **Token Optimization Visibility**: Added token insight instructions to `gotchas.md` and updated `overview.md` Quick Access table to explicitly highlight the `postgres://audit` resource for session token usage. Added explicit instructions to `GEMINI.md` to establish token efficiency principles across agents.
 - **Default 30s statement timeout**: Connection pool now applies `statement_timeout = 30000` by default, preventing runaway agent queries from holding connections indefinitely. Explicit `statementTimeout: 0` disables it; any positive value overrides the default.
 - **Streaming tail-read for audit log**: `AuditLogger.recent()` now reads only the last 64 KB of the file via `open()` + positioned `read()` instead of loading the entire file into memory. Prevents O(n) memory spikes for large audit logs while maintaining identical output.

@@ -52,7 +52,7 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 11. **Deterministic checklist first**: Complete ALL items in the Deterministic Checklist below using Code Mode before moving to the Strict Coverage Matrix exploration.
 12. **Audit backup tools**: The 3 `pg_audit_*` tools require `--audit-backup` to be enabled on the test server. When enabled, destructive operations (`pg_truncate`, `pg_drop_table`, `pg_vacuum`, etc.) create gzip-compressed `.snapshot.json.gz` files alongside the audit log. **V2 features to verify**: `pg_audit_diff_backup` now returns a `volumeDrift` field (row count + size changes); `pg_audit_restore_backup` supports `restoreAs` for side-by-side non-destructive restore; and Code Mode calls through `pg_execute_code` that trigger destructive operations are also captured by the interceptor. When disabled, all 3 tools return `{success: false, error: "Audit backup not enabled"}`.
 
-Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) now return as parseable JSON objects via direct tool calls — not as raw MCP error strings. During error path testing, verify this: if a direct tool call for a nonexistent schema/table returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
+Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) return as parseable JSON objects. During error path testing, verify this: if an invalid Code Mode call returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
 
 
 ## Structured Error Response Pattern
@@ -115,9 +115,9 @@ Calling a tool with wrong parameter types or missing required fields triggers a 
 All tools use the Split Schema pattern: a plain `z.object()` Base schema for MCP parameter visibility (used as `inputSchema`), and handler-side parsing via `z.preprocess()`, `.default({})`, or direct `.parse()` inside `try/catch`. Verify:
 
 1. **JSON Schema visibility**: Before testing tool behavior, call `tools/list` (or inspect the MCP server's tool definitions) and confirm each tool's `inputSchema` exposes its parameters. Tools with optional parameters (e.g., `schema`, `limit`, `direction`) must show non-empty `properties` in the JSON Schema. If a tool's `inputSchema` is empty or missing `properties`, report as a Split Schema violation.
-2. **Parameter visibility**: For tools with optional parameters (e.g., `schema`, `limit`), make a direct MCP call using those parameters. If the tool ignores or rejects documented parameters, report as a Split Schema violation.
-3. **Alias acceptance**: For tools with documented parameter aliases (e.g., table/tableName/name, sql/query), verify that direct MCP tool calls correctly accept the aliases—not just the primary parameter name. If a direct call using only an alias fails with a validation error like "X is required", report it as a Split Schema violation requiring a fix.
-4. **`z.preprocess()` as `inputSchema`**: If a tool uses `z.preprocess()` directly as its `inputSchema` (instead of a plain `SchemaBase`), parameter metadata is stripped from JSON Schema generation, making direct MCP calls unable to see or use those parameters. Report as a Split Schema violation.
+2. **Parameter visibility**: For tools with optional parameters (e.g., `schema`, `limit`), make a Code Mode call using those parameters. If the tool ignores or rejects documented parameters, report as a Split Schema violation.
+3. **Alias acceptance**: For tools with documented parameter aliases (e.g., table/tableName/name, sql/query), verify that Code Mode calls correctly accept the aliases—not just the primary parameter name. If a call using only an alias fails with a validation error like "X is required", report it as a Split Schema violation requiring a fix.
+4. **`z.preprocess()` as `inputSchema`**: If a tool uses `z.preprocess()` directly as its `inputSchema` (instead of a plain `SchemaBase`), parameter metadata is stripped from JSON Schema generation, making MCP tooling unable to see or use those parameters. Report as a Split Schema violation.
 
 ## P154 Object Existence Verification
 
@@ -208,7 +208,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 4. **Validate**: Update changelog (no duplicate headers) and then stop so user can run test suite, lint + typecheck.
 5. **Commit**: Stage and commit all changes — do NOT push
-6. **Live re-test**: Test fixes with direct MCP tool calls. User will have already rebuilt and restarted the server.
-7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live MCP re-testing confirms fixes are working. If the test prompt/database or server instructions can be improved, make the improvements.
+6. **Live re-test**: Test fixes using Code Mode calls. User will have already rebuilt and restarted the server.
+7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live Code Mode testing confirms fixes are working. If the test prompt/database or server instructions can be improved, make the improvements.
 
 ---
