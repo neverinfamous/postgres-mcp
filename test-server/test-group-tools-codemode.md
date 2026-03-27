@@ -28,7 +28,7 @@ core Tool Group (20 tools +1 for code mode):
 
 All tools implement P154 structured error handling for nonexistent tables/schemas. The 5 convenience tools (pg_count, pg_exists, pg_upsert, pg_batch_insert, pg_truncate) use explicit pre-checks and serve as canonical P154 verification targets. Test with `test_products` and `test_orders`.
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Convenience tools (P154 canonical targets):**
 
@@ -124,7 +124,7 @@ transactions Tool Group (8 tools +1 for code mode):
 8. 'pg_transaction_status'
 9. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 1. `pg_transaction_begin()` → capture `transactionId`
 2. `pg_read_query({sql: "SELECT 1 AS test", transactionId: <id>})` → `{rows: [{test: 1}]}`
@@ -177,7 +177,7 @@ jsonb Tool Group (20 tools +1 for code mode):
 20. 'pg_jsonb_pretty'
 21. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Use `test_jsonb_docs` table which has these JSONB structures:
 
@@ -233,7 +233,7 @@ text Tool Group (13 tools +1 for code mode)
 13. 'pg_text_search_config'
 14. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses `test_articles` which has a GIN FTS index on `search_vector`.
 
@@ -285,7 +285,7 @@ performance Tool Group (24 tools +1 code mode)
 24. 'pg_detect_connection_spike'
 25. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Existing performance tools:**
 
@@ -360,7 +360,7 @@ admin Tool Group (11 tools +1 code mode):
 11. 'pg_append_insight'
 12. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 1. `pg_analyze({table: "test_products"})` → `{success: true}`
 2. `pg_vacuum({table: "test_products"})` → `{success: true}`
@@ -399,7 +399,7 @@ monitoring group (11 tools +1 for code mode)
 11. 'pg_alert_threshold_set'
 12. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 1. `pg_database_size()` → `{bytes: N, size: "X MB/GB"}`
 2. `pg_table_sizes({limit: 3})` → verify `{tables, count, truncated}`
@@ -433,7 +433,7 @@ backup Tool Group (12 tools +1 for code mode)
 12. 'pg_audit_diff_backup'
 13. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 1. `pg_dump_table({table: "test_products"})` → verify `ddl` contains `CREATE TABLE`
 2. `pg_dump_table({table: "test_products", includeData: true})` → verify `insertStatements` present
@@ -515,7 +515,7 @@ schema Tool Group (12 tools +1 for code mode)
 12. 'pg_list_constraints'
 13. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 1. `pg_list_schemas()` → verify `public` and `test_schema` in results
 2. `pg_list_views()` → verify `test_order_summary` in results
@@ -540,7 +540,7 @@ partitioning Tool Group (6 tools +1 for code mode)
 6. 'pg_create_partitioned_table'
 7. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses `test_events`: `PARTITION BY RANGE (event_date)` with 4 quarterly partitions (`test_events_2024_q1` through `test_events_2024_q4`).
 
@@ -579,7 +579,7 @@ stats Group (19 tools +1 for code mode)
 19. 'pg_stats_summary'
 20. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses `test_measurements` (500 rows, sensor_id 1-6, columns: temperature, humidity, pressure, measured_at).
 
@@ -662,7 +662,7 @@ vector Tool Group (16 tools +1 for code mode)
 16. pg_vector_embed
 17. pg_execute_code (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses `test_embeddings` with 384-dimension vectors (50 rows, 5 categories: tech, science, business, sports, entertainment). HNSW index on `embedding` column using cosine distance.
 
@@ -701,7 +701,7 @@ postgis Tool Group (15 tools +1 for code mode)
 15. 'pg_geometry_transform'
 16. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses `test_locations.location` (POINT with SRID 4326, WGS84). GIST index on `location`.
 
@@ -735,7 +735,7 @@ cron Tool Group (8 tools +1 for code mode)
 8. 'pg_cron_cleanup_history'
 9. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 1. `pg_cron_list_jobs()` → verify response structure `{jobs, count}`
 2. `pg_cron_schedule({name: "checklist_test_job", schedule: "0 5 * * *", command: "SELECT 1"})` → capture jobId
@@ -764,7 +764,7 @@ partman Tool Group (10 tools +1 for code mode)
 10. 'pg_partman_analyze_partition_health'
 11. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses `test_logs`: `PARTITION BY RANGE (created_at)` — no partitions created yet (for partman to manage).
 
@@ -795,7 +795,7 @@ kcache Tool Group (7 tools +1 for code mode)
 7. 'pg_kcache_reset'
 8. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 1. `pg_kcache_query_stats({limit: 5})` → verify `{queries, count}` structure (may be empty if extension not loaded with data)
 2. `pg_kcache_top_cpu({limit: 3})` → verify response structure
@@ -817,7 +817,7 @@ citext Tool Group (6 tools +1 for code mode)
 6. 'pg_citext_schema_advisor'
 7. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses `test_users` with CITEXT columns (`username`, `email`). Test case-insensitive matching: `JohnDoe` = `johndoe`.
 
@@ -846,7 +846,7 @@ ltree Tool Group (8 tools +1 for code mode)
 8. 'pg_ltree_create_index'
 9. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses `test_categories` with LTREE paths. GIST index on `path`.
 
@@ -880,7 +880,7 @@ pgcrypto Tool Group (9 tools +1 for code mode)
 9. 'pg_pgcrypto_crypt'
 10. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses `test_secure_data` for storing encrypted data. Table is initially empty (pgcrypto tools create test data during testing).
 
@@ -909,7 +909,7 @@ introspection Tool Group (6 tools +1 for code mode)
 6. pg_migration_risks
 7. pg_execute_code (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Test data:** Uses the interconnected `test_departments → test_employees → test_projects → test_assignments` FK chain for dependency/cascade testing. Also uses `test_audit_log` (deliberately missing PK and unindexed FK) for constraint analysis.
 
@@ -956,7 +956,7 @@ migration Tool Group (6 tools +1 for code mode)
 6. pg_migration_status
 7. pg_execute_code (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Migration Tracking** — test in this exact order, each step builds on the previous state:
 
