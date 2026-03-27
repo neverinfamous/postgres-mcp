@@ -459,14 +459,14 @@ backup Tool Group (12 tools +1 for code mode)
 14. After item 10: `pg_write_query({sql: "ALTER TABLE temp_backup_test ADD COLUMN drift_col TEXT"})` → introduces schema drift
 15. Also `pg_batch_insert({table: "temp_backup_test", rows: [{name: "Carol"}, {name: "Dave"}, {name: "Eve"}]})` → introduces row-count drift (now 5 rows vs 2 at snapshot time)
 16. `pg_audit_diff_backup({filename: <captured from item 13>})` → verify:
-    - `differences` array contains entries for `drift_col` (added)
-    - `volumeDrift` object present with `rowCountSnapshot: 2`, `rowCountCurrent: 5`, `summary: "..."` — row count changed
-    - `hasDifferences: true`
+    - `diff.additions` array contains entries for `drift_col` (added)
+    - `volumeDrift` object present (Note: `rowCountSnapshot` and `rowCountCurrent` may be omitted if table is unanalyzed, but `sizeBytesSnapshot` and `summary` should be present)
+    - `hasDrift: true`
 17. 🔴 `pg_audit_diff_backup({filename: "nonexistent_snapshot_xyz.json"})` → `{success: false, error: "..."}` handler error
 
 **Audit restore workflow (V2 — restoreAs non-destructive):**
 
-18. `pg_audit_restore_backup({filename: <captured from item 13>, dryRun: true})` → verify dry-run returns DDL preview without executing; `drift_col` still present on live table
+18. `pg_audit_restore_backup({filename: <captured from item 13>, dryRun: true})` → verify dry-run returns DDL preview (`ddl` field) without executing; `drift_col` still present on live table
 19. `pg_audit_restore_backup({filename: <captured from item 13>, restoreAs: "temp_backup_restored", confirm: true})` → verify:
     - Response `{success: true}` — snapshot DDL applied under new name `temp_backup_restored`
     - `temp_backup_test` still exists with `drift_col` (original unmodified)

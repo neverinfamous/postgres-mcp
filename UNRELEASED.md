@@ -74,6 +74,7 @@
   - Removed `continue-on-error: true` from Docker Hub description update in `docker-publish.yml`
 
 ### Changed
+- **Backup Testing Assertions**: Updated `test-group-tools.md` to align with the correct V2 backup tool returning schemas (`diff` object structure, `hasDrift` instead of `hasDifferences`, and `ddl` instead of `sql` for dry-run).
 - **Testing Prompts**: Removed legacy `direct tool call` references from `test-tools-codemode.md`, enforcing pure Code Mode (`pg_execute_code`) testing isolation.
 - **Token Optimization Visibility**: Added token insight instructions to `gotchas.md` and updated `overview.md` Quick Access table to explicitly highlight the `postgres://audit` resource for session token usage. Added explicit instructions to `GEMINI.md` to establish token efficiency principles across agents.
 - **Default 30s statement timeout**: Connection pool now applies `statement_timeout = 30000` by default, preventing runaway agent queries from holding connections indefinitely. Explicit `statementTimeout: 0` disables it; any positive value overrides the default.
@@ -112,6 +113,7 @@
 - **Naming conventions**: Renamed 12 source + 9 test PascalCase files to kebab-case (`DatabaseAdapter.ts` → `database-adapter.ts`, `PostgresAdapter.ts` → `postgres-adapter.ts`, `McpServer.ts` → `mcp-server.ts`, etc.). Updated all import paths across ~80 files.
 
 ### Fixed
+- **JSONB tools Zod leaks (`pg_jsonb_array`, `pg_jsonb_strip_nulls`)**: Fixed Split Schema pattern violations where missing required parameters resulted in ad-hoc generic error returns instead of structured P154 `ErrorResponse` payloads. Handlers now correctly throw standard `Error`s that flow through the centralized formatting pipeline.
 - **Backup payload optimization (`pg_audit_list_backups`)**: By default, the tool now explicitly filters out voluminous `target: "unknown"` pre-mutation snapshots generated automatically by Code Mode scripts, protecting the LLM context window from noisy execution residuals unless specifically queried via the `tool: "pg_execute_code"` parameter.
 - **Backup error refinement (`pg_audit_restore_backup`)**: Fixed an issue where `restoreAs` collision queries threw generic `VALIDATION_ERROR` responses. The tool now traps `already exists` and `duplicate` relation errors mid-flight and natively recasts them into robust `ALREADY_EXISTS` P154 codes.
 - **Migration P154 error leaks (`pg_migration_apply`)**: Fixed an architectural Split Schema bug where failed transaction executions manually returned a loose `{success: false, error: ...}` object devoid of mandatory `code` or `category` properties. The handler now throws structured `QueryError` representations, seamlessly aligning with the project's centralized formatting pipeline.
