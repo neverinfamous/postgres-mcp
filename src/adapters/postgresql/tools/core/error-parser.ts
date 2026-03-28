@@ -156,6 +156,18 @@ export function parsePostgresError(
     );
   }
 
+  // 42P16 — invalid object definition (e.g., View column conflicts during CREATE OR REPLACE)
+  if (
+    /cannot change name of view column/i.test(msg) ||
+    /cannot drop columns from view/i.test(msg) ||
+    /cannot change data type of view column/i.test(msg)
+  ) {
+    throw new Error(
+      `Cannot replace view: the new query must generate the same columns (names and types) as the existing view. Use pg_drop_view to remove it first, or ensure the column signature matches.`,
+      { cause: error },
+    );
+  }
+
   // Sub-partitioning PK constraint (42P16 — unique constraint must include all partitioning columns)
   // MUST be checked before the generic 23505 unique constraint handler below,
   // because this message also contains "unique constraint" text.

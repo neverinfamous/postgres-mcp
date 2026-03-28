@@ -37,7 +37,7 @@ export function createStatsDescriptiveTool(
   return {
     name: "pg_stats_descriptive",
     description:
-      "Calculate descriptive statistics (count, min, max, avg, stddev, variance, sum) for a numeric column. Use groupBy to get statistics per category.",
+      "Calculate descriptive statistics (count, min, max, avg, stddev, variance, sum) for a numeric column. Use groupBy to get statistics per category. Warning: using groupBy on high-cardinality columns will result in large JSON payloads.",
     group: "stats",
     inputSchema: StatsDescriptiveSchemaBase.partial(), // Base schema for MCP visibility
     outputSchema: DescriptiveOutputSchema,

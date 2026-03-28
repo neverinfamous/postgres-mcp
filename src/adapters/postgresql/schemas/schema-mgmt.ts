@@ -13,6 +13,7 @@ import { coerceStrictNumber } from "../../../utils/query-helpers.js";
 export const CreateSchemaSchemaBase = z.object({
   name: z.string().optional().describe("Schema name"),
   schema: z.string().optional().describe("Alias for name"),
+  schemaName: z.string().optional().describe("Alias for name"),
   authorization: z.string().optional().describe("Owner role"),
   ifNotExists: z.boolean().optional().describe("Use IF NOT EXISTS"),
 });
@@ -21,8 +22,12 @@ function preprocessCreateSchemaParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
   const result = { ...(input as Record<string, unknown>) };
 
-  if (result["name"] === undefined && result["schema"] !== undefined) {
-    result["name"] = result["schema"];
+  if (result["name"] === undefined) {
+    if (result["schema"] !== undefined) {
+      result["name"] = result["schema"];
+    } else if (result["schemaName"] !== undefined) {
+      result["name"] = result["schemaName"];
+    }
   }
   return result;
 }
@@ -31,7 +36,7 @@ function preprocessCreateSchemaParams(input: unknown): unknown {
 export const CreateSchemaSchema = z
   .preprocess(preprocessCreateSchemaParams, CreateSchemaSchemaBase)
   .transform((data) => ({
-    name: data.name ?? data.schema ?? "",
+    name: data.name ?? data.schema ?? data.schemaName ?? "",
     authorization: data.authorization,
     ifNotExists: data.ifNotExists,
   }))
@@ -39,16 +44,17 @@ export const CreateSchemaSchema = z
     message: "name (or schema alias) is required",
   });
 
-// Base schema for MCP visibility — name is optional
 export const DropSchemaSchemaBase = z.object({
   name: z.string().optional().describe("Schema name"),
+  schema: z.string().optional().describe("Alias for name"),
+  schemaName: z.string().optional().describe("Alias for name"),
   cascade: z.boolean().optional().describe("Drop objects in schema"),
   ifExists: z.boolean().optional().describe("Use IF EXISTS"),
 });
 
 // Full schema parsed inside the handler
 export const DropSchemaSchema = z
-  .preprocess((val: unknown) => val ?? {}, DropSchemaSchemaBase)
+  .preprocess(preprocessCreateSchemaParams, DropSchemaSchemaBase)
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
     message: "name is required",
   });

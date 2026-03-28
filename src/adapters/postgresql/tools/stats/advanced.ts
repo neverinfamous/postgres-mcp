@@ -67,7 +67,7 @@ export function createStatsTopNTool(
   return {
     name: "pg_stats_top_n",
     description:
-      "Get the top N rows ranked by a column. Auto-excludes long-content columns (text, json, bytea) from output unless selectColumns is specified.",
+      "Get the top N rows ranked by a column. Auto-excludes long-content columns (text, json, bytea) from output unless selectColumns is specified. Warning: Using a large 'n' (e.g., > 1000) will result in massive JSON payloads.",
     group: "stats",
     inputSchema: StatsTopNSchemaBase.partial(),
     outputSchema: StatsTopNOutputSchema,
