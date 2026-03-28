@@ -279,13 +279,27 @@ export function createSchemaSnapshotTool(
             : null,
         ]);
 
-        // Helper to defensively strip null/undefined from records
-        const stripNulls = (rows: Record<string, unknown>[]): Record<string, unknown>[] => 
-          rows.map(row => 
-            Object.fromEntries(
-              Object.entries(row).filter(([_, v]) => v !== null && v !== undefined && v !== "")
-            )
-          );
+        // Helper to defensively strip null/undefined/empty arrays from records recursively
+        const stripNulls = (rows: Record<string, unknown>[]): Record<string, unknown>[] => {
+          const clean = (obj: unknown): unknown => {
+            if (Array.isArray(obj)) {
+              return obj.map(clean).filter((v) => v != null && v !== "");
+            }
+            if (obj && typeof obj === "object") {
+              const res: Record<string, unknown> = {};
+              for (const [k, v] of Object.entries(obj)) {
+                if (v == null || v === "") continue;
+                const cleaned = clean(v);
+                if (Array.isArray(cleaned) && cleaned.length === 0) continue;
+                if (typeof cleaned === "object" && Object.keys(cleaned as object).length === 0) continue;
+                res[k] = cleaned;
+              }
+              return res;
+            }
+            return obj;
+          };
+          return rows.map((r) => clean(r) as Record<string, unknown>);
+        };
 
         // Assign results to snapshot and stats
         if (tablesResult !== null) {

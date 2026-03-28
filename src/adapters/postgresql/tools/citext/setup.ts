@@ -140,8 +140,12 @@ Note: If views depend on this column, you must drop and recreate them manually b
         const normalizedType = dataType.toLowerCase();
         if (!allowedTypes.includes(normalizedType)) {
           throw new ValidationError(
-            `Column "${column}" is type "${currentType}", not a text-based type. citext conversion only works for text-based columns.Column "${column}" is "${currentType}" which cannot be converted.`,
-            { currentType, allowedTypes: ["text", "varchar", "character varying"] }
+            `Column "${column}" is type "${currentType}", not a text-based type. citext conversion only works for text-based columns.`,
+            {
+              currentType,
+              allowedTypes: ["text", "varchar", "character varying"],
+              code: "COLUMN_TYPE_MISMATCH"
+            }
           );
         }
 

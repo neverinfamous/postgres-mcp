@@ -41,6 +41,20 @@ const ERROR_SUGGESTIONS: {
     category: ErrorCategory.VALIDATION,
   },
   {
+    pattern: /invalid name syntax/i,
+    suggestion:
+      "Check that the identifier name follows proper syntax and does not contain unauthorized characters or empty strings.",
+    category: ErrorCategory.VALIDATION,
+    code: "INVALID_IDENTIFIER",
+  },
+  {
+    pattern: /not a text-based type/i,
+    suggestion:
+      "This conversion requires a text-based column originally. Alter the column type manually first if converting from numeric/boolean.",
+    category: ErrorCategory.VALIDATION,
+    code: "COLUMN_TYPE_MISMATCH",
+  },
+  {
     pattern: /vector dimensions must match/i,
     suggestion:
       "All vectors in comparison must have the same number of dimensions.",

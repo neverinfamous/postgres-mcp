@@ -389,7 +389,7 @@ export function createCascadeSimulatorTool(
 
           for (const ref of refs) {
             const refQName = qualifiedName(ref.fromSchema, ref.fromTable);
-            if (visited.has(refQName)) continue;
+            const isAlreadyVisited = visited.has(refQName);
             visited.add(refQName);
 
             const action = operation === "DELETE" ? ref.onDelete : "CASCADE";
@@ -405,12 +405,14 @@ export function createCascadeSimulatorTool(
                 path: [...current.path, refQName],
                 depth: current.depth + 1,
               });
-              // Continue traversal for cascade
-              queue.push({
-                tableName: refQName,
-                path: [...current.path, refQName],
-                depth: current.depth + 1,
-              });
+              // Continue traversal for cascade only if not already visited (prevents infinite loops)
+              if (!isAlreadyVisited) {
+                queue.push({
+                  tableName: refQName,
+                  path: [...current.path, refQName],
+                  depth: current.depth + 1,
+                });
+              }
             } else if (action === "RESTRICT" || action === "NO ACTION") {
               blockingActions++;
               affected.push({
