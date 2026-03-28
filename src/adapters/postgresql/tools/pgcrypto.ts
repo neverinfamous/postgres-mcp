@@ -5,12 +5,14 @@
 
 import type { PostgresAdapter } from "../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
-import { z } from "zod";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "./core/error-helpers.js";
-import { coerceNumber } from "../../../utils/query-helpers.js";
 import {
+  PgcryptoCreateExtensionSchemaBase,
+  PgcryptoCreateExtensionSchema,
+  PgcryptoGenRandomUuidSchemaBase,
+  PgcryptoGenRandomUuidSchema,
   PgcryptoHashSchema,
   PgcryptoHashSchemaBase,
   PgcryptoHmacSchema,
@@ -56,13 +58,23 @@ function createPgcryptoExtensionTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_pgcrypto_create_extension",
     description: "Enable the pgcrypto extension for cryptographic functions.",
     group: "pgcrypto",
-    inputSchema: z.object({}).strict(),
+    inputSchema: PgcryptoCreateExtensionSchemaBase,
     outputSchema: PgcryptoCreateExtensionOutputSchema,
     annotations: write("Create Pgcrypto Extension"),
     icons: getToolIcons("pgcrypto", write("Create Pgcrypto Extension")),
-    handler: async (_params: unknown, _context: RequestContext) => {
-      await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS pgcrypto");
-      return { success: true, message: "pgcrypto extension enabled" };
+    handler: async (params: unknown, _context: RequestContext) => {
+      try {
+        const { schema } = PgcryptoCreateExtensionSchema.parse(params);
+        const schemaClause = schema ? ` SCHEMA ${schema}` : "";
+        await adapter.executeQuery(
+          `CREATE EXTENSION IF NOT EXISTS pgcrypto${schemaClause}`,
+        );
+        return { success: true, message: "pgcrypto extension enabled" };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_pgcrypto_create_extension",
+        });
+      }
     },
   };
 }
@@ -220,34 +232,18 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
 function createPgcryptoGenRandomUuidTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Base schema for MCP visibility (count parameter exposed to clients, relaxed)
-  const GenUuidSchemaBase = z.object({
-    count: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Number of UUIDs to generate (default: 1, max: 100)"),
-  });
-
-  // Full schema with strict validation for handler parsing
-  const GenUuidSchema = z
-    .object({
-      count: z
-        .preprocess(coerceNumber, z.number().min(1).max(100).optional())
-        .describe("Number of UUIDs to generate (default: 1, max: 100)"),
-    })
-    .default({});
-
   return {
     name: "pg_pgcrypto_gen_random_uuid",
     description: "Generate a cryptographically secure UUID v4.",
     group: "pgcrypto",
-    inputSchema: GenUuidSchemaBase,
+    inputSchema: PgcryptoGenRandomUuidSchemaBase,
     outputSchema: PgcryptoGenRandomUuidOutputSchema,
     annotations: readOnly("Generate UUID"),
     icons: getToolIcons("pgcrypto", readOnly("Generate UUID")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Parse via Zod to enforce count validation (max 100)
-        const parsed = GenUuidSchema.parse(params);
+        const parsed = PgcryptoGenRandomUuidSchema.parse(params);
         const generateCount = parsed.count ?? 1;
         const result = await adapter.executeQuery(
           `SELECT gen_random_uuid()::text as uuid FROM generate_series(1, $1)`,

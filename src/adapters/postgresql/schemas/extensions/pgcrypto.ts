@@ -13,6 +13,26 @@ import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ */
+export const PgcryptoCreateExtensionSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema to install extension in (default: public)"),
+});
+
+/**
+ * Schema for creating the pgcrypto extension.
+ */
+export const PgcryptoCreateExtensionSchema = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema to install extension in (default: public)"),
+});
+
+/**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
  * Valid algorithm values described in text for MCP clients.
  */
 export const PgcryptoHashSchemaBase = z.object({
@@ -126,6 +146,26 @@ export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
   .refine((data) => data.password !== undefined, {
     message: "password (or key alias) is required",
   });
+
+/**
+ * Base schema for MCP visibility (count parameter exposed to clients, relaxed)
+ */
+export const PgcryptoGenRandomUuidSchemaBase = z.object({
+  count: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Number of UUIDs to generate (default: 1, max: 100)"),
+});
+
+/**
+ * Schema for UUID generation with count parameter.
+ */
+export const PgcryptoGenRandomUuidSchema = z
+  .object({
+    count: z
+      .preprocess(coerceNumber, z.number().min(1).max(100).optional())
+      .describe("Number of UUIDs to generate (default: 1, max: 100)"),
+  })
+  .default({});
 
 /**
  * Base schema for MCP visibility — shows all parameters with relaxed validation.

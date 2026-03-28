@@ -262,7 +262,6 @@ export {
   // pg_stat_kcache
   KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
-  KcacheTopConsumersSchema,
   KcacheTopCpuSchemaBase,
   KcacheTopIoSchemaBase,
   KcacheDatabaseStatsSchemaBase,
@@ -320,11 +319,15 @@ export {
   LtreeConvertColumnOutputSchema,
   LtreeCreateIndexOutputSchema,
   // pgcrypto — Base schemas for MCP visibility (Split Schema pattern)
+  PgcryptoCreateExtensionSchemaBase,
+  PgcryptoGenRandomUuidSchemaBase,
   PgcryptoHashSchemaBase,
   PgcryptoHmacSchemaBase,
   PgcryptoRandomBytesSchemaBase,
   PgcryptoGenSaltSchemaBase,
   // pgcrypto — Full schemas for handler validation
+  PgcryptoCreateExtensionSchema,
+  PgcryptoGenRandomUuidSchema,
   PgcryptoHashSchema,
   PgcryptoHmacSchema,
   PgcryptoEncryptSchema,

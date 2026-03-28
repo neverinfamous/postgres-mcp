@@ -15,7 +15,6 @@ export { normalizeOptionalParams } from "./shared.js";
 export {
   KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
-  KcacheTopConsumersSchema,
   KcacheTopCpuSchemaBase,
   KcacheTopIoSchemaBase,
   KcacheDatabaseStatsSchemaBase,
@@ -80,6 +79,10 @@ export {
 
 // pgcrypto schemas
 export {
+  PgcryptoCreateExtensionSchemaBase,
+  PgcryptoCreateExtensionSchema,
+  PgcryptoGenRandomUuidSchemaBase,
+  PgcryptoGenRandomUuidSchema,
   PgcryptoHashSchemaBase,
   PgcryptoHashSchema,
   PgcryptoHmacSchemaBase,
