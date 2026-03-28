@@ -42,7 +42,7 @@ export const StatsTopNSchemaBase = z.object({
   n: z
     .preprocess(coerceNumber, z.number().optional())
     .describe("Number of top values (default: 10)"),
-  orderDirection: z
+  direction: z
     .enum(["asc", "desc"])
     .optional()
     .describe("Sort direction (default: desc)"),

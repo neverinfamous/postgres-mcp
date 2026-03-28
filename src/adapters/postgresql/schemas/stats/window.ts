@@ -36,7 +36,7 @@ export const StatsRankSchemaBase = z.object({
     .array(z.string())
     .optional()
     .describe("Columns to include in result"),
-  rankType: z
+  method: z
     .enum(["rank", "dense_rank", "percent_rank"])
     .optional()
     .describe("Rank function type (default: rank)"),

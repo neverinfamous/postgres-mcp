@@ -3358,7 +3358,7 @@ describe("pg_stats_rank", () => {
 
     const tool = tools.find((t) => t.name === "pg_stats_rank")!;
     await tool.handler(
-      { table: "scores", orderBy: "score", rankType: "dense_rank" },
+      { table: "scores", orderBy: "score", method: "dense_rank" },
       mockContext,
     );
 

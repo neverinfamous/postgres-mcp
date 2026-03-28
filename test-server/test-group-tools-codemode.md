@@ -517,14 +517,14 @@ schema Tool Group (12 tools +1 for code mode)
 
 > **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
-✅ 1. `pg_list_schemas()` → verify `public` and `test_schema` in results
-✅ 2. `pg_list_views()` → verify `test_order_summary` in results
-✅ 3. `pg_list_sequences({schema: "test_schema"})` → verify `order_seq` appears
-✅ 4. `pg_list_functions({schema: "public", limit: 5})` → verify response structure
-✅ 5. `pg_list_constraints({table: "test_orders"})` → verify FK to `test_products` appears
-✅ 6. `pg_list_triggers({schema: "public"})` → verify response structure (may be empty)
-✅ 7. 🔴 `pg_list_constraints({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
-✅ 8. 🔴 `pg_create_sequence({name: "temp_seq_test", start: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error (wrong-type numeric param)
+1. `pg_list_schemas()` → verify `public` and `test_schema` in results
+2. `pg_list_views()` → verify `test_order_summary` in results
+3. `pg_list_sequences({schema: "test_schema"})` → verify `order_seq` appears
+4. `pg_list_functions({schema: "public", limit: 5})` → verify response structure
+5. `pg_list_constraints({table: "test_orders"})` → verify FK to `test_products` appears
+6. `pg_list_triggers({schema: "public"})` → verify response structure (may be empty)
+7. 🔴 `pg_list_constraints({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
+8. 🔴 `pg_create_sequence({name: "temp_seq_test", start: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error (wrong-type numeric param)
 
 ---
 

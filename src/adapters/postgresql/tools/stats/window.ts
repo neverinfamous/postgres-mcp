@@ -156,13 +156,13 @@ export function createStatsRankTool(
           orderBy: string;
           partitionBy?: string;
           selectColumns?: string[];
-          rankType?: "rank" | "dense_rank" | "percent_rank";
+          method?: "rank" | "dense_rank" | "percent_rank";
           schema?: string;
           where?: string;
           limit?: number;
         };
 
-        const rankType = parsed.rankType ?? "rank";
+        const rankType = parsed.method ?? "rank";
         const limit = resolveLimit(parsed.limit);
         const partition = partitionClause(parsed.partitionBy);
         const fnName = rankType.toUpperCase();

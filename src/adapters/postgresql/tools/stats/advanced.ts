@@ -79,7 +79,7 @@ export function createStatsTopNTool(
           table: string;
           column: string;
           n?: number;
-          orderDirection?: "asc" | "desc";
+          direction?: "asc" | "desc";
           selectColumns?: string[];
           schema?: string;
           where?: string;
@@ -94,7 +94,7 @@ export function createStatsTopNTool(
         } = parsed;
         const n =
           parsed.n === undefined || Number.isNaN(parsed.n) ? 10 : parsed.n;
-        const direction = parsed.orderDirection ?? "desc";
+        const direction = parsed.direction ?? "desc";
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where

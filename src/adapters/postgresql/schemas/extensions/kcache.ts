@@ -39,18 +39,6 @@ export const KcacheQueryStatsSchema = z.preprocess(
   KcacheQueryStatsSchemaBase,
 );
 
-/**
- * Schema for top resource consumers query.
- */
-export const KcacheTopConsumersSchema = z.object({
-  resource: z
-    .enum(["cpu", "reads", "writes", "page_faults"])
-    .describe("Resource type to rank by"),
-  limit: z
-    .number()
-    .optional()
-    .describe("Number of top queries to return (default: 10)"),
-});
 
 /**
  * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
