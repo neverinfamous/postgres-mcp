@@ -6,9 +6,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -140,7 +141,27 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
           table,
           schemaName !== "public" ? schemaName : undefined,
         );
-        const columnName = sanitizeIdentifier(column);
+        let columnName = column ? sanitizeIdentifier(column) : "";
+
+        if (!columnName) {
+          const geoColQuery = `
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = $1 AND table_name = $2
+            AND udt_name IN ('geometry', 'geography')
+          `;
+          const geoColResult = await adapter.executeQuery(geoColQuery, [schemaName, table]);
+          const geoRows = geoColResult.rows ?? [];
+          
+          if (geoRows.length === 0) {
+            throw new ValidationError(`No geometry/geography column found in table '${table}'.`);
+          }
+          if (geoRows.length > 1) {
+            throw new ValidationError(`Multiple geometry columns found in table '${table}'. Please specify 'column' explicitly.`);
+          }
+          const detectedCol = geoRows[0]?.["column_name"] as string | undefined;
+          columnName = sanitizeIdentifier(detectedCol ?? "");
+        }
+
         const limitVal = limit ?? 10;
         const distanceFilter =
           maxDistance !== undefined && maxDistance > 0

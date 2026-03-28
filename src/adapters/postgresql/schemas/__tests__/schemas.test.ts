@@ -2102,31 +2102,31 @@ describe("PgcryptoEncryptSchema", () => {
 });
 
 describe("PgcryptoDecryptSchema", () => {
-  it("should resolve data alias to encryptedData", () => {
+  it("should resolve encryptedData alias to data", () => {
     const result = PgcryptoDecryptSchema.parse({
-      data: "encrypted-data",
+      encryptedData: "encrypted-data",
       password: "my-pass",
     });
-    expect(result.encryptedData).toBe("encrypted-data");
+    expect(result.data).toBe("encrypted-data");
   });
 
   it("should resolve key alias to password", () => {
     const result = PgcryptoDecryptSchema.parse({
-      encryptedData: "encrypted-data",
+      data: "encrypted-data",
       key: "my-pass",
     });
     expect(result.password).toBe("my-pass");
   });
 
-  it("should reject when no encryptedData/data provided", () => {
+  it("should reject when no data/encryptedData provided", () => {
     expect(() => PgcryptoDecryptSchema.parse({ password: "my-pass" })).toThrow(
-      "encryptedData (or data alias) is required",
+      "data (or encryptedData alias) is required",
     );
   });
 
   it("should reject when no password/key provided", () => {
     expect(() =>
-      PgcryptoDecryptSchema.parse({ encryptedData: "data" }),
+      PgcryptoDecryptSchema.parse({ data: "data" }),
     ).toThrow("password (or key alias) is required");
   });
 });

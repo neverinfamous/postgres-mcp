@@ -214,10 +214,12 @@ Useful for monitoring and debugging scheduled jobs.`,
       try {
         const {
           jobId,
+          jobName,
           status,
           limit: rawLimitValue,
         } = CronJobRunDetailsSchema.parse(params) as {
           jobId?: number;
+          jobName?: string;
           status?: string;
           limit?: unknown;
         };
@@ -253,10 +255,15 @@ Useful for monitoring and debugging scheduled jobs.`,
         if (jobId !== undefined) {
           conditions.push(`jobid = $${String(paramIndex++)}`);
           queryParams.push(jobId);
+        } else if (jobName !== undefined) {
+          conditions.push(
+            `jobid IN (SELECT jobid FROM cron.job WHERE jobname = $${String(paramIndex++)})`
+          );
+          queryParams.push(jobName);
         }
 
         if (status !== undefined) {
-          conditions.push(`status = $${String(paramIndex)}`);
+          conditions.push(`status = $${String(paramIndex++)}`);
           queryParams.push(status);
         }
 

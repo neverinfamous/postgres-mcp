@@ -120,9 +120,7 @@ export const GeometryDistanceSchema = z
   .refine((data) => data.table !== "", {
     message: "table (or tableName alias) is required",
   })
-  .refine((data) => data.column !== "", {
-    message: "column (or geom/geometry/geometryColumn alias) is required",
-  })
+
   .refine((data) => data.maxDistance === undefined || data.maxDistance >= 0, {
     message: "distance must be a non-negative number",
   });

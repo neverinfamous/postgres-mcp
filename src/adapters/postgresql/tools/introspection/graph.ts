@@ -146,17 +146,22 @@ export function createDependencyGraphTool(
         });
 
         // Build edges
-        const edges = fks.map((fk) => ({
-          from: qualifiedName(fk.fromSchema, fk.fromTable),
-          to: qualifiedName(fk.toSchema, fk.toTable),
-          constraint: fk.constraintName,
-          columns: fk.fromColumns.map((col, i) => ({
-            from: col,
-            to: fk.toColumns[i] ?? col,
-          })),
-          onDelete: fk.onDelete,
-          onUpdate: fk.onUpdate,
-        }));
+        const edges = parsed.compact
+          ? fks.map((fk) => ({
+              from: qualifiedName(fk.fromSchema, fk.fromTable),
+              to: qualifiedName(fk.toSchema, fk.toTable),
+            }))
+          : fks.map((fk) => ({
+              from: qualifiedName(fk.fromSchema, fk.fromTable),
+              to: qualifiedName(fk.toSchema, fk.toTable),
+              constraint: fk.constraintName,
+              columns: fk.fromColumns.map((col, i) => ({
+                from: col,
+                to: fk.toColumns[i] ?? col,
+              })),
+              onDelete: fk.onDelete,
+              onUpdate: fk.onUpdate,
+            }));
 
         return {
           nodes,

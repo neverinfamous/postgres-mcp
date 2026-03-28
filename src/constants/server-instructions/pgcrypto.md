@@ -6,7 +6,7 @@ Core: `createExtension()`, `hash()`, `hmac()`, `encrypt()`, `decrypt()`, `genRan
 - `pg_pgcrypto_hash`: Hash data using digest algorithms. `algorithm`: 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512'. `encoding`: 'hex' (default), 'base64'. Returns `{hash, algorithm, encoding, inputLength}`
 - `pg_pgcrypto_hmac`: HMAC authentication. Same algorithms as hash. Returns `{hmac, algorithm, encoding}`. `key` param for secret
 - `pg_pgcrypto_encrypt`: PGP symmetric encryption. `data` + `password`/`key` (aliases). Optional `options` for cipher config (e.g., 'cipher-algo=aes256'). Returns `{encrypted, encoding: 'base64'}`
-- `pg_pgcrypto_decrypt`: Decrypt PGP-encrypted data. `encryptedData`/`data` + `password`/`key` (aliases). Returns `{decrypted, verified}`. ⛔ Throws on wrong key/corrupt data
+- `pg_pgcrypto_decrypt`: Decrypt PGP-encrypted data. `data`/`encryptedData` + `password`/`key` (aliases). Returns `{decrypted, verified}`. ⛔ Throws on wrong key/corrupt data
 - `pg_pgcrypto_gen_random_uuid`: Generate UUID v4. Optional `count` (1-100, default 1). Returns `{uuid, uuids, count}` (`uuid` convenience property for single requests)
 - `pg_pgcrypto_gen_random_bytes`: Generate random bytes. `length` (1-1024). `encoding`: 'hex' (default), 'base64'. Returns `{randomBytes, length, encoding}`
 - `pg_pgcrypto_gen_salt`: Generate salt for crypt(). `type`: 'bf' (bcrypt, recommended), 'md5', 'xdes', 'des'. Optional `iterations` for bf (4-31) or xdes. Returns `{salt, type}`

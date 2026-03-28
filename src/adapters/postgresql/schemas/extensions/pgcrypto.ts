@@ -115,35 +115,35 @@ export const PgcryptoEncryptSchema = PgcryptoEncryptSchemaBase.transform(
 
 /**
  * Schema for PGP symmetric decryption.
- * Accepts 'data' as alias for 'encryptedData', 'key' as alias for 'password'.
+ * Accepts 'encryptedData' as alias for 'data', 'key' as alias for 'password'.
  *
  * Uses base schema for MCP exposure and transform schema for validation.
  */
 export const PgcryptoDecryptSchemaBase = z.object({
-  encryptedData: z
+  data: z
     .string()
     .optional()
     .describe("Encrypted data (base64 from encrypt)"),
-  data: z.string().optional().describe("Alias for encryptedData"),
+  encryptedData: z.string().optional().describe("Alias for data"),
   password: z.string().optional().describe("Decryption password"),
   key: z.string().optional().describe("Alias for password"),
 });
 
 export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
-  (data) => {
+  (payload) => {
     // Handle aliases
-    const resolvedEncryptedData = data.encryptedData ?? data.data;
-    const resolvedPassword = data.password ?? data.key;
+    const resolvedData = payload.data ?? payload.encryptedData;
+    const resolvedPassword = payload.password ?? payload.key;
     return {
-      encryptedData: resolvedEncryptedData,
+      data: resolvedData,
       password: resolvedPassword,
     };
   },
 )
-  .refine((data) => data.encryptedData !== undefined, {
-    message: "encryptedData (or data alias) is required",
+  .refine((payload) => payload.data !== undefined, {
+    message: "data (or encryptedData alias) is required",
   })
-  .refine((data) => data.password !== undefined, {
+  .refine((payload) => payload.password !== undefined, {
     message: "password (or key alias) is required",
   });
 

@@ -170,6 +170,9 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     cronListJobs: "listJobs",
     cronJobRunDetails: "jobRunDetails",
     cronCleanupHistory: "cleanupHistory",
+    // Intuitive aliases
+    jobDetails: "jobRunDetails",
+    runDetails: "jobRunDetails",
   },
   // Partman
   partman: {
@@ -553,6 +556,9 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
 
   // JSONB pretty
   pretty: "json",
+
+  // ============ CRON GROUP ============
+  jobRunDetails: "jobId",
 
   // ============ BACKUP GROUP ============
   copyExport: "table",

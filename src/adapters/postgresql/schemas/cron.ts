@@ -309,6 +309,7 @@ export const CronListJobsSchema = z.object({
 
 export const CronJobRunDetailsSchemaBase = z.object({
   jobId: CoercibleJobId.optional().describe("Filter by job ID"),
+  jobName: z.string().optional().describe("Filter by job name"),
   status: z
     .string()
     .optional()
@@ -319,6 +320,7 @@ export const CronJobRunDetailsSchemaBase = z.object({
 export const CronJobRunDetailsSchema = z
   .object({
     jobId: CoercibleJobId.optional().describe("Filter by job ID"),
+    jobName: z.string().optional().describe("Filter by job name"),
     status: z
       .string()
       .optional()

@@ -138,7 +138,7 @@ export function createSchemaSnapshotTool(
                 `SELECT
                 n.nspname AS schema, c.relname AS name,
                 CASE c.relkind WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END AS type,
-                pg_get_viewdef(c.oid, true) AS definition
+                ${parsed.compact ? 'NULL::text' : 'pg_get_viewdef(c.oid, true)'} AS definition
               FROM pg_class c
               JOIN pg_namespace n ON n.oid = c.relnamespace
               WHERE c.relkind IN ('v', 'm')
@@ -154,7 +154,7 @@ export function createSchemaSnapshotTool(
                 `SELECT
                 i.relname AS name, t.relname AS table_name, n.nspname AS schema,
                 am.amname AS type, ix.indisunique AS is_unique,
-                pg_get_indexdef(ix.indexrelid) AS definition,
+                ${parsed.compact ? 'NULL::text' : 'pg_get_indexdef(ix.indexrelid)'} AS definition,
                 pg_relation_size(i.oid) AS size_bytes
               FROM pg_index ix
               JOIN pg_class t ON t.oid = ix.indrelid
@@ -175,7 +175,7 @@ export function createSchemaSnapshotTool(
                 c.conname AS name, t.relname AS table_name, n.nspname AS schema,
                 CASE c.contype WHEN 'p' THEN 'primary_key' WHEN 'f' THEN 'foreign_key'
                   WHEN 'u' THEN 'unique' WHEN 'c' THEN 'check' WHEN 'x' THEN 'exclusion' END AS type,
-                pg_get_constraintdef(c.oid) AS definition
+                ${parsed.compact ? 'NULL::text' : 'pg_get_constraintdef(c.oid)'} AS definition
               FROM pg_constraint c
               JOIN pg_class t ON t.oid = c.conrelid
               JOIN pg_namespace n ON n.oid = t.relnamespace
@@ -191,7 +191,7 @@ export function createSchemaSnapshotTool(
             ? adapter.executeQuery(
                 `SELECT
                 n.nspname AS schema, p.proname AS name,
-                pg_get_function_arguments(p.oid) AS arguments,
+                ${parsed.compact ? 'NULL::text' : 'pg_get_function_arguments(p.oid)'} AS arguments,
                 pg_get_function_result(p.oid) AS return_type,
                 l.lanname AS language, p.provolatile AS volatility
               FROM pg_proc p

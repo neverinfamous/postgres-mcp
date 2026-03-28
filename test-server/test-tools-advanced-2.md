@@ -39,7 +39,9 @@ All tests should be executed via `pg_execute_code` code mode. Tests are written 
 
 ## Test Database Schema
 
-Same as `test-tools.md` — refer to that file for the full schema reference. Key tables: `test_products` (15 rows), `test_orders` (20), `test_jsonb_docs` (3), `test_articles` (3), `test_measurements` (500), `test_embeddings` (50), `test_locations` (5), `test_users` (3), `test_categories` (6), `test_events` (100 across 4 partitions), `test_departments` (3), `test_employees` (5), `test_projects` (2), `test_assignments` (3), `test_audit_log` (3).
+Same as `test-tools.md` — refer to that file for the full schema reference. Key tables: `test_products` (15 rows), `test_orders` (20), `test_jsonb_docs` (3), `test_articles` (3), `test_measurements` (640, after resource seed), `test_embeddings` (75, after resource seed), `test_locations` (25, after resource seed), `test_users` (3), `test_categories` (6), `test_events` (100 across 4 partitions), `test_departments` (3), `test_employees` (5), `test_projects` (2), `test_assignments` (3), `test_audit_log` (3).
+
+> **Note:** `test-resources.sql` runs after `test-database.sql` and adds ~200 measurements (minus deletions), 25 embeddings, and 20 locations. Counts reflect the post-seed state.
 
 ## Naming & Cleanup
 
@@ -98,7 +100,7 @@ At the end, confirm cleanup of all `stress_*` objects, then **fix every finding*
 
 ### Final Cleanup
 
-Confirm `test_locations` count is still 5.
+Confirm `test_locations` count is still 25 (post-resource-seed baseline).
 
 ---
 
@@ -436,7 +438,7 @@ Run all three operation types on `test_departments` and compare:
 
 ### Final Cleanup
 
-All tools in this group are read-only — no cleanup needed. Confirm `test_products` (15 rows), `test_orders` (20 rows), and `test_measurements` (500 rows) are unchanged.
+All tools in this group are read-only — no cleanup needed. Confirm `test_products` (15 rows), `test_orders` (20 rows), and `test_measurements` (640 rows) are unchanged.
 
 ---
 

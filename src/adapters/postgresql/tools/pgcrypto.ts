@@ -200,10 +200,10 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Use transformed schema with alias resolution for validation
-        const { encryptedData, password } = PgcryptoDecryptSchema.parse(params);
+        const { data, password } = PgcryptoDecryptSchema.parse(params);
         const result = await adapter.executeQuery(
           `SELECT pgp_sym_decrypt(decode($1, 'base64'), $2) as decrypted`,
-          [encryptedData, password],
+          [data, password],
         );
         const decrypted = result.rows?.[0]?.["decrypted"];
 

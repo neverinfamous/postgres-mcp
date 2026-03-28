@@ -48,8 +48,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const limit = parsed.limit;
 
-        if (limit !== undefined && (limit < 0 || limit > 100)) {
-          throw new ValidationError("limit must be between 0 (no limit, capped at 500) and 100");
+        if (limit !== undefined && (limit < 1 || limit > 100)) {
+          throw new ValidationError("limit must be between 1 and 100");
         }
 
         const orderBy = parsed.orderBy;
@@ -75,9 +75,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const cols = await getKcacheColumnNames(adapter);
 
-        const DEFAULT_LIMIT = 20;
-        // limit: 0 means "unlimited" (capped at 500), undefined means use default
-        const limitVal = limit === 0 ? 500 : (limit ?? DEFAULT_LIMIT);
+        const DEFAULT_LIMIT = 50;
+        const limitVal = limit ?? DEFAULT_LIMIT;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           queryPreviewLength === 0
@@ -185,14 +184,12 @@ in user CPU (application code) vs system CPU (kernel operations).`,
             queryPreviewLength: z.coerce.number().optional(),
           })
           .parse(params ?? {});
-        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 100)) {
-          throw new ValidationError("limit must be between 0 (no limit, capped at 500) and 100");
+        if (parsed.limit !== undefined && (parsed.limit < 1 || parsed.limit > 100)) {
+          throw new ValidationError("limit must be between 1 and 100");
         }
 
-        const DEFAULT_LIMIT = 10;
-        const validLimit = parsed.limit ?? DEFAULT_LIMIT;
-        // limit: 0 means "unlimited" (capped at 500)
-        const limitVal = validLimit === 0 ? 500 : validLimit;
+        const DEFAULT_LIMIT = 50;
+        const limitVal = parsed.limit ?? DEFAULT_LIMIT;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
@@ -308,14 +305,12 @@ which represent actual disk access (not just shared buffer hits).`,
           );
         }
         const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
-        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 100)) {
-          throw new ValidationError("limit must be between 0 (no limit, capped at 500) and 100");
+        if (parsed.limit !== undefined && (parsed.limit < 1 || parsed.limit > 100)) {
+          throw new ValidationError("limit must be between 1 and 100");
         }
 
-        const DEFAULT_LIMIT = 10;
-        const validLimit = parsed.limit ?? DEFAULT_LIMIT;
-        // limit: 0 means "unlimited" (capped at 500)
-        const limitVal = validLimit === 0 ? 500 : validLimit;
+        const DEFAULT_LIMIT = 50;
+        const limitVal = parsed.limit ?? DEFAULT_LIMIT;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0

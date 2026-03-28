@@ -114,9 +114,10 @@ describe("pg_cron_schedule", () => {
   });
 
   it("should schedule a named job", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ jobid: 2 }],
-    });
+    // Setup lookup mock (not found) and schedule mock (success)
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ jobid: 2 }] });
 
     const tool = tools.find((t) => t.name === "pg_cron_schedule")!;
     const result = (await tool.handler(
@@ -131,11 +132,37 @@ describe("pg_cron_schedule", () => {
       jobName: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      1,
+      "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1",
+      ["heartbeat"],
+    );
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      2,
       "SELECT cron.schedule($1, $2, $3) as jobid",
       ["heartbeat", "30 seconds", "SELECT 1"],
     );
     expect(result.jobName).toBe("heartbeat");
+  });
+
+  it("should block duplicate named jobs", async () => {
+    // Setup lookup mock to return an existing job
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ jobid: 99 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cron_schedule")!;
+    const result = (await tool.handler(
+      {
+        schedule: "1 minute",
+        command: "SELECT 1",
+        jobName: "heartbeat",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/already exists/i);
   });
 });
 
@@ -152,9 +179,9 @@ describe("pg_cron_schedule_in_database", () => {
   });
 
   it("should schedule a job in another database", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ jobid: 3 }],
-    });
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ jobid: 3 }] });
 
     const tool = tools.find((t) => t.name === "pg_cron_schedule_in_database")!;
     const result = (await tool.handler(

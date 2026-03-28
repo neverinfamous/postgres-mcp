@@ -29,9 +29,18 @@ export const DependencyGraphSchemaBase = z.object({
     .describe(
       "Exclude known extension schemas (cron, topology, tiger, tiger_data) from graph (default: true)",
     ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe("Omit detailed metadata to reduce payload size (default: false)"),
 });
 
-export const DependencyGraphSchema = DependencyGraphSchemaBase.default({});
+export const DependencyGraphSchema = z.object({
+    schema: z.string().optional(),
+    includeRowCounts: z.boolean().optional(),
+    excludeExtensionSchemas: z.boolean().optional(),
+    compact: z.boolean().optional(),
+}).default({});
 
 /**
  * pg_topological_sort input

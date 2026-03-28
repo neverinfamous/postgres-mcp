@@ -72,6 +72,14 @@ or interval syntax (e.g., "30 seconds"). Note: pg_cron allows duplicate job name
         // Use transformed schema with alias resolution for validation
         const { schedule, command, jobName } = CronScheduleSchema.parse(params);
 
+        if (jobName !== undefined) {
+          const lookupSql = "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1";
+          const lookupResult = await adapter.executeQuery(lookupSql, [jobName]);
+          if (lookupResult.rows && lookupResult.rows.length > 0) {
+            throw new ValidationError(`A job with name '${jobName}' already exists. pg_cron requires unique job names for reliable administration.`);
+          }
+        }
+
         let sql: string;
         let queryParams: unknown[];
 
@@ -128,6 +136,14 @@ maintenance tasks. Returns the job ID.`,
         // Use transformed schema with alias resolution for validation
         const { jobName, schedule, command, database, username, active } =
           CronScheduleInDatabaseSchema.parse(params);
+
+        if (jobName !== undefined) {
+          const lookupSql = "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1";
+          const lookupResult = await adapter.executeQuery(lookupSql, [jobName]);
+          if (lookupResult.rows && lookupResult.rows.length > 0) {
+            throw new ValidationError(`A job with name '${jobName}' already exists. pg_cron requires unique job names for reliable administration.`);
+          }
+        }
 
         const activeVal = active ?? true;
         const sql = `SELECT cron.schedule_in_database($1, $2, $3, $4, $5, $6) as jobid`;
