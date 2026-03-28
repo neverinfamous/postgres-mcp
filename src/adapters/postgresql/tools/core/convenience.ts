@@ -16,6 +16,7 @@ import type {
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "./error-helpers.js";
+import { ErrorCategory } from "../../../../types/error-types.js";
 import { WriteQueryOutputSchema } from "./schemas/index.js";
 import {
   validateTableExists,
@@ -147,6 +148,11 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
                 error:
                   `conflictColumns [${parsed.conflictColumns.join(", ")}] must reference columns with a UNIQUE constraint or PRIMARY KEY. ` +
                   `Create a unique constraint first: ALTER TABLE ${qualifiedTable} ADD CONSTRAINT unique_name UNIQUE (${conflictCols})`,
+                code: "CONSTRAINT_ERROR",
+                category: ErrorCategory.VALIDATION,
+                suggestion: "Add a UNIQUE constraint to the conflict columns before upserting.",
+                recoverable: false,
+                details: undefined,
               };
             }
           }
@@ -191,8 +197,13 @@ export function createBatchInsertTool(
         return {
           success: false,
           error:
-            "rows must not be empty. Provide at least one row to insert, " +
+            "Validation error: rows must not be empty. Provide at least one row to insert, " +
             'e.g., rows: [{ column: "value" }]',
+          code: "VALIDATION_ERROR",
+          category: ErrorCategory.VALIDATION,
+          suggestion: "Check the input parameters match the expected schema.",
+          recoverable: false,
+          details: undefined,
         };
       }
 

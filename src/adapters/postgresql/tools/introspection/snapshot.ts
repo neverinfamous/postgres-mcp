@@ -86,15 +86,15 @@ export function createSchemaSnapshotTool(
         const columnsSubquery = parsed.compact
           ? ""
           : `,
-            (SELECT json_agg(json_build_object(
+            (SELECT json_agg(json_strip_nulls(json_build_object(
               'name', a.attname,
               'type', pg_catalog.format_type(a.atttypid, a.atttypmod),
-              'nullable', NOT a.attnotnull,
+              'nullable', CASE WHEN NOT a.attnotnull THEN true ELSE null END,
               'default', pg_get_expr(d.adbin, d.adrelid),
-              'primaryKey', COALESCE((SELECT true FROM pg_constraint pk
+              'primaryKey', CASE WHEN COALESCE((SELECT true FROM pg_constraint pk
                 WHERE pk.conrelid = a.attrelid AND a.attnum = ANY(pk.conkey)
-                AND pk.contype = 'p'), false)
-            ) ORDER BY a.attnum)
+                AND pk.contype = 'p'), false) THEN true ELSE null END
+            )) ORDER BY a.attnum)
             FROM pg_attribute a
             LEFT JOIN pg_attrdef d ON (a.attrelid, a.attnum) = (d.adrelid, d.adnum)
             WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
@@ -279,41 +279,49 @@ export function createSchemaSnapshotTool(
             : null,
         ]);
 
+        // Helper to defensively strip null/undefined from records
+        const stripNulls = (rows: Record<string, unknown>[]): Record<string, unknown>[] => 
+          rows.map(row => 
+            Object.fromEntries(
+              Object.entries(row).filter(([_, v]) => v !== null && v !== undefined && v !== "")
+            )
+          );
+
         // Assign results to snapshot and stats
         if (tablesResult !== null) {
-          if (tablesResult.rows && tablesResult.rows.length > 0) snapshot["tables"] = tablesResult.rows;
+          if (tablesResult.rows && tablesResult.rows.length > 0) snapshot["tables"] = stripNulls(tablesResult.rows);
           stats.tables = tablesResult.rows?.length ?? 0;
         }
         if (viewsResult !== null) {
-          if (viewsResult.rows && viewsResult.rows.length > 0) snapshot["views"] = viewsResult.rows;
+          if (viewsResult.rows && viewsResult.rows.length > 0) snapshot["views"] = stripNulls(viewsResult.rows);
           stats.views = viewsResult.rows?.length ?? 0;
         }
         if (indexesResult !== null) {
-          if (indexesResult.rows && indexesResult.rows.length > 0) snapshot["indexes"] = indexesResult.rows;
+          if (indexesResult.rows && indexesResult.rows.length > 0) snapshot["indexes"] = stripNulls(indexesResult.rows);
           stats.indexes = indexesResult.rows?.length ?? 0;
         }
         if (constraintsResult !== null) {
-          if (constraintsResult.rows && constraintsResult.rows.length > 0) snapshot["constraints"] = constraintsResult.rows;
+          if (constraintsResult.rows && constraintsResult.rows.length > 0) snapshot["constraints"] = stripNulls(constraintsResult.rows);
           stats.constraints = constraintsResult.rows?.length ?? 0;
         }
         if (functionsResult !== null) {
-          if (functionsResult.rows && functionsResult.rows.length > 0) snapshot["functions"] = functionsResult.rows;
+          if (functionsResult.rows && functionsResult.rows.length > 0) snapshot["functions"] = stripNulls(functionsResult.rows);
           stats.functions = functionsResult.rows?.length ?? 0;
         }
         if (triggersResult !== null) {
-          if (triggersResult.rows && triggersResult.rows.length > 0) snapshot["triggers"] = triggersResult.rows;
+          if (triggersResult.rows && triggersResult.rows.length > 0) snapshot["triggers"] = stripNulls(triggersResult.rows);
           stats.triggers = triggersResult.rows?.length ?? 0;
         }
         if (seqResult !== null) {
-          if (seqResult.rows && seqResult.rows.length > 0) snapshot["sequences"] = seqResult.rows;
+          if (seqResult.rows && seqResult.rows.length > 0) snapshot["sequences"] = stripNulls(seqResult.rows);
           stats.sequences = seqResult.rows?.length ?? 0;
         }
         if (typesResult !== null) {
-          if (typesResult.rows && typesResult.rows.length > 0) snapshot["types"] = typesResult.rows;
+          if (typesResult.rows && typesResult.rows.length > 0) snapshot["types"] = stripNulls(typesResult.rows);
           stats.customTypes = typesResult.rows?.length ?? 0;
         }
         if (extResult !== null) {
-          if (extResult.rows && extResult.rows.length > 0) snapshot["extensions"] = extResult.rows;
+          if (extResult.rows && extResult.rows.length > 0) snapshot["extensions"] = stripNulls(extResult.rows);
           stats.extensions = extResult.rows?.length ?? 0;
         }
 
