@@ -397,7 +397,7 @@ export function createMigrationRisksTool(
         interface Risk {
           statement: string;
           statementIndex: number;
-          riskLevel: "low" | "medium" | "high" | "critical";
+          severity: "low" | "medium" | "high" | "critical";
           category: string;
           description: string;
           mitigation?: string | undefined;
@@ -419,7 +419,7 @@ export function createMigrationRisksTool(
                 statement:
                   stmt.length > 200 ? stmt.slice(0, 200) + "..." : stmt,
                 statementIndex: i,
-                riskLevel: pattern.riskLevel,
+                severity: pattern.riskLevel,
                 category: pattern.category,
                 description: pattern.description,
                 mitigation: pattern.mitigation,
@@ -443,7 +443,7 @@ export function createMigrationRisksTool(
           summary: {
             totalStatements: parsed.statements.length,
             totalRisks: risks.length,
-            highestRisk: highestRiskLevel,
+            highestSeverity: highestRiskLevel,
             requiresDowntime,
             estimatedLockImpact:
               lockImpacts.size > 0 ? [...lockImpacts].join("; ") : "None",

@@ -1154,21 +1154,21 @@ describe("pg_migration_risks", () => {
       mockContext,
     )) as {
       risks: Array<{
-        riskLevel: string;
+        severity: string;
         category: string;
         statement: string;
       }>;
       summary: {
         totalStatements: number;
         totalRisks: number;
-        highestRisk: string;
+        highestSeverity: string;
       };
     };
 
     expect(result.risks.length).toBeGreaterThan(0);
-    expect(result.risks[0]!.riskLevel).toBe("critical");
+    expect(result.risks[0]!.severity).toBe("critical");
     expect(result.risks[0]!.category).toBe("data_loss");
-    expect(result.summary.highestRisk).toBe("critical");
+    expect(result.summary.highestSeverity).toBe("critical");
     expect(result.summary.totalStatements).toBe(1);
   });
 
@@ -1178,12 +1178,12 @@ describe("pg_migration_risks", () => {
       { statements: ["CREATE INDEX idx_email ON users(email)"] },
       mockContext,
     )) as {
-      risks: Array<{ riskLevel: string; category: string }>;
+      risks: Array<{ severity: string; category: string }>;
     };
 
     const lockingRisk = result.risks.find((r) => r.category === "locking");
     expect(lockingRisk).toBeDefined();
-    expect(lockingRisk!.riskLevel).toBe("high");
+    expect(lockingRisk!.severity).toBe("high");
   });
 
   it("should detect CREATE INDEX CONCURRENTLY as low risk", async () => {
@@ -1194,12 +1194,12 @@ describe("pg_migration_risks", () => {
       },
       mockContext,
     )) as {
-      risks: Array<{ riskLevel: string }>;
-      summary: { highestRisk: string };
+      risks: Array<{ severity: string }>;
+      summary: { highestSeverity: string };
     };
 
     expect(result.risks.length).toBeGreaterThan(0);
-    expect(result.summary.highestRisk).toBe("low");
+    expect(result.summary.highestSeverity).toBe("low");
   });
 
   it("should report no risks for safe DDL", async () => {
@@ -1209,12 +1209,12 @@ describe("pg_migration_risks", () => {
       mockContext,
     )) as {
       risks: unknown[];
-      summary: { totalRisks: number; highestRisk: string };
+      summary: { totalRisks: number; highestSeverity: string };
     };
 
     expect(result.risks).toHaveLength(0);
     expect(result.summary.totalRisks).toBe(0);
-    expect(result.summary.highestRisk).toBe("low");
+    expect(result.summary.highestSeverity).toBe("low");
   });
 
   it("should analyze multiple statements", async () => {
@@ -1230,11 +1230,11 @@ describe("pg_migration_risks", () => {
       mockContext,
     )) as {
       risks: Array<{ statementIndex: number }>;
-      summary: { totalStatements: number; highestRisk: string };
+      summary: { totalStatements: number; highestSeverity: string };
     };
 
     expect(result.summary.totalStatements).toBe(3);
-    expect(result.summary.highestRisk).toBe("critical");
+    expect(result.summary.highestSeverity).toBe("critical");
   });
 
   it("should detect column type change as requiring downtime", async () => {
@@ -1557,7 +1557,7 @@ describe("pg_migration_apply", () => {
     )) as { success: boolean; error?: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('relation "users" already exists');
+    expect(result.error).toContain("already exists");
     expect(result.error).toContain("rolled back");
 
     // Verify ROLLBACK was called

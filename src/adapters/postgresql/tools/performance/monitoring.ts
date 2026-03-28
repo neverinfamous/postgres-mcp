@@ -139,6 +139,9 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
           tableName = parts[1] ?? tableName;
         }
         let whereClause = "n_dead_tup > 0";
+        if (!schemaName && !tableName) {
+          whereClause += " AND schemaname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')";
+        }
         const queryParams: string[] = [];
         if (schemaName !== undefined) {
           queryParams.push(schemaName);

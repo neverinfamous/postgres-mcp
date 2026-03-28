@@ -10,6 +10,7 @@ import type {
   TableInfo,
   ColumnInfo,
 } from "../../../types/index.js";
+import { ValidationError } from "../../../types/index.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -377,6 +378,13 @@ export async function queryDescribeTable(
   });
 
   const tableRow = tableResult.rows?.[0];
+
+  if (!tableRow) {
+    throw new ValidationError(
+      `Table or view '${schemaName}.${tableName}' not found.`,
+      { tableName, schemaName }
+    );
+  }
 
   const indexes = (indexesResult.rows ?? []).map((row) => {
     const rawColumns = parseColumnsArray(row["columns"]);

@@ -173,15 +173,15 @@ Helps identify the root cause of performance issues - is the query computation-h
         const limit = parsed.limit;
 
         if (limit !== undefined && (limit < 0 || limit > 100)) {
-          throw new ValidationError("limit must be between 0 (no limit) and 100");
+          throw new ValidationError("limit must be between 0 (no limit, capped at 500) and 100");
         }
         const minCalls = parsed.minCalls;
         const queryPreviewLength = parsed.queryPreviewLength;
 
         const thresholdVal = threshold ?? 0.5;
         const DEFAULT_LIMIT = 20;
-        // limit: 0 means "no limit" (return all rows), undefined means use default
-        const limitVal = limit === 0 ? null : (limit ?? DEFAULT_LIMIT);
+        // limit: 0 means "unlimited" (capped at 500), undefined means use default
+        const limitVal = limit === 0 ? 500 : (limit ?? DEFAULT_LIMIT);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           queryPreviewLength === 0

@@ -13,7 +13,7 @@ import type {
 import { QueryError } from "../../../../types/index.js";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse, formatPostgresError } from "../core/error-helpers.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import {
   MigrationInitSchemaBase,
@@ -246,7 +246,7 @@ export function createMigrationApplyTool(
           // Roll back the entire transaction (migration SQL + INSERT)
           await adapter.executeQuery("ROLLBACK");
 
-          const message = err instanceof Error ? err.message : "Unknown error";
+          const message = formatPostgresError(err, { tool: "pg_migration_apply" });
 
           // Record a 'failed' entry outside the rolled-back transaction
           try {

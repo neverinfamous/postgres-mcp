@@ -236,14 +236,18 @@ export const CronScheduleInDatabaseSchema = z.preprocess(
 export const CronUnscheduleSchemaBase = z.object({
   jobId: CoercibleJobId.optional().describe("Job ID to remove"),
   jobName: z.string().optional().describe("Job name to remove"),
+  name: z.string().optional().describe("Alias for jobName"),
 });
 
 export const CronUnscheduleSchema = CronUnscheduleSchemaBase.refine(
-  (data) => data.jobId !== undefined || data.jobName !== undefined,
+  (data) => data.jobId !== undefined || data.jobName !== undefined || data.name !== undefined,
   {
-    message: "Either jobId or jobName must be provided",
+    message: "Either jobId or jobName (or name alias) must be provided",
   },
-);
+).transform((data) => ({
+  jobId: data.jobId,
+  jobName: data.jobName ?? data.name,
+}));
 
 export const CronAlterJobSchemaBase = z.object({
   jobId: CoercibleJobId.optional().describe("Job ID to modify"),

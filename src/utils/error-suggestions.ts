@@ -142,6 +142,14 @@ const ERROR_SUGGESTIONS: {
     code: "INVALID_BASE64",
   },
 
+  {
+    pattern: /already exists/i,
+    suggestion:
+      "The specified object already exists. Use IF NOT EXISTS or verify object name.",
+    category: ErrorCategory.VALIDATION,
+    code: "OBJECT_ALREADY_EXISTS",
+  },
+
   // Query errors
   {
     pattern: /cannot drop columns from view/i,

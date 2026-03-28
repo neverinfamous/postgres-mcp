@@ -145,7 +145,7 @@ export const MigrationRisksOutputSchema = z.object({
       z.object({
         statement: z.string(),
         statementIndex: z.number(),
-        riskLevel: z.enum(["low", "medium", "high", "critical"]),
+        severity: z.enum(["low", "medium", "high", "critical"]),
         category: z.string(),
         description: z.string(),
         mitigation: z.string().optional(),
@@ -156,7 +156,7 @@ export const MigrationRisksOutputSchema = z.object({
     .object({
       totalStatements: z.number(),
       totalRisks: z.number(),
-      highestRisk: z.string(),
+      highestSeverity: z.string(),
       requiresDowntime: z.boolean(),
       estimatedLockImpact: z.string(),
     })

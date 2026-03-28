@@ -12,7 +12,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 // import { z } from "zod";
 import { readOnly, admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse, formatPostgresError } from "../core/error-helpers.js";
 import { ValidationError } from "../../../../types/index.js";
 import type { BackupManager } from "../../../../audit/backup-manager.js";
 import {
@@ -64,10 +64,16 @@ export function createAuditListBackupsTool(
           snapshots = snapshots.filter((s) => s.target !== "unknown");
         }
         
+        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 500)) {
+          throw new ValidationError("limit must be between 0 (no limit, capped at 500) and 500");
+        }
+
         const count = snapshots.length;
-        const limit = parsed.limit ?? 50;
+        const requestedLimit = parsed.limit ?? 50;
+        const limit = requestedLimit === 0 ? 500 : requestedLimit;
+        
         let truncated = false;
-        if (limit > 0 && snapshots.length > limit) {
+        if (snapshots.length > limit) {
           snapshots = snapshots.slice(0, limit);
           truncated = true;
         }
@@ -133,7 +139,15 @@ export function createAuditRestoreBackupTool(
           const restoreName = parsed.restoreAs;
           const restoreQualified = `"${originalSchema}"."${restoreName}"`;
           // Rewrite DDL: replace table name in CREATE TABLE statement
-          ddl = ddl.replace(originalQualified, restoreQualified);
+          ddl = ddl.replaceAll(originalQualified, restoreQualified);
+
+          // Prevent sequence collisions on side-by-side restores by rewriting sequence names
+          const safeOriginalTarget = originalTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const seqPattern1 = new RegExp(`${safeOriginalTarget}_id_seq`, 'g');
+          const seqPattern2 = new RegExp(`${safeOriginalTarget}_seq`, 'g');
+          ddl = ddl.replace(seqPattern1, `${restoreName}_id_seq`);
+          ddl = ddl.replace(seqPattern2, `${restoreName}_seq`);
+          
           // Rewrite data INSERT statements if present
           if (dataStatements) {
             dataStatements = dataStatements.replaceAll(originalQualified, restoreQualified);
@@ -145,7 +159,12 @@ export function createAuditRestoreBackupTool(
           ddl = `DROP TABLE IF EXISTS ${originalQualified} CASCADE;\n` +
                 `DROP VIEW IF EXISTS ${originalQualified} CASCADE;\n` +
                 `DROP MATERIALIZED VIEW IF EXISTS ${originalQualified} CASCADE;\n` +
-                `DROP SEQUENCE IF EXISTS ${originalQualified} CASCADE;\n` + ddl;
+                `DROP SEQUENCE IF EXISTS ${originalQualified} CASCADE;\n` + 
+                `DROP SEQUENCE IF EXISTS "${originalSchema}"."${originalTarget}_id_seq" CASCADE;\n` +
+                `DROP SEQUENCE IF EXISTS "${originalSchema}"."${originalTarget}_seq" CASCADE;\n` + ddl;
+          
+          // Inject IF NOT EXISTS into sequence creation to prevent crashes on orphaned sequences
+          ddl = ddl.replace(/CREATE SEQUENCE (?!IF NOT EXISTS)/gi, "CREATE SEQUENCE IF NOT EXISTS ");
         }
 
         // Dry run: return DDL without executing
@@ -197,11 +216,11 @@ export function createAuditRestoreBackupTool(
           } catch {
             // Rollback failure is secondary
           }
-          const msg = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
+          const msg = formatPostgresError(restoreErr, { tool: "pg_audit_restore_backup" });
           
-          if (msg.includes("already exists") || msg.includes("duplicate")) {
+          if (msg.includes("already exists") || msg.includes("duplicate") || restoreErr?.toString().includes("already exists")) {
                const err = new ValidationError(`Restore failed: ${msg}`);
-               Object.assign(err, { code: "ALREADY_EXISTS" });
+               Object.assign(err, { code: "OBJECT_ALREADY_EXISTS" });
                throw err;
           }
           throw new ValidationError(`Restore failed: ${msg}`);

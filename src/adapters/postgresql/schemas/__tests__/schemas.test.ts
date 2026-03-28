@@ -3204,7 +3204,7 @@ describe("CronUnscheduleSchema", () => {
 
   it("should reject when neither jobId nor jobName provided", () => {
     expect(() => CronUnscheduleSchema.parse({})).toThrow(
-      "Either jobId or jobName must be provided",
+      "Either jobId or jobName (or name alias) must be provided",
     );
   });
 
