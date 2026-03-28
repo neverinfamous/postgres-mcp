@@ -5,6 +5,7 @@
 
 import type { PostgresAdapter } from "../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
+import { ValidationError } from "../../../types/index.js";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "./core/error-helpers.js";
@@ -71,9 +72,7 @@ function createPgcryptoExtensionTool(adapter: PostgresAdapter): ToolDefinition {
         );
         return { success: true, message: "pgcrypto extension enabled" };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, {
-          tool: "pg_pgcrypto_create_extension",
-        });
+        return handlePgcryptoError(error, "pg_pgcrypto_create_extension");
       }
     },
   };
@@ -109,9 +108,7 @@ function createPgcryptoHashTool(adapter: PostgresAdapter): ToolDefinition {
           inputLength: data.length,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, {
-            tool: "pg_pgcrypto_hash",
-          });
+        return handlePgcryptoError(error, "pg_pgcrypto_hash");
       }
     },
   };
@@ -146,9 +143,7 @@ function createPgcryptoHmacTool(adapter: PostgresAdapter): ToolDefinition {
           hmac: result.rows?.[0]?.["hmac"] as string,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, {
-            tool: "pg_pgcrypto_hmac",
-          });
+        return handlePgcryptoError(error, "pg_pgcrypto_hmac");
       }
     },
   };
@@ -180,9 +175,7 @@ function createPgcryptoEncryptTool(adapter: PostgresAdapter): ToolDefinition {
           encoding: "base64",
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, {
-            tool: "pg_pgcrypto_encrypt",
-          });
+        return handlePgcryptoError(error, "pg_pgcrypto_encrypt");
       }
     },
   };
@@ -209,10 +202,7 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Return error for decryption failure (wrong password or corrupted data)
         if (decrypted === undefined || decrypted === null) {
-          return {
-            success: false,
-            error: "Decryption failed — wrong password or corrupted data",
-          };
+          throw new ValidationError("Decryption failed — wrong password or corrupted data");
         }
 
         return {
@@ -221,9 +211,7 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
           verified: true,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, {
-            tool: "pg_pgcrypto_decrypt",
-          });
+        return handlePgcryptoError(error, "pg_pgcrypto_decrypt");
       }
     },
   };
@@ -261,9 +249,7 @@ function createPgcryptoGenRandomUuidTool(
         }
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, {
-            tool: "pg_pgcrypto_gen_random_uuid",
-          });
+        return handlePgcryptoError(error, "pg_pgcrypto_gen_random_uuid");
       }
     },
   };
@@ -296,9 +282,7 @@ function createPgcryptoGenRandomBytesTool(
           encoding: enc,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, {
-            tool: "pg_pgcrypto_gen_random_bytes",
-          });
+        return handlePgcryptoError(error, "pg_pgcrypto_gen_random_bytes");
       }
     },
   };
@@ -329,9 +313,7 @@ function createPgcryptoGenSaltTool(adapter: PostgresAdapter): ToolDefinition {
           type,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, {
-            tool: "pg_pgcrypto_gen_salt",
-          });
+        return handlePgcryptoError(error, "pg_pgcrypto_gen_salt");
       }
     },
   };
@@ -364,10 +346,25 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
                 : "des";
         return { success: true, hash, algorithm };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, {
-            tool: "pg_pgcrypto_crypt",
-          });
+        return handlePgcryptoError(error, "pg_pgcrypto_crypt");
       }
     },
   };
+}
+
+// Helper to convert internal Postgres pgcrypto panics into typed ValidationErrors
+function handlePgcryptoError(error: unknown, toolName: string) {
+  if (error && typeof error === "object" && "message" in error) {
+    const msg = String(error.message);
+    if (msg.includes("Wrong key or corrupt data")) {
+      return formatHandlerErrorResponse(new ValidationError("Decryption failed: Wrong key or corrupt data"), { tool: toolName });
+    }
+    if (msg.includes("No such hash algorithm") || msg.includes("Cannot use") || msg.includes("unsupported")) {
+      return formatHandlerErrorResponse(new ValidationError("Cryptographic error: Unsupported or invalid algorithm"), { tool: toolName });
+    }
+    if (msg.includes("decoding base64 sequence") || msg.includes("invalid base64")) {
+      return formatHandlerErrorResponse(new ValidationError("Decoding failed: The provided text is not a valid base64 encoded string"), { tool: toolName });
+    }
+  }
+  return formatHandlerErrorResponse(error, { tool: toolName });
 }

@@ -32,6 +32,10 @@ export const KcacheQueryStatsSchemaBase = z.object({
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe("If true, omits the query_preview text to save output tokens"),
 });
 
 export const KcacheQueryStatsSchema = z.preprocess(
@@ -52,6 +56,10 @@ export const KcacheTopCpuSchemaBase = z.object({
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe("If true, omits the query_preview text to save output tokens"),
 });
 
 /**
@@ -68,6 +76,10 @@ export const KcacheTopIoSchemaBase = z.object({
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe("If true, omits the query_preview text to save output tokens"),
 });
 
 /**
@@ -106,6 +118,10 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe("If true, omits the query_preview text to save output tokens"),
 });
 
 export const KcacheResourceAnalysisSchema = z.preprocess(

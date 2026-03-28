@@ -70,11 +70,18 @@ const ERROR_SUGGESTIONS: {
     pattern: /is already managed by pg_partman/i,
     suggestion: "Use pg_partman_show_config to view existing configuration, or pg_partman_undo_partition to recreate.",
     category: ErrorCategory.VALIDATION,
+    code: "PARTITION_ALREADY_MANAGED",
   },
   {
     pattern: /^Missing required parameters:/i,
     suggestion: "Provide all required parameters in your request.",
     category: ErrorCategory.VALIDATION,
+  },
+  {
+    pattern: /A job with name '.*' already exists/i,
+    suggestion: "Job names must be unique. Use pg_cron_list_jobs to find existing jobs before scheduling.",
+    category: ErrorCategory.VALIDATION,
+    code: "JOB_NAME_CONFLICT",
   },
 
   // Resource errors — specific codes for table/column not found

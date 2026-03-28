@@ -43,6 +43,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
             orderBy: z.string().optional(),
             minCalls: z.coerce.number().optional(),
             queryPreviewLength: z.coerce.number().optional(),
+            compact: z.boolean().optional(),
           })
           .parse(params ?? {});
 
@@ -117,10 +118,14 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const totalRaw = countResult.rows?.[0]?.["total"];
         const totalCount = Number(totalRaw) || 0;
 
+        const previewCol = parsed.compact
+          ? ""
+          : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
+
         const sql = `
                 SELECT
                     s.queryid,
-                    LEFT(s.query, ${String(previewLen)}) as query_preview,
+                    ${previewCol}
                     s.calls,
                     s.total_exec_time as total_time_ms,
                     s.mean_exec_time as mean_time_ms,
@@ -182,6 +187,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
           .object({
             limit: z.coerce.number().optional(),
             queryPreviewLength: z.coerce.number().optional(),
+            compact: z.boolean().optional(),
           })
           .parse(params ?? {});
         if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 100)) {
@@ -213,10 +219,14 @@ in user CPU (application code) vs system CPU (kernel operations).`,
         const totalRaw = countResult.rows?.[0]?.["total"];
         const totalCount = Number(totalRaw) || 0;
 
+        const previewCol = parsed.compact
+          ? ""
+          : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
+
         const sql = `
                 SELECT
                     s.queryid,
-                    LEFT(s.query, ${String(previewLen)}) as query_preview,
+                    ${previewCol}
                     s.calls,
                     k.${cols.userTime} as user_time,
                     k.${cols.systemTime} as system_time,
@@ -290,6 +300,7 @@ which represent actual disk access (not just shared buffer hits).`,
             type: z.string().optional(),
             limit: z.coerce.number().optional(),
             queryPreviewLength: z.coerce.number().optional(),
+            compact: z.boolean().optional(),
           })
           .parse(preprocessed);
 
@@ -349,10 +360,14 @@ which represent actual disk access (not just shared buffer hits).`,
         const totalRaw = countResult.rows?.[0]?.["total"];
         const totalCount = Number(totalRaw) || 0;
 
+        const previewCol = parsed.compact
+          ? ""
+          : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
+
         const sql = `
                 SELECT
                     s.queryid,
-                    LEFT(s.query, ${String(previewLen)}) as query_preview,
+                    ${previewCol}
                     s.calls,
                     k.${cols.reads} as read_bytes,
                     k.${cols.writes} as write_bytes,

@@ -77,7 +77,7 @@ export function createDependencyGraphTool(
         // Validate schema existence when filtering by schema
         await checkSchemaExists(adapter, parsed.schema);
 
-        const includeRowCounts = parsed.includeRowCounts !== false;
+        const includeRowCounts = parsed.includeRowCounts !== false && !parsed.compact;
 
         const excludeExt = parsed.excludeExtensionSchemas;
 

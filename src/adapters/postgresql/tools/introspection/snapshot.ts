@@ -99,6 +99,13 @@ export function createSchemaSnapshotTool(
             LEFT JOIN pg_attrdef d ON (a.attrelid, a.attnum) = (d.adrelid, d.adnum)
             WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
             ) AS columns`;
+        
+        const rowSizeFields = parsed.compact
+          ? ""
+          : `,
+                CASE WHEN c.reltuples = -1 THEN COALESCE(s.n_live_tup, 0) ELSE c.reltuples END::bigint AS row_count,
+                pg_table_size(c.oid) AS size_bytes`;
+
         const qp = schemaParams.length > 0 ? schemaParams : undefined;
 
         // Execute all independent section queries in parallel (PERF-P2)
@@ -119,9 +126,7 @@ export function createSchemaSnapshotTool(
                 `SELECT
                 n.nspname AS schema, c.relname AS name,
                 CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table' END AS type,
-                CASE WHEN c.reltuples = -1 THEN COALESCE(s.n_live_tup, 0) ELSE c.reltuples END::bigint AS row_count,
-                pg_table_size(c.oid) AS size_bytes,
-                obj_description(c.oid, 'pg_class') AS comment${columnsSubquery}
+                obj_description(c.oid, 'pg_class') AS comment${rowSizeFields}${columnsSubquery}
               FROM pg_class c
               JOIN pg_namespace n ON n.oid = c.relnamespace
               LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid

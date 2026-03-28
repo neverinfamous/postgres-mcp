@@ -165,6 +165,7 @@ Helps identify the root cause of performance issues - is the query computation-h
             limit: z.coerce.number().optional(),
             minCalls: z.coerce.number().optional(),
             queryPreviewLength: z.coerce.number().optional(),
+            compact: z.boolean().optional(),
           })
           .parse(params ?? {});
 
@@ -222,11 +223,15 @@ Helps identify the root cause of performance issues - is the query computation-h
         const totalRaw = countResult.rows?.[0]?.["total"];
         const totalCount = Number(totalRaw) || 0;
 
+        const previewCol = parsed.compact
+          ? ""
+          : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
+
         const sql = `
                 WITH query_metrics AS (
                     SELECT
                         s.queryid,
-                        LEFT(s.query, ${String(previewLen)}) as query_preview,
+                        ${previewCol}
                         s.calls,
                         s.total_exec_time as total_time_ms,
                         (k.${cols.userTime} + k.${cols.systemTime}) as cpu_time,
@@ -243,7 +248,7 @@ Helps identify the root cause of performance issues - is the query computation-h
                 )
                 SELECT
                     queryid,
-                    query_preview,
+                    ${parsed.compact ? '' : 'query_preview,'}
                     calls,
                     total_time_ms,
                     cpu_time,
