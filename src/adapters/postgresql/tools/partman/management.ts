@@ -334,6 +334,26 @@ export function createPartmanShowConfigTool(
         const parsed = PartmanShowConfigSchema.parse(params);
         const partmanSchema = await getPartmanSchema(adapter);
 
+        if (parsed.parentTable !== undefined) {
+          const [schema, tableName] = parsed.parentTable.includes(".")
+            ? [parsed.parentTable.split(".")[0], parsed.parentTable.split(".")[1]]
+            : ["public", parsed.parentTable];
+
+          const tableExistsResult = await adapter.executeQuery(
+            `
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = $1 AND table_name = $2
+            `,
+            [schema, tableName],
+          );
+
+          if ((tableExistsResult.rows?.length ?? 0) === 0) {
+            throw new ValidationError(`Table '${parsed.parentTable}' does not exist.`, {
+              hint: "Check that you specified the correct schema and table name."
+            });
+          }
+        }
+
         // Dynamically detect available columns to handle different pg_partman versions
         const columnsResult = await adapter.executeQuery(
           `
