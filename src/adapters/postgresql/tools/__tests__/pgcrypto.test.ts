@@ -216,10 +216,10 @@ describe("Pgcrypto Tools", () => {
           password: "mypassword",
         },
         mockContext,
-      )) as { success: boolean; encrypted: string; encoding: string };
+      )) as { success: boolean; encryptedData: string; encoding: string };
 
       expect(result.success).toBe(true);
-      expect(result.encrypted).toBeDefined();
+      expect(result.encryptedData).toBeDefined();
       expect(result.encoding).toBe("base64");
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
         expect.stringContaining("pgp_sym_encrypt"),

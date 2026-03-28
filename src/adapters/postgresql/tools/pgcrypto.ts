@@ -176,7 +176,7 @@ function createPgcryptoEncryptTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, queryParams);
         return {
           success: true,
-          encrypted: result.rows?.[0]?.["encrypted"] as string,
+          encryptedData: result.rows?.[0]?.["encrypted"] as string,
           encoding: "base64",
         };
       } catch (error: unknown) {

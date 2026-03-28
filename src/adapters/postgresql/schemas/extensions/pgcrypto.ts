@@ -287,7 +287,7 @@ export const PgcryptoHmacOutputSchema = z
 export const PgcryptoEncryptOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether encryption succeeded"),
-    encrypted: z.string().optional().describe("Encrypted data"),
+    encryptedData: z.string().optional().describe("Encrypted data"),
     encoding: z.string().optional().describe("Output encoding"),
     error: z.string().optional().describe("Error message"),
   })
