@@ -33,7 +33,9 @@ All tests should be executed via `pg_execute_code` code mode. Tests are written 
 
 ## Test Database Schema
 
-Same as `test-tools.md` — refer to that file for the full schema reference. Key tables: `test_products` (15 rows), `test_orders` (20), `test_jsonb_docs` (3), `test_articles` (3), `test_measurements` (500), `test_embeddings` (50), `test_locations` (5), `test_users` (3), `test_categories` (6), `test_events` (100 across 4 partitions), `test_departments` (3), `test_employees` (5), `test_projects` (2), `test_assignments` (3), `test_audit_log` (3).
+Same as `test-tools.md` — refer to that file for the full schema reference. Key tables: `test_products` (15 rows), `test_orders` (20), `test_jsonb_docs` (3), `test_articles` (3), `test_measurements` (640, after resource seed), `test_embeddings` (75, after resource seed), `test_locations` (25, after resource seed), `test_users` (3), `test_categories` (6), `test_events` (100 across 4 partitions), `test_departments` (3), `test_employees` (5), `test_projects` (2), `test_assignments` (3), `test_audit_log` (3).
+
+> **Note:** `test-resources.sql` runs after `test-database.sql` and adds ~200 measurements (minus deletions), 25 embeddings, and 20 locations. Counts reflect the post-seed state.
 
 ## Naming & Cleanup
 
@@ -216,7 +218,7 @@ Verify that tools returning `truncated` and `totalCount` fields work correctly:
 **5.2 Limit Zero (Unlimited)**
 
 45. `pg_list_tables({limit: 0})` → count should match actual table count
-46. `pg_copy_export({table: "test_measurements", limit: 0})` → expect all 500 rows
+46. `pg_copy_export({table: "test_measurements", limit: 0})` → expect all 640 rows
 47. `pg_index_stats({limit: 0})` → verify `truncated: false` or absent
 
 **5.3 Schema Snapshot Compact Mode**
@@ -519,7 +521,7 @@ Insert 5 rows into `stress_empty_table` all with `value: 42.00`, then:
 **3.2 Top-N Edge Cases**
 
 15. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 0})` → report behavior (should error or return empty)
-16. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 1000})` → with 500 rows: verify returns all 500 or caps at configured max
+16. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 1000})` → with 640 rows: verify returns all rows or caps at configured max
 
 **3.3 Distinct/Frequency Edge Cases**
 
@@ -537,9 +539,9 @@ Insert 5 rows into `stress_empty_table` all with `value: 42.00`, then:
 // Window function pipeline: rank → filter top quartile → running total
 const ranked = await pg.stats.ntile({
   table: "test_measurements", column: "temperature",
-  orderBy: "temperature", buckets: 4, limit: 500
+  orderBy: "temperature", buckets: 4, limit: 640
 });
-const topQuartile = ranked.rows?.filter(r => r.ntile === 1).length ?? 0;
+const topQuartile = ranked.rows?.filter(r => r.ntile === 1 || r.ntile === "1").length ?? 0;
 const runningTotal = await pg.stats.runningTotal({
   table: "test_measurements", column: "temperature",
   orderBy: "measured_at", partitionBy: "sensor_id", limit: 10
@@ -564,11 +566,11 @@ const summary = await pg.stats.summary({table: "test_measurements"});
 return {
   outlierMethod: outliers.method,
   distinctSensors: distinct.distinctCount,
-  summaryColumns: summary.columns?.length ?? 0
+  summaryColumns: summary.summaries?.length ?? 0
 };
 ```
 
-22. Verify: `outlierMethod: "iqr"`, `distinctSensors: 6`, `summaryColumns >= 3` (temperature, humidity, pressure)
+22. Verify: `outlierMethod: "iqr"`, `distinctSensors: 6`, `summaryColumns >= 3` (temperature, humidity, pressure). **Note:** `summary` response uses `summaries` key, not `columns`
 
 ### Category 5: Error Message Quality
 
@@ -578,7 +580,7 @@ return {
 
 ### Final Cleanup
 
-Confirm `test_measurements` row count is still 500.
+Confirm `test_measurements` row count is still 640 (post-resource-seed baseline).
 
 ---
 
@@ -659,4 +661,4 @@ Insights are in-memory only — no cleanup needed.
 
 ### Final Cleanup
 
-Confirm `test_embeddings` count is still 50.
+Confirm `test_embeddings` count is still 75 (post-resource-seed baseline).
