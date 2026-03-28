@@ -579,8 +579,8 @@ describe("pg_partman_run_maintenance", () => {
       mockContext,
     )) as { success: boolean; error: string };
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain(
+    expect(result.success).toBe(true);
+    expect(result.message).toContain(
       "Partition set has no child partitions yet.",
     );
   });
@@ -2830,10 +2830,10 @@ describe("pg_partman_run_maintenance — all tables with orphaned & errors", () 
     const result = (await tool.handler(
       { parentTable: "public.events" },
       mockContext,
-    )) as { success: boolean; error: string; hint: string };
+    )) as { success: boolean; message: string; hint: string };
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("no child partitions");
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("no child partitions");
   });
 });
 

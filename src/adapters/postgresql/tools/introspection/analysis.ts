@@ -291,6 +291,15 @@ const DDL_RISK_PATTERNS: {
     lockImpact: "SHARE ROW EXCLUSIVE on both tables",
   },
   {
+    pattern: /\bCREATE\s+TABLE\b(?!\s+IF\s+NOT\s+EXISTS)/i,
+    category: "schema_change",
+    riskLevel: "low",
+    description: "CREATE TABLE without IF NOT EXISTS will fail if the table already exists. Unsafe for idempotency.",
+    mitigation: "Consider using CREATE TABLE IF NOT EXISTS to make the migration idempotent.",
+    requiresDowntime: false,
+    lockImpact: "ACCESS EXCLUSIVE (brief)",
+  },
+  {
     pattern: /\bALTER\s+TABLE\b.*\bADD\s+COLUMN\b/i,
     category: "schema_change",
     riskLevel: "low",

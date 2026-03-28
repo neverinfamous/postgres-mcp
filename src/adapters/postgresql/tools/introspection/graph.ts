@@ -447,7 +447,7 @@ export function createCascadeSimulatorTool(
         // Severity assessment
         let severity: "low" | "medium" | "high" | "critical";
         if (blockingActions > 0) {
-          severity = "critical"; // Operation will fail
+          severity = operation === "DELETE" ? "high" : "critical"; // DELETE fail gracefully, DROP force-cascades
         } else if (operation !== "DELETE" && cascadeActions > 0) {
           severity = "critical"; // DROP/TRUNCATE force-cascades everything
         } else if (cascadeActions > 5 || maxDepth > 3) {

@@ -48,8 +48,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const limit = parsed.limit;
 
-        if (limit !== undefined && (limit < 1 || limit > 100)) {
-          throw new ValidationError("limit must be between 1 and 100");
+        if (limit !== undefined && (limit < 0 || limit > 100)) {
+          throw new ValidationError("limit must be between 0 and 100");
         }
 
         const orderBy = parsed.orderBy;
@@ -139,7 +139,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
                     AND s.dbid = k.dbid
                 ${whereClause}
                 ORDER BY ${orderColumn} DESC
-                ${limitVal !== null ? `LIMIT ${String(limitVal)}` : ""}
+                ${limitVal !== null && limitVal > 0 ? `LIMIT ${String(limitVal)}` : ""}
             `;
 
         const result = await adapter.executeQuery(sql, queryParams);
@@ -184,8 +184,8 @@ in user CPU (application code) vs system CPU (kernel operations).`,
             queryPreviewLength: z.coerce.number().optional(),
           })
           .parse(params ?? {});
-        if (parsed.limit !== undefined && (parsed.limit < 1 || parsed.limit > 100)) {
-          throw new ValidationError("limit must be between 1 and 100");
+        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 100)) {
+          throw new ValidationError("limit must be between 0 and 100");
         }
 
         const DEFAULT_LIMIT = 50;
@@ -238,7 +238,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
                     AND s.dbid = k.dbid
                 WHERE (k.${cols.userTime} + k.${cols.systemTime}) > 0
                 ORDER BY (k.${cols.userTime} + k.${cols.systemTime}) DESC
-                ${limitVal !== null ? `LIMIT ${String(limitVal)}` : ""}
+                ${limitVal !== null && limitVal > 0 ? `LIMIT ${String(limitVal)}` : ""}
             `;
 
         const result = await adapter.executeQuery(sql);
@@ -305,8 +305,8 @@ which represent actual disk access (not just shared buffer hits).`,
           );
         }
         const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
-        if (parsed.limit !== undefined && (parsed.limit < 1 || parsed.limit > 100)) {
-          throw new ValidationError("limit must be between 1 and 100");
+        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 100)) {
+          throw new ValidationError("limit must be between 0 and 100");
         }
 
         const DEFAULT_LIMIT = 50;
@@ -366,7 +366,7 @@ which represent actual disk access (not just shared buffer hits).`,
                     AND s.dbid = k.dbid
                 WHERE ${ioFilter}
                 ORDER BY ${orderColumn} DESC
-                ${limitVal !== null ? `LIMIT ${String(limitVal)}` : ""}
+                ${limitVal !== null && limitVal > 0 ? `LIMIT ${String(limitVal)}` : ""}
             `;
 
         const result = await adapter.executeQuery(sql);

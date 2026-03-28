@@ -648,7 +648,7 @@ describe("pg_cascade_simulator", () => {
       stats: { blockingActions: number };
     };
 
-    expect(result.severity).toBe("critical");
+    expect(result.severity).toBe("high");
     expect(result.stats.blockingActions).toBe(1);
   });
 

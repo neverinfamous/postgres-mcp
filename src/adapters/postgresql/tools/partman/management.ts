@@ -94,14 +94,16 @@ Maintains all partition sets if no specific parent table is specified.`,
             // Catch pg_partman internal errors about NULL child tables
             if (
               fullError.includes("Child table given does not exist") ||
-              fullError.includes("<NULL>")
+              fullError.includes("<NULL>") ||
+              fullError.includes("Partition set has no child") ||
+              fullError.includes("No child tables exist")
             ) {
-              throw new ValidationError("Partition set has no child partitions yet.", {
+              return {
+                success: true,
                 parentTable,
-                hint:
-                  "For new partition sets, ensure startPartition is valid for your data. " +
-                  "Insert data first, then run maintenance, or specify a valid startPartition when creating the parent.",
-              });
+                analyze: analyze ?? true,
+                message: "Partition set has no child partitions yet. Insert data to create partitions.",
+              };
             }
 
             // Return clean error response instead of throwing with stack trace
@@ -165,10 +167,14 @@ Maintains all partition sets if no specific parent table is specified.`,
             reason = reason.replace(/\s+CONTEXT:.*$/i, "").trim();
 
             // Improve NULL child error with actionable guidance
-            if (reason.includes("Child table") && reason.includes("NULL")) {
-              reason =
-                "No child partitions exist yet. For empty tables, ensure startPartition was set when creating the partition set. " +
-                'TIP: Use pg_partman_create_parent with startPartition (e.g., "now" or a specific date) to bootstrap partitions.';
+            if (
+              reason.includes("Child table given does not exist") ||
+              reason.includes("<NULL>") ||
+              reason.includes("Partition set has no child") ||
+              reason.includes("No child tables exist")
+            ) {
+              maintained.push(table);
+              continue; // Treat as successful
             }
 
             errors.push({

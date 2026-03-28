@@ -17,8 +17,8 @@ import { coerceNumber } from "../../../../utils/query-helpers.js";
  * Joins pg_stat_statements with pg_stat_kcache for full picture.
  */
 export const KcacheQueryStatsSchemaBase = z.object({
-  limit: z.preprocess(coerceNumber, z.number().min(1).max(100).optional().default(50))
-    .describe("Maximum number of queries to return (default: 50, max: 100)"),
+  limit: z.preprocess(coerceNumber, z.number().min(0).max(100).optional().default(50))
+    .describe("Maximum number of queries to return (default: 50, max: 100, 0 for unlimited)"),
   orderBy: z
     .string()
     .optional()
@@ -44,8 +44,8 @@ export const KcacheQueryStatsSchema = z.preprocess(
  * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
  */
 export const KcacheTopCpuSchemaBase = z.object({
-  limit: z.preprocess(coerceNumber, z.number().min(1).max(100).optional().default(50))
-    .describe("Number of top queries to return (default: 50, max: 100)"),
+  limit: z.preprocess(coerceNumber, z.number().min(0).max(100).optional().default(50))
+    .describe("Number of top queries to return (default: 50, max: 100, 0 for unlimited)"),
   queryPreviewLength: z
     .any()
     .optional()
@@ -60,8 +60,8 @@ export const KcacheTopCpuSchemaBase = z.object({
 export const KcacheTopIoSchemaBase = z.object({
   type: z.string().optional().describe("I/O type to rank by (default: both)"),
   ioType: z.string().optional().describe("Alias for type"),
-  limit: z.preprocess(coerceNumber, z.number().min(1).max(100).optional().default(50))
-    .describe("Number of top queries to return (default: 50, max: 100)"),
+  limit: z.preprocess(coerceNumber, z.number().min(0).max(100).optional().default(50))
+    .describe("Number of top queries to return (default: 50, max: 100, 0 for unlimited)"),
   queryPreviewLength: z
     .any()
     .optional()
@@ -97,8 +97,8 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .any()
     .optional()
     .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
-  limit: z.preprocess(coerceNumber, z.number().min(1).max(100).optional().default(50))
-    .describe("Maximum number of queries to return (default: 50, max: 100)"),
+  limit: z.preprocess(coerceNumber, z.number().min(0).max(100).optional().default(50))
+    .describe("Maximum number of queries to return (default: 50, max: 100, 0 for unlimited)"),
   minCalls: z.preprocess(coerceNumber, z.number().optional()).describe("Minimum call count to include"),
   queryPreviewLength: z
     .any()
