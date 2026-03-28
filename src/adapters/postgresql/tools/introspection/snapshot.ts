@@ -285,13 +285,17 @@ export function createSchemaSnapshotTool(
             if (Array.isArray(obj)) {
               return obj.map(clean).filter((v) => v != null && v !== "");
             }
-            if (obj && typeof obj === "object") {
+            if (obj !== null && typeof obj === "object") {
               const res: Record<string, unknown> = {};
               for (const [k, v] of Object.entries(obj)) {
                 if (v == null || v === "") continue;
                 const cleaned = clean(v);
                 if (Array.isArray(cleaned) && cleaned.length === 0) continue;
-                if (typeof cleaned === "object" && Object.keys(cleaned as object).length === 0) continue;
+                if (
+                  typeof cleaned === "object" &&
+                  cleaned !== null &&
+                  Object.keys(cleaned).length === 0
+                ) continue;
                 res[k] = cleaned;
               }
               return res;
