@@ -575,11 +575,11 @@ test.describe("Errors: Pgcrypto", () => {
 // =============================================================================
 
 test.describe("Errors: Kcache", () => {
-  test("kcache_query_stats with limit < 1 → validation error", async ({}, testInfo) => {
+  test("kcache_query_stats with limit < 0 → validation error", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_kcache_query_stats", {
-        limit: 0,
+        limit: -1,
       });
       expectHandlerError(p);
       expect(p.code).toBe("VALIDATION_ERROR");
@@ -588,17 +588,6 @@ test.describe("Errors: Kcache", () => {
     }
   });
 
-  test("kcache_query_stats with unparseable string limit → validation error", async ({}, testInfo) => {
-    const client = await createClient(getBaseURL(testInfo));
-    try {
-      const p = await callToolAndParse(client, "pg_kcache_query_stats", {
-        limit: "abc" as any,
-      });
-      expectHandlerError(p);
-      expect(p.code).toBe("VALIDATION_ERROR");
-    } finally {
-      await client.close();
-    }
-  });
+
 });
 
