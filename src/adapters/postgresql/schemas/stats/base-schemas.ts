@@ -14,6 +14,7 @@ import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export const StatsDescriptiveSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column to analyze"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
@@ -26,6 +27,7 @@ export const StatsDescriptiveSchemaBase = z.object({
 
 export const StatsPercentilesSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column"),
   percentiles: z
     .array(z.number())
@@ -44,6 +46,7 @@ export const StatsPercentilesSchemaBase = z.object({
 
 export const StatsCorrelationSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column1: z.string().optional().describe("First numeric column"),
   column2: z.string().optional().describe("Second numeric column"),
   x: z.string().optional().describe("Alias for column1"),
@@ -59,6 +62,7 @@ export const StatsCorrelationSchemaBase = z.object({
 
 export const StatsRegressionSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   xColumn: z.string().optional().describe("Independent variable (X)"),
   yColumn: z.string().optional().describe("Dependent variable (Y)"),
   independentColumn: z.string().optional().describe("Alias for xColumn"),
@@ -84,6 +88,7 @@ export const StatsRegressionSchemaBase = z.object({
 
 export const StatsTimeSeriesSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   valueColumn: z.string().optional().describe("Numeric column to aggregate"),
   timeColumn: z.string().optional().describe("Timestamp column"),
   value: z.string().optional().describe("Alias for valueColumn"),
@@ -115,6 +120,7 @@ export const StatsTimeSeriesSchemaBase = z.object({
 
 export const StatsDistributionSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column"),
   buckets: z
     .preprocess(coerceNumber, z.number().optional())
@@ -135,6 +141,7 @@ export const StatsDistributionSchemaBase = z.object({
 
 export const StatsHypothesisSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column"),
   hypothesizedMean: z
     .preprocess(coerceNumber, z.number().optional())
@@ -155,6 +162,7 @@ export const StatsHypothesisSchemaBase = z.object({
 
 export const StatsSamplingSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   method: z
     .enum(["random", "bernoulli", "system"])
     .optional()

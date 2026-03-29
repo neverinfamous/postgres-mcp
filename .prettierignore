@@ -9,3 +9,4 @@ src/constants/ServerInstructions.ts
 test-results.json
 tmp/
 mcp-audit.jsonl
+logs/

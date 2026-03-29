@@ -15,6 +15,7 @@ import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export const StatsRowNumberSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   orderBy: z.string().describe("Column(s) to order by"),
   partitionBy: z.string().optional().describe("Column(s) to partition by"),
   selectColumns: z
@@ -30,6 +31,7 @@ export const StatsRowNumberSchemaBase = z.object({
 
 export const StatsRankSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   orderBy: z.string().describe("Column(s) to order by (determines rank)"),
   partitionBy: z.string().optional().describe("Column(s) to partition by"),
   selectColumns: z
@@ -49,6 +51,7 @@ export const StatsRankSchemaBase = z.object({
 
 export const StatsLagLeadSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Column to get lag/lead value from"),
   orderBy: z.string().describe("Column(s) to order by"),
   direction: z
@@ -75,6 +78,7 @@ export const StatsLagLeadSchemaBase = z.object({
 
 export const StatsRunningTotalSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column to sum"),
   orderBy: z.string().describe("Column(s) to order by"),
   partitionBy: z
@@ -94,6 +98,7 @@ export const StatsRunningTotalSchemaBase = z.object({
 
 export const StatsMovingAvgSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column to average"),
   orderBy: z.string().describe("Column(s) to order by"),
   windowSize: z
@@ -113,6 +118,7 @@ export const StatsMovingAvgSchemaBase = z.object({
 
 export const StatsNtileSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   orderBy: z.string().describe("Column(s) to order by"),
   buckets: z
     .preprocess(coerceNumber, z.number().optional())
