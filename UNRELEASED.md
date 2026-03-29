@@ -241,6 +241,7 @@
 
 ### Fixed
 
+- **Text tool P154 error leaks (`pg_like_search`)**: Fixed a bug where missing `table`, `tableName`, `column`, or `pattern` string parameters returned an unstructured `{success: false, error: ...}` object devoid of mandatory `code`, `category`, and `recoverable` properties. The handler now cleanly incorporates these P154 structuring constraints into its manual validation returns.
 - **Vector Parameter Alias Parity**: Fixed an alias resolution bug in `VectorCreateIndexSchemaBase` where providing `distanceMetric` natively bypassed schema parsing logic and defaulted to `l2`. Restored symmetric schema transformation mappings from `VectorSearchSchemaBase` to guarantee precise routing for `cosine` and `inner_product` operability alongside the primary `metric` payload string.
 - **Vector Interface**: Vector API P154 error compliance (TABLE_NOT_FOUND, COLUMN_NOT_FOUND) with dedicated Output Schema field preservation
 - **Vector Error Parity**: Standardized generic `VECTOR_DIMENSION_MISMATCH` error code returned by `pg_vector_search` to `DIMENSION_MISMATCH` to enforce symmetrical P154 structural error parity alongside `pg_vector_distance` and `pg_vector_insert`.

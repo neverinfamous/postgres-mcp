@@ -80,6 +80,9 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
           return {
             success: false,
             error: "Either 'table' or 'tableName' is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
@@ -87,6 +90,9 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
           return {
             success: false,
             error: "column and pattern are required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
         const columnName = sanitizeIdentifier(parsed.column);
