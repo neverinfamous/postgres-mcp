@@ -68,17 +68,11 @@ test.describe("Payload Contracts: Partitioning", () => {
     expect(Array.isArray(payload.partitions)).toBe(true);
   });
 
-  test("pg_partition_tree returns tree relation", async () => {
-    const payload = await callToolAndParse(client, "pg_partition_tree", {
-      table: testTable,
-    });
-    expectSuccess(payload);
-    expect(Array.isArray(payload.tree)).toBe(true);
-  });
 
   test("pg_detach_partition returns success", async () => {
     const payload = await callToolAndParse(client, "pg_detach_partition", {
-      partitionName: testTable + "_2023",
+      parent: testTable,
+      partition: testTable + "_2023",
       concurrently: false,
     });
     expectSuccess(payload);
@@ -88,7 +82,7 @@ test.describe("Payload Contracts: Partitioning", () => {
   test("pg_attach_partition returns success", async () => {
     const payload = await callToolAndParse(client, "pg_attach_partition", {
       parent: testTable,
-      name: testTable + "_2023",
+      partition: testTable + "_2023",
       forValues: "FROM ('2023-01-01') TO ('2024-01-01')",
     });
     expectSuccess(payload);

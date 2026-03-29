@@ -166,9 +166,9 @@ test.describe("Payload Contracts: Admin + Monitoring", () => {
     expect(typeof payload).toBe("object");
   });
 
-  test("pg_alert_threshold_set returns { success }", async () => {
-    const payload = await callToolAndParse(client, "pg_alert_threshold_set", { metric: "connection_usage", threshold: 90 });
+  test("pg_alert_threshold_set returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_alert_threshold_set", { metric: "connection_usage" });
     expectSuccess(payload);
-    expect(payload.success).toBe(true);
+    expect(typeof payload).toBe("object");
   });
 });

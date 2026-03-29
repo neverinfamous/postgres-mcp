@@ -1,7 +1,8 @@
 /**
  * Payload Contract Tests: Minor Extensions
  *
- * Validates response shapes for citext, ltree, pgcrypto, cron, kcache tools.
+ * Validates response shapes for minor extensions:
+ * citext (6), ltree (8), pgcrypto (9), pg_cron (8), pg_kcache (7).
  */
 
 import { test, expect } from "@playwright/test";
@@ -59,36 +60,32 @@ test.describe("Payload Contracts: Minor Extensions", () => {
     const payload = await callToolAndParse(client, "pg_ltree_create_extension", {});
     expect(typeof payload).toBe("object");
   });
-  test("pg_ltree_add_column returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_ltree_add_column", { table: testTable, column: "node_path" });
+  test("pg_ltree_convert_column returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_ltree_convert_column", { table: testTable, column: "path" });
     expect(typeof payload).toBe("object");
   });
-  test("pg_ltree_insert returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_ltree_insert", { table: testTable, column: "node_path", path: "Top.Science.Astronomy" });
+  test("pg_ltree_create_index returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_ltree_create_index", { table: testTable, column: "path" });
     expect(typeof payload).toBe("object");
   });
   test("pg_ltree_query returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_ltree_query", { table: testTable, column: "node_path", path: "Top", mode: "descendants" });
+    const payload = await callToolAndParse(client, "pg_ltree_query", { table: testTable, column: "path", path: "Top", mode: "descendants" });
     expect(typeof payload).toBe("object");
   });
   test("pg_ltree_subpath returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_ltree_subpath", { path: "Top.Science", start: 0, length: 1 });
+    const payload = await callToolAndParse(client, "pg_ltree_subpath", { path: "Top.Science", offset: 0, length: 1 });
     expect(typeof payload).toBe("object");
   });
   test("pg_ltree_lca returns shape", async () => {
     const payload = await callToolAndParse(client, "pg_ltree_lca", { paths: ["Top.Science", "Top.Math"] });
     expect(typeof payload).toBe("object");
   });
-  test("pg_ltree_index returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_ltree_index", { table: testTable, column: "node_path" });
+  test("pg_ltree_list_columns returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_ltree_list_columns", {});
     expect(typeof payload).toBe("object");
   });
-  test("pg_ltree_validate returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_ltree_validate", { path: "Top.Science N" }); // intentional space to test format validation
-    expect(typeof payload).toBe("object");
-  });
-  test("pg_ltree_hierarchy returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_ltree_hierarchy", { table: testTable, column: "node_path" });
+  test("pg_ltree_match returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_ltree_match", { table: testTable, column: "path", pattern: "*.Science.*" });
     expect(typeof payload).toBe("object");
   });
 
@@ -102,12 +99,11 @@ test.describe("Payload Contracts: Minor Extensions", () => {
     expect(typeof payload).toBe("object");
   });
   test("pg_pgcrypto_encrypt returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_pgcrypto_encrypt", { data: "test", key: "secret" });
+    const payload = await callToolAndParse(client, "pg_pgcrypto_encrypt", { data: "test", password: "pwd" });
     expect(typeof payload).toBe("object");
   });
   test("pg_pgcrypto_decrypt returns shape", async () => {
-    const encrypted = await callToolAndParse(client, "pg_pgcrypto_encrypt", { data: "test", key: "secret" });
-    const payload = await callToolAndParse(client, "pg_pgcrypto_decrypt", { data: encrypted.result || "abc", key: "secret" });
+    const payload = await callToolAndParse(client, "pg_pgcrypto_decrypt", { data: "ENCRYPTED_DATA", password: "pwd" });
     expect(typeof payload).toBe("object");
   });
   test("pg_pgcrypto_hmac returns shape", async () => {
@@ -122,16 +118,12 @@ test.describe("Payload Contracts: Minor Extensions", () => {
     const payload = await callToolAndParse(client, "pg_pgcrypto_gen_random_uuid", {});
     expect(typeof payload).toBe("object");
   });
-  test("pg_pgcrypto_password_hash returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_pgcrypto_password_hash", { password: "test" });
+  test("pg_pgcrypto_gen_salt returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_pgcrypto_gen_salt", { type: "bf" });
     expect(typeof payload).toBe("object");
   });
-  test("pg_pgcrypto_password_check returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_pgcrypto_password_check", { password: "test", hash: "invalid" });
-    expect(typeof payload).toBe("object");
-  });
-  test("pg_pgcrypto_public_key_encrypt returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_pgcrypto_public_key_encrypt", { data: "test", key: "mock_key" });
+  test("pg_pgcrypto_crypt returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_pgcrypto_crypt", { password: "pwd", salt: "random12345678" });
     expect(typeof payload).toBe("object");
   });
 
@@ -144,32 +136,28 @@ test.describe("Payload Contracts: Minor Extensions", () => {
     const payload = await callToolAndParse(client, "pg_cron_schedule", { jobName: "test_job", schedule: "0 * * * *", command: "SELECT 1" });
     expect(typeof payload).toBe("object");
   });
+  test("pg_cron_schedule_in_database returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_cron_schedule_in_database", { schedule: "0 * * * *", command: "ANALYZE", database: "postgres" });
+    expect(typeof payload).toBe("object");
+  });
+  test("pg_cron_alter_job returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_cron_alter_job", { jobId: 1, active: false });
+    expect(typeof payload).toBe("object");
+  });
   test("pg_cron_list_jobs returns job data", async () => {
     const payload = await callToolAndParse(client, "pg_cron_list_jobs", {});
     expect(typeof payload).toBe("object");
   });
-  test("pg_cron_job_history returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_cron_job_history", {});
-    expect(typeof payload).toBe("object");
-  });
-  test("pg_cron_job_status returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_cron_job_status", { jobName: "test_job" });
-    expect(typeof payload).toBe("object");
-  });
-  test("pg_cron_alter_job returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_cron_alter_job", { jobName: "test_job", active: false });
-    expect(typeof payload).toBe("object");
-  });
-  test("pg_cron_run_job returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_cron_run_job", { jobId: 1 });
+  test("pg_cron_job_run_details returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_cron_job_run_details", {});
     expect(typeof payload).toBe("object");
   });
   test("pg_cron_unschedule returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_cron_unschedule", { jobName: "test_job" });
+    const payload = await callToolAndParse(client, "pg_cron_unschedule", { jobId: 1 });
     expect(typeof payload).toBe("object");
   });
-  test("pg_cron_clear_history returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_cron_clear_history", {});
+  test("pg_cron_cleanup_history returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_cron_cleanup_history", {});
     expect(typeof payload).toBe("object");
   });
 
@@ -190,16 +178,12 @@ test.describe("Payload Contracts: Minor Extensions", () => {
     const payload = await callToolAndParse(client, "pg_kcache_resource_analysis", {});
     expect(typeof payload).toBe("object");
   });
-  test("pg_kcache_cpu_intensive returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_kcache_cpu_intensive", {});
+  test("pg_kcache_top_cpu returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_kcache_top_cpu", {});
     expect(typeof payload).toBe("object");
   });
-  test("pg_kcache_io_intensive returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_kcache_io_intensive", {});
-    expect(typeof payload).toBe("object");
-  });
-  test("pg_kcache_hit_ratio returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_kcache_hit_ratio", {});
+  test("pg_kcache_top_io returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_kcache_top_io", {});
     expect(typeof payload).toBe("object");
   });
   test("pg_kcache_reset returns shape", async () => {
