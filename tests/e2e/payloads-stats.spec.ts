@@ -136,4 +136,29 @@ test.describe("Payload Contracts: Stats + Partitioning", () => {
     // May return warning if table is not partitioned — just check shape
     expect(typeof payload).toBe("object");
   });
+
+  test("pg_stats_lag_lead returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_stats_lag_lead", { table: "test_products", column: "price", orderBy: "id" });
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_stats_running_total returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_stats_running_total", { table: "test_products", column: "price", orderBy: "id" });
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_stats_moving_avg returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_stats_moving_avg", { table: "test_products", column: "price", orderBy: "id", window: 3 });
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_stats_ntile returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_stats_ntile", { table: "test_products", orderBy: "id", buckets: 4 });
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_stats_distinct returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_stats_distinct", { table: "test_products", column: "price" });
+    expect(typeof payload).toBe("object");
+  });
 });

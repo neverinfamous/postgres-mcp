@@ -90,4 +90,10 @@ test.describe("Payload Contracts: JSONB", () => {
     expect(typeof payload.formatted).toBe("string");
     expect(payload.formatted).toContain("Alice");
   });
+
+  test("pg_jsonb_object returns { object }", async () => {
+    const payload = await callToolAndParse(client, "pg_jsonb_object", { keys: ["a", "b"], values: ["1", "2"] });
+    expectSuccess(payload);
+    expect(typeof payload.object).toBe("object");
+  });
 });

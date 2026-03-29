@@ -86,4 +86,64 @@ test.describe("Payload Contracts: Performance", () => {
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
   });
+
+  test("pg_stat_statements returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_stat_statements", {});
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_stat_activity returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_stat_activity", {});
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_query_plan_stats returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_query_plan_stats", { queryId: "0" });
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_index_recommendations returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_index_recommendations", {});
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_performance_baseline returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_performance_baseline", { duration: "1 hour" });
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_connection_pool_optimize returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_connection_pool_optimize", {});
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_partition_strategy_suggest returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_partition_strategy_suggest", { table: "test_products", thresholdBytes: 10000 });
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_duplicate_indexes returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_duplicate_indexes", {});
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_detect_connection_spike returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_detect_connection_spike", {});
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_detect_query_anomalies returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_detect_query_anomalies", {});
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_detect_bloat_risk returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_detect_bloat_risk", {});
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_stat_user_tables returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_stat_user_tables", {});
+    expect(typeof payload).toBe("object");
+  });
 });

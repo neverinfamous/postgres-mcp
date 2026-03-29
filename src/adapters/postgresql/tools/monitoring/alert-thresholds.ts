@@ -4,11 +4,15 @@
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 
 import { getToolIcons } from "../../../../utils/icons.js";
-import { AlertThresholdOutputSchema } from "../../schemas/index.js";
+import {
+  AlertThresholdSetSchemaBase,
+  AlertThresholdSetSchema,
+  AlertThresholdOutputSchema,
+} from "../../schemas/index.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 
 export function createAlertThresholdSetTool(
   _adapter: PostgresAdapter,
@@ -18,23 +22,19 @@ export function createAlertThresholdSetTool(
     description:
       "Get recommended alert thresholds for monitoring key database metrics. Note: This is informational only - returns suggested warning/critical thresholds for external monitoring tools. Does not configure alerts in PostgreSQL itself.",
     group: "monitoring",
-    inputSchema: z.object({
-      metric: z
-        .string()
-        .optional()
-        .describe(
-          "Specific metric to get thresholds for, or all if not specified. Valid: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time",
-        ),
-    }),
+    inputSchema: AlertThresholdSetSchemaBase,
     outputSchema: AlertThresholdOutputSchema,
     annotations: readOnly("Get Alert Thresholds"),
     icons: getToolIcons("monitoring", readOnly("Get Alert Thresholds")),
     handler: (params: unknown, _context: RequestContext) => {
-      const AlertThresholdSchema = z.object({
-        metric: z.string().optional(),
-      });
-
-      const parsed = AlertThresholdSchema.parse(params ?? {});
+      let parsed;
+      try {
+        parsed = AlertThresholdSetSchema.parse(params ?? {});
+      } catch (err) {
+        return Promise.resolve(
+          formatHandlerErrorResponse(err, { tool: "pg_alert_threshold_set" })
+        );
+      }
 
       const validMetrics = [
         "connection_usage",

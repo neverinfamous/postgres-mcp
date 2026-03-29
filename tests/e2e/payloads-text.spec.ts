@@ -79,4 +79,10 @@ test.describe("Payload Contracts: Text + Search", () => {
     expect(payload.rows[0]).toHaveProperty("headline");
     expect(typeof payload.count).toBe("number");
   });
+
+  test("pg_text_search_config returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_text_search_config", {});
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
 });

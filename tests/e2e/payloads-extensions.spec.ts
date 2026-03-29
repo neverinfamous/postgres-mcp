@@ -38,6 +38,14 @@ test.describe("Payload Contracts: Minor Extensions", () => {
   });
 
   // --- citext ---
+  test("pg_citext_create_extension returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_citext_create_extension", {});
+    expect(typeof payload).toBe("object");
+  });
+  test("pg_citext_list_columns returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_citext_list_columns", {});
+    expect(typeof payload).toBe("object");
+  });
   test("pg_citext_convert_column returns shape", async () => {
     const payload = await callToolAndParse(client, "pg_citext_convert_column", { table: testTable, column: "name" });
     expect(typeof payload).toBe("object");

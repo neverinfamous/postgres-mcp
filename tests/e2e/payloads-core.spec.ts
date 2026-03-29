@@ -82,4 +82,16 @@ test.describe("Payload Contracts: Core", () => {
     expect(typeof payload.overallScore).toBe("number");
     expect(typeof payload.overallStatus).toBe("string");
   });
+
+  test("pg_analyze_workload_indexes returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_analyze_workload_indexes", { sql: "SELECT * FROM test_products" });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_analyze_query_indexes returns shape", async () => {
+    const payload = await callToolAndParse(client, "pg_analyze_query_indexes", { sql: "SELECT * FROM test_products" });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
 });

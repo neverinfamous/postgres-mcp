@@ -62,6 +62,45 @@ export const ShowSettingsSchema = z.preprocess(
   }),
 );
 
+export const AlertThresholdSetSchemaBase = z.object({
+  metric: z
+    .string()
+    .optional()
+    .describe(
+      "Specific metric to get thresholds for, or all if not specified. Valid: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time",
+    ),
+});
+
+export const AlertThresholdSetSchema = z.preprocess(
+  defaultToEmpty,
+  AlertThresholdSetSchemaBase,
+);
+
+export const CapacityPlanningSchemaBase = z.object({
+  projectionDays: z.preprocess(coerceNumber, z.number().optional())
+    .describe("Days to project growth (default: 90)"),
+  days: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for projectionDays"),
+});
+
+export const CapacityPlanningSchema = z.preprocess(
+  defaultToEmpty,
+  CapacityPlanningSchemaBase
+    .refine(
+      (data) => {
+        const val = data.projectionDays ?? data.days;
+        return val === undefined || val >= 0;
+      },
+      {
+        message: "Projection days must be a non-negative number",
+        path: ["days"],
+      },
+    )
+    .transform((data) => ({
+      ...data,
+      projectionDays: data.projectionDays ?? data.days ?? 90,
+    })),
+);
+
 // ============================================================================
 // Output Schemas
 // ============================================================================

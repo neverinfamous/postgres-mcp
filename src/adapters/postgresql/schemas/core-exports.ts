@@ -100,6 +100,10 @@ export {
   TableSizesSchema,
   ShowSettingsSchemaBase,
   ShowSettingsSchema,
+  AlertThresholdSetSchemaBase,
+  AlertThresholdSetSchema,
+  CapacityPlanningSchemaBase,
+  CapacityPlanningSchema,
   // Output schemas
   DatabaseSizeOutputSchema,
   TableSizesOutputSchema,
