@@ -1,8 +1,12 @@
-# Advanced Stress Test — postgres-mcp — Part 1
+# Advanced Stress Test — postgres-mcp
 
-Execute each numbered stress test below using both code mode (`pg_execute_code`) and direct tool calls.
+**ESSENTIAL INSTRUCTIONS**
 
-**DO NOT USE SCRIPTS/TERMINAL TO TEST! DO NOT MODIFY OR SKIP TESTS! All changes MUST be consistent with `code-map.md` and other postgres-mcp tools!**
+**Execute EVERY numbered stress test below using code mode (`pg_execute_code`).**
+**Do NOT use scripts or terminal to replace planned tests.**
+**Do NOT modify or skip tests.**
+**Do NOT run test-tools-advanced-2.md.**
+**All changes MUST be consistent with other postgres-mcp tools and `code-map.md`**
 
 ## Code Mode Execution
 
@@ -58,7 +62,10 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 
 ## Post-Test Procedures
 
-At the end, confirm cleanup of all `stress_*` objects, then **fix every finding** — not just ❌ Fails, but also ⚠️ Issues (behavioral improvements, missing warnings, error code consistency) and 📦 Payload problems (responses that should be truncated or offer a `limit` param). Create a plan covering all findings and stop so the user can approve the plan. Once the plan is approved and completed, update the changelog (being careful not to create duplicate headers), and commit without pushing. Then stop so the user can verify changes before you re-test your fixes with direct MCP tool calls.
+1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-2.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+3. Update the changelog (being careful not to create duplicate headers), and commit without pushing.
+4. Stop and briefly summarize the testing results and fixes.
 
 ---
 
