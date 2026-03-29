@@ -124,6 +124,7 @@
 - **Naming conventions**: Renamed 12 source + 9 test PascalCase files to kebab-case (`DatabaseAdapter.ts` → `database-adapter.ts`, `PostgresAdapter.ts` → `postgres-adapter.ts`, `McpServer.ts` → `mcp-server.ts`, etc.). Updated all import paths across ~80 files.
 
 ### Fixed
+- **Vector Parameter Alias Parity**: Fixed an alias resolution bug in `VectorCreateIndexSchemaBase` where providing `distanceMetric` natively bypassed schema parsing logic and defaulted to `l2`. Restored symmetric schema transformation mappings from `VectorSearchSchemaBase` to guarantee precise routing for `cosine` and `inner_product` operability alongside the primary `metric` payload string.
 - **Vector Interface**: Vector API P154 error compliance (TABLE_NOT_FOUND, COLUMN_NOT_FOUND) with dedicated Output Schema field preservation
 - **Vector Error Parity**: Standardized generic `VECTOR_DIMENSION_MISMATCH` error code returned by `pg_vector_search` to `DIMENSION_MISMATCH` to enforce symmetrical P154 structural error parity alongside `pg_vector_distance` and `pg_vector_insert`.
 - **Vector Dimension Accuracy**: Fixed a bug where `pg_vector_search`, `pg_hybrid_search`, and `pg_vector_insert` returned swapped `expected` vs `provided` dimensions in `DIMENSION_MISMATCH` errors due to arbitrary ordering in pgvector native exception text. Handlers now dynamically examine the input vector length against the regex output to guarantee accurate payload placement.

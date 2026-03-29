@@ -119,6 +119,7 @@ export const VectorCreateIndexSchemaBase = z.object({
     .enum(["l2", "cosine", "inner_product"])
     .optional()
     .describe("Distance metric (default: l2)"),
+  distanceMetric: z.string().optional().describe("Alias for metric"),
   ifNotExists: z
     .boolean()
     .optional()
@@ -132,13 +133,29 @@ export const VectorCreateIndexSchemaBase = z.object({
 
 // Transformed schema with alias resolution
 export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
-  (data) => {
+  (data, ctx) => {
     const resolvedType = data.type ?? data.method;
+    
+    // Resolve metric vs distanceMetric
+    const resolvedMetric = data.metric ?? 
+      (data.distanceMetric === "cosine" || data.distanceMetric === "l2" || data.distanceMetric === "inner_product" 
+        ? data.distanceMetric 
+        : undefined);
+
+    if (data.distanceMetric && !resolvedMetric) {
+       ctx.addIssue({
+         code: "custom",
+         message: `Invalid distance metric: ${data.distanceMetric}. Must be l2, cosine, or inner_product (distanceMetric)`,
+         path: ["distanceMetric"],
+       });
+       return z.NEVER;
+    }
+
     return {
       table: data.table ?? data.tableName ?? "",
       column: data.column ?? data.col ?? "",
       type: resolvedType,
-      metric: data.metric ?? "l2",
+      metric: resolvedMetric ?? "l2",
       ifNotExists: data.ifNotExists,
       lists: data.lists,
       m: data.m,
