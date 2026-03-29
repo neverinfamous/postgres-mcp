@@ -63,6 +63,27 @@ test.describe("Payload Contracts: _meta.tokenEstimate", () => {
     expect(meta!.tokenEstimate as number).toBeGreaterThan(0);
   });
 
+  // ─── Error Responses ─────────────────────────────────────────────────────
+
+  test("tool failure response includes _meta.tokenEstimate", async () => {
+    // Intentionally cause a database error
+    const payload = await callToolAndParse(client, "pg_read_query", {
+      sql: "SELECT * FROM non_existent_table_for_token_test",
+    });
+    
+    // Should be a structured error response, but still have _meta
+    expect(payload.success).toBe(false);
+    expect(payload.error).toBeDefined();
+    
+    const meta = payload._meta as Record<string, unknown> | undefined;
+    expect(
+      meta,
+      "Expected _meta to be present in structured error response payload"
+    ).toBeDefined();
+    expect(typeof meta?.tokenEstimate).toBe("number");
+    expect(meta!.tokenEstimate as number).toBeGreaterThan(0);
+  });
+
   // ─── Proportionality ──────────────────────────────────────────────────────
 
   test("tokenEstimate is proportional to payload size (LIMIT 1 vs LIMIT 50)", async () => {
@@ -114,5 +135,26 @@ test.describe("Payload Contracts: _meta.tokenEstimate", () => {
 
     // wallTimeMs and cpuTimeMs must also be present (original metrics preserved)
     expect(typeof metrics?.wallTimeMs).toBe("number");
+  });
+
+  test("pg_execute_code failure response includes metrics.tokenEstimate", async () => {
+    const payload = await callToolAndParse(client, "pg_execute_code", {
+      code: `
+        // Intentionally throw an error inside the sandbox
+        throw new Error("Simulated sandbox failure");
+      `,
+    });
+
+    expect(payload.success).toBe(false);
+    expect(payload.error).toContain("Simulated sandbox failure");
+
+    // Code Mode should still return metrics on failure
+    const metrics = payload.metrics as Record<string, unknown> | undefined;
+    expect(
+      metrics,
+      "Expected metrics to be present in failed pg_execute_code response"
+    ).toBeDefined();
+    expect(typeof metrics?.tokenEstimate).toBe("number");
+    expect(metrics!.tokenEstimate as number).toBeGreaterThan(0);
   });
 });

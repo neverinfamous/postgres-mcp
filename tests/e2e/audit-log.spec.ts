@@ -19,7 +19,7 @@ import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { test, expect } from "@playwright/test";
-import { startServer, stopServer, createClient, callToolRaw } from "./helpers.js";
+import { startServer, stopServer, createClient, callToolRaw, callToolAndParse } from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 const AUDIT_PORT_BASE = 3150;
@@ -360,16 +360,22 @@ test.describe("Audit Log", () => {
 
         // Write first batch to exceed 500 bytes
         for (let i = 0; i < 8; i++) {
-          await callToolRaw(client, "pg_transaction_begin", {});
-          await callToolRaw(client, "pg_transaction_rollback", {});
+          const res = await callToolAndParse(client, "pg_transaction_begin", {});
+          const txId = res["transactionId"] as string | undefined;
+          if (txId) {
+            await callToolAndParse(client, "pg_transaction_rollback", { transactionId: txId });
+          }
         }
         // Force server to flush first batch
         await delay(300);
 
         // Write second batch to trigger rotation based on first batch's size
         for (let i = 0; i < 2; i++) {
-          await callToolRaw(client, "pg_transaction_begin", {});
-          await callToolRaw(client, "pg_transaction_rollback", {});
+          const res = await callToolAndParse(client, "pg_transaction_begin", {});
+          const txId = res["transactionId"] as string | undefined;
+          if (txId) {
+            await callToolAndParse(client, "pg_transaction_rollback", { transactionId: txId });
+          }
         }
 
         // Wait for async flush

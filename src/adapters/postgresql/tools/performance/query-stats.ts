@@ -32,6 +32,10 @@ export function createStatStatementsTool(
       .unknown()
       .optional()
       .describe("Sort order (default: total_time)"),
+    truncateQuery: z
+      .any()
+      .optional()
+      .describe("Max query length in chars (default: 100, use 0 for full text)"),
   });
 
   const StatStatementsSchema = z.preprocess(
@@ -66,6 +70,16 @@ export function createStatStatementsTool(
           orderBy = rawOrderBy;
         }
 
+        const rawTruncate = Number(parsed.truncateQuery);
+        const truncateLen =
+          parsed.truncateQuery === undefined
+            ? 100
+            : isNaN(rawTruncate)
+              ? 100
+              : rawTruncate === 0
+                ? null
+                : rawTruncate;
+
         const sql = `SELECT query, calls, total_exec_time as total_time,
                         mean_exec_time as mean_time, rows,
                         shared_blks_hit, shared_blks_read
@@ -76,13 +90,24 @@ export function createStatStatementsTool(
         const result = await adapter.executeQuery(sql);
         // Coerce numeric fields to JavaScript numbers
         const statements = (result.rows ?? []).map(
-          (row: Record<string, unknown>) => ({
-            ...row,
-            calls: toNum(row["calls"]),
-            rows: toNum(row["rows"]),
-            shared_blks_hit: toNum(row["shared_blks_hit"]),
-            shared_blks_read: toNum(row["shared_blks_read"]),
-          }),
+          (row: Record<string, unknown>) => {
+            const queryVal = row["query"];
+            const query = typeof queryVal === "string" ? queryVal : "";
+            const truncatedQuery =
+              truncateLen !== null && query.length > truncateLen
+                ? query.substring(0, truncateLen) + "..."
+                : query;
+
+            return {
+              ...row,
+              query: truncatedQuery,
+              queryTruncated: truncateLen !== null && query.length > truncateLen,
+              calls: toNum(row["calls"]),
+              rows: toNum(row["rows"]),
+              shared_blks_hit: toNum(row["shared_blks_hit"]),
+              shared_blks_read: toNum(row["shared_blks_read"]),
+            };
+          }
         );
 
         const response: Record<string, unknown> = {
@@ -110,6 +135,10 @@ export function createStatActivityTool(
 ): ToolDefinition {
   const StatActivitySchemaBase = z.object({
     includeIdle: z.unknown().optional(),
+    truncateQuery: z
+      .any()
+      .optional()
+      .describe("Max query length in chars (default: 100, use 0 for full text)"),
   });
 
   const StatActivitySchema = z.preprocess(
@@ -131,6 +160,16 @@ export function createStatActivityTool(
         const includeIdle = parsed.includeIdle === true || parsed.includeIdle === "true";
         const idleClause = includeIdle ? "" : "AND state != 'idle'";
 
+        const rawTruncate = Number(parsed.truncateQuery);
+        const truncateLen =
+          parsed.truncateQuery === undefined
+            ? 100
+            : isNaN(rawTruncate)
+              ? 100
+              : rawTruncate === 0
+                ? null
+                : rawTruncate;
+
         const sql = `SELECT pid, usename, datname, client_addr, state,
                         query_start, state_change,
                         now() - query_start as duration,
@@ -142,6 +181,22 @@ export function createStatActivityTool(
                         ORDER BY query_start`;
 
         const result = await adapter.executeQuery(sql);
+        
+        const connections = (result.rows ?? []).map(
+          (row: Record<string, unknown>) => {
+            const queryVal = row["query"];
+            const query = typeof queryVal === "string" ? queryVal : "";
+            const truncatedQuery =
+              truncateLen !== null && query.length > truncateLen
+                ? query.substring(0, truncateLen) + "..."
+                : query;
+            return {
+              ...row,
+              query: truncatedQuery,
+              queryTruncated: truncateLen !== null && query.length > truncateLen,
+            };
+          }
+        );
 
         // Count background workers for metadata
         const bgResult = await adapter.executeQuery(
@@ -151,8 +206,8 @@ export function createStatActivityTool(
         const bgCount = (bgResult.rows?.[0]?.["count"] as number) ?? 0;
 
         return {
-          connections: result.rows,
-          count: result.rows?.length ?? 0,
+          connections,
+          count: connections.length,
           backgroundWorkers: bgCount,
         };
       } catch (error: unknown) {

@@ -157,11 +157,24 @@ export function registerSingleTool(
             category: "internal",
             recoverable: false,
           };
+          
+          const enriched = JSON.stringify({
+            ...errorResult,
+            _meta: { tokenEstimate: 0 },
+          });
+          const tokenEstimate = Math.ceil(
+            Buffer.byteLength(enriched, "utf8") / 4,
+          );
+          const finalText = enriched.replace(
+            '"tokenEstimate":0',
+            `"tokenEstimate":${String(tokenEstimate)}`,
+          );
+
           return {
             content: [
               {
                 type: "text" as const,
-                text: JSON.stringify(errorResult),
+                text: finalText,
               },
             ],
             structuredContent: errorResult,

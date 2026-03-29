@@ -118,17 +118,32 @@ export function createAuditInterceptor(
         // Compute token estimate from result (~4 bytes per token)
         if (typeof result === "object" && result !== null) {
           try {
-            const json = JSON.stringify(result);
+            // Match mcp-registry.ts exact payload token calculation (minified + _meta)
+            const json = JSON.stringify({ ...result, _meta: { tokenEstimate: 0 } });
             tokenEstimate = Math.ceil(Buffer.byteLength(json, "utf8") / 4);
           } catch {
             // Serialization failure must not block tool execution
           }
+        } else if (typeof result === "string") {
+          tokenEstimate = Math.ceil(Buffer.byteLength(result, "utf8") / 4);
         }
 
         return result;
       } catch (err) {
         success = false;
         error = err instanceof Error ? err.message : String(err);
+        
+        // Match mcp-registry.ts raw exception fallback token calculation
+        const errorResult = {
+          success: false,
+          error: error,
+          code: "INTERNAL_ERROR",
+          category: "internal",
+          recoverable: false,
+        };
+        const enriched = JSON.stringify({ ...errorResult, _meta: { tokenEstimate: 0 } });
+        tokenEstimate = Math.ceil(Buffer.byteLength(enriched, "utf8") / 4);
+        
         throw err; // Re-throw — don't swallow
       } finally {
         const durationMs = Math.round(performance.now() - start);
