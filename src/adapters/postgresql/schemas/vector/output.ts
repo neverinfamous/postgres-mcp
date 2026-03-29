@@ -168,6 +168,7 @@ export const VectorAggregateOutputSchema = z
         dimensions: z.number().describe("Vector dimensions"),
         truncated: z.boolean().describe("Whether vector is truncated"),
       })
+      .nullable()
       .optional()
       .describe("Average vector"),
     groups: z
@@ -179,7 +180,7 @@ export const VectorAggregateOutputSchema = z
             preview: z.array(z.number()).nullable().describe("Vector preview"),
             dimensions: z.number().describe("Vector dimensions"),
             truncated: z.boolean().describe("Whether vector is truncated"),
-          }),
+          }).nullable(),
         }),
       )
       .optional()
