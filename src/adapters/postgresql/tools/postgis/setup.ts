@@ -168,10 +168,27 @@ export function createSpatialIndexTool(
         const schemaName = schema ?? "public";
         const indexNameRaw = name ?? `idx_${table}_${column}_gist`;
 
+        // Check if table exists before trying to create index
+        const tableCheckSql = `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`;
+        const tableCheckResult = await adapter.executeQuery(tableCheckSql, [
+          schemaName,
+          table,
+        ]);
+        if ((tableCheckResult.rows?.length ?? 0) === 0) {
+          return {
+            success: false,
+            error: `Table "${table}" does not exist in schema "${schemaName}".`,
+相关信息: \`table: ${table}\`,
+            recoverable: false,
+            code: "TABLE_NOT_FOUND",
+          };
+        }
+
         // Check if index already exists (for accurate response message)
-        const checkSql = `SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE schemaname = $1 AND indexname = $2) as exists`;
+        const checkSql = `SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE schemaname = $1 AND tablename = $2 AND indexname = $3) as exists`;
         const checkResult = await adapter.executeQuery(checkSql, [
           schemaName,
+          table,
           indexNameRaw,
         ]);
         const indexExists = checkResult.rows?.[0]?.["exists"] as boolean;
@@ -203,22 +220,6 @@ export function createSpatialIndexTool(
         );
         const columnName = sanitizeIdentifier(column);
         const indexName = sanitizeIdentifier(indexNameRaw);
-
-        // Check if table exists before trying to create index
-        const tableCheckSql = `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`;
-        const tableCheckResult = await adapter.executeQuery(tableCheckSql, [
-          schemaName,
-          table,
-        ]);
-        if ((tableCheckResult.rows?.length ?? 0) === 0) {
-          return {
-            success: false,
-            error: `Table "${table}" does not exist in schema "${schemaName}".`,
-            table,
-            schema: schemaName,
-            suggestion: "Create the table first, then add the spatial index.",
-          };
-        }
 
         // Always use IF NOT EXISTS to prevent unclear PostgreSQL errors
         const sql = `CREATE INDEX IF NOT EXISTS ${indexName} ON ${qualifiedTable} USING GIST (${columnName})`;

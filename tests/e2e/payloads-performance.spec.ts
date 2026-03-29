@@ -29,6 +29,45 @@ test.describe("Payload Contracts: Performance", () => {
     expect(typeof payload).toBe("object");
   });
 
+  test("pg_explain_analyze returns query plan with execution metrics", async () => {
+    const payload = await callToolAndParse(client, "pg_explain_analyze", {
+      sql: "SELECT * FROM test_products WHERE id = 1",
+    });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_explain_buffers returns query plan with buffer usage", async () => {
+    const payload = await callToolAndParse(client, "pg_explain_buffers", {
+      sql: "SELECT * FROM test_products WHERE id = 1",
+    });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+  });
+
+  test("pg_query_plan_compare returns query comparison mapping", async () => {
+    const payload = await callToolAndParse(client, "pg_query_plan_compare", {
+      query1: "SELECT * FROM test_products",
+      query2: "SELECT * FROM test_products WHERE id = 1",
+    });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+    expect(payload).toHaveProperty("fullPlans");
+    expect(payload).toHaveProperty("analysis");
+  });
+
+  test("pg_query_plan_compare compact mode suppresses massive fullPlans blocks", async () => {
+    const payload = await callToolAndParse(client, "pg_query_plan_compare", {
+      query1: "SELECT * FROM test_products",
+      query2: "SELECT * FROM test_products WHERE id = 1",
+      compact: true,
+    });
+    expectSuccess(payload);
+    expect(typeof payload).toBe("object");
+    expect(payload.fullPlans).toBeUndefined();
+    expect(payload).toHaveProperty("analysis");
+  });
+
   test("pg_table_stats returns table statistics", async () => {
     const payload = await callToolAndParse(client, "pg_table_stats", {});
     expectSuccess(payload);

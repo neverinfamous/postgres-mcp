@@ -320,6 +320,39 @@ test.describe("Errors: Vector", () => {
 });
 
 // =============================================================================
+// Performance — Invalid Models/Parameters
+// =============================================================================
+
+test.describe("Errors: Performance", () => {
+  test("query_plan_compare with invalid SQL → structured error", async ({}, testInfo) => {
+    const client = await createClient(getBaseURL(testInfo));
+    try {
+      const p = await callToolAndParse(client, "pg_query_plan_compare", {
+        query1: "SELECT * FROM nonexistent_table123",
+        query2: "SELECT * FROM nonexistent_table456",
+      });
+      expectHandlerError(p);
+      expect(p.code).toBe("TABLE_NOT_FOUND");
+    } finally {
+      await client.close();
+    }
+  });
+
+  test("partition_strategy_suggest on nonexistent table → structured error", async ({}, testInfo) => {
+    const client = await createClient(getBaseURL(testInfo));
+    try {
+      const p = await callToolAndParse(client, "pg_partition_strategy_suggest", {
+        table: "_e2e_nonexistent_xyz",
+        thresholdBytes: -1, // invalid
+      });
+      expectHandlerError(p);
+    } finally {
+      await client.close();
+    }
+  });
+});
+
+// =============================================================================
 // Introspection — Invalid SQL/Tables
 // =============================================================================
 
