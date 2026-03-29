@@ -1,4 +1,4 @@
-# Tool Group Testing
+# postgres-mcp Tool Group Testing
 
 **ESSENTIAL INSTRUCTIONS**
 

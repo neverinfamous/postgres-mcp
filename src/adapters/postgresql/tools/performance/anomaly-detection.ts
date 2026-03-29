@@ -159,9 +159,6 @@ export function createDetectQueryAnomaliesTool(
         const anomalyCount = anomalies.length;
         const maxZScore = anomalies.length > 0 ? (anomalies[0]?.zScore ?? 0) : 0;
 
-        // Truncate payload after extracting metrics
-        const truncatedAnomalies = anomalies.slice(0, 10);
-
         // Risk based on count and severity
         let riskScore = 0;
         if (anomalyCount >= 10) riskScore += 40;
@@ -180,7 +177,7 @@ export function createDetectQueryAnomaliesTool(
             : `${String(anomalyCount)} anomalous queries detected out of ${String(totalAnalyzed)} analyzed (threshold: ${String(threshold)}σ, max z-score: ${String(maxZScore)})`;
 
         return {
-          anomalies: truncatedAnomalies,
+          anomalies,
           riskLevel,
           totalAnalyzed,
           anomalyCount,
