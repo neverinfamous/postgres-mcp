@@ -64,7 +64,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
 2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-2.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
-3. Update the changelog (being careful not to create duplicate headers), and commit without pushing.
+3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. Stop and briefly summarize the testing results and fixes.
 
 ---

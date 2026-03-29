@@ -70,7 +70,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
 2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-2.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
-3. Update the changelog (being careful not to create duplicate headers), and commit without pushing.
+3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. Stop and briefly summarize the testing results and fixes.
 
 ---
@@ -316,7 +316,7 @@ Relevant tools for this section:
 ### Category 1: pg_detect_query_anomalies Edge Cases
 
 1. `pg_detect_query_anomalies({threshold: 0.5})` → minimum threshold clamp; verify more anomalies than default; `riskLevel` may be `high` or `critical`
-2. `pg_detect_query_anomalies({threshold: 10.0})` → maximum threshold clamp; verify `anomalyCount: 0` (no query should deviate by 10σ); `riskLevel: "low"`
+2. `pg_detect_query_anomalies({threshold: 10.0})` → maximum threshold clamp; verify `anomalyCount: 0` (or 1 if an extreme outlier exists); `riskLevel` varies
 3. `pg_detect_query_anomalies({minCalls: 10000})` → very high minimum should filter most queries; verify `totalAnalyzed` is small or 0
 4. `pg_detect_query_anomalies({minCalls: 1})` → include all queries with at least 1 call; verify `totalAnalyzed` >= default result
 5. If `pg_stat_statements` is not loaded (hypothetical) → verify structured error with `success: false`, `suggestion` field mentioning `pg_diagnose_database_performance`, NOT raw MCP error
@@ -333,7 +333,7 @@ Relevant tools for this section:
 
 11. `pg_detect_connection_spike({warningPercent: 10})` → very low threshold; verify more `warnings` entries than default (70%)
 12. `pg_detect_connection_spike({warningPercent: 100})` → maximum threshold; verify `warnings` is empty or minimal
-13. Verify `byState` array contains at least one entry with `state: "active"` (the current query)
+13. Verify `byState` array intentionally EXCLUDES the current monitoring query (via `pid != pg_backend_pid()`), meaning `state: "active"` may be absent if no other queries are running
 14. Verify `usagePercent` = `(totalConnections / maxConnections) * 100` (approximately)
 15. Verify `concentrations` array structure: each entry has `dimension`, `value`, `count`, `percent`
 
