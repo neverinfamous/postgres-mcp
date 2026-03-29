@@ -153,8 +153,21 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const effectiveTotalCount = Math.max(totalCount, rowCount);
         const truncated = rowCount < effectiveTotalCount;
 
+        const rawQueries = result.rows ?? [];
+        const finalQueries = parsed.compact
+          ? rawQueries.map(row => {
+              const obj: Record<string, unknown> = {};
+              for (const [key, value] of Object.entries(row)) {
+                if (value !== 0 && value !== "0" && value !== "0 bytes") {
+                  obj[key] = value;
+                }
+              }
+              return obj;
+            })
+          : rawQueries;
+
         const response: Record<string, unknown> = {
-          queries: result.rows ?? [],
+          queries: finalQueries,
           count: rowCount,
           orderBy: orderBy ?? "total_time",
           truncated,
@@ -258,8 +271,21 @@ in user CPU (application code) vs system CPU (kernel operations).`,
         const effectiveTotalCount = Math.max(totalCount, rowCount);
         const truncated = rowCount < effectiveTotalCount;
 
+        const rawQueries = result.rows ?? [];
+        const finalQueries = parsed.compact
+          ? rawQueries.map(row => {
+              const obj: Record<string, unknown> = {};
+              for (const [key, value] of Object.entries(row)) {
+                if (value !== 0 && value !== "0" && value !== "0 bytes") {
+                  obj[key] = value;
+                }
+              }
+              return obj;
+            })
+          : rawQueries;
+
         const response: Record<string, unknown> = {
-          topCpuQueries: result.rows ?? [],
+          topCpuQueries: finalQueries,
           count: rowCount,
           description: "Queries ranked by total CPU time (user + system)",
           truncated,
@@ -392,8 +418,21 @@ which represent actual disk access (not just shared buffer hits).`,
         const effectiveTotalCount = Math.max(totalCount, rowCount);
         const truncated = rowCount < effectiveTotalCount;
 
+        const rawQueries = result.rows ?? [];
+        const finalQueries = parsed.compact
+          ? rawQueries.map(row => {
+              const obj: Record<string, unknown> = {};
+              for (const [key, value] of Object.entries(row)) {
+                if (value !== 0 && value !== "0" && value !== "0 bytes") {
+                  obj[key] = value;
+                }
+              }
+              return obj;
+            })
+          : rawQueries;
+
         const response: Record<string, unknown> = {
-          topIoQueries: result.rows ?? [],
+          topIoQueries: finalQueries,
           count: rowCount,
           ioType,
           description: `Queries ranked by ${ioType === "both" ? "total I/O" : ioType}`,

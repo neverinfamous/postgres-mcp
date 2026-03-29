@@ -200,9 +200,8 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
         );
         const decrypted = result.rows?.[0]?.["decrypted"];
 
-        // Return error for decryption failure (wrong password or corrupted data)
         if (decrypted === undefined || decrypted === null) {
-          throw new ValidationError("Decryption failed — wrong password or corrupted data");
+          throw new ValidationError("Decryption failed: Wrong key or corrupt data");
         }
 
         return {
