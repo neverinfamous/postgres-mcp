@@ -405,6 +405,63 @@ test.describe("Audit Backup Snapshots", () => {
     }
   });
 
+  test("diff_backup gracefully maps -1 for unanalyzed table row counts", async () => {
+    const TEMP_TABLE = "e2e_backup_unanalyzed";
+    const port = BACKUP_PORT_BASE + 6;
+    const dir = auditDir("unanalyzed");
+    await mkdir(dir, { recursive: true });
+    const logPath = join(dir, "audit.jsonl");
+
+    await startServer(
+      port,
+      [
+        "--audit-log", logPath,
+        "--audit-backup",
+        "--audit-backup-data",
+        "--tool-filter", "core,admin,backup,schema",
+      ],
+      "backup-unanalyzed",
+    );
+
+    let client: Client | undefined;
+    try {
+      client = await createClient(`http://localhost:${port}`);
+
+      await callToolAndParse(client, "pg_create_table", {
+        name: TEMP_TABLE,
+        columns: [
+          { name: "id", type: "SERIAL", primaryKey: true },
+        ],
+      });
+
+      // NO ANALYZE is called here. reltuples should remain -1.
+      await callToolAndParse(client, "pg_truncate", { table: TEMP_TABLE });
+
+      const listResult = await waitForSnapshots(client, 1);
+      const snapshots = (listResult.snapshots as Array<Record<string, unknown>>)
+        .filter((s) => s.tool === "pg_truncate");
+      const filename = snapshots[snapshots.length - 1]!.filename as string;
+
+      const diffResult = await callToolAndParse(client, "pg_audit_diff_backup", {
+        filename,
+      });
+
+      expect(diffResult.success).toBe(true);
+
+      const volumeDrift = diffResult.volumeDrift as Record<string, unknown> | undefined;
+      expect(volumeDrift).toBeDefined();
+      
+      // Because we never analyzed, the row snapshot is -1.
+      if (volumeDrift!.rowCountSnapshot !== undefined) {
+        expect(volumeDrift!.rowCountSnapshot as number).toBe(-1);
+      }
+    } finally {
+      if (client) await client.close();
+      stopServer(port);
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   test("restore_backup restoreAs creates alternate table without touching original", async () => {
     const TEMP_TABLE = "e2e_backup_restore_as_src";
     const RESTORE_AS_TABLE = "e2e_backup_restore_as_copy";

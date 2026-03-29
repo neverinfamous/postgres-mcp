@@ -91,6 +91,18 @@ test.describe("Payload Contracts: Vector", () => {
     expect(typeof payload.count).toBe("number");
   });
 
+  test("pg_vector_search rejects limit <= 0 with validation error", async () => {
+    const response = await callToolAndParse(client, "pg_vector_search", {
+      table: testTable,
+      column: "embedding",
+      vector: [1, 2, 3],
+      limit: -5,
+    }) as any;
+    expect(response.success).toBe(false);
+    expect(typeof response.error).toBe("string");
+    expect(response.error.toLowerCase()).toContain("validation");
+  });
+
   test("pg_hybrid_search returns { results, count }", async () => {
     // Requires column for FTS and vector, might fail if table absent, but shape should be object
     const payload = await callToolAndParse(client, "pg_hybrid_search", {

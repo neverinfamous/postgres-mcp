@@ -351,19 +351,15 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
   };
 }
 
-// Helper to convert internal Postgres pgcrypto panics into typed ValidationErrors
+// Helper to convert internal Postgres pgcrypto panics into typed errors
 function handlePgcryptoError(error: unknown, toolName: string): ErrorResponse {
   if (error !== null && typeof error === "object" && "message" in error) {
     const msg = String(error.message);
-    if (msg.includes("Wrong key or corrupt data")) {
-      return formatHandlerErrorResponse(new ValidationError("Decryption failed: Wrong key or corrupt data"), { tool: toolName });
-    }
     if (msg.includes("No such hash algorithm") || msg.includes("Cannot use") || msg.includes("unsupported")) {
       return formatHandlerErrorResponse(new ValidationError("Cryptographic error: Unsupported or invalid algorithm"), { tool: toolName });
     }
-    if (msg.includes("decoding base64 sequence") || msg.includes("invalid base64")) {
-      return formatHandlerErrorResponse(new ValidationError("Decoding failed: The provided text is not a valid base64 encoded string"), { tool: toolName });
-    }
   }
+  // Let formatHandlerErrorResponse handle DECRYPTION_FAILED and INVALID_BASE64
+  // using the P154 error-suggestions.ts mappings.
   return formatHandlerErrorResponse(error, { tool: toolName });
 }

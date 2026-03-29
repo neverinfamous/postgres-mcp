@@ -78,7 +78,11 @@ export async function callToolAndParse(
   const first = content[0];
   expect(first.type).toBe("text");
 
-  return JSON.parse(first.text!) as Record<string, unknown>;
+  try {
+    return JSON.parse(first.text!) as Record<string, unknown>;
+  } catch (err: unknown) {
+    throw new Error(`Failed to parse tool response as JSON. Response text was:\n${first.text}\n\nOriginal error: ${(err as Error).message}`);
+  }
 }
 
 /**

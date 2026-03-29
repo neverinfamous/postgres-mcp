@@ -48,12 +48,27 @@ test.describe("Payload Contracts: Schema + Introspection + Migration", () => {
     expect(typeof payload).toBe("object");
   });
 
-  test("pg_dependency_graph returns dependency data", async () => {
-    const payload = await callToolAndParse(client, "pg_dependency_graph", {
+  test("pg_dependency_graph returns dependency data and respects compact mode", async () => {
+    // 1. Full payload
+    const full = await callToolAndParse(client, "pg_dependency_graph", {
       table: "test_orders",
-    });
-    expectSuccess(payload);
-    expect(typeof payload).toBe("object");
+    }) as any;
+    expectSuccess(full);
+    expect(typeof full).toBe("object");
+
+    // 2. Compact payload
+    const compactPayload = await callToolAndParse(client, "pg_dependency_graph", {
+      table: "test_orders",
+      compact: true,
+    }) as any;
+    expectSuccess(compactPayload);
+    // Check that optional heavy fields are stripped in compact mode
+    if (compactPayload.graph && compactPayload.graph.nodes) {
+      if (compactPayload.graph.nodes.length > 0) {
+        expect(compactPayload.graph.nodes[0].size_bytes).toBeUndefined();
+        expect(compactPayload.graph.nodes[0].row_count).toBeUndefined();
+      }
+    }
   });
 
   test("pg_constraint_analysis returns analysis", async () => {
@@ -86,10 +101,24 @@ test.describe("Payload Contracts: Schema + Introspection + Migration", () => {
     expect(typeof payload).toBe("object");
   });
 
-  test("pg_schema_snapshot returns snapshot object", async () => {
-    const payload = await callToolAndParse(client, "pg_schema_snapshot", {});
-    expectSuccess(payload);
-    expect(typeof payload).toBe("object");
+  test("pg_schema_snapshot returns snapshot object and respects compact mode", async () => {
+    // 1. Full payload
+    const full = await callToolAndParse(client, "pg_schema_snapshot", {}) as any;
+    expectSuccess(full);
+    expect(typeof full).toBe("object");
+
+    // 2. Compact payload
+    const compactPayload = await callToolAndParse(client, "pg_schema_snapshot", { compact: true }) as any;
+    expectSuccess(compactPayload);
+    if (compactPayload.snapshot && compactPayload.snapshot.tables) {
+      const tables = compactPayload.snapshot.tables as Record<string, any>;
+      const firstTableKey = Object.keys(tables)[0];
+      if (firstTableKey) {
+        const firstTable = tables[firstTableKey];
+        expect(firstTable.size_bytes).toBeUndefined();
+        expect(firstTable.row_count).toBeUndefined();
+      }
+    }
   });
 
   // --- Newly Added Schema Lifecycle & Introspection Specs ---

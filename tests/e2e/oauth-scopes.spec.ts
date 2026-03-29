@@ -322,4 +322,68 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
       );
     }
   });
+
+  test("read token is blocked from core write tools", async () => {
+    const session = await initializeSession(readToken);
+
+    // ❌ DENIED: pg_write_query (core group → write scope override)
+    const writeResult = await callTool(readToken, session, "pg_write_query", {
+      sql: "INSERT INTO information_schema.tables (table_name) VALUES ('test')",
+    });
+    const writeExtracted = extractResult(writeResult);
+    expect(writeExtracted.isError).toBe(true);
+    expect(writeExtracted.text.toLowerCase()).toContain("insufficient scope");
+
+    // ❌ DENIED: pg_create_table (core group → write scope override)
+    const createResult = await callTool(readToken, session, "pg_create_table", {
+      table: "test_table",
+      columns: [{ name: "id", type: "integer" }],
+    });
+    const createExtracted = extractResult(createResult);
+    expect(createExtracted.isError).toBe(true);
+    expect(createExtracted.text.toLowerCase()).toContain("insufficient scope");
+  });
+
+  test("write token is blocked from core destructive tools but allowed core write tools", async () => {
+    const session = await initializeSession(writeToken);
+
+    // ✅ ALLOWED: pg_write_query (core group → write scope override)
+    const writeResult = await callTool(writeToken, session, "pg_write_query", {
+      sql: "INSERT INTO information_schema.tables (table_name) VALUES ('test')",
+    });
+    const writeExtracted = extractResult(writeResult);
+    // Should pass scope check, fail DB check
+    if (writeExtracted.isError) {
+      expect(writeExtracted.text.toLowerCase()).not.toContain("insufficient scope");
+    }
+
+    // ❌ DENIED: pg_drop_table (core group → admin scope override)
+    const dropResult = await callTool(writeToken, session, "pg_drop_table", {
+      table: "test_table",
+    });
+    const dropExtracted = extractResult(dropResult);
+    expect(dropExtracted.isError).toBe(true);
+    expect(dropExtracted.text.toLowerCase()).toContain("insufficient scope");
+  });
+
+  test("read token is allowed backup audit read tools despite backup group admin default", async () => {
+    const session = await initializeSession(readToken);
+
+    // ✅ ALLOWED: pg_audit_list_backups (backup group → read scope override)
+    const listResult = await callTool(readToken, session, "pg_audit_list_backups", {});
+    const listExtracted = extractResult(listResult);
+    // Should pass scope check, might return success
+    if (listExtracted.isError) {
+      expect(listExtracted.text.toLowerCase()).not.toContain("insufficient scope");
+    }
+
+    // ❌ DENIED: pg_audit_restore_backup (backup group → admin scope default)
+    const restoreResult = await callTool(readToken, session, "pg_audit_restore_backup", {
+      backupFile: "test.snapshot.json",
+      confirm: true,
+    });
+    const restoreExtracted = extractResult(restoreResult);
+    expect(restoreExtracted.isError).toBe(true);
+    expect(restoreExtracted.text.toLowerCase()).toContain("insufficient scope");
+  });
 });

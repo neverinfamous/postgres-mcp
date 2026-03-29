@@ -21,10 +21,10 @@ const DependencyNodeSchema = z.object({
 const DependencyEdgeSchema = z.object({
   from: z.string(),
   to: z.string(),
-  constraint: z.string(),
-  columns: z.array(z.object({ from: z.string(), to: z.string() })),
-  onDelete: z.string(),
-  onUpdate: z.string(),
+  constraint: z.string().optional(),
+  columns: z.array(z.object({ from: z.string(), to: z.string() })).optional(),
+  onDelete: z.string().optional(),
+  onUpdate: z.string().optional(),
 });
 
 export const DependencyGraphOutputSchema = z.object({

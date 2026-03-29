@@ -100,6 +100,27 @@ test.describe("Payload Contracts: Stats + Partitioning", () => {
     expect(Array.isArray(payload.rows)).toBe(true);
   });
 
+  test("pg_stats_top_n caps or rejects excessively large 'n' limits", async () => {
+    const rawResult = await client.callTool({
+      name: "pg_stats_top_n",
+      arguments: {
+        table: "test_products",
+        column: "price",
+        n: 5000,
+      },
+    });
+
+    const first = rawResult.content[0];
+    if (rawResult.isError) {
+      expect(first.type).toBe("text");
+      expect((first as any).text.toLowerCase()).toContain("validation error");
+    } else {
+      const response = JSON.parse((first as any).text) as any;
+      expect(response.success).toBe(true);
+      expect(response.rows.length).toBeLessThanOrEqual(1000);
+    }
+  });
+
   test("pg_stats_frequency returns { success, distribution }", async () => {
     const payload = await callToolAndParse(client, "pg_stats_frequency", {
       table: "test_products",

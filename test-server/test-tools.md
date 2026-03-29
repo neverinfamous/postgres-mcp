@@ -209,7 +209,9 @@ DROP TABLE IF EXISTS temp_my_test_table;
    - `server-instructions.md`
    - Test database (`test-database.sql`)
    - This prompt (`test-tools.md`) and group file (`test-group-tools.md`)
-4. Update the changelog and create memory-journal-mcp entry with any changes made (being careful not to create duplicate headers), and commit without pushing.
-5. Stop and briefly summarize the testing results and fixes and to allow the user to verify the changes.
+4. **User will handle validation**
+5. Update the changelog if there were any changes made (being careful not to create duplicate headers), and commit without pushing.
+6. Create a /session-summary in memory-journal-mcp for the issues and their fixes.
+7. Stop and briefly summarize the issues and their fixes.
 
 ---

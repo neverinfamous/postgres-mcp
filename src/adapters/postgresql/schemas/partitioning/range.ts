@@ -194,7 +194,17 @@ export const CreatePartitionSchema = z.preprocess(
       message: "One of parent, parentTable, or table is required",
       path: ["parent"],
     },
-  ).refine((data) => data.forValues !== undefined || data.isDefault === true, {
+  )
+    .refine(
+      (data) =>
+        data.name !== undefined ||
+        data.partitionName !== undefined,
+      {
+        message: "One of name or partitionName is required",
+        path: ["name"],
+      },
+    )
+    .refine((data) => data.forValues !== undefined || data.isDefault === true, {
     message:
       "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
     path: ["forValues"],

@@ -178,9 +178,19 @@ test.describe("Payload Contracts: Minor Extensions", () => {
     const payload = await callToolAndParse(client, "pg_kcache_database_stats", {});
     expect(typeof payload).toBe("object");
   });
-  test("pg_kcache_query_stats returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_kcache_query_stats", {});
-    expect(typeof payload).toBe("object");
+  test("pg_kcache_query_stats returns shape and respects compact mode", async () => {
+    // 1. Full payload
+    const full = await callToolAndParse(client, "pg_kcache_query_stats", {});
+    expect(typeof full).toBe("object");
+    
+    // 2. Compact payload
+    const compactPayload = await callToolAndParse(client, "pg_kcache_query_stats", { compact: true }) as any;
+    expect(typeof compactPayload).toBe("object");
+    if (compactPayload.success && Array.isArray(compactPayload.result)) {
+      if (compactPayload.result.length > 0) {
+        expect(compactPayload.result[0].query_preview).toBeUndefined();
+      }
+    }
   });
   test("pg_kcache_resource_analysis returns shape", async () => {
     const payload = await callToolAndParse(client, "pg_kcache_resource_analysis", {});
