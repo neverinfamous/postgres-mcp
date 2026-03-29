@@ -2,9 +2,9 @@
 
 **ESSENTIAL INSTRUCTIONS**
 
-**Execute EVERY numbered stress test below using direct MCP tool calls, NOT code mode.**
-**Do NOT use scripts or terminal to replace planned tests.**
-**Do NOT modify or skip tests.**
+**Execute EVERY numbered stress test below using DIRECT MCP tool calls. DO NOT TEST CODE MODE!**
+**Do NOT use scripts or terminal to replace planned tests!**
+**Do NOT modify or skip tests!**
 **Read `code-map.md` before making changes and make all changes consistent with other tools.**
 
 ## Reporting Format

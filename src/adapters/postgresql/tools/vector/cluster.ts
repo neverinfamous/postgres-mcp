@@ -88,7 +88,9 @@ export function createVectorClusterTool(
         if (isNaN(k)) {
           return {
             success: false,
-            error: `Validation error: k must be a valid number, received "${String(parsed.k)}"`,
+            error: `Validation error: k must be a valid number,
+            code: 'VALIDATION_ERROR',
+            category: 'validation', received "${String(parsed.k)}"`,
             suggestion: "Provide a numeric value for k (e.g., 3, 5, 10)",
           };
         }

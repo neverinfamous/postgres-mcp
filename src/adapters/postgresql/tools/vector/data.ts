@@ -173,6 +173,8 @@ export function createVectorAddColumnTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column", "dimensions"],
           };
         }
@@ -180,6 +182,8 @@ export function createVectorAddColumnTool(
           return {
             success: false,
             error: "column (or col) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column", "dimensions"],
           };
         }

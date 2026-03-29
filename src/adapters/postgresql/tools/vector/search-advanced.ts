@@ -74,6 +74,8 @@ export function createHybridSearchTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: [
               "table",
               "vectorColumn",
@@ -87,6 +89,8 @@ export function createHybridSearchTool(
           return {
             success: false,
             error: "vectorColumn (or vectorCol) parameter is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: [
               "table",
               "vectorColumn",
@@ -100,18 +104,24 @@ export function createHybridSearchTool(
           return {
             success: false,
             error: "Validation error: textColumn is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
           };
         }
         if (!parsed.vector || !Array.isArray(parsed.vector)) {
           return {
             success: false,
             error: "Validation error: vector is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
           };
         }
         if (!parsed.textQuery) {
           return {
             success: false,
             error: "Validation error: textQuery is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
           };
         }
 
@@ -159,6 +169,8 @@ export function createHybridSearchTool(
           return {
             success: false,
             error: `Column '${parsed.vectorColumn}' is tsvector, not vector. For hybrid search, vectorColumn must be a pgvector column (type 'vector'). Use textColumn for text search.`,
+            code: "INVALID_COLUMN_TYPE",
+            category: "validation",
             suggestion: `Specify a different vector column, or check your table structure with pg_describe_table`,
           };
         }
@@ -168,6 +180,8 @@ export function createHybridSearchTool(
           return {
             success: false,
             error: `Column '${parsed.vectorColumn}' has type '${actualType}', not 'vector'. Hybrid search requires a pgvector column.`,
+            code: "INVALID_COLUMN_TYPE",
+            category: "validation",
             columnType: actualType,
           };
         }
@@ -278,6 +292,8 @@ export function createHybridSearchTool(
               return {
                 success: false,
                 error: `Column '${missingCol}' does not exist in table '${resolvedTable}'`,
+                code: "COLUMN_NOT_FOUND",
+                category: "validation",
                 parameterWithIssue: paramName,
                 suggestion: "Use pg_describe_table to find available columns",
               };
@@ -295,6 +311,8 @@ export function createHybridSearchTool(
               return {
                 success: false,
                 error: `Vector dimension mismatch: column expects ${String(expectedDim)} dimensions, but you provided ${String(providedDim)} dimensions.`,
+                code: "DIMENSION_MISMATCH",
+                category: "query",
                 expectedDimensions: expectedDim,
                 providedDimensions: providedDim,
                 suggestion:
@@ -311,6 +329,8 @@ export function createHybridSearchTool(
               return {
                 success: false,
                 error: `Table '${missingRelation}' does not exist in schema '${schemaName}'`,
+                code: "TABLE_NOT_FOUND",
+                category: "validation",
                 suggestion: "Use pg_list_tables to find available tables",
               };
             }
@@ -377,6 +397,8 @@ export function createVectorPerformanceTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column"],
           };
         }
@@ -385,6 +407,8 @@ export function createVectorPerformanceTool(
             success: false,
             error:
               "column (or col) parameter is required for the vector column name",
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column"],
           };
         }

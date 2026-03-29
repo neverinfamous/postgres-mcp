@@ -48,6 +48,8 @@ export function createVectorDistanceTool(
           return {
             success: false,
             error: "Validation error: vector1 and vector2 are required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             suggestion:
               "Provide two vectors to calculate distance between them",
           };
@@ -71,6 +73,8 @@ export function createVectorDistanceTool(
           return {
             success: false,
             error: `Validation error: Invalid metric '${metric}'`,
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             suggestion: "Metric must be one of: 'l2', 'cosine', 'inner_product'",
           };
         }
@@ -123,6 +127,8 @@ export function createVectorNormalizeTool(): ToolDefinition {
           return Promise.resolve({
             success: false,
             error: "Validation error: vector is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             suggestion: "Provide a vector array to normalize, e.g., [3, 4]",
           });
         }

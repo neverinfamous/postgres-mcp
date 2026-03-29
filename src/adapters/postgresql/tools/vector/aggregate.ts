@@ -75,6 +75,8 @@ export function createVectorAggregateTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column"],
           };
         }
@@ -83,6 +85,8 @@ export function createVectorAggregateTool(
             success: false,
             error:
               "column (or col) parameter is required for the vector column name",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column"],
           };
         }
@@ -297,6 +301,8 @@ export function createVectorValidateTool(
             success: false,
             error:
               "Validation error: at least one of vector, table+column, or dimensions is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             suggestion:
               "Provide a vector to validate, or table+column to check column dimensions, or dimensions to compare against",
           };

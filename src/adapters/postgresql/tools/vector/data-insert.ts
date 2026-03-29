@@ -81,6 +81,8 @@ export function createVectorInsertTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column", "vector"],
           };
         }
@@ -88,6 +90,8 @@ export function createVectorInsertTool(
           return {
             success: false,
             error: "column (or col) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column", "vector"],
           };
         }
@@ -100,6 +104,8 @@ export function createVectorInsertTool(
             success: false,
             error:
               "vector parameter is required and must be a non-empty array of numbers",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column", "vector"],
           };
         }
@@ -309,6 +315,8 @@ export function createVectorBatchInsertTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column", "vectors"],
           };
         }
@@ -316,6 +324,8 @@ export function createVectorBatchInsertTool(
           return {
             success: false,
             error: "column (or col) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column", "vectors"],
           };
         }
@@ -324,6 +334,8 @@ export function createVectorBatchInsertTool(
           return {
             success: false,
             error: "Validation error: vectors parameter is required and must be a non-empty array",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             suggestion: "Provide an array of vector objects"
           };
         }

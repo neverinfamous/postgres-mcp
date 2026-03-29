@@ -61,6 +61,8 @@ export function createVectorIndexOptimizeTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column"],
           };
         }
@@ -68,6 +70,8 @@ export function createVectorIndexOptimizeTool(
           return {
             success: false,
             error: "column (or col) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             requiredParams: ["table", "column"],
           };
         }
@@ -300,7 +304,9 @@ export function createVectorDimensionReduceTool(
         if (isNaN(targetDim)) {
           return {
             success: false,
-            error: `Validation error: targetDimensions must be a valid number, received "${String(parsed.targetDimensions)}"`,
+            error: `Validation error: targetDimensions must be a valid number,
+            code: 'VALIDATION_ERROR',
+            category: 'validation', received "${String(parsed.targetDimensions)}"`,
             suggestion:
               "Provide a numeric value for targetDimensions (e.g., 128, 256)",
           };
@@ -473,6 +479,8 @@ export function createVectorEmbedTool(): ToolDefinition {
             success: false,
             error:
               "Validation error: text parameter is required and must be non-empty",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
             suggestion: "Provide text content to generate an embedding",
           });
         }
@@ -483,7 +491,9 @@ export function createVectorEmbedTool(): ToolDefinition {
         if (isNaN(dims)) {
           return Promise.resolve({
             success: false,
-            error: `Validation error: dimensions must be a valid number, received "${String(parsed.dimensions)}"`,
+            error: `Validation error: dimensions must be a valid number,
+            code: 'VALIDATION_ERROR',
+            category: 'validation', received "${String(parsed.dimensions)}"`,
             suggestion:
               "Provide a numeric value for dimensions (e.g., 384, 768, 1536)",
           });
