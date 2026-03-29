@@ -29,17 +29,8 @@ export const GeometryColumnSchemaBase = z.object({
   geometryColumn: z.string().optional().describe("Alias for column"),
   srid: z.preprocess(coerceNumber, z.number().optional())
     .describe("Spatial Reference ID (default: 4326 for WGS84)"),
-  type: z
-    .enum([
-      "POINT",
-      "LINESTRING",
-      "POLYGON",
-      "MULTIPOINT",
-      "MULTILINESTRING",
-      "MULTIPOLYGON",
-      "GEOMETRY",
-    ])
-    .optional(),
+  type: z.string().optional()
+    .describe("Allowed values: POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, GEOMETRY"),
   schema: z.string().optional(),
   ifNotExists: z
     .boolean()
@@ -64,7 +55,15 @@ export const GeometryColumnSchema = z
   })
   .refine((data) => data.column !== "", {
     message: "column (or geom/geometryColumn alias) is required",
-  });
+  })
+  .refine(
+    (data) => {
+      if (!data.type) return true;
+      const t = data.type.toUpperCase();
+      return ["POINT","LINESTRING","POLYGON","MULTIPOINT","MULTILINESTRING","MULTIPOLYGON","GEOMETRY"].includes(t);
+    },
+    { message: "type must be a valid geometry type" }
+  );
 
 // =============================================================================
 // pg_distance (GeometryDistance)
@@ -79,11 +78,11 @@ export const GeometryDistanceSchemaBase = z.object({
   point: PointSchemaBase.optional().describe(
     "Reference point (supports lat/lng, latitude/longitude, or x/y)",
   ),
-  lat: z.preprocess(coerceNumber, z.number().min(-90, "must be between -90 and 90 degrees").max(90, "must be between -90 and 90 degrees").optional()).describe("Latitude (-90 to 90)"),
-  latitude: z.preprocess(coerceNumber, z.number().min(-90, "must be between -90 and 90 degrees").max(90, "must be between -90 and 90 degrees").optional()).describe("Alias for lat"),
-  lng: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()).describe("Longitude (-180 to 180)"),
-  lon: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()).describe("Alias for lng"),
-  longitude: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()).describe("Alias for lng"),
+  lat: z.preprocess(coerceNumber, z.number().optional()).describe("Latitude (-90 to 90)"),
+  latitude: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for lat"),
+  lng: z.preprocess(coerceNumber, z.number().optional()).describe("Longitude (-180 to 180)"),
+  lon: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for lng"),
+  longitude: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for lng"),
   x: z.preprocess(coerceNumber, z.number().optional()).describe("X coordinate"),
   y: z.preprocess(coerceNumber, z.number().optional()).describe("Y coordinate"),
   limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max results"),
@@ -91,10 +90,8 @@ export const GeometryDistanceSchemaBase = z.object({
     .describe("Max distance (in meters by default)"),
   radius: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for maxDistance"),
   distance: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for maxDistance"),
-  unit: z
-    .enum(["meters", "m", "kilometers", "km", "miles", "mi"])
-    .optional()
-    .describe("Distance unit (default: meters)"),
+  unit: z.string().optional()
+    .describe("Distance unit (meters, kilometers, miles, m, km, mi - default: meters)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
@@ -123,6 +120,15 @@ export const GeometryDistanceSchema = z
 
   .refine((data) => data.maxDistance === undefined || data.maxDistance >= 0, {
     message: "distance must be a non-negative number",
+  })
+  .refine((data) => !data.unit || ["meters", "m", "kilometers", "km", "miles", "mi"].includes(data.unit), {
+    message: "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
+  })
+  .refine((data) => data.point.lat >= -90 && data.point.lat <= 90, {
+    message: "lat must be between -90 and 90 degrees",
+  })
+  .refine((data) => data.point.lng >= -180 && data.point.lng <= 180, {
+    message: "lng must be between -180 and 180 degrees",
   });
 
 // =============================================================================
@@ -138,11 +144,11 @@ export const PointInPolygonSchemaBase = z.object({
   point: PointSchemaBase.optional().describe(
     "Point to check (supports lat/lng, latitude/longitude, or x/y)",
   ),
-  lat: z.preprocess(coerceNumber, z.number().min(-90, "must be between -90 and 90 degrees").max(90, "must be between -90 and 90 degrees").optional()).describe("Latitude (-90 to 90)"),
-  latitude: z.preprocess(coerceNumber, z.number().min(-90, "must be between -90 and 90 degrees").max(90, "must be between -90 and 90 degrees").optional()).describe("Alias for lat"),
-  lng: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()).describe("Longitude (-180 to 180)"),
-  lon: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()).describe("Alias for lng"),
-  longitude: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()).describe("Alias for lng"),
+  lat: z.preprocess(coerceNumber, z.number().optional()).describe("Latitude (-90 to 90)"),
+  latitude: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for lat"),
+  lng: z.preprocess(coerceNumber, z.number().optional()).describe("Longitude (-180 to 180)"),
+  lon: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for lng"),
+  longitude: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for lng"),
   x: z.preprocess(coerceNumber, z.number().optional()).describe("X coordinate"),
   y: z.preprocess(coerceNumber, z.number().optional()).describe("Y coordinate"),
   schema: z.string().optional().describe("Schema name (default: public)"),
@@ -165,6 +171,12 @@ export const PointInPolygonSchema = z
   })
   .refine((data) => data.column !== "", {
     message: "column (or geom/geometry/geometryColumn alias) is required",
+  })
+  .refine((data) => data.point.lat >= -90 && data.point.lat <= 90, {
+    message: "lat must be between -90 and 90 degrees",
+  })
+  .refine((data) => data.point.lng >= -180 && data.point.lng <= 180, {
+    message: "lng must be between -180 and 180 degrees",
   });
 
 // =============================================================================
@@ -217,10 +229,8 @@ export const BufferSchemaBase = z.object({
     .describe("Buffer distance (in meters by default)"),
   meters: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for distance"),
   radius: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for distance"),
-  unit: z
-    .enum(["meters", "m", "kilometers", "km", "miles", "mi"])
-    .optional()
-    .describe("Distance unit (default: meters)"),
+  unit: z.string().optional()
+    .describe("Distance unit (meters, kilometers, miles, m, km, mi - default: meters)"),
   simplify: z.preprocess(coerceNumber, z.number().optional())
     .describe(
       "Simplification tolerance in meters (default: 10). Higher values = fewer points. Set to 0 to disable.",
@@ -261,6 +271,9 @@ export const BufferSchema = z
   .refine((data) => data.simplify === undefined || data.simplify >= 0, {
     message:
       "simplify must be a non-negative number if provided (0 to disable)",
+  })
+  .refine((data) => !data.unit || ["meters", "m", "kilometers", "km", "miles", "mi"].includes(data.unit), {
+    message: "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
   });
 
 // =============================================================================

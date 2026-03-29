@@ -74,13 +74,9 @@ export const GeoClusterSchemaBase = z.object({
   column: z.string().optional().describe("Geometry column name"),
   geom: z.string().optional().describe("Alias for column"),
   geometryColumn: z.string().optional().describe("Alias for column"),
-  method: z
-    .enum(["dbscan", "kmeans"])
-    .optional()
-    .describe("Clustering method (default: dbscan)"),
-  algorithm: z
-    .enum(["dbscan", "kmeans"])
-    .optional()
+  method: z.string().optional()
+    .describe("Clustering method (dbscan, kmeans - default: dbscan)"),
+  algorithm: z.string().optional()
     .describe("Alias for method"),
   eps: z.preprocess(coerceNumber, z.number().optional()).describe("DBSCAN: Distance threshold"),
   minPoints: z.preprocess(coerceNumber, z.number().optional())
@@ -127,7 +123,11 @@ export const GeoClusterSchema = z
   })
   .refine((data) => data.column !== "", {
     message: "column (or geom/geometryColumn alias) is required",
-  });
+  })
+  .refine(
+    (data) => !data.method || ["dbscan", "kmeans"].includes(data.method.toLowerCase()),
+    { message: "method must be 'dbscan' or 'kmeans'" }
+  );
 
 // =============================================================================
 // Standalone Geometry Tools
@@ -145,10 +145,8 @@ export const GeometryBufferSchemaBase = z.object({
     .describe("Buffer distance (in meters by default)"),
   radius: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for distance"),
   meters: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for distance"),
-  unit: z
-    .enum(["meters", "m", "kilometers", "km", "miles", "mi"])
-    .optional()
-    .describe("Distance unit (default: meters)"),
+  unit: z.string().optional()
+    .describe("Distance unit (meters, kilometers, miles, m, km, mi - default: meters)"),
   simplify: z.preprocess(coerceNumber, z.number().optional())
     .describe(
       "Simplification tolerance in meters (default: none). Higher values = fewer points. Set to reduce payload size.",
@@ -181,6 +179,9 @@ export const GeometryBufferSchema = GeometryBufferSchemaBase.transform(
   })
   .refine((data) => data.simplify === undefined || data.simplify >= 0, {
     message: "simplify must be a non-negative number if provided",
+  })
+  .refine((data) => !data.unit || ["meters", "m", "kilometers", "km", "miles", "mi"].includes(data.unit), {
+    message: "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
   });
 
 // pg_geometry_intersection
