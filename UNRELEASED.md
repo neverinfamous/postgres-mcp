@@ -249,6 +249,7 @@
 
 ### Fixed
 
+- **Stale E2E artifacts cleanup**: Added `e2e_*` wildcard cleanup to `test-server/reset-database.ps1` to actively drop lingering output relations from the deterministic Playwright test suite on teardown reset.
 - **Introspection Compact Mode Edge Validation**: Fixed an issue where `DependencyEdgeSchema` incorrectly marked `constraint`, `columns`, `onDelete`, and `onUpdate` as strict requirements instead of `.optional()`, resolving an output validation failure when computing lightweight topological maps via the `compact` mode parameter.
 - **Audit Backup Data Integrity Strategy (`pg_audit_diff_backup`)**: Realigned the E2E testing boundary to execute safe DML updates (e.g. `pg_truncate`) rather than wholesale struct drops (`pg_drop_table`), permitting precise assertions over active partition maps to accurately reflect metric mutations within the `volumeDrift` tracking logic.
 - **Stats Error Contract Refinement**: Swapped generic JSON parse exceptions to precise `.isError` validations inside the `pg_stats_top_n` limits E2E testing boundary, safely catching initial MCP validation alerts prior to handler initialization.

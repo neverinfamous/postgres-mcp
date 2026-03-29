@@ -273,7 +273,7 @@ if ($LASTEXITCODE -eq 0) {
 # Step 8: Drop other accumulated artifacts
 # ============================================================================
 Write-Step "8" "Dropping other accumulated artifacts..."
-Write-Info "partman_*, prompt_*, mcp_*, orders_*, ltree_*, fts_*, spatial_places*, jsonb_*, notebook_*, empty_*, batch_*, audit_test_*, smoke_*, etc."
+Write-Info "partman_*, prompt_*, mcp_*, orders_*, ltree_*, fts_*, spatial_places*, jsonb_*, notebook_*, e2e_*, empty_*, batch_*, audit_test_*, smoke_*, etc."
 
 $sql8 = @"
 DO `$`$
@@ -296,6 +296,7 @@ BEGIN
                  OR tablename LIKE 'stress_%'
                  OR tablename LIKE 'audit_test_%'
                  OR tablename LIKE 'smoke_%'
+                 OR tablename LIKE 'e2e_%'
                  OR tablename = '_mcp_schema_versions'
              )
              AND schemaname = 'public'
