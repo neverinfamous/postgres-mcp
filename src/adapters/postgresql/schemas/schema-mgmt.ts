@@ -431,7 +431,7 @@ export const CreateSchemaOutputSchema = z
   .object({
     success: z.boolean().describe("Whether the operation succeeded"),
     schema: z.string().optional().describe("Schema name"),
-    alreadyExisted: z
+    alreadyExists: z
       .boolean()
       .optional()
       .describe("True if schema already existed"),
@@ -490,7 +490,7 @@ export const CreateSequenceOutputSchema = z
       .boolean()
       .optional()
       .describe("Whether IF NOT EXISTS was used"),
-    alreadyExisted: z
+    alreadyExists: z
       .boolean()
       .optional()
       .describe("True if sequence already existed"),
@@ -556,7 +556,7 @@ export const CreateViewOutputSchema = z
       .boolean()
       .optional()
       .describe("Whether view is materialized"),
-    alreadyExisted: z
+    alreadyExists: z
       .boolean()
       .optional()
       .describe("True if view already existed"),

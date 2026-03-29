@@ -88,13 +88,13 @@ export function createCreateSchemaTool(
         const name = rawName ?? "";
 
         // Check if schema already exists when ifNotExists is true
-        let alreadyExisted: boolean | undefined;
+        let alreadyExists: boolean | undefined;
         if (ifNotExists === true) {
           const existsResult = await adapter.executeQuery(
             `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
             [name],
           );
-          alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
+          alreadyExists = (existsResult.rows?.length ?? 0) > 0;
         }
 
         const ifNotExistsClause = ifNotExists ? "IF NOT EXISTS " : "";
@@ -115,8 +115,8 @@ export function createCreateSchemaTool(
         }
 
         const result: Record<string, unknown> = { success: true, schema: name };
-        if (alreadyExisted !== undefined) {
-          result["alreadyExisted"] = alreadyExisted;
+        if (alreadyExists !== undefined) {
+          result["alreadyExists"] = alreadyExists;
         }
         return result;
       } catch (error: unknown) {
@@ -326,13 +326,13 @@ export function createCreateSequenceTool(
         const schemaName = schema ?? "public";
 
         // Check if sequence already exists when ifNotExists is true
-        let alreadyExisted: boolean | undefined;
+        let alreadyExists: boolean | undefined;
         if (ifNotExists === true) {
           const existsResult = await adapter.executeQuery(
             `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = $1 AND c.relname = $2`,
             [schemaName, name],
           );
-          alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
+          alreadyExists = (existsResult.rows?.length ?? 0) > 0;
         }
 
         const schemaPrefix = schema ? `${sanitizeIdentifier(schema)}.` : "";
@@ -379,8 +379,8 @@ export function createCreateSequenceTool(
           sequence: `${schemaName}.${name}`,
           ifNotExists: ifNotExists ?? false,
         };
-        if (alreadyExisted !== undefined) {
-          result["alreadyExisted"] = alreadyExisted;
+        if (alreadyExists !== undefined) {
+          result["alreadyExists"] = alreadyExists;
         }
         return result;
       } catch (error: unknown) {

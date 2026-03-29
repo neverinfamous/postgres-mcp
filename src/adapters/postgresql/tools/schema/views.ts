@@ -179,14 +179,14 @@ export function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
         const schemaName = schema ?? "public";
 
         // Check if view already exists when orReplace is true (for informational response)
-        let alreadyExisted: boolean | undefined;
+        let alreadyExists: boolean | undefined;
         if (orReplace === true) {
           const relkind = materialized === true ? "m" : "v";
           const existsResult = await adapter.executeQuery(
             `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = $1 AND n.nspname = $2 AND c.relname = $3`,
             [relkind, schemaName, name],
           );
-          alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
+          alreadyExists = (existsResult.rows?.length ?? 0) > 0;
         }
 
         const schemaPrefix = schema ? `${sanitizeIdentifier(schema)}.` : "";
@@ -241,8 +241,8 @@ export function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
           view: `${schemaName}.${name}`,
           materialized: !!materialized,
         };
-        if (alreadyExisted !== undefined) {
-          result["alreadyExisted"] = alreadyExisted;
+        if (alreadyExists !== undefined) {
+          result["alreadyExists"] = alreadyExists;
         }
         return result;
       } catch (error: unknown) {

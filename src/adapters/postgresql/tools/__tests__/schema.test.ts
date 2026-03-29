@@ -119,7 +119,7 @@ describe("pg_create_schema", () => {
     );
   });
 
-  it("should return alreadyExisted: false when schema does not exist", async () => {
+  it("should return alreadyExists: false when schema does not exist", async () => {
     // First call: existence check returns empty, second call: create
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
@@ -131,14 +131,14 @@ describe("pg_create_schema", () => {
     )) as {
       success: boolean;
       schema: string;
-      alreadyExisted: boolean;
+      alreadyExists: boolean;
     };
 
     expect(result.success).toBe(true);
-    expect(result.alreadyExisted).toBe(false);
+    expect(result.alreadyExists).toBe(false);
   });
 
-  it("should return alreadyExisted: true when schema already exists", async () => {
+  it("should return alreadyExists: true when schema already exists", async () => {
     // First call: existence check returns row, second call: create (no-op)
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ "?column?": 1 }],
@@ -152,11 +152,11 @@ describe("pg_create_schema", () => {
     )) as {
       success: boolean;
       schema: string;
-      alreadyExisted: boolean;
+      alreadyExists: boolean;
     };
 
     expect(result.success).toBe(true);
-    expect(result.alreadyExisted).toBe(true);
+    expect(result.alreadyExists).toBe(true);
   });
 
   it("should create schema with authorization", async () => {
@@ -414,7 +414,7 @@ describe("pg_create_sequence", () => {
     expect(result.error).toContain("Invalid ownedBy format");
   });
 
-  it("should return alreadyExisted: false when sequence does not exist", async () => {
+  it("should return alreadyExists: false when sequence does not exist", async () => {
     // First call: existence check returns empty, second call: create
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
@@ -426,14 +426,14 @@ describe("pg_create_sequence", () => {
     )) as {
       success: boolean;
       sequence: string;
-      alreadyExisted: boolean;
+      alreadyExists: boolean;
     };
 
     expect(result.success).toBe(true);
-    expect(result.alreadyExisted).toBe(false);
+    expect(result.alreadyExists).toBe(false);
   });
 
-  it("should return alreadyExisted: true when sequence already exists", async () => {
+  it("should return alreadyExists: true when sequence already exists", async () => {
     // First call: existence check returns row, second call: create (no-op)
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ "?column?": 1 }],
@@ -447,11 +447,11 @@ describe("pg_create_sequence", () => {
     )) as {
       success: boolean;
       sequence: string;
-      alreadyExisted: boolean;
+      alreadyExists: boolean;
     };
 
     expect(result.success).toBe(true);
-    expect(result.alreadyExisted).toBe(true);
+    expect(result.alreadyExists).toBe(true);
   });
 
   it("should accept valid string for ownedBy and apply to sequence", async () => {
@@ -812,7 +812,7 @@ describe("pg_create_view", () => {
     );
   });
 
-  it("should return alreadyExisted: false when view does not exist with orReplace", async () => {
+  it("should return alreadyExists: false when view does not exist with orReplace", async () => {
     // First call: existence check returns empty, second call: create
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
@@ -824,14 +824,14 @@ describe("pg_create_view", () => {
     )) as {
       success: boolean;
       view: string;
-      alreadyExisted: boolean;
+      alreadyExists: boolean;
     };
 
     expect(result.success).toBe(true);
-    expect(result.alreadyExisted).toBe(false);
+    expect(result.alreadyExists).toBe(false);
   });
 
-  it("should return alreadyExisted: true when view already exists with orReplace", async () => {
+  it("should return alreadyExists: true when view already exists with orReplace", async () => {
     // First call: existence check returns row, second call: create/replace
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ "?column?": 1 }],
@@ -845,11 +845,11 @@ describe("pg_create_view", () => {
     )) as {
       success: boolean;
       view: string;
-      alreadyExisted: boolean;
+      alreadyExists: boolean;
     };
 
     expect(result.success).toBe(true);
-    expect(result.alreadyExisted).toBe(true);
+    expect(result.alreadyExists).toBe(true);
   });
 
   it("should accept viewName as alias for name parameter", async () => {
