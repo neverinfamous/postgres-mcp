@@ -212,8 +212,6 @@ jsonb Tool Group (20 tools +1 for code mode):
 15. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
 16. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", value: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` to 100 and return valid results (wrong-type numeric param coercion)
 
-> **Validation Pattern Resolved:** To ensure MCP client type strictness does not prematurely throw `-32602` errors before Zod's `preprocess` coercions happen on strings like `"abc"`, `SchemaBase` schemas for `limit` and `sampleSize` parameters across `jsonb` were updated to use `z.union([z.number(), z.string()]).optional()`.
-
 ---
 
 ### text Group-Specific Testing
