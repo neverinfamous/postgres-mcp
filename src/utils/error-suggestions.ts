@@ -86,7 +86,7 @@ const ERROR_SUGGESTIONS: {
 
   // Resource errors — specific codes for table/column not found
   {
-    pattern: /relation ".*" does not exist/i,
+    pattern: /(?<!of )relation ".*" does not exist/i,
     suggestion:
       "Table or view not found. Run pg_list_tables to see available tables.",
     category: ErrorCategory.RESOURCE,
