@@ -156,7 +156,14 @@ export class AuditLogger {
         const lines = startOffset > 0 ? rawLines.slice(1) : rawLines;
         const tail = lines.slice(-count);
 
-        return tail.map((line) => JSON.parse(line) as AuditEntry);
+        return tail.reduce<AuditEntry[]>((acc, line) => {
+          try {
+            acc.push(JSON.parse(line) as AuditEntry);
+          } catch {
+            // Gracefully ignore corrupted or partial log entries
+          }
+          return acc;
+        }, []);
       } finally {
         await fh.close();
       }

@@ -178,7 +178,9 @@ export function createSpatialIndexTool(
           return {
             success: false,
             error: `Table "${table}" does not exist in schema "${schemaName}".`,
-相关信息: \`table: ${table}\`,
+            table,
+            schema: schemaName,
+            suggestion: "Create the table first, then add the spatial index.",
             recoverable: false,
             code: "TABLE_NOT_FOUND",
           };

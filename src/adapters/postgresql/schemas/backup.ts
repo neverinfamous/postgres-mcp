@@ -43,7 +43,7 @@ export const CopyExportSchemaBase = z.object({
 const DEFAULT_EXPORT_LIMIT = 500;
 
 const CopyExportSchemaParser = CopyExportSchemaBase.extend({
-  limit: z.preprocess(coerceNumber, z.number().optional()),
+  limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
 });
 
 /**
@@ -147,7 +147,7 @@ export const CreateBackupPlanSchemaBase = z.object({
 
 export const CreateBackupPlanSchema = z.object({
   frequency: z.string().optional(),
-  retention: z.preprocess(coerceNumber, z.number().optional()),
+  retention: z.preprocess(coerceNumber, z.number().optional()).optional(),
 });
 
 export const PhysicalBackupSchemaBase = z.object({
@@ -164,7 +164,7 @@ export const PhysicalBackupSchema = z.object({
   targetDir: z.string().optional(),
   format: z.string().optional(),
   checkpoint: z.string().optional(),
-  compress: z.preprocess(coerceNumber, z.number().optional()),
+  compress: z.preprocess(coerceNumber, z.number().optional()).optional(),
 });
 
 // ============================================================================
@@ -402,7 +402,7 @@ export const AuditListBackupsSchemaBase = z.object({
 export const AuditListBackupsSchema = z.object({
   tool: z.string().optional(),
   target: z.string().optional(),
-  limit: z.preprocess(coerceNumber, z.number().optional()),
+  limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
 });
 
 /**

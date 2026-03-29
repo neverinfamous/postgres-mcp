@@ -15,7 +15,7 @@ import { startServer, stopServer, createClient, callToolAndParse } from "./helpe
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 const AUDIT_PORT_BASE = 3160;
-const AUDIT_FILTER = "core,transactions,performance";
+const AUDIT_FILTER = "core,transactions,introspection";
 
 function auditLogPath(suffix: string): string {
   return join(tmpdir(), `pg-audit-summary-${suffix}-${Date.now()}.jsonl`);
@@ -97,6 +97,47 @@ test.describe("Audit Token Summary Accuracy", () => {
       // Summary totals must accurately match the sums from individual _meta payloads
       expect(body.summary.callCount).toBe(4);
       expect(body.summary.totalTokenEstimate).toBe(expectedTotalTokens);
+      
+    } finally {
+      if (client) await client.close();
+      stopServer(port);
+      await rm(logPath, { force: true }).catch(() => {});
+    }
+  });
+
+  test("high-cost operations reflect accurately in summary total and rank top", async () => {
+    const port = AUDIT_PORT_BASE + 2;
+    const logPath = auditLogPath("highcost");
+
+    // Enable audit reads
+    await startServer(
+      port,
+      ["--audit-log", logPath, "--audit-reads", "--tool-filter", AUDIT_FILTER],
+      "audit-highcost",
+    );
+
+    let client: Client | undefined;
+    try {
+      client = await createClient(`http://localhost:${port}`);
+
+      // Call low cost tools
+      await callToolAndParse(client, "pg_read_query", { sql: "SELECT 1" });
+      await callToolAndParse(client, "pg_read_query", { sql: "SELECT 2" });
+
+      // Call high-cost tool like schema snapshot
+      const snapshotPayload = await callToolAndParse(client, "pg_schema_snapshot", {});
+      const highCostEstimate = (snapshotPayload._meta as any).tokenEstimate;
+      expect(highCostEstimate).toBeGreaterThan(100);
+
+      // Flush delay
+      await new Promise(r => setTimeout(r, 600));
+
+      const resource = await client.readResource({ uri: "postgres://audit" });
+      const body = JSON.parse(resource.contents[0]!.text!) as any;
+
+      // pg_schema_snapshot should be the #1 tool in tokens used
+      expect(body.summary.topToolsByTokens[0].tool).toBe("pg_schema_snapshot");
+      expect(body.summary.totalTokenEstimate).toBeGreaterThan(highCostEstimate);
       
     } finally {
       if (client) await client.close();

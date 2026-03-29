@@ -158,7 +158,7 @@ export const PartmanCreateParentSchema = z
     parentTable: z.string().optional(),
     controlColumn: z.string().optional(),
     interval: z.string().optional(),
-    premake: z.preprocess(coerceNumber, z.number().optional()),
+    premake: z.preprocess(coerceNumber, z.number().optional()).optional(),
     startPartition: z.string().optional(),
     templateTable: z.string().optional(),
     epochType: z.enum(["seconds", "milliseconds", "nanoseconds"]).optional(),
@@ -215,7 +215,7 @@ export const PartmanShowPartitionsSchema = z
     parentTable: z.string().optional(),
     includeDefault: z.boolean().optional(),
     order: z.enum(["asc", "desc"]).optional(),
-    limit: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
   }))
   .default({});
 
@@ -237,7 +237,7 @@ export const PartmanShowConfigSchemaBase = z.object({
 export const PartmanShowConfigSchema = z
   .preprocess(preprocessPartmanParams, z.object({
     parentTable: z.string().optional(),
-    limit: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
   }))
   .default({});
 
@@ -277,8 +277,8 @@ export const PartmanPartitionDataSchemaBase = z.object({
 export const PartmanPartitionDataSchema = z
   .preprocess(preprocessPartmanParams, z.object({
     parentTable: z.string().optional(),
-    batchSize: z.preprocess(coerceNumber, z.number().optional()),
-    lockWaitSeconds: z.preprocess(coerceNumber, z.number().optional()),
+    batchSize: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    lockWaitSeconds: z.preprocess(coerceNumber, z.number().optional()).optional(),
   }))
   .default({});
 
@@ -336,7 +336,7 @@ export const PartmanUndoPartitionSchema = z
   .preprocess(preprocessPartmanParams, z.object({
     parentTable: z.string().optional(),
     targetTable: z.string().optional(),
-    batchSize: z.preprocess(coerceNumber, z.number().optional()),
+    batchSize: z.preprocess(coerceNumber, z.number().optional()).optional(),
     keepTable: z.boolean().optional(),
   }))
   .default({});

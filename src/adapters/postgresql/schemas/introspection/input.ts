@@ -346,7 +346,7 @@ export const MigrationRollbackSchemaBase = z.object({
 });
 
 export const MigrationRollbackSchema = z.object({
-  id: z.preprocess(coerceNumber, z.number().optional()),
+  id: z.preprocess(coerceNumber, z.number().optional()).optional(),
   version: z.string().optional(),
   dryRun: z.boolean().optional(),
 });
@@ -369,8 +369,8 @@ export const MigrationHistorySchema = z
   .object({
     status: z.enum(["applied", "recorded", "rolled_back", "failed"]).optional(),
     sourceSystem: z.string().optional(),
-    limit: z.preprocess(coerceNumber, z.number().optional()),
-    offset: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    offset: z.preprocess(coerceNumber, z.number().optional()).optional(),
   })
   .default({});
 

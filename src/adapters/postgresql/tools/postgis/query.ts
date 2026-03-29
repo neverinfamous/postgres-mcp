@@ -218,7 +218,7 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_buffer",
     description:
-      "Create a buffer zone around geometries. Default limit: 50 rows, default simplify: 10m (set simplify: 0 to disable). Simplification reduces polygon point count for LLM-friendly payloads.",
+      "Create a buffer zone around geometries. Default limit: 10 rows, default simplify: 10m (set simplify: 0 to disable). Simplification reduces polygon point count for LLM-friendly payloads.",
     group: "postgis",
     inputSchema: BufferSchemaBase, // Base schema for MCP visibility
     outputSchema: BufferOutputSchema,
@@ -239,8 +239,8 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
         );
         const columnName = sanitizeIdentifier(parsed.column);
 
-        // Default limit of 50 to prevent large payloads, use limit: 0 for all
-        const effectiveLimit = parsed.limit ?? 50;
+        // Default limit of 10 to prevent large payloads, use limit: 0 for all
+        const effectiveLimit = parsed.limit ?? 10;
         // Get non-geometry columns to avoid returning raw WKB
         const colQuery = `
           SELECT column_name FROM information_schema.columns

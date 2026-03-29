@@ -124,9 +124,9 @@ export const VectorCreateIndexSchemaBase = z.object({
     .boolean()
     .optional()
     .describe("Skip if index already exists (default: false)"),
-  lists: z.preprocess(coerceNumber, z.number().optional()).describe("Number of lists for IVFFlat"),
-  m: z.preprocess(coerceNumber, z.number().optional()).describe("HNSW m parameter"),
-  efConstruction: z.preprocess(coerceNumber, z.number().optional())
+  lists: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Number of lists for IVFFlat"),
+  m: z.preprocess(coerceNumber, z.number().optional()).optional().describe("HNSW m parameter"),
+  efConstruction: z.preprocess(coerceNumber, z.number().optional()).optional()
     .describe("HNSW ef_construction parameter"),
   schema: z.string().optional().describe("Database schema (default: public)"),
 });

@@ -323,7 +323,7 @@ export const AppendInsightSchema = z.preprocess(
     return result;
   },
   z.object({
-    insight: z.string().max(1000, "Insight text must be 1000 characters or less").describe("Business insight to record"),
+    insight: z.string().describe("Business insight to record"),
   })
 );
 

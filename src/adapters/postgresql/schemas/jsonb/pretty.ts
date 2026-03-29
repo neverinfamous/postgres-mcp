@@ -32,7 +32,7 @@ export const JsonbPrettySchemaBase = z.object({
 export const JsonbPrettySchema = z.preprocess(
   preprocessJsonbParams,
   JsonbPrettySchemaBase.extend({
-    limit: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
   }),
 );
 

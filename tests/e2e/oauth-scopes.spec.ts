@@ -38,6 +38,8 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
   let readToken: string;
   let writeToken: string;
   let adminToken: string;
+  let expiredToken: string;
+  let invalidSignatureToken: string;
 
   test.beforeAll(async () => {
     // 1. Generate RS256 keypair
@@ -74,6 +76,25 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
     readToken = await makeToken("read");
     writeToken = await makeToken("read write");
     adminToken = await makeToken("admin read write");
+
+    // Token that expired 1 hour ago
+    expiredToken = await new jose.SignJWT({ scope: "read" })
+      .setProtectedHeader({ alg: "RS256", kid: "scope-test-kid-1" })
+      .setIssuedAt()
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setExpirationTime(Math.floor(Date.now() / 1000) - 3600)
+      .sign(keypair.privateKey);
+
+    // Token with invalid signature
+    const badKeypair = await jose.generateKeyPair("RS256");
+    invalidSignatureToken = await new jose.SignJWT({ scope: "read" })
+      .setProtectedHeader({ alg: "RS256", kid: "scope-test-kid-1" })
+      .setIssuedAt()
+      .setIssuer(ISSUER)
+      .setAudience(AUDIENCE)
+      .setExpirationTime("1h")
+      .sign(badKeypair.privateKey);
 
     // 4. Start postgres-mcp with OAuth enabled
     serverProcess = spawn(
@@ -385,5 +406,34 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
     const restoreExtracted = extractResult(restoreResult);
     expect(restoreExtracted.isError).toBe(true);
     expect(restoreExtracted.text.toLowerCase()).toContain("insufficient scope");
+  });
+
+  test("expired or invalid tokens are rejected at connection time", async () => {
+    const base = `http://localhost:${MCP_PORT}/mcp`;
+
+    const getInitRes = async (token: string) => fetch(base, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "scope-test-client", version: "1.0" },
+        },
+      }),
+    });
+
+    const resExpired = await getInitRes(expiredToken);
+    expect(resExpired.status).toBe(401);
+
+    const resInvalid = await getInitRes(invalidSignatureToken);
+    expect(resInvalid.status).toBe(401);
   });
 });

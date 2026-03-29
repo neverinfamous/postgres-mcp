@@ -407,5 +407,48 @@ test.describe("Audit Log", () => {
       }
     }
   });
+
+  test("audit log correctly ignores and recovers from corrupted entries", async () => {
+    const port = AUDIT_PORT_BASE + 8;
+    const logPath = auditLogPath("corrupted");
+
+    // Manually write a corrupted log file before server starts
+    const { appendFile } = await import("node:fs/promises");
+    await appendFile(logPath, '{"tool":"pg_transaction_begin","category":"wri\n'); // Incomplete JSON
+    await appendFile(logPath, '{"tool":"pg_transaction_rollback","category":"write","success":true,"timestamp":"2023-10-10T10:00:00.000Z","durationMs":0,"args":{}}\n'); // Valid JSON
+
+    await startServer(
+      port,
+      ["--audit-log", logPath, "--tool-filter", AUDIT_FILTER],
+      "audit-corrupted",
+    );
+
+    let client: Client | undefined;
+    try {
+      client = await createClient(`http://localhost:${port}`);
+
+      // Perform a new write
+      await callToolRaw(client, "pg_transaction_begin", {});
+      await callToolRaw(client, "pg_transaction_rollback", {});
+      
+      // Wait generous amount for background flush to disk
+      await new Promise(r => setTimeout(r, 2000));
+
+      // Read via resource which is evaluated natively by AuditLogger
+      const resource = await client.readResource({ uri: "postgres://audit" });
+      const text = resource.contents[0]!.text!;
+      const body = JSON.parse(text) as { entries: Array<Record<string, unknown>>; total: number };
+
+      // Corrupted line is ignored, valid previous line + new lines are read
+      const toolsRead = body.entries.map((e) => e.tool);
+      expect(toolsRead).toContain("pg_transaction_rollback");
+      expect(toolsRead).toContain("pg_transaction_begin");
+    } finally {
+      if (client) await client.close();
+      stopServer(port);
+      await rm(logPath, { force: true });
+    }
+  });
 });
+
 

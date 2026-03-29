@@ -47,7 +47,7 @@ export const JsonbExtractSchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbExtractSchemaRefined = JsonbExtractSchemaBase.extend({
-  limit: z.preprocess(coerceNumber, z.number().optional()),
+  limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
 }).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
@@ -153,7 +153,7 @@ export const JsonbContainsSchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbContainsSchemaRefined = JsonbContainsSchemaBase.extend({
-  limit: z.preprocess(coerceNumber, z.number().optional()),
+  limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
 }).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
@@ -194,7 +194,7 @@ export const JsonbPathQuerySchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbPathQuerySchemaRefined = JsonbPathQuerySchemaBase.extend({
-  limit: z.preprocess(coerceNumber, z.number().optional()),
+  limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
 }).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },
@@ -420,7 +420,7 @@ export const JsonbAggSchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbAggSchemaRefined = JsonbAggSchemaBase.extend({
-  limit: z.preprocess(coerceNumber, z.number().optional()),
+  limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
 }).refine(
   (data) => data.table !== undefined || data.tableName !== undefined,
   { message: "Either 'table' or 'tableName' is required" },

@@ -240,6 +240,22 @@ test.describe("Errors: Stats", () => {
       await client.close();
     }
   });
+
+  test("stats_top_n with n > 1000 → structured validation error", async ({}, testInfo) => {
+    const client = await createClient(getBaseURL(testInfo));
+    try {
+      const response = await callToolRaw(client, "pg_stats_top_n", {
+        table: "test_products",
+        column: "price",
+        n: 1001,
+      });
+      const text = response.content[0]?.text;
+      expect(text).toBeDefined();
+      expect(text).toContain("Input validation error");
+    } finally {
+      await client.close();
+    }
+  });
 });
 
 // =============================================================================
@@ -313,6 +329,37 @@ test.describe("Errors: Vector", () => {
         vector: [],
       });
       expectHandlerError(p);
+    } finally {
+      await client.close();
+    }
+  });
+
+  test("vector_dimension_reduce with invalid zero dimensions → validation error", async ({}, testInfo) => {
+    const client = await createClient(getBaseURL(testInfo));
+    try {
+      const p = await callToolAndParse(client, "pg_vector_dimension_reduce", {
+        table: "test_products",
+        column: "embedding",
+        dimensions: 0,
+      });
+      expectHandlerError(p);
+      expect(p.code).toBe("VALIDATION_ERROR");
+    } finally {
+      await client.close();
+    }
+  });
+
+  test("vector_embed with invalid negative dimensions → validation error", async ({}, testInfo) => {
+    const client = await createClient(getBaseURL(testInfo));
+    try {
+      const p = await callToolAndParse(client, "pg_vector_embed", {
+        table: "test_products",
+        column: "embedding",
+        model: "text-embedding-3-small",
+        dimensions: -1,
+      });
+      expectHandlerError(p);
+      expect(p.code).toBe("VALIDATION_ERROR");
     } finally {
       await client.close();
     }
@@ -517,6 +564,38 @@ test.describe("Errors: Pgcrypto", () => {
       });
       expectHandlerError(response);
       expect(response.code).toBe("INVALID_BASE64");
+    } finally {
+      await client.close();
+    }
+  });
+});
+
+// =============================================================================
+// Extension (Kcache) — Invalid Params
+// =============================================================================
+
+test.describe("Errors: Kcache", () => {
+  test("kcache_query_stats with limit < 1 → validation error", async ({}, testInfo) => {
+    const client = await createClient(getBaseURL(testInfo));
+    try {
+      const p = await callToolAndParse(client, "pg_kcache_query_stats", {
+        limit: 0,
+      });
+      expectHandlerError(p);
+      expect(p.code).toBe("VALIDATION_ERROR");
+    } finally {
+      await client.close();
+    }
+  });
+
+  test("kcache_query_stats with unparseable string limit → validation error", async ({}, testInfo) => {
+    const client = await createClient(getBaseURL(testInfo));
+    try {
+      const p = await callToolAndParse(client, "pg_kcache_query_stats", {
+        limit: "abc" as any,
+      });
+      expectHandlerError(p);
+      expect(p.code).toBe("VALIDATION_ERROR");
     } finally {
       await client.close();
     }

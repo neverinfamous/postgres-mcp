@@ -134,11 +134,11 @@ export function convertToMeters(distance: number, unit?: string): number {
 // Point schema (reused across multiple tools)
 // =============================================================================
 export const PointSchemaBase = z.object({
-  lat: z.preprocess(coerceNumber, z.number().min(-90, "must be between -90 and 90 degrees").max(90, "must be between -90 and 90 degrees").optional()),
-  latitude: z.preprocess(coerceNumber, z.number().min(-90, "must be between -90 and 90 degrees").max(90, "must be between -90 and 90 degrees").optional()),
-  y: z.preprocess(coerceNumber, z.number().optional()),
-  lng: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()),
-  lon: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()),
-  longitude: z.preprocess(coerceNumber, z.number().min(-180, "must be between -180 and 180 degrees").max(180, "must be between -180 and 180 degrees").optional()),
-  x: z.preprocess(coerceNumber, z.number().optional()),
+  lat: z.preprocess(coerceNumber, z.number().optional()).optional(),
+  latitude: z.preprocess(coerceNumber, z.number().optional()).optional(),
+  y: z.preprocess(coerceNumber, z.number().optional()).optional(),
+  lng: z.preprocess(coerceNumber, z.number().optional()).optional(),
+  lon: z.preprocess(coerceNumber, z.number().optional()).optional(),
+  longitude: z.preprocess(coerceNumber, z.number().optional()).optional(),
+  x: z.preprocess(coerceNumber, z.number().optional()).optional(),
 });

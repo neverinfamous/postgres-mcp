@@ -252,7 +252,7 @@ export const LtreeLcaSchemaBase = z.object({
 export const LtreeLcaSchema = z.object({
   paths: z
     .array(z.string())
-    .min(2, "At least 2 paths are required to find a common ancestor")
+    
     .describe("Array of ltree paths to find common ancestor"),
 });
 

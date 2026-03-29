@@ -162,10 +162,18 @@ export const PgcryptoGenRandomUuidSchemaBase = z.object({
 export const PgcryptoGenRandomUuidSchema = z
   .object({
     count: z
-      .preprocess(coerceNumber, z.number().min(1).max(100).optional())
+      .preprocess(coerceNumber, z.number().optional())
       .describe("Number of UUIDs to generate (default: 1, max: 100)"),
   })
-  .default({});
+  .default({})
+  .refine(
+    (data) =>
+      data.count === undefined || (data.count >= 1 && data.count <= 100),
+    {
+      message: "Number of UUIDs must be between 1 and 100",
+      path: ["count"],
+    },
+  );
 
 /**
  * Base schema for MCP visibility — shows all parameters with relaxed validation.
@@ -180,17 +188,28 @@ export const PgcryptoRandomBytesSchemaBase = z.object({
 /**
  * Schema for generating random bytes.
  */
-export const PgcryptoRandomBytesSchema = z.object({
-  length: z
-    .number()
-    .min(1)
-    .max(1024)
-    .describe("Number of random bytes to generate (1-1024)"),
-  encoding: z
-    .enum(["hex", "base64"])
-    .optional()
-    .describe("Output encoding (default: hex)"),
-});
+export const PgcryptoRandomBytesSchema = z
+  .object({
+    length: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Number of random bytes to generate (1-1024)"),
+    encoding: z
+      .enum(["hex", "base64"])
+      .optional()
+      .describe("Output encoding (default: hex)"),
+  })
+  .refine((data) => data.length !== undefined, {
+    message: "length is required",
+    path: ["length"],
+  })
+  .refine(
+    (data) =>
+      data.length === undefined || (data.length >= 1 && data.length <= 1024),
+    {
+      message: "Number of random bytes must be between 1 and 1024",
+      path: ["length"],
+    },
+  );
 
 /**
  * Base schema for MCP visibility — shows all parameters with relaxed validation.

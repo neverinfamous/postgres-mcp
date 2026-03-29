@@ -32,7 +32,7 @@ export const TableSizesSchemaBase = z.object({
 export const TableSizesSchema = z.preprocess(
   defaultToEmpty,
   TableSizesSchemaBase.extend({
-    limit: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
   })
 );
 
@@ -56,7 +56,7 @@ export const ShowSettingsSchemaBase = z.object({
 export const ShowSettingsSchema = z.preprocess(
   defaultToEmpty,
   ShowSettingsSchemaBase.extend({
-    limit: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
   }).transform((data) => {
     // Resolve alias: setting or name → pattern
     const pattern = data.pattern ?? data.setting ?? data.name;
@@ -88,8 +88,8 @@ export const CapacityPlanningSchemaBase = z.object({
 export const CapacityPlanningSchema = z.preprocess(
   defaultToEmpty,
   CapacityPlanningSchemaBase.extend({
-    projectionDays: z.preprocess(coerceNumber, z.number().optional()),
-    days: z.preprocess(coerceNumber, z.number().optional()),
+    projectionDays: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    days: z.preprocess(coerceNumber, z.number().optional()).optional(),
   })
     .refine(
       (data) => {
