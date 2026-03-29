@@ -91,7 +91,6 @@ export function createGeometryBufferTool(
         const sql = `
                 SELECT 
                     ST_AsGeoJSON(${outputExpr}) as buffer_geojson,
-                    ST_AsText(${outputExpr}) as buffer_wkt,
                     $2 as distance_meters,
                     ${String(sridVal)} as srid
             `;
@@ -116,10 +115,7 @@ export function createGeometryBufferTool(
           response["simplifyTolerance"] = simplify;
 
           // Check if simplification caused geometry to collapse to null
-          if (
-            row?.["buffer_geojson"] === null ||
-            row?.["buffer_wkt"] === null
-          ) {
+          if (row?.["buffer_geojson"] === null) {
             response["warning"] =
               `Simplification tolerance (${String(simplify)}m) is too high relative to buffer distance (${String(distance)}m). The geometry collapsed to null. Reduce simplify value or set simplify: 0 to disable.`;
           }
@@ -168,7 +164,6 @@ export function createGeometryIntersectionTool(
                 SELECT 
                     ST_Intersects(${geom1Expr}, ${geom2Expr}) as intersects,
                     ST_AsGeoJSON(ST_Intersection(${geom1Expr}, ${geom2Expr})) as intersection_geojson,
-                    ST_AsText(ST_Intersection(${geom1Expr}, ${geom2Expr})) as intersection_wkt,
                     ST_Area(ST_Intersection(${geom1Expr}, ${geom2Expr})::geography) as intersection_area_sqm
             `;
 
@@ -219,8 +214,7 @@ export function createGeometryTransformTool(
 
         const sql = `
                 SELECT 
-                    ST_AsGeoJSON(ST_Transform(ST_SetSRID(${geomExpr}, ${String(fromSrid)}), ${String(toSrid)})) as transformed_geojson,
-                    ST_AsText(ST_Transform(ST_SetSRID(${geomExpr}, ${String(fromSrid)}), ${String(toSrid)})) as transformed_wkt
+                    ST_AsGeoJSON(ST_Transform(ST_SetSRID(${geomExpr}, ${String(fromSrid)}), ${String(toSrid)})) as transformed_geojson
             `;
 
         let result;

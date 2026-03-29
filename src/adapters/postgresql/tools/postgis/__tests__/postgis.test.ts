@@ -165,7 +165,7 @@ describe("Handler Execution", () => {
     it("should create buffer from WKT geometry", async () => {
       mockAdapter.executeQuery.mockResolvedValue({
         rows: [
-          { buffer_geojson: '{"type":"Polygon"}', buffer_wkt: "POLYGON(...)" },
+          { buffer_geojson: '{"type":"Polygon"}' },
         ],
       });
 
@@ -185,7 +185,7 @@ describe("Handler Execution", () => {
     it("should detect GeoJSON input format", async () => {
       mockAdapter.executeQuery.mockResolvedValue({
         rows: [
-          { buffer_geojson: "{}", buffer_wkt: "", inputFormat: "GeoJSON" },
+          { buffer_geojson: "{}", inputFormat: "GeoJSON" },
         ],
       });
 
@@ -325,7 +325,6 @@ describe("Handler Execution", () => {
             {
               id: 1,
               transformed_geojson: "{}",
-              transformed_wkt: "POINT(0 0)",
               output_srid: 3857,
             },
           ],
@@ -365,7 +364,6 @@ describe("Handler Execution", () => {
             {
               id: 1,
               transformed_geojson: "{}",
-              transformed_wkt: "POINT(0 0)",
               output_srid: 3857,
             },
           ],
@@ -417,7 +415,6 @@ describe("Handler Execution", () => {
             {
               id: 1,
               transformed_geojson: "{}",
-              transformed_wkt: "POINT(0 0)",
               output_srid: 3857,
             },
           ],
@@ -696,7 +693,6 @@ describe("PostGIS Standalone Geometry Edge Cases", () => {
       rows: [
         {
           buffer_geojson: '{"type":"Polygon"}',
-          buffer_wkt: "POLYGON(...)",
           distance_meters: 1000,
           srid: 4326,
         },
@@ -722,7 +718,6 @@ describe("PostGIS Standalone Geometry Edge Cases", () => {
       rows: [
         {
           buffer_geojson: null,
-          buffer_wkt: null,
           distance_meters: 10,
           srid: 4326,
         },
@@ -748,7 +743,6 @@ describe("PostGIS Standalone Geometry Edge Cases", () => {
         {
           intersects: true,
           intersection_geojson: "{}",
-          intersection_wkt: "GEOMETRYCOLLECTION EMPTY",
           intersection_area_sqm: 0,
         },
       ],

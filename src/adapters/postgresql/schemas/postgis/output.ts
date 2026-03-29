@@ -145,7 +145,6 @@ export const GeocodeOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether operation succeeded"),
     geojson: z.string().optional().describe("Point as GeoJSON"),
-    wkt: z.string().optional().describe("Point as WKT"),
     note: z.string().optional().describe("SRID note for non-4326"),
     error: z.string().optional().describe("Error message"),
   })
@@ -258,7 +257,6 @@ export const GeometryBufferOutputSchema = z
       .nullable()
       .optional()
       .describe("Buffer as GeoJSON"),
-    buffer_wkt: z.string().nullable().optional().describe("Buffer as WKT"),
     distance_meters: z
       .number()
       .optional()
@@ -287,11 +285,6 @@ export const GeometryIntersectionOutputSchema = z
       .nullable()
       .optional()
       .describe("Intersection as GeoJSON"),
-    intersection_wkt: z
-      .string()
-      .nullable()
-      .optional()
-      .describe("Intersection as WKT"),
     intersection_area_sqm: z
       .number()
       .nullable()
@@ -314,7 +307,6 @@ export const GeometryTransformOutputSchema = z
       .string()
       .optional()
       .describe("Transformed as GeoJSON"),
-    transformed_wkt: z.string().optional().describe("Transformed as WKT"),
     fromSrid: z.number().optional().describe("Source SRID"),
     toSrid: z.number().optional().describe("Target SRID"),
     inputFormat: z.string().optional().describe("Input format (GeoJSON/WKT)"),
