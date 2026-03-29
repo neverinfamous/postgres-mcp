@@ -3,7 +3,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -27,30 +27,23 @@ export function createAlertThresholdSetTool(
     annotations: readOnly("Get Alert Thresholds"),
     icons: getToolIcons("monitoring", readOnly("Get Alert Thresholds")),
     handler: (params: unknown, _context: RequestContext) => {
-      let parsed;
       try {
-        parsed = AlertThresholdSetSchema.parse(params ?? {});
-      } catch (err) {
-        return Promise.resolve(
-          formatHandlerErrorResponse(err, { tool: "pg_alert_threshold_set" })
-        );
-      }
+        const parsed = AlertThresholdSetSchema.parse(params ?? {});
 
-      const validMetrics = [
-        "connection_usage",
-        "cache_hit_ratio",
-        "replication_lag",
-        "dead_tuples",
-        "long_running_queries",
-        "lock_wait_time",
-      ];
+        const validMetrics = [
+          "connection_usage",
+          "cache_hit_ratio",
+          "replication_lag",
+          "dead_tuples",
+          "long_running_queries",
+          "lock_wait_time",
+        ];
 
-      if (parsed.metric && !validMetrics.includes(parsed.metric)) {
-        return Promise.resolve({
-          success: false,
-          error: `Invalid metric "${parsed.metric}". Valid metrics: ${validMetrics.join(", ")}`,
-        });
-      }
+        if (parsed.metric && !validMetrics.includes(parsed.metric)) {
+          throw new ValidationError(
+            `Invalid metric "${parsed.metric}". Valid metrics: ${validMetrics.join(", ")}`
+          );
+        }
 
       const thresholds: Record<
         string,
@@ -99,6 +92,11 @@ export function createAlertThresholdSetTool(
         thresholds,
         note: "These are recommended starting thresholds. Adjust based on your specific workload and requirements.",
       });
+      } catch (error: unknown) {
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_alert_threshold_set" })
+        );
+      }
     },
   };
 }
