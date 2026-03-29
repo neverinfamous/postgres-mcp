@@ -1,38 +1,60 @@
-# Monitoring Tool Group Verification
+# Backup Tool Group Verification (2026-03-29)
 
 ## Strict Coverage Matrix
 
-| Tool | Happy Path | Domain Error | Zod Empty Param / Type | Alias | Payload |
+| Tool | Happy Path | Domain Error | Zod Empty / Wrong Type | Alias | Payload |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `pg_database_size` | ✅ | N/A | N/A | N/A | N/A |
-| `pg_table_sizes` | ✅ | ✅ (nonexistent schema) | ✅ (empty `{}` → defaults to 10, Antigravity uses 50) | N/A | ✅ |
-| `pg_connection_stats` | ✅ | N/A | N/A | N/A | N/A |
-| `pg_replication_status` | ✅ | N/A | N/A | N/A | N/A |
-| `pg_server_version` | ✅ | N/A | N/A | N/A | N/A |
-| `pg_show_settings` | ✅ | N/A | N/A | ✅ (`setting`, `name` aliases) | ✅ (limit=50 truncation metadata) |
-| `pg_uptime` | ✅ | N/A | N/A | N/A | N/A |
-| `pg_recovery_status` | ✅ | N/A | N/A | N/A | N/A |
-| `pg_capacity_planning` | ✅ | N/A | N/A | ✅ (`days` alias) | N/A |
-| `pg_resource_usage_analyze` | ✅ | ✅ (try/catch added) | N/A | N/A | N/A |
-| `pg_alert_threshold_set` | ✅ | ✅ (`invalid_metric_xyz` → structured error) | N/A | N/A | N/A |
+| `pg_dump_table` | ✅ | ✅ | ✅ | N/A | ✅ |
+| `pg_dump_schema` | ✅ | ✅ | ✅ | ✅ | N/A |
+| `pg_copy_export` | ✅ | ✅ | ✅ | ✅ | ⚠️ Fixed |
+| `pg_copy_import` | ✅ | ✅ | ✅ | ✅ | N/A |
+| `pg_create_backup_plan` | ✅ | ✅ | ✅ | N/A | N/A |
+| `pg_restore_command` | ✅ | ✅ | ✅ | ✅ | N/A |
+| `pg_backup_physical` | ✅ | ✅ | ✅ | N/A | N/A |
+| `pg_restore_validate` | ✅ | ✅ | ✅ | ✅ | N/A |
+| `pg_backup_schedule_optimize` | ✅ | N/A | N/A | N/A | N/A |
+| `pg_audit_list_backups` | ✅ | ✅ | N/A | N/A | ✅ |
+| `pg_audit_restore_backup` | ✅ | ✅ | ✅ | N/A | N/A |
+| `pg_audit_diff_backup` | ✅ | ✅ | ✅ | N/A | N/A |
+
+## Deterministic Checklist Progress
+
+| Item | Status | Notes |
+| :--- | :--- | :--- |
+| 1. `pg_dump_table({table: "test_products"})` | ✅ | Functional |
+| 2. `pg_dump_table({table: "test_products", includeData: true})` | ✅ | Included data |
+| 3. `pg_copy_export({table: "test_products", limit: 3})` | ✅ | Truncated properly |
+| 4. `pg_copy_export({table: "test_products", format: "text"})` | ✅ | Raised ⚠️ - Dates were quote-wrapped. Fixed in copy.ts! |
+| 5. `pg_create_backup_plan({frequency: "daily", retention: 7})` | ✅ | Passed |
+| 6. `pg_restore_command({filename: "backup.dump", database: "testdb"})` | ✅ | Passed |
+| 7. 🔴 `pg_restore_command({})` | ✅ | Validation Error |
+| 8. 🔴 `pg_backup_physical({})` | ✅ | Validation Error |
+| 9. Setup: create temp_backup_test | ✅ | Passed |
+| 10. `pg_truncate(temp_backup_test)` → snapshot | ✅ | Snapshot created via pg_execute_code |
+| 11. `pg_audit_list_backups({target: "temp_backup_test"})` | ✅ | Passed |
+| 12. `pg_audit_list_backups({tool: "pg_truncate"})` | ✅ | Passed |
+| 13. `pg_audit_list_backups()` — capture filename | ✅ | Captured |
+| 14. ALTER TABLE + drift col | ✅ | Passed |
+| 15. batch insert → row count drift | ✅ | Passed |
+| 16. `pg_audit_diff_backup({filename: <captured>})` | ✅ | Drift successfully detected |
+| 17. 🔴 `pg_audit_diff_backup({filename: "nonexistent"})` | ✅ | Structured error returned |
+| 18. `pg_audit_restore_backup({..., dryRun: true})` | ✅ | Passed |
+| 19. `pg_audit_restore_backup({..., restoreAs: "temp_backup_restored"})` | ✅ | Passed |
+| 20. `pg_audit_restore_backup({..., confirm: true})` (in-place) | ✅ | Passed |
+| 21. 🔴 `pg_audit_restore_backup({filename: "nonexistent", confirm: true})` | ✅ | Structured error returned |
+| 22. 🔴 `pg_audit_restore_backup({filename: <valid>})` without confirm | ✅ | Validation error properly thrown |
+| 23. Code Mode: create/drop temp_codemode_audit | ✅ | Passed implicitly |
+| 24. `pg_audit_list_backups({tool: "pg_execute_code"})` | ✅ | Passed |
+| 25. 🔴 `pg_audit_diff_backup({})` | ✅ | Validation Error |
+| 26. 🔴 `pg_audit_restore_backup({})` | ✅ | Validation Error |
+| 27. Code Mode: `pg.backup.help()` | ✅ | Passed |
+| 28. Code Mode: `pg.backup.listBackups()` | ✅ | Passed implicitly |
+| 29. Cleanup: DROP temp_backup_test | ✅ | Passed |
+| 30. Cleanup: DROP temp_backup_restored | ✅ | Passed |
 
 ## Findings
 
-### ❌ Bugs Fixed
-
-1. **`pg_resource_usage_analyze` — Missing try/catch** (FIXED): The entire handler had no `try/catch`. Any DB error propagated as a raw MCP error frame rather than a structured `{success: false}` response. Added `formatHandlerErrorResponse` import and wrapped the handler in `try/catch`.
-
-### ⚠️ Behavioral Notes (No Action Required)
-
-2. **`pg_table_sizes` — Antigravity interface required `limit`**: The Antigravity tool binding marks `limit` as a required parameter (returning 50 rows by default when the interface sets it). This is a known Antigravity client-side binding behavior (documented in UNRELEASED.md lines 247-248 and 324); the server-side schema correctly defines `limit` as `.optional()` with a built-in handler default of 10. No fix needed.
-
-3. **`pg_show_settings` — Default 50 settings without filter**: When no pattern is specified, the schema defaults `limit` to 50 (returning ~2493 tokens). This is by design — the default was intentionally set to 50 to prevent the full 416 settings from being returned. The `truncated: true` metadata communicates truncation correctly.
-
-### ✅ All Tools Pass
-
-- All 11 monitoring tools demonstrated operational parity
-- P154 structured error compliance verified (domain errors, invalid metrics)
-- Alias propagation verified: `setting`/`name` for `pg_show_settings`, `days` for `pg_capacity_planning`
-- Split Schema boundary protection verified for all parametric tools
-- `_meta.tokenEstimate` present on all responses
-- Code Mode parity confirmed via `pg_execute_code`
+1. ⚠️ **Issue in `pg_copy_export` text format:** Timestamps output in text format were unnecessarily doubly JSON-quoted because `Date` was captured by `typeof v === 'object'`. This was a generic text processing bug.
+   - **Remediation**: Added `if (v instanceof Date) return v.toISOString();` early checks for both CSV and TEXT format stringification logic in `src/adapters/postgresql/tools/backup/copy.ts` line ~106 & ~181 to properly format standard Postgres Date objects correctly. Rebuilt and successfully verified the behavior.
+2. ✅ **Structured error & resilience:** All audit snapshots gracefully handled Zod issues. `confirm: false` correctly rejected in-place restorations safely.
+3. ✅ **Code Mode Intercepts:** Verified that destructive operations submitted through Code Mode API dynamically tunnel backward to the core interceptor and properly generate pre-mutation snapshots.

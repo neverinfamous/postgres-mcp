@@ -103,6 +103,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
                 .map((h) => {
                   const v = row[h];
                   if (v === null) return "";
+                  if (v instanceof Date) return v.toISOString();
                   if (typeof v === "object") return JSON.stringify(v);
                   if (
                     typeof v !== "string" &&
@@ -178,6 +179,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
                 .map((h) => {
                   const v = row[h];
                   if (v === null) return "\\N"; // PostgreSQL NULL representation in text format
+                  if (v instanceof Date) return v.toISOString();
                   if (typeof v === "object") return JSON.stringify(v);
                   if (
                     typeof v === "string" ||
