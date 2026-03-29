@@ -69,10 +69,7 @@ export function createListFunctionsTool(
             [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-            };
+            throw new Error(`Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`);
           }
         }
 
@@ -192,10 +189,7 @@ export function createListTriggersTool(
             [schemaName],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              error: `Schema '${schemaName}' does not exist. Use pg_list_schemas to see available schemas.`,
-            };
+            throw new Error(`Schema '${schemaName}' does not exist. Use pg_list_schemas to see available schemas.`);
           }
         }
 
@@ -206,10 +200,7 @@ export function createListTriggersTool(
             [resolvedSchema, tableName],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              error: `Table '${resolvedSchema}.${tableName}' not found. Use pg_list_tables to see available tables.`,
-            };
+            throw new Error(`Table '${resolvedSchema}.${tableName}' not found. Use pg_list_tables to see available tables.`);
           }
         }
 
@@ -326,10 +317,7 @@ export function createListConstraintsTool(
             [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-            };
+            throw new Error(`Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`);
           }
         }
 
@@ -340,10 +328,7 @@ export function createListConstraintsTool(
             [schemaName, parsed.table],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              error: `Table '${schemaName}.${parsed.table}' not found. Use pg_list_tables to see available tables.`,
-            };
+            throw new Error(`Table '${schemaName}.${parsed.table}' not found. Use pg_list_tables to see available tables.`);
           }
         }
 

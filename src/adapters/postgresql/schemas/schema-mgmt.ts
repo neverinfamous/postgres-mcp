@@ -22,10 +22,10 @@ function preprocessCreateSchemaParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
   const result = { ...(input as Record<string, unknown>) };
 
-  if (result["name"] === undefined) {
-    if (result["schema"] !== undefined) {
+  if (result["name"] === undefined || result["name"] === "") {
+    if (result["schema"] !== undefined && result["schema"] !== "") {
       result["name"] = result["schema"];
-    } else if (result["schemaName"] !== undefined) {
+    } else if (result["schemaName"] !== undefined && result["schemaName"] !== "") {
       result["name"] = result["schemaName"];
     }
   }
@@ -120,7 +120,7 @@ function preprocessCreateSequenceParams(input: unknown): unknown {
   const result = { ...(input as Record<string, unknown>) };
 
   // Resolve sequenceName alias to name before dotted-name extraction
-  if (result["name"] === undefined && result["sequenceName"] !== undefined) {
+  if ((result["name"] === undefined || result["name"] === "") && result["sequenceName"] !== undefined && result["sequenceName"] !== "") {
     result["name"] = result["sequenceName"];
   }
 
@@ -190,10 +190,10 @@ function preprocessCreateViewParams(input: unknown): unknown {
   const result = { ...(input as Record<string, unknown>) };
 
   // Resolve viewName/view alias to name before dotted-name extraction
-  if (result["name"] === undefined) {
-    if (result["viewName"] !== undefined) {
+  if (result["name"] === undefined || result["name"] === "") {
+    if (result["viewName"] !== undefined && result["viewName"] !== "") {
       result["name"] = result["viewName"];
-    } else if (result["view"] !== undefined) {
+    } else if (result["view"] !== undefined && result["view"] !== "") {
       result["name"] = result["view"];
     }
   }

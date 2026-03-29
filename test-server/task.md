@@ -1,18 +1,16 @@
-# Postgres-MCP `backup` Tool Group Certification Task
+# Strict Coverage Matrix
 
-## Strict Coverage Matrix
-
-| Tool | Direct Call (Happy Path) | Domain Error | Zod Empty Param | Alias Acceptance |
-|------|--------------------------|--------------|-----------------|------------------|
-| `pg_dump_table` | ✅ | ✅ | ✅ | N/A |
-| `pg_dump_schema` | ✅ | ✅ | ✅ | N/A |
-| `pg_copy_export` | ✅ | ✅ | ✅ | N/A |
-| `pg_copy_import` | ✅ | N/A | ✅ | N/A |
-| `pg_create_backup_plan` | ✅ | N/A | ✅ | N/A |
-| `pg_restore_command` | ✅ | N/A | ✅ | N/A |
-| `pg_backup_physical` | ✅ | N/A | ✅ | N/A |
-| `pg_restore_validate` | ✅ | N/A | ✅ | N/A |
-| `pg_backup_schedule_optimize` | ✅ | N/A | N/A | N/A |
-| `pg_audit_list_backups` | ✅ | N/A | N/A | N/A |
-| `pg_audit_restore_backup` | ✅ | ✅ | ✅ | N/A |
-| `pg_audit_diff_backup` | ✅ | ✅ | ✅ | N/A |
+| Tool | Happy Path (Direct) | Domain Error (Direct) | Zod Empty Param (Direct) | Alias Acceptance |
+|---|---|---|---|---|
+| `pg_dump_table` | ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_dump_schema` | ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_copy_export` | ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_copy_import` | ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_create_backup_plan`| ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_restore_command` | ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_backup_physical` | ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_restore_validate` | ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_backup_schedule_optimize`| ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_audit_list_backups` | ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_audit_restore_backup` | ⬜ | ⬜ | ⬜ | ⬜ |
+| `pg_audit_diff_backup` | ⬜ | ⬜ | ⬜ | ⬜ |

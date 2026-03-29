@@ -1,11 +1,11 @@
-# postgres-mcp Tool Group RE-testing (RUN ALL TESTS AGAIN)
+# postgres-mcp Tool Group Re-testing
 
 **ESSENTIAL INSTRUCTIONS**
 
 **Execute EVERY numbered stress test below using direct MCP tool calls, NOT code mode.**
 **Do NOT use scripts or terminal to replace planned tests.**
 **Do NOT modify or skip tests.**
-**All changes MUST be consistent with other tools and `code-map.md`**
+**All changes MUST be consistent with other tools and `code-map.md`.**
 
 ## Reporting Format
 
@@ -60,7 +60,6 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 12. **Audit backup tools**: The 3 `pg_audit_*` tools require `--audit-backup` to be enabled on the test server. When enabled, destructive operations (`pg_truncate`, `pg_drop_table`, `pg_vacuum`, etc.) create gzip-compressed `.snapshot.json.gz` files alongside the audit log. **V2 features to verify**: `pg_audit_diff_backup` now returns a `volumeDrift` field (row count + size changes); `pg_audit_restore_backup` supports `restoreAs` for side-by-side non-destructive restore; and Code Mode calls through `pg_execute_code` that trigger destructive operations are also captured by the interceptor. When disabled, all 3 tools return `{success: false, error: "Audit backup not enabled"}`.
 
 Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) now return as parseable JSON objects via direct tool calls — not as raw MCP error strings. During error path testing, verify this: if a direct tool call for a nonexistent schema/table returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
-
 
 ## Structured Error Response Pattern
 
@@ -210,7 +209,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
    - `server-instructions.md`
    - Test database (`test-database.sql`)
    - This prompt (`test-tools.md`) and group file (`test-group-tools.md`)
-4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
+4. Update the changelog and create memory-journal-mcp entry with any changes made (being careful not to create duplicate headers), and commit without pushing.
 5. Stop and briefly summarize the testing results and fixes and to allow the user to verify the changes.
 
 ---
