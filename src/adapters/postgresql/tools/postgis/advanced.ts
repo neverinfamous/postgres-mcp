@@ -108,6 +108,10 @@ export function createGeoTransformTool(
             return {
               success: false as const,
               error: `Table or view '${parsed.table}' not found. Use pg_list_tables to see available tables.`,
+              code: "TABLE_NOT_FOUND",
+              category: "query",
+              suggestion: "Table or view not found. Run pg_list_tables to see available tables.",
+              recoverable: false,
             };
           }
 

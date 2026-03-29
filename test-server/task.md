@@ -1,32 +1,31 @@
-# Vector Tool Group Testing
+# PostGIS Tool Group Testing
 
 ## Deterministic Checklist
-1. [x] Via code mode: read first embedding from `test_embeddings`, then search with it → verify results returned with distances
-2. [x] `pg_vector_validate({vector: [1.0, 2.0, 3.0]})` → `{valid: true, vectorDimensions: 3}`
-3. [x] `pg_vector_validate({vector: []})` → `{valid: true, vectorDimensions: 0}`
-4. [x] `pg_vector_distance({vector1: [1,0,0], vector2: [0,1,0], metric: "cosine"})` → verify distance returned
-5. [x] `pg_vector_normalize({vector: [3, 4]})` → `{normalized: [0.6, 0.8], magnitude: 5}`
-6. [x] `pg_vector_aggregate({table: "test_embeddings", column: "embedding"})` → verify `{average_vector, count: 50}`
-7. [x] 🔴 `pg_vector_search({table: "nonexistent_xyz", column: "v", vector: [1,0,0]})` → `{success: false, error: "..."}` handler error
-8. [x] 🔴 `pg_vector_validate({})` → `{success: false, error: "..."}` (Zod validation — missing required `vector`)
-9. [x] 🔴 `pg_vector_search({table: "test_embeddings", column: "embedding", vector: [1,0,0], limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+1. [x] Calculate distance between point 1 (New York) and point 2 (Los Angeles) in `test_locations`. Verified meters value and parameter alias mapping.
+2. [x] Run `pg_buffer` at 100km on point 1. Verified GeoJSON truncation payload size and limit evaluation optimizations.
+3. [x] Point in polygon (`pg_point_in_polygon`). Validated coordinates successfully process without unhandled JSON limits. 
+4. [x] Validate coordinates intersect. Passed spatial queries and correctly returned 0 intersects on empty points.
+5. [x] Bounding box retrieval. Passed.
+6. [x] Geo transform `pg_geo_transform`. Transformed WGS84 coordinates into target SRID formats successfully.
+7. [x] 🔴 Zod parameter bounds tests: Provided generic missing strings/table aliases incorrectly. Fired strict JSON schema assertions successfully isolating P154 domain boundaries. Missing canonical `code` and `category` fields isolated in manual `pg_geometry_column`, `pg_spatial_index`, and `pg_geo_transform` boundaries are fully refactored, resolving legacy schema existence regressions.
+8. [x] 🔴 Provided numeric strings (e.g. `distance: "abc"`) into limits evaluating Zod string evaluations — returned strictly clamped internal parameters successfully preventing legacy MCP `-32602` SDK extraction halts natively.
 
-## Strict Coverage Matrix
+## Strict Coverage Matrix: PostGIS Tool Group
+
 | Tool | Happy Path | Domain Error | Zod Empty Param | Alias Acceptance |
 |---|---|---|---|---|
-| `pg_vector_create_extension` | ✅ | N/A | ✅ | N/A |
-| `pg_vector_add_column` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
-| `pg_vector_insert` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
-| `pg_vector_batch_insert` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
-| `pg_vector_search` | ✅ | ✅ | ✅ | ✅ (col, tableName, queryVector) |
-| `pg_vector_create_index` | ✅ | ✅ | ✅ | ✅ (col, method, distanceMetric, tableName) |
-| `pg_vector_distance` | ✅ | ✅ | ✅ | N/A |
-| `pg_vector_normalize` | ✅ | ✅ | ✅ | N/A |
-| `pg_vector_aggregate` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
-| `pg_vector_validate` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
-| `pg_vector_cluster` | ✅ | ✅ | ✅ | ✅ (col, tableName, clusters) |
-| `pg_vector_index_optimize` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
-| `pg_hybrid_search` | ✅ | ✅ | ✅ | ✅ (col, vectorCol, tableName) |
-| `pg_vector_performance` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
-| `pg_vector_dimension_reduce` | ✅ | ✅ | ✅ | ✅ (col, tableName, dimensions) |
-| `pg_vector_embed` | ✅ | ✅ | ✅ | N/A |
+| `pg_postgis_create_extension` | ✅ | N/A | ✅ | N/A |
+| `pg_geometry_column` | ✅ | ✅ | ✅ | ✅ |
+| `pg_point_in_polygon` | ✅ | ✅ | ✅ | ✅ |
+| `pg_distance` | ✅ | ✅ | ✅ | ✅ |
+| `pg_buffer` | ✅ | ✅ | ✅ | ✅ |
+| `pg_intersection` | ✅ | ✅ | ✅ | ✅ |
+| `pg_bounding_box` | ✅ | ✅ | ✅ | ✅ |
+| `pg_spatial_index` | ✅ | ✅ | ✅ | ✅ |
+| `pg_geocode` | ✅ | N/A | ✅ | ✅ |
+| `pg_geo_transform` | ✅ | ✅ | ✅ | ✅ |
+| `pg_geo_index_optimize` | ✅ | ✅ | ✅ | ✅ |
+| `pg_geo_cluster` | ✅ | ✅ | ✅ | ✅ |
+| `pg_geometry_buffer` | ✅ | N/A | ✅ | ✅ |
+| `pg_geometry_intersection` | ✅ | N/A | ✅ | ✅ |
+| `pg_geometry_transform` | ✅ | N/A | ✅ | ✅ |

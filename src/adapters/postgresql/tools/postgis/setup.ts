@@ -117,7 +117,10 @@ export function createGeometryColumnTool(
             error: `Table "${parsed.table}" does not exist in schema "${schemaName}".`,
             table: parsed.table,
             schema: schemaName,
+            code: "TABLE_NOT_FOUND",
+            category: "query",
             suggestion: "Create the table first, then add the geometry column.",
+            recoverable: false,
           };
         }
 
@@ -180,9 +183,10 @@ export function createSpatialIndexTool(
             error: `Table "${table}" does not exist in schema "${schemaName}".`,
             table,
             schema: schemaName,
+            code: "TABLE_NOT_FOUND",
+            category: "query",
             suggestion: "Create the table first, then add the spatial index.",
             recoverable: false,
-            code: "TABLE_NOT_FOUND",
           };
         }
 
