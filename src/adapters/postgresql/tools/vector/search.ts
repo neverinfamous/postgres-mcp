@@ -164,7 +164,7 @@ export function createVectorSearchTool(
               return {
                 success: false,
                 error: `Vector dimension mismatch: column '${column}' expects ${expectedDim} dimensions, but you provided ${providedDim} dimensions.`,
-                code: "VECTOR_DIMENSION_MISMATCH",
+                code: "DIMENSION_MISMATCH",
                 category: "query",
                 expectedDimensions: parseInt(expectedDim, 10),
                 providedDimensions: parseInt(providedDim, 10),
