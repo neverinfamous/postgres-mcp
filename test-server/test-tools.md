@@ -5,8 +5,7 @@
 **Execute EVERY numbered stress test below using direct MCP tool calls - NOT code mode.**
 **Do NOT use scripts or terminal to replace planned tests.**
 **Do NOT modify or skip tests.**
-**Do NOT run test-tools-advanced-1.md.**
-**All changes MUST be consistent with other postgres-mcp tools and `code-map.md`**
+**All changes MUST be consistent with other tools and `code-map.md`**
 
 ## Reporting Format
 
