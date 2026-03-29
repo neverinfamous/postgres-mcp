@@ -9,6 +9,7 @@ import { readOnly } from "../../../../utils/annotations.js";
 
 import { getToolIcons } from "../../../../utils/icons.js";
 import { ResourceUsageAnalyzeOutputSchema } from "../../schemas/index.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 
 export function createResourceUsageAnalyzeTool(
   adapter: PostgresAdapter,
@@ -23,6 +24,7 @@ export function createResourceUsageAnalyzeTool(
     annotations: readOnly("Resource Usage Analysis"),
     icons: getToolIcons("monitoring", readOnly("Resource Usage Analysis")),
     handler: async (_params: unknown, _context: RequestContext) => {
+      try {
       // Detect PostgreSQL version for checkpoint stats compatibility
       const versionResult = await adapter.executeQuery(
         `SELECT current_setting('server_version_num')::int as version_num`,
@@ -213,6 +215,9 @@ export function createResourceUsageAnalyzeTool(
               : "No lock contention",
         },
       };
+      } catch (err) {
+        return formatHandlerErrorResponse(err, { tool: "pg_resource_usage_analyze" });
+      }
     },
   };
 }
