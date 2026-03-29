@@ -2,7 +2,7 @@
 
 Execute each numbered stress test below using both code mode (`pg_execute_code`) and direct tool calls.
 
-**DO NOT USE SCRIPTS/TERMINAL TO TEST! DO NOT MODIFY OR SKIP TESTS! All changes MUST be consistent with `code-map.md` and the other postgres-mcp tools!**
+**DO NOT USE SCRIPTS/TERMINAL TO TEST! DO NOT MODIFY OR SKIP TESTS! All changes MUST be consistent with `code-map.md` and other postgres-mcp tools!**
 
 ## Code Mode Execution
 

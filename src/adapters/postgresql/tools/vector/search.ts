@@ -159,15 +159,17 @@ export function createVectorSearchTool(
               error.message,
             );
             if (dimMatch) {
-              const expectedDim = dimMatch[1] ?? "0";
-              const providedDim = dimMatch[2] ?? "0";
+              const dim1 = parseInt(dimMatch[1] ?? "0", 10);
+              const dim2 = parseInt(dimMatch[2] ?? "0", 10);
+              const providedDim = vector.length;
+              const expectedDim = dim1 === providedDim ? dim2 : dim1;
               return {
                 success: false,
-                error: `Vector dimension mismatch: column '${column}' expects ${expectedDim} dimensions, but you provided ${providedDim} dimensions.`,
+                error: `Vector dimension mismatch: column '${column}' expects ${String(expectedDim)} dimensions, but you provided ${String(providedDim)} dimensions.`,
                 code: "DIMENSION_MISMATCH",
                 category: "query",
-                expectedDimensions: parseInt(expectedDim, 10),
-                providedDimensions: parseInt(providedDim, 10),
+                expectedDimensions: expectedDim,
+                providedDimensions: providedDim,
                 suggestion:
                   "Ensure your query vector has the same dimensions as the column.",
               };
