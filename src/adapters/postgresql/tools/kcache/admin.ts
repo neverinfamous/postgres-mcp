@@ -276,9 +276,21 @@ Helps identify the root cause of performance issues - is the query computation-h
             `;
 
         const result = await adapter.executeQuery(sql, queryParams);
-        const rows = result.rows ?? [];
-        const effectiveTotalCount = Math.max(totalCount, rows.length);
-        const truncated = rows.length < effectiveTotalCount;
+        const rawRows = result.rows ?? [];
+        const effectiveTotalCount = Math.max(totalCount, rawRows.length);
+        const truncated = rawRows.length < effectiveTotalCount;
+
+        const rows = parsed.compact
+          ? rawRows.map(row => {
+              const obj: Record<string, unknown> = {};
+              for (const [key, value] of Object.entries(row)) {
+                if (value !== 0 && value !== "0" && value !== "0 bytes") {
+                  obj[key] = value;
+                }
+              }
+              return obj;
+            })
+          : rawRows;
 
         const cpuBound = rows.filter(
           (r: Record<string, unknown>) =>
