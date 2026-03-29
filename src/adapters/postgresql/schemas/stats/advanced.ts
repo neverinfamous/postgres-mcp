@@ -15,6 +15,7 @@ import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export const StatsOutliersSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column to analyze"),
   method: z
     .enum(["iqr", "zscore"])
@@ -38,6 +39,7 @@ export const StatsOutliersSchemaBase = z.object({
 
 export const StatsTopNSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Column to rank by"),
   n: z
     .preprocess(coerceNumber, z.number().max(1000).optional())
@@ -56,6 +58,7 @@ export const StatsTopNSchemaBase = z.object({
 
 export const StatsDistinctSchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Column to get distinct values from"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
@@ -66,6 +69,7 @@ export const StatsDistinctSchemaBase = z.object({
 
 export const StatsFrequencySchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Column to count frequency"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
@@ -76,6 +80,7 @@ export const StatsFrequencySchemaBase = z.object({
 
 export const StatsSummarySchemaBase = z.object({
   table: z.string().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   columns: z
     .array(z.string())
     .optional()
