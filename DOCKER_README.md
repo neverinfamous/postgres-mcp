@@ -200,7 +200,7 @@ Add this to your MCP client config (e.g., `~/.cursor/mcp.json` for Cursor):
 | `AUDIT_BACKUP_MAX_COUNT` | `1000` | Maximum number of snapshots to retain |
 | `AUDIT_BACKUP_MAX_DATA_SIZE` | `52428800` | Maximum table size for data capture (bytes) |
 | `AUDIT_READS` | `false` | Log read-scoped tool calls (compact entries) |
-| `AUDIT_LOG_MAX_SIZE` | `10485760` | Max log file size before rotation (bytes) |
+| `AUDIT_LOG_MAX_SIZE` | `10485760` | Max log file size before rotation (bytes). Keeps up to 5 files. |
 
 > **Aliases:** `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` are also supported (standard PostgreSQL client env vars).
 

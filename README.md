@@ -391,7 +391,7 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `AUDIT_BACKUP_MAX_COUNT` | `1000` | Maximum number of snapshots to retain | `--audit-backup-max-count` |
 | `AUDIT_BACKUP_MAX_DATA_SIZE` | `52428800` | Maximum table size for data capture (bytes) | `--audit-backup-max-data-size` |
 | `AUDIT_READS` | `false` | Log read-scoped tool calls (compact entries) | `--audit-reads` |
-| `AUDIT_LOG_MAX_SIZE` | `10485760` | Max log file size before rotation (bytes) | `--audit-log-max-size` |
+| `AUDIT_LOG_MAX_SIZE` | `10485760` | Max log file size before rotation (bytes). Keeps up to 5 files. | `--audit-log-max-size` |
 
 > **Aliases:** `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` are also supported (standard PostgreSQL client env vars).
 
@@ -426,7 +426,7 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `--audit-backup-max-count <count>` | Maximum number of snapshots to retain (default: 1000) |
 | `--audit-backup-max-data-size <bytes>` | Maximum table size for data capture (default: 52428800) |
 | `--audit-reads` | Log read-scoped tool calls (compact entries) |
-| `--audit-log-max-size <bytes>` | Max log file size before rotation (default: 10MB) |
+| `--audit-log-max-size <bytes>` | Max log file size before rotation (default: 10MB). System retains up to 5 rotated historical archives before oldest deletion (`.1` through `.5`). |
 
 ## 🤖 AI-Powered Prompts
 

@@ -89,9 +89,6 @@ test.describe("Audit Token Summary Accuracy", () => {
       // Verify topTools distribution
       for (const t of toolsToCall) {
         const topToolStat = body.summary.topToolsByTokens.find(stat => stat.tool === t.name);
-        if (!topToolStat || topToolStat.tokens !== expectedTokensByTool[t.name]) {
-          console.error(`Mismatch for ${t.name}: expected ${expectedTokensByTool[t.name]}, got ${topToolStat?.tokens}`);
-        }
         expect(topToolStat).toBeDefined();
         // The aggregated tokens for the tool should match our tracked expected total
         expect(topToolStat!.tokens).toBe(expectedTokensByTool[t.name]);

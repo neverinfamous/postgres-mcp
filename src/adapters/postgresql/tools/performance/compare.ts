@@ -74,6 +74,10 @@ export function createQueryPlanCompareTool(
       .boolean()
       .optional()
       .describe("Run EXPLAIN ANALYZE (executes queries)"),
+    compact: z
+      .boolean()
+      .optional()
+      .describe("Omit full execution plans from output to save tokens"),
   });
 
   // Preprocess for sql1/sql2 → query1/query2 aliases
@@ -170,10 +174,12 @@ export function createQueryPlanCompareTool(
                 : null,
             recommendation: "",
           },
-          fullPlans: {
-            plan1: stripZeroValuePlanFields(plan1),
-            plan2: stripZeroValuePlanFields(plan2),
-          },
+          ...(parsed.compact ? {} : {
+            fullPlans: {
+              plan1: stripZeroValuePlanFields(plan1),
+              plan2: stripZeroValuePlanFields(plan2),
+            },
+          }),
         };
 
         if (comparison.analysis.costDifference !== null) {

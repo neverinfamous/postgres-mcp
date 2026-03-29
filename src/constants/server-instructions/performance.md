@@ -8,7 +8,7 @@ Wrappers (3): `blockingQueries()`→`locks({showBlocked:true})`, `longRunningQue
 - `explainAnalyze({ sql, format?, params? })`: Same format/params options as explain
 - `explainBuffers({ sql, params? })`: Always returns JSON format (includes buffer statistics)
 - `indexRecommendations({ sql?, params? })`: Pass `params: [value]` for parameterized queries (e.g., `sql: 'SELECT * FROM orders WHERE id = $1', params: [5]`)
-- `queryPlanCompare({ query1, query2, params1?, params2? })`: Compare two query plans. Use `params1`/`params2` for parameterized queries
+- `queryPlanCompare({ query1, query2, params1?, params2?, compact? })`: Compare two query plans. Use `compact: true` to exclusively fetch analysis metrics, omitting large JSON execution plans and saving substantial token bandwidth.
 - `partitionStrategySuggest({ table })`: Accepts `schema.table` format (auto-parsed) or separate `table` + `schema` params
 - ⚠️ **Data Type Awareness**: Query literals must match column types exactly—`WHERE sensor_id = 1` (integer), not `'sensor_1'` (string)
 
