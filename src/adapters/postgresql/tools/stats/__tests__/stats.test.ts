@@ -1902,10 +1902,11 @@ describe("pg_stats_hypothesis error handling", () => {
         hypothesizedMean: 100,
       },
       mockContext,
-    )) as { error?: string; sampleSize?: number };
+    )) as { success: boolean; error: string; code?: string };
 
-    expect(result.error).toBe("Insufficient data or zero variance");
-    expect(result.sampleSize).toBe(1);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Insufficient data or zero variance");
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
   it("should return error when zero variance", async () => {
@@ -1927,9 +1928,11 @@ describe("pg_stats_hypothesis error handling", () => {
         hypothesizedMean: 100,
       },
       mockContext,
-    )) as { error?: string };
+    )) as { success: boolean; error: string; code?: string };
 
-    expect(result.error).toBe("Insufficient data or zero variance");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Insufficient data or zero variance");
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
   it("should include schema and where clause when provided", async () => {

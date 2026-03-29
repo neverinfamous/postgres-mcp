@@ -13,6 +13,7 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   calculateTTestPValue,
   calculateZTestPValue,
@@ -244,7 +245,7 @@ export function createStatsHypothesisTool(
 
         // If error, return at top level (not nested in results)
         if ("error" in testResults) {
-          return testResults;
+          throw new ValidationError(testResults.error);
         }
 
         return {
