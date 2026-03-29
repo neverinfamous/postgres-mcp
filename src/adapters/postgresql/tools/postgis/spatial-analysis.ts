@@ -6,9 +6,11 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  type ToolDefinition,
+  type RequestContext,
+  QueryError,
+  ValidationError,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -137,13 +139,9 @@ export function createGeoIndexOptimizeTool(
         (indexes.rows?.length ?? 0) === 0 &&
         (tableStats.rows?.length ?? 0) === 0
       ) {
-        return {
-          success: false,
-          error: `Table "${parsed.table}" not found in schema "${schemaName}" or has no spatial columns/indexes.`,
-          table: parsed.table,
-          schema: schemaName,
-          suggestion: `Verify table "${parsed.table}" exists and has geometry/geography columns.`,
-        };
+        throw new QueryError(
+          `Table "${parsed.table}" not found in schema "${schemaName}" or has no spatial columns/indexes.`,
+        );
       }
 
       return {
@@ -219,14 +217,9 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
         if (method === "kmeans") {
           // Validate numClusters > 0
           if (effectiveNumClusters <= 0) {
-            return {
-              error: `numClusters must be greater than 0 (received: ${String(effectiveNumClusters)}).`,
-              method,
-              table: parsed.table,
-              numClusters: effectiveNumClusters,
-              suggestion:
-                "Provide a positive integer for numClusters (e.g., numClusters: 3)",
-            };
+            throw new ValidationError(
+              `numClusters must be greater than 0 (received: ${String(effectiveNumClusters)}).`,
+            );
           }
 
           const countResult = await adapter.executeQuery(
@@ -235,12 +228,9 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
           rowCount = Number(countResult.rows?.[0]?.["cnt"] ?? 0);
 
           if (rowCount === 0) {
-            return {
-              error: `No rows found in table ${parsed.table}${whereClause !== "" ? " matching filter" : ""}. K-Means requires at least 1 row.`,
-              method,
-              table: parsed.table,
-              rowCount: 0,
-            };
+            throw new QueryError(
+              `No rows found in table ${parsed.table}${whereClause !== "" ? " matching filter" : ""}. K-Means requires at least 1 row.`,
+            );
           }
 
           // Clamp K to row count and warn if exceeded

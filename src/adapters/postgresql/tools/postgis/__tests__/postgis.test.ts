@@ -994,7 +994,8 @@ describe("PostGIS Advanced Tool Edge Cases", () => {
       mockContext,
     )) as Record<string, unknown>;
 
-    expect(result["error"]).toContain("must be greater than 0");
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/must be greater than 0/i);
   });
 
   it("pg_geo_cluster with kmeans should error for empty table", async () => {
@@ -1013,8 +1014,8 @@ describe("PostGIS Advanced Tool Edge Cases", () => {
       mockContext,
     )) as Record<string, unknown>;
 
-    expect(result["error"]).toContain("No rows found");
-    expect(result["rowCount"]).toBe(0);
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/No rows found/i);
   });
 
   it("pg_geo_cluster with dbscan should return noise hints when noise > 50%", async () => {

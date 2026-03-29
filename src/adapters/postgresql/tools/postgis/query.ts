@@ -10,6 +10,7 @@ import {
   type ToolDefinition,
   type RequestContext,
   ValidationError,
+  QueryError,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -396,9 +397,12 @@ export function createIntersectionTool(
           geomExpr = `ST_GeomFromText($1)`;
         }
 
+        const limitClause = parsed.limit !== undefined && parsed.limit > 0 ? ` LIMIT ${String(parsed.limit)}` : "";
+
         const sql = `SELECT ${selectCols}
                           FROM ${qualifiedTable}
-                          WHERE ST_Intersects(${columnName}, ${geomExpr})`;
+                          WHERE ST_Intersects(${columnName}, ${geomExpr})
+                          ${limitClause}`;
 
         const result = await adapter.executeQuery(sql, [parsed.geometry]);
         return {
@@ -464,10 +468,9 @@ export function createBoundingBoxTool(
 
           // If no columns found, table likely doesn't exist
           if (selectCols.length === 0) {
-            return {
-              success: false as const,
-              error: `Table or view '${parsed.table}' not found in schema '${schemaName}'. Use pg_list_tables to see available tables.`,
-            };
+            throw new QueryError(
+              `Table or view '${parsed.table}' not found in schema '${schemaName}'. Use pg_list_tables to see available tables.`,
+            );
           }
         }
 
@@ -489,9 +492,12 @@ export function createBoundingBoxTool(
           corrections.push("minLat/maxLat were swapped");
         }
 
+        const limitClause = parsed.limit !== undefined && parsed.limit > 0 ? ` LIMIT ${String(parsed.limit)}` : "";
+
         const sql = `SELECT ${selectCols}, ST_AsText(${columnName}) as geometry_text
                           FROM ${qualifiedTable}
-                          WHERE ${columnName} && ST_MakeEnvelope($1, $2, $3, $4, 4326)`;
+                          WHERE ${columnName} && ST_MakeEnvelope($1, $2, $3, $4, 4326)
+                          ${limitClause}`;
 
         const result = await adapter.executeQuery(sql, [
           actualMinLng,

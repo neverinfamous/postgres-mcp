@@ -311,6 +311,7 @@ export const IntersectionSchemaBase = z.object({
     .describe(
       "SRID for input geometry (auto-detected from column if not provided)",
     ),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max results"),
   select: z.array(z.string()).optional().describe("Columns to select"),
 });
 
@@ -328,6 +329,7 @@ export const IntersectionSchema = z
       column: data.column ?? data.geom ?? data.geometryColumn ?? "",
       geometry,
       srid: data.srid,
+      limit: data.limit,
       select: data.select,
     };
   })
@@ -356,6 +358,7 @@ export const BoundingBoxSchemaBase = z.object({
   minLat: z.preprocess(coerceNumber, z.number().optional()).describe("Minimum latitude"),
   maxLng: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum longitude"),
   maxLat: z.preprocess(coerceNumber, z.number().optional()).describe("Maximum latitude"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max results"),
   select: z.array(z.string()).optional().describe("Columns to select"),
 });
 
@@ -369,6 +372,7 @@ export const BoundingBoxSchema = z
     minLat: data.minLat,
     maxLng: data.maxLng,
     maxLat: data.maxLat,
+    limit: data.limit,
     select: data.select,
   }))
   .refine((data) => data.table !== "", {
