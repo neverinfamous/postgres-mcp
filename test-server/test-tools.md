@@ -2,7 +2,7 @@
 
 **ESSENTIAL INSTRUCTIONS**
 
-**Execute EVERY numbered stress test below using direct MCP tool calls.**
+**Execute EVERY numbered stress test below using direct MCP tool calls - NOT code mode.**
 **Do NOT use scripts or terminal to replace planned tests.**
 **Do NOT modify or skip tests.**
 **Do NOT run test-tools-advanced-1.md.**
@@ -212,6 +212,6 @@ DROP TABLE IF EXISTS temp_my_test_table;
    - Test database (`test-database.sql`)
    - This prompt (`test-tools.md`) and group file (`test-group-tools.md`)
 4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
-5. Stop and briefly summarize the testing results and fixes amd allow the user to verify the changes.
+5. Stop and briefly summarize the testing results and fixes and to allow the user to verify the changes.
 
 ---
