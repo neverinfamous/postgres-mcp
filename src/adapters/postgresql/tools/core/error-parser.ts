@@ -310,7 +310,7 @@ export function parsePostgresError(
     }
 
     // Function not found with tsvector argument — column is already tsvector type
-    if (/function .*tsvector.* does not exist/i.test(msg)) {
+    if (/function to_tsvector\([^)]*tsvector[^)]*\) does not exist/i.test(msg) || /function tsvector[a-z_]*\([^)]*tsvector[^)]*\) does not exist/i.test(msg)) {
       throw new Error(
         `Column appears to be a tsvector type, which cannot be used directly with text search tools. ` +
           `Use a text column instead, or query the tsvector column directly with raw SQL (pg_read_query).`,
