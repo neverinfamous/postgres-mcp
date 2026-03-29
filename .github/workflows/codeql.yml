@@ -1,16 +1,9 @@
 name: "CodeQL Analysis"
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "**.js"
-      - "**.ts"
-      - "**.tsx"
-      - "package.json"
-      - ".github/workflows/codeql.yml"
   pull_request:
     branches: ["main"]
+  workflow_call:
   schedule:
     - cron: "0 0 * * 1"
   workflow_dispatch:
