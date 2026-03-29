@@ -4,7 +4,7 @@
  */
 
 import type { PostgresAdapter } from "../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../types/index.js";
+import type { ToolDefinition, RequestContext, ErrorResponse } from "../../../types/index.js";
 import { ValidationError } from "../../../types/index.js";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
@@ -353,8 +353,8 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
 }
 
 // Helper to convert internal Postgres pgcrypto panics into typed ValidationErrors
-function handlePgcryptoError(error: unknown, toolName: string) {
-  if (error && typeof error === "object" && "message" in error) {
+function handlePgcryptoError(error: unknown, toolName: string): ErrorResponse {
+  if (error !== null && typeof error === "object" && "message" in error) {
     const msg = String(error.message);
     if (msg.includes("Wrong key or corrupt data")) {
       return formatHandlerErrorResponse(new ValidationError("Decryption failed: Wrong key or corrupt data"), { tool: toolName });

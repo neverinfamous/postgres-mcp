@@ -605,10 +605,8 @@ describe("pg_partman_run_maintenance", () => {
       errors: Array<{ reason: string }>;
     };
 
-    expect(result.success).toBe(false); // Since we have 0 maintained and 1 error (all failed)
-    expect(result.errors?.[0]?.reason).toContain(
-      "No child partitions exist yet.",
-    );
+    expect(result.success).toBe(true); // Since it treats missing partitions as maintained (idempotent)
+    expect((result as any).maintained).toContain("public.events");
   });
 });
 

@@ -78,6 +78,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const DEFAULT_LIMIT = 50;
         const limitVal = limit ?? DEFAULT_LIMIT;
+        const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           queryPreviewLength === 0
@@ -144,7 +145,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
                     AND s.dbid = k.dbid
                 ${whereClause}
                 ORDER BY ${orderColumn} DESC
-                ${limitVal !== null && limitVal > 0 ? `LIMIT ${String(limitVal)}` : ""}
+                LIMIT ${String(effectiveLimit)}
             `;
 
         const result = await adapter.executeQuery(sql, queryParams);
@@ -196,6 +197,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
 
         const DEFAULT_LIMIT = 50;
         const limitVal = parsed.limit ?? DEFAULT_LIMIT;
+        const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
@@ -248,7 +250,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
                     AND s.dbid = k.dbid
                 WHERE (k.${cols.userTime} + k.${cols.systemTime}) > 0
                 ORDER BY (k.${cols.userTime} + k.${cols.systemTime}) DESC
-                ${limitVal !== null && limitVal > 0 ? `LIMIT ${String(limitVal)}` : ""}
+                LIMIT ${String(effectiveLimit)}
             `;
 
         const result = await adapter.executeQuery(sql);
@@ -322,6 +324,7 @@ which represent actual disk access (not just shared buffer hits).`,
 
         const DEFAULT_LIMIT = 50;
         const limitVal = parsed.limit ?? DEFAULT_LIMIT;
+        const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
@@ -381,7 +384,7 @@ which represent actual disk access (not just shared buffer hits).`,
                     AND s.dbid = k.dbid
                 WHERE ${ioFilter}
                 ORDER BY ${orderColumn} DESC
-                ${limitVal !== null && limitVal > 0 ? `LIMIT ${String(limitVal)}` : ""}
+                LIMIT ${String(effectiveLimit)}
             `;
 
         const result = await adapter.executeQuery(sql);

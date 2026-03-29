@@ -114,7 +114,7 @@ const ERROR_SUGGESTIONS: {
     code: "OBJECT_NOT_FOUND",
   },
   {
-    pattern: /column ".*" does not exist/i,
+    pattern: /column ["'].*["'] (does not exist|not found)/i,
     suggestion:
       "Column not found. Use pg_describe_table to see available columns.",
     category: ErrorCategory.RESOURCE,

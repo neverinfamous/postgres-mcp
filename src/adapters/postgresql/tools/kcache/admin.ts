@@ -182,6 +182,7 @@ Helps identify the root cause of performance issues - is the query computation-h
         const thresholdVal = threshold ?? 0.5;
         const DEFAULT_LIMIT = 50;
         const limitVal = limit ?? DEFAULT_LIMIT;
+        const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           queryPreviewLength === 0
@@ -271,7 +272,7 @@ Helps identify the root cause of performance issues - is the query computation-h
                     pg_size_pretty(io_bytes::bigint) as io_pretty
                 FROM query_metrics
                 ORDER BY total_time_ms DESC
-                ${limitVal !== null && limitVal > 0 ? `LIMIT ${String(limitVal)}` : ""}
+                LIMIT ${String(effectiveLimit)}
             `;
 
         const result = await adapter.executeQuery(sql, queryParams);
