@@ -71,7 +71,7 @@ export async function checkTableAndColumn(
   table: string,
   column: string,
   schema: string,
-): Promise<{ error: string; suggestion: string } | null> {
+): Promise<{ error: string; code: string; category: string; suggestion: string } | null> {
   // Step 1: check column existence (fast path — covers the common success case)
   const colSql = `
     SELECT 1 FROM information_schema.columns
@@ -89,11 +89,15 @@ export async function checkTableAndColumn(
   if ((tblResult.rows?.length ?? 0) === 0) {
     return {
       error: `Table '${table}' does not exist in schema '${schema}'`,
+      code: "TABLE_NOT_FOUND",
+      category: "validation",
       suggestion: "Use pg_list_tables to find available tables",
     };
   }
   return {
     error: `Column '${column}' does not exist in table '${table}'`,
+    code: "COLUMN_NOT_FOUND",
+    category: "validation",
     suggestion: "Use pg_describe_table to find available columns",
   };
 }
@@ -197,6 +201,8 @@ export function createVectorAddColumnTool(
           return {
             success: false,
             error: `Table '${parsed.table}' does not exist in schema '${schemaName}'`,
+            code: "TABLE_NOT_FOUND",
+            category: "validation",
             suggestion: "Use pg_list_tables to find available tables",
           };
         }
@@ -242,6 +248,8 @@ export function createVectorAddColumnTool(
             return {
               success: false,
               error: `Column '${parsed.column}' already exists on table '${parsed.table}'`,
+              code: "COLUMN_ALREADY_EXISTS",
+              category: "validation",
               suggestion:
                 "Use ifNotExists: true to skip if column already exists",
             };

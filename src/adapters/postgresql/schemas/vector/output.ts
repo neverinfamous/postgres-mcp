@@ -1,3 +1,4 @@
+import { ErrorResponseFields } from '../error-response-fields.js';
 /**
  * postgres-mcp - pgvector Output Schemas
  *
@@ -15,6 +16,7 @@ export const VectorCreateExtensionOutputSchema = z
     success: z.boolean().optional().describe("Whether extension was enabled"),
     message: z.string().optional().describe("Status message"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector extension creation result");
 
 /**
@@ -35,6 +37,7 @@ export const VectorAddColumnOutputSchema = z
       .optional()
       .describe("Required parameters"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector column addition result");
 
 /**
@@ -63,6 +66,7 @@ export const VectorInsertOutputSchema = z
     rawError: z.string().optional().describe("Raw database error"),
     example: z.string().optional().describe("Example usage"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector insert/update result");
 
 /**
@@ -88,6 +92,7 @@ export const VectorSearchOutputSchema = z
       .optional()
       .describe("Required parameters"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector search result");
 
 /**
@@ -114,6 +119,7 @@ export const VectorCreateIndexOutputSchema = z
       .optional()
       .describe("Required parameters"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector index creation result");
 
 /**
@@ -127,6 +133,7 @@ export const VectorDistanceOutputSchema = z
     error: z.string().optional().describe("Error message"),
     suggestion: z.string().optional().describe("Helpful suggestion"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector distance calculation result");
 
 /**
@@ -143,6 +150,7 @@ export const VectorNormalizeOutputSchema = z
     error: z.string().optional().describe("Error message"),
     suggestion: z.string().optional().describe("Helpful suggestion"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector normalization result");
 
 /**
@@ -183,6 +191,7 @@ export const VectorAggregateOutputSchema = z
       .optional()
       .describe("Required parameters"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector aggregation result");
 
 /**
@@ -213,6 +222,7 @@ export const VectorClusterOutputSchema = z
       .describe("Available data points"),
     suggestion: z.string().optional().describe("Helpful suggestion"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector clustering result");
 
 /**
@@ -253,6 +263,7 @@ export const VectorIndexOptimizeOutputSchema = z
     error: z.string().optional().describe("Error message"),
     suggestion: z.string().optional().describe("Helpful suggestion"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector index optimization result");
 
 /**
@@ -280,6 +291,7 @@ export const HybridSearchOutputSchema = z
       .describe("Required parameters"),
     details: z.string().optional().describe("Error details"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Hybrid search result");
 
 /**
@@ -322,6 +334,7 @@ export const VectorPerformanceOutputSchema = z
       .optional()
       .describe("Required parameters"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector performance analysis result");
 
 /**
@@ -358,6 +371,7 @@ export const VectorDimensionReduceOutputSchema = z
     error: z.string().optional().describe("Error message"),
     suggestion: z.string().optional().describe("Helpful suggestion"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector dimension reduction result");
 
 /**
@@ -379,6 +393,7 @@ export const VectorEmbedOutputSchema = z
     note: z.string().optional().describe("Production usage note"),
     error: z.string().optional().describe("Error message"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector embedding result");
 
 /**
@@ -402,6 +417,7 @@ export const VectorValidateOutputSchema = z
     error: z.string().optional().describe("Error message"),
     suggestion: z.string().optional().describe("Helpful suggestion"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector validation result");
 
 /**
@@ -418,4 +434,5 @@ export const VectorBatchInsertOutputSchema = z
     providedDimensions: z.number().optional().describe("Provided dimensions"),
     suggestion: z.string().optional().describe("Helpful suggestion"),
   })
+  .extend(ErrorResponseFields.shape)
   .describe("Vector batch insert result");

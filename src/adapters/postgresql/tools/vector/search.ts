@@ -90,6 +90,8 @@ export function createVectorSearchTool(
           return {
             success: false,
             error: `Column '${column}' is not a vector column (type: ${udtName ?? "unknown"})`,
+            code: "INVALID_COLUMN_TYPE",
+            category: "validation",
             suggestion:
               "Use a column with vector type, or use pg_vector_add_column to create one",
           };
@@ -162,6 +164,8 @@ export function createVectorSearchTool(
               return {
                 success: false,
                 error: `Vector dimension mismatch: column '${column}' expects ${expectedDim} dimensions, but you provided ${providedDim} dimensions.`,
+                code: "VECTOR_DIMENSION_MISMATCH",
+                category: "query",
                 expectedDimensions: parseInt(expectedDim, 10),
                 providedDimensions: parseInt(providedDim, 10),
                 suggestion:
@@ -324,6 +328,8 @@ export function createVectorCreateIndexTool(
               return {
                 success: false,
                 error: `Column '${column}' is not a vector column (type: ${opClassMatch[1] ?? "unknown"}). Vector indexes can only be created on vector columns.`,
+                code: "INVALID_COLUMN_TYPE",
+                category: "validation",
                 suggestion:
                   "Use a column with vector type, or use pg_vector_add_column to create one",
               };
