@@ -77,14 +77,16 @@ export const AlertThresholdSetSchema = z.preprocess(
 );
 
 export const CapacityPlanningSchemaBase = z.object({
-  projectionDays: z.preprocess(coerceNumber, z.number().optional())
-    .describe("Days to project growth (default: 90)"),
-  days: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for projectionDays"),
+  projectionDays: z.number().optional().describe("Days to project growth (default: 90)"),
+  days: z.number().optional().describe("Alias for projectionDays"),
 });
 
 export const CapacityPlanningSchema = z.preprocess(
   defaultToEmpty,
-  CapacityPlanningSchemaBase
+  CapacityPlanningSchemaBase.extend({
+    projectionDays: z.preprocess(coerceNumber, z.number().optional()),
+    days: z.preprocess(coerceNumber, z.number().optional()),
+  })
     .refine(
       (data) => {
         const val = data.projectionDays ?? data.days;
@@ -98,7 +100,7 @@ export const CapacityPlanningSchema = z.preprocess(
     .transform((data) => ({
       ...data,
       projectionDays: data.projectionDays ?? data.days ?? 90,
-    })),
+    }))
 );
 
 // ============================================================================

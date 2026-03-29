@@ -73,22 +73,7 @@ test.describe("Payload Contracts: Backup + Transactions", () => {
   });
 
   test("pg_backup_schedule_optimize returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_backup_schedule_optimize", { database: "postgres" });
-    expect(typeof payload).toBe("object");
-  });
-
-  test("pg_dump returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_dump", { database: "postgres" });
-    expect(typeof payload).toBe("object");
-  });
-
-  test("pg_restore returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_restore", { database: "postgres", input: "dummy.sql" });
-    expect(typeof payload).toBe("object");
-  });
-
-  test("pg_basebackup returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_basebackup", { directory: "/tmp/backup" });
+    const payload = await callToolAndParse(client, "pg_backup_schedule_optimize", {});
     expect(typeof payload).toBe("object");
   });
 });

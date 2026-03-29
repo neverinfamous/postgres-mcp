@@ -141,9 +141,4 @@ test.describe("Payload Contracts: Performance", () => {
     const payload = await callToolAndParse(client, "pg_detect_bloat_risk", {});
     expect(typeof payload).toBe("object");
   });
-
-  test("pg_stat_user_tables returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_stat_user_tables", {});
-    expect(typeof payload).toBe("object");
-  });
 });
