@@ -11,7 +11,7 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
-import { coerceNumber } from "../../../utils/query-helpers.js";
+
 
 /**
  * Preprocess text tool parameters to normalize common input patterns.
@@ -88,7 +88,7 @@ export const TextSearchSchemaBase = z.object({
     .optional()
     .describe("Text search config (default: english)"),
   select: z.array(z.string()).optional().describe("Columns to return"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max results"),
+  limit: z.any().optional().describe("Max results"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 

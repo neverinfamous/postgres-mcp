@@ -53,4 +53,30 @@ test.describe("Payload Contracts: Text + Search", () => {
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
   });
+
+  test("pg_text_rank returns results", async () => {
+    const payload = await callToolAndParse(client, "pg_text_rank", {
+      table: "test_articles",
+      column: "title",
+      query: "database",
+      normalization: 2,
+    });
+    expectSuccess(payload);
+    expect(Array.isArray(payload.rows)).toBe(true);
+    expect(typeof payload.count).toBe("number");
+  });
+
+  test("pg_text_headline returns highlighted results", async () => {
+    const payload = await callToolAndParse(client, "pg_text_headline", {
+      table: "test_articles",
+      column: "title",
+      query: "database",
+      maxWords: 15,
+      minWords: 5,
+    });
+    expectSuccess(payload);
+    expect(Array.isArray(payload.rows)).toBe(true);
+    expect(payload.rows[0]).toHaveProperty("headline");
+    expect(typeof payload.count).toBe("number");
+  });
 });
