@@ -85,7 +85,9 @@ Add to your `~/.cursor/mcp.json` or Claude Desktop config:
         "POSTGRES_DATABASE",
         "writenotenow/postgres-mcp:latest",
         "--tool-filter",
-        "codemode"
+        "codemode",
+        "--audit-log",
+        "/tmp/postgres-logs/audit.jsonl"
       ],
       "env": {
         "POSTGRES_HOST": "host.docker.internal",

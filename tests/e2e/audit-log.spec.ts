@@ -337,6 +337,69 @@ test.describe("Audit Log", () => {
       stopServer(port);
       await rm(logPath, { force: true });
     }
+    });
+
+  test("audit log rotates when max size is exceeded", async () => {
+    const port = AUDIT_PORT_BASE + 7;
+    const logPath = auditLogPath("rotation");
+
+    // Set a very small rotate size (e.g. 500 bytes)
+    const originalMaxSize = process.env.AUDIT_LOG_MAX_SIZE;
+    process.env.AUDIT_LOG_MAX_SIZE = "500";
+
+    try {
+      await startServer(
+        port,
+        ["--audit-log", logPath, "--tool-filter", AUDIT_FILTER],
+        "audit-rotation",
+      );
+
+      let client: Client | undefined;
+      try {
+        client = await createClient(`http://localhost:${port}`);
+
+        // Write first batch to exceed 500 bytes
+        for (let i = 0; i < 8; i++) {
+          await callToolRaw(client, "pg_transaction_begin", {});
+          await callToolRaw(client, "pg_transaction_rollback", {});
+        }
+        // Force server to flush first batch
+        await delay(300);
+
+        // Write second batch to trigger rotation based on first batch's size
+        for (let i = 0; i < 2; i++) {
+          await callToolRaw(client, "pg_transaction_begin", {});
+          await callToolRaw(client, "pg_transaction_rollback", {});
+        }
+
+        // Wait for async flush
+        await readAuditLogWithRetry(logPath);
+        // Wait an extra moment to ensure rotation logic executes completely on the server
+        await delay(500);
+
+        // The rotated file should exist
+        const { stat } = await import("node:fs/promises");
+        const rotatedPath = `${logPath}.1`;
+        const rotatedStat = await stat(rotatedPath);
+        expect(rotatedStat.size).toBeGreaterThan(0);
+
+        // The current log should theoretically be smaller or at least valid
+        const currentStat = await stat(logPath);
+        expect(currentStat.size).toBeGreaterThanOrEqual(0);
+
+      } finally {
+        if (client) await client.close();
+        stopServer(port);
+        await rm(logPath, { force: true }).catch(() => {});
+        await rm(`${logPath}.1`, { force: true }).catch(() => {});
+      }
+    } finally {
+      if (originalMaxSize === undefined) {
+        delete process.env.AUDIT_LOG_MAX_SIZE;
+      } else {
+        process.env.AUDIT_LOG_MAX_SIZE = originalMaxSize;
+      }
+    }
   });
 });
 

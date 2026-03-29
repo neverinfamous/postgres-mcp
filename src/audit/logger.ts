@@ -181,7 +181,7 @@ export class AuditLogger {
 
   /**
    * Rotate the log file if it exceeds the configured size limit.
-   * Keeps only 1 rotated file (`.1`); older data is discarded.
+   * Keeps up to 5 rotated files (`.1` through `.5`); older data is discarded.
    * Rotation failure is non-fatal — audit must not block tool execution.
    */
   private async rotateIfNeeded(): Promise<void> {
@@ -189,6 +189,15 @@ export class AuditLogger {
     try {
       const info = await stat(this.config.logPath).catch(() => null);
       if (!info || info.size < this.config.maxSizeBytes) return;
+
+      // Cascade rename from .4 to .5, .3 to .4, etc. to keep 5 backups
+      for (let i = 4; i >= 1; i--) {
+        const oldFile = `${this.config.logPath}.${String(i)}`;
+        const newFile = `${this.config.logPath}.${String(i + 1)}`;
+        await rename(oldFile, newFile).catch(() => null); // ignore if .i doesn't exist
+      }
+
+      // Rename current to .1
       const rotatedPath = `${this.config.logPath}.1`;
       await rename(this.config.logPath, rotatedPath);
     } catch {
