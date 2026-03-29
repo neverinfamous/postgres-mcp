@@ -1,6 +1,12 @@
 # Tool Group Testing
 
-**Instructions:** Please conduct an exhaustive test of the tool group listed below using ONLY direct tool calls (not scripts, terminal, or `pg_execute_code`)! DO NOT MODIFY OR SKIP TESTS! FOLLOW INSTRUCTONS! All changes must be consistent with `code-map.md` and the other postgres-mcp tools.
+**ESSENTIAL INSTRUCTIONS**
+
+**Execute EVERY numbered stress test below using code mode (`pg_execute_code`).**
+**Do NOT use scripts or terminal to replace planned tests.**
+**Do NOT modify or skip tests.**
+**Do NOT run test-tools-advanced-1.md.**
+**All changes MUST be consistent with other postgres-mcp tools and `code-map.md`**
 
 ## Reporting Format
 
@@ -198,19 +204,14 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 ### After Testing
 
-1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed
-2. **Triage findings**: If issues or potential optimizations were found, create an implementation plan consistent with the architecture, other tools, etc., which the user must approve before implemnenting. Plan for fixes to comply with `code-map.md` as a source of truth for repairs.
+1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed including any files created during testing.
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in the files listed below, and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. **Scope of fixes** includes corrections to any of:
    - Handler code
    - `server-instructions.md`
    - Test database (`test-database.sql`)
    - This prompt (`test-tools.md`) and group file (`test-group-tools.md`)
-
-### After Implementation
-
-4. **Validate**: Update changelog (no duplicate headers) and then stop so user can run test suite, lint + typecheck.
-5. **Commit**: Stage and commit all changes — do NOT push
-6. **Live re-test**: Test fixes with direct MCP tool calls. User will have already rebuilt and restarted the server.
-7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live MCP re-testing confirms fixes are working. If the test prompt/database or server instructions can be improved, make the improvements.
+4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
+5. Stop and briefly summarize the testing results and fixes.
 
 ---

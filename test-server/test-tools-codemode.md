@@ -1,6 +1,14 @@
-# Tool Group Testing
+# Postgres-mcp codemode Testing
 
-**Instructions:** Please conduct an exhaustive test of the tool group listed below using ONLY code mode (`pg_execute_code`), not direct tool calls or scripts/terminal! Group multiple tests into a single script to save context window tokens. Ensure your validation script returns an aggregated array of failures if any exist. DO NOT MODIFY OR SKIP TESTS! FOLLOW INSTRUCTONS! All changes must be consistent with `code-map.md` and the other postgres-mcp tools.
+**ESSENTIAL INSTRUCTIONS**
+
+**Conduct an exhaustive test of the tool group listed below using ONLY code mode (`pg_execute_code`)**
+**Do NOT use scripts or terminal to replace planned tests.**
+**Do NOT modify or skip tests.**
+**Ensure your validation script returns an aggregated array of failures if any exist.**
+**Group multiple tests into a single script to save context window tokens.**
+**Do NOT run test-tools-advanced-2.md.**
+**All changes MUST be consistent with other postgres-mcp tools and `code-map.md`**
 
 ## Reporting Format
 
@@ -197,18 +205,13 @@ DROP TABLE IF EXISTS temp_my_test_table;
 ### After Testing
 
 1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed
-2. **Triage findings**: If issues or potential optimizations were found, create an implementation plan consistent with the architecture, other tools, etc., which the user must approve before implemnenting. Plan for fixes to comply with `code-map.md` as a source of truth for repairs.
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, 📦 Payload problems (responses that should be truncated or offer a `limit` param) and files listed below. All changes MUST be consistent with other postgres-mcp tools and `code-map.md`
 3. **Scope of fixes** includes corrections to any of:
    - Handler code
    - `server-instructions.md`
    - Test database (`test-database.sql`)
    - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
-
-### After Implementation
-
-4. **Validate**: Update changelog (no duplicate headers) and then stop so user can run test suite, lint + typecheck, tests and rebuild for re-testing.
-5. **Commit**: Stage and commit all changes — do NOT push
-6. **Live re-test**: Test fixes using Code Mode calls. User will have already rebuilt and restarted the server.
-7. **Final summary**: If no issues found, provide the final summary after testing. If issues were fixed, provide the summary after live Code Mode testing confirms fixes are working. If the test prompt/database or server instructions can be improved, make the improvements.
+4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
+5. Stop and briefly summarize the testing results and fixes.
 
 ---
