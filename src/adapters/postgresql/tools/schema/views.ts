@@ -55,6 +55,9 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
             return {
               success: false,
               error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+              code: "QUERY_ERROR",
+              category: "query",
+              recoverable: false
             };
           }
         }

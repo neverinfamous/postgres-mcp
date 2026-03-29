@@ -231,6 +231,7 @@ export const DropSequenceSchemaBase = z.object({
     .string()
     .optional()
     .describe("Sequence name (supports schema.name format)"),
+  sequenceName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   ifExists: z.boolean().optional().describe("Use IF EXISTS to avoid errors"),
   cascade: z.boolean().optional().describe("Drop dependent objects"),
@@ -241,7 +242,11 @@ export const DropSequenceSchemaBase = z.object({
  */
 function preprocessDropSequenceParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
-  return extractSchemaFromDottedName({ ...(input as Record<string, unknown>) });
+  const result = { ...(input as Record<string, unknown>) };
+  if ((result["name"] === undefined || result["name"] === "") && result["sequenceName"] !== undefined && result["sequenceName"] !== "") {
+    result["name"] = result["sequenceName"];
+  }
+  return extractSchemaFromDottedName(result);
 }
 
 /**
@@ -261,6 +266,8 @@ export const DropViewSchemaBase = z.object({
     .string()
     .optional()
     .describe("View name (supports schema.name format)"),
+  viewName: z.string().optional().describe("Alias for name"),
+  view: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name (default: public)"),
   materialized: z
     .boolean()
@@ -275,7 +282,15 @@ export const DropViewSchemaBase = z.object({
  */
 function preprocessDropViewParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
-  return extractSchemaFromDottedName({ ...(input as Record<string, unknown>) });
+  const result = { ...(input as Record<string, unknown>) };
+  if (result["name"] === undefined || result["name"] === "") {
+    if (result["viewName"] !== undefined && result["viewName"] !== "") {
+      result["name"] = result["viewName"];
+    } else if (result["view"] !== undefined && result["view"] !== "") {
+      result["name"] = result["view"];
+    }
+  }
+  return extractSchemaFromDottedName(result);
 }
 
 /**

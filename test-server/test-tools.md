@@ -1,4 +1,4 @@
-# postgres-mcp Tool Group Re-testing [REPEAT ALL TESTS]
+# postgres-mcp Tool Group Re-Testing
 
 **ESSENTIAL INSTRUCTIONS**
 
