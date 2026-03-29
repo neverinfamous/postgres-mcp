@@ -136,9 +136,9 @@ export const DumpSchemaSchema = z.object({
 
 export const CreateBackupPlanSchemaBase = z.object({
   frequency: z
-    .enum(["hourly", "daily", "weekly"])
+    .string()
     .optional()
-    .describe("Backup frequency (default: daily)"),
+    .describe("Backup frequency (hourly, daily, weekly) (default: daily)"),
   retention: z
     .number()
     .optional()
@@ -146,24 +146,24 @@ export const CreateBackupPlanSchemaBase = z.object({
 });
 
 export const CreateBackupPlanSchema = z.object({
-  frequency: z.enum(["hourly", "daily", "weekly"]).optional(),
+  frequency: z.string().optional(),
   retention: z.preprocess(coerceNumber, z.number().optional()),
 });
 
 export const PhysicalBackupSchemaBase = z.object({
   targetDir: z.string().optional().describe("Target directory for backup"),
-  format: z.enum(["plain", "tar"]).optional().describe("Backup format"),
+  format: z.string().optional().describe("Backup format (plain, tar)"),
   checkpoint: z
-    .enum(["fast", "spread"])
+    .string()
     .optional()
-    .describe("Checkpoint mode"),
+    .describe("Checkpoint mode (fast, spread)"),
   compress: z.number().optional().describe("Compression level 0-9"),
 });
 
 export const PhysicalBackupSchema = z.object({
   targetDir: z.string().optional(),
-  format: z.enum(["plain", "tar"]).optional(),
-  checkpoint: z.enum(["fast", "spread"]).optional(),
+  format: z.string().optional(),
+  checkpoint: z.string().optional(),
   compress: z.preprocess(coerceNumber, z.number().optional()),
 });
 

@@ -39,6 +39,9 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         // Parse params through schema to validate enum values
         const parsed = CreateBackupPlanSchema.parse(params);
+        if (parsed.frequency && !["hourly", "daily", "weekly"].includes(parsed.frequency)) {
+          throw new Error("Validation error: frequency must be 'hourly', 'daily', or 'weekly'");
+        }
         const freq = parsed.frequency ?? "daily";
 
         // Validate retention - must be at least 1
@@ -216,6 +219,14 @@ export function createPhysicalBackupTool(
             // Parse params through schema to validate enum values
             const parsed = PhysicalBackupSchema.parse(params);
 
+            // Validate enums
+            if (parsed.format && !["plain", "tar"].includes(parsed.format)) {
+              throw new Error("Validation error: format must be 'plain' or 'tar'");
+            }
+            if (parsed.checkpoint && !["fast", "spread"].includes(parsed.checkpoint)) {
+              throw new Error("Validation error: checkpoint must be 'fast' or 'spread'");
+            }
+
             // Validate required param
             if (parsed.targetDir === undefined || parsed.targetDir === "") {
               throw new Error("targetDir parameter is required");
@@ -226,7 +237,7 @@ export function createPhysicalBackupTool(
               parsed.compress !== undefined &&
               (parsed.compress < 0 || parsed.compress > 9)
             ) {
-              throw new Error("compress must be between 0 and 9");
+              throw new Error("Validation error: compress must be between 0 and 9");
             }
 
             let command = "pg_basebackup";
@@ -292,7 +303,7 @@ export function createRestoreValidateTool(
     inputSchema: z.object({
       backupFile: z.string().optional().describe("Path to backup file"),
       filename: z.string().optional().describe("Alias for backupFile"),
-      backupType: z.enum(["pg_dump", "pg_basebackup"]).optional(),
+      backupType: z.string().optional().describe("Backup type (pg_dump, pg_basebackup)"),
     }),
     outputSchema: RestoreValidateOutputSchema,
     annotations: readOnly("Restore Validate"),
@@ -305,9 +316,13 @@ export function createRestoreValidateTool(
             const schema = z.object({
               backupFile: z.string().optional(),
               filename: z.string().optional(),
-              backupType: z.enum(["pg_dump", "pg_basebackup"]).optional(),
+              backupType: z.string().optional(),
             });
             const parsed = schema.parse(params);
+
+            if (parsed.backupType && !["pg_dump", "pg_basebackup"].includes(parsed.backupType)) {
+              throw new Error("Validation error: backupType must be 'pg_dump' or 'pg_basebackup'");
+            }
 
             const backupFile = parsed.backupFile ?? parsed.filename;
             // Validate required param
