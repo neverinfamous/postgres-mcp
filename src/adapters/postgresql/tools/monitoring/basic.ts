@@ -122,8 +122,8 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
 
       const schemaClause = schema ? `AND n.nspname = $1` : "";
       const queryParams: string[] = schema ? [schema] : [];
-      // Apply limit (default 50)
-      const effectiveLimit = limit !== undefined && limit > 0 ? limit : 50;
+      // Apply limit (default 10)
+      const effectiveLimit = limit !== undefined && limit > 0 ? limit : 10;
       const limitClause = ` LIMIT ${String(effectiveLimit)}`;
 
       const sql = `SELECT n.nspname as schema, c.relname as table_name,

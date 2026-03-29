@@ -990,9 +990,9 @@ describe("monitoring.ts branch coverage", () => {
   });
 
   it("pg_table_sizes truncation indicator when results equal limit (lines 152-161)", async () => {
-    // 50 tables (default limit) to trigger truncation path
+    // 10 tables (default limit) to trigger truncation path
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: Array(50).fill({
+      rows: Array(10).fill({
         schema: "public",
         table_name: "t",
         table_size: "1 MB",
@@ -1014,7 +1014,7 @@ describe("monitoring.ts branch coverage", () => {
 
     expect(result.truncated).toBe(true);
     expect(result.totalCount).toBe(100);
-    expect(result.count).toBe(50);
+    expect(result.count).toBe(10);
   });
 
   it("pg_table_sizes total_bytes string coercion", async () => {
@@ -1711,7 +1711,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
 
   // basic.ts L162-178: pg_table_sizes truncation path
   it("pg_table_sizes should indicate truncation when results hit limit", async () => {
-    const rows = Array(50).fill({
+    const rows = Array(10).fill({
       schema: "public",
       table_name: "t",
       table_size: "8 kB",
@@ -1719,7 +1719,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
       total_size: "8 kB",
       total_bytes: "8192",
     });
-    // Main query returns exactly 50 rows (default limit)
+    // Main query returns exactly 10 rows (default limit)
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows });
     // Count query
     mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -1733,7 +1733,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
       totalCount: number;
       truncated: boolean;
     };
-    expect(result.count).toBe(50);
+    expect(result.count).toBe(10);
     expect(result.totalCount).toBe(100);
     expect(result.truncated).toBe(true);
   });
