@@ -483,7 +483,8 @@ describe("PostGIS Tools", () => {
 
   describe("pg_spatial_index", () => {
     it("should create GiST spatial index", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // Index does not exist
 
       const tool = findTool("pg_spatial_index");
       const result = (await tool!.handler(
@@ -502,7 +503,8 @@ describe("PostGIS Tools", () => {
     });
 
     it("should use custom index name", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // Index does not exist
 
       const tool = findTool("pg_spatial_index");
       await tool!.handler(
@@ -520,6 +522,7 @@ describe("PostGIS Tools", () => {
     });
 
     it("should return alreadyExists when ifNotExists is true and index exists", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ exists: true }],
       });
@@ -536,11 +539,12 @@ describe("PostGIS Tools", () => {
 
       expect(result.success).toBe(true);
       expect(result.alreadyExists).toBe(true);
-      expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(1);
+      expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(2);
     });
 
     it("should accept indexName as alias for name", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // Index does not exist
 
       const tool = findTool("pg_spatial_index");
       await tool!.handler(
@@ -999,6 +1003,7 @@ describe("PostGIS Tools", () => {
 
     describe("pg_spatial_index edge cases", () => {
       it("should add note instead of Postgres error if index exists without ifNotExists: true", async () => {
+        mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
         mockAdapter.executeQuery.mockResolvedValueOnce({
           rows: [{ exists: true }],
         }); // check Result
@@ -1012,9 +1017,6 @@ describe("PostGIS Tools", () => {
       });
 
       it("should error if table does not exist", async () => {
-        mockAdapter.executeQuery.mockResolvedValueOnce({
-          rows: [{ exists: false }],
-        }); // check Result
         mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // tableCheck Result
         const tool = findTool("pg_spatial_index");
         const result = (await tool!.handler(
