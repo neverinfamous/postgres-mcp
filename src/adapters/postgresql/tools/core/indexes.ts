@@ -87,10 +87,21 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         const indexes = await adapter.getTableIndexes(table, schema);
+        
+        // Apply limit if specified
+        const totalCount = indexes.length;
+        const effectiveLimit = limit ?? 1000;
+        const limited = indexes.slice(0, effectiveLimit);
+        
         return {
-          indexes,
-          count: indexes.length,
+          indexes: limited,
+          count: limited.length,
+          totalCount,
           table: `${schemaName}.${table}`,
+          ...(totalCount > effectiveLimit && {
+            truncated: true,
+            hint: `Showing ${String(effectiveLimit)} of ${String(totalCount)} indexes.`,
+          }),
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_get_indexes" });
