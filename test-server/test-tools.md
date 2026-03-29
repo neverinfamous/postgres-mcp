@@ -2,7 +2,7 @@
 
 **ESSENTIAL INSTRUCTIONS**
 
-**Execute EVERY numbered stress test below using code mode (`pg_execute_code`).**
+**Execute EVERY numbered stress test below using direct MCP tool calls.**
 **Do NOT use scripts or terminal to replace planned tests.**
 **Do NOT modify or skip tests.**
 **Do NOT run test-tools-advanced-1.md.**
