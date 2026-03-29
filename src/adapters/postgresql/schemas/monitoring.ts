@@ -26,12 +26,14 @@ export const DatabaseSizeSchema = z.preprocess(
 
 export const TableSizesSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max tables to return"),
+  limit: z.number().optional().describe("Max tables to return"),
 });
 
 export const TableSizesSchema = z.preprocess(
   defaultToEmpty,
-  TableSizesSchemaBase,
+  TableSizesSchemaBase.extend({
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+  })
 );
 
 export const ShowSettingsSchemaBase = z.object({
@@ -47,13 +49,15 @@ export const ShowSettingsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Alias for pattern - setting name or pattern"),
-  limit: z.preprocess(coerceNumber, z.number().optional())
+  limit: z.number().optional()
     .describe("Max settings to return (default: 50 when no pattern specified)"),
 });
 
 export const ShowSettingsSchema = z.preprocess(
   defaultToEmpty,
-  ShowSettingsSchemaBase.transform((data) => {
+  ShowSettingsSchemaBase.extend({
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+  }).transform((data) => {
     // Resolve alias: setting or name → pattern
     const pattern = data.pattern ?? data.setting ?? data.name;
     // Default limit to 50 only when NO filter is specified (to avoid 415+ results)
