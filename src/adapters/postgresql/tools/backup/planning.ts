@@ -149,13 +149,13 @@ export function createRestoreCommandTool(
             const backupFile = parsed.backupFile ?? parsed.filename;
             // Validate required param
             if (backupFile === undefined || backupFile === "") {
-              throw new Error("backupFile (or filename) parameter is required");
+              throw new Error("Validation error: backupFile (or filename) parameter is required");
             }
 
             // Validate mutually exclusive options
             if (parsed.dataOnly === true && parsed.schemaOnly === true) {
               throw new Error(
-                "dataOnly and schemaOnly cannot both be true - pg_restore only supports one at a time",
+                "Validation error: dataOnly and schemaOnly cannot both be true - pg_restore only supports one at a time",
               );
             }
 
@@ -229,7 +229,7 @@ export function createPhysicalBackupTool(
 
             // Validate required param
             if (parsed.targetDir === undefined || parsed.targetDir === "") {
-              throw new Error("targetDir parameter is required");
+              throw new Error("Validation error: targetDir parameter is required");
             }
 
             // Validate compress range
@@ -327,7 +327,7 @@ export function createRestoreValidateTool(
             const backupFile = parsed.backupFile ?? parsed.filename;
             // Validate required param
             if (backupFile === undefined || backupFile === "") {
-              throw new Error("backupFile (or filename) parameter is required");
+              throw new Error("Validation error: backupFile (or filename) parameter is required");
             }
 
             const backupType = parsed.backupType ?? "pg_dump";

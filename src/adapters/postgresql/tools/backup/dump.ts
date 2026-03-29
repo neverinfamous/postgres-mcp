@@ -58,7 +58,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Validate required table parameter
         if (!parsed.table || parsed.table.trim() === "") {
-          throw new Error("table parameter is required");
+          throw new Error("Validation error: table parameter is required");
         }
 
         // Parse schema.table format (e.g., 'public.users' -> schema='public', table='users')

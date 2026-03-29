@@ -1,8 +1,8 @@
-# postgres-mcp Tool Group Testing
+# postgres-mcp Tool Group RE-testing (RUN ALL TESTS AGAIN)
 
 **ESSENTIAL INSTRUCTIONS**
 
-**Execute EVERY numbered stress test below using direct MCP tool calls - NOT code mode.**
+**Execute EVERY numbered stress test below using direct MCP tool calls, NOT code mode.**
 **Do NOT use scripts or terminal to replace planned tests.**
 **Do NOT modify or skip tests.**
 **All changes MUST be consistent with other tools and `code-map.md`**

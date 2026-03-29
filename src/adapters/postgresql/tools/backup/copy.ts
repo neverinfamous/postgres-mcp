@@ -54,6 +54,10 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
           effectiveLimit,
         } = CopyExportSchema.parse(params); // Use transform for validation
 
+        if (format && !["csv", "text", "binary"].includes(format)) {
+          throw new Error("Validation error: format must be 'csv', 'text', or 'binary'");
+        }
+
         const options: string[] = [];
         options.push(`FORMAT ${format ?? "csv"}`);
         if (header !== false) options.push("HEADER");
@@ -216,7 +220,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
         // Handle BINARY format - not supported via MCP protocol
         // Binary data cannot be safely serialized to JSON without corruption
         throw new Error(
-          'Binary format is not supported via MCP protocol. Use format: "csv" or "text" instead. For binary export, use pg_dump_schema to generate a pg_dump command.',
+          'Validation error: Binary format is not supported via MCP protocol. Use format: "csv" or "text" instead. For binary export, use pg_dump_schema to generate a pg_dump command.',
         );
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_copy_export" });
@@ -239,7 +243,7 @@ export function createCopyImportTool(
         .string()
         .optional()
         .describe("Path to import file (default: /path/to/file.csv)"),
-      format: z.enum(["csv", "text", "binary"]).optional(),
+      format: z.string().optional().describe("Format (csv, text, binary)"),
       header: z.boolean().optional(),
       delimiter: z.string().optional(),
       columns: z.array(z.string()).optional(),
@@ -265,13 +269,17 @@ export function createCopyImportTool(
             // Resolve tableName alias to table
             const tableValue = rawParams.table ?? rawParams.tableName;
             if (!tableValue) {
-              throw new Error("table parameter is required");
+              throw new Error("Validation error: table parameter is required");
             }
 
             const parsed = {
               ...rawParams,
               table: tableValue,
             };
+
+            if (parsed.format && !["csv", "text", "binary"].includes(parsed.format)) {
+              throw new Error("Validation error: format must be 'csv', 'text', or 'binary'");
+            }
 
             // Parse schema.table format (e.g., 'public.users' -> schema='public', table='users')
             // If table contains a dot, always parse it as schema.table (embedded schema takes priority)

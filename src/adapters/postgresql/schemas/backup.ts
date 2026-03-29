@@ -26,9 +26,9 @@ export const CopyExportSchemaBase = z.object({
     .optional()
     .describe("Schema name when using table (default: public)"),
   format: z
-    .enum(["csv", "text", "binary"])
+    .string()
     .optional()
-    .describe("Output format (default: csv)"),
+    .describe("Output format (csv, text, binary) (default: csv)"),
   header: z.boolean().optional().describe("Include header row (default: true)"),
   delimiter: z.string().optional().describe("Field delimiter"),
   limit: z
