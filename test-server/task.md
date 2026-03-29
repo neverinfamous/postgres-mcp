@@ -1,27 +1,32 @@
-# Schema Tool Group Testing
+# Vector Tool Group Testing
 
 ## Deterministic Checklist
-1. [x] `pg_list_schemas()`
-2. [x] `pg_list_views()`
-3. [x] `pg_list_sequences({schema: "test_schema"})`
-4. [x] `pg_list_functions({schema: "public", limit: 5})`
-5. [x] `pg_list_constraints({table: "test_orders"})`
-6. [x] `pg_list_triggers({schema: "public"})`
-7. [x] `pg_list_constraints({table: "nonexistent_table_xyz"})`
-8. [x] `pg_create_sequence({name: "temp_seq_test", start: "abc"})`
+1. [x] Via code mode: read first embedding from `test_embeddings`, then search with it → verify results returned with distances
+2. [x] `pg_vector_validate({vector: [1.0, 2.0, 3.0]})` → `{valid: true, vectorDimensions: 3}`
+3. [x] `pg_vector_validate({vector: []})` → `{valid: true, vectorDimensions: 0}`
+4. [x] `pg_vector_distance({vector1: [1,0,0], vector2: [0,1,0], metric: "cosine"})` → verify distance returned
+5. [x] `pg_vector_normalize({vector: [3, 4]})` → `{normalized: [0.6, 0.8], magnitude: 5}`
+6. [x] `pg_vector_aggregate({table: "test_embeddings", column: "embedding"})` → verify `{average_vector, count: 50}`
+7. [x] 🔴 `pg_vector_search({table: "nonexistent_xyz", column: "v", vector: [1,0,0]})` → `{success: false, error: "..."}` handler error
+8. [x] 🔴 `pg_vector_validate({})` → `{success: false, error: "..."}` (Zod validation — missing required `vector`)
+9. [x] 🔴 `pg_vector_search({table: "test_embeddings", column: "embedding", vector: [1,0,0], limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
 
 ## Strict Coverage Matrix
 | Tool | Happy Path | Domain Error | Zod Empty Param | Alias Acceptance |
 |---|---|---|---|---|
-| `pg_list_schemas` | ✅ | ✅ (No-ops/Empty obj OK) | ✅ (No-ops/Empty obj OK) | N/A |
-| `pg_create_schema` | ✅ | ✅ | ✅ | ✅ (schema) |
-| `pg_drop_schema` | ✅ | ✅ | ✅ | ✅ (schema) |
-| `pg_list_sequences` | ✅ | ✅ | ✅ | N/A |
-| `pg_create_sequence` | ✅ | ✅ | ✅ | ✅ (sequenceName) |
-| `pg_drop_sequence` | ✅ | ✅ | ✅ | ✅ (sequenceName) |
-| `pg_list_views` | ✅ | ✅ | ✅ | N/A |
-| `pg_create_view` | ✅ | ✅ | ✅ | ✅ (viewName, definition) |
-| `pg_drop_view` | ✅ | ✅ | ✅ | ✅ (view) |
-| `pg_list_functions` | ✅ | ✅ | ✅ | N/A |
-| `pg_list_triggers` | ✅ | ✅ | ✅ | N/A |
-| `pg_list_constraints`| ✅ | ✅ | ✅ | N/A |
+| `pg_vector_create_extension` | ✅ | N/A | ✅ | N/A |
+| `pg_vector_add_column` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
+| `pg_vector_insert` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
+| `pg_vector_batch_insert` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
+| `pg_vector_search` | ✅ | ✅ | ✅ | ✅ (col, tableName, queryVector) |
+| `pg_vector_create_index` | ✅ | ✅ | ✅ | ✅ (col, method, distanceMetric, tableName) |
+| `pg_vector_distance` | ✅ | ✅ | ✅ | N/A |
+| `pg_vector_normalize` | ✅ | ✅ | ✅ | N/A |
+| `pg_vector_aggregate` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
+| `pg_vector_validate` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
+| `pg_vector_cluster` | ✅ | ✅ | ✅ | ✅ (col, tableName, clusters) |
+| `pg_vector_index_optimize` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
+| `pg_hybrid_search` | ✅ | ✅ | ✅ | ✅ (col, vectorCol, tableName) |
+| `pg_vector_performance` | ✅ | ✅ | ✅ | ✅ (col, tableName) |
+| `pg_vector_dimension_reduce` | ✅ | ✅ | ✅ | ✅ (col, tableName, dimensions) |
+| `pg_vector_embed` | ✅ | ✅ | ✅ | N/A |

@@ -301,14 +301,14 @@ export function createVectorDimensionReduceTool(
         if (targetDim === undefined) {
           throw new ValidationError("targetDimensions (or dimensions alias) is required");
         }
-        if (isNaN(targetDim)) {
+        if (isNaN(targetDim) || targetDim <= 0) {
           return {
             success: false,
-            error: `Validation error: targetDimensions must be a valid number,
+            error: `Validation error: targetDimensions must be a positive number, received "${String(parsed.targetDimensions)}"`,
             code: 'VALIDATION_ERROR',
-            category: 'validation', received "${String(parsed.targetDimensions)}"`,
+            category: 'validation',
             suggestion:
-              "Provide a numeric value for targetDimensions (e.g., 128, 256)",
+              "Provide a positive numeric value for targetDimensions (e.g., 128, 256)",
           };
         }
         const seed = parsed.seed ?? 42;
@@ -488,14 +488,14 @@ export function createVectorEmbedTool(): ToolDefinition {
         const dims =
           parsed.dimensions ?? 384;
 
-        if (isNaN(dims)) {
+        if (isNaN(dims) || dims <= 0) {
           return Promise.resolve({
             success: false,
-            error: `Validation error: dimensions must be a valid number,
+            error: `Validation error: dimensions must be a positive number, received "${String(parsed.dimensions)}"`,
             code: 'VALIDATION_ERROR',
-            category: 'validation', received "${String(parsed.dimensions)}"`,
+            category: 'validation',
             suggestion:
-              "Provide a numeric value for dimensions (e.g., 384, 768, 1536)",
+              "Provide a positive numeric value for dimensions (e.g., 384, 768, 1536)",
           });
         }
         const shouldSummarize = parsed.summarize ?? true;
