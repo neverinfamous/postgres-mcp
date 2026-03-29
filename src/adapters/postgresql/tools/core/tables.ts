@@ -343,7 +343,15 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
           existed,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_drop_table" });
+        const rawTable = (params as Record<string, unknown> | null)?.["table"] ?? 
+                         (params as Record<string, unknown> | null)?.["tableName"] ??
+                         (params as Record<string, unknown> | null)?.["name"];
+        const rawSchema = (params as Record<string, unknown> | null)?.["schema"];
+        return formatHandlerErrorResponse(error, { 
+          tool: "pg_drop_table",
+          ...(typeof rawTable === "string" && { table: rawTable }),
+          ...(typeof rawSchema === "string" && { schema: rawSchema }),
+        });
       }
     },
   };
