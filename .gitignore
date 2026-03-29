@@ -72,3 +72,4 @@ test-server/*.dump
 # Local Config
 config/*.local.json
 config/secrets/
+mcp-audit.jsonl

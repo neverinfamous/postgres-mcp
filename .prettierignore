@@ -7,3 +7,5 @@ src/constants/ServerInstructions.ts
 
 # Test output
 test-results.json
+tmp/
+mcp-audit.jsonl
