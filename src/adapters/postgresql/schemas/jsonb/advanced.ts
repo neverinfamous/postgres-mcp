@@ -56,7 +56,7 @@ export const JsonbStatsSchemaBase = z.object({
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
-  sampleSize: z.number().optional().describe("Sample rows to analyze"),
+  sampleSize: z.union([z.number(), z.string()]).optional().describe("Sample rows to analyze"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z
     .string()
@@ -92,7 +92,7 @@ export const JsonbIndexSuggestSchemaBase = z.object({
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
-  sampleSize: z.number().optional().describe("Sample rows to analyze"),
+  sampleSize: z.union([z.number(), z.string()]).optional().describe("Sample rows to analyze"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z
     .string()
@@ -124,7 +124,7 @@ export const JsonbSecurityScanSchemaBase = z.object({
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
   col: z.string().optional().describe("JSONB column (alias for column)"),
-  sampleSize: z.number().optional().describe("Sample rows to scan"),
+  sampleSize: z.union([z.number(), z.string()]).optional().describe("Sample rows to scan"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z
     .string()
