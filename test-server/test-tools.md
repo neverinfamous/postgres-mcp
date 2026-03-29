@@ -212,6 +212,6 @@ DROP TABLE IF EXISTS temp_my_test_table;
    - Test database (`test-database.sql`)
    - This prompt (`test-tools.md`) and group file (`test-group-tools.md`)
 4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
-5. Stop and briefly summarize the testing results and fixes.
+5. Stop and briefly summarize the testing results and fixes amd allow the user to verify the changes.
 
 ---
