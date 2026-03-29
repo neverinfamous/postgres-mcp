@@ -87,6 +87,9 @@ export {
   CancelBackendSchemaBase,
   BackendOutputSchema,
   ConfigOutputSchema,
+  AppendInsightSchema,
+  AppendInsightSchemaBase,
+  AppendInsightOutputSchema,
 } from "./admin.js";
 
 // Monitoring schemas

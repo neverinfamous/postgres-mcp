@@ -304,3 +304,38 @@ export const ConfigOutputSchema = z.object({
     .describe("Configuration parameter value (set_config)"),
   hint: z.string().optional().describe("Additional information"),
 }).extend(ErrorResponseFields.shape);
+
+// ============== INSIGHT SCHEMAS ==============
+// Base schema for MCP visibility
+export const AppendInsightSchemaBase = z.object({
+  insight: z.string().optional().describe("Business insight to record"),
+  text: z.string().optional().describe("Alias for insight"),
+});
+
+// Preprocess schema for handlers
+export const AppendInsightSchema = z.preprocess(
+  (input: unknown) => {
+    if (typeof input !== "object" || input === null) return input;
+    const result = { ...(input as Record<string, unknown>) };
+    if (result["text"] !== undefined && result["insight"] === undefined) {
+      result["insight"] = result["text"];
+    }
+    return result;
+  },
+  z.object({
+    insight: z.string().max(1000, "Insight text must be 1000 characters or less").describe("Business insight to record"),
+  })
+);
+
+export const AppendInsightOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    insightCount: z
+      .number()
+      .optional()
+      .describe("Total number of insights recorded"),
+    message: z.string().optional().describe("Confirmation message"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape)
+  .describe("Append insight output");

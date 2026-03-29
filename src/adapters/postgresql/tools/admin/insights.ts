@@ -12,45 +12,12 @@ import type {
 import { getToolIcons } from "../../../../utils/icons.js";
 import { insightsManager } from "../../../../utils/insights-manager.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { z } from "zod";
-import { ErrorResponseFields } from "../../schemas/error-response-fields.js";
 import { ValidationError } from "../../../../types/errors.js";
-
-// =============================================================================
-// Schemas
-// =============================================================================
-
-export const AppendInsightSchemaBase = z.object({
-  insight: z.string().optional().describe("Business insight to record"),
-  text: z.string().optional().describe("Alias for insight"),
-});
-
-export const AppendInsightSchema = z.preprocess(
-  (input: unknown) => {
-    if (typeof input !== "object" || input === null) return input;
-    const result = { ...(input as Record<string, unknown>) };
-    if (result["text"] !== undefined && result["insight"] === undefined) {
-      result["insight"] = result["text"];
-    }
-    return result;
-  },
-  z.object({
-    insight: z.string().max(1000, "Insight text must be 1000 characters or less").describe("Business insight to record"),
-  })
-);
-
-export const AppendInsightOutputSchema = z
-  .object({
-    success: z.boolean().optional().describe("Whether the operation succeeded"),
-    insightCount: z
-      .number()
-      .optional()
-      .describe("Total number of insights recorded"),
-    message: z.string().optional().describe("Confirmation message"),
-    error: z.string().optional().describe("Error message if failed"),
-  })
-  .extend(ErrorResponseFields.shape)
-  .describe("Append insight output");
+import {
+  AppendInsightSchemaBase,
+  AppendInsightSchema,
+  AppendInsightOutputSchema,
+} from "../../schemas/index.js";
 
 // =============================================================================
 // Tool
