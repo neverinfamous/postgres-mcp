@@ -39,10 +39,10 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
       try {
         const parsed = z
           .object({
-            limit: z.coerce.number().optional(),
+            limit: z.number().optional(),
             orderBy: z.string().optional(),
-            minCalls: z.coerce.number().optional(),
-            queryPreviewLength: z.coerce.number().optional(),
+            minCalls: z.number().optional(),
+            queryPreviewLength: z.number().optional(),
             compact: z.boolean().optional(),
           })
           .parse(params ?? {});
@@ -76,7 +76,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const cols = await getKcacheColumnNames(adapter);
 
-        const DEFAULT_LIMIT = 50;
+        const DEFAULT_LIMIT = 20;
         const limitVal = limit ?? DEFAULT_LIMIT;
         const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
@@ -119,7 +119,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const totalRaw = countResult.rows?.[0]?.["total"];
         const totalCount = Number(totalRaw) || 0;
 
-        const previewCol = parsed.compact
+        const isCompact = parsed.compact ?? true;
+        const previewCol = isCompact
           ? ""
           : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
 
@@ -154,7 +155,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const truncated = rowCount < effectiveTotalCount;
 
         const rawQueries = result.rows ?? [];
-        const finalQueries = parsed.compact
+        const finalQueries = isCompact
           ? rawQueries.map(row => {
               const obj: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(row)) {
@@ -199,8 +200,8 @@ in user CPU (application code) vs system CPU (kernel operations).`,
       try {
         const parsed = z
           .object({
-            limit: z.coerce.number().optional(),
-            queryPreviewLength: z.coerce.number().optional(),
+            limit: z.number().optional(),
+            queryPreviewLength: z.number().optional(),
             compact: z.boolean().optional(),
           })
           .parse(params ?? {});
@@ -208,7 +209,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
           throw new ValidationError("limit must be between 0 and 100");
         }
 
-        const DEFAULT_LIMIT = 50;
+        const DEFAULT_LIMIT = 20;
         const limitVal = parsed.limit ?? DEFAULT_LIMIT;
         const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
@@ -234,7 +235,8 @@ in user CPU (application code) vs system CPU (kernel operations).`,
         const totalRaw = countResult.rows?.[0]?.["total"];
         const totalCount = Number(totalRaw) || 0;
 
-        const previewCol = parsed.compact
+        const isCompact = parsed.compact ?? true;
+        const previewCol = isCompact
           ? ""
           : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
 
@@ -272,7 +274,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
         const truncated = rowCount < effectiveTotalCount;
 
         const rawQueries = result.rows ?? [];
-        const finalQueries = parsed.compact
+        const finalQueries = isCompact
           ? rawQueries.map(row => {
               const obj: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(row)) {
@@ -326,8 +328,8 @@ which represent actual disk access (not just shared buffer hits).`,
         const parsed = z
           .object({
             type: z.string().optional(),
-            limit: z.coerce.number().optional(),
-            queryPreviewLength: z.coerce.number().optional(),
+            limit: z.number().optional(),
+            queryPreviewLength: z.number().optional(),
             compact: z.boolean().optional(),
           })
           .parse(preprocessed);
@@ -348,7 +350,7 @@ which represent actual disk access (not just shared buffer hits).`,
           throw new ValidationError("limit must be between 0 and 100");
         }
 
-        const DEFAULT_LIMIT = 50;
+        const DEFAULT_LIMIT = 20;
         const limitVal = parsed.limit ?? DEFAULT_LIMIT;
         const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
@@ -389,7 +391,8 @@ which represent actual disk access (not just shared buffer hits).`,
         const totalRaw = countResult.rows?.[0]?.["total"];
         const totalCount = Number(totalRaw) || 0;
 
-        const previewCol = parsed.compact
+        const isCompact = parsed.compact ?? true;
+        const previewCol = isCompact
           ? ""
           : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
 
@@ -419,7 +422,7 @@ which represent actual disk access (not just shared buffer hits).`,
         const truncated = rowCount < effectiveTotalCount;
 
         const rawQueries = result.rows ?? [];
-        const finalQueries = parsed.compact
+        const finalQueries = isCompact
           ? rawQueries.map(row => {
               const obj: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(row)) {

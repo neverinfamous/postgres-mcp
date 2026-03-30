@@ -88,7 +88,7 @@
 
 ### Changed
 
-- **Kcache Schema Limit Realignment**: Updated the schema descriptions for the `limit` parameters in `pg_kcache_query_stats`, `pg_kcache_top_cpu`, `pg_kcache_top_io`, and `pg_kcache_resource_analysis`. The documented behavior now honestly communicates that passing `0` clamps to `100` to prevent token exhaustion and structural payload bloat, rather than falsely advertising "unlimited" capacity.
+- **Kcache Schema Limit Realignment**: Updated the schema descriptions for the `limit` parameters in `pg_kcache_query_stats`, `pg_kcache_top_cpu`, `pg_kcache_top_io`, and `pg_kcache_resource_analysis`. The documented behavior now accurately reflects the token-efficient boundary of `default: 20` (reduced from `50`) and honestly communicates that passing `0` clamps to `100` to prevent token exhaustion and structural payload bloat, rather than falsely advertising "unlimited" capacity.
 - **Backup Testing Assertions**: Updated `test-group-tools.md` to align with the correct V2 backup tool returning schemas (`diff` object structure, `hasDrift` instead of `hasDifferences`, and `ddl` instead of `sql` for dry-run).
 - **Testing Prompts**: Removed legacy `direct tool call` references from `test-tools-codemode.md`, enforcing pure Code Mode (`pg_execute_code`) testing isolation.
 - **Token Optimization Visibility**: Added token insight instructions to `gotchas.md` and updated `overview.md` Quick Access table to explicitly highlight the `postgres://audit` resource for session token usage. Added explicit instructions to `GEMINI.md` to establish token efficiency principles across agents.

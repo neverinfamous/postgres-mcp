@@ -161,10 +161,10 @@ Helps identify the root cause of performance issues - is the query computation-h
         const parsed = z
           .object({
             queryId: z.string().optional(),
-            threshold: z.coerce.number().optional(),
-            limit: z.coerce.number().optional(),
-            minCalls: z.coerce.number().optional(),
-            queryPreviewLength: z.coerce.number().optional(),
+            threshold: z.number().optional(),
+            limit: z.number().optional(),
+            minCalls: z.number().optional(),
+            queryPreviewLength: z.number().optional(),
             compact: z.boolean().optional(),
           })
           .parse(params ?? {});
@@ -180,7 +180,7 @@ Helps identify the root cause of performance issues - is the query computation-h
         const queryPreviewLength = parsed.queryPreviewLength;
 
         const thresholdVal = threshold ?? 0.5;
-        const DEFAULT_LIMIT = 50;
+        const DEFAULT_LIMIT = 20;
         const limitVal = limit ?? DEFAULT_LIMIT;
         const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
@@ -224,7 +224,8 @@ Helps identify the root cause of performance issues - is the query computation-h
         const totalRaw = countResult.rows?.[0]?.["total"];
         const totalCount = Number(totalRaw) || 0;
 
-        const previewCol = parsed.compact
+        const isCompact = parsed.compact ?? true;
+        const previewCol = isCompact
           ? ""
           : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
 
@@ -249,7 +250,7 @@ Helps identify the root cause of performance issues - is the query computation-h
                 )
                 SELECT
                     queryid,
-                    ${parsed.compact ? '' : 'query_preview,'}
+                    ${isCompact ? '' : 'query_preview,'}
                     calls,
                     total_time_ms,
                     cpu_time,
@@ -280,7 +281,7 @@ Helps identify the root cause of performance issues - is the query computation-h
         const effectiveTotalCount = Math.max(totalCount, rawRows.length);
         const truncated = rawRows.length < effectiveTotalCount;
 
-        const rows = parsed.compact
+        const rows = isCompact
           ? rawRows.map(row => {
               const obj: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(row)) {

@@ -6,7 +6,6 @@
 
 import { z } from "zod";
 import { normalizeOptionalParams } from "./shared.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Input Schemas
@@ -17,17 +16,24 @@ import { coerceNumber } from "../../../../utils/query-helpers.js";
  * Joins pg_stat_statements with pg_stat_kcache for full picture.
  */
 export const KcacheQueryStatsSchemaBase = z.object({
-  limit: z.preprocess(coerceNumber, z.number().optional().default(50))
-    .describe("Maximum number of queries to return (default: 50, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat."),
+  limit: z
+    .number()
+    .optional()
+    .describe(
+      "Maximum number of queries to return (default: 20, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
+    ),
   orderBy: z
     .string()
     .optional()
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
-  minCalls: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Minimum call count to include"),
+  minCalls: z
+    .number()
+    .optional()
+    .describe("Minimum call count to include"),
   queryPreviewLength: z
-    .any()
+    .number()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
@@ -48,10 +54,14 @@ export const KcacheQueryStatsSchema = z.preprocess(
  * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
  */
 export const KcacheTopCpuSchemaBase = z.object({
-  limit: z.preprocess(coerceNumber, z.number().optional().default(50))
-    .describe("Number of top queries to return (default: 50, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat."),
+  limit: z
+    .number()
+    .optional()
+    .describe(
+      "Number of top queries to return (default: 20, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
+    ),
   queryPreviewLength: z
-    .any()
+    .number()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
@@ -68,10 +78,14 @@ export const KcacheTopCpuSchemaBase = z.object({
 export const KcacheTopIoSchemaBase = z.object({
   type: z.string().optional().describe("I/O type to rank by (default: both)"),
   ioType: z.string().optional().describe("Alias for type"),
-  limit: z.preprocess(coerceNumber, z.number().optional().default(50))
-    .describe("Number of top queries to return (default: 50, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat."),
+  limit: z
+    .number()
+    .optional()
+    .describe(
+      "Number of top queries to return (default: 20, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
+    ),
   queryPreviewLength: z
-    .any()
+    .number()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
@@ -106,14 +120,21 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .optional()
     .describe("Specific query ID to analyze (all if omitted)"),
   threshold: z
-    .any()
+    .number()
     .optional()
     .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
-  limit: z.preprocess(coerceNumber, z.number().optional().default(50))
-    .describe("Maximum number of queries to return (default: 50, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat."),
-  minCalls: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Minimum call count to include"),
+  limit: z
+    .number()
+    .optional()
+    .describe(
+      "Maximum number of queries to return (default: 20, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
+    ),
+  minCalls: z
+    .number()
+    .optional()
+    .describe("Minimum call count to include"),
   queryPreviewLength: z
-    .any()
+    .number()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
