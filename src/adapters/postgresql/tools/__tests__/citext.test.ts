@@ -680,8 +680,10 @@ describe("Citext Tools", () => {
       )) as {
         success: boolean;
         error: string;
-        currentType: string;
-        allowedTypes: string[];
+        details?: {
+          currentType: string;
+          allowedTypes: string[];
+        };
       };
 
       expect(result.success).toBe(false);
@@ -719,8 +721,10 @@ describe("Citext Tools", () => {
       )) as {
         success: boolean;
         error: string;
-        dependentViews: string[];
-        hint: string;
+        details?: {
+          dependentViews: string[];
+          hint?: string;
+        };
       };
 
       expect(result.success).toBe(false);
@@ -755,12 +759,12 @@ describe("Citext Tools", () => {
       )) as {
         success: boolean;
         error: string;
-        hint: string;
+        details?: { hint: string };
       };
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Failed to convert column");
-      expect(result.hint).toContain("views depend on this column");
+      expect(result.details?.hint).toContain("views depend on this column");
     });
 
     // setup.ts L233-239: outer catch block for unexpected errors
