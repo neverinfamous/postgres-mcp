@@ -30,7 +30,7 @@ export function createKcacheExtensionTool(adapter: PostgresAdapter): ToolDefinit
     description: `Enable the pg_stat_kcache extension for OS-level performance metrics.
 Requires pg_stat_statements to be installed first. Both extensions must be in shared_preload_libraries.`,
     group: "kcache",
-    inputSchema: z.object({}).strict(),
+    inputSchema: z.object({}),
     outputSchema: KcacheCreateExtensionOutputSchema,
     annotations: write("Create Kcache Extension"),
     icons: getToolIcons("kcache", write("Create Kcache Extension")),
@@ -180,7 +180,7 @@ Helps identify the root cause of performance issues - is the query computation-h
         const queryPreviewLength = parsed.queryPreviewLength;
 
         const thresholdVal = threshold ?? 0.5;
-        const DEFAULT_LIMIT = 20;
+        const DEFAULT_LIMIT = 5;
         const limitVal = limit ?? DEFAULT_LIMIT;
         const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
@@ -345,7 +345,7 @@ export function createKcacheResetTool(adapter: PostgresAdapter): ToolDefinition 
     description: `Reset pg_stat_kcache statistics. Use this to start fresh measurements.
 Note: This also resets pg_stat_statements statistics.`,
     group: "kcache",
-    inputSchema: z.object({}).strict(),
+    inputSchema: z.object({}),
     outputSchema: KcacheResetOutputSchema,
     annotations: destructive("Reset Kcache Stats"),
     icons: getToolIcons("kcache", destructive("Reset Kcache Stats")),

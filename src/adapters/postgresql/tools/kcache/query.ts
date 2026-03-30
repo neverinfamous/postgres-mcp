@@ -76,7 +76,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const cols = await getKcacheColumnNames(adapter);
 
-        const DEFAULT_LIMIT = 20;
+        const DEFAULT_LIMIT = 5;
         const limitVal = limit ?? DEFAULT_LIMIT;
         const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
@@ -209,7 +209,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
           throw new ValidationError("limit must be between 0 and 100");
         }
 
-        const DEFAULT_LIMIT = 20;
+        const DEFAULT_LIMIT = 5;
         const limitVal = parsed.limit ?? DEFAULT_LIMIT;
         const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
@@ -350,7 +350,7 @@ which represent actual disk access (not just shared buffer hits).`,
           throw new ValidationError("limit must be between 0 and 100");
         }
 
-        const DEFAULT_LIMIT = 20;
+        const DEFAULT_LIMIT = 5;
         const limitVal = parsed.limit ?? DEFAULT_LIMIT;
         const effectiveLimit = limitVal === 0 ? 100 : limitVal;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500

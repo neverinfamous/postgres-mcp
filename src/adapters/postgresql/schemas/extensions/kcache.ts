@@ -20,7 +20,7 @@ export const KcacheQueryStatsSchemaBase = z.object({
     .number()
     .optional()
     .describe(
-      "Maximum number of queries to return (default: 20, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
+      "Maximum number of queries to return (default: 5, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
     ),
   orderBy: z
     .string()
@@ -58,7 +58,7 @@ export const KcacheTopCpuSchemaBase = z.object({
     .number()
     .optional()
     .describe(
-      "Number of top queries to return (default: 20, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
+      "Number of top queries to return (default: 5, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
     ),
   queryPreviewLength: z
     .number()
@@ -82,7 +82,7 @@ export const KcacheTopIoSchemaBase = z.object({
     .number()
     .optional()
     .describe(
-      "Number of top queries to return (default: 20, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
+      "Number of top queries to return (default: 5, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
     ),
   queryPreviewLength: z
     .number()
@@ -127,7 +127,7 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .number()
     .optional()
     .describe(
-      "Maximum number of queries to return (default: 20, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
+      "Maximum number of queries to return (default: 5, max: 100). Passing 0 clamps to 100 to prevent token exhaustion payload bloat.",
     ),
   minCalls: z
     .number()
