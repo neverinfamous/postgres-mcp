@@ -248,6 +248,12 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { paths } = LtreeLcaSchema.parse(params);
+        if (paths.length < 2) {
+          throw new ValidationError(
+            `Minimum 2 paths required for lca, received ${paths.length}.`,
+            { providedCount: paths.length }
+          );
+        }
         const arrayLiteral = paths
           .map((p) => `'${p.replace(/'/g, "''")}'::ltree`)
           .join(", ");
