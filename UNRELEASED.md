@@ -133,7 +133,7 @@
   - **Schema** (12 tools): Fixed missing alias mappings for drop_sequence/drop_view, structured error leaks on list tools, extract error leaks on list_triggers/constraints/functions, alias missing fallbacks on create tools, numeric coercion leak, Split Schema consistency
   - **Admin** (11 tools): Fixed Split Schema bugs on terminate/cancel/append_insight/set_config/reindex, Zod leaks, inline schema violations
   - **Text** (11 tools): Fixed Zod coercion and alias leaks across FTS tools, P154 error leaks on pg_like_search, payload contracts for rank/headline
-  - **JSONB** (19 tools): Fixed Zod leaks on pg_jsonb_array/pg_jsonb_strip_nulls, numeric coercion leaks across 7 tools via `z.union()` base schemas
+  - **JSONB** (20 tools): Fixed Zod leaks on pg_jsonb_array/pg_jsonb_strip_nulls, numeric coercion leaks across 7 tools via `z.union()` base schemas. Added missing `success: true` to all success response paths in `pg_jsonb_set`, `pg_jsonb_insert`, and `pg_jsonb_delete` (5 code paths)
   - **Core** (5 tools): Fixed `pg_upsert`/`pg_batch_insert` P154 error compliance, error pipeline generic/raw PG leaks
   - **Transactions**: Fixed `pg_transaction_execute` wrong-type leak (statements schema), `pg_jsonb_diff` wrong-type leak
   - **Performance**: Fixed P154 structured error leaks on query_plan_compare/partition_strategy_suggest, workload_indexes raw error leak, enum validation leaks on analyze_query_indexes/list_objects/object_details

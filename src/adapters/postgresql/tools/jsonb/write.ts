@@ -90,6 +90,7 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
           const sql = `UPDATE ${qualifiedTable} SET "${column}" = $1::jsonb WHERE ${sanitizeWhereClause(where)}`;
           const result = await adapter.executeQuery(sql, [toJsonString(value)]);
           return {
+            success: true,
             rowsAffected: result.rowsAffected,
             hint: "Replaced entire column value (empty path)",
           };
@@ -117,6 +118,7 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
           sql = `UPDATE ${qualifiedTable} SET "${column}" = ${expr} WHERE ${sanitizeWhereClause(where)}`;
           const result = await adapter.executeQuery(sql, [toJsonString(value)]);
           return {
+            success: true,
             rowsAffected: result.rowsAffected,
             hint: "rowsAffected counts matched rows, not path creations",
           };
@@ -131,7 +133,7 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
           const hint = createFlag
             ? "NULL columns initialized to {}; createMissing creates path if absent"
             : "createMissing=false: path must exist or value won't be set";
-          return { rowsAffected: result.rowsAffected, hint };
+          return { success: true, rowsAffected: result.rowsAffected, hint };
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
@@ -238,7 +240,7 @@ export function createJsonbInsertTool(
           toJsonString(parsed.value),
           parsed.insertAfter ?? false,
         ]);
-        return { rowsAffected: result.rowsAffected };
+        return { success: true, rowsAffected: result.rowsAffected };
       } catch (error: unknown) {
         // Improve specific PostgreSQL error messages
         if (
@@ -346,6 +348,7 @@ export function createJsonbDeleteTool(
         const sql = `UPDATE ${qualifiedTable} SET "${column}" = "${column}" ${pathExpr} WHERE ${sanitizeWhereClause(parsed.where)}`;
         const result = await adapter.executeQuery(sql, [pathForPostgres]);
         return {
+          success: true,
           rowsAffected: result.rowsAffected,
           hint: "rowsAffected counts matched rows, not whether key existed",
         };
