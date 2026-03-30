@@ -33,7 +33,7 @@ export function createCitextExtensionTool(
     description: `Enable the citext extension for case-insensitive text columns.
 citext is ideal for emails, usernames, and other identifiers where case shouldn't matter.`,
     group: "citext",
-    inputSchema: z.object({}).strict(),
+    inputSchema: z.object({}),
     outputSchema: CitextCreateExtensionOutputSchema,
     annotations: write("Create Citext Extension"),
     icons: getToolIcons("citext", write("Create Citext Extension")),
@@ -207,18 +207,20 @@ Note: If views depend on this column, you must drop and recreate them manually b
         } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          return {
-            success: false,
-            error: `Failed to convert column: ${errorMessage}`,
-            hint: "If views depend on this column, they may need to be dropped and recreated",
-            dependentViews:
-              dependentViews.length > 0
-                ? dependentViews.map(
-                    (v) =>
-                      `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
-                  )
-                : undefined,
-          };
+          throw new ValidationError(
+            `Failed to convert column: ${errorMessage}`,
+            {
+              hint: "If views depend on this column, they may need to be dropped and recreated",
+              dependentViews:
+                dependentViews.length > 0
+                  ? dependentViews.map(
+                      (v) =>
+                        `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
+                    )
+                  : undefined,
+              code: "CONVERT_ERROR"
+            }
+          );
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
