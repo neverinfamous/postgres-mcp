@@ -250,7 +250,7 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
         const { paths } = LtreeLcaSchema.parse(params);
         if (paths.length < 2) {
           throw new ValidationError(
-            `Minimum 2 paths required for lca, received ${paths.length}.`,
+            `Minimum 2 paths required for lca, received ${String(paths.length)}.`,
             { providedCount: paths.length }
           );
         }
