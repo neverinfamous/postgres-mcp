@@ -1498,10 +1498,11 @@ describe("pg_partman_analyze_partition_health", () => {
     const result = (await tool.handler(
       { parentTable: "public.events" },
       mockContext,
-    )) as { overallHealth: string; message: string };
+    )) as { success: boolean; error: string; code: string };
 
-    expect(result.overallHealth).toBe("not_found");
-    expect(result.message).toContain("No pg_partman configuration found");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("No pg_partman configuration found");
+    expect(result.code).toBe("TABLE_NOT_FOUND");
   });
 
   it("should identify orphaned configs", async () => {

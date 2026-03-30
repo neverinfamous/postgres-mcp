@@ -221,7 +221,7 @@ export const PartmanAnalyzeHealthOutputSchema = z
       .optional()
       .describe("Health summary"),
     overallHealth: z
-      .enum(["healthy", "warnings", "issues_found", "not_found"])
+      .enum(["healthy", "warnings", "issues_found"])
       .optional()
       .describe("Overall health status"),
     message: z.string().optional().describe("Status message"),

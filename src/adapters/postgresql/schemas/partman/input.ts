@@ -400,6 +400,7 @@ export const PartmanAnalyzeHealthSchemaBase = z.object({
     .optional()
     .describe("Specific parent table to analyze (all if omitted)"),
   table: z.string().optional().describe("Alias for parentTable"),
+  name: z.string().optional().describe("Alias for parentTable"),
   limit: z.union([z.number(), z.string()]).optional()
     .describe(
       "Maximum number of partition sets to analyze (default: 50, use 0 for all)",
