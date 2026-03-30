@@ -131,6 +131,7 @@ export function createSchemaSnapshotTool(
               JOIN pg_namespace n ON n.oid = c.relnamespace
               LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
               WHERE c.relkind IN ('r', 'p')
+                ${parsed.compact ? "AND c.relispartition = false" : ""}
                 ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
               ORDER BY n.nspname, c.relname`,
                 qp,
@@ -167,6 +168,7 @@ export function createSchemaSnapshotTool(
               JOIN pg_namespace n ON n.oid = t.relnamespace
               JOIN pg_am am ON am.oid = i.relam
               WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'"}
+                ${parsed.compact ? "AND t.relispartition = false" : ""}
                 ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
               ORDER BY n.nspname, t.relname, i.relname`,
                 qp,
@@ -185,6 +187,7 @@ export function createSchemaSnapshotTool(
               JOIN pg_class t ON t.oid = c.conrelid
               JOIN pg_namespace n ON n.oid = t.relnamespace
               WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
+                ${parsed.compact ? "AND t.relispartition = false" : ""}
                 ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
               ORDER BY n.nspname, t.relname, c.conname`,
                 qp,
@@ -227,6 +230,7 @@ export function createSchemaSnapshotTool(
               JOIN pg_namespace n ON n.oid = c.relnamespace
               JOIN pg_proc p ON p.oid = t.tgfoid
               WHERE NOT t.tgisinternal
+                ${parsed.compact ? "AND c.relispartition = false" : ""}
                 ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
               ORDER BY n.nspname, c.relname, t.tgname`,
                 qp,

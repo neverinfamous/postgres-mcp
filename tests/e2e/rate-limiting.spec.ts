@@ -12,8 +12,9 @@
 
 import { test, expect } from "@playwright/test";
 
-const RATE_PORT = 3104;
-const RATE_BASE = `http://localhost:${RATE_PORT}`;
+const RATE_PORT_1 = 3104;
+const RATE_PORT_2 = 3105;
+const RATE_PORT_3 = 3106;
 
 test.describe("Rate Limiting", () => {
   test("should return 429 after exceeding rate limit", async () => {
@@ -27,7 +28,7 @@ test.describe("Rate Limiting", () => {
         "--transport",
         "http",
         "--port",
-        String(RATE_PORT),
+        String(RATE_PORT_1),
         "--postgres",
         "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
@@ -43,16 +44,23 @@ test.describe("Rate Limiting", () => {
       },
     );
 
+    const RATE_BASE = `http://localhost:${RATE_PORT_1}`;
+
     // Wait for server to start
+    let serverReady = false;
     for (let i = 0; i < 30; i++) {
       try {
         const res = await fetch(`${RATE_BASE}/health`);
-        if (res.ok) break;
+        if (res.ok) {
+          serverReady = true;
+          break;
+        }
       } catch {
         // Not ready
       }
       await delay(500);
     }
+    if (!serverReady) throw new Error("Server failed to start on port " + RATE_PORT_1);
 
     try {
       // Send 5 requests (within limit)
@@ -114,7 +122,7 @@ test.describe("Rate Limiting", () => {
         "--transport",
         "http",
         "--port",
-        String(RATE_PORT),
+        String(RATE_PORT_2),
         "--postgres",
         "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
@@ -130,15 +138,21 @@ test.describe("Rate Limiting", () => {
       },
     );
 
+    const RATE_BASE = `http://localhost:${RATE_PORT_2}`;
+    let serverReady = false;
     for (let i = 0; i < 30; i++) {
       try {
         const res = await fetch(`${RATE_BASE}/health`);
-        if (res.ok) break;
+        if (res.ok) {
+          serverReady = true;
+          break;
+        }
       } catch {
         // Not ready
       }
       await delay(500);
     }
+    if (!serverReady) throw new Error("Server failed to start on port " + RATE_PORT_2);
 
     try {
       // Exhaust the limit
@@ -201,7 +215,7 @@ test.describe("Rate Limiting", () => {
         "--transport",
         "http",
         "--port",
-        String(RATE_PORT),
+        String(RATE_PORT_3),
         "--postgres",
         "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
@@ -217,15 +231,21 @@ test.describe("Rate Limiting", () => {
       },
     );
 
+    const RATE_BASE = `http://localhost:${RATE_PORT_3}`;
+    let serverReady = false;
     for (let i = 0; i < 30; i++) {
       try {
         const res = await fetch(`${RATE_BASE}/health`);
-        if (res.ok) break;
+        if (res.ok) {
+          serverReady = true;
+          break;
+        }
       } catch {
         // Not ready
       }
       await delay(500);
     }
+    if (!serverReady) throw new Error("Server failed to start on port " + RATE_PORT_3);
 
     try {
       // Exhaust rate limit

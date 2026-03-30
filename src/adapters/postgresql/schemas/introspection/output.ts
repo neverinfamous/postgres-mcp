@@ -36,8 +36,8 @@ export const DependencyGraphOutputSchema = z.object({
       totalTables: z.number(),
       totalRelationships: z.number(),
       maxDepth: z.number(),
-      rootTables: z.array(z.string()),
-      leafTables: z.array(z.string()),
+      rootTables: z.array(z.string()).optional(),
+      leafTables: z.array(z.string()).optional(),
     })
     .optional(),
   hint: z.string().optional(),

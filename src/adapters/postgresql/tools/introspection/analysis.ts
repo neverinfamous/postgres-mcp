@@ -98,7 +98,7 @@ export function createConstraintAnalysisTool(
             `SELECT n.nspname AS schema, c.relname AS table_name
            FROM pg_class c
            JOIN pg_namespace n ON n.oid = c.relnamespace
-           WHERE c.relkind IN ('r', 'p')
+           WHERE (c.relkind = 'p' OR (c.relkind = 'r' AND c.relispartition = false))
              AND n.nspname NOT IN ('pg_catalog', 'information_schema')
              AND n.nspname !~ '^pg_toast'
              AND NOT EXISTS (
@@ -138,6 +138,7 @@ export function createConstraintAnalysisTool(
           CROSS JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS x(attnum, ordinality)
           JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = x.attnum
           WHERE c.contype = 'f'
+            AND t.relispartition = false
             AND n.nspname NOT IN ('pg_catalog', 'information_schema')
             ${extensionSchemaExclude}
             AND NOT EXISTS (
@@ -175,7 +176,7 @@ export function createConstraintAnalysisTool(
           FROM pg_attribute a
           JOIN pg_class c ON c.oid = a.attrelid
           JOIN pg_namespace n ON n.oid = c.relnamespace
-          WHERE c.relkind IN ('r', 'p')
+          WHERE (c.relkind = 'p' OR (c.relkind = 'r' AND c.relispartition = false))
             AND a.attnum > 0 AND NOT a.attisdropped AND a.attnotnull = false
             AND n.nspname NOT IN ('pg_catalog', 'information_schema')
             AND n.nspname !~ '^pg_toast'

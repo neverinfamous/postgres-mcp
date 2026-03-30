@@ -171,8 +171,7 @@ export function createDependencyGraphTool(
             totalTables: allNodes.size,
             totalRelationships: fks.length,
             maxDepth,
-            rootTables,
-            leafTables,
+            ...(parsed.compact ? {} : { rootTables, leafTables }),
           },
         };
       } catch (error: unknown) {
