@@ -711,7 +711,7 @@ Test distance calculations between cities (e.g., New York ↔ London).
 
 **Checklist:**
 
-1. `pg_geocode({lat: 40.7128, lng: -74.006})` → verify `{geojson, wkt}` present
+1. `pg_geocode({lat: 40.7128, lng: -74.006})` → verify `{geojson}` present
 2. `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: 100000})` → expect: New York in results
 3. `pg_bounding_box({table: "test_locations", column: "location", minLat: 34, maxLat: 42, minLng: -119, maxLng: -73})` → expect: NY, LA, Chicago
 4. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
