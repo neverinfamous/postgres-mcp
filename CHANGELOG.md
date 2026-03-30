@@ -7,43 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- **OAuth `SCOPE_PATTERNS` and `BASE_SCOPES` constants** — Added `SCOPE_PATTERNS` (regex validators for `db:*`, `schema:*`, `table:*:*` dynamic scopes) and `BASE_SCOPES` (`["read", "write", "admin", "full"]`) to `scopes.ts`, matching the db-mcp standard
-- **`OAuthResourceServer.getWWWAuthenticateHeader()`** — New method generates RFC-compliant `WWW-Authenticate` headers for 401 responses with optional error and description parameters
-- **`isOAuthError()` type guard** — New utility in `errors.ts` for checking if an unknown error is an `OAuthError` instance
-- **`getWWWAuthenticateHeader()` utility** — New utility in `errors.ts` that formats error-type-specific `WWW-Authenticate` headers per RFC 6750 §3 (insufficient scope includes scope list, token missing returns realm-only, all others return `invalid_token`)
-- **E2E prompt coverage** — New `prompts.spec.ts` with 20 tests covering all 19 prompts (list + individual gets) via MCP SDK client
-- **E2E Streamable HTTP coverage** — New `streamable-http.spec.ts` with 6 tests validating MCP 2025-11-25 transport parity (init, tools, reads, resources, prompts)
-- **E2E structured error coverage** — New `errors.spec.ts` with 6 tests verifying `{success: false, error}` responses for nonexistent tables, invalid queries, validation failures
-- **`MCP_RATE_LIMIT_MAX` environment variable** — Rate limiter in `http/security.ts` now reads `MCP_RATE_LIMIT_MAX` as fallback when `rateLimitMaxRequests` is not set in config
-- **Transport Types Module** — Extracted `HttpTransportConfig` interface and server timeout constants to `transports/http/types.ts`
-  - `HTTP_REQUEST_TIMEOUT_MS` (120s), `HTTP_KEEP_ALIVE_TIMEOUT_MS` (65s), `HTTP_HEADERS_TIMEOUT_MS` (66s)
-- **Server Timeouts** — HTTP server now sets `setTimeout`, `keepAliveTimeout`, and `headersTimeout` to prevent slowloris-style DoS
-- **Health Check Rate-Limit Bypass** — `/health` endpoint now bypasses rate limiting so monitoring probes always succeed
-- **Retry-After Header** — 429 responses now include `Retry-After` header with seconds until rate limit window resets
-- **HSTS Opt-In E2E Test** — New E2E test verifying `Strict-Transport-Security` is not set when `enableHSTS` is false (default)
-- **Health Rate-Limit Bypass E2E Test** — New E2E test verifying `/health` always returns 200 under rate-limited conditions
-- **Harmonized error types** — New `types/error-types.ts` with `ErrorCategory` enum (9 categories), `ErrorResponse` interface, and `ErrorContext` interface, aligned with the db-mcp error handling standard
-- **`formatHandlerError()` canonical formatter** — New function in `error-helpers.ts` returning structured `ErrorResponse` objects. Handles `PostgresMcpError`, Zod validation errors, raw PG errors (via `parsePostgresError`), and unknown errors with fallback
-
-### Changed
-
-- **`PostgresMcpError` enriched with harmonized fields** — Base error class now includes `category` (`ErrorCategory`), `suggestion`, `recoverable`, and `details` properties, plus a `toResponse()` method returning structured `ErrorResponse`. All 8 subclasses updated. Constructor: `(message, code, category, options?)`
-- **`OAuthError` extends `PostgresMcpError`** — OAuth errors now inherit enriched error handling. Module-prefixed codes (`AUTH_TOKEN_MISSING`, `AUTH_INVALID_TOKEN`, etc.), `wwwAuthenticate` as instance property, `getWWWAuthenticateHeader()` deprecated. Removed deprecated export from `auth/index.ts` barrel
-- **`types/index.ts` exports** — Added exports for `ErrorCategory`, `ErrorResponse`, `ErrorContext`, and `formatHandlerError`
-- **Feature table error description** — Updated both READMEs from `{success, error}` to `{success, error, code, category, suggestion, recoverable}`
-- **Documentation consolidation** — Replaced fragmented Quick Start + Code Mode JSON blocks with one canonical example + variants table. Replaced 3-var "Performance Tuning" with comprehensive 20-var "Configuration" section + CLI Reference. Both READMEs updated
-- **Dependency Updates**
-  - `@types/node`: 25.3.5 → 25.4.0 (minor)
-  - `typescript-eslint`: 8.56.1 → 8.57.0 (minor)
-  - `hono`: 4.12.5 → 4.12.7 (patch)
-- **Playwright config expanded** — Changed `--tool-filter starter` to `--tool-filter +all` for full tool coverage, added `MCP_RATE_LIMIT_MAX: "1000"` env var, set `workers: 1` for stability
-- **E2E shared client pattern** — Refactored `tools.spec.ts` to use single shared client via `beforeAll`/`afterAll` instead of per-test client creation
-
-### Fixed
-
-- **`TableListOutputSchema` additional-properties rejection** — `TableInfoSchema` was missing `owner`, `totalSizeBytes`, `comment`, and `statsStale` properties that `queryListTables()` returns, causing MCP SDK clients to reject `pg_list_tables` responses with output schema validation errors
+See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 
 ## [2.3.0] - 2026-03-09
 
