@@ -74,3 +74,4 @@ config/*.local.json
 config/secrets/
 mcp-audit.jsonl
 *.txt
+task.md
