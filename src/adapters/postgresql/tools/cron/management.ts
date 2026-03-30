@@ -204,7 +204,7 @@ export function createCronJobRunDetailsTool(adapter: PostgresAdapter): ToolDefin
   return {
     name: "pg_cron_job_run_details",
     description: `View execution history for cron jobs. Shows start/end times, status, and return messages.
-Useful for monitoring and debugging scheduled jobs.`,
+Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
     group: "cron",
     inputSchema: CronJobRunDetailsSchemaBase,
     outputSchema: CronJobRunDetailsOutputSchema,
@@ -271,7 +271,7 @@ Useful for monitoring and debugging scheduled jobs.`,
           conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
         // Handle limit: 0 as "no limit" (return all rows), consistent with other AI-optimized tools
-        const limitVal = limit === 0 ? null : (limit ?? 50);
+        const limitVal = limit === 0 ? null : (limit ?? 10);
 
         // Get total count for truncation indicator (only needed when limiting)
         let totalCount: number | undefined;
