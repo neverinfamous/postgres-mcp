@@ -178,6 +178,7 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
           jobs.length < totalCount;
 
         return {
+          success: true,
           jobs,
           count: jobs.length,
           ...(truncated ? { truncated: true, totalCount } : {}),
@@ -334,6 +335,7 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
           rows.length < totalCount;
 
         return {
+          success: true,
           runs: rows,
           count: rows.length,
           ...(truncated ? { truncated: true, totalCount } : {}),

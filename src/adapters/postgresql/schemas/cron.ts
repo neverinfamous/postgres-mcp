@@ -471,6 +471,7 @@ export const CronAlterJobOutputSchema = z
  */
 export const CronListJobsOutputSchema = z
   .object({
+    success: z.boolean().optional().describe("Whether the request succeeded"),
     jobs: z
       .array(
         z.object({
