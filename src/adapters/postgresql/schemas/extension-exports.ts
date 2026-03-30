@@ -244,6 +244,8 @@ export {
   PartmanUndoPartitionSchema,
   PartmanUndoPartitionSchemaBase,
   PartmanUpdateConfigSchema,
+  PartmanAnalyzeHealthSchema,
+  PartmanAnalyzeHealthSchemaBase,
   // Output schemas
   PartmanCreateExtensionOutputSchema,
   PartmanCreateParentOutputSchema,

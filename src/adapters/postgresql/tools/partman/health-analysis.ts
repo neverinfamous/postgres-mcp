@@ -9,7 +9,6 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -19,7 +18,6 @@ import {
   PartmanAnalyzeHealthSchema
 } from "../../schemas/index.js";
 import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT } from "./helpers.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 /**
  * Analyze partition health and provide recommendations
