@@ -145,8 +145,8 @@ export function createGeoTransformTool(
             ? `WHERE ${sanitizeWhereClause(parsed.where)}`
             : "";
 
-        // Default limit of 50 to prevent large payloads, use limit: 0 for all
-        const effectiveLimit = parsed.limit ?? 50;
+        // Default limit of 10 to prevent large payloads, use limit: 0 for all
+        const effectiveLimit = parsed.limit ?? 10;
         const limitClause =
           effectiveLimit > 0 ? `LIMIT ${String(effectiveLimit)}` : "";
 
