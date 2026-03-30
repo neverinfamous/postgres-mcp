@@ -68,10 +68,10 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
           orderBy !== undefined &&
           !VALID_ORDER_BY.includes(orderBy as (typeof VALID_ORDER_BY)[number])
         ) {
-          return {
-            success: false,
-            error: `Invalid orderBy value "${orderBy}". Valid options: ${VALID_ORDER_BY.join(", ")}`,
-          };
+          throw new ValidationError(
+            `Invalid orderBy value "${orderBy}". Valid options: ${VALID_ORDER_BY.join(", ")}`,
+            { validOptions: VALID_ORDER_BY }
+          );
         }
 
         const cols = await getKcacheColumnNames(adapter);

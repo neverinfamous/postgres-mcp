@@ -5,7 +5,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
+import { type ToolDefinition, type RequestContext, ValidationError, ExtensionNotAvailableError } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -35,30 +35,32 @@ Requires pg_stat_statements to be installed first. Both extensions must be in sh
     annotations: write("Create Kcache Extension"),
     icons: getToolIcons("kcache", write("Create Kcache Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const statementsCheck = await adapter.executeQuery(`
-                SELECT EXISTS(
-                    SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'
-                ) as installed
-            `);
+      try {
+        const statementsCheck = await adapter.executeQuery(`
+                  SELECT EXISTS(
+                      SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'
+                  ) as installed
+              `);
 
-      const hasStatements =
-        (statementsCheck.rows?.[0]?.["installed"] as boolean) ?? false;
-      if (!hasStatements) {
+        const hasStatements =
+          (statementsCheck.rows?.[0]?.["installed"] as boolean) ?? false;
+        if (!hasStatements) {
+          throw new ExtensionNotAvailableError("pg_stat_statements", {
+            reason: "pg_stat_statements must be installed before pg_stat_kcache",
+          });
+        }
+
+        await adapter.executeQuery(
+          "CREATE EXTENSION IF NOT EXISTS pg_stat_kcache",
+        );
         return {
-          success: false,
-          error: "pg_stat_statements must be installed before pg_stat_kcache",
-          hint: "Run: CREATE EXTENSION IF NOT EXISTS pg_stat_statements",
+          success: true,
+          message: "pg_stat_kcache extension enabled",
+          note: "Ensure pg_stat_kcache is in shared_preload_libraries for full functionality",
         };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, { tool: "pg_kcache_create_extension" });
       }
-
-      await adapter.executeQuery(
-        "CREATE EXTENSION IF NOT EXISTS pg_stat_kcache",
-      );
-      return {
-        success: true,
-        message: "pg_stat_kcache extension enabled",
-        note: "Ensure pg_stat_kcache is in shared_preload_libraries for full functionality",
-      };
     },
   };
 }
