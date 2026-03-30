@@ -314,7 +314,7 @@ export const CronJobRunDetailsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Filter by status (running, succeeded, failed)"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Maximum records to return (default: 50)"),
+  limit: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Maximum records to return (default: 10)"),
 });
 
 export const CronJobRunDetailsSchema = z
@@ -326,7 +326,7 @@ export const CronJobRunDetailsSchema = z
       .optional()
       .describe("Filter by status (running, succeeded, failed)"),
     limit: z.preprocess(coerceNumber, z.number().optional()).optional()
-      .describe("Maximum records to return (default: 50)"),
+      .describe("Maximum records to return (default: 10)"),
   })
   .default({});
 
@@ -382,6 +382,7 @@ export const CronCreateExtensionOutputSchema = z
   .object({
     success: z.boolean().describe("Whether extension was enabled"),
     message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("pg_cron extension creation result");
 
@@ -492,6 +493,7 @@ export const CronListJobsOutputSchema = z
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total available count"),
     hint: z.string().optional().describe("Hint about unnamed jobs"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job list result");
 
