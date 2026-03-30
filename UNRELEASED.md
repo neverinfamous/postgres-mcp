@@ -388,7 +388,7 @@
 - **Text tools Zod coercion and alias leaks**: Fixed a Split Schema pattern violation across `pg_text_rank`, `pg_text_headline`, and `pg_text_search` where primitive numeric parameters (`limit`, `normalization`, `maxWords`, `minWords`) used `z.preprocess()` directly on the MCP-visible Base schemas, inadvertently stripping `.optional()` metadata and coercing limits abruptly. Replaced with clean `z.any().optional()` boundaries to ensure proper LLM visibility while pushing strict parameter coercion into internal semantic handlers.
 - **Text Payload contracts**: Added missing `pg_text_rank` and `pg_text_headline` functional boundaries to the E2E `payloads-text.spec.ts` suite, ensuring full structural parity tests across the entire Full-Text Search toolkit.
 - **Performance payload contract mismatch (`pg_detect_query_anomalies`)**: Fixed a structural anomaly where the `anomalies` array was manually truncated to 10 elements while `anomalyCount` returned the true number of database-level matches, causing Code Mode parity assertions to fail. Removed the arbitrary array slicing, as the underlying query already enforces a strict `LIMIT 20` to guarantee token bounds, achieving 100% adherence to the deterministic payload contract.
-
+- **Citext Split Schema alias handling (`pg_citext_convert_column`, `pg_citext_analyze_candidates`)**: Added the missing `tableName` alias to `CitextConvertColumnSchemaBase` and `CitextAnalyzeCandidatesSchemaBase` to ensure the parameter securely passes through the MCP SDK validation boundary without being stripped. This guarantees 100% alias mapping parity with the unified internal preprocessing layer.
 ### Security
 
 - **Dependency Updates**:

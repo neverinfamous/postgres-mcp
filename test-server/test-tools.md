@@ -1,10 +1,11 @@
-# postgres-mcp Tool Group Re-Testing
+# postgres-mcp Tool Group COMPLETE Re-Testing
 
 **ESSENTIAL INSTRUCTIONS**
 
 **Execute EVERY numbered stress test below using DIRECT MCP tool calls. DO NOT TEST CODE MODE!**
 **Do NOT use scripts or terminal to replace planned tests!**
 **Do NOT modify or skip tests!**
+**NO TEMP FILES IN ROOT! USE C:\Users\chris\Desktop\postgres-mcp\tmp!**
 
 ## Reporting Format
 

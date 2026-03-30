@@ -83,6 +83,7 @@ export function preprocessCitextTableParams(input: unknown): unknown {
  */
 export const CitextConvertColumnSchemaBase = z.object({
   table: z.string().optional().describe("Table name"),
+  tableName: z.string().optional().describe("Alias for table"),
   column: z.string().optional().describe("Text column to convert to citext"),
   col: z.string().optional().describe("Alias for column"),
   schema: z.string().optional().describe("Schema name (default: public)"),
@@ -150,6 +151,7 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
     .string()
     .optional()
     .describe("Table name to filter (analyzes single table)"),
+  tableName: z.string().optional().describe("Alias for table"),
   limit: z.number().optional().describe("Maximum number of candidates to return"),
   excludeSystemSchemas: z
     .boolean()
