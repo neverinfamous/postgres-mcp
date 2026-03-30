@@ -53,6 +53,14 @@ Maintains all partition sets if no specific parent table is specified.`,
 
         // If specific table provided, validate and run maintenance directly
         if (parentTable !== undefined) {
+          // Check if table exists (P154)
+          if (!(await checkTableExists(adapter, parentTable))) {
+            throw new ValidationError(
+              `Table '${parentTable}' does not exist.`,
+              { hint: "Check that you specified the correct schema and table name." }
+            );
+          }
+
           // Check if table has a pg_partman configuration
           const configCheck = await adapter.executeQuery(
             `SELECT 1 FROM ${partmanSchema}.part_config WHERE parent_table = $1`,
@@ -251,6 +259,14 @@ export function createPartmanShowPartitionsTool(
         const includeDefaultVal = includeDefault ?? false;
 
         const partmanSchema = await getPartmanSchema(adapter);
+
+        // Check if table exists (P154)
+        if (!(await checkTableExists(adapter, parentTable))) {
+          throw new ValidationError(
+            `Table '${parentTable}' does not exist.`,
+            { hint: "Check that you specified the correct schema and table name." }
+          );
+        }
 
         // Check if table is managed by pg_partman
         const configCheck = await adapter.executeQuery(

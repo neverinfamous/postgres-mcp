@@ -23,7 +23,7 @@ import {
   PartmanCreateExtensionOutputSchema,
   PartmanCreateParentOutputSchema,
 } from "../../schemas/index.js";
-import { getPartmanSchema } from "./helpers.js";
+import { getPartmanSchema, checkTableExists } from "./helpers.js";
 
 /**
  * Enable the pg_partman extension
@@ -137,6 +137,18 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
         const validatedParentTable = parentTable;
         const validatedControlColumn = controlColumn;
         const validatedInterval = interval;
+
+        // Check if table exists (P154)
+        if (!(await checkTableExists(adapter, validatedParentTable))) {
+          return {
+            success: false,
+            error: `Table '${validatedParentTable}' does not exist.`,
+            code: "TABLE_NOT_FOUND",
+            category: "query",
+            recoverable: false,
+            hint: "Create the parent table first with appropriate columns, then call pg_partman_create_parent.",
+          };
+        }
 
         // Note: pg_partman defaults to 'range' type, which is correct for most uses
         const args: string[] = [

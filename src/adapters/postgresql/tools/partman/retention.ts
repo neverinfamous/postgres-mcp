@@ -74,6 +74,12 @@ Partitions older than the retention period will be dropped or detached during ma
           ]);
 
           if ((result.rowsAffected ?? 0) === 0) {
+            // Give specific TABLE_NOT_FOUND error if table doesn't even exist
+            if (!(await checkTableExists(adapter, validatedParentTable))) {
+              throw new ValidationError(`Table '${validatedParentTable}' does not exist.`, {
+                hint: "Check that you specified the correct schema and table name."
+              });
+            }
             throw new ValidationError(`No pg_partman configuration found for ${validatedParentTable}.`, {
               hint: "Use pg_partman_show_config to list existing partition sets.",
             });
@@ -121,6 +127,12 @@ Partitions older than the retention period will be dropped or detached during ma
         const result = await adapter.executeQuery(sql, [validatedParentTable]);
 
         if ((result.rowsAffected ?? 0) === 0) {
+          // Give specific TABLE_NOT_FOUND error if table doesn't even exist
+          if (!(await checkTableExists(adapter, validatedParentTable))) {
+            throw new ValidationError(`Table '${validatedParentTable}' does not exist.`, {
+              hint: "Check that you specified the correct schema and table name."
+            });
+          }
           throw new ValidationError(`No pg_partman configuration found for ${validatedParentTable}.`, {
             hint: "Use pg_partman_show_config to list existing partition sets.",
           });
@@ -211,6 +223,12 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
 
         // Pre-validate: Check that target table exists before calling pg_partman
         const partmanSchema = await getPartmanSchema(adapter);
+
+        if (!(await checkTableExists(adapter, validatedParentTable))) {
+          throw new ValidationError(`Table '${validatedParentTable}' does not exist.`, {
+            hint: "Check that you specified the correct schema and table name."
+          });
+        }
 
         if (!(await checkTableExists(adapter, validatedTargetTable))) {
           throw new ValidationError(`Target table '${validatedTargetTable}' does not exist.`, {

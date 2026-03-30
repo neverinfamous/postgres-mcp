@@ -209,6 +209,14 @@ Creates new partitions if needed for the data being moved.`,
           );
         }
 
+        // Check if parent table exists (P154)
+        if (!(await checkTableExists(adapter, parentTable))) {
+          throw new ValidationError(
+            `Table '${parentTable}' does not exist. Cannot move data from default partition for non-existent table.`,
+            { hint: "Verify the table name or use pg_partman_show_config to list existing partition sets." }
+          );
+        }
+
         const args: string[] = [`p_parent_table := '${parentTable}'`];
 
         if (batchSize !== undefined && !isNaN(batchSize)) {

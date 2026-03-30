@@ -83,15 +83,29 @@ stale maintenance, and retention configuration.`,
         const configResult = await adapter.executeQuery(configSql, queryParams);
         const configs = configResult.rows ?? [];
 
-        // If a specific table was requested but not found, return a structured validation error payload
-        if (parsed.parentTable !== undefined && configs.length === 0) {
-          return {
-            success: false,
-            error: `No pg_partman configuration found for table '${parsed.parentTable}'.`,
-            code: "TABLE_NOT_FOUND",
-            category: "validation",
-            suggestion: "Use pg_partman_show_config to list configured partition sets, or pg_partman_create_parent to configure partitioning for this table."
-          };
+        // If a specific table was requested
+        if (parsed.parentTable !== undefined) {
+          // Check if it exists (P154)
+          if (!(await checkTableExists(adapter, parsed.parentTable))) {
+            return {
+              success: false,
+              error: `Table '${parsed.parentTable}' does not exist.`,
+              code: "TABLE_NOT_FOUND",
+              category: "validation",
+              suggestion: "Check that you specified the correct schema and table name."
+            };
+          }
+
+          // If it exists but has no pg_partman config
+          if (configs.length === 0) {
+            return {
+              success: false,
+              error: `No pg_partman configuration found for table '${parsed.parentTable}'.`,
+              code: "VALIDATION_ERROR",
+              category: "validation",
+              suggestion: "Use pg_partman_show_config to list configured partition sets, or pg_partman_create_parent to configure partitioning for this table."
+            };
+          }
         }
 
         const healthChecks: {
