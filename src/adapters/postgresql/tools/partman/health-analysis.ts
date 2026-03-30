@@ -13,7 +13,11 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { PartmanAnalyzeHealthOutputSchema } from "../../schemas/index.js";
+import { 
+  PartmanAnalyzeHealthOutputSchema,
+  PartmanAnalyzeHealthSchemaBase,
+  PartmanAnalyzeHealthSchema
+} from "../../schemas/index.js";
 import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT } from "./helpers.js";
 import { coerceNumber } from "../../../../utils/query-helpers.js";
 
@@ -29,49 +33,13 @@ export function createPartmanAnalyzeHealthTool(
 Checks for issues like data in default partitions, missing premake partitions,
 stale maintenance, and retention configuration.`,
     group: "partman",
-    inputSchema: z
-      .preprocess(
-        (input) => {
-          if (typeof input !== "object" || input === null) return input;
-          const raw = input as {
-            table?: string;
-            parentTable?: string;
-            limit?: unknown;
-          };
-          const result = { ...raw };
-
-          // Alias: table → parentTable
-          if (result.table && !result.parentTable) {
-            result.parentTable = result.table;
-          }
-
-          // Auto-prefix public. for parentTable when no schema specified
-          if (result.parentTable && !result.parentTable.includes(".")) {
-            result.parentTable = `public.${result.parentTable}`;
-          }
-
-          return result;
-        },
-        z.object({
-          parentTable: z
-            .string()
-            .optional()
-            .describe("Specific parent table to analyze (all if omitted)"),
-          limit: z
-            .preprocess(coerceNumber, z.number().optional())
-            .describe(
-              "Maximum number of partition sets to analyze (default: 50, use 0 for all)",
-            ),
-        }),
-      )
-      .default({}),
+    inputSchema: PartmanAnalyzeHealthSchemaBase,
     outputSchema: PartmanAnalyzeHealthOutputSchema,
     annotations: readOnly("Analyze Partition Health"),
     icons: getToolIcons("partman", readOnly("Analyze Partition Health")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        // inputSchema handles alias resolution and coercion via preprocess
-        const parsed = (params ?? {}) as {
+        const parsed = PartmanAnalyzeHealthSchema.parse(params) as {
           parentTable?: string;
           limit?: number;
         };

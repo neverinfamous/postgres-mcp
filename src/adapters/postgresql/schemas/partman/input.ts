@@ -121,12 +121,18 @@ export const PartmanCreateParentSchemaBase = z.object({
     .string()
     .optional()
     .describe("Parent table name (schema.table format). Required."),
+  table: z.string().optional().describe("Alias for parentTable"),
+  name: z.string().optional().describe("Alias for parentTable"),
+  parent: z.string().optional().describe("Alias for parentTable"),
   controlColumn: z
     .string()
     .optional()
     .describe(
-      "Column used for partitioning (timestamp or integer). Alias: control. Required.",
+      "Column used for partitioning (timestamp or integer). Required.",
     ),
+  control: z.string().optional().describe("Alias for controlColumn"),
+  column: z.string().optional().describe("Alias for controlColumn"),
+  partitionColumn: z.string().optional().describe("Alias for controlColumn"),
   interval: z
     .string()
     .optional()
@@ -175,6 +181,8 @@ export const PartmanRunMaintenanceSchemaBase = z.object({
     .string()
     .optional()
     .describe("Specific parent table to maintain (all if omitted)"),
+  table: z.string().optional().describe("Alias for parentTable"),
+  name: z.string().optional().describe("Alias for parentTable"),
   analyze: z
     .boolean()
     .optional()
@@ -196,6 +204,8 @@ export const PartmanShowPartitionsSchemaBase = z.object({
     .describe(
       "Parent table name (schema.table format). Required - specify table to list partitions.",
     ),
+  table: z.string().optional().describe("Alias for parentTable"),
+  name: z.string().optional().describe("Alias for parentTable"),
   includeDefault: z
     .boolean()
     .optional()
@@ -228,6 +238,8 @@ export const PartmanShowConfigSchemaBase = z.object({
     .string()
     .optional()
     .describe("Parent table name (all configs if omitted)"),
+  table: z.string().optional().describe("Alias for parentTable"),
+  name: z.string().optional().describe("Alias for parentTable"),
   limit: z.union([z.number(), z.string()]).optional()
     .describe(
       "Maximum number of configs to return (default: 50, use 0 for all)",
@@ -252,6 +264,8 @@ export const PartmanCheckDefaultSchemaBase = z.object({
     .describe(
       "Parent table name to check. Required - specify table to check default partition.",
     ),
+  table: z.string().optional().describe("Alias for parentTable"),
+  name: z.string().optional().describe("Alias for parentTable"),
 });
 
 export const PartmanCheckDefaultSchema = z
@@ -269,6 +283,8 @@ export const PartmanPartitionDataSchemaBase = z.object({
     .describe(
       "Parent table name (schema.table format). Required - specify table to partition data.",
     ),
+  table: z.string().optional().describe("Alias for parentTable"),
+  name: z.string().optional().describe("Alias for parentTable"),
   batchSize: z.union([z.number(), z.string()]).optional()
     .describe("Rows to move per batch (default: varies by function)"),
   lockWaitSeconds: z.union([z.number(), z.string()]).optional().describe("Lock wait timeout in seconds"),
@@ -291,6 +307,8 @@ export const PartmanRetentionSchemaBase = z.object({
     .string()
     .optional()
     .describe("Parent table name (schema.table format). Required."),
+  table: z.string().optional().describe("Alias for parentTable"),
+  name: z.string().optional().describe("Alias for parentTable"),
   retention: z
     .string()
     .nullable()
@@ -304,6 +322,7 @@ export const PartmanRetentionSchemaBase = z.object({
     .describe(
       "Keep tables after detaching (true) or drop them (false). Default: false (DROP). Use true to preserve partition data.",
     ),
+  keepTable: z.boolean().optional().describe("Alias for retentionKeepTable"),
 });
 
 export const PartmanRetentionSchema = z
@@ -319,12 +338,15 @@ export const PartmanUndoPartitionSchemaBase = z.object({
     .string()
     .optional()
     .describe("Parent table to convert back to regular table. Required."),
+  table: z.string().optional().describe("Alias for parentTable"),
+  name: z.string().optional().describe("Alias for parentTable"),
   targetTable: z
     .string()
     .optional()
     .describe(
-      "Target table for consolidated data. Must exist before calling. Alias: target. Required.",
+      "Target table for consolidated data. Must exist before calling. Required.",
     ),
+  target: z.string().optional().describe("Alias for targetTable"),
   batchSize: z.union([z.number(), z.string()]).optional().describe("Rows to move per batch"),
   keepTable: z
     .boolean()
@@ -368,3 +390,25 @@ export const PartmanUpdateConfigSchema = z.preprocess(
       .describe("Keep tables after detaching"),
   }),
 );
+
+/**
+ * Schema for analyzing partition health.
+ */
+export const PartmanAnalyzeHealthSchemaBase = z.object({
+  parentTable: z
+    .string()
+    .optional()
+    .describe("Specific parent table to analyze (all if omitted)"),
+  table: z.string().optional().describe("Alias for parentTable"),
+  limit: z.union([z.number(), z.string()]).optional()
+    .describe(
+      "Maximum number of partition sets to analyze (default: 50, use 0 for all)",
+    ),
+});
+
+export const PartmanAnalyzeHealthSchema = z
+  .preprocess(preprocessPartmanParams, z.object({
+    parentTable: z.string().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+  }))
+  .default({});
