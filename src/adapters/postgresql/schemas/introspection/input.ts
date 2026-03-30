@@ -296,6 +296,8 @@ export const MigrationRecordSchemaBase = z.object({
     .string()
     .optional()
     .describe("The DDL/SQL statements applied"),
+  sql: z.string().optional().describe("Alias for migrationSql"),
+  query: z.string().optional().describe("Alias for migrationSql"),
   rollbackSql: z.string().optional().describe("SQL to reverse this migration"),
   sourceSystem: z
     .string()
@@ -328,7 +330,16 @@ const MigrationRecordParseSchema = z.object({
     .describe("Who/what applied this migration (e.g., agent name, user)"),
 });
 
-export const MigrationRecordSchema = MigrationRecordParseSchema;
+export const MigrationRecordSchema = z.preprocess((input: unknown) => {
+  if (typeof input === "object" && input !== null) {
+    const obj = input as Record<string, unknown>;
+    if (obj["migrationSql"] === undefined) {
+      if (obj["sql"] !== undefined) return { ...obj, migrationSql: obj["sql"] };
+      if (obj["query"] !== undefined) return { ...obj, migrationSql: obj["query"] };
+    }
+  }
+  return input;
+}, MigrationRecordParseSchema);
 
 /**
  * pg_migration_apply input
@@ -337,7 +348,7 @@ export const MigrationRecordSchema = MigrationRecordParseSchema;
 export const MigrationApplySchemaBase = MigrationRecordSchemaBase;
 
 // Internal parse schema — version and migrationSql are required
-export const MigrationApplySchema = MigrationRecordParseSchema;
+export const MigrationApplySchema = MigrationRecordSchema;
 
 /**
  * pg_migration_rollback input
