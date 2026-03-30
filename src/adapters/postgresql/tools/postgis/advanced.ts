@@ -43,7 +43,8 @@ export function createGeocodeTool(adapter: PostgresAdapter): ToolDefinition {
         const srid = parsed.srid ?? 4326;
 
         const sql = `SELECT
-                        ST_AsGeoJSON(ST_SetSRID(ST_MakePoint($1, $2), $3)) as geojson`;
+                        ST_AsGeoJSON(ST_SetSRID(ST_MakePoint($1, $2), $3)) as geojson,
+                        ST_AsText(ST_SetSRID(ST_MakePoint($1, $2), $3)) as wkt`;
 
         const result = await adapter.executeQuery(sql, [
           parsed.lng,

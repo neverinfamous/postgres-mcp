@@ -145,6 +145,7 @@ export const GeocodeOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether operation succeeded"),
     geojson: z.string().optional().describe("Point as GeoJSON"),
+    wkt: z.string().optional().describe("Point as Well-Known Text"),
     note: z.string().optional().describe("SRID note for non-4326"),
     error: z.string().optional().describe("Error message"),
   })

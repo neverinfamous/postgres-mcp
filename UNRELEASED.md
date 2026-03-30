@@ -119,7 +119,7 @@
 - **Core error context (`pg_drop_table`)**: Table parameter now correctly forwarded to error formatter for P154 `TABLE_NOT_FOUND` rendering
 - **Performance payload contract**: `pg_detect_query_anomalies` `anomalies` array no longer arbitrarily truncated; underlying query already enforces `LIMIT 20`
 - **Split Schema / Zod validation fixes** (consolidated across all tool groups):
-  - **PostGIS** (15 tools): Replaced `z.enum()` with `z.string()` in base schemas, fixed `z.preprocess()` stripping `.optional()`, coordinate bounds validation, spatial index object integrity, error boundaries. Removed redundant WKT outputs (GeoJSON only). Reduced `pg_buffer`/`pg_geo_transform` default limit from 50→10. Added `limit` to `pg_bounding_box`/`pg_intersection`
+  - **PostGIS** (15 tools): Replaced `z.enum()` with `z.string()` in base schemas, fixed `z.preprocess()` stripping `.optional()`, coordinate bounds validation, spatial index object integrity, error boundaries. Restored `wkt` output to `pg_geocode`. Reduced `pg_buffer`/`pg_geo_transform` default limit from 50→10. Added `limit` to `pg_bounding_box`/`pg_intersection`
   - **Vector** (16 tools): Fixed limit/alias leaks on `pg_vector_search`, Zod leaks on cluster/dimension tools, dimension mismatch error codes unified to `DIMENSION_MISMATCH`, accuracy fix for swapped expected/provided dimensions, batch insert query leaks, `pg_vector_distance` structured error
   - **Pgcrypto** (9 tools): Fixed `z.preprocess()` stripping `.optional()` on 3 tools, gen_salt numeric coercion, create_extension param parsing, inline schema violations, decryption output fidelity, validation regression on gen_random_uuid/gen_random_bytes
   - **Ltree** (8 tools): Fixed `pg_ltree_lca` array length bounds validation leak
