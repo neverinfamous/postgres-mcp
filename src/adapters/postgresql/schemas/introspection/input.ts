@@ -233,6 +233,14 @@ export const MigrationRisksSchemaBase = z.object({
     .array(z.string())
     .optional()
     .describe("Array of DDL statements to analyze for risks"),
+  statement: z
+    .string()
+    .optional()
+    .describe("Single DDL statement (alias for statements)"),
+  sql: z
+    .string()
+    .optional()
+    .describe("Alias for statements/statement"),
   schema: z
     .string()
     .optional()
@@ -246,6 +254,9 @@ export const MigrationRisksSchema = z.preprocess(
       // Accept statement/sql aliases
       if (obj["statement"] !== undefined && obj["statements"] === undefined) {
         return { ...obj, statements: [obj["statement"]] };
+      }
+      if (obj["sql"] !== undefined && obj["statements"] === undefined) {
+        return { ...obj, statements: [obj["sql"]] };
       }
     }
     return input;
