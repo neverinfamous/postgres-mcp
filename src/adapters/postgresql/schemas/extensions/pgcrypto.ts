@@ -232,8 +232,7 @@ export const PgcryptoGenSaltSchema = z.object({
     .enum(["bf", "md5", "xdes", "des"])
     .describe("Salt type: bf (bcrypt, recommended), md5, xdes, or des"),
   iterations: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
 });
 
