@@ -17,7 +17,7 @@ import {
   PartmanAnalyzeHealthSchemaBase,
   PartmanAnalyzeHealthSchema
 } from "../../schemas/index.js";
-import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT } from "./helpers.js";
+import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT, checkTableExists } from "./helpers.js";
 
 /**
  * Analyze partition health and provide recommendations
@@ -110,20 +110,9 @@ stale maintenance, and retention configuration.`,
           const warnings: string[] = [];
           const recommendations: string[] = [];
 
-          // Check if parent table still exists (handle orphaned configs)
-          const [tableSchema, tableName] = parentTable.includes(".")
-            ? [parentTable.split(".")[0], parentTable.split(".")[1]]
-            : ["public", parentTable];
+          const tableExists = await checkTableExists(adapter, parentTable);
 
-          const tableExistsResult = await adapter.executeQuery(
-            `
-                    SELECT 1 FROM information_schema.tables
-                    WHERE table_schema = $1 AND table_name = $2
-                `,
-            [tableSchema, tableName],
-          );
-
-          if ((tableExistsResult.rows?.length ?? 0) === 0) {
+          if (!tableExists) {
             // Orphaned config - table no longer exists
             healthChecks.push({
               parentTable,

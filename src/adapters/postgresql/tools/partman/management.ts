@@ -26,7 +26,7 @@ import {
   PartmanShowPartitionsOutputSchema,
   PartmanShowConfigOutputSchema,
 } from "../../schemas/index.js";
-import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT } from "./helpers.js";
+import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT, checkTableExists } from "./helpers.js";
 
 /**
  * Run partition maintenance
@@ -133,19 +133,9 @@ Maintains all partition sets if no specific parent table is specified.`,
           const table = config["parent_table"] as string;
 
           // Check if table still exists
-          const [schema, tableName] = table.includes(".")
-            ? [table.split(".")[0], table.split(".")[1]]
-            : ["public", table];
+          const tableExists = await checkTableExists(adapter, table);
 
-          const tableExistsResult = await adapter.executeQuery(
-            `
-                    SELECT 1 FROM information_schema.tables
-                    WHERE table_schema = $1 AND table_name = $2
-                `,
-            [schema, tableName],
-          );
-
-          if ((tableExistsResult.rows?.length ?? 0) === 0) {
+          if (!tableExists) {
             orphanedTables.push(table);
             continue;
           }
@@ -262,7 +252,7 @@ export function createPartmanShowPartitionsTool(
 
         const partmanSchema = await getPartmanSchema(adapter);
 
-        // First check if table is managed by pg_partman
+        // Check if table is managed by pg_partman
         const configCheck = await adapter.executeQuery(
           `SELECT 1 FROM ${partmanSchema}.part_config WHERE parent_table = $1`,
           [parentTable],
@@ -341,19 +331,8 @@ export function createPartmanShowConfigTool(
         const partmanSchema = await getPartmanSchema(adapter);
 
         if (parsed.parentTable !== undefined) {
-          const [schema, tableName] = parsed.parentTable.includes(".")
-            ? [parsed.parentTable.split(".")[0], parsed.parentTable.split(".")[1]]
-            : ["public", parsed.parentTable];
-
-          const tableExistsResult = await adapter.executeQuery(
-            `
-                SELECT 1 FROM information_schema.tables
-                WHERE table_schema = $1 AND table_name = $2
-            `,
-            [schema, tableName],
-          );
-
-          if ((tableExistsResult.rows?.length ?? 0) === 0) {
+          // Check if table exists (P154)
+          if (!(await checkTableExists(adapter, parsed.parentTable))) {
             throw new ValidationError(`Table '${parsed.parentTable}' does not exist.`, {
               hint: "Check that you specified the correct schema and table name."
             });
@@ -431,19 +410,7 @@ export function createPartmanShowConfigTool(
         const configsWithStatus = await Promise.all(
           configs.map(async (config) => {
             const parentTable = config["parent_table"] as string;
-            const [schema, tableName] = parentTable.includes(".")
-              ? [parentTable.split(".")[0], parentTable.split(".")[1]]
-              : ["public", parentTable];
-
-            const tableExistsResult = await adapter.executeQuery(
-              `
-                        SELECT 1 FROM information_schema.tables
-                        WHERE table_schema = $1 AND table_name = $2
-                    `,
-              [schema, tableName],
-            );
-
-            const orphaned = (tableExistsResult.rows?.length ?? 0) === 0;
+            const orphaned = !(await checkTableExists(adapter, parentTable));
             return { ...config, orphaned };
           }),
         );

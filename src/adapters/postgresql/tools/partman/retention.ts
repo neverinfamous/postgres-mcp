@@ -21,7 +21,7 @@ import {
   PartmanSetRetentionOutputSchema,
   PartmanUndoPartitionOutputSchema,
 } from "../../schemas/index.js";
-import { getPartmanSchema, callPartmanProcedure } from "./helpers.js";
+import { getPartmanSchema, callPartmanProcedure, checkTableExists } from "./helpers.js";
 
 /**
  * Configure retention policies
@@ -212,21 +212,7 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
         // Pre-validate: Check that target table exists before calling pg_partman
         const partmanSchema = await getPartmanSchema(adapter);
 
-        // Parse target table name to check existence
-        const [targetSchema, targetTableName] = [
-          validatedTargetTable.split(".")[0],
-          validatedTargetTable.split(".")[1],
-        ];
-
-        const tableExistsResult = await adapter.executeQuery(
-          `
-                SELECT 1 FROM information_schema.tables
-                WHERE table_schema = $1 AND table_name = $2
-            `,
-          [targetSchema, targetTableName],
-        );
-
-        if ((tableExistsResult.rows?.length ?? 0) === 0) {
+        if (!(await checkTableExists(adapter, validatedTargetTable))) {
           throw new ValidationError(`Target table '${validatedTargetTable}' does not exist.`, {
             hint:
               "pg_partman's undo_partition requires the target table to exist before consolidating data. " +

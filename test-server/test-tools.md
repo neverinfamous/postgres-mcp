@@ -5,7 +5,6 @@
 **Execute EVERY numbered stress test below using DIRECT MCP tool calls. DO NOT TEST CODE MODE!**
 **Do NOT use scripts or terminal to replace planned tests!**
 **Do NOT modify or skip tests!**
-**Read `code-map.md` before making changes and make all changes consistent with other tools.**
 
 ## Reporting Format
 
@@ -204,14 +203,15 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed including any files created during testing.
 2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in the files listed below, and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
-3. **Scope of fixes** includes corrections to any of:
+3. **Read `code-map.md` before making changes and make all changes consistent with other tools.**
+4. **Scope of fixes** includes corrections to any of:
    - Handler code
    - `server-instructions.md`
    - Test database (`test-database.sql`)
    - This prompt (`test-tools.md`) and group file (`test-group-tools.md`)
-4. **User will handle validation**
-5. Update the changelog if there were any changes made (being careful not to create duplicate headers), and commit without pushing.
-6. Create a /session-summary in memory-journal-mcp for the issues and their fixes.
-7. Stop and briefly summarize the issues and their fixes.
+5. **User will handle validation**
+6. Update the changelog if there were any changes made (being careful not to create duplicate headers), and commit without pushing.
+7. Create a /session-summary in memory-journal-mcp for the issues and their fixes.
+8. Stop and briefly summarize the issues and their fixes.
 
 ---

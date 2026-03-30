@@ -92,3 +92,25 @@ export async function callPartmanProcedure(
   }
   await adapter.executeQuery(sql);
 }
+
+/**
+ * Check if a table exists in information_schema to provide standard P154 TABLE_NOT_FOUND errors
+ */
+export async function checkTableExists(
+  adapter: PostgresAdapter,
+  tableWithSchema: string,
+): Promise<boolean> {
+  const [schema, tableName] = tableWithSchema.includes(".")
+    ? [tableWithSchema.split(".")[0], tableWithSchema.split(".")[1]]
+    : ["public", tableWithSchema];
+
+  const result = await adapter.executeQuery(
+    `
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = $1 AND table_name = $2
+    `,
+    [schema, tableName],
+  );
+
+  return (result.rows?.length ?? 0) > 0;
+}

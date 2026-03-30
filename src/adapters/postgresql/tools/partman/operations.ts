@@ -22,7 +22,7 @@ import {
   PartmanCheckDefaultOutputSchema,
   PartmanPartitionDataOutputSchema,
 } from "../../schemas/index.js";
-import { getPartmanSchema, callPartmanProcedure } from "./helpers.js";
+import { getPartmanSchema, callPartmanProcedure, checkTableExists } from "./helpers.js";
 /**
  * Check for data in default partition
  */
@@ -50,20 +50,8 @@ Data in default indicates partitions may be missing for certain time/value range
           );
         }
 
-        // Check if parent table exists in pg_class (handles orphaned configs)
-        const [tableSchema, tableName] = parentTable.includes(".")
-          ? [parentTable.split(".")[0], parentTable.split(".")[1]]
-          : ["public", parentTable];
-
-        const tableExistsResult = await adapter.executeQuery(
-          `
-                SELECT 1 FROM information_schema.tables
-                WHERE table_schema = $1 AND table_name = $2
-            `,
-          [tableSchema, tableName],
-        );
-
-        if ((tableExistsResult.rows?.length ?? 0) === 0) {
+        // Check if parent table exists (P154)
+        if (!(await checkTableExists(adapter, parentTable))) {
           throw new ValidationError(
             `Table '${parentTable}' does not exist. Cannot check default partition for non-existent table.`,
             { hint: "Verify the table name or use pg_partman_show_config to list existing partition sets." }
