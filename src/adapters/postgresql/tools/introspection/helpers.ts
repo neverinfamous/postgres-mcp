@@ -84,6 +84,8 @@ export async function fetchForeignKeys(
     WHERE c.contype = 'f'
       AND src_ns.nspname NOT IN ('pg_catalog', 'information_schema')
       AND src_ns.nspname !~ '^pg_toast'
+      AND NOT src_t.relispartition
+      AND NOT ref_t.relispartition
       ${extensionSchemaExclude}
       ${schemaClause}
     GROUP BY c.conname, src_ns.nspname, src_t.relname,
@@ -136,6 +138,7 @@ export async function fetchTableNodes(
     JOIN pg_namespace n ON n.oid = c.relnamespace
     LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
     WHERE c.relkind IN ('r', 'p')
+      AND NOT c.relispartition
       AND n.nspname NOT IN ('pg_catalog', 'information_schema')
       AND n.nspname !~ '^pg_toast'
       ${extensionSchemaExclude}
