@@ -115,7 +115,7 @@ Confirm `test_locations` count is still 25 (post-resource-seed baseline).
 2. pg_ltree_query
 3. pg_ltree_subpath
 4. pg_ltree_lca
-5. pg_ltree_match
+5. (Removed obsolete pg_ltree_match)
 6. pg_ltree_list_columns
 7. pg_ltree_convert_column
 8. pg_ltree_create_index
@@ -186,7 +186,7 @@ No cleanup needed (pgcrypto tools are stateless computations).
 3. pg_citext_list_columns
 4. pg_citext_analyze_candidates
 5. pg_citext_compare
-6. pg_citext_schema_advisor
+6. pg_citext_analyze_candidates (alias context)
 7. pg_execute_code (auto-added)
 
 ### Category 1: Edge Cases

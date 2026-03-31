@@ -77,6 +77,14 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const { table, column, path, mode, schema, limit } =
           LtreeQuerySchema.parse(params);
+        
+        if (path === "") {
+          throw new ValidationError(
+            `Empty path "" is not allowed as it acts as an unconstrained match-all query. Please provide a specific path.`,
+            { path }
+          );
+        }
+
         const schemaName = schema ?? "public";
         const queryMode = mode ?? "descendants";
         const qualifiedTable = `"${schemaName}"."${table}"`;

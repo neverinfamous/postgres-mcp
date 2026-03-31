@@ -66,7 +66,9 @@
 - Removed mismatched `pg_capacity_planning` and `pg_pgcrypto_hash` tests from the `stats` and `vector` test sections in `test-tools-advanced-2.md`
 - Missing targetTable parameters within `test-tools-advanced-3` partman execution directives
 - Replaced generic PG query exceptions in `pg_distance` and `pg_point_in_polygon` out-of-bounds checks with specific `ValidationError` structures (P154 compliance)
-- Corrected inaccuracy in `test-tools-advanced-3.md` assigning assumed implicit kwargs to postgis coordinate tests
+- Corrected inaccuracies in `test-tools-advanced-3.md` removing obsolete `pg_ltree_match` and `pg_citext_schema_advisor` tool names and rectifying assumed implicit kwargs in postgis coordinate tests
+- Reduced `pg_kcache` top resource query tool default unbounded limits (`limit: 0`) from `25` down to `10` to prevent token exhaustion payload bloat
+- Added explicit validation rejecting `path: ""` (empty string) in `pg_ltree_query` to prevent unbounded match-all payload exhaustion
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
