@@ -67,6 +67,8 @@
 - Fixed `pg_ltree_lca` constraint requiring 2 paths; now properly handles single paths and identical common ancestors mirroring native Postgres functionality.
 - Corrected tool assignments in `test-tools-advanced-1.md` (jsonb group error tests) substituting `pg_stats_descriptive` with `pg_jsonb_extract`.
 - Refined `test-tools-advanced-1.md` jsonb validation instructions to explicitly mention querying via specific paths or utilizing `pg_read_query`.
+- Reduced `pg_stats_top_n` maximum limit parameter from 1000 to 100 to prevent massive payload bloat.
+- Corrected advanced stress testing prompt `test-tools-advanced-2.md` misattributing `pg_capacity_planning` to the `stats` tool group rather than `monitoring`.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.

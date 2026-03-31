@@ -43,7 +43,7 @@ export const StatsTopNSchemaBase = z.object({
   column: z.string().describe("Column to rank by"),
   n: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Number of top values (default: 10, max: 1000)"),
+    .describe("Number of top values (default: 10, max: 100)"),
   direction: z
     .enum(["asc", "desc"])
     .optional()

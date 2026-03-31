@@ -94,8 +94,8 @@ export function createStatsTopNTool(
         } = parsed;
         const n =
           parsed.n === undefined || Number.isNaN(parsed.n) ? 10 : parsed.n;
-        if (n > 1000) {
-          throw new ValidationError("Parameter 'n' cannot exceed 1000.");
+        if (n > 100) {
+          throw new ValidationError("Parameter 'n' cannot exceed 100.");
         }
         const direction = parsed.direction ?? "desc";
         const schemaName = schema ?? "public";
