@@ -318,6 +318,14 @@ export function parsePostgresError(
       );
     }
 
+    // Function not found with non-text argument
+    if (/function to_tsvector\([^)]*\) does not exist/i.test(msg)) {
+      throw new Error(
+        `Full-text search requires a text-based column. Ensure the targeted column is a valid text type.`,
+        { cause: error },
+      );
+    }
+
     // pg_cron tool context guard — provide cron-appropriate messages
     // instead of the misleading generic "Object 'X' not found"
     if (context.tool?.startsWith("pg_cron_")) {

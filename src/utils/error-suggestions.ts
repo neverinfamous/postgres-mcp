@@ -62,9 +62,9 @@ const ERROR_SUGGESTIONS: {
     code: "CALCULATION_ERROR",
   },
   {
-    pattern: /not a text-based type/i,
+    pattern: /(not a text-based type|requires a text-based column)/i,
     suggestion:
-      "This conversion requires a text-based column originally. Alter the column type manually first if converting from numeric/boolean.",
+      "This operation requires a text-based column originally. Alter the column type manually first if converting from numeric/boolean.",
     category: ErrorCategory.VALIDATION,
     code: "COLUMN_TYPE_MISMATCH",
   },
