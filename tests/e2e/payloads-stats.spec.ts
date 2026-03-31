@@ -110,12 +110,12 @@ test.describe("Payload Contracts: Stats + Partitioning", () => {
       },
     });
 
-    const first = rawResult.content[0];
-    if (rawResult.isError) {
-      expect(first.type).toBe("text");
-      expect((first as any).text.toLowerCase()).toContain("validation error");
+    const first = (rawResult as any).content[0];
+    const response = JSON.parse((first as any).text);
+    if (response.success === false) {
+      expect(response.code).toBe("VALIDATION_ERROR");
+      expect(response.error).toContain("cannot exceed 1000");
     } else {
-      const response = JSON.parse((first as any).text) as any;
       expect(response.success).toBe(true);
       expect(response.rows.length).toBeLessThanOrEqual(1000);
     }
@@ -138,8 +138,8 @@ test.describe("Payload Contracts: Stats + Partitioning", () => {
     });
     expectSuccess(payload);
     expect(Array.isArray(payload.summaries)).toBe(true);
-    expect(payload.summaries.length).toBeGreaterThan(0);
-    expect(payload.summaries[0].column).toBe("price");
+    expect((payload.summaries as any[]).length).toBeGreaterThan(0);
+    expect((payload.summaries as any[])[0].column).toBe("price");
   });
 
   test("pg_partition_info returns partition info", async () => {

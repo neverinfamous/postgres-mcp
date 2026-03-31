@@ -47,6 +47,8 @@
 - Resolved `numeric field overflow` PostgreSQL exceptions by mapping them to specific `CALCULATION_ERROR` error structures instead of returning raw proxy errors.
 - Added 1000-character input validation constraints to `pg_append_insight` to prevent extreme query bloating in the `postgres://insights` resource limit.
 - Inaccurate tool test instructions in `test-group-tools.md` requiring superfluous `column` parameters for window functions (`pg_stats_row_number`, `pg_stats_rank`).
+- Standardized error codes for nonexistent columns and tables in `stats` tool group to rigidly match PostgreSQL syntax ('does not exist').
+- Solved Zod validation refinement leak returning `-32602` schema errors by safely moving explicit ceiling boundaries (`n`, `limit`, `maxOutliers`) inside `stats` tool handlers while maintaining `coerceNumber` fallback resiliency.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.

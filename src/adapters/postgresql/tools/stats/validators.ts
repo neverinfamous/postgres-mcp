@@ -56,10 +56,10 @@ export async function validateNumericColumn(
       table,
     ]);
     if (tableResult.rows?.length === 0) {
-      throw new ValidationError(`Table "${schema}.${table}" not found`);
+      throw new ValidationError(`Table "${schema}.${table}" does not exist`);
     }
     throw new ValidationError(
-      `Column "${column}" not found in table "${schema}.${table}"`,
+      `Column "${column}" does not exist`,
     );
   }
 

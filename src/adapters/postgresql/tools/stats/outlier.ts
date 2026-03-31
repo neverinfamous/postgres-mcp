@@ -15,6 +15,7 @@ import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import { validateNumericColumn } from "./validators.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   StatsOutliersSchemaBase,
   StatsOutliersSchema,
@@ -60,6 +61,11 @@ export function createStatsOutliersTool(
           parsed.maxOutliers === undefined || Number.isNaN(parsed.maxOutliers)
             ? 50
             : parsed.maxOutliers;
+        if (maxOutliers > 1000) {
+          throw new ValidationError(
+            "Parameter 'maxOutliers' cannot exceed 1000.",
+          );
+        }
         const limit =
           parsed.limit === undefined || Number.isNaN(parsed.limit)
             ? 10000

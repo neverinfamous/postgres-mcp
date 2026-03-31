@@ -70,15 +70,19 @@ export function createStatsTimeSeriesTool(
         const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
         const agg = aggregation ?? "avg";
 
-        // Handle limit: undefined uses default (100), 0 means no limit
+        // Handle limit: undefined uses default (100), 0 means no limit (which we safely cap at MAX_LIMIT)
         // Track whether user explicitly provided a limit
         const userProvidedLimit = limit !== undefined;
         const DEFAULT_LIMIT = 100;
-        // limit === 0 means "no limit", otherwise use provided limit or default
-        const effectiveLimit =
-          limit === 0 ? undefined : (limit ?? DEFAULT_LIMIT);
-        const usingDefaultLimit =
-          !userProvidedLimit && effectiveLimit !== undefined;
+        const MAX_LIMIT = 10000;
+        
+        if (limit !== undefined && limit > MAX_LIMIT) {
+          throw new ValidationError(`Parameter 'limit' cannot exceed ${String(MAX_LIMIT)}.`);
+        }
+        
+        // limit === 0 originally meant "no limit", but we safely cap it at 10000 to prevent context explosions
+        const effectiveLimit = limit === 0 ? MAX_LIMIT : (limit ?? DEFAULT_LIMIT);
+        const usingDefaultLimit = !userProvidedLimit && effectiveLimit < MAX_LIMIT;
 
         // First check if table exists
         const schemaName = schema ?? "public";
@@ -91,7 +95,7 @@ export function createStatsTimeSeriesTool(
           table,
         ]);
         if (tableCheckResult.rows?.length === 0) {
-          throw new ValidationError(`Table "${schemaName}.${table}" not found`);
+          throw new ValidationError(`Table "${schemaName}.${table}" does not exist`);
         }
 
         // Validate timeColumn is a timestamp/date type
@@ -112,9 +116,7 @@ export function createStatsTimeSeriesTool(
           | undefined;
 
         if (!typeRow) {
-          throw new ValidationError(
-            `Column "${timeColumn}" not found in table "${schemaName}.${table}"`,
-          );
+          throw new ValidationError(`Column "${timeColumn}" does not exist`);
         }
 
         const validTypes = [
@@ -161,9 +163,7 @@ export function createStatsTimeSeriesTool(
           | undefined;
 
         if (!valueTypeRow) {
-          throw new ValidationError(
-            `Column "${valueColumn}" not found in table "${schemaName}.${table}"`,
-          );
+          throw new ValidationError(`Column "${valueColumn}" does not exist`);
         }
 
         if (!numericTypes.includes(valueTypeRow.data_type)) {
@@ -195,11 +195,16 @@ export function createStatsTimeSeriesTool(
         };
 
         if (groupBy !== undefined) {
-          // Handle groupLimit: undefined uses default (20), 0 means no limit
+          // Handle groupLimit: undefined uses default (20), 0 means MAX to prevent payload explosion
           const DEFAULT_GROUP_LIMIT = 20;
+          const MAX_GROUP_LIMIT = 1000;
+          
+          if (groupLimit !== undefined && groupLimit > MAX_GROUP_LIMIT) {
+            throw new ValidationError(`Parameter 'groupLimit' cannot exceed ${String(MAX_GROUP_LIMIT)}.`);
+          }
+          
           const userProvidedGroupLimit = groupLimit !== undefined;
-          const effectiveGroupLimit =
-            groupLimit === 0 ? undefined : (groupLimit ?? DEFAULT_GROUP_LIMIT);
+          const effectiveGroupLimit = groupLimit === 0 ? MAX_GROUP_LIMIT : (groupLimit ?? DEFAULT_GROUP_LIMIT);
 
           // First get total count of distinct groups for truncation indicator
           // COUNT(DISTINCT) excludes NULLs per SQL standard, so add 1 if any NULLs exist

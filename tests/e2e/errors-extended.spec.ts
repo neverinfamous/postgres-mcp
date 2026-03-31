@@ -249,9 +249,9 @@ test.describe("Errors: Stats", () => {
         column: "price",
         n: 1001,
       });
-      const text = response.content[0]?.text;
+      const text = (response as any).content[0]?.text;
       expect(text).toBeDefined();
-      expect(text).toContain("Input validation error");
+      expect(text).toContain("VALIDATION_ERROR");
     } finally {
       await client.close();
     }

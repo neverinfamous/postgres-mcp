@@ -94,6 +94,9 @@ export function createStatsTopNTool(
         } = parsed;
         const n =
           parsed.n === undefined || Number.isNaN(parsed.n) ? 10 : parsed.n;
+        if (n > 1000) {
+          throw new ValidationError("Parameter 'n' cannot exceed 1000.");
+        }
         const direction = parsed.direction ?? "desc";
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
@@ -210,6 +213,9 @@ export function createStatsDistinctTool(
           parsed.limit === undefined || Number.isNaN(parsed.limit)
             ? 100
             : parsed.limit;
+        if (limit > 1000) {
+          throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
+        }
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where
           ? `WHERE ${sanitizeWhereClause(where)}`
@@ -285,6 +291,9 @@ export function createStatsFrequencyTool(
           parsed.limit === undefined || Number.isNaN(parsed.limit)
             ? 20
             : parsed.limit;
+        if (limit > 1000) {
+          throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
+        }
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where
           ? `WHERE ${sanitizeWhereClause(where)}`
@@ -393,7 +402,7 @@ export function createStatsSummaryTool(
             const foundNames = new Set(foundCols.map((r) => r.column_name));
             const missing = parsed.columns.filter((c) => !foundNames.has(c));
             throw new ValidationError(
-              `Columns not found in table "${schemaName}.${table}": ${missing.join(", ")}`,
+              `Columns do not exist: ${missing.join(", ")}`,
             );
           }
 
@@ -435,7 +444,7 @@ export function createStatsSummaryTool(
               [schemaName, table],
             );
             if (!tableCheck.rows || tableCheck.rows.length === 0) {
-              throw new Error(`Table "${schemaName}.${table}" not found`);
+              throw new ValidationError(`Table "${schemaName}.${table}" does not exist`);
             }
           }
 

@@ -231,7 +231,7 @@ describe("pg_stats_descriptive", () => {
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain(
-      'Table "public.nonexistent_table" not found',
+      'Table "public.nonexistent_table" does not exist',
     );
   });
 
@@ -256,7 +256,7 @@ describe("pg_stats_descriptive", () => {
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain(
-      'Column "nonexistent_column" not found in table "public.orders"',
+      'Column "nonexistent_column" does not exist',
     );
   });
 
@@ -371,7 +371,7 @@ describe("pg_stats_percentiles", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Table "public.missing_table" not found');
+    expect(result.error).toContain('Table "public.missing_table" does not exist');
   });
 
   it("should throw error for non-numeric column in percentiles", async () => {
@@ -509,7 +509,7 @@ describe("pg_stats_correlation", () => {
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain(
-      'Table "public.nonexistent_table" not found',
+      'Table "public.nonexistent_table" does not exist',
     );
   });
 
@@ -535,7 +535,7 @@ describe("pg_stats_correlation", () => {
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain(
-      'Column "nonexistent_col" not found in table "public.products"',
+      'Column "nonexistent_col" does not exist',
     );
   });
 });
@@ -1395,7 +1395,7 @@ describe("pg_stats_correlation interpretation branches", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "a" not found');
+    expect(result.error).toContain('Column "a" does not exist');
   });
 });
 
@@ -1469,7 +1469,7 @@ describe("pg_stats_regression equation branches", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "x" not found');
+    expect(result.error).toContain('Column "x" does not exist');
   });
 });
 
@@ -1577,7 +1577,7 @@ describe("pg_stats_descriptive optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "amount" not found');
+    expect(result.error).toContain('Column "amount" does not exist');
   });
 });
 
@@ -1692,7 +1692,7 @@ describe("pg_stats_correlation optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "a" not found');
+    expect(result.error).toContain('Column "a" does not exist');
   });
 });
 
@@ -1767,7 +1767,7 @@ describe("pg_stats_regression optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "x" not found');
+    expect(result.error).toContain('Column "x" does not exist');
   });
 });
 
@@ -1880,7 +1880,7 @@ describe("pg_stats_hypothesis error handling", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "value" not found');
+    expect(result.error).toContain('Column "value" does not exist');
   });
 
   it("should return error when insufficient data (n < 2)", async () => {
@@ -2434,7 +2434,7 @@ describe("pg_stats_time_series optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should return error for missing valueColumn", async () => {
@@ -2455,7 +2455,7 @@ describe("pg_stats_time_series optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 });
 
@@ -3193,7 +3193,7 @@ describe("math-utils.ts — uncovered branches", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   // L230-232: validateNumericColumn — column not found (but table exists)
@@ -3210,7 +3210,7 @@ describe("math-utils.ts — uncovered branches", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
     expect(result.error).toContain("nonexistent");
   });
 
