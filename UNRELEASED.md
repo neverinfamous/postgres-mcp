@@ -65,6 +65,8 @@
 - Inaccurate parameter references (`vectorA` to `vector1`) within advanced stress testing documentation.
 - Corrected `pg_stats_regression` parameter names in `test-tools-advanced-1.md` (`columnX`/`columnY` → `xColumn`/`yColumn`).
 - Fixed `pg_ltree_lca` constraint requiring 2 paths; now properly handles single paths and identical common ancestors mirroring native Postgres functionality.
+- Corrected tool assignments in `test-tools-advanced-1.md` (jsonb group error tests) substituting `pg_stats_descriptive` with `pg_jsonb_extract`.
+- Refined `test-tools-advanced-1.md` jsonb validation instructions to explicitly mention querying via specific paths or utilizing `pg_read_query`.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.
