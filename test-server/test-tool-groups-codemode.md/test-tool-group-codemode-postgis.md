@@ -1,4 +1,4 @@
-# Postgres-mcp codemode **COMPLETE** Re-Testing
+# postgres-mcp Codemode Re-Testing: [postgis]
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -61,7 +61,6 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 12. **Audit backup tools**: The 3 `pg_audit_*` tools require `--audit-backup` to be enabled on the test server. When enabled, destructive operations (`pg_truncate`, `pg_drop_table`, `pg_vacuum`, etc.) create gzip-compressed `.snapshot.json.gz` files alongside the audit log. **V2 features to verify**: `pg_audit_diff_backup` now returns a `volumeDrift` field (row count + size changes); `pg_audit_restore_backup` supports `restoreAs` for side-by-side non-destructive restore; and Code Mode calls through `pg_execute_code` that trigger destructive operations are also captured by the interceptor. When disabled, all 3 tools return `{success: false, error: "Audit backup not enabled"}`.
 
 Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) return as parseable JSON objects. During error path testing, verify this: if an invalid Code Mode call returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
-
 
 ## Structured Error Response Pattern
 
@@ -215,3 +214,44 @@ DROP TABLE IF EXISTS temp_my_test_table;
 5. Stop and briefly summarize the testing results and fixes.
 
 ---
+
+## Group Focus: postgis
+
+### postgis Group-Specific Testing
+
+postgis Tool Group (15 tools +1 for code mode)
+
+1. 'pg_postgis_create_extension'
+2. 'pg_geometry_column'
+3. 'pg_point_in_polygon'
+4. 'pg_distance'
+5. 'pg_buffer'
+6. 'pg_intersection'
+7. 'pg_bounding_box'
+8. 'pg_spatial_index'
+9. 'pg_geocode'
+10. 'pg_geo_transform'
+11. 'pg_geo_index_optimize'
+12. 'pg_geo_cluster'
+13. 'pg_geometry_buffer'
+14. 'pg_geometry_intersection'
+15. 'pg_geometry_transform'
+16. 'pg_execute_code' (codemode, auto-added)
+
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
+
+**Test data:** Uses `test_locations.location` (POINT with SRID 4326, WGS84). GIST index on `location`.
+
+Cities: New York, Los Angeles, Chicago, London, Tokyo.
+
+Test distance calculations between cities (e.g., New York ↔ London).
+
+**Checklist:**
+
+1. `pg_geocode({lat: 40.7128, lng: -74.006})` → verify `{geojson, wkt}` present
+2. `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: 100000})` → expect: New York in results
+3. `pg_bounding_box({table: "test_locations", column: "location", minLat: 34, maxLat: 42, minLng: -119, maxLng: -73})` → expect: NY, LA, Chicago
+4. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
+5. 🔴 `pg_distance({table: "nonexistent_xyz", column: "geom", lat: 0, lng: 0, distance: 100})` → `{success: false, error: "..."}` handler error
+6. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
+7. 🔴 `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `distance` (wrong-type numeric param)
