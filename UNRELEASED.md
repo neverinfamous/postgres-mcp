@@ -65,6 +65,8 @@
 - Refined jsonb validation instructions indicating query paths
 - Removed mismatched `pg_capacity_planning` and `pg_pgcrypto_hash` tests from the `stats` and `vector` test sections in `test-tools-advanced-2.md`
 - Missing targetTable parameters within `test-tools-advanced-3` partman execution directives
+- Replaced generic PG query exceptions in `pg_distance` and `pg_point_in_polygon` out-of-bounds checks with specific `ValidationError` structures (P154 compliance)
+- Corrected inaccuracy in `test-tools-advanced-3.md` assigning assumed implicit kwargs to postgis coordinate tests
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

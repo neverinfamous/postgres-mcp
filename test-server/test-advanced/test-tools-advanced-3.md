@@ -98,8 +98,8 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 2. `pg_geocode` with lat=0, lng=181 → expect bounds validation error (lng ±180°)
 3. `pg_geocode` with lat=90, lng=180 (exact boundary) → should succeed
 4. `pg_geocode` with lat=-90, lng=-180 (exact boundary) → should succeed
-5. `pg_distance` with out-of-bounds point → expect bounds validation error
-6. `pg_point_in_polygon` with out-of-bounds point → expect bounds validation error
+5. `pg_distance` with out-of-bounds point (e.g., lat=100) along with required `table` and `column` kwargs → expect bounds validation error
+6. `pg_point_in_polygon` with out-of-bounds point (e.g., lat=100) along with required `table` and `column` kwargs → expect bounds validation error
 
 ### Final Cleanup
 
