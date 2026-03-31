@@ -100,6 +100,14 @@ export class HttpTransport {
       hstsMaxAge: config.hstsMaxAge ?? DEFAULTS.HSTS_MAX_AGE,
       trustProxy: config.trustProxy ?? false,
       stateless: config.stateless ?? false,
+      headersTimeoutMs: config.headersTimeoutMs ??
+        (process.env["MCP_HEADERS_TIMEOUT"]
+          ? parseInt(process.env["MCP_HEADERS_TIMEOUT"], 10)
+          : undefined),
+      requestTimeoutMs: config.requestTimeoutMs ??
+        (process.env["MCP_REQUEST_TIMEOUT"]
+          ? parseInt(process.env["MCP_REQUEST_TIMEOUT"], 10)
+          : undefined),
     };
     if (onConnect) {
       this.onConnect = onConnect;
@@ -122,9 +130,9 @@ export class HttpTransport {
       });
 
       // Server timeouts — prevent slowloris-style DoS attacks
-      this.server.setTimeout(HTTP_REQUEST_TIMEOUT_MS);
+      this.server.setTimeout(this.config.requestTimeoutMs ?? HTTP_REQUEST_TIMEOUT_MS);
       this.server.keepAliveTimeout = HTTP_KEEP_ALIVE_TIMEOUT_MS;
-      this.server.headersTimeout = HTTP_HEADERS_TIMEOUT_MS;
+      this.server.headersTimeout = this.config.headersTimeoutMs ?? HTTP_HEADERS_TIMEOUT_MS;
 
       // Start deterministic rate limit cleanup (every 60s)
       if (this.config.enableRateLimit) {

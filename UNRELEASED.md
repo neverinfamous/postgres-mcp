@@ -13,7 +13,7 @@
 - **Worker-thread Code Mode**: Implemented V8 isolate sandbox (`src/codemode/worker-sandbox.ts`) using `node:worker_threads` with `ResourceLimits`, hard timeouts, and MessagePort RPC bridge.
 - **Harmonized error types**: Introduced `types/error-types.ts` with `ErrorCategory` enum (9 categories) and canonical formatters for structured P154 error compliance.
 - **Error auto-refinement**: Added `findSuggestion()` to refine generic codes into specific codes (e.g., `TABLE_NOT_FOUND`) via `REFINABLE_CODES`.
-- **Server timeout protection**: Configured HTTP server keep-alive and headers timeouts to prevent slowloris-style DoS attacks.
+- **Server timeout protection**: Configured customizable HTTP server keep-alive, request, and headers timeouts (`MCP_REQUEST_TIMEOUT`, `MCP_HEADERS_TIMEOUT`) to prevent slowloris-style DoS attacks while resolving strict Node.js E2E timing constraints.
 - **DNS rebinding protection**: Added `validateHostHeader()` to validate `Host` headers against localhost addresses.
 - **Rate-limit enhancements**: Added `/health` bypass for rate limiting with `Retry-After` headers and `MCP_RATE_LIMIT_MAX` environment fallback.
 - **New Tools (13 total)**:

@@ -256,8 +256,8 @@ export function createMigrationApplyTool(
           try {
             await adapter.executeQuery(
               `INSERT INTO ${TRACKING_TABLE}
-             (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, 'failed')`,
+             (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql, status, error_information)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 'failed', $8)`,
               [
                 parsed.version,
                 parsed.description ?? null,
@@ -266,6 +266,7 @@ export function createMigrationApplyTool(
                 parsed.migrationSql,
                 parsed.sourceSystem ?? null,
                 parsed.rollbackSql ?? null,
+                message,
               ],
             );
           } catch {

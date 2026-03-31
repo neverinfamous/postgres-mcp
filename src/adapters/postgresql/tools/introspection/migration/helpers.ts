@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS ${qualifiedTable} (
   source_system VARCHAR(50),
   rollback_sql TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'applied',
+  error_information TEXT,
   CONSTRAINT valid_status CHECK (status IN ('applied', 'recorded', 'rolled_back', 'failed'))
 )`;
 }
@@ -116,6 +117,7 @@ export interface FormattedRecord {
   migrationHash: string;
   sourceSystem: string | null;
   status: string;
+  errorInformation?: string | null;
 }
 
 export function formatRecord(row: Record<string, unknown>): FormattedRecord {
@@ -133,5 +135,6 @@ export function formatRecord(row: Record<string, unknown>): FormattedRecord {
     migrationHash: row["migration_hash"] as string,
     sourceSystem: (row["source_system"] as string | null) ?? null,
     status: row["status"] as string,
+    ...(row["error_information"] !== undefined ? { errorInformation: (row["error_information"] as string | null) ?? null } : {})
   };
 }

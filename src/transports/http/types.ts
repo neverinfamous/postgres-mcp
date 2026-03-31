@@ -98,4 +98,15 @@ export interface HttpTransportConfig {
    * Only enable when running behind a trusted reverse proxy.
    */
   trustProxy?: boolean;
+
+  /**
+   * Override HTTP headers timeout (ms)
+   * Prevents slowloris attacks by dropping connections that take too long to send headers
+   */
+  headersTimeoutMs?: number | undefined;
+
+  /**
+   * Override HTTP request timeout (ms)
+   */
+  requestTimeoutMs?: number | undefined;
 }

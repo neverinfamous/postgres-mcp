@@ -219,7 +219,7 @@ export function createMigrationHistoryTool(
         const offsetIdx = String(paramIdx);
         const dataResult = await adapter.executeQuery(
           `SELECT id, version, description, applied_at, applied_by,
-                migration_hash, source_system, rollback_sql IS NOT NULL AS has_rollback, status
+                migration_hash, source_system, rollback_sql IS NOT NULL AS has_rollback, status, error_information
          FROM ${TRACKING_TABLE}
          ${whereClause}
          ORDER BY applied_at DESC

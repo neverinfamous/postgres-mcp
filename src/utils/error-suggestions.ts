@@ -23,6 +23,13 @@ const ERROR_SUGGESTIONS: {
 }[] = [
   // Validation errors
   {
+    pattern: /invalid (latitude|longitude)/i,
+    suggestion:
+      "Check the input parameters match the expected schema.",
+    category: ErrorCategory.VALIDATION,
+    code: "VALIDATION_ERROR",
+  },
+  {
     pattern: /invalid table name/i,
     suggestion:
       "Table names must follow PostgreSQL identifier rules: start with a letter or underscore, contain only alphanumeric characters or underscores.",

@@ -178,6 +178,7 @@ const MigrationRecordOutputEntry = z.object({
   migrationHash: z.string(),
   sourceSystem: z.string().nullable(),
   status: z.string(),
+  errorInformation: z.string().nullable().optional(),
 });
 
 export const MigrationInitOutputSchema = z.object({

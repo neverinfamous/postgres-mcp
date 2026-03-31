@@ -62,12 +62,16 @@ test.describe("Advanced HTTP Transport Security", () => {
       }
     });
   });
-
   test.describe("Slowloris & Connection Timeouts", () => {
-    test.setTimeout(80000);
+    test.setTimeout(10000);
 
     test.beforeAll(async () => {
+      // Start server with 1s headers/request timeout for testing Slowloris fast
+      process.env["MCP_HEADERS_TIMEOUT"] = "1000";
+      process.env["MCP_REQUEST_TIMEOUT"] = "1000";
       await startServer(SLOWLORIS_PORT, [], "slowloris");
+      delete process.env["MCP_HEADERS_TIMEOUT"];
+      delete process.env["MCP_REQUEST_TIMEOUT"];
     });
 
     test.afterAll(() => {
@@ -81,20 +85,27 @@ test.describe("Advanced HTTP Transport Security", () => {
           client.write("GET /health HTTP/1.1\\r\\n");
           client.write("Host: localhost\\r\\n");
           
-          // DO NOT send the final \\r\\n\\r\\n, leaving the headers incomplete
-          
+          // Trickle data to keep socket active but headers incomplete
+          const interval = setInterval(() => {
+            if (!client.destroyed) {
+              client.write("X-Slow: 1\\r\\n");
+            }
+          }, 300);
+
           const timeout = setTimeout(() => {
+            clearInterval(interval);
             client.destroy();
             reject(new Error("Socket did not close within expected timeout"));
-          }, 70000); // The server's headersTimeout is 66000 by default
+          }, 3500); // Should timeout at 1000ms
 
           client.on("close", () => {
+            clearInterval(interval);
             clearTimeout(timeout);
             resolve();
           });
           
           client.on("error", (err) => {
-            // ECONNRESET or similar is acceptable when the server drops us
+            clearInterval(interval);
             clearTimeout(timeout);
             resolve();
           });
