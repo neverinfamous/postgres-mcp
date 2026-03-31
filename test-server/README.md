@@ -17,7 +17,7 @@
 | `test-prompts.md` | 8 KB | Prompt testing plan (19 prompts). Tested manually since agents typically don't invoke prompts yet. | When testing prompts |
 | `test-prompts.sql` | 19 KB | Seed SQL for prompt-specific `prompt_*` tables | Run before prompt testing |
 | `tool-groups-list.md` | 8 KB | **Canonical tool inventory** — all 22 groups, 231 tools (222 published + 9 utility). Source of truth for tool counts. | Reference / auditing |
-| `Tool-Reference.md` | 31 KB | **Complete Tool Reference** — Detailed list of all 231 tools mapped to their specific tool groups. | Reference |
+| `tool-reference.md` | 31 KB | **Complete Tool Reference** — Detailed list of all 231 tools mapped to their specific tool groups. | Reference |
 | [`code-map.md`](code-map.md) | ~16KB | **Source Code Map** — Directory tree, handler→tool mapping, type/schema locations, error hierarchy, constants, architecture patterns. | When debugging source code or making changes |
 | `test-database.sql` | 9 KB | Core seed SQL for all `test_*` tables | Reference only — reset script uses this |
 | `reset-database.ps1` | 15 KB | PowerShell script to reset Docker container DB from seed data. Handles `_mcp_migrations`, partman cleanup, cron jobs. | After migration/partman testing or data pollution |
@@ -33,7 +33,7 @@
 | Password  | `root`      |
 | User  | `root`      |
 
-## Test Database Schema 
+## Test Database Schema
 
 | Table | Rows | Key Columns | Special Types | Primary Tool Groups |
 |-------|------|-------------|---------------|---------------------|
@@ -107,7 +107,7 @@
 
 1. Read `postgres://help` resource (via MCP — critical gotchas, aliases, Code Mode API) and relevant group help (`postgres://help/{group}`).
 2. Read `test-tools.md` for protocol, schema, and error pattern details.
-3. Open target group from `test-tool-groups/test-tool-group-[name].md`. 
+3. Open target group from `test-tool-groups/test-tool-group-[name].md`.
 4. Run checklist + explicit 🔴 error path and alias tests.
 5. Clean up temp tables (`DROP TABLE IF EXISTS`).
 6. Report findings returning proper handler errors (`{success: false, error: "..."}`).
