@@ -7,6 +7,7 @@
 - Do not modify or skip tests.
 - Do not run test-tools-advanced-2.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
+- Focus only on these tests.
 
 ## Code Mode Execution
 

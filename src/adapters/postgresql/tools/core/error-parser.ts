@@ -401,6 +401,14 @@ export function parsePostgresError(
     );
   }
 
+  // 22P02 — invalid input syntax (e.g., passing string to numeric column, or invalid UUID)
+  if (pgCode === "22P02" || /invalid input syntax/i.test(msg)) {
+    throw new Error(
+      `Type mismatch: ${msg}. The provided value is not valid for the target column type.`,
+      { cause: error },
+    );
+  }
+
   // Unrecognized PG error — re-throw with cause preserved
   throw error;
 }
