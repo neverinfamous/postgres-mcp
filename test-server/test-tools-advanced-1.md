@@ -230,8 +230,8 @@ Verify that tools returning `truncated` and `totalCount` fields work correctly:
 
 **5.3 Schema Snapshot Compact Mode**
 
-48. `pg_schema_snapshot()` (default) → note payload size
-49. `pg_schema_snapshot({compact: true})` → verify tables section omits `columns` key, note payload size reduction
+48. `pg_schema_snapshot({compact: false})` (full mode) → note payload size
+49. `pg_schema_snapshot()` (default is compact: true) → verify tables section omits `columns` key, note payload size reduction
 50. `pg_schema_snapshot({sections: ["tables", "indexes"]})` → verify only those sections present
 
 ### Category 6: Code Mode Parity
