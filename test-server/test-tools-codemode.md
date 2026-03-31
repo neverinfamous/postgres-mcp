@@ -2,13 +2,13 @@
 
 **ESSENTIAL INSTRUCTIONS**
 
-**Conduct an exhaustive test of the tool group listed below using ONLY code mode (`pg_execute_code`)**
-**Do NOT use scripts or terminal to replace planned tests.**
-**Do NOT modify or skip tests.**
-**Ensure your validation script returns an aggregated array of failures if any exist.**
-**Group multiple tests into a single script to save context window tokens.**
-**Do NOT run test-tools-advanced-2.md.**
-**All changes MUST be consistent with other postgres-mcp tools and `code-map.md`**
+- Conduct an exhaustive test of the tool group listed below using ONLY code mode (`pg_execute_code`).
+- Do not use scripts or terminal to replace planned tests.
+- Do not modify or skip tests.
+- Ensure your validation script returns an aggregated array of failures if any exist.
+- Group multiple tests into a single script to save context window tokens.
+- Do not run test-tools-advanced-2.md at this time.
+- All changes MUST be consistent with other postgres-mcp tools and `code-map.md`.
 
 ## Reporting Format
 
