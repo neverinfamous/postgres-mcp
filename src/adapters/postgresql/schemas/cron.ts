@@ -89,7 +89,7 @@ function preprocessCronParams(input: unknown): unknown {
  * Handles PostgreSQL BIGINT values that may be returned as strings.
  */
 const CoercibleJobId = z
-  .union([z.number(), z.string().regex(/^\d+$/, "Invalid job ID format")])
+  .union([z.number(), z.string()])
   .transform((v) => Number(v))
   .describe("Job ID (accepts number or numeric string)");
 
