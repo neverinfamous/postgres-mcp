@@ -131,8 +131,8 @@ Confirm `test_locations` count is still 25 (post-resource-seed baseline).
 2. `pg_ltree_subpath` with `path: "a"`, `offset: 0`, `length: 1` → expect `"a"`
 3. `pg_ltree_subpath` with `path: "a.b.c"`, `offset: 5` (beyond depth) → expect structured error with `pathDepth`
 4. `pg_ltree_subpath` with negative offset `offset: -1` → expect last label
-5. `pg_ltree_lca` with only 1 path → expect error (minimum 2 paths)
-6. `pg_ltree_lca` with identical paths `["electronics", "electronics"]` → expect `{hasCommonAncestor: false}` with empty string (root-level labels have no ancestor above them — PostgreSQL's `lca()` returns `""` for single-label paths, even identical ones; use multi-level paths like `"electronics.phones"` to get meaningful LCA results)
+5. `pg_ltree_lca` with only 1 path → expect `{hasCommonAncestor: true}` with the identical path returned
+6. `pg_ltree_lca` with identical paths `["electronics.phones", "electronics.phones"]` → expect `{hasCommonAncestor: true}` and returns `"electronics.phones"`
 7. `pg_ltree_lca` with paths having no common ancestor `["electronics", "clothing"]` → expect empty/null ancestor
 8. `pg_ltree_query({table: "test_products", column: "name", path: "electronics"})` → error about non-ltree column
 
