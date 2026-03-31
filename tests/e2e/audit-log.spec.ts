@@ -18,7 +18,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { startServer, stopServer, createClient, callToolRaw, callToolAndParse } from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
@@ -70,7 +70,7 @@ test.describe("Audit Log", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Begin a transaction (write scope) — should be logged
       await callToolRaw(client, "pg_transaction_begin", {});
@@ -107,7 +107,7 @@ test.describe("Audit Log", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Execute only read-scope tools (core group = read scope)
       await callToolRaw(client, "pg_read_query", { sql: "SELECT 1 AS n" });
@@ -144,7 +144,7 @@ test.describe("Audit Log", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Create an audit entry via a write-scope tool
       await callToolRaw(client, "pg_transaction_begin", {});
@@ -184,7 +184,7 @@ test.describe("Audit Log", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Begin a transaction (write scope) with redact enabled
       await callToolRaw(client, "pg_transaction_begin", {});
@@ -219,7 +219,7 @@ test.describe("Audit Log", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Execute a read-scope tool (core group = read scope)
       await callToolRaw(client, "pg_read_query", { sql: "SELECT 1 AS n" });
@@ -256,7 +256,7 @@ test.describe("Audit Log", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Begin a transaction (write scope) — should be logged with tokenEstimate
       await callToolRaw(client, "pg_transaction_begin", {});
@@ -290,7 +290,7 @@ test.describe("Audit Log", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Create an audit entry via a write-scope tool
       await callToolRaw(client, "pg_transaction_begin", {});
@@ -356,7 +356,7 @@ test.describe("Audit Log", () => {
 
       let client: Client | undefined;
       try {
-        client = await createClient(`http://localhost:${port}`);
+        client = await createClient(`http://127.0.0.1:${port}`);
 
         // Write first batch to exceed 500 bytes
         for (let i = 0; i < 8; i++) {
@@ -425,7 +425,7 @@ test.describe("Audit Log", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Perform a new write
       await callToolRaw(client, "pg_transaction_begin", {});

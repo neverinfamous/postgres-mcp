@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 
 test.describe("HTTP Transport Security & Limits", () => {
   test("should return 404 Not Found for unknown endpoints", async ({

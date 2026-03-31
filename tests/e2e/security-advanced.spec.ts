@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { startServer, stopServer, createClient } from "./helpers.js";
 import { createConnection } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
@@ -21,13 +21,13 @@ test.describe("Advanced HTTP Transport Security", () => {
 
     test("should reject requests with invalid Host header (DNS rebinding protection)", async ({ request }) => {
       // Direct request with valid local IP works
-      const validResponse = await request.get(`http://localhost:${ADV_SEC_PORT}/health`, {
+      const validResponse = await request.get(`http://127.0.0.1:${ADV_SEC_PORT}/health`, {
         headers: { Host: `127.0.0.1:${ADV_SEC_PORT}` }
       });
       expect(validResponse.status()).toBe(200);
 
       // Request with malicious host header
-      const invalidResponse = await request.get(`http://localhost:${ADV_SEC_PORT}/health`, {
+      const invalidResponse = await request.get(`http://127.0.0.1:${ADV_SEC_PORT}/health`, {
         headers: { Host: "malicious-attacker.com" }
       });
       expect(invalidResponse.status()).toBe(403);
@@ -36,7 +36,7 @@ test.describe("Advanced HTTP Transport Security", () => {
     });
 
     test("should use X-Forwarded-For for rate limiting when trustProxy is true", async ({ request }) => {
-      const targetUrl = `http://localhost:${ADV_SEC_PORT}/health`;
+      const targetUrl = `http://127.0.0.1:${ADV_SEC_PORT}/health`;
       
       // Simulate multiple requests from same forwarded IP
       const spoofedIp = "203.0.113.1";
@@ -51,7 +51,7 @@ test.describe("Advanced HTTP Transport Security", () => {
       // Hit an endpoint that DOES rate limit
       // Set to 110 requests to breach the default 100 max limit
       for (let i = 0; i < 110; i++) {
-        const response = await request.get(`http://localhost:${ADV_SEC_PORT}/`, {
+        const response = await request.get(`http://127.0.0.1:${ADV_SEC_PORT}/`, {
           headers: { "X-Forwarded-For": spoofedIp }
         });
         

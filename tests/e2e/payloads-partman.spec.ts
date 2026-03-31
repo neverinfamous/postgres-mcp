@@ -4,7 +4,7 @@
  * Validates response shapes for pg_partman (10) tools.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createClient, callToolAndParse } from "./helpers.js";
 

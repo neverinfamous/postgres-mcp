@@ -7,7 +7,7 @@
  * Ported from db-mcp/tests/e2e/numeric-coercion.spec.ts — adapted for postgres-mcp tool names.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { createClient, getBaseURL, callToolRaw } from "./helpers.js";
 
 test.describe.configure({ mode: "serial" });

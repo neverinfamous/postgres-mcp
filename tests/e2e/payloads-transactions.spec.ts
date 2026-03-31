@@ -5,7 +5,7 @@
  * Tests savepoints, rollback, execute-within-txn, and status.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   createClient,

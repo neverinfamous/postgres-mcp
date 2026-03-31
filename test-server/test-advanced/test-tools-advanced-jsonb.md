@@ -1,11 +1,11 @@
-# Advanced Stress Test — postgres-mcp — Part 4
+# Advanced Stress Test — postgres-mcp — jsonb Group
 
 **ESSENTIAL INSTRUCTIONS**
 
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run test-tools-advanced-1.md, test-tools-advanced-2.md, test-tools-advanced-3.md, test-tools-advanced-5.md, test-tools-advanced-6.md, test-tools-advanced-7.md, test-tools-advanced-8.md.
+- Do not run test-tools-advanced-1.md, test-tools-advanced-3.md, test-tools-advanced-4.md, test-tools-advanced-5.md, test-tools-advanced-6.md, test-tools-advanced-7.md, test-tools-advanced-8.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
 - Do not do anything other than these tests.
 
@@ -64,119 +64,61 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 ## Post-Test Procedures
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-4.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass. Highlight the single most expensive code mode block.
 5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
-## vector Group Advanced Tests
+## jsonb Group Advanced Tests
 
-### vector Group Tools (16 +1 code mode)
+### jsonb Group Tools (20 +1 code mode)
 
-1. pg_vector_create_extension
-2. pg_vector_add_column
-3. pg_vector_insert
-4. pg_vector_batch_insert
-5. pg_vector_search
-6. pg_vector_create_index
-7. pg_vector_distance
-8. pg_vector_normalize
-9. pg_vector_aggregate
-10. pg_vector_validate
-11. pg_vector_cluster
-12. pg_vector_index_optimize
-13. pg_hybrid_search
-14. pg_vector_performance
-15. pg_vector_dimension_reduce
-16. pg_vector_embed
-17. pg_execute_code (auto-added)
+1. pg_jsonb_extract
+2. pg_jsonb_set
+3. pg_jsonb_insert
+4. pg_jsonb_delete
+5. pg_jsonb_contains
+6. pg_jsonb_path_query
+7. pg_jsonb_agg
+8. pg_jsonb_object
+9. pg_jsonb_array
+10. pg_jsonb_keys
+11. pg_jsonb_strip_nulls
+12. pg_jsonb_typeof
+13. pg_jsonb_validate_path
+14. pg_jsonb_stats
+15. pg_jsonb_merge
+16. pg_jsonb_normalize
+17. pg_jsonb_diff
+18. pg_jsonb_index_suggest
+19. pg_jsonb_security_scan
+20. pg_jsonb_pretty
+21. pg_execute_code (auto-added)
 
-### Category 1: Vector Dimension Mismatches
+### Category 1: JSONB Mutation Workflow
 
-1. `pg_vector_insert` with a 3-dim vector `[1.0, 2.0, 3.0]` into `test_embeddings` (384-dim) → expect dimension error
-2. `pg_vector_search` with a 5-dim query vector on `test_embeddings` → expect dimension error
-3. `pg_vector_validate` with empty vector `[]` → expect `{valid: true, vectorDimensions: 0}`
-4. `pg_vector_validate` with single-element `[1.0]` → expect `{valid: true, vectorDimensions: 1}`
-5. `pg_vector_distance` between vectors of different dimensions `[1,2,3]` vs `[1,2]` (use `vector1` and `vector2` params) → expect error
+Create `stress_jsonb_mut (id SERIAL PRIMARY KEY, data JSONB DEFAULT '{}')`, insert one row with `data: {"name": "Alice", "tags": ["a", "b"], "nested": {"level1": {"value": 1}}}`, then test:
+
+1. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "name", value: "\"Bob\"", where: "id = 1"})` → verify `name` changed to `"Bob"`
+2. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "nested.level1.value", value: "42", where: "id = 1"})` → verify deep path set works
+3. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "newKey", value: "\"inserted\"", where: "id = 1", createMissing: true})` → verify new key added. **Note:** `pg_jsonb_insert` is for array targets only. Use `pg_jsonb_set` with `createMissing` for object key insertion
+4. `pg_jsonb_delete({table: "stress_jsonb_mut", column: "data", path: "tags", where: "id = 1"})` → verify `tags` key removed
+5. `pg_jsonb_merge` — standalone merge requires `base` + `overlay` params (not `doc1`/`doc2`). Use via Code Mode: `pg.jsonb.merge({base: {"a": 1, "b": 2}, overlay: {"b": 3, "c": 4}})` → verify merge result `{"a": 1, "b": 3, "c": 4}` (overlay wins on conflicts)
+6. Verify final state via `pg_jsonb_extract` on specific paths or `pg_read_query` — confirm all mutations applied correctly
+
+**pg_jsonb_pretty (mutation + standalone):**
+
+7. `pg_jsonb_pretty({table: "stress_jsonb_mut", column: "data", where: "id = 1"})` → verify the mutated JSONB is pretty-printed with indentation
+8. `pg_jsonb_pretty({json: "{\"compact\":true,\"nested\":{\"a\":1}}"})` → verify standalone pretty-print with indentation
+9. Cleanup: Drop `stress_jsonb_mut`
 
 ### Category 2: Error Message Quality
 
-6. `pg_vector_insert` with a 128-dim vector into `test_embeddings` (384-dim, ensure parameter `column: "embedding"`) → expect dimension mismatch error
+10. `pg_jsonb_extract({table: "nonexistent_table_xyz", column: "data", path: "test"})` → structured error
+11. `pg_jsonb_set({table: "test_jsonb_docs", column: "metadata", path: "author", value: "\"Modified\"", where: "id = 99999"})` → report behavior for nonexistent row
 
 ### Final Cleanup
 
-Confirm `test_embeddings` count is still 75 (post-resource-seed baseline).
-
----
-
-## performance Group Advanced Tests
-
-### Anomaly Detection Tools (subset of 24 +1 code mode)
-
-> **Note:** Basic performance tools are thoroughly covered in standard testing (`test-group-tools.md`). This section focuses on anomaly detection edge cases.
-
-Relevant tools for this section:
-
-- pg_detect_query_anomalies
-- pg_detect_bloat_risk
-- pg_detect_connection_spike
-
-### Category 1: pg_detect_query_anomalies Edge Cases
-
-1. `pg_detect_query_anomalies({threshold: 0.5})` → minimum threshold clamp; verify more anomalies than default; `riskLevel` may be `high` or `critical`
-2. `pg_detect_query_anomalies({threshold: 10.0})` → maximum threshold clamp; verify `anomalyCount: 0` (or 1 if an extreme outlier exists); `riskLevel` varies
-3. `pg_detect_query_anomalies({minCalls: 10000})` → very high minimum should filter most queries; verify `totalAnalyzed` is small or 0
-4. `pg_detect_query_anomalies({minCalls: 1})` → include all queries with at least 1 call; verify `totalAnalyzed` >= default result
-5. If `pg_stat_statements` is not loaded (hypothetical) → verify structured error with `success: false`, `suggestion` field mentioning `pg_diagnose_database_performance`, NOT raw MCP error
-
-### Category 2: pg_detect_bloat_risk Edge Cases
-
-6. `pg_detect_bloat_risk({minRows: 0})` → should clamp to 0 (include micro-tables); verify all user tables appear including small ones
-7. `pg_detect_bloat_risk({minRows: 1000000})` → very high threshold; expect `totalAnalyzed: 0` and empty `tables` (test DB has no million-row tables)
-8. `pg_detect_bloat_risk({schema: "public", minRows: 1})` → combined filter; verify tables array only contains `public` schema tables
-9. `pg_detect_bloat_risk({schema: "pg_catalog"})` → system schema filter; verify response structure (may be empty or contain system tables depending on filter logic)
-10. Verify each table in response has: `riskScore` (0-100), `riskLevel`, `recommendations` array, `factors` object with `deadTupleRatio`, `vacuumStaleness`, `tableSizeImpact`, `autovacuumEffectiveness`
-
-### Category 3: pg_detect_connection_spike Edge Cases
-
-11. `pg_detect_connection_spike({warningPercent: 10})` → very low threshold; verify more `warnings` entries than default (70%)
-12. `pg_detect_connection_spike({warningPercent: 100})` → maximum threshold; verify `warnings` is empty or minimal
-13. Verify `byState` array intentionally EXCLUDES the current monitoring query (via `pid != pg_backend_pid()`), meaning `state: "active"` may be absent if no other queries are running
-14. Verify `usagePercent` = `(totalConnections / maxConnections) * 100` (approximately)
-15. Verify `concentrations` array structure: each entry has `dimension`, `value`, `count`, `percent`
-
-### Category 4: Cross-Tool Correlation (Anomaly + Performance)
-
-Use Code Mode to cross-verify anomaly tools against existing performance tools:
-
-```javascript
-// Run via pg_execute_code
-const bloat = await pg.performance.detectBloatRisk({minRows: 1});
-const bloatCheck = await pg.performance.bloatCheck();
-return {
-  anomalyTables: bloat.tables?.length ?? 0,
-  bloatTables: bloatCheck.count ?? 0,
-  anomalyAnalyzed: bloat.totalAnalyzed,
-};
-```
-
-```javascript
-// Verify connection spike aligns with connection_stats
-const spike = await pg.performance.detectConnectionSpike();
-const stats = await pg.monitoring.connectionStats();
-return {
-  spikeTotal: spike.totalConnections,
-  statsTotal: stats.totalConnections,
-  match: spike.totalConnections === stats.totalConnections,
-  spikeMax: spike.maxConnections,
-  statsMax: stats.maxConnections,
-};
-```
-
-Expect: `match: true` (or close — slight timing differences acceptable)
-
-### Final Cleanup
-
-No cleanup needed (anomaly detection tools are read-only).
+Confirm `test_jsonb_docs` row count is still 3 and contents are unchanged.

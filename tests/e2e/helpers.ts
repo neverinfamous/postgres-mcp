@@ -8,13 +8,11 @@
 
 import { type ChildProcess, spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
-
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import type { TestInfo } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-const DEFAULT_BASE_URL = "http://localhost:3000";
 const DEFAULT_POSTGRES_URL =
   "postgres://postgres:postgres@localhost:5432/postgres";
 
@@ -25,7 +23,7 @@ const DEFAULT_POSTGRES_URL =
  * Falls back to DEFAULT_BASE_URL if not set.
  */
 export function getBaseURL(testInfo: TestInfo): string {
-  return (testInfo.project.use as { baseURL?: string }).baseURL ?? DEFAULT_BASE_URL;
+  return (testInfo.project.use as { baseURL?: string }).baseURL ?? (process.env.MCP_TEST_URL || "http://localhost:3000");
 }
 
 /**
@@ -35,9 +33,9 @@ export function getBaseURL(testInfo: TestInfo): string {
  * @param baseURL - Server base URL. Defaults to `http://localhost:3000`.
  */
 export async function createClient(
-  baseURL: string = DEFAULT_BASE_URL,
+  baseURL?: string,
 ): Promise<Client> {
-  const url = new URL(`${baseURL}/sse`);
+  const url = new URL(`${baseURL ?? process.env.MCP_TEST_URL ?? "http://localhost:3000"}/sse`);
   const maxRetries = 3;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -152,6 +150,7 @@ export async function startServer(
   extraArgs: string[] = [],
   label = "test",
 ): Promise<void> {
+  const hasPostgres = extraArgs.includes("--postgres");
   const proc = spawn(
     "node",
     [
@@ -160,8 +159,7 @@ export async function startServer(
       "http",
       "--port",
       String(port),
-      "--postgres",
-      DEFAULT_POSTGRES_URL,
+      ...(!hasPostgres ? ["--postgres", DEFAULT_POSTGRES_URL] : []),
       "--tool-filter",
       "+all",
       ...extraArgs,

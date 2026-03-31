@@ -7,7 +7,7 @@
  * Ported from db-mcp/tests/e2e/codemode.spec.ts — adapted for postgres-mcp.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import {
   createClient,
   getBaseURL,

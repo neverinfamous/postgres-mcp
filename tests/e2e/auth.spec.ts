@@ -5,13 +5,13 @@
  * on port 3101 to avoid conflicting with the main webServer.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { type ChildProcess, spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 const AUTH_TOKEN = "test-secret-token-e2e";
 const AUTH_PORT = 3101;
-const AUTH_BASE = `http://localhost:${AUTH_PORT}`;
+const AUTH_BASE = `http://127.0.0.1:${AUTH_PORT}`;
 
 let serverProcess: ChildProcess | null = null;
 
@@ -25,7 +25,7 @@ async function startAuthServer(): Promise<void> {
       "--port",
       String(AUTH_PORT),
       "--postgres",
-      "postgres://postgres:postgres@localhost:5432/postgres",
+      process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
       "--auth-token",
       AUTH_TOKEN,
       "--tool-filter",
@@ -58,7 +58,7 @@ function stopAuthServer(): void {
   }
 }
 
-test.describe("Bearer Token Authentication", () => {
+test.describe.serial("Bearer Token Authentication", () => {
   test.beforeAll(async () => {
     await startAuthServer();
   });

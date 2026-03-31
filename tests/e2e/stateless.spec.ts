@@ -5,12 +5,12 @@
  * on port 3102 to avoid conflicting with the main webServer.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { type ChildProcess, spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 const STATELESS_PORT = 3102;
-const STATELESS_BASE = `http://localhost:${STATELESS_PORT}`;
+const STATELESS_BASE = `http://127.0.0.1:${STATELESS_PORT}`;
 
 let serverProcess: ChildProcess | null = null;
 
@@ -24,7 +24,7 @@ async function startStatelessServer(): Promise<void> {
       "--port",
       String(STATELESS_PORT),
       "--postgres",
-      "postgres://postgres:postgres@localhost:5432/postgres",
+      process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
       "--stateless",
       "--tool-filter",
       "starter",
@@ -56,7 +56,7 @@ function stopStatelessServer(): void {
   }
 }
 
-test.describe("Stateless HTTP Mode", () => {
+test.describe.serial("Stateless HTTP Mode", () => {
   test.beforeAll(async () => {
     await startStatelessServer();
   });

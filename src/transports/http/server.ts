@@ -84,7 +84,7 @@ export class HttpTransport {
   ) {
     this.config = {
       ...config,
-      host: config.host ?? "localhost",
+      host: config.host ?? "127.0.0.1",
       publicPaths: config.publicPaths ?? ["/health", "/.well-known/*"],
       enableRateLimit: config.enableRateLimit ?? true,
       rateLimitWindowMs:
@@ -151,8 +151,7 @@ export class HttpTransport {
       this.server.on("error", reject);
 
       this.server.listen(this.config.port, this.config.host, () => {
-        logger.info(
-          `HTTP transport listening on ${this.config.host ?? "localhost"}:${String(this.config.port)}`,
+          `HTTP transport listening on ${this.config.host ?? "127.0.0.1"}:${String(this.config.port)}`,
         );
         resolve();
       });
@@ -231,19 +230,14 @@ export class HttpTransport {
 
     // DNS rebinding protection — only for localhost-bound servers
     const host = this.config.host ?? "localhost";
-    if (
-      host === "localhost" ||
       host === "127.0.0.1" ||
       host === "::1"
-    ) {
       if (!validateHostHeader(req, res)) {
         return;
       }
     }
 
-    const url = new URL(
-      req.url ?? "/",
-      `http://${req.headers.host ?? "localhost"}`,
+      `http://${req.headers.host ?? "127.0.0.1"}`,
     );
 
     // Health check — bypass rate limiting (always available for monitoring)

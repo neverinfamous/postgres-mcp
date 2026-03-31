@@ -71,35 +71,25 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Handle CSV format (default)
         if (format === "csv" || format === undefined) {
-          if (result.rows === undefined || result.rows.length === 0) {
-            return {
-              data: "",
-              rowCount: 0,
-              note: "Query returned no rows. Headers omitted for empty results.",
-              ...(conflictWarning !== undefined
-                ? { warning: conflictWarning }
-                : {}),
-            };
-          }
-
-          const firstRowData = result.rows[0];
-          if (firstRowData === undefined) {
-            return {
-              data: "",
-              rowCount: 0,
-              note: "Query returned no rows. Headers omitted for empty results.",
-              ...(conflictWarning !== undefined
-                ? { warning: conflictWarning }
-                : {}),
-            };
-          }
-          const headers = Object.keys(firstRowData);
+          const headers = result.fields ? result.fields.map(f => f.name) : [];
           const delim = delimiter ?? ",";
           const lines: string[] = [];
-
-          if (header !== false) {
+          
+          if (header !== false && headers.length > 0) {
             lines.push(headers.join(delim));
           }
+
+          if (result.rows === undefined || result.rows.length === 0) {
+            return {
+              data: lines.join("\n"),
+              rowCount: 0,
+              note: "Query returned no rows.",
+              ...(conflictWarning !== undefined
+                ? { warning: conflictWarning }
+                : {}),
+            };
+          }
+
 
           for (const row of result.rows) {
             lines.push(
@@ -133,12 +123,20 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
             effectiveLimit !== undefined &&
             result.rows.length === effectiveLimit;
 
+          let dataStr = lines.join("\n");
+          let isPayloadTruncated = isTruncated;
+          
+          if (dataStr.length > 50000) {
+             dataStr = dataStr.substring(0, 50000) + "\n...[WARNING: Data payload truncated to 50KB to protect system limits. Specify a limit parameter.]";
+             isPayloadTruncated = true;
+          }
+
           await sendProgress(progress, 3, 3, "Export complete");
 
           return {
-            data: lines.join("\n"),
+            data: dataStr,
             rowCount: result.rows.length,
-            ...(isTruncated ? { truncated: true, limit: effectiveLimit } : {}),
+            ...(isPayloadTruncated ? { truncated: true, limit: effectiveLimit } : {}),
             ...(conflictWarning !== undefined
               ? { warning: conflictWarning }
               : {}),
@@ -147,35 +145,26 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Handle TEXT format - tab-delimited with \N for NULLs
         if (format === "text") {
-          if (result.rows === undefined || result.rows.length === 0) {
-            return {
-              data: "",
-              rowCount: 0,
-              note: "Query returned no rows. Headers omitted for empty results.",
-              ...(conflictWarning !== undefined
-                ? { warning: conflictWarning }
-                : {}),
-            };
-          }
-
-          const firstRowData = result.rows[0];
-          if (firstRowData === undefined) {
-            return {
-              data: "",
-              rowCount: 0,
-              note: "Query returned no rows. Headers omitted for empty results.",
-              ...(conflictWarning !== undefined
-                ? { warning: conflictWarning }
-                : {}),
-            };
-          }
-          const headers = Object.keys(firstRowData);
+          const headers = result.fields ? result.fields.map(f => f.name) : [];
           const delim = delimiter ?? "\t";
           const lines: string[] = [];
 
-          if (header !== false) {
+          if (header !== false && headers.length > 0) {
             lines.push(headers.join(delim));
           }
+
+          if (result.rows === undefined || result.rows.length === 0) {
+            return {
+              data: lines.join("\n"),
+              rowCount: 0,
+              note: "Query returned no rows.",
+              ...(conflictWarning !== undefined
+                ? { warning: conflictWarning }
+                : {}),
+            };
+          }
+
+
 
           for (const row of result.rows) {
             lines.push(
@@ -205,12 +194,20 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
             effectiveLimit !== undefined &&
             result.rows.length === effectiveLimit;
 
+          let dataStr = lines.join("\n");
+          let isPayloadTruncated = isTruncated;
+          
+          if (dataStr.length > 50000) {
+             dataStr = dataStr.substring(0, 50000) + "\n...[WARNING: Data payload truncated to 50KB to protect system limits. Specify a limit parameter.]";
+             isPayloadTruncated = true;
+          }
+
           await sendProgress(progress, 3, 3, "Export complete");
 
           return {
-            data: lines.join("\n"),
+            data: dataStr,
             rowCount: result.rows.length,
-            ...(isTruncated ? { truncated: true, limit: effectiveLimit } : {}),
+            ...(isPayloadTruncated ? { truncated: true, limit: effectiveLimit } : {}),
             ...(conflictWarning !== undefined
               ? { warning: conflictWarning }
               : {}),

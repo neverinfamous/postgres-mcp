@@ -5,7 +5,7 @@
  * instead of crashing or returning unstructured text.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
@@ -16,7 +16,7 @@ test.describe("Structured Error Responses", () => {
 
   test.beforeAll(async () => {
     const transport = new SSEClientTransport(
-      new URL("http://localhost:3000/sse"),
+      new URL(`${process.env.MCP_TEST_URL || `${process.env.MCP_TEST_URL || 'http://127.0.0.1:3000'}`}/sse`),
     );
     client = new Client(
       { name: "playwright-errors-test", version: "1.0.0" },

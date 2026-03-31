@@ -8,13 +8,13 @@
  * Ported from db-mcp/tests/e2e/oauth-discovery.spec.ts — adapted for postgres-mcp.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { startServer, stopServer } from "./helpers.js";
 
 const OAUTH_PORT = 3106;
 
-test.describe("OAuth 2.1 Discovery", () => {
-  test.describe("Without OAuth enabled (default)", () => {
+test.describe.serial("OAuth 2.1 Discovery", () => {
+  test.describe.serial("Without OAuth enabled (default)", () => {
     test("/.well-known/oauth-protected-resource should return 404", async ({
       request,
     }) => {
@@ -28,7 +28,7 @@ test.describe("OAuth 2.1 Discovery", () => {
     });
   });
 
-  test.describe("With OAuth enabled", () => {
+  test.describe.serial("With OAuth enabled", () => {
     test.beforeAll(async () => {
       await startServer(
         OAUTH_PORT,
@@ -53,7 +53,7 @@ test.describe("OAuth 2.1 Discovery", () => {
 
     test("/.well-known/oauth-protected-resource should return RFC 9728 metadata", async () => {
       const response = await fetch(
-        `http://localhost:${OAUTH_PORT}/.well-known/oauth-protected-resource`,
+        `http://127.0.0.1:${OAUTH_PORT}/.well-known/oauth-protected-resource`,
       );
 
       expect(response.status).toBe(200);
@@ -75,7 +75,7 @@ test.describe("OAuth 2.1 Discovery", () => {
 
     test("/.well-known/oauth-protected-resource should include scopes", async () => {
       const response = await fetch(
-        `http://localhost:${OAUTH_PORT}/.well-known/oauth-protected-resource`,
+        `http://127.0.0.1:${OAUTH_PORT}/.well-known/oauth-protected-resource`,
       );
 
       const body = (await response.json()) as Record<string, unknown>;
@@ -91,7 +91,7 @@ test.describe("OAuth 2.1 Discovery", () => {
 
     test("MCP endpoints should require authentication with OAuth enabled", async () => {
       // POST to /mcp without a token should be rejected
-      const response = await fetch(`http://localhost:${OAUTH_PORT}/mcp`, {
+      const response = await fetch(`http://127.0.0.1:${OAUTH_PORT}/mcp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

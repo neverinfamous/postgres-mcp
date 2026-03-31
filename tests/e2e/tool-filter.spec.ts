@@ -7,7 +7,7 @@
  * Each test uses a dedicated server on a unique port.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { startServer, stopServer, createClient } from "./helpers.js";
 
 const FILTER_PORT_BASE = 3110;
@@ -18,7 +18,7 @@ test.describe("Tool Filter Runtime Behavior", () => {
     await startServer(port, ["--tool-filter", "core"], "filter-core");
 
     try {
-      const client = await createClient(`http://localhost:${port}`);
+      const client = await createClient(`http://127.0.0.1:${port}`);
       try {
         const list = await client.listTools();
         const names = list.tools.map((t) => t.name);
@@ -51,7 +51,7 @@ test.describe("Tool Filter Runtime Behavior", () => {
     );
 
     try {
-      const client = await createClient(`http://localhost:${port}`);
+      const client = await createClient(`http://127.0.0.1:${port}`);
       try {
         const list = await client.listTools();
         const names = list.tools.map((t) => t.name);
@@ -75,7 +75,7 @@ test.describe("Tool Filter Runtime Behavior", () => {
     );
 
     try {
-      const client = await createClient(`http://localhost:${port}`);
+      const client = await createClient(`http://127.0.0.1:${port}`);
       try {
         const list = await client.listTools();
         const names = list.tools.map((t) => t.name);

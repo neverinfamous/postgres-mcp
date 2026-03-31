@@ -5,7 +5,7 @@
  * alongside the legacy SSE transport for all MCP operations.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
@@ -16,7 +16,7 @@ test.describe("Streamable HTTP Transport (MCP 2025-11-25)", () => {
 
   test.beforeAll(async () => {
     const transport = new StreamableHTTPClientTransport(
-      new URL("http://localhost:3000/mcp"),
+      new URL(`${process.env.MCP_TEST_URL || `${process.env.MCP_TEST_URL || 'http://127.0.0.1:3000'}`}/mcp`),
     );
     client = new Client(
       { name: "playwright-streamable-test", version: "1.0.0" },

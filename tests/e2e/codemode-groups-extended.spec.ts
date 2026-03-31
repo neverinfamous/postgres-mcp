@@ -10,7 +10,7 @@
  * Added here: transactions, backup.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import {
   createClient,
   getBaseURL,

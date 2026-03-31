@@ -4,7 +4,7 @@
  * Validates response shapes for stats (19) and partitioning (6) tools.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createClient, callToolAndParse, expectSuccess } from "./helpers.js";
 

@@ -11,11 +11,11 @@
  * Ported from db-mcp/tests/e2e/streaming.spec.ts — adapted for postgres-mcp.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { startServer, stopServer } from "./helpers.js";
 
 const STREAM_PORT = 3105;
-const STREAM_BASE = `http://localhost:${STREAM_PORT}`;
+const STREAM_BASE = `http://127.0.0.1:${STREAM_PORT}`;
 
 test.describe("HTTP/SSE Streaming", () => {
   test.beforeAll(async () => {

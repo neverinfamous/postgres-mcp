@@ -16,7 +16,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import {
   startServer,
   stopServer,
@@ -73,7 +73,7 @@ test.describe("Audit Backup Snapshots", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Create a temp table, then truncate it (truncate triggers snapshot)
       await callToolAndParse(client, "pg_create_table", {
@@ -150,7 +150,7 @@ test.describe("Audit Backup Snapshots", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Create table with 2 columns
       await callToolAndParse(client, "pg_create_table", {
@@ -227,7 +227,7 @@ test.describe("Audit Backup Snapshots", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Create, then drop (creates snapshot of original)
       await callToolAndParse(client, "pg_create_table", {
@@ -283,7 +283,7 @@ test.describe("Audit Backup Snapshots", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // All 3 tools should return structured error, not throw
       const listResult = await callToolAndParse(
@@ -332,7 +332,7 @@ test.describe("Audit Backup Snapshots", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Create table and insert rows so volumeDrift has data to report
       await callToolAndParse(client, "pg_create_table", {
@@ -425,7 +425,7 @@ test.describe("Audit Backup Snapshots", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       await callToolAndParse(client, "pg_create_table", {
         name: TEMP_TABLE,
@@ -482,7 +482,7 @@ test.describe("Audit Backup Snapshots", () => {
 
     let client: Client | undefined;
     try {
-      client = await createClient(`http://localhost:${port}`);
+      client = await createClient(`http://127.0.0.1:${port}`);
 
       // Use simple column types — SERIAL creates a sequence that gets dropped
       // with the table, causing restoreAs to fail on the dangling nextval()

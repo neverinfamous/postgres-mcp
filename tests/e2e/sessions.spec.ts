@@ -6,7 +6,7 @@
  * (DELETE /mcp), and rejection of stale/invalid sessions.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 
 test.describe.configure({ mode: "serial" });
 

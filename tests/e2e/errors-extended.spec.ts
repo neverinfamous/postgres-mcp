@@ -9,7 +9,7 @@
  * Ported from db-mcp/tests/e2e/errors-extended.spec.ts — adapted for postgres-mcp tool names.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import {
   createClient,
   getBaseURL,

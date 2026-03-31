@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 
 test.describe("HTTP Transport Protocols", () => {
   test("should return server metadata on GET /", async ({ request }) => {
@@ -127,7 +127,7 @@ test.describe("HTTP Transport Protocols", () => {
       const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
       const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
 
-      const transport = new SSEClientTransport(new URL("http://localhost:3000/sse"));
+      const transport = new SSEClientTransport(new URL(`${process.env.MCP_TEST_URL || `${process.env.MCP_TEST_URL || 'http://127.0.0.1:3000'}`}/sse`));
       const client = new Client(
         { name: "playwright-sse-regression", version: "1.0.0" },
         { capabilities: {} },

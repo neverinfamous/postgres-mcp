@@ -1,4 +1,4 @@
-# Advanced Stress Test — postgres-mcp — Part 3
+# Advanced Stress Test — postgres-mcp — stats Group
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -64,7 +64,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 ## Post-Test Procedures
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-3.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass. Highlight the single most expensive code mode block.
 5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
@@ -204,43 +204,3 @@ return {
 ### Final Cleanup
 
 Confirm `test_measurements` row count is still 640 (post-resource-seed baseline).
-
----
-
-## admin Group Advanced Tests
-
-### admin Group Tools (11 +1 code mode)
-
-1. pg_vacuum
-2. pg_vacuum_analyze
-3. pg_analyze
-4. pg_reindex
-5. pg_terminate_backend
-6. pg_cancel_backend
-7. pg_reload_conf
-8. pg_set_config
-9. pg_reset_stats
-10. pg_cluster
-11. pg_append_insight
-12. pg_execute_code (auto-added)
-
-### Category 1: Insight Memo Workflow
-
-1. `pg_append_insight({text: "First insight: High CPU usage detected"})` → verify `{success: true, insightCount: N}`
-2. `pg_append_insight({text: "Second insight: Index scan ratio low"})` → verify `insightCount` is previous value + 1
-3. Read `postgres://insights` resource → verify both insights appear in memo text
-4. Append 5 more insights rapidly via Code Mode loop → verify `insightCount` increments correctly for each
-5. Read `postgres://insights` resource again → verify all 7 insights present
-
-### Category 2: Edge Cases
-
-6. `pg_append_insight({text: ""})` → report behavior (empty string — should it be rejected?)
-7. Via Code Mode: append a very long insight (1000+ chars) → verify it is accepted or report truncation behavior
-
-### Category 3: Error Message Quality
-
-8. `pg_append_insight({})` → `{success: false}` structured validation error
-
-### Final Cleanup
-
-Insights are in-memory only — no cleanup needed.

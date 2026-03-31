@@ -5,7 +5,7 @@
  * pg_migration_status may return error if migration table not initialized — skip expectSuccess.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createClient, callToolAndParse, expectSuccess } from "./helpers.js";
 

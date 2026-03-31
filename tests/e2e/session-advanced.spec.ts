@@ -7,12 +7,12 @@
  * Ported from db-mcp/tests/e2e/session-advanced.spec.ts — adapted for postgres-mcp.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
-test.describe("Advanced Session Management", () => {
+test.describe.serial("Advanced Session Management", () => {
   test("should reject SSE session ID on /mcp (cross-protocol guard)", async ({}, testInfo) => {
     const baseURL = testInfo.project.use.baseURL as string;
 

@@ -1,11 +1,11 @@
-# Advanced Stress Test — postgres-mcp — Part 2
+# Advanced Stress Test — postgres-mcp — cross-group Group
 
 **ESSENTIAL INSTRUCTIONS**
 
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run test-tools-advanced-1.md, test-tools-advanced-3.md, test-tools-advanced-4.md, test-tools-advanced-5.md, test-tools-advanced-6.md, test-tools-advanced-7.md, test-tools-advanced-8.md.
+- Do not run test-tools-advanced-1.md, test-tools-advanced-2.md, test-tools-advanced-3.md, test-tools-advanced-4.md, test-tools-advanced-5.md, test-tools-advanced-6.md, test-tools-advanced-7.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
 - Do not do anything other than these tests.
 
@@ -64,92 +64,66 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 ## Post-Test Procedures
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-2.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass. Highlight the single most expensive code mode block.
 5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
-## jsonb Group Advanced Tests
+## Cross-Group Integration Workflows
 
-### jsonb Group Tools (20 +1 code mode)
+> **Purpose**: Test realistic multi-group pipelines that exercise tool chains spanning multiple groups. These catch state-management bugs that single-group tests miss (e.g., temp table metadata leaking between groups, transaction isolation issues).
 
-1. pg_jsonb_extract
-2. pg_jsonb_set
-3. pg_jsonb_insert
-4. pg_jsonb_delete
-5. pg_jsonb_contains
-6. pg_jsonb_path_query
-7. pg_jsonb_agg
-8. pg_jsonb_object
-9. pg_jsonb_array
-10. pg_jsonb_keys
-11. pg_jsonb_strip_nulls
-12. pg_jsonb_typeof
-13. pg_jsonb_validate_path
-14. pg_jsonb_stats
-15. pg_jsonb_merge
-16. pg_jsonb_normalize
-17. pg_jsonb_diff
-18. pg_jsonb_index_suggest
-19. pg_jsonb_security_scan
-20. pg_jsonb_pretty
-21. pg_execute_code (auto-added)
+### Workflow 1: Core → JSONB → Stats (Data Pipeline)
 
-### Category 1: JSONB Mutation Workflow
+1. `pg_create_table({table: "stress_pipeline", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "data", type: "JSONB"}, {name: "score", type: "NUMERIC(5,2)"}]})` → success
+2. Insert 5 rows with JSONB data (`{"category": "tech", "priority": N}`) and varying scores
+3. `pg_jsonb_extract({table: "stress_pipeline", column: "data", path: "$.category"})` → verify extraction
+4. `pg_stats_descriptive({table: "stress_pipeline", column: "score"})` → verify mean, stddev, min, max
+5. `pg_stats_percentiles({table: "stress_pipeline", column: "score", percentiles: [25, 50, 75]})` → verify 3 values
+6. `pg_stats_outliers({table: "stress_pipeline", column: "score"})` → verify outlier detection on small dataset (5 rows)
+7. `pg_stats_frequency({table: "stress_pipeline", column: "score"})` → verify frequency distribution with value/count/percentage
+8. `pg_stats_summary({table: "stress_pipeline"})` → verify includes `score` column in multi-column summary
+9. Cleanup: `pg_drop_table({table: "stress_pipeline"})`
 
-Create `stress_jsonb_mut (id SERIAL PRIMARY KEY, data JSONB DEFAULT '{}')`, insert one row with `data: {"name": "Alice", "tags": ["a", "b"], "nested": {"level1": {"value": 1}}}`, then test:
+### Workflow 2: Core → Vector → Text (AI Search Pipeline)
 
-1. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "name", value: "\"Bob\"", where: "id = 1"})` → verify `name` changed to `"Bob"`
-2. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "nested.level1.value", value: "42", where: "id = 1"})` → verify deep path set works
-3. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "newKey", value: "\"inserted\"", where: "id = 1", createMissing: true})` → verify new key added. **Note:** `pg_jsonb_insert` is for array targets only. Use `pg_jsonb_set` with `createMissing` for object key insertion
-4. `pg_jsonb_delete({table: "stress_jsonb_mut", column: "data", path: "tags", where: "id = 1"})` → verify `tags` key removed
-5. `pg_jsonb_merge` — standalone merge requires `base` + `overlay` params (not `doc1`/`doc2`). Use via Code Mode: `pg.jsonb.merge({base: {"a": 1, "b": 2}, overlay: {"b": 3, "c": 4}})` → verify merge result `{"a": 1, "b": 3, "c": 4}` (overlay wins on conflicts)
-6. Verify final state via `pg_jsonb_extract` on specific paths or `pg_read_query` — confirm all mutations applied correctly
+7. `pg_create_table({table: "stress_ai_search", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "content", type: "TEXT"}, {name: "embedding", type: "vector(4)"}]})` → success
+8. Insert 3 rows with text content and 4-dim vectors
+9. `pg_vector_search({table: "stress_ai_search", column: "embedding", vector: [0.1, 0.2, 0.3, 0.4], limit: 2})` → verify 2 nearest results
+10. `pg_text_search({table: "stress_ai_search", column: "content", query: "<search term>"})` → verify text search
+11. Cleanup: `pg_drop_table({table: "stress_ai_search"})`
 
-**pg_jsonb_pretty (mutation + standalone):**
+### Workflow 3: Migration → Introspection (Schema Lifecycle)
 
-7. `pg_jsonb_pretty({table: "stress_jsonb_mut", column: "data", where: "id = 1"})` → verify the mutated JSONB is pretty-printed with indentation
-8. `pg_jsonb_pretty({json: "{\"compact\":true,\"nested\":{\"a\":1}}"})` → verify standalone pretty-print with indentation
-9. Cleanup: Drop `stress_jsonb_mut`
+12. `pg_migration_init()` then `pg_migration_apply({version: "stress-integration", migrationSql: "CREATE TABLE stress_migrated (id SERIAL PRIMARY KEY, status TEXT DEFAULT 'active');", rollbackSql: "DROP TABLE IF EXISTS stress_migrated;"})` → verify migration applied
+13. `pg_describe_table({table: "stress_migrated"})` → verify columns match migration DDL
+14. `pg_constraint_analysis({table: "stress_migrated"})` → verify primary key constraint
+15. `pg_migration_rollback({version: "stress-integration"})` → verify rollback
+16. `pg_describe_table({table: "stress_migrated"})` → verify table no longer exists (structured error)
 
-### Category 2: Error Message Quality
+### Workflow 4: Admin → Performance (Health Check Pipeline)
 
-10. `pg_jsonb_extract({table: "nonexistent_table_xyz", column: "data", path: "test"})` → structured error
-11. `pg_jsonb_set({table: "test_jsonb_docs", column: "metadata", path: "author", value: "\"Modified\"", where: "id = 99999"})` → report behavior for nonexistent row
+17. `pg_analyze({table: "test_products"})` → update statistics
+18. `pg_explain({sql: "SELECT * FROM test_products WHERE name = 'Laptop'"})` → execution plan
+19. `pg_vacuum({table: "test_products"})` → vacuum
+20. `pg_explain({sql: "SELECT * FROM test_products WHERE name = 'Laptop'"})` → compare plan post-vacuum
 
-### Final Cleanup
+### Error Code Consistency (Cross-Group Check)
 
-Confirm `test_jsonb_docs` row count is still 3 and contents are unchanged.
+During all workflows above, watch for these error code quality indicators:
 
----
+| Quality Level     | Example                                                     | Verdict                                     |
+| ----------------- | ----------------------------------------------------------- | ------------------------------------------- |
+| **5 - Excellent** | `Table 'stress_pipeline' does not exist (schema: public)`   | ✅ Includes object name + context            |
+| **4 - Good**      | `Table 'stress_pipeline' does not exist`                    | ✅ Includes object name                      |
+| **3 - Adequate**  | `relation "stress_pipeline" does not exist`                 | ⚠️ Raw PG error leaked but informative       |
+| **2 - Poor**      | `ERROR: 42P01: relation does not exist`                     | ⚠️ Code-only, no object name                 |
+| **1 - Useless**   | `Query failed` or generic `Error occurred`                  | ❌ No context, report as issue               |
 
-## text Group Advanced Tests
-
-### text Group Tools (13 +1 code mode)
-
-1. pg_text_search
-2. pg_text_rank
-3. pg_trigram_similarity
-4. pg_fuzzy_match
-5. pg_regexp_match
-6. pg_like_search
-7. pg_text_headline
-8. pg_create_fts_index
-9. pg_text_normalize
-10. pg_text_sentiment
-11. pg_text_to_vector
-12. pg_text_to_query
-13. pg_text_search_config
-14. pg_execute_code (auto-added)
-
-### Category 1: Error Message Quality
-
-1. `pg_text_search` on a non-text column → expect type validation error or graceful fallback
-2. `pg_create_fts_index` on `test_measurements` with missing column param → expect validation error "column is required"
-3. `pg_text_sentiment` with empty text → expect validation error
+Flag any tool returning Level 1-2 error messages as ⚠️ with the tool name for error quality improvement.
 
 ### Final Cleanup
 
-Confirm `test_articles` row count is still 3.
+Drop all remaining `stress_*` tables, views, and schemas. Drop `_mcp_schema_versions` if present. Confirm all test table row counts match baselines.

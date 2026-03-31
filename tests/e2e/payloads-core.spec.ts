@@ -4,7 +4,7 @@
  * Validates response shapes for core tools using a shared MCP client.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createClient, callToolAndParse, expectSuccess } from "./helpers.js";
 

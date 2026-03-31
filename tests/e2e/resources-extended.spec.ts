@@ -8,7 +8,7 @@
  * Already covered in resources.spec.ts: schema, tables, health, extensions, settings.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { createClient, getBaseURL } from "./helpers.js";
 
 test.describe.configure({ mode: "serial" });

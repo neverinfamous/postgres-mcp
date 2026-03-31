@@ -1,4 +1,4 @@
-# Advanced Stress Test — postgres-mcp — Part 6
+# Advanced Stress Test — postgres-mcp — kcache Group
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -64,68 +64,10 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 ## Post-Test Procedures
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-6.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass. Highlight the single most expensive code mode block.
 5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
-
----
-
-## citext Group Advanced Tests
-
-### citext Group Tools (6 +1 code mode)
-
-1. pg_citext_create_extension
-2. pg_citext_convert_column
-3. pg_citext_list_columns
-4. pg_citext_analyze_candidates
-5. pg_citext_compare
-6. pg_citext_analyze_candidates (alias context)
-7. pg_execute_code (auto-added)
-
-### Category 1: Edge Cases
-
-1. `pg_citext_convert_column` on a non-text column (e.g., `test_products.price` which is DECIMAL) → expect `{success: false, allowedTypes, suggestion}`
-2. `pg_citext_analyze_candidates` with `excludeSystemSchemas: false` → verify more results than with `true`
-3. `pg_citext_compare` with identical values `{value1: "test", value2: "test"}` → both `citextEqual` and `textEqual` should be `true`
-4. `pg_citext_compare` with unicode: `{value1: "café", value2: "CAFÉ"}` → report behavior (accent handling)
-
-### Final Cleanup
-
-No cleanup needed (citext tests are read-only or non-destructive).
-
----
-
-## cron Group Advanced Tests
-
-### cron Group Tools (8 +1 code mode)
-
-1. pg_cron_create_extension
-2. pg_cron_schedule
-3. pg_cron_schedule_in_database
-4. pg_cron_unschedule
-5. pg_cron_alter_job
-6. pg_cron_list_jobs
-7. pg_cron_job_run_details
-8. pg_cron_cleanup_history
-9. pg_execute_code (auto-added)
-
-### Category 1: Edge Cases
-
-1. `pg_cron_schedule({name: "stress_dup_job", schedule: "0 0 * * *", command: "SELECT 1"})` → capture jobId
-2. `pg_cron_schedule({name: "stress_dup_job", schedule: "0 1 * * *", command: "SELECT 2"})` → report behavior: does it error on duplicate name, or overwrite?
-3. `pg_cron_schedule({name: "stress_bad_cron", schedule: "invalid cron", command: "SELECT 1"})` → report whether validation catches invalid expression or defers to pg_cron
-4. `pg_cron_schedule({name: "stress_bad_sql", schedule: "0 0 * * *", command: "SELECT * FROM nonexistent_xyz"})` → report: does scheduling succeed (SQL validated on execution, not schedule-time)?
-5. `pg_cron_job_run_details({jobName: "stress_dup_job"})` → report behavior (if tool exists)
-6. Cleanup: `pg_cron_unschedule` all `stress_*` jobs
-
-### Category 2: Error Message Quality
-
-7. `pg_cron_schedule({name: "stress_bad_cron", schedule: "invalid cron", command: "SELECT 1"})` → report behavior
-
-### Final Cleanup
-
-Unschedule all `stress_*` jobs created during testing.
 
 ---
 
@@ -154,37 +96,3 @@ Unschedule all `stress_*` jobs created during testing.
 ### Final Cleanup
 
 No cleanup needed (kcache tools are read-only).
-
----
-
-## partman Group Advanced Tests
-
-### partman Group Tools (10 +1 code mode)
-
-1. pg_partman_create_extension
-2. pg_partman_create_parent
-3. pg_partman_run_maintenance
-4. pg_partman_show_partitions
-5. pg_partman_show_config
-6. pg_partman_check_default
-7. pg_partman_partition_data
-8. pg_partman_set_retention
-9. pg_partman_undo_partition
-10. pg_partman_analyze_partition_health
-11. pg_execute_code (auto-added)
-
-**Requires `test_logs` table (PARTITION BY RANGE on `created_at`, no existing partitions).**
-
-### Category 1: Lifecycle Stress
-
-1. `pg_partman_create_parent({parentTable: "test_logs", controlColumn: "created_at", interval: "1 day", startPartition: "now"})` → verify success and partitions created
-2. `pg_partman_run_maintenance({parentTable: "test_logs"})` → verify success
-3. `pg_partman_run_maintenance({parentTable: "test_logs"})` immediately again → verify idempotent (no error, no duplicate partitions)
-4. `pg_partman_show_config({table: "test_logs"})` → verify config matches what was set
-5. `pg_partman_analyze_partition_health()` → verify health check works with active partman tables
-6. `pg_partman_create_parent({parentTable: "test_logs", controlColumn: "created_at", interval: "1 hour"})` → report: does it error because already managed, or overwrite?
-7. Cleanup: `pg_partman_undo_partition({parentTable: "test_logs", targetTable: "test_logs_archive"})` or note state for `reset-database.ps1`
-
-### Final Cleanup
-
-Undo partman management on `test_logs` or note state for reset.

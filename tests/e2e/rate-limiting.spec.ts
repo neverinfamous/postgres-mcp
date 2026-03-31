@@ -10,13 +10,13 @@
  * Ported from db-mcp/tests/e2e/rate-limiting.spec.ts — adapted for postgres-mcp.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 
 const RATE_PORT_1 = 3104;
 const RATE_PORT_2 = 3105;
 const RATE_PORT_3 = 3106;
 
-test.describe("Rate Limiting", () => {
+test.describe.serial("Rate Limiting", () => {
   test("should return 429 after exceeding rate limit", async () => {
     const { spawn } = await import("node:child_process");
     const { setTimeout: delay } = await import("node:timers/promises");
@@ -30,7 +30,7 @@ test.describe("Rate Limiting", () => {
         "--port",
         String(RATE_PORT_1),
         "--postgres",
-        "postgres://postgres:postgres@localhost:5432/postgres",
+        process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
         "starter",
       ],
@@ -44,7 +44,7 @@ test.describe("Rate Limiting", () => {
       },
     );
 
-    const RATE_BASE = `http://localhost:${RATE_PORT_1}`;
+    const RATE_BASE = `http://127.0.0.1:${RATE_PORT_1}`;
 
     // Wait for server to start
     let serverReady = false;
@@ -124,7 +124,7 @@ test.describe("Rate Limiting", () => {
         "--port",
         String(RATE_PORT_2),
         "--postgres",
-        "postgres://postgres:postgres@localhost:5432/postgres",
+        process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
         "starter",
       ],
@@ -138,7 +138,7 @@ test.describe("Rate Limiting", () => {
       },
     );
 
-    const RATE_BASE = `http://localhost:${RATE_PORT_2}`;
+    const RATE_BASE = `http://127.0.0.1:${RATE_PORT_2}`;
     let serverReady = false;
     for (let i = 0; i < 30; i++) {
       try {
@@ -217,7 +217,7 @@ test.describe("Rate Limiting", () => {
         "--port",
         String(RATE_PORT_3),
         "--postgres",
-        "postgres://postgres:postgres@localhost:5432/postgres",
+        process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
         "starter",
       ],
@@ -231,7 +231,7 @@ test.describe("Rate Limiting", () => {
       },
     );
 
-    const RATE_BASE = `http://localhost:${RATE_PORT_3}`;
+    const RATE_BASE = `http://127.0.0.1:${RATE_PORT_3}`;
     let serverReady = false;
     for (let i = 0; i < 30; i++) {
       try {

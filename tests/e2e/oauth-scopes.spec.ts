@@ -17,7 +17,7 @@
  * Ports: 3107 (MCP server), 3108 (mock JWKS)
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { type ChildProcess, spawn } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import { setTimeout as delay } from "node:timers/promises";
@@ -30,7 +30,7 @@ const AUDIENCE = "postgres-mcp-server";
 
 test.describe.configure({ mode: "serial" });
 
-test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
+test.describe.serial("OAuth 2.1 Scope Enforcement E2E", () => {
   let serverProcess: ChildProcess;
   let jwksServer: Server;
 
@@ -106,7 +106,7 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
         "--port",
         String(MCP_PORT),
         "--postgres",
-        "postgres://postgres:postgres@localhost:5432/postgres",
+        process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
         "+all",
         "--oauth-enabled",
@@ -115,7 +115,7 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
         "--oauth-audience",
         AUDIENCE,
         "--oauth-jwks-uri",
-        `http://localhost:${JWKS_PORT}/jwks`,
+        `http://127.0.0.1:${JWKS_PORT}/jwks`,
       ],
       {
         cwd: process.cwd(),
@@ -127,7 +127,7 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
     // Wait for server readiness
     for (let i = 0; i < 30; i++) {
       try {
-        const res = await fetch(`http://localhost:${MCP_PORT}/health`);
+        const res = await fetch(`http://127.0.0.1:${MCP_PORT}/health`);
         if (res.ok) break;
       } catch {
         // Not ready yet
@@ -154,7 +154,7 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
    * Returns the mcp-session-id header for subsequent calls.
    */
   async function initializeSession(token: string): Promise<string> {
-    const base = `http://localhost:${MCP_PORT}/mcp`;
+    const base = `http://127.0.0.1:${MCP_PORT}/mcp`;
     const headers = {
       "Content-Type": "application/json",
       Accept: "application/json, text/event-stream",
@@ -202,7 +202,7 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
     toolName: string,
     args: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    const res = await fetch(`http://localhost:${MCP_PORT}/mcp`, {
+    const res = await fetch(`http://127.0.0.1:${MCP_PORT}/mcp`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -409,7 +409,7 @@ test.describe("OAuth 2.1 Scope Enforcement E2E", () => {
   });
 
   test("expired or invalid tokens are rejected at connection time", async () => {
-    const base = `http://localhost:${MCP_PORT}/mcp`;
+    const base = `http://127.0.0.1:${MCP_PORT}/mcp`;
 
     const getInitRes = async (token: string) => fetch(base, {
       method: "POST",

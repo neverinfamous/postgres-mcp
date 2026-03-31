@@ -1,4 +1,4 @@
-# Advanced Stress Test — postgres-mcp — Part 8
+# Advanced Stress Test — postgres-mcp — backup Group
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -64,7 +64,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 ## Post-Test Procedures
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-8.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass. Highlight the single most expensive code mode block.
 5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
@@ -187,62 +187,3 @@ return { hasDiff: !!diff, hasVolumeDrift: !!diff.volumeDrift, filename };
 ### Final Cleanup
 
 Drop `stress_backup_lifecycle`, `stress_backup_multi`, `stress_backup_restored`, and `stress_codemode_audit`. Confirm no `stress_*` tables remain.
-
----
-
-## Cross-Group Integration Workflows
-
-> **Purpose**: Test realistic multi-group pipelines that exercise tool chains spanning multiple groups. These catch state-management bugs that single-group tests miss (e.g., temp table metadata leaking between groups, transaction isolation issues).
-
-### Workflow 1: Core → JSONB → Stats (Data Pipeline)
-
-1. `pg_create_table({table: "stress_pipeline", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "data", type: "JSONB"}, {name: "score", type: "NUMERIC(5,2)"}]})` → success
-2. Insert 5 rows with JSONB data (`{"category": "tech", "priority": N}`) and varying scores
-3. `pg_jsonb_extract({table: "stress_pipeline", column: "data", path: "$.category"})` → verify extraction
-4. `pg_stats_descriptive({table: "stress_pipeline", column: "score"})` → verify mean, stddev, min, max
-5. `pg_stats_percentiles({table: "stress_pipeline", column: "score", percentiles: [25, 50, 75]})` → verify 3 values
-6. `pg_stats_outliers({table: "stress_pipeline", column: "score"})` → verify outlier detection on small dataset (5 rows)
-7. `pg_stats_frequency({table: "stress_pipeline", column: "score"})` → verify frequency distribution with value/count/percentage
-8. `pg_stats_summary({table: "stress_pipeline"})` → verify includes `score` column in multi-column summary
-9. Cleanup: `pg_drop_table({table: "stress_pipeline"})`
-
-### Workflow 2: Core → Vector → Text (AI Search Pipeline)
-
-7. `pg_create_table({table: "stress_ai_search", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "content", type: "TEXT"}, {name: "embedding", type: "vector(4)"}]})` → success
-8. Insert 3 rows with text content and 4-dim vectors
-9. `pg_vector_search({table: "stress_ai_search", column: "embedding", vector: [0.1, 0.2, 0.3, 0.4], limit: 2})` → verify 2 nearest results
-10. `pg_text_search({table: "stress_ai_search", column: "content", query: "<search term>"})` → verify text search
-11. Cleanup: `pg_drop_table({table: "stress_ai_search"})`
-
-### Workflow 3: Migration → Introspection (Schema Lifecycle)
-
-12. `pg_migration_init()` then `pg_migration_apply({version: "stress-integration", migrationSql: "CREATE TABLE stress_migrated (id SERIAL PRIMARY KEY, status TEXT DEFAULT 'active');", rollbackSql: "DROP TABLE IF EXISTS stress_migrated;"})` → verify migration applied
-13. `pg_describe_table({table: "stress_migrated"})` → verify columns match migration DDL
-14. `pg_constraint_analysis({table: "stress_migrated"})` → verify primary key constraint
-15. `pg_migration_rollback({version: "stress-integration"})` → verify rollback
-16. `pg_describe_table({table: "stress_migrated"})` → verify table no longer exists (structured error)
-
-### Workflow 4: Admin → Performance (Health Check Pipeline)
-
-17. `pg_analyze({table: "test_products"})` → update statistics
-18. `pg_explain({sql: "SELECT * FROM test_products WHERE name = 'Laptop'"})` → execution plan
-19. `pg_vacuum({table: "test_products"})` → vacuum
-20. `pg_explain({sql: "SELECT * FROM test_products WHERE name = 'Laptop'"})` → compare plan post-vacuum
-
-### Error Code Consistency (Cross-Group Check)
-
-During all workflows above, watch for these error code quality indicators:
-
-| Quality Level     | Example                                                     | Verdict                                     |
-| ----------------- | ----------------------------------------------------------- | ------------------------------------------- |
-| **5 - Excellent** | `Table 'stress_pipeline' does not exist (schema: public)`   | ✅ Includes object name + context            |
-| **4 - Good**      | `Table 'stress_pipeline' does not exist`                    | ✅ Includes object name                      |
-| **3 - Adequate**  | `relation "stress_pipeline" does not exist`                 | ⚠️ Raw PG error leaked but informative       |
-| **2 - Poor**      | `ERROR: 42P01: relation does not exist`                     | ⚠️ Code-only, no object name                 |
-| **1 - Useless**   | `Query failed` or generic `Error occurred`                  | ❌ No context, report as issue               |
-
-Flag any tool returning Level 1-2 error messages as ⚠️ with the tool name for error quality improvement.
-
-### Final Cleanup
-
-Drop all remaining `stress_*` tables, views, and schemas. Drop `_mcp_schema_versions` if present. Confirm all test table row counts match baselines.

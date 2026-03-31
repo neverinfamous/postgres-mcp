@@ -10,7 +10,7 @@
  * Ported from db-mcp/tests/e2e/zod-sweep.spec.ts — adapted for postgres-mcp tool names.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { createClient, getBaseURL, callToolRaw } from "./helpers.js";
 
 test.describe.configure({ mode: "serial" });
@@ -373,3 +373,50 @@ test.describe("Zod Sweep: Code Mode", () => {
     await assertZodHandlerError(getBaseURL(testInfo), "pg_execute_code");
   });
 });
+
+// =============================================================================
+// Minor Extensions & Monitoring Group (tools with required params)
+// =============================================================================
+
+test.describe("Zod Sweep: Minor Extensions & Monitoring", () => {
+  const tools = [
+    // citext
+    "pg_citext_convert_column",
+    "pg_citext_compare",
+    "pg_citext_schema_advisor",
+    // ltree
+    "pg_ltree_convert_column",
+    "pg_ltree_create_index",
+    "pg_ltree_query",
+    "pg_ltree_subpath",
+    "pg_ltree_lca",
+    "pg_ltree_match",
+    // pgcrypto
+    "pg_pgcrypto_hash",
+    "pg_pgcrypto_hmac",
+    "pg_pgcrypto_encrypt",
+    "pg_pgcrypto_decrypt",
+    "pg_pgcrypto_gen_random_bytes",
+    "pg_pgcrypto_gen_salt",
+    "pg_pgcrypto_crypt",
+    // pg_cron
+    "pg_cron_schedule",
+    "pg_cron_schedule_in_database",
+    "pg_cron_alter_job",
+    "pg_cron_unschedule",
+    // partman
+    "pg_partman_create_parent",
+    "pg_partman_show_partitions",
+    "pg_partman_check_default",
+    "pg_partman_partition_data",
+    "pg_partman_set_retention",
+    "pg_partman_undo_partition"
+  ];
+
+  for (const tool of tools) {
+    test(`${tool}({}) → handler error`, async ({}, testInfo) => {
+      await assertZodHandlerError(getBaseURL(testInfo), tool);
+    });
+  }
+});
+

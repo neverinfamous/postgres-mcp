@@ -69,6 +69,8 @@
 - Corrected inaccuracies in `test-tools-advanced-3.md` removing obsolete `pg_ltree_match` and `pg_citext_schema_advisor` tool names and rectifying assumed implicit kwargs in postgis coordinate tests
 - Reduced `pg_kcache` top resource query tool default unbounded limits (`limit: 0`) from `25` down to `10` to prevent token exhaustion payload bloat
 - Added explicit validation rejecting `path: ""` (empty string) in `pg_ltree_query` to prevent unbounded match-all payload exhaustion
+- Missing column headers in `pg_copy_export` empty table payloads
+- Unbounded payloads in `pg_copy_export` exceeding 50KB strings causing context window exhaustion
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

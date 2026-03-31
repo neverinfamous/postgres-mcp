@@ -4,7 +4,7 @@
  * Validates response shapes for Partitioning (7) tools.
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createClient, callToolAndParse, expectSuccess } from "./helpers.js";
 
@@ -36,6 +36,7 @@ test.describe("Payload Contracts: Partitioning", () => {
       ],
       partitionBy: "range",
       partitionKey: "log_date",
+      ifNotExists: true,
     });
     expectSuccess(payload);
     expect(payload.success).toBe(true);
