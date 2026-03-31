@@ -161,8 +161,11 @@ export function createStatsTopNTool(
           column,
           direction,
           count: rows.length,
-          rows,
         };
+
+        if (rows.length > 0) {
+          response["rows"] = rows;
+        }
 
         if (hint) {
           response["hint"] = hint;

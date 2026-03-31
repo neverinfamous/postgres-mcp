@@ -21,6 +21,7 @@
 - Standardized file and directory names to kebab-case convention.
 - Modularized 20+ large files (>500 lines) into smaller components.
 - Minimized tool payload size (~30-41% token reduction) by collapsing repetitive properties.
+- Optimized stats and admin tools to conditionally omit empty arrays (`rows`, `outliers`) from JSON responses to reduce context window token usage.
 - Optimized Zod schema evaluation logic for faster execution speed.
 - Applied `openWorldHint: false` to all 231 tools.
 - Reduced NPM package size (-1.65 MB) by removing source maps and test directories.
@@ -43,6 +44,8 @@
 - Introspection cascade simulator truncating self-referencing foreign keys.
 - Partman initialization routines failing on missing child tables.
 - Scientific notation serialization bug in database seed script generating intervals.
+- Resolved `numeric field overflow` PostgreSQL exceptions by mapping them to specific `CALCULATION_ERROR` error structures instead of returning raw proxy errors.
+- Added 1000-character input validation constraints to `pg_append_insight` to prevent extreme query bloating in the `postgres://insights` resource limit.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.

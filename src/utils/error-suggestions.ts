@@ -55,6 +55,13 @@ const ERROR_SUGGESTIONS: {
     code: "INVALID_IDENTIFIER",
   },
   {
+    pattern: /numeric field overflow/i,
+    suggestion:
+      "A statistical calculation overflowed, often due to an undefined algebraic operation (e.g., executing regression on a single row).",
+    category: ErrorCategory.QUERY,
+    code: "CALCULATION_ERROR",
+  },
+  {
     pattern: /not a text-based type/i,
     suggestion:
       "This conversion requires a text-based column originally. Alter the column type manually first if converting from numeric/boolean.",

@@ -53,6 +53,13 @@ export function createAppendInsightTool(): ToolDefinition {
           return new ValidationError("Insight text cannot be empty").toResponse();
         }
 
+        if (parsed.insight.length > 1000) {
+          const lenStr = parsed.insight.length.toString(10);
+          return new ValidationError(
+            `Insight text is too long (${lenStr} chars). Maximum allowed is 1000 characters.`
+          ).toResponse();
+        }
+
         insightsManager.append(parsed.insight);
 
         return {

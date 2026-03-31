@@ -138,7 +138,6 @@ async function detectZScoreOutliers(
       method: "zscore",
       outlierCount: 0,
       totalRows: 0,
-      outliers: [],
       stats: { mean: 0, stdDev: 0, lowerBound: 0, upperBound: 0 },
     };
   }
@@ -154,7 +153,6 @@ async function detectZScoreOutliers(
       stats: { mean, stdDev: 0, lowerBound: mean, upperBound: mean },
       outlierCount: 0,
       totalRows,
-      outliers: [],
     };
   }
 
@@ -186,8 +184,11 @@ async function detectZScoreOutliers(
     stats: { mean, stdDev, lowerBound, upperBound },
     outlierCount: outliers.length,
     totalRows,
-    outliers,
   };
+
+  if (outliers.length > 0) {
+    response["outliers"] = outliers;
+  }
 
   if (truncated) {
     response["truncated"] = true;
@@ -230,7 +231,6 @@ async function detectIqrOutliers(
       method: "iqr",
       outlierCount: 0,
       totalRows: 0,
-      outliers: [],
       stats: { q1: 0, q3: 0, iqr: 0, lowerBound: 0, upperBound: 0 },
     };
   }
@@ -268,8 +268,11 @@ async function detectIqrOutliers(
     stats: { q1, q3, iqr, lowerBound, upperBound },
     outlierCount: outliers.length,
     totalRows,
-    outliers,
   };
+
+  if (outliers.length > 0) {
+    response["outliers"] = outliers;
+  }
 
   if (truncated) {
     response["truncated"] = true;

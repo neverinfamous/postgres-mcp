@@ -102,7 +102,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 Create `stress_empty_table (id SERIAL PRIMARY KEY, name TEXT, value DECIMAL(10,2))`, then test:
 
 1. `pg_count` on `stress_empty_table` → expect `{count: 0}`
-2. `pg_exists` on `stress_empty_table` (no WHERE) → expect `{exists: false, mode: "any_rows"}`
+2. `pg_exists` on `stress_empty_table` (no WHERE) → expect `{exists: false, mode: "any_rows"}` (Note: evaluates if rows exist, not table schema existence, so returning TABLE_NOT_FOUND for nonexistent tables is expected)
 3. `pg_stats_descriptive` on `stress_empty_table` column `value` → expect graceful error or empty stats (not a crash)
 4. `pg_copy_export` on `stress_empty_table` → expect `{rowCount: 0}` or empty data
 5. `pg_dump_table` on `stress_empty_table` → expect valid DDL
@@ -448,10 +448,9 @@ Confirm `test_jsonb_docs` row count is still 3 and contents are unchanged.
 
 ### Category 1: Error Message Quality
 
-1. `pg_stats_correlation({table: "test_products", column1: "name", column2: "description"})` → error about non-numeric columns (both are VARCHAR)
-2. `pg_stats_time_series` with `timeColumn: "name"` (TEXT, not timestamp) on `test_products` → expect type validation error
-3. `pg_stats_distribution` with `buckets: 0` → expect error (must be > 0)
-4. `pg_stats_distribution` with `buckets: -1` → expect error
+1. `pg_text_search` on a non-text column → expect type validation error or graceful fallback
+2. `pg_create_fts_index` on `test_measurements` (no text columns) → expect error indicating no text columns
+3. `pg_text_sentiment` with empty text → expect validation error
 
 ### Final Cleanup
 
@@ -584,6 +583,10 @@ return {
 23. `pg_stats_descriptive({table: "nonexistent_table_xyz", column: "price"})` → structured error
 24. `pg_stats_descriptive({table: "test_products", column: "nonexistent_col"})` → structured error mentioning column name
 25. `pg_capacity_planning` with `days: -30` → expect rejection
+26. `pg_stats_correlation({table: "test_products", column1: "name", column2: "description"})` → error about non-numeric columns (both are VARCHAR)
+27. `pg_stats_time_series` with `timeColumn: "name"` (TEXT, not timestamp) on `test_products` → expect type validation error
+28. `pg_stats_distribution` with `buckets: 0` → expect error (must be > 0)
+29. `pg_stats_distribution` with `buckets: -1` → expect error
 
 ### Final Cleanup
 

@@ -3647,7 +3647,7 @@ describe("pg_stats_outliers", () => {
     )) as { outlierCount: number; outliers: unknown[] };
 
     expect(result.outlierCount).toBe(0);
-    expect(result.outliers).toHaveLength(0);
+    expect(result.outliers).toBeUndefined();
   });
 });
 
