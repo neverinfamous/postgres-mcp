@@ -156,7 +156,7 @@ const ERROR_SUGGESTIONS: {
     code: "RESOURCE_NOT_FOUND",
   },
   {
-    pattern: /(?:invalid symbol.*|invalid base64.*)decoding base64 sequence/i,
+    pattern: /(?:invalid symbol.*decoding base64 sequence|invalid base64)/i,
     suggestion:
       "Decryption failed. The provided text is not a valid base64 encoded string.",
     category: ErrorCategory.VALIDATION,
