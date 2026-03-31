@@ -62,6 +62,7 @@
 - **Introspection cascading loops**: Stopped cascade simulator from incorrectly truncating self-referencing foreign keys. Rebalanced `DELETE` risk factors to `high` instead of `critical` for `RESTRICT` dependencies. Recursive payloads properly strip empty elements.
 - **Partman initialization routines**: Intercepted missing child tables correctly gracefully returning successes on parameter ad-hoc errors interpreting missing bounds explicitly.
 - **Error Parser accuracy**: Narrowed generic regex string patterns successfully preventing false positive triggers over text search capabilities.
+- **Test Database Seed Flakiness**: Fixed scientific notation serialization bug in `(random() * X || ' days')::interval` inside `test-database.sql` and `test-resources.sql` by updating them to use native interval multiplication. This fully resolves intermittent row count failures for auto-generated `test_measurements` and `test_logs` tables.
 
 ### Security
 

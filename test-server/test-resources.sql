@@ -23,7 +23,7 @@ SELECT
   20 + random() * 15,
   40 + random() * 40,
   1000 + random() * 50,
-  NOW() - (random() * 7 || ' days')::interval
+  NOW() - (random() * 7) * interval '1 day'
 FROM generate_series(1, 200);
 
 -- Delete some rows to create dead tuples
@@ -142,7 +142,7 @@ INSERT INTO test_logs (log_level, message, created_at)
 SELECT 
   (ARRAY['INFO', 'WARN', 'ERROR', 'DEBUG'])[(random() * 4)::int + 1],
   'Log message ' || i,
-  NOW() - (random() * 14 || ' days')::interval
+  NOW() - (random() * 14) * interval '1 day'
 FROM generate_series(1, 50) i
 ON CONFLICT DO NOTHING;
 

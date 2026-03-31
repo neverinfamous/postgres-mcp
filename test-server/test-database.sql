@@ -93,7 +93,7 @@ SELECT
   20 + random() * 15,
   40 + random() * 40,
   1000 + random() * 50,
-  NOW() - (random() * 30 || ' days')::interval
+  NOW() - (random() * 30) * interval '1 day'
 FROM generate_series(1, 500);
 
 -- Vector embeddings (with diverse random vectors for meaningful search/clustering tests)
