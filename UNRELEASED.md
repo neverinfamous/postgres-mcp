@@ -17,7 +17,7 @@
 
 ### Changed
 - Explicitly mandate session-level token tracking via `postgres://audit` in all testing prompts
-- Standardized token monitoring and reporting instructions across all test-tool-groups prompts
+- Standardized token monitoring and reporting instructions across all test-tool-groups and codemode prompts
 - Refactored advanced stress testing suite into logic-based modular parts
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`
 - Expanded `PostgresMcpError` to track categories, suggestions, and serialization context
