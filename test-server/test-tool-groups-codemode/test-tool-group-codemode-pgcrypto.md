@@ -246,3 +246,10 @@ pgcrypto Tool Group (9 tools +1 for code mode)
 6. `pg_pgcrypto_encrypt({data: "test", password: "key"})` → capture encrypted; then `pg_pgcrypto_decrypt` → verify `"test"` returned
 7. 🔴 `pg_pgcrypto_hash({})` → `{success: false, error: "..."}` (Zod validation — missing `data` and `algorithm`)
 8. 🔴 `pg_pgcrypto_decrypt({data: "invalid", password: "wrong"})` → `{success: false, error: "..."}` handler error
+
+13. `pg_pgcrypto_create_extension()` → verify happy path expected behavior
+14. 🔴 `pg_pgcrypto_create_extension({})` → verify structured P154 error response or valid defaults
+15. `pg_pgcrypto_hmac()` → verify happy path expected behavior
+16. 🔴 `pg_pgcrypto_hmac({})` → verify structured P154 error response or valid defaults
+17. `pg_pgcrypto_crypt()` → verify happy path expected behavior
+18. 🔴 `pg_pgcrypto_crypt({})` → verify structured P154 error response or valid defaults

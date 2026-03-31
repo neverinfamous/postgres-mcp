@@ -241,3 +241,12 @@ cron Tool Group (8 tools +1 for code mode)
 - [x] 6. 🔴 `pg_cron_unschedule({jobName: "nonexistent_job_xyz"})` → `{success: false, error: "..."}` handler error
 - [x] 7. 🔴 `pg_cron_schedule({})` → `{success: false, error: "..."}` (Zod validation)
 - [x] 8. 🔴 `pg_cron_cleanup_history({days: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `days` (wrong-type numeric param)
+
+13. `pg_cron_alter_job()` → verify happy path expected behavior
+14. 🔴 `pg_cron_alter_job({})` → verify structured P154 error response or valid defaults
+15. `pg_cron_job_run_details()` → verify happy path expected behavior
+16. 🔴 `pg_cron_job_run_details({})` → verify structured P154 error response or valid defaults
+17. `pg_cron_create_extension()` → verify happy path expected behavior
+18. 🔴 `pg_cron_create_extension({})` → verify structured P154 error response or valid defaults
+19. `pg_cron_schedule_in_database()` → verify happy path expected behavior
+20. 🔴 `pg_cron_schedule_in_database({})` → verify structured P154 error response or valid defaults

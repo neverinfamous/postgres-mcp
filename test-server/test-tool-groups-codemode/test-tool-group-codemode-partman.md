@@ -248,3 +248,12 @@ partman Tool Group (10 tools +1 for code mode)
 7. 🔴 `pg_partman_show_partitions({parentTable: "nonexistent_xyz"})` → `{success: false, error: "..."}` handler error
 8. 🔴 `pg_partman_create_parent({})` → `{success: false, error: "..."}` (Zod validation)
 9. 🔴 `pg_partman_partition_data({parentTable: "test_logs", batchSize: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `batchSize` (wrong-type numeric param)
+
+13. `pg_partman_create_extension()` → verify happy path expected behavior
+14. 🔴 `pg_partman_create_extension({})` → verify structured P154 error response or valid defaults
+15. `pg_partman_check_default()` → verify happy path expected behavior
+16. 🔴 `pg_partman_check_default({})` → verify structured P154 error response or valid defaults
+17. `pg_partman_set_retention()` → verify happy path expected behavior
+18. 🔴 `pg_partman_set_retention({})` → verify structured P154 error response or valid defaults
+19. `pg_partman_undo_partition()` → verify happy path expected behavior
+20. 🔴 `pg_partman_undo_partition({})` → verify structured P154 error response or valid defaults

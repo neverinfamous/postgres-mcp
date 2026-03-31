@@ -245,3 +245,8 @@ citext Tool Group (6 tools +1 for code mode)
 4. `pg_citext_schema_advisor({table: "test_users"})` → verify recommendations for already-citext columns
 5. 🔴 `pg_citext_compare({})` → `{success: false, error: "..."}` (Zod validation — missing `value1`/`value2`)
 6. 🔴 `pg_citext_schema_advisor({table: "nonexistent_xyz"})` → `{success: false, error: "..."}` handler error
+
+13. `pg_citext_create_extension()` → verify happy path expected behavior
+14. 🔴 `pg_citext_create_extension({})` → verify structured P154 error response or valid defaults
+15. `pg_citext_convert_column()` → verify happy path expected behavior
+16. 🔴 `pg_citext_convert_column({})` → verify structured P154 error response or valid defaults

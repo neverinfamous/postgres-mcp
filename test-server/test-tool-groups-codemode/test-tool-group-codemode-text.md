@@ -255,3 +255,16 @@ Searchable terms: `PostgreSQL`, `database`, `full-text`, `search`, `performance`
 9. 🔴 `pg_text_search({table: "nonexistent_xyz", column: "body", query: "test"})` → `{success: false, error: "..."}` handler error
 10. 🔴 `pg_trigram_similarity({})` → `{success: false, error: "..."}` (Zod validation)
 11. 🔴 `pg_text_search({table: "test_articles", column: "body", query: "test", limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+
+13. `pg_text_rank()` → verify happy path expected behavior
+14. 🔴 `pg_text_rank({})` → verify structured P154 error response or valid defaults
+15. `pg_text_headline()` → verify happy path expected behavior
+16. 🔴 `pg_text_headline({})` → verify structured P154 error response or valid defaults
+17. `pg_create_fts_index()` → verify happy path expected behavior
+18. 🔴 `pg_create_fts_index({})` → verify structured P154 error response or valid defaults
+19. `pg_regexp_match()` → verify happy path expected behavior
+20. 🔴 `pg_regexp_match({})` → verify structured P154 error response or valid defaults
+21. `pg_like_search()` → verify happy path expected behavior
+22. 🔴 `pg_like_search({})` → verify structured P154 error response or valid defaults
+23. `pg_text_sentiment()` → verify happy path expected behavior
+24. 🔴 `pg_text_sentiment({})` → verify structured P154 error response or valid defaults

@@ -57,6 +57,7 @@
 - Insufficient validation constraints on `pg_text_sentiment` permitting empty analysis payloads
 - Missing positional mappings for Introspection and Migration Code Mode tool aliases
 - Transaction ID propagation gaps in `text` and `vector` tools
+- Massive gap of 92 unlisted tool executions across 36 direct and Code Mode deterministic testing checklists
 - Unhandled P154 validation database exceptions in `pg_text_search` and `pg_create_fts_index`
 - Missing error parser mapping for invalid input syntax types resulting in generic errors
 - Javascript string arithmetic bugs in transaction boundary tests

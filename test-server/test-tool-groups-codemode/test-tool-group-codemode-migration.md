@@ -296,3 +296,6 @@ migration Tool Group (6 tools +1 for code mode)
 
 10. `pg_execute_code({code: "return await pg.migration.help()"})` → verify lists 6 migration methods
 11. `pg_execute_code({code: "return await pg.migration.status()"})` → verify same structure as item 3
+
+13. `pg_migration_record()` → verify happy path expected behavior
+14. 🔴 `pg_migration_record({})` → verify structured P154 error response or valid defaults

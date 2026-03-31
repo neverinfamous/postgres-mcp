@@ -306,3 +306,28 @@ performance Tool Group (24 tools +1 code mode)
 28. `pg_execute_code({code: "return await pg.performance.detectQueryAnomalies()"})` → verify returns same structure as item 11
 29. `pg_execute_code({code: "return await pg.performance.detectBloatRisk({schema: 'public'})"})` → verify returns same structure as item 15
 30. `pg_execute_code({code: "return await pg.performance.detectConnectionSpike()"})` → verify returns same structure as item 18
+
+31. `pg_index_recommendations()` → verify happy path expected behavior
+32. 🔴 `pg_index_recommendations({})` → verify structured P154 error response or valid defaults
+33. `pg_vacuum_stats()` → verify happy path expected behavior
+34. 🔴 `pg_vacuum_stats({})` → verify structured P154 error response or valid defaults
+35. `pg_query_plan_compare()` → verify happy path expected behavior
+36. 🔴 `pg_query_plan_compare({})` → verify structured P154 error response or valid defaults
+37. `pg_explain_analyze()` → verify happy path expected behavior
+38. 🔴 `pg_explain_analyze({})` → verify structured P154 error response or valid defaults
+39. `pg_explain_buffers()` → verify happy path expected behavior
+40. 🔴 `pg_explain_buffers({})` → verify structured P154 error response or valid defaults
+41. `pg_locks()` → verify happy path expected behavior
+42. 🔴 `pg_locks({})` → verify structured P154 error response or valid defaults
+43. `pg_performance_baseline()` → verify happy path expected behavior
+44. 🔴 `pg_performance_baseline({})` → verify structured P154 error response or valid defaults
+45. `pg_connection_pool_optimize()` → verify happy path expected behavior
+46. 🔴 `pg_connection_pool_optimize({})` → verify structured P154 error response or valid defaults
+47. `pg_partition_strategy_suggest()` → verify happy path expected behavior
+48. 🔴 `pg_partition_strategy_suggest({})` → verify structured P154 error response or valid defaults
+49. `pg_stat_statements()` → verify happy path expected behavior
+50. 🔴 `pg_stat_statements({})` → verify structured P154 error response or valid defaults
+51. `pg_stat_activity()` → verify happy path expected behavior
+52. 🔴 `pg_stat_activity({})` → verify structured P154 error response or valid defaults
+53. `pg_query_plan_stats()` → verify happy path expected behavior
+54. 🔴 `pg_query_plan_stats({})` → verify structured P154 error response or valid defaults

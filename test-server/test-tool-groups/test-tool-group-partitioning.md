@@ -244,3 +244,12 @@ partitioning Tool Group (6 tools +1 for code mode)
 3. `pg_list_partitions({table: "test_events", limit: 2})` → verify `{truncated: true, totalCount: 4}`
 4. 🔴 `pg_list_partitions({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
 5. 🔴 `pg_partition_info({})` → `{success: false, error: "..."}` (Zod validation)
+
+13. `pg_attach_partition()` → verify happy path expected behavior
+14. 🔴 `pg_attach_partition({})` → verify structured P154 error response or valid defaults
+15. `pg_detach_partition()` → verify happy path expected behavior
+16. 🔴 `pg_detach_partition({})` → verify structured P154 error response or valid defaults
+17. `pg_create_partitioned_table()` → verify happy path expected behavior
+18. 🔴 `pg_create_partitioned_table({})` → verify structured P154 error response or valid defaults
+19. `pg_create_partition()` → verify happy path expected behavior
+20. 🔴 `pg_create_partition({})` → verify structured P154 error response or valid defaults

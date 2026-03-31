@@ -300,3 +300,6 @@ stats Group (19 tools +1 for code mode)
 35. `pg_execute_code({code: "return await pg.stats.help()"})` → verify lists all 19 stats methods including `rowNumber`, `rank`, `lagLead`, `runningTotal`, `movingAvg`, `ntile`, `outliers`, `topN`, `distinct`, `frequency`, `summary`
 36. `pg_execute_code({code: "return await pg.stats.outliers({table: 'test_measurements', column: 'temperature'})"})` → verify returns same structure as item 19
 37. `pg_execute_code({code: "return await pg.stats.distinct({table: 'test_measurements', column: 'sensor_id'})"})` → verify returns same structure as item 23
+
+38. `pg_stats_regression()` → verify happy path expected behavior
+39. 🔴 `pg_stats_regression({})` → verify structured P154 error response or valid defaults

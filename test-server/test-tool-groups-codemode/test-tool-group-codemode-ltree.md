@@ -247,3 +247,10 @@ Paths: `electronics`, `electronics.phones`, `electronics.phones.smartphones`, `e
 6. `pg_ltree_list_columns()` → verify `test_categories.path` appears
 7. 🔴 `pg_ltree_query({table: "nonexistent_xyz", column: "path", path: "a"})` → `{success: false, error: "..."}` handler error
 8. 🔴 `pg_ltree_subpath({})` → `{success: false, error: "..."}` (Zod validation)
+
+13. `pg_ltree_create_extension()` → verify happy path expected behavior
+14. 🔴 `pg_ltree_create_extension({})` → verify structured P154 error response or valid defaults
+15. `pg_ltree_convert_column()` → verify happy path expected behavior
+16. 🔴 `pg_ltree_convert_column({})` → verify structured P154 error response or valid defaults
+17. `pg_ltree_create_index()` → verify happy path expected behavior
+18. 🔴 `pg_ltree_create_index({})` → verify structured P154 error response or valid defaults

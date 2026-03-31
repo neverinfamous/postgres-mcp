@@ -277,3 +277,26 @@ jsonb Tool Group (20 tools +1 for code mode):
 14. 🔴 `pg_jsonb_keys({})` → `{success: false, error: "..."}` (Zod validation)
 15. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
 16. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", value: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` to 100 and return valid results (wrong-type numeric param coercion)
+
+17. `pg_jsonb_index_suggest()` → verify happy path expected behavior
+18. 🔴 `pg_jsonb_index_suggest({})` → verify structured P154 error response or valid defaults
+19. `pg_jsonb_security_scan()` → verify happy path expected behavior
+20. 🔴 `pg_jsonb_security_scan({})` → verify structured P154 error response or valid defaults
+21. `pg_jsonb_agg()` → verify happy path expected behavior
+22. 🔴 `pg_jsonb_agg({})` → verify structured P154 error response or valid defaults
+23. `pg_jsonb_path_query()` → verify happy path expected behavior
+24. 🔴 `pg_jsonb_path_query({})` → verify structured P154 error response or valid defaults
+25. `pg_jsonb_merge()` → verify happy path expected behavior
+26. 🔴 `pg_jsonb_merge({})` → verify structured P154 error response or valid defaults
+27. `pg_jsonb_normalize()` → verify happy path expected behavior
+28. 🔴 `pg_jsonb_normalize({})` → verify structured P154 error response or valid defaults
+29. `pg_jsonb_array()` → verify happy path expected behavior
+30. 🔴 `pg_jsonb_array({})` → verify structured P154 error response or valid defaults
+31. `pg_jsonb_strip_nulls()` → verify happy path expected behavior
+32. 🔴 `pg_jsonb_strip_nulls({})` → verify structured P154 error response or valid defaults
+33. `pg_jsonb_set()` → verify happy path expected behavior
+34. 🔴 `pg_jsonb_set({})` → verify structured P154 error response or valid defaults
+35. `pg_jsonb_insert()` → verify happy path expected behavior
+36. 🔴 `pg_jsonb_insert({})` → verify structured P154 error response or valid defaults
+37. `pg_jsonb_delete()` → verify happy path expected behavior
+38. 🔴 `pg_jsonb_delete({})` → verify structured P154 error response or valid defaults

@@ -297,3 +297,12 @@ backup Tool Group (12 tools +1 for code mode)
 
 29. `pg_drop_table({table: "temp_backup_test", ifExists: true})` → cleanup
 30. `pg_drop_table({table: "temp_backup_restored", ifExists: true})` → cleanup restoreAs target
+
+31. `pg_copy_import()` → verify happy path expected behavior
+32. 🔴 `pg_copy_import({})` → verify structured P154 error response or valid defaults
+33. `pg_dump_schema()` → verify happy path expected behavior
+34. 🔴 `pg_dump_schema({})` → verify structured P154 error response or valid defaults
+35. `pg_restore_validate()` → verify happy path expected behavior
+36. 🔴 `pg_restore_validate({})` → verify structured P154 error response or valid defaults
+37. `pg_backup_schedule_optimize()` → verify happy path expected behavior
+38. 🔴 `pg_backup_schedule_optimize({})` → verify structured P154 error response or valid defaults

@@ -255,3 +255,14 @@ admin Tool Group (11 tools +1 code mode):
 9. 🔴 `pg_analyze({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
 10. 🔴 `pg_reindex({})` → `{success: false, error: "..."}` (Zod validation)
 11. 🔴 `pg_cancel_backend({pid: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or `{success: false}` (wrong-type numeric param)
+
+13. `pg_terminate_backend()` → verify happy path expected behavior
+14. 🔴 `pg_terminate_backend({})` → verify structured P154 error response or valid defaults
+15. `pg_reload_conf()` → verify happy path expected behavior
+16. 🔴 `pg_reload_conf({})` → verify structured P154 error response or valid defaults
+17. `pg_reset_stats()` → verify happy path expected behavior
+18. 🔴 `pg_reset_stats({})` → verify structured P154 error response or valid defaults
+19. `pg_cluster()` → verify happy path expected behavior
+20. 🔴 `pg_cluster({})` → verify structured P154 error response or valid defaults
+21. `pg_vacuum_analyze()` → verify happy path expected behavior
+22. 🔴 `pg_vacuum_analyze({})` → verify structured P154 error response or valid defaults

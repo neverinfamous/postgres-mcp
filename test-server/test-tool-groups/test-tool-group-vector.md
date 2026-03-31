@@ -258,3 +258,24 @@ vector Tool Group (16 tools +1 for code mode)
 7. 🔴 `pg_vector_search({table: "nonexistent_xyz", column: "v", vector: [1,0,0]})` → `{success: false, error: "..."}` handler error
 8. 🔴 `pg_vector_validate({})` → `{success: false, error: "..."}` (Zod validation — missing required `vector`)
 9. 🔴 `pg_vector_search({table: "test_embeddings", column: "embedding", vector: [1,0,0], limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+
+13. `pg_vector_cluster()` → verify happy path expected behavior
+14. 🔴 `pg_vector_cluster({})` → verify structured P154 error response or valid defaults
+15. `pg_vector_insert()` → verify happy path expected behavior
+16. 🔴 `pg_vector_insert({})` → verify structured P154 error response or valid defaults
+17. `pg_vector_create_extension()` → verify happy path expected behavior
+18. 🔴 `pg_vector_create_extension({})` → verify structured P154 error response or valid defaults
+19. `pg_vector_add_column()` → verify happy path expected behavior
+20. 🔴 `pg_vector_add_column({})` → verify structured P154 error response or valid defaults
+21. `pg_vector_index_optimize()` → verify happy path expected behavior
+22. 🔴 `pg_vector_index_optimize({})` → verify structured P154 error response or valid defaults
+23. `pg_vector_dimension_reduce()` → verify happy path expected behavior
+24. 🔴 `pg_vector_dimension_reduce({})` → verify structured P154 error response or valid defaults
+25. `pg_vector_embed()` → verify happy path expected behavior
+26. 🔴 `pg_vector_embed({})` → verify structured P154 error response or valid defaults
+27. `pg_hybrid_search()` → verify happy path expected behavior
+28. 🔴 `pg_hybrid_search({})` → verify structured P154 error response or valid defaults
+29. `pg_vector_performance()` → verify happy path expected behavior
+30. 🔴 `pg_vector_performance({})` → verify structured P154 error response or valid defaults
+31. `pg_vector_create_index()` → verify happy path expected behavior
+32. 🔴 `pg_vector_create_index({})` → verify structured P154 error response or valid defaults

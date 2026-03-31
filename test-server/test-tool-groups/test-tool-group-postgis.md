@@ -259,3 +259,26 @@ Test distance calculations between cities (e.g., New York ↔ London).
 5. 🔴 `pg_distance({table: "nonexistent_xyz", column: "geom", lat: 0, lng: 0, distance: 100})` → `{success: false, error: "..."}` handler error
 6. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
 7. 🔴 `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `distance` (wrong-type numeric param)
+
+13. `pg_geo_transform()` → verify happy path expected behavior
+14. 🔴 `pg_geo_transform({})` → verify structured P154 error response or valid defaults
+15. `pg_point_in_polygon()` → verify happy path expected behavior
+16. 🔴 `pg_point_in_polygon({})` → verify structured P154 error response or valid defaults
+17. `pg_buffer()` → verify happy path expected behavior
+18. 🔴 `pg_buffer({})` → verify structured P154 error response or valid defaults
+19. `pg_intersection()` → verify happy path expected behavior
+20. 🔴 `pg_intersection({})` → verify structured P154 error response or valid defaults
+21. `pg_postgis_create_extension()` → verify happy path expected behavior
+22. 🔴 `pg_postgis_create_extension({})` → verify structured P154 error response or valid defaults
+23. `pg_geometry_column()` → verify happy path expected behavior
+24. 🔴 `pg_geometry_column({})` → verify structured P154 error response or valid defaults
+25. `pg_spatial_index()` → verify happy path expected behavior
+26. 🔴 `pg_spatial_index({})` → verify structured P154 error response or valid defaults
+27. `pg_geo_cluster()` → verify happy path expected behavior
+28. 🔴 `pg_geo_cluster({})` → verify structured P154 error response or valid defaults
+29. `pg_geometry_buffer()` → verify happy path expected behavior
+30. 🔴 `pg_geometry_buffer({})` → verify structured P154 error response or valid defaults
+31. `pg_geometry_intersection()` → verify happy path expected behavior
+32. 🔴 `pg_geometry_intersection({})` → verify structured P154 error response or valid defaults
+33. `pg_geometry_transform()` → verify happy path expected behavior
+34. 🔴 `pg_geometry_transform({})` → verify structured P154 error response or valid defaults

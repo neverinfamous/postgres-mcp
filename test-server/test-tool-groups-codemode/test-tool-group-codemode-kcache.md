@@ -237,3 +237,10 @@ kcache Tool Group (7 tools +1 for code mode)
 3. `pg_kcache_top_io({type: "both", limit: 3})` → verify response structure
 4. `pg_kcache_database_stats()` → verify per-database stats returned
 5. 🔴 `pg_kcache_query_stats({limit: -1})` → verify returns handler error or graceful response (not MCP error)
+
+13. `pg_kcache_create_extension()` → verify happy path expected behavior
+14. 🔴 `pg_kcache_create_extension({})` → verify structured P154 error response or valid defaults
+15. `pg_kcache_resource_analysis()` → verify happy path expected behavior
+16. 🔴 `pg_kcache_resource_analysis({})` → verify structured P154 error response or valid defaults
+17. `pg_kcache_reset()` → verify happy path expected behavior
+18. 🔴 `pg_kcache_reset({})` → verify structured P154 error response or valid defaults

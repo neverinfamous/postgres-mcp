@@ -245,3 +245,14 @@ schema Tool Group (12 tools +1 for code mode)
 6. `pg_list_triggers({schema: "public"})` → verify response structure (may be empty)
 7. 🔴 `pg_list_constraints({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
 8. 🔴 `pg_create_sequence({name: "temp_seq_test", start: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error (wrong-type numeric param)
+
+13. `pg_create_schema()` → verify happy path expected behavior
+14. 🔴 `pg_create_schema({})` → verify structured P154 error response or valid defaults
+15. `pg_drop_schema()` → verify happy path expected behavior
+16. 🔴 `pg_drop_schema({})` → verify structured P154 error response or valid defaults
+17. `pg_drop_sequence()` → verify happy path expected behavior
+18. 🔴 `pg_drop_sequence({})` → verify structured P154 error response or valid defaults
+19. `pg_create_view()` → verify happy path expected behavior
+20. 🔴 `pg_create_view({})` → verify structured P154 error response or valid defaults
+21. `pg_drop_view()` → verify happy path expected behavior
+22. 🔴 `pg_drop_view({})` → verify structured P154 error response or valid defaults

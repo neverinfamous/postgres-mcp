@@ -247,3 +247,10 @@ monitoring group (11 tools +1 for code mode)
 9. `pg_alert_threshold_set({metric: "invalid_metric_xyz"})` → `{success: false}` structured error
 10. 🔴 `pg_table_sizes({})` → verify returns handler error or valid defaults (not MCP error)
 11. 🔴 `pg_table_sizes({limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+
+13. `pg_replication_status()` → verify happy path expected behavior
+14. 🔴 `pg_replication_status({})` → verify structured P154 error response or valid defaults
+15. `pg_capacity_planning()` → verify happy path expected behavior
+16. 🔴 `pg_capacity_planning({})` → verify structured P154 error response or valid defaults
+17. `pg_resource_usage_analyze()` → verify happy path expected behavior
+18. 🔴 `pg_resource_usage_analyze({})` → verify structured P154 error response or valid defaults
