@@ -15,6 +15,7 @@
 - Playwright E2E coverage for Code Mode, authentication, and backups.
 
 ### Changed
+- Updated all 21 testing prompts to explicitly mandate session-level token tracking via the `postgres://audit` resource and verify `metrics.tokenEstimate` injection within Code Mode execution blocks.
 - Refactored the advanced stress testing suite (`test-tools-advanced-[1-4].md`) into four distinct, logical parts to improve AI agent attention spans and prevent context window exhaustion during multi-group execution workflows.
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`.
 - Expanded `PostgresMcpError` to track categories, suggestions, and serialization context.
