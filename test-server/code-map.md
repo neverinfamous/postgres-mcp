@@ -30,7 +30,8 @@ src/
 │   ├── mcp.ts                      # TransportType
 │   ├── oauth.ts                    # OAuthConfig, OAuthScope, TokenClaims, RequestContext
 │   ├── errors.ts                   # PostgresMcpError base + 7 subclasses (see § Error Classes)
-│   ├── filtering.ts                # ToolGroup, MetaGroup, ToolFilterRule, ToolFilterConfig
+│   ├── error-types.ts              # ErrorCategory enum, ErrorResponse, ErrorContext
+│   ├── filtering.ts                # ToolGroup, ToolFilterRule, ToolFilterConfig
 │   └── adapters.ts                 # AdapterCapabilities, ToolDefinition, ResourceDefinition, PromptDefinition
 │
 ├── constants/
@@ -352,7 +353,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 All errors extend `PostgresMcpError` (defined in `src/types/errors.ts`). Every tool returns structured `ErrorResponse` objects — never raw MCP exceptions.
 
 ```
-PostgresMcpError (types/errors.ts)                code: string, details?: Record
+PostgresMcpError (types/errors.ts)                code: string, category: ErrorCategory, suggestion?: string, recoverable: boolean, details?: Record
 ├── ConnectionError              code: CONNECTION_ERROR
 ├── PoolError                    code: POOL_ERROR
 ├── QueryError                   code: QUERY_ERROR          (auto-refined → TABLE_NOT_FOUND, etc.)
@@ -389,7 +390,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | What | Where | Notes |
 |------|-------|-------|
 | Server instructions (agent prompt) | `src/constants/server-instructions.ts` | Generated: `generateInstructions(enabledGroups, level, toolCount)` + `HELP_CONTENT` map. Composable segments gated by tool groups and `InstructionLevel`. Source: `server-instructions/*.md` (22 files) |
-| Tool group arrays | `src/filtering/tool-constants.ts` | `TOOL_GROUPS` map, `META_GROUPS` shortcuts |
+| Tool group arrays | `src/filtering/tool-constants.ts` | `TOOL_GROUPS` map |
 | Tool filter logic | `src/filtering/tool-filter.ts` | `ToolFilter` class, `getEnabledGroups()` utility |
 | Connection pool | `src/pool/connection-pool.ts` | pg-native pool wrapper |
 | Logger | `src/utils/logger.ts` | Structured logging with severity filtering, `SENSITIVE_KEY_LIST` constant |
@@ -418,6 +419,8 @@ throw new ExtensionNotAvailableError("pgvector");
 | **Barrel Re-exports** | Import from `./module/index.js` (with `.js` extension for ESM). |
 | **Input Coercion** | All numeric input fields use `z.preprocess(coerceNumber, z.number().optional())` for safe validation at parse time. Zero `z.coerce.number()` remaining — fully migrated across 29 source files (15 schema + 14 handler). |
 | **Token Estimates** | Every tool response includes `_meta.tokenEstimate` in `content[].text` (~4 bytes/token heuristic). `structuredContent` stays schema-pure. Injected in `database-adapter.ts` `registerTool()`. Code Mode adds `metrics.tokenEstimate` for sandbox result size. |
+| **Audit Subsystem** | Read/write logging (`--audit-reads`), JSONL trails, and `.tar.gz` backup snapshots with metrics. Injects Code Mode audit coverage. |
+| **Auth & Security** | Transport-agnostic OAuth 2.1 mapping, per-tool scopes (`read`, `write`, `admin`), DNS rebinding protection (`validateHostHeader()`), and `/health` bypass for rate limiting. |
 
 ---
 
