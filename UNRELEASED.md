@@ -138,6 +138,7 @@
   - **Core** (5 tools): Fixed `pg_upsert`/`pg_batch_insert` P154 error compliance, error pipeline generic/raw PG leaks
   - **Transactions**: Fixed `pg_transaction_execute` wrong-type leak (statements schema), `pg_jsonb_diff` wrong-type leak
   - **Performance**: Fixed P154 structured error leaks on query_plan_compare/partition_strategy_suggest, workload_indexes raw error leak, enum validation leaks on analyze_query_indexes/list_objects/object_details
+  - **Introspection** (6 tools): Optimized `pg_migration_risks` to omit empty `risks` payload arrays for context window savings
 - **P154 structured error compliance**: Replaced manual `{success: false, error}` objects lacking `code`/`category` with proper `PostgresMcpError` classes across citext, partman, backup, stats, text, vector, core, and cron tool groups. Updated unit test assertions to expect structured payloads
 
 ### Removed

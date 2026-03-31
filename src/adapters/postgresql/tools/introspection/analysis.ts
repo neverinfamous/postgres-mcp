@@ -449,7 +449,7 @@ export function createMigrationRisksTool(
         }
 
         return {
-          risks,
+          ...(risks.length > 0 ? { risks } : {}),
           summary: {
             totalStatements: parsed.statements.length,
             totalRisks: risks.length,
