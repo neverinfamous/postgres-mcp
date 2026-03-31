@@ -596,10 +596,10 @@ stats Group (19 tools +1 for code mode)
 
 **Window function tools:**
 
-9. `pg_stats_row_number({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify 5 rows returned, each with `row_number` field (1-5)
-10. `pg_stats_row_number({table: "test_measurements", column: "temperature", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `row_number` resets per sensor_id partition
-11. `pg_stats_rank({table: "test_measurements", column: "temperature", orderBy: "temperature", limit: 5})` → verify rows with `rank` field
-12. `pg_stats_rank({table: "test_measurements", column: "temperature", orderBy: "temperature", method: "dense_rank", limit: 5})` → verify `dense_rank` — no gaps in ranking
+9. `pg_stats_row_number({table: "test_measurements", orderBy: "measured_at", limit: 5})` → verify 5 rows returned, each with `row_number` field (1-5)
+10. `pg_stats_row_number({table: "test_measurements", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `row_number` resets per sensor_id partition
+11. `pg_stats_rank({table: "test_measurements", orderBy: "temperature", limit: 5})` → verify rows with `rank` field
+12. `pg_stats_rank({table: "test_measurements", orderBy: "temperature", method: "dense_rank", limit: 5})` → verify `dense_rank` — no gaps in ranking
 13. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lag", limit: 5})` → verify rows with `lag_value` field; first row's `lag_value` should be null
 14. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lead", offset: 2, limit: 5})` → verify `lead_value` with offset 2
 15. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify rows with `running_total` field, monotonically increasing
@@ -622,7 +622,7 @@ stats Group (19 tools +1 for code mode)
 
 27. 🔴 `pg_stats_descriptive({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
 28. 🔴 `pg_stats_percentiles({})` → `{success: false, error: "..."}` (Zod validation)
-29. 🔴 `pg_stats_row_number({})` → `{success: false, error: "..."}` (Zod validation — missing required `table`, `column`, `orderBy`)
+29. 🔴 `pg_stats_row_number({})` → `{success: false, error: "..."}` (Zod validation — missing required `table`, `orderBy`)
 30. 🔴 `pg_stats_outliers({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
 31. 🔴 `pg_stats_frequency({table: "test_measurements", column: "nonexistent_col_xyz"})` → `{success: false, error: "..."}` handler error mentioning column
 

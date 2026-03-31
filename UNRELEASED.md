@@ -46,6 +46,7 @@
 - Scientific notation serialization bug in database seed script generating intervals.
 - Resolved `numeric field overflow` PostgreSQL exceptions by mapping them to specific `CALCULATION_ERROR` error structures instead of returning raw proxy errors.
 - Added 1000-character input validation constraints to `pg_append_insight` to prevent extreme query bloating in the `postgres://insights` resource limit.
+- Inaccurate tool test instructions in `test-group-tools.md` requiring superfluous `column` parameters for window functions (`pg_stats_row_number`, `pg_stats_rank`).
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.
