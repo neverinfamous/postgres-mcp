@@ -1,4 +1,4 @@
-# Unreleased
+## [Unreleased]
 
 ### Added
 - Transport-agnostic Auth module (`src/auth/transport-agnostic.ts`).
@@ -21,10 +21,10 @@
 - Standardized file and directory names to kebab-case convention.
 - Modularized 20+ large files (>500 lines) into smaller components.
 - Minimized tool payload size (~30-41% token reduction) by collapsing repetitive properties.
-- Optimized stats and admin tools to conditionally omit empty arrays (`rows`, `outliers`) from JSON responses to reduce context window token usage.
+- Optimized stats and admin tool responses to conditionally omit empty arrays, reducing token usage.
 - Optimized Zod schema evaluation logic for faster execution speed.
 - Applied `openWorldHint: false` to all 231 tools.
-- Reduced NPM package size (-1.65 MB) by removing source maps and test directories.
+- Reduced npm package size (-1.65 MB) by excluding source maps and tests.
 - Refactored Vitest test suite to use SWC compilation.
 - Updated npm dependencies (`@modelcontextprotocol/sdk`, `typescript`, `typescript-eslint`).
 - Updated `.env.example` templates and README.
@@ -44,14 +44,15 @@
 - Introspection cascade simulator truncating self-referencing foreign keys.
 - Partman initialization routines failing on missing child tables.
 - Scientific notation serialization bug in database seed script generating intervals.
-- Resolved `numeric field overflow` PostgreSQL exceptions by mapping them to specific `CALCULATION_ERROR` error structures instead of returning raw proxy errors.
-- Added 1000-character input validation constraints to `pg_append_insight` to prevent extreme query bloating in the `postgres://insights` resource limit.
-- Inaccurate tool test instructions in `test-group-tools.md` requiring superfluous `column` parameters for window functions (`pg_stats_row_number`, `pg_stats_rank`).
-- Standardized error codes for nonexistent columns and tables in `stats` tool group to rigidly match PostgreSQL syntax ('does not exist').
-- Solved Zod validation refinement leak returning `-32602` schema errors by safely moving explicit ceiling boundaries (`n`, `limit`, `maxOutliers`) inside `stats` tool handlers while maintaining `coerceNumber` fallback resiliency.
-- Split Schema violations in `admin` tools by moving 6 inline input schemas (`ReloadConfSchemaBase`, `SetConfigSchemaBase`, `ClusterSchemaBase`, etc.) from `config-tools.ts` into `schemas/admin.ts` and exporting them globally.
+- `numeric field overflow` PostgreSQL exceptions mapping to raw proxy errors instead of `CALCULATION_ERROR` structures.
+- Missing input validation bounds on `pg_append_insight` preventing extreme query bloating.
+- Inaccurate tool test instructions in `test-group-tools.md` requiring superfluous parameters.
+- Inconsistent 'does not exist' error messaging for missing columns and tables in `stats` tools.
+- Zod validation refinement leak returning `-32602` schema errors instead of handler exceptions in `stats` tools.
+- Split Schema violations in `admin` tools by extracting inline schemas to centralized files.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows.
+
 
