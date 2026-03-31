@@ -56,6 +56,7 @@
 - Missing positional mappings for Introspection and Migration Code Mode tool aliases preventing shorthand property resolution.
 - Transaction ID propagation gaps in `text` and `vector` tools, ensuring full isolation compliance within Code Mode sandboxes.
 - P154 validation omissions in `pg_text_search` and `pg_create_fts_index` causing unhandled database exceptions on invalid columns rather than structured errors.
+- Missing error parser mapping for `invalid input syntax for type` resulting in generic `QUERY_ERROR` instead of `VALIDATION_ERROR`.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.

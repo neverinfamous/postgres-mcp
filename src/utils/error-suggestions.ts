@@ -36,6 +36,12 @@ const ERROR_SUGGESTIONS: {
     category: ErrorCategory.VALIDATION,
   },
   {
+    pattern: /invalid input syntax for type/i,
+    suggestion: "The provided value is not valid for the assigned column type.",
+    category: ErrorCategory.VALIDATION,
+    code: "VALIDATION_ERROR",
+  },
+  {
     pattern: /invalid column name/i,
     suggestion:
       "Column names must follow PostgreSQL identifier rules: start with a letter or underscore, contain only alphanumeric characters or underscores.",
