@@ -72,7 +72,13 @@ export async function checkDuplicateHash(
   migrationSql: string,
 ): Promise<{
   migrationHash: string;
-  duplicateError: null | { success: false; error: string };
+  duplicateError: null | {
+    success: false;
+    error: string;
+    code: string;
+    category: string;
+    recoverable: boolean;
+  };
 }> {
   const migrationHash = hashMigrationSql(migrationSql);
   const dupCheck = await adapter.executeQuery(
@@ -92,6 +98,9 @@ export async function checkDuplicateHash(
         error:
           `Duplicate migration detected: version "${dupVersion}" (id: ${String(dupId)}) has the same SQL hash. ` +
           `Use a different migration SQL or roll back the existing one first.`,
+        code: "DUPLICATE_MIGRATION",
+        category: "validation",
+        recoverable: true
       },
     };
   }

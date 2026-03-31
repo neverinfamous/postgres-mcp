@@ -51,6 +51,8 @@
 
 ### Fixed
 
+- **Migration connection isolation**: Fixed `pg_migration_apply` and `pg_migration_rollback` so transaction state spans executing DDL scripts and internal tracking insertions on identically mapped connections, preventing unmanaged auto-commits. Implemented direct `invalidateSchemaCache` invocations immediately upon commit to synchronize schema introspection capabilities.
+- **Migration error structuring**: Standardized `checkDuplicateHash` responses into fully compliant P154 Structured Error payloads (`code`, `category`, `recoverable`).
 - **System-wide Split Schema and Output Validation hardening**: Applied comprehensive input parameter verification, strict Zod schemas, accurate numeric coercion, and missing `success: true` properties across all 230+ tools in 18 tool groups (cron, migration, partman, citext, etc.) to ensure determinism and compliance.
 - **Docker Multi-Arch image pull bug (Issue #92)**: Fixed image pushing pipeline by transitioning to a two-stage CI process mapping manifest convergences properly, eliminating the concurrent blob sync race condition.
 - **Schema state invalidation desync**: Added DDL regex detection in `executeWriteQuery()` to auto-flush index and stats caches natively when queries alter state.

@@ -204,14 +204,17 @@ export function createMigrationApplyTool(
         if (duplicateError) return duplicateError;
 
         // Execute migration SQL and record atomically
+        const transactionId = await adapter.beginTransaction();
         try {
-          await adapter.executeQuery("BEGIN");
+          const client = adapter.getTransactionConnection(transactionId);
+          if (!client) throw new Error("Could not acquire transaction connection");
 
           // Execute the migration SQL
-          await adapter.executeQuery(parsed.migrationSql);
+          await adapter.executeOnConnection(client, parsed.migrationSql);
 
           // Record in tracking table
-          const result = await adapter.executeQuery(
+          const result = await adapter.executeOnConnection(
+            client,
             `INSERT INTO ${TRACKING_TABLE}
            (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql)
            VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -227,7 +230,8 @@ export function createMigrationApplyTool(
             ],
           );
 
-          await adapter.executeQuery("COMMIT");
+          await adapter.commitTransaction(transactionId);
+          adapter.invalidateSchemaCache();
 
           const resultRows = result.rows ?? [];
           if (resultRows.length === 0) {
@@ -244,7 +248,7 @@ export function createMigrationApplyTool(
           };
         } catch (err: unknown) {
           // Roll back the entire transaction (migration SQL + INSERT)
-          await adapter.executeQuery("ROLLBACK");
+          await adapter.rollbackTransaction(transactionId);
 
           const message = formatPostgresError(err, { tool: "pg_migration_apply" });
 

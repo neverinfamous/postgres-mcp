@@ -122,14 +122,19 @@ export function createMigrationRollbackTool(
         }
 
         // Execute rollback in a transaction
+        const transactionId = await adapter.beginTransaction();
         try {
-          await adapter.executeQuery("BEGIN");
-          await adapter.executeQuery(rollbackSql);
-          await adapter.executeQuery(
+          const client = adapter.getTransactionConnection(transactionId);
+          if (!client) throw new Error("Could not acquire transaction connection");
+
+          await adapter.executeOnConnection(client, rollbackSql);
+          await adapter.executeOnConnection(
+            client,
             `UPDATE ${TRACKING_TABLE} SET status = 'rolled_back' WHERE id = $1`,
             [rowId],
           );
-          await adapter.executeQuery("COMMIT");
+          await adapter.commitTransaction(transactionId);
+          adapter.invalidateSchemaCache();
 
           return {
             success: true,
@@ -141,7 +146,7 @@ export function createMigrationRollbackTool(
             },
           };
         } catch (err: unknown) {
-          await adapter.executeQuery("ROLLBACK");
+          await adapter.rollbackTransaction(transactionId);
           const msg = err instanceof Error ? err.message : String(err);
           throw new ValidationError(`Rollback failed for migration "${rowVersion}" (id: ${String(rowId)}): ${msg}. Transaction was rolled back.`);
         }
