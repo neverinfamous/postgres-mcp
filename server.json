@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.neverinfamous/postgres-mcp",
   "title": "PostgreSQL MCP Server",
-  "description": "PostgreSQL MCP server featuring worker-thread Code Mode, Audit subsystem, OAuth 2.1, HTTP/SSE, connection pooling, tool filtering, and full extension support",
+  "description": "PostgreSQL MCP server with connection pooling, tool filtering, and full extension support",
   "version": "2.3.0",
   "packages": [
     {
