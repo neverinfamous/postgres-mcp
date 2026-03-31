@@ -292,7 +292,8 @@ export function createSchemaSnapshotTool(
         const stripNulls = (rows: Record<string, unknown>[]): Record<string, unknown>[] => {
           const clean = (obj: unknown): unknown => {
             if (Array.isArray(obj)) {
-              return obj.map(clean).filter((v) => v != null && v !== "");
+              const mapped = obj.map(clean).filter((v) => v != null && v !== "");
+              return mapped.length > 0 ? mapped : undefined;
             }
             if (obj !== null && typeof obj === "object") {
               const res: Record<string, unknown> = {};

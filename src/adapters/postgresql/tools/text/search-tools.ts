@@ -149,7 +149,7 @@ export function createTextSentimentTool(
   });
 
   const SentimentSchema = z.object({
-    text: z.string().describe("Text to analyze"),
+    text: z.string().min(1, "Text must not be empty").describe("Text to analyze"),
     returnWords: z
       .boolean()
       .optional()
