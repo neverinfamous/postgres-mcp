@@ -8,7 +8,7 @@
 |------|------|---------|--------------|
 | `test-tools.md` | 17 KB | **Entry-point protocol** — schema reference, P154 error patterns, Split Schema verification, structured error docs, cleanup rules. Paste a group checklist from `test-group-tools.md` at the bottom. | Always read first (Step 1 says read `src/constants/server-instructions.md`, Step 2 is the testing) |
 | `test-group-tools.md` | 48 KB | Per-group **deterministic checklists** for all 22 tool groups. Each section has numbered items with exact inputs/outputs, 🔴 error path items, alias tests, and create→use→drop lifecycles. | When running a specific tool group |
-| `advanced-test-tools.md` | 26 KB | **Second-pass stress tests** — 8 categories: boundary values, state pollution, alias matrix, error quality, concurrency/transactions, extension edge cases, payload truncation, code mode parity. | After basic checklist passes |
+| `test-tools-advanced-[1-4].md` | 6-12 KB ea | **Second-pass stress tests (4 Parts)** — 8 categories: boundary values, state pollution, alias matrix, error quality, concurrency/transactions, extension edge cases, payload truncation, code mode parity. | After basic checklist passes |
 | `test-preflight.md` | ~2KB | **Pre-flight check** — validates slim instructions, help resources, data resources, and tool-filter alignment in 5 steps | Before any test pass |
 | `test-tool-annotations.mjs` | ~3 KB | **Tool annotations script** — validates `openWorldHint` presence and values across all tools | Structural validation |
 | `test-prompts.mjs` | ~4 KB | **Prompts validation script** — validates MCP prompt arguments and execution | Structural validation |
@@ -111,4 +111,4 @@
 4. Run checklist + explicit 🔴 error path and alias tests.
 5. Clean up temp tables (`DROP TABLE IF EXISTS`).
 6. Report findings returning proper handler errors (`{success: false, error: "..."}`).
-7. (Optional) Run stress tests from `advanced-test-tools.md`.
+7. (Optional) Run stress tests sequentially from `test-tools-advanced-[1-4].md`.

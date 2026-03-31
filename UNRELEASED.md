@@ -15,6 +15,7 @@
 - Playwright E2E coverage for Code Mode, authentication, and backups.
 
 ### Changed
+- Refactored the advanced stress testing suite (`test-tools-advanced-[1-4].md`) into four distinct, logical parts to improve AI agent attention spans and prevent context window exhaustion during multi-group execution workflows.
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`.
 - Expanded `PostgresMcpError` to track categories, suggestions, and serialization context.
 - Centralized default connection pool timeout to 30,000ms.

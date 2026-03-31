@@ -443,7 +443,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/tool-groups-list.md` | Canonical tool inventory (22 groups) |
 | `test-server/test-group-tools.md` | Per-group deterministic checklists (all 22 groups) |
 | `test-server/test-tools.md` | Entry-point protocol (schema ref, P154, reporting format) |
-| `test-server/advanced-test-tools.md` | Stress tests (boundary, concurrency, cross-group) |
+| `test-server/test-tools-advanced-[1-4].md` | Stress tests (boundary, edge cases, cross-group payload optimization) split into 4 parts |
 | `test-server/test-resources.md` | Resource testing plan (20 resources) |
 | `test-server/test-prompts.md` | Prompt testing plan (20 prompts) |
 | `test-server/test-preflight.md` | Pre-test environment validation |
