@@ -213,7 +213,7 @@ export const MigrationHistoryOutputSchema = z.object({
   total: z.number().optional(),
   limit: z.number().optional(),
   offset: z.number().optional(),
-  success: z.boolean().optional(),
+  success: z.boolean(),
   error: z.string().optional(),
 }).extend(ErrorResponseFields.shape);
 
@@ -231,6 +231,6 @@ export const MigrationStatusOutputSchema = z.object({
     })
     .optional(),
   sourceSystems: z.array(z.string()).optional(),
-  success: z.boolean().optional(),
+  success: z.boolean(),
   error: z.string().optional(),
 }).extend(ErrorResponseFields.shape);

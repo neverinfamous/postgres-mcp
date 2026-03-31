@@ -111,7 +111,6 @@
 - **Admin tool errors**: `pg_terminate_backend`, `pg_cancel_backend` return structured P154 responses. `pg_append_insight` validates empty text and max 1000 characters
 - **Introspection compact mode**: `DependencyEdgeSchema` fields corrected from required to `.optional()` for compact mode
 - **Error parser fixes**: Broad regex leak causing column errors to map as `TABLE_NOT_FOUND` fixed with negative lookbehind. Tsvector false-positive regex tightened. Schema entity extraction expanded for views and sequences. Single/double quote support unified
-- **`INVALID_BASE64` pattern gap in `error-suggestions.ts`**: Regex `/(?:invalid symbol.*|invalid base64.*)decoding base64 sequence/i` failed to match PostgreSQL's `"invalid base64 end sequence"` message (emitted for strings with truncated/missing padding), causing it to fall through to generic `QUERY_ERROR` with no suggestion. Fixed by reordering the alternation to `(?:invalid symbol.*decoding base64 sequence|invalid base64)` so the shorter `invalid base64` prefix matches both error variants independently. `pg_pgcrypto_decrypt` now correctly returns `code: "INVALID_BASE64"` with actionable suggestion for all invalid base64 inputs
 - **Query plan compare**: Added `compact` parameter to suppress verbose `fullPlans` output
 - **Core index limit leak**: `pg_get_indexes` now universally applies `limit` parameter with `truncated` metadata
 - **Stats fixes**: Array payload boundaries (`.max(1000)`) on `pg_stats_top_n`, `pg_stats_distinct`, `pg_stats_frequency`. Hypothesis edge cases throw P154 `ValidationError`. `pg_stats_rank` `method`→`rankType` and `pg_stats_top_n` `direction`→`orderDirection` parameter alignment. Scalar coercion overflow fix on `pg_stats_descriptive`
@@ -127,7 +126,7 @@
   - **Citext** (6 tools): Fixed Split Schema leaks, strict validation on create_extension, convert_column errors, alias handling, constraint/error boundary leaks
   - **Kcache** (7 tools): Relaxed `z.object({}).strict()` on parameterless tools, bounded limits (1-100, default 50), added compact mode, fixed numeric coercion and validation leaks
   - **Partman** (10 tools): Re-introduced 8 parameter aliases across 9 base schemas, fixed numeric field typing, added table existence checks (`TABLE_NOT_FOUND`), fixed `pg_partman_analyze_partition_health` ad-hoc responses
-  - **Migration** (6 tools): Fixed `z.preprocess()`/`z.enum()` leaks on rollback/history, numeric coercion via `z.union()`, status output omitting `recorded: 0`, added `sql`/`query` aliases for record/apply, P154 error leaks on apply
+  - **Migration** (6 tools): Fixed `z.preprocess()`/`z.enum()` leaks on rollback/history, numeric coercion via `z.union()`, status output omitting `recorded: 0`, added `sql`/`query` aliases for record/apply, P154 error leaks on apply. Added missing `success: true` wrapper to `pg_migration_status` and `pg_migration_history`. Made `success` required in output schemas.
   - **Cron**: Removed Zod regex validation leak in `CoercibleJobId`, fixed Split Schema validation leaks, limit coercion, Zod boundary violations across schedule/cleanup/list tools, optimized pg_cron_job_run_details payload, made success field required in output schemas, added missing `success: true` to pg_cron_list_jobs and pg_cron_job_run_details, fixed missing error fields in CronCreateExtensionOutputSchema and CronListJobsOutputSchema, corrected limit schema description for pg_cron_job_run_details. Additionally replaced CoercibleJobId with plain \`z.union([z.number(), z.string()])\` in all Base Schemas to prevent SDK validation leaks.
   - **Backup** (12 tools): Fixed Split Schema bugs on restore/diff, enum leaks across 5 tools, structured error leaks across 6 tools, payload bloat on list_backups (added `limit` default 50)
   - **Monitoring** (11 tools): Fixed `pg_table_sizes`/`pg_show_settings` leaks, inline schema extraction for capacity/alert tools, `pg_resource_usage_analyze` missing error boundary, `pg_database_size` Zod leak, payload optimization (table_sizes default 50→10)
@@ -138,7 +137,6 @@
   - **Core** (5 tools): Fixed `pg_upsert`/`pg_batch_insert` P154 error compliance, error pipeline generic/raw PG leaks
   - **Transactions**: Fixed `pg_transaction_execute` wrong-type leak (statements schema), `pg_jsonb_diff` wrong-type leak
   - **Performance**: Fixed P154 structured error leaks on query_plan_compare/partition_strategy_suggest, workload_indexes raw error leak, enum validation leaks on analyze_query_indexes/list_objects/object_details
-  - **Introspection** (6 tools): Optimized `pg_migration_risks` to omit empty `risks` payload arrays for context window savings
 - **P154 structured error compliance**: Replaced manual `{success: false, error}` objects lacking `code`/`category` with proper `PostgresMcpError` classes across citext, partman, backup, stats, text, vector, core, and cron tool groups. Updated unit test assertions to expect structured payloads
 
 ### Removed
@@ -148,4 +146,5 @@
 ### Security
 
 - **Dependency updates**: Bumped `gitleaks-action`, `trufflehog` → v3.93.8, `github/codeql-action` → v4. Patched `flatted`, `picomatch`, `hono` overrides. Updated Dockerfile `diff` → 8.0.4 and `tar` → 7.5.13
+- **CI/CD hardening**: Updated `e2e.yml` checkout to v6 SHA. Added `--provenance` flag and `id-token: write` to `publish-npm.yml` for SLSA Build L3 attestation. Added `npm audit --omit=dev` to `lint-and-test.yml`. Removed `continue-on-error: true` from Docker Hub description update
 - **CI/CD hardening**: Updated `e2e.yml` checkout to v6 SHA. Added `--provenance` flag and `id-token: write` to `publish-npm.yml` for SLSA Build L3 attestation. Added `npm audit --omit=dev` to `lint-and-test.yml`. Removed `continue-on-error: true` from Docker Hub description update

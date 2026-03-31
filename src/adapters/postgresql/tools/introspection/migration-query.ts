@@ -225,6 +225,7 @@ export function createMigrationHistoryTool(
         const records = (dataResult.rows ?? []).map(formatRecord);
 
         return {
+          success: true,
           records,
           total,
           limit,
@@ -278,6 +279,7 @@ export function createMigrationStatusTool(
 
         if (!tableExists) {
           return {
+            success: true,
             initialized: false,
             latestVersion: null,
             latestAppliedAt: null,
@@ -331,6 +333,7 @@ export function createMigrationStatusTool(
         }
 
         return {
+          success: true,
           initialized: true,
           latestVersion:
             latestRow != null ? (latestRow["version"] as string) : null,
