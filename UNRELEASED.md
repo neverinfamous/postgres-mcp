@@ -59,6 +59,8 @@
 - P154 validation omissions in `pg_text_search` and `pg_create_fts_index` causing unhandled database exceptions on invalid columns rather than structured errors.
 - Missing error parser mapping for `invalid input syntax for type` resulting in generic `QUERY_ERROR` instead of `VALIDATION_ERROR`.
 - Corrected Javascript string arithmetic bugs in transaction boundary tests (`test-tools-advanced-1.md`) when validating row counts.
+- `compact` internal boolean flag leaking into `pg_schema_snapshot` JSON response structures.
+- Inaccurate parameter references (`vectorA` to `vector1`) within advanced stress testing documentation.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.

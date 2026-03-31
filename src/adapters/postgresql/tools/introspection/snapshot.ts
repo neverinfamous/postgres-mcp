@@ -358,7 +358,6 @@ export function createSchemaSnapshotTool(
           snapshot,
           stats,
           generatedAt: new Date().toISOString(),
-          ...(parsed.compact && { compact: true }),
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {

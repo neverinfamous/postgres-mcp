@@ -985,7 +985,7 @@ describe("pg_schema_snapshot", () => {
       compact?: boolean;
     };
 
-    expect(result.compact).toBe(true);
+    expect(result.compact).toBeUndefined();
     // First call (tables query) should NOT contain the columns subquery
     const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
     expect(tablesSql).not.toContain("json_agg");

@@ -25,7 +25,7 @@ All tests should be executed via `pg_execute_code` code mode. Tests are written 
 | `pg_upsert({...})`                                   | `pg.core.upsert({...})`                                        |
 | `pg_transaction_*({...})`                            | `pg.transactions.*({...})`                                     |
 | `pg_jsonb_*({...})`                                  | `pg.jsonb.*({...})`                                            |
-| `pg_text_*` / `pg_trigram_*` / `pg_fuzzy_*` / etc.  | `pg.text.*`                                                    |
+| `pg_text_*` / `pg_trigram_*` / `pg_fuzzy_*` / etc.   | `pg.text.*`                                                    |
 | `pg_stats_*({...})`                                  | `pg.stats.*({...})`                                            |
 | `pg_vector_*({...})`                                 | `pg.vector.*({...})`                                           |
 
@@ -662,7 +662,7 @@ Insights are in-memory only — no cleanup needed.
 2. `pg_vector_search` with a 5-dim query vector on `test_embeddings` → expect dimension error
 3. `pg_vector_validate` with empty vector `[]` → expect `{valid: true, vectorDimensions: 0}`
 4. `pg_vector_validate` with single-element `[1.0]` → expect `{valid: true, vectorDimensions: 1}`
-5. `pg_vector_distance` between vectors of different dimensions `[1,2,3]` vs `[1,2]` → expect error
+5. `pg_vector_distance` between vectors of different dimensions `[1,2,3]` vs `[1,2]` (use `vector1` and `vector2` params) → expect error
 
 ### Category 2: Error Message Quality
 
