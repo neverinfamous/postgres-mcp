@@ -49,6 +49,7 @@
 - Inaccurate tool test instructions in `test-group-tools.md` requiring superfluous `column` parameters for window functions (`pg_stats_row_number`, `pg_stats_rank`).
 - Standardized error codes for nonexistent columns and tables in `stats` tool group to rigidly match PostgreSQL syntax ('does not exist').
 - Solved Zod validation refinement leak returning `-32602` schema errors by safely moving explicit ceiling boundaries (`n`, `limit`, `maxOutliers`) inside `stats` tool handlers while maintaining `coerceNumber` fallback resiliency.
+- Split Schema violations in `admin` tools by moving 6 inline input schemas (`ReloadConfSchemaBase`, `SetConfigSchemaBase`, `ClusterSchemaBase`, etc.) from `config-tools.ts` into `schemas/admin.ts` and exporting them globally.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.

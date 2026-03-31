@@ -90,6 +90,12 @@ export {
   AppendInsightSchema,
   AppendInsightSchemaBase,
   AppendInsightOutputSchema,
+  ReloadConfSchemaBase,
+  ResetStatsSchemaBase,
+  SetConfigSchemaBase,
+  SetConfigSchema,
+  ClusterSchemaBase,
+  ClusterSchema,
 } from "./admin.js";
 
 // Monitoring schemas

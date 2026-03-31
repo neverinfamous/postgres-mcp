@@ -242,6 +242,129 @@ export const CancelBackendSchema = z.preprocess(
   }),
 );
 
+// ============== CONFIG SCHEMAS ==============
+export const ReloadConfSchemaBase = z.object({});
+export const ResetStatsSchemaBase = z.object({});
+
+/**
+ * Preprocess set_config parameters:
+ * - Alias: param/setting → name
+ */
+function preprocessSetConfigParams(input: unknown): unknown {
+  if (typeof input !== "object" || input === null) {
+    return input;
+  }
+  const result = { ...(input as Record<string, unknown>) };
+  if (result["param"] !== undefined && result["name"] === undefined) {
+    result["name"] = result["param"];
+  }
+  if (result["setting"] !== undefined && result["name"] === undefined) {
+    result["name"] = result["setting"];
+  }
+  return result;
+}
+
+// Base schema for MCP visibility (shows all parameters and aliases)
+export const SetConfigSchemaBase = z.object({
+  name: z.string().optional().describe("Configuration parameter name"),
+  param: z.string().optional().describe("Alias for name"),
+  setting: z.string().optional().describe("Alias for name"),
+  value: z.string().optional().describe("New value"),
+  isLocal: z.boolean().optional().describe("Apply only to current transaction"),
+});
+
+// Preprocess schema for handlers
+export const SetConfigSchema = z.preprocess(
+  preprocessSetConfigParams,
+  z.object({
+    name: z.string().describe("Configuration parameter name"),
+    value: z.string().describe("New value"),
+    isLocal: z
+      .boolean()
+      .optional()
+      .describe("Apply only to current transaction"),
+  }),
+);
+
+// ============== CLUSTER SCHEMA ==============
+/**
+ * Preprocess cluster parameters:
+ * - Alias: tableName → table
+ * - Alias: indexName → index
+ * - Handle undefined input for database-wide CLUSTER
+ */
+function preprocessClusterParams(input: unknown): unknown {
+  if (typeof input !== "object" || input === null) {
+    return {};
+  }
+  const result = { ...(input as Record<string, unknown>) };
+  if (result["tableName"] !== undefined && result["table"] === undefined) {
+    result["table"] = result["tableName"];
+  }
+  if (result["indexName"] !== undefined && result["index"] === undefined) {
+    result["index"] = result["indexName"];
+  }
+
+  const tableVal = result["table"];
+  if (typeof tableVal === "string" && tableVal.includes(".")) {
+    const parts = tableVal.split(".");
+    if (parts.length === 2 && parts[0] !== "" && parts[1] !== "") {
+      if (result["schema"] === undefined) {
+        result["schema"] = parts[0];
+      }
+      result["table"] = parts[1];
+    }
+  }
+
+  return result;
+}
+
+// Base schema for MCP visibility (shows all parameters and aliases)
+export const ClusterSchemaBase = z.object({
+  table: z
+    .string()
+    .optional()
+    .describe("Table name (all previously-clustered tables if omitted)"),
+  tableName: z.string().optional().describe("Alias for table"),
+  index: z
+    .string()
+    .optional()
+    .describe("Index to cluster on (required when table specified)"),
+  indexName: z.string().optional().describe("Alias for index"),
+  schema: z.string().optional().describe("Schema name"),
+});
+
+// Preprocess schema for handlers (table/index are optional for database-wide CLUSTER)
+export const ClusterSchema = z
+  .preprocess(
+    preprocessClusterParams,
+    z.object({
+      table: z
+        .string()
+        .optional()
+        .describe("Table name (all previously-clustered tables if omitted)"),
+      index: z
+        .string()
+        .optional()
+        .describe("Index to cluster on (required when table specified)"),
+      schema: z.string().optional(),
+    }),
+  )
+  .refine(
+    (data) => {
+      // table and index must both be specified or both be omitted
+      const parsed = data as { table?: string; index?: string };
+      const hasTable = parsed.table !== undefined;
+      const hasIndex = parsed.index !== undefined;
+      // Both must be present or both absent
+      return hasTable === hasIndex;
+    },
+    {
+      message:
+        "table and index must both be specified together, or both omitted for database-wide re-cluster",
+    },
+  );
+
 // ============== OUTPUT SCHEMAS (MCP 2025-11-25 structuredContent) ==============
 
 // Output schema for ANALYZE operations
