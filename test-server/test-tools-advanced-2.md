@@ -226,7 +226,7 @@ No cleanup needed (citext tests are read-only or non-destructive).
 2. `pg_cron_schedule({name: "stress_dup_job", schedule: "0 1 * * *", command: "SELECT 2"})` → report behavior: does it error on duplicate name, or overwrite?
 3. `pg_cron_schedule({name: "stress_bad_cron", schedule: "invalid cron", command: "SELECT 1"})` → report whether validation catches invalid expression or defers to pg_cron
 4. `pg_cron_schedule({name: "stress_bad_sql", schedule: "0 0 * * *", command: "SELECT * FROM nonexistent_xyz"})` → report: does scheduling succeed (SQL validated on execution, not schedule-time)?
-5. `pg_cron_job_details({jobName: "stress_dup_job"})` → report behavior (if tool exists)
+5. `pg_cron_job_run_details({jobName: "stress_dup_job"})` → report behavior (if tool exists)
 6. Cleanup: `pg_cron_unschedule` all `stress_*` jobs
 
 ### Category 2: Error Message Quality
@@ -571,7 +571,7 @@ All tools in this group are read-only — no cleanup needed. Confirm `test_produ
     - `hasDifferences` is `true` if any schema drift exists OR `volumeDrift` row counts differ
 17. Verify `sizeBytesSnapshot` and `sizeBytesCurrent` fields present (may be `null` if size data unavailable)
 
-### Category 3b: restoreAs Non-Destructive Restore
+### Category 3: restoreAs Non-Destructive Restore
 
 > Uses `stress_backup_lifecycle` snapshots from Category 1 above. Requires the table to have schema drift introduced (drift_col still present, or re-add it).
 
@@ -605,14 +605,14 @@ All tools in this group are read-only — no cleanup needed. Confirm `test_produ
     - Snapshot has `tool: "pg_execute_code"` and `target` containing `stress_codemode_audit`
 29. `pg_audit_diff_backup({filename: <from step 28>})` → verify diff reports the DDL of the dropped table
 
-### Category 5 (was 3): Error Message Quality
+### Category 5: Error Message Quality
 
 30. `pg_audit_diff_backup({filename: "nonexistent_snapshot_xyz.json"})` → structured error with `filename` context, NOT raw MCP error
 31. `pg_audit_restore_backup({filename: "valid.json"})` without `confirm` → structured error mentioning `confirm` is required
 32. `pg_audit_restore_backup({filename: "nonexistent_xyz.json", confirm: true})` → structured error for missing file
 33. All 3 audit tools called with `--audit-backup` **disabled**: verify each returns `{success: false, error: "..."}` structured error, NOT MCP error
 
-### Category 6 (was 4): Code Mode Parity
+### Category 6: Code Mode Parity
 
 ```javascript
 // Run via pg_execute_code
@@ -646,7 +646,7 @@ Drop `stress_backup_lifecycle`, `stress_backup_multi`, `stress_backup_restored`,
 
 ### Workflow 1: Core → JSONB → Stats (Data Pipeline)
 
-1. `pg_create_table({table: "stress_pipeline", columns: [{name: "id", type: "SERIAL PRIMARY KEY"}, {name: "data", type: "JSONB"}, {name: "score", type: "NUMERIC(5,2)"}]})` → success
+1. `pg_create_table({table: "stress_pipeline", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "data", type: "JSONB"}, {name: "score", type: "NUMERIC(5,2)"}]})` → success
 2. Insert 5 rows with JSONB data (`{"category": "tech", "priority": N}`) and varying scores
 3. `pg_jsonb_extract({table: "stress_pipeline", column: "data", path: "$.category"})` → verify extraction
 4. `pg_stats_descriptive({table: "stress_pipeline", column: "score"})` → verify mean, stddev, min, max
@@ -658,7 +658,7 @@ Drop `stress_backup_lifecycle`, `stress_backup_multi`, `stress_backup_restored`,
 
 ### Workflow 2: Core → Vector → Text (AI Search Pipeline)
 
-7. `pg_create_table({table: "stress_ai_search", columns: [{name: "id", type: "SERIAL PRIMARY KEY"}, {name: "content", type: "TEXT"}, {name: "embedding", type: "vector(4)"}]})` → success
+7. `pg_create_table({table: "stress_ai_search", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "content", type: "TEXT"}, {name: "embedding", type: "vector(4)"}]})` → success
 8. Insert 3 rows with text content and 4-dim vectors
 9. `pg_vector_search({table: "stress_ai_search", column: "embedding", vector: [0.1, 0.2, 0.3, 0.4], limit: 2})` → verify 2 nearest results
 10. `pg_text_search({table: "stress_ai_search", column: "content", query: "<search term>"})` → verify text search
