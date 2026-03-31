@@ -191,7 +191,7 @@ Error logic should leverage the `PostgresMcpError` hierarchy (e.g., `ValidationE
 ### Input Validation
 
 - All parameters are validated via **Zod schemas** with explicit coercion controls (e.g., `z.preprocess(coerceNumber, z.number().optional())` instead of aggressive `z.coerce.number()`)
-- Output schemas are strictly defined to guarantee AI agents receive deterministic P154-compliant structures
+- Output schemas are strictly defined to guarantee AI agents receive deterministic P154-compliant structures (using `openWorldHint: false`)
 - Invalid inputs must return structured errors, automatically handled by `formatHandlerError()` without raw Zod validation messages
 - SQL injection is prevented via **parameter binding** — never interpolate user input into SQL strings
 
@@ -215,7 +215,8 @@ postgres-mcp organizes tools into groups covering: `core`, `schema`, `introspect
 3. **Add structured error handling** by letting the handler return `formatHandlerError()` when exceptions are caught
 4. **Write meaningful Vitest tests** and update E2E spec files if making systemic changes
 5. **Add the tool to the group's help resource** (the markdown file under `src/constants/server-instructions/`)
-6. **Update `UNRELEASED.md`** with your change (see [Changelog](#-changelog) below)
+6. **Verify OAuth Scope** — ensure the new tool aligns with its group's defined OAuth 2.1 scope (`read`, `write`, or `admin`)
+7. **Update `UNRELEASED.md`** with your change (see [Changelog](#-changelog) below)
 
 ## 🐛 Bug Reports
 
@@ -303,8 +304,8 @@ Log all changes in **[`UNRELEASED.md`](UNRELEASED.md)** at the project root usin
 ```
 src/
 ├── adapters/       # PostgreSQL queries, handlers, Zod schemas, prompts, and resources
-├── audit/          # JSONL audit trail, pre-mutation snapshots, interceptor
-├── auth/           # Transport-agnostic OAuth 2.1, scopes, RF 6750 enforcement
+├── audit/          # JSONL audit trail with session token estimates, pre-mutation snapshots, interceptor
+├── auth/           # Transport-agnostic OAuth 2.1, scopes, RFC 6750 enforcement
 ├── cli/            # CLI argument parsing and server bootstrap
 ├── cli.ts          # Entry point
 ├── codemode/       # Sandboxed JavaScript execution (Code Mode — VM & Worker Isolate)
@@ -351,6 +352,7 @@ When contributing code, follow these security practices:
 - **Input validation** via Zod schemas at tool boundaries
 - **No secrets in code** — use environment variables (`.env` files are gitignored)
 - **Typed error classes** with descriptive messages — don't expose internal details to end users
+- **Transport Security** — preserve DNS rebinding protection and Slowloris DoS timeouts in HTTP layers
 
 ## 🤝 Community
 
