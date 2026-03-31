@@ -2,7 +2,7 @@
 
 > **Agent-optimized navigation reference.** Read this before searching the codebase. Covers directory layout, handler→tool mapping, type/schema locations, error hierarchy, and key constants.
 >
-> Last updated: March 24, 2026
+> Last updated: March 31, 2026
 
 ---
 
@@ -410,7 +410,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | **P154 Pattern** | All tools verify object existence before operating. Returns structured error for missing tables/schemas. |
 | **Adapter Pattern** | `DatabaseAdapter` (abstract) → `PostgresAdapter`. Single adapter (no WASM variant). |
 | **Schema Cache** | Metadata caching via `schema-operations/` (describe + list). |
-| **Connection Pool** | `ConnectionPool` wraps `pg` module. Managed lifecycle with health checks. |
+| **Connection Pool** | `ConnectionPool` wraps `pg` module. Managed lifecycle with health checks and centralized 30,000ms default timeout. |
 | **Code Mode Bridge** | `pg.*` API in sandbox. Dual-mode: VM (default, `sandbox.ts`) or Worker (`worker-sandbox.ts` + `worker-script.ts`). Factory in `sandbox-factory.ts`. Unique `api/` subdir with alias resolution + group-api generation. Security constants in `SecurityConfig`. Returns `metrics.tokenEstimate` for per-execution burn-rate feedback. |
 | **Tool Aliases** | postgres-mcp has a dedicated alias system (`codemode/api/aliases.ts`, 15KB) for Code Mode. |
 | **Per-Group Schemas** | Zod schemas separated into `schemas/` subdir organized by group (vs mysql-mcp's monolithic file). |
@@ -419,8 +419,8 @@ throw new ExtensionNotAvailableError("pgvector");
 | **Barrel Re-exports** | Import from `./module/index.js` (with `.js` extension for ESM). |
 | **Input Coercion** | All numeric input fields use `z.preprocess(coerceNumber, z.number().optional())` for safe validation at parse time. Zero `z.coerce.number()` remaining — fully migrated across 29 source files (15 schema + 14 handler). |
 | **Token Estimates** | Every tool response includes `_meta.tokenEstimate` in `content[].text` (~4 bytes/token heuristic). `structuredContent` stays schema-pure. Injected in `database-adapter.ts` `registerTool()`. Code Mode adds `metrics.tokenEstimate` for sandbox result size. |
-| **Audit Subsystem** | Read/write logging (`--audit-reads`), JSONL trails, and `.tar.gz` backup snapshots with metrics. Injects Code Mode audit coverage. |
-| **Auth & Security** | Transport-agnostic OAuth 2.1 mapping, per-tool scopes (`read`, `write`, `admin`), DNS rebinding protection (`validateHostHeader()`), and `/health` bypass for rate limiting. |
+| **Audit Subsystem** | Read/write logging (`--audit-reads`), JSONL trails with session token estimates, error redaction, and `.tar.gz` backup snapshots with metrics. Injects Code Mode audit coverage. |
+| **Auth & Security** | Transport-agnostic OAuth 2.1 mapping, per-tool scopes (`read`, `write`, `admin`), DNS rebinding protection (`validateHostHeader()`), Slowloris DoS protection (configurable timeouts), and `/health` bypass for rate limiting. |
 
 ---
 
