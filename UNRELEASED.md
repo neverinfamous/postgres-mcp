@@ -74,9 +74,9 @@
 - **Playwright config**: `--tool-filter +all`, `MCP_RATE_LIMIT_MAX: "1000"`, `workers: 1`
 - **E2E shared client pattern**: `tools.spec.ts` uses shared client via `beforeAll`/`afterAll`
 - **Dependency updates**:
-  - `jose` → v6.2.2, `@modelcontextprotocol/sdk` → v1.28.0, `@types/pg` → v8.20.0
+  - `jose` → v6.2.2, `@modelcontextprotocol/sdk` → v1.29.0, `@types/pg` → v8.20.0
   - `@vitest/coverage-v8` → v4.1.2, `eslint` → v10.1.0, `vitest` → v4.1.2
-  - `typescript-eslint` → v8.57.2, `@types/node` → v25.5.0
+  - `typescript` → v6.0.2, `typescript-eslint` → v8.58.0, `@types/node` → v25.5.0
   - `actions/upload-artifact` → v7.0.0, `docker/metadata-action` → v6.0.0
 
 ### Fixed
@@ -145,6 +145,6 @@
 
 ### Security
 
-- **Dependency updates**: Bumped `gitleaks-action`, `trufflehog` → v3.93.8, `github/codeql-action` → v4. Patched `flatted`, `picomatch`, `hono` overrides. Updated Dockerfile `diff` → 8.0.4 and `tar` → 7.5.13
+- **Dependency updates**: Bumped `gitleaks-action`, `trufflehog` → v3.93.8, `github/codeql-action` → v4. Patched `flatted`, `picomatch`, `hono` (v4.12.9) overrides. Updated Dockerfile `diff` → 8.0.4, `tar` → 7.5.13, and `minimatch` → 10.2.5
 - **CI/CD hardening**: Updated `e2e.yml` checkout to v6 SHA. Added `--provenance` flag and `id-token: write` to `publish-npm.yml` for SLSA Build L3 attestation. Added `npm audit --omit=dev` to `lint-and-test.yml`. Removed `continue-on-error: true` from Docker Hub description update
 - **CI/CD hardening**: Updated `e2e.yml` checkout to v6 SHA. Added `--provenance` flag and `id-token: write` to `publish-npm.yml` for SLSA Build L3 attestation. Added `npm audit --omit=dev` to `lint-and-test.yml`. Removed `continue-on-error: true` from Docker Hub description update

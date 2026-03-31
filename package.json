@@ -66,15 +66,15 @@
     "@vitest/coverage-v8": "^4.1.2",
     "eslint": "^10.1.0",
     "globals": "^17.4.0",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "typescript-eslint": "^8.57.2",
     "unplugin-swc": "^1.5.9",
     "vitest": "^4.1.2"
   },
   "overrides": {
     "flatted": "3.4.2",
-    "hono": "4.12.7",
-    "minimatch": "10.2.4",
+    "hono": "4.12.9",
+    "minimatch": "10.2.5",
     "picomatch": "4.0.4",
     "tar": "7.5.13"
   }
