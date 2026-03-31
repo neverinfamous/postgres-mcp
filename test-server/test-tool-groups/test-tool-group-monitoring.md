@@ -11,7 +11,7 @@
 
 - ❌ Fail: Tool errors or produces incorrect results (include error message)
 - ⚠️ Issue: Unexpected behavior or improvement opportunity
-- 📦 Payload: Unnecessarily large response that should be optimized — **blocking, equally important as ❌ bugs**. Oversized payloads waste LLM context window tokens and degrade downstream tool-calling quality. Report the response size in KB and suggest a concrete optimization (e.g., filter system tables, add `compact` option, omit empty arrays).
+- 📦 Payload: Unnecessarily large response that should be optimized — **blocking, equally important as ❌ bugs**. Oversized payloads waste LLM context window tokens and degrade downstream tool-calling quality. **You MUST monitor `_meta.tokenEstimate` for every operation**. Report the response size in tokens/KB and suggest a concrete optimization (e.g., filter system tables, add `compact` option, omit empty arrays).
 
 > **Token estimates**: Every tool response includes `_meta.tokenEstimate` in its `content[].text` payload (approximate token count based on ~4 bytes/token). Code Mode responses include `metrics.tokenEstimate` instead. These are injected automatically by the adapter — no per-tool assertions needed, but report as ⚠️ if absent.
 > **Code Mode Token Tracking**: For at least one `pg_execute_code` test, explicitly verify that `metrics.tokenEstimate` is present in the response and is a number greater than 0, reporting as ❌ if it is missing or zero.
@@ -203,7 +203,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 ### After Testing
 
-1. **Token Tracking**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary.
+1. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive tool call.
 2. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed including any files created during testing.
 3. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in the files listed below, and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 4. **Read `code-map.md` before making changes and make all changes consistent with other tools.**
@@ -215,7 +215,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
 6. **User will handle validation**
 7. Update the changelog if there were any changes made (being careful not to create duplicate headers), and commit without pushing.
 8. Create a /session-summary in memory-journal-mcp for the issues and their fixes, explicitly including the "Total Token Usage" captured.
-9. Stop and briefly summarize the issues and their fixes, including the Total Token Usage.
+9. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
