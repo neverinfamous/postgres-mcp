@@ -50,6 +50,7 @@
 - Inconsistent 'does not exist' error messaging for missing columns and tables in `stats` tools.
 - Zod validation refinement leak returning `-32602` schema errors instead of handler exceptions in `stats` tools.
 - Split Schema violations in `admin` tools by extracting inline schemas to centralized files.
+- Ad-hoc validation logic bypassing `formatHandlerErrorResponse` formatting in `admin` tools (`pg_analyze`, `pg_reindex`, `pg_cluster`).
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.

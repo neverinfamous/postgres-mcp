@@ -9,6 +9,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { admin, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import {
   buildProgressContext,
@@ -64,10 +65,7 @@ export function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
 
         // name should always be defined at this point (refine ensures it for non-database targets)
         if (effectiveName === undefined) {
-          return {
-            success: false,
-            error: "name is required",
-          };
+          return new ValidationError("name is required").toResponse();
         }
 
         const sql = `REINDEX ${parsed.target.toUpperCase()} ${concurrentlyClause}${sanitizeIdentifier(effectiveName)}`;

@@ -9,6 +9,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   sanitizeIdentifiers,
   sanitizeTableName,
@@ -146,10 +147,7 @@ export function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
           columns.length > 0 &&
           table === undefined
         ) {
-          return {
-            success: false,
-            error: "table is required when columns is specified",
-          };
+          return new ValidationError("table is required when columns is specified").toResponse();
         }
 
         const target =

@@ -9,6 +9,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeIdentifier, sanitizeTableName } from "../../../../utils/identifiers.js";
 import {
   buildProgressContext,
@@ -142,11 +143,9 @@ export function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
         // Table-specific CLUSTER
         // index is guaranteed by schema refine when table is specified
         if (parsed.index === undefined) {
-          return {
-            success: false,
-            error:
-              "table and index must both be specified together, or both omitted for database-wide re-cluster",
-          };
+          return new ValidationError(
+            "table and index must both be specified together, or both omitted for database-wide re-cluster"
+          ).toResponse();
         }
         const tableName = sanitizeTableName(parsed.table, parsed.schema);
         const sql = `CLUSTER ${tableName} USING ${sanitizeIdentifier(parsed.index)}`;
