@@ -234,7 +234,7 @@ export const CronScheduleInDatabaseSchema = z.preprocess(
 );
 
 export const CronUnscheduleSchemaBase = z.object({
-  jobId: CoercibleJobId.optional().describe("Job ID to remove"),
+  jobId: z.union([z.number(), z.string()]).optional().describe("Job ID to remove"),
   jobName: z.string().optional().describe("Job name to remove"),
   name: z.string().optional().describe("Alias for jobName"),
 });
@@ -245,12 +245,12 @@ export const CronUnscheduleSchema = CronUnscheduleSchemaBase.refine(
     message: "Either jobId or jobName (or name alias) must be provided",
   },
 ).transform((data) => ({
-  jobId: data.jobId,
+  jobId: data.jobId !== undefined && data.jobId !== null ? Number(data.jobId) : undefined,
   jobName: data.jobName ?? data.name,
 }));
 
 export const CronAlterJobSchemaBase = z.object({
-  jobId: CoercibleJobId.optional().describe("Job ID to modify"),
+  jobId: z.union([z.number(), z.string()]).optional().describe("Job ID to modify"),
   schedule: z
     .string()
     .optional()
@@ -265,7 +265,7 @@ export const CronAlterJobSchemaBase = z.object({
 
 export const CronAlterJobSchema = z
   .object({
-    jobId: CoercibleJobId.optional().describe("Job ID to modify"),
+    jobId: z.union([z.number(), z.string()]).optional().describe("Job ID to modify"),
     schedule: z
       .string()
       .optional()
@@ -299,7 +299,7 @@ export const CronAlterJobSchema = z
 
 export const CronListJobsSchemaBase = z.object({
   active: z.boolean().optional().describe("Filter by active status"),
-  limit: z.number().optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
+  limit: z.union([z.number(), z.string()]).optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
 });
 
 export const CronListJobsSchema = z.object({
@@ -308,18 +308,18 @@ export const CronListJobsSchema = z.object({
 });
 
 export const CronJobRunDetailsSchemaBase = z.object({
-  jobId: CoercibleJobId.optional().describe("Filter by job ID"),
+  jobId: z.union([z.number(), z.string()]).optional().describe("Filter by job ID"),
   jobName: z.string().optional().describe("Filter by job name"),
   status: z
     .string()
     .optional()
     .describe("Filter by status (running, succeeded, failed)"),
-  limit: z.number().optional().describe("Maximum records to return (default: 10)"),
+  limit: z.union([z.number(), z.string()]).optional().describe("Maximum records to return (default: 10)"),
 });
 
 export const CronJobRunDetailsSchema = z
   .object({
-    jobId: CoercibleJobId.optional().describe("Filter by job ID"),
+    jobId: z.union([z.number(), z.string()]).optional().describe("Filter by job ID"),
     jobName: z.string().optional().describe("Filter by job name"),
     status: z
       .string()
@@ -328,12 +328,16 @@ export const CronJobRunDetailsSchema = z
     limit: z.preprocess(coerceNumber, z.number().optional()).optional()
       .describe("Maximum records to return (default: 10)"),
   })
-  .default({});
+  .default({})
+  .transform((data) => ({
+    ...data,
+    jobId: data.jobId !== undefined && data.jobId !== null ? Number(data.jobId) : undefined,
+  }));
 
 export const CronCleanupHistorySchemaBase = z.object({
-  olderThanDays: z.number().optional().describe("Delete records older than N days (default: 7)"),
-  days: z.number().optional().describe("Alias for olderThanDays"),
-  jobId: CoercibleJobId.optional().describe("Clean up only for specific job"),
+  olderThanDays: z.union([z.number(), z.string()]).optional().describe("Delete records older than N days (default: 7)"),
+  days: z.union([z.number(), z.string()]).optional().describe("Alias for olderThanDays"),
+  jobId: z.union([z.number(), z.string()]).optional().describe("Clean up only for specific job"),
 });
 
 export const CronCleanupHistorySchema = z.preprocess(
