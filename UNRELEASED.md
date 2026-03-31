@@ -62,6 +62,7 @@
 - Inaccurate parameter references and misattributions within advanced stress testing documentation
 - Restored missing `pg_ltree_lca` constraint to properly handle single paths and common ancestors
 - Refined jsonb validation instructions indicating query paths
+- Removed mismatched `pg_capacity_planning` and `pg_pgcrypto_hash` tests from the `stats` and `vector` test sections in `test-tools-advanced-2.md`
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

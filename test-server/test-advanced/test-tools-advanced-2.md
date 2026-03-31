@@ -226,7 +226,7 @@ return {
 
 23. `pg_stats_descriptive({table: "nonexistent_table_xyz", column: "price"})` → structured error
 24. `pg_stats_descriptive({table: "test_products", column: "nonexistent_col"})` → structured error mentioning column name
-25. `pg_capacity_planning` with `days: -30` (Note: This is a monitoring tool, not stats, but verify it rejects invalid inputs here or in monitoring tests)
+25. [REMOVED] -> `pg_capacity_planning` is a monitoring tool, tested in the advanced-1 suite.
 26. `pg_stats_correlation({table: "test_products", column1: "name", column2: "description"})` → error about non-numeric columns (both are VARCHAR)
 27. `pg_stats_time_series` with `timeColumn: "name"` (TEXT, not timestamp) on `test_products` → expect type validation error
 28. `pg_stats_distribution` with `buckets: 0` → expect error (must be > 0)
@@ -311,7 +311,6 @@ Insights are in-memory only — no cleanup needed.
 ### Category 2: Error Message Quality
 
 6. `pg_vector_insert` with a 128-dim vector into `test_embeddings` (384-dim, ensure parameter `column: "embedding"`) → expect dimension mismatch error
-7. `pg_pgcrypto_hash` with invalid algorithm `"sha999"` → structured error
 
 ### Final Cleanup
 
