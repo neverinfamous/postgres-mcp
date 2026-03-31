@@ -1,4 +1,4 @@
-# postgres-mcp Tool Group **COMPLETE** Re-Testing
+# postgres-mcp Tool Group Re-Testing: [stats]
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -209,7 +209,7 @@ DROP TABLE IF EXISTS temp_my_test_table;
    - Handler code
    - `server-instructions.md`
    - Test database (`test-database.sql`)
-   - This prompt (`test-tools.md`) and group file (`test-group-tools.md`)
+   - This prompt
 5. **User will handle validation**
 6. Update the changelog if there were any changes made (being careful not to create duplicate headers), and commit without pushing.
 7. Create a /session-summary in memory-journal-mcp for the issues and their fixes.
@@ -217,292 +217,88 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 ---
 
-## Part 1: Core & Schema
+## Group Focus: stats
 
-> This is Part 1: Core & Schema of the testing suite. After finishing these groups, move on to the next part in a new thread.
+### stats Group-Specific Testing
 
----
+stats Group (19 tools +1 for code mode)
 
-### core Group-Specific Testing
-
-core Tool Group (20 tools +1 for code mode):
-
-1. 'pg_read_query'
-2. 'pg_write_query'
-3. 'pg_list_tables'
-4. 'pg_describe_table'
-5. 'pg_create_table'
-6. 'pg_drop_table'
-7. 'pg_get_indexes'
-8. 'pg_create_index'
-9. 'pg_drop_index'
-10. 'pg_list_objects'
-11. 'pg_object_details'
-12. 'pg_list_extensions'
-13. 'pg_analyze_db_health'
-14. 'pg_analyze_workload_indexes'
-15. 'pg_analyze_query_indexes'
-16. 'pg_upsert' (convenience)
-17. 'pg_batch_insert' (convenience)
-18. 'pg_count' (convenience)
-19. 'pg_exists' (convenience)
-20. 'pg_truncate' (convenience)
-21. 'pg_execute_code' (codemode, auto-added)
-
-All tools implement P154 structured error handling for nonexistent tables/schemas. The 5 convenience tools (pg_count, pg_exists, pg_upsert, pg_batch_insert, pg_truncate) use explicit pre-checks and serve as canonical P154 verification targets. Test with `test_products` and `test_orders`.
+1. 'pg_stats_descriptive'
+2. 'pg_stats_percentiles'
+3. 'pg_stats_correlation'
+4. 'pg_stats_regression'
+5. 'pg_stats_time_series'
+6. 'pg_stats_distribution'
+7. 'pg_stats_hypothesis'
+8. 'pg_stats_sampling'
+9. 'pg_stats_row_number'
+10. 'pg_stats_rank'
+11. 'pg_stats_lag_lead'
+12. 'pg_stats_running_total'
+13. 'pg_stats_moving_avg'
+14. 'pg_stats_ntile'
+15. 'pg_stats_outliers'
+16. 'pg_stats_top_n'
+17. 'pg_stats_distinct'
+18. 'pg_stats_frequency'
+19. 'pg_stats_summary'
+20. 'pg_execute_code' (codemode, auto-added)
 
 > **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
 
-**Convenience tools (P154 canonical targets):**
+**Test data:** Uses `test_measurements` (500 rows, sensor_id 1-6, columns: temperature, humidity, pressure, measured_at).
 
-1. `pg_count({table: "test_products"})` → `{count: 15}`
-2. `pg_count({table: "test_products", where: "price > $1", params: [50]})` → `{count: N}` where N > 0
-3. `pg_count({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` mentioning table name
-4. `pg_count({table: "fake_schema.test_products"})` → `{success: false, error: "..."}` mentioning schema
-5. `pg_exists({table: "test_products"})` → `{exists: true, mode: "any_rows"}`
-6. `pg_exists({table: "test_products", where: "id = $1", params: [1]})` → `{exists: true, mode: "filtered"}`
-7. `pg_exists({table: "test_products", where: "id = $1", params: [99999]})` → `{exists: false, mode: "filtered"}`
-8. `pg_exists({table: "nonexistent_table_xyz"})` → `{success: false}` structured error
-9. `pg_truncate({table: "nonexistent_table_xyz"})` → `{success: false}` structured error
-10. `pg_batch_insert({table: "nonexistent_table_xyz", rows: [{id: 1}]})` → `{success: false}` structured error
-11. `pg_upsert({table: "nonexistent_table_xyz", data: {id: 1}, conflictColumns: ["id"]})` → `{success: false}` structured error
+**Original 8 tools — Checklist:**
 
-**Read/Write/Schema tools:**
+1. `pg_stats_descriptive({table: "test_measurements", column: "temperature"})` → verify `mean`, `stddev`, `min`, `max` present
+2. `pg_stats_percentiles({table: "test_measurements", column: "temperature", percentiles: [0.25, 0.5, 0.75]})` → verify 3 percentile values
+3. `pg_stats_correlation({table: "test_measurements", column1: "temperature", column2: "humidity"})` → verify correlation value between -1 and 1
+4. `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: 10})` → verify `buckets` array with 10 entries
+5. `pg_stats_time_series({table: "test_measurements", timeColumn: "measured_at", valueColumn: "temperature", interval: "day"})` → verify time series data returned
+6. `pg_stats_sampling({table: "test_measurements", sampleSize: 10})` → verify exactly 10 rows returned
+7. `pg_stats_sampling({table: "test_measurements", method: "bernoulli", percentage: 10})` → verify sample returned with `method: "bernoulli"`
+8. `pg_stats_hypothesis({table: "test_measurements", column: "temperature", hypothesizedMean: 27})` → verify `results.pValue` present
 
-12. `pg_read_query({sql: "SELECT COUNT(*) AS n FROM test_orders"})` → `{rows: [{n: 20}], rowCount: 1}`
-13. `pg_list_tables({schema: "public", limit: 5})` → `{tables: [...], count: 5, truncated: true}`
-14. `pg_describe_table({table: "test_products"})` → verify `columns` includes `id`, `name`, `price`; `primaryKey` present
-15. `pg_list_objects({type: "view"})` → verify `test_order_summary` appears in results
-16. `pg_object_details({name: "test_order_summary", type: "view"})` → verify `definition` field present
-17. `pg_get_indexes({table: "test_orders"})` → verify `idx_orders_status` and `idx_orders_date` in results
-18. `pg_list_extensions()` → verify response includes `pgcrypto`, `pg_trgm`, `vector` (or other installed extensions)
-19. `pg_analyze_db_health()` → verify `overallStatus` is one of: `healthy`, `needs_attention`, `critical`
-20. `pg_analyze_workload_indexes()` → verify response structure with `recommendations` or `queries` array
-21. `pg_analyze_query_indexes({sql: "SELECT * FROM test_products WHERE name = 'Widget'"})` → verify `plan` and `recommendations` fields present
+**Window function tools:**
+
+9. `pg_stats_row_number({table: "test_measurements", orderBy: "measured_at", limit: 5})` → verify 5 rows returned, each with `row_number` field (1-5)
+10. `pg_stats_row_number({table: "test_measurements", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `row_number` resets per sensor_id partition
+11. `pg_stats_rank({table: "test_measurements", orderBy: "temperature", limit: 5})` → verify rows with `rank` field
+12. `pg_stats_rank({table: "test_measurements", orderBy: "temperature", method: "dense_rank", limit: 5})` → verify `dense_rank` — no gaps in ranking
+13. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lag", limit: 5})` → verify rows with `lag_value` field; first row's `lag_value` should be null
+14. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lead", offset: 2, limit: 5})` → verify `lead_value` with offset 2
+15. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify rows with `running_total` field, monotonically increasing
+16. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `running_total` resets per sensor_id
+17. `pg_stats_moving_avg({table: "test_measurements", column: "temperature", orderBy: "measured_at", windowSize: 5, limit: 5})` → verify rows with `moving_avg` field
+18. `pg_stats_ntile({table: "test_measurements", column: "temperature", orderBy: "temperature", buckets: 4, limit: 10})` → verify rows with `ntile` field (values 1-4)
+
+**Outlier detection and analysis tools:**
+
+19. `pg_stats_outliers({table: "test_measurements", column: "temperature"})` → verify `{outliers, outlierCount, method, stats}` where `method` is `"iqr"` (default)
+20. `pg_stats_outliers({table: "test_measurements", column: "temperature", method: "zscore", threshold: 2})` → verify same shape with `method: "zscore"`
+21. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3})` → verify exactly 3 rows, descending order by default
+22. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3, direction: "asc"})` → verify 3 rows in ascending order
+23. `pg_stats_distinct({table: "test_measurements", column: "sensor_id"})` → verify `{values, distinctCount}` with `distinctCount` of 6 (sensors 1-6)
+24. `pg_stats_frequency({table: "test_measurements", column: "sensor_id"})` → verify `{distribution}` array with value, count, and percentage for each sensor
+25. `pg_stats_summary({table: "test_measurements"})` → verify multi-column summary auto-detecting numeric columns (temperature, humidity, pressure)
+26. `pg_stats_summary({table: "test_measurements", columns: ["temperature", "humidity"]})` → verify summary for exactly 2 specified columns
 
 **Domain error paths (🔴):**
 
-22. 🔴 `pg_read_query({sql: "SELECT * FROM nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error, NOT MCP error
-23. 🔴 `pg_write_query({sql: "INSERT INTO nonexistent_xyz VALUES (1)"})` → `{success: false, error: "..."}` handler error
-24. 🔴 `pg_read_query({sql: "SELECT nonexistent_column FROM test_products"})` → `{success: false, error: "..."}` mentioning column name
-25. 🔴 `pg_list_tables({schema: "nonexistent_schema_xyz"})` → either empty results or `{success: false}` — not raw MCP error
-26. 🔴 `pg_describe_table({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` mentioning table name
-27. 🔴 `pg_describe_table({table: "test_schema.order_seq"})` → `{success: false, error: "..."}` mentioning "sequence" (not a table)
-28. 🔴 `pg_list_objects({type: "invalid_type"})` → `{success: false, error: "Validation error: ..."}` — NOT raw MCP `-32602` output validation error
-29. 🔴 `pg_drop_index({name: "nonexistent_index_xyz"})` → `{success: false, error: "..."}` handler error with hint
+27. 🔴 `pg_stats_descriptive({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
+28. 🔴 `pg_stats_percentiles({})` → `{success: false, error: "..."}` (Zod validation)
+29. 🔴 `pg_stats_row_number({})` → `{success: false, error: "..."}` (Zod validation — missing required `table`, `orderBy`)
+30. 🔴 `pg_stats_outliers({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
+31. 🔴 `pg_stats_frequency({table: "test_measurements", column: "nonexistent_col_xyz"})` → `{success: false, error: "..."}` handler error mentioning column
 
-**Zod validation error paths (🔴 — verify `"Validation error: ..."` format, NOT raw JSON array):**
+**Wrong-type numeric param coercion (🔴):**
 
-30. 🔴 `pg_create_table({})` → `{success: false, error: "Validation error: name (or table alias) is required; Validation error: columns must not be empty"}` — NOT raw JSON array, NOT raw MCP error
-31. 🔴 `pg_describe_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table` param)
-32. 🔴 `pg_read_query({})` → `{success: false, error: "Validation error: ..."}` (missing required `sql`)
-33. 🔴 `pg_write_query({})` → `{success: false, error: "Validation error: ..."}` (missing required `sql`)
-34. 🔴 `pg_create_index({})` → `{success: false, error: "Validation error: ..."}` (missing required params)
-35. 🔴 `pg_drop_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table`)
-36. 🔴 `pg_count({params: ["not_a_number"]})` → `{success: false, error: "..."}` structured error for bad param type
+32. 🔴 `pg_stats_sampling({table: "test_measurements", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `sampleSize` (wrong-type numeric param)
+33. 🔴 `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `buckets` (wrong-type numeric param)
+34. 🔴 `pg_stats_top_n({table: "test_measurements", column: "temperature", n: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `n` (wrong-type numeric param)
 
-**Alias acceptance (verify aliases produce identical results to primary parameter name):**
+**Code mode parity:**
 
-37. `pg_count({tableName: "test_products"})` → same result as item 1 (`{count: 15}`)
-38. `pg_count({table: "test_products", condition: "price > 50"})` → same as `where` alias
-39. `pg_read_query({query: "SELECT 1 AS test"})` → works via `query` alias for `sql`
-40. `pg_exists({tableName: "test_products"})` → works via `tableName` alias for `table`
-41. `pg_describe_table({name: "test_products"})` → works via `name` alias for `table`
-42. `pg_analyze_query_indexes({query: "SELECT * FROM test_products"})` → works via `query` alias for `sql`
-
-**Create → Use → Drop lifecycle (temp tables):**
-
-43. `pg_create_table({name: "temp_lifecycle", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "name", type: "TEXT", notNull: true}]})` → `{success: true}`
-44. `pg_batch_insert({table: "temp_lifecycle", rows: [{name: "Alice"}, {name: "Bob"}], returning: ["id", "name"]})` → verify returned rows with auto-generated IDs
-45. `pg_upsert({table: "temp_lifecycle", data: {id: 1, name: "Alice Updated"}, conflictColumns: ["id"]})` → verify update
-46. `pg_count({table: "temp_lifecycle"})` → `{count: 2}`
-47. `pg_create_index({table: "temp_lifecycle", columns: ["name"], ifNotExists: true})` → `{success: true}`
-48. `pg_get_indexes({table: "temp_lifecycle"})` → verify the new index appears
-49. `pg_truncate({table: "temp_lifecycle", restartIdentity: true})` → `{success: true}`
-50. `pg_count({table: "temp_lifecycle"})` → `{count: 0}`
-51. `pg_drop_table({table: "temp_lifecycle", ifExists: true})` → `{success: true, existed: true}`
-52. `pg_drop_table({table: "temp_lifecycle", ifExists: true})` → `{success: true, existed: false}` (already dropped)
-
-**Code mode (`pg_execute_code`) deterministic items:**
-
-53. `pg_execute_code({code: "return await pg.core.help()"})` → verify lists ~20 core methods
-54. `pg_execute_code({code: "return await pg.count('test_products')"})` → verify works via top-level alias
-55. `pg_execute_code({code: "return await pg.exists('test_products', 'id = 1')"})` → verify positional args work
-56. `pg_execute_code({code: "return await pg.core.readQuery({sql: 'SELECT 1 AS n'})"})` → verify `{rows: [{n: 1}]}`
-57. `pg_execute_code({code: "return await pg.readQuery({sql: 'SELECT * FROM nonexistent_xyz'})"})` → verify error is returned (not thrown), contains `{success: false}` or error object
-
----
-
-### transactions Group-Specific Testing
-
-transactions Tool Group (8 tools +1 for code mode):
-
-1. 'pg_transaction_begin',
-2. 'pg_transaction_commit'
-3. 'pg_transaction_rollback'
-4. 'pg_transaction_savepoint'
-5. 'pg_transaction_release'
-6. 'pg_transaction_rollback_to'
-7. 'pg_transaction_execute'
-8. 'pg_transaction_status'
-9. 'pg_execute_code' (codemode, auto-added)
-
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
-
-1. `pg_transaction_begin()` → capture `transactionId`
-2. `pg_read_query({sql: "SELECT 1 AS test", transactionId: <id>})` → `{rows: [{test: 1}]}`
-3. `pg_transaction_savepoint({transactionId: <id>, name: "checklist_sp1"})` → `{success: true}`
-4. `pg_transaction_rollback_to({transactionId: <id>, name: "checklist_sp1"})` → `{success: true}`
-5. `pg_transaction_release({transactionId: <id>, name: "checklist_sp1"})` → note behavior (released savepoints cannot be rolled back to)
-6. `pg_transaction_commit({transactionId: <id>})` → `{success: true}`
-7. `pg_transaction_execute({statements: [{sql: "SELECT 1 AS a"}, {sql: "SELECT 2 AS b"}]})` → `{success: true, statementsExecuted: 2}`
-8. 🔴 `pg_transaction_commit({transactionId: "nonexistent-uuid"})` → `{success: false, error: "..."}` handler error
-9. 🔴 `pg_transaction_execute({})` → `{success: false, error: "..."}` (Zod validation — missing `statements`)
-
-**pg_transaction_status:**
-
-10. `pg_transaction_begin()` → capture `transactionId`, then `pg_transaction_status({transactionId: <id>})` → `{status: "active", transactionId: <id>}`
-11. After item 10: `pg_transaction_commit({transactionId: <id>})`, then `pg_transaction_status({transactionId: <id>})` → `{status: "not_found", transactionId: <id>}`
-12. `pg_transaction_begin()` → capture id, then `pg_read_query({sql: "SELECT FROM nonexistent_xyz", transactionId: <id>})` (force error), then `pg_transaction_status({transactionId: <id>})` → `{status: "aborted", transactionId: <id>}` — then rollback to clean up
-13. 🔴 `pg_transaction_status({transactionId: "nonexistent-uuid"})` → `{status: "not_found", transactionId: "nonexistent-uuid"}` — handler result, NOT MCP error
-14. 🔴 `pg_transaction_status({})` → `{success: false, error: "Validation error: ..."}` — Zod validation
-
-**Code mode parity (pg_transaction_status):**
-
-15. `pg_execute_code({code: "const tx = await pg.transactions.begin(); const s = await pg.transactions.status({transactionId: tx.transactionId}); await pg.transactions.rollback({transactionId: tx.transactionId}); return s"})` → verify `{status: "active"}`
-16. `pg_execute_code({code: "return await pg.transactions.help()"})` → verify `status` appears in method list
-
----
-
-### jsonb Group-Specific Testing
-
-jsonb Tool Group (20 tools +1 for code mode):
-
-1. 'pg_jsonb_extract'
-2. 'pg_jsonb_set'
-3. 'pg_jsonb_insert'
-4. 'pg_jsonb_delete'
-5. 'pg_jsonb_contains'
-6. 'pg_jsonb_path_query'
-7. 'pg_jsonb_agg'
-8. 'pg_jsonb_object'
-9. 'pg_jsonb_array'
-10. 'pg_jsonb_keys'
-11. 'pg_jsonb_strip_nulls'
-12. 'pg_jsonb_typeof'
-13. 'pg_jsonb_validate_path'
-14. 'pg_jsonb_stats'
-15. 'pg_jsonb_merge'
-16. 'pg_jsonb_normalize'
-17. 'pg_jsonb_diff'
-18. 'pg_jsonb_index_suggest'
-19. 'pg_jsonb_security_scan'
-20. 'pg_jsonb_pretty'
-21. 'pg_execute_code' (codemode, auto-added)
-
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
-
-**Test data:** Use `test_jsonb_docs` table which has these JSONB structures:
-
-- `metadata`: `{"type": "article", "author": "Alice", "views": 100}` / `{"type": "video", "author": "Bob", "duration": 3600}`
-- `settings`: `{"theme": "dark", "notifications": true}` / `{"quality": "hd", "autoplay": false}`
-- `tags`: `["tech", "news"]` / `["entertainment"]` / `["tech", "tutorial"]`
-- Nested access: `test_jsonb_docs` row 3 has `metadata.nested.level1.level2 = "deep"`
-- `test_events.payload` — `{"page": "home"}`
-
-**Checklist:**
-
-1. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "author", where: "id = 1"})` → result contains `"Alice"`
-2. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "nested.level1.level2", where: "id = 3"})` → result contains `"deep"`
-3. `pg_jsonb_keys({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → keys include `type`, `author`, `views`
-4. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "tags", where: "id = 1"})` → `"array"`
-5. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → `"object"`
-6. `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", contains: {"type": "article"}, where: "id = 1"})` → true
-7. `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata"})` → verify `topKeys` present, `typeDistribution` present
-8. `pg_jsonb_validate_path({path: "$.a.b.c"})` → valid (note: validates JSONPath syntax, not dot-notation — `"a.b.c"` is invalid JSONPath)
-9. `pg_jsonb_diff({doc1: {"a": 1, "b": 2}, doc2: {"a": 1, "c": 3}})` → verify `differences` array with `status` field (`"added"`, `"removed"`, `"modified"`), `hasDifferences: true`
-
-**pg_jsonb_pretty:**
-
-10. `pg_jsonb_pretty({json: "{\"a\":1,\"b\":2}"})` → verify pretty-printed JSON string with indentation
-11. `pg_jsonb_pretty({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → verify formatted output contains `"author": "Alice"` with indentation
-12. 🔴 `pg_jsonb_pretty({})` → `{success: false, error: "..."}` (Zod validation — must provide either `json` or `table`+`column`)
-
-**Domain error paths (🔴):**
-
-13. 🔴 `pg_jsonb_extract({table: "nonexistent_xyz", column: "data", path: "key"})` → `{success: false, error: "..."}` handler error
-14. 🔴 `pg_jsonb_keys({})` → `{success: false, error: "..."}` (Zod validation)
-15. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
-16. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", value: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` to 100 and return valid results (wrong-type numeric param coercion)
-
----
-
-### text Group-Specific Testing
-
-text Tool Group (13 tools +1 for code mode)
-
-1. 'pg_text_search'
-2. 'pg_text_rank'
-3. 'pg_trigram_similarity'
-4. 'pg_fuzzy_match'
-5. 'pg_regexp_match'
-6. 'pg_like_search'
-7. 'pg_text_headline'
-8. 'pg_create_fts_index'
-9. 'pg_text_normalize'
-10. 'pg_text_sentiment'
-11. 'pg_text_to_vector'
-12. 'pg_text_to_query'
-13. 'pg_text_search_config'
-14. 'pg_execute_code' (codemode, auto-added)
-
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
-
-**Test data:** Uses `test_articles` which has a GIN FTS index on `search_vector`.
-
-Searchable terms: `PostgreSQL`, `database`, `full-text`, `search`, `performance`, `query`, `MCP`, `protocol`.
-
-**Checklist:**
-
-1. `pg_text_search({table: "test_articles", column: "body", query: "PostgreSQL"})` → at least 1 result
-2. `pg_text_search({table: "test_articles", column: "body", query: "nonexistent_word_xyz"})` → 0 results
-3. `pg_trigram_similarity({table: "test_articles", column: "title", value: "Postgre", threshold: 0.1, limit: 5})` → results with similarity scores
-4. `pg_fuzzy_match({table: "test_articles", column: "title", value: "Postrgres", method: "levenshtein", maxDistance: 30, limit: 5})` → results with distances
-5. `pg_text_normalize({text: "café résumé"})` → accents removed
-6. `pg_text_to_vector({text: "hello world"})` → returns tsvector representation
-7. `pg_text_to_query({text: "hello world"})` → returns tsquery representation
-8. `pg_text_search_config()` → returns available configurations including `english`
-9. 🔴 `pg_text_search({table: "nonexistent_xyz", column: "body", query: "test"})` → `{success: false, error: "..."}` handler error
-10. 🔴 `pg_trigram_similarity({})` → `{success: false, error: "..."}` (Zod validation)
-11. 🔴 `pg_text_search({table: "test_articles", column: "body", query: "test", limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
-
----
-
-### schema Group-Specific Testing
-
-schema Tool Group (12 tools +1 for code mode)
-
-1. 'pg_list_schemas'
-2. 'pg_create_schema'
-3. 'pg_drop_schema'
-4. 'pg_list_sequences'
-5. 'pg_create_sequence'
-6. 'pg_drop_sequence'
-7. 'pg_list_views'
-8. 'pg_create_view'
-9. 'pg_drop_view'
-10. 'pg_list_functions'
-11. 'pg_list_triggers'
-12. 'pg_list_constraints'
-13. 'pg_execute_code' (codemode, auto-added)
-
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
-
-1. `pg_list_schemas()` → verify `public` and `test_schema` in results
-2. `pg_list_views()` → verify `test_order_summary` in results
-3. `pg_list_sequences({schema: "test_schema"})` → verify `order_seq` appears
-4. `pg_list_functions({schema: "public", limit: 5})` → verify response structure
-5. `pg_list_constraints({table: "test_orders"})` → verify FK to `test_products` appears
-6. `pg_list_triggers({schema: "public"})` → verify response structure (may be empty)
-7. 🔴 `pg_list_constraints({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
-8. 🔴 `pg_create_sequence({name: "temp_seq_test", start: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error (wrong-type numeric param)
+35. `pg_execute_code({code: "return await pg.stats.help()"})` → verify lists all 19 stats methods including `rowNumber`, `rank`, `lagLead`, `runningTotal`, `movingAvg`, `ntile`, `outliers`, `topN`, `distinct`, `frequency`, `summary`
+36. `pg_execute_code({code: "return await pg.stats.outliers({table: 'test_measurements', column: 'temperature'})"})` → verify returns same structure as item 19
+37. `pg_execute_code({code: "return await pg.stats.distinct({table: 'test_measurements', column: 'sensor_id'})"})` → verify returns same structure as item 23
