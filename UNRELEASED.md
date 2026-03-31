@@ -13,6 +13,7 @@
 - Filter-aware instruction generation based on tool filters and verbosity levels
 - 22 group-specific help resources accessible via `postgres://help`
 - Playwright E2E coverage for Code Mode, authentication, and backups
+- Advanced stress test Code Mode prompts for the `monitoring`, `schema`, and `partitioning` tool groups
 
 ### Changed
 - Explicitly mandate session-level token tracking via `postgres://audit` in all testing prompts

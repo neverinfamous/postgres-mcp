@@ -441,9 +441,9 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/reset-database.ps1` | Reset Docker container DB from seed data |
 | `test-server/Tool-Reference.md` | Complete 248-tool inventory with descriptions |
 | `test-server/tool-groups-list.md` | Canonical tool inventory (22 groups) |
-| `test-server/test-group-tools.md` | Per-group deterministic checklists (all 22 groups) |
-| `test-server/test-tools.md` | Entry-point protocol (schema ref, P154, reporting format) |
-| `test-server/test-tools-advanced-[1-4].md` | Stress tests (boundary, edge cases, cross-group payload optimization) split into 4 parts |
+| `test-server/test-tool-groups/` | Per-group deterministic direct MCP tool call checklists (21 groups) |
+| `test-server/test-tool-groups-codemode/` | Code Mode execution mappings for the standard groups |
+| `test-server/test-advanced/` | Advanced stress tests (boundary, edge cases, cross-group optimization) split into 22 granular parts |
 | `test-server/test-resources.md` | Resource testing plan (20 resources) |
 | `test-server/test-prompts.md` | Prompt testing plan (20 prompts) |
 | `test-server/test-preflight.md` | Pre-test environment validation |

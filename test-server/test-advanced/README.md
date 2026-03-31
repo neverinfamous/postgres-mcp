@@ -11,7 +11,7 @@ This directory contains the "Second-Pass" advanced tests for the `postgres-mcp` 
 
 ## Execution Parts
 
-The original monolithic advanced stress testing suite was split into 19 granular parts to preserve agent attention spans and prevent LLM context window exhaustion. Each file strictly tests one major domain or cross-domain group.
+The original monolithic advanced stress testing suite was split into 22 granular parts to preserve agent attention spans and prevent LLM context window exhaustion. Each file strictly tests one major domain or cross-domain group.
 
 | File | Primary Focus | Key Validations |
 | ---- | ------------- | --------------- |
@@ -34,6 +34,9 @@ The original monolithic advanced stress testing suite was split into 19 granular
 | `test-tools-advanced-migration.md` | Migration | Record-vs-apply tracking logic, self-referencing cascades. |
 | `test-tools-advanced-backup.md` | Backup | V2 Backup volumeDrift parameters, missing snapshot checks. |
 | `test-tools-advanced-cross-group.md` | Cross-Group | Multi-group memory retention limits, cross-domain integrity chaining. |
+| `test-tools-advanced-monitoring.md` | Monitoring | Extreme limits testing for resource usage and dynamic alert thresholds limits. |
+| `test-tools-advanced-schema.md` | Schema | Cascaded object dropping bounds, deep dependency checking, and extreme generation boundaries. |
+| `test-tools-advanced-partitioning.md` | Partitioning | Deep partition structures, edge limits for range/list boundaries, massive attach routines. |
 
 > **Note:** The exact tool group breakdown may shift over time. Always defer to the headings within the specific `.md` files to see what groups are covered in that pass.
 
