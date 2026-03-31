@@ -2,7 +2,7 @@
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp -->
 
-**PostgreSQL MCP Server** enabling AI assistants to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a single, secure JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
+**PostgreSQL MCP Server** enabling AI assistants to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a secure, true V8 isolate (`worker_threads`), eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
 **248 Specialized Tools** · **23 Resources** · **20 AI-Powered Prompts**
 
@@ -28,7 +28,7 @@
 | **248 Specialized Tools**              | The largest and most token efficient PostgreSQL tool collection for MCP. Covers everything from basic CRUD and JSONB to advanced AI vector search, geospatial data, and job scheduling.                                                                                                                                               |
 | **23 Observability Resources**         | Get instant snapshots of your database health. Monitor performance, connection pools, replication lag, and locks in real-time.                                                                                                                                                                               |
 | **20 AI-Powered Prompts**              | Let the AI guide you. Built-in workflows help you smoothly build queries, design schemas, tune performance, and manage backups safely.                                                                                                                                                                       |
-| **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Stop burning tokens on back-and-forth tool calls and reduce your AI overhead by up to 90%.                                                                                                       |
+| **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a secure, true V8 isolate (`worker_threads`). Stop burning tokens on back-and-forth tool calls and reduce your AI overhead by up to 90%.                                                                                                       |
 | **Token-Optimized Payloads**           | Never guess your token spend. Every response includes a zero-cost token estimate, and our tools smartly summarize large datasets so agents always see the big picture without blowing the budget.                                                                                                            |
 | **OAuth 2.1 + Access Control**         | Enterprise-ready security. Control exactly who can read, write, or administer your database with granular scopes down to the specific table level.                                                                                                                                                           |
 | **Audit Trails & Snapshots**           | Total accountability. Track exactly what your AI is doing with detailed JSON logs, and automatically snapshot your schema before making any changes.                                                                                                                                                         |
@@ -175,7 +175,7 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 > [!IMPORTANT]
 > All tool groups include **Code Mode** (`pg_execute_code`) by default. To exclude it, add `-codemode` to your filter: `--tool-filter cron,pgcrypto,-codemode`
 
-> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure JavaScript sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#%EF%B8%8F-tool-filtering) for alternatives.
+> **⭐ Code Mode** (`--tool-filter codemode`) is the recommended configuration — it exposes `pg_execute_code`, a secure, true V8 isolate sandbox providing access to all 248 tools' worth of capability with up to 90% token savings. See [Tool Filtering](#%EF%B8%8F-tool-filtering) for alternatives.
 
 - **Requires `admin` OAuth scope** — execution is logged for audit
 
