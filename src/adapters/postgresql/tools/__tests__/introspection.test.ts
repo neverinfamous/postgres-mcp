@@ -1212,7 +1212,7 @@ describe("pg_migration_risks", () => {
       summary: { totalRisks: number; highestSeverity: string };
     };
 
-    expect(result.risks).toHaveLength(0);
+    expect(result.risks).toBeUndefined();
     expect(result.summary.totalRisks).toBe(0);
     expect(result.summary.highestSeverity).toBe("low");
   });
