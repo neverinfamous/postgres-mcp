@@ -63,7 +63,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 ## Post-Test Procedures
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-2.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-1.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. Stop and briefly summarize the testing results and fixes.
 
@@ -146,9 +146,9 @@ Insert into `stress_empty_table`: `(name: 'max', value: 99999999.99)`, `(name: '
 **2.2 Duplicate Object Detection**
 
 22. `pg_create_table` with `ifNotExists: true` on `test_products` → expect success with indication it already exists
-23. `pg_create_index` with `ifNotExists: true` on `idx_orders_status` → expect `{alreadyExists: true}`
+23. `pg_create_index` with `ifNotExists: true` on `idx_orders_status` (on table `test_orders`) → expect `{alreadyExists: true}`
 24. `pg_create_schema` with `ifNotExists: true` on `public` → expect graceful handling
-25. `pg_create_view` with `orReplace: true` on `test_order_summary` using the same query → expect success
+25. `pg_create_view` with `orReplace: true` on `test_order_summary` using the same query (`SELECT o.status, o.total_price FROM test_orders o`) → expect success
 
 ### Category 3: Alias & Parameter Combinations
 
@@ -220,7 +220,7 @@ Verify that tools returning `truncated` and `totalCount` fields work correctly:
 41. `pg_table_stats({limit: 1})` → expect `truncated: true` and `totalCount` > 1
 42. `pg_copy_export({table: "test_measurements", limit: 5})` → expect 5 rows
 43. `pg_list_partitions({table: "test_events", limit: 1})` → expect `truncated: true` and remaining partitions in `totalCount`
-44. `pg_show_settings({limit: 2})` → expect `truncated: true`
+44. `pg_show_settings({limit: 2})` (Note: this is in the `monitoring` group) → expect `truncated: true`
 
 **5.2 Limit Zero (Unlimited)**
 
@@ -314,10 +314,10 @@ Drop all `stress_*` tables and indexes. Confirm `test_products` row count is sti
 12. Insert another row
 13. Create savepoint `sp3`
 14. Insert another row
-15. `pg_transaction_rollback_to` `sp2` → should undo sp3's insert AND remove sp3
+15. `pg_transaction_rollback_to` `sp2` (Code mode param: `name: "sp2"`) → should undo sp3's insert AND remove sp3
 16. `pg_transaction_status({transactionId: <id>})` → verify still `{status: "active"}` (savepoint rollback does not abort the transaction)
 17. Verify: savepoint `sp3` no longer exists (attempt rollback_to sp3 → expect error)
-18. `pg_transaction_rollback_to` `sp1` → should undo sp2's insert
+18. `pg_transaction_rollback_to` `sp1` (Code mode param: `name: "sp1"`) → should undo sp2's insert
 19. `pg_transaction_commit` → only pre-sp1 state should persist
 20. Verify `test_products` row count is unchanged from baseline (15)
 
@@ -405,7 +405,7 @@ Create `stress_jsonb_mut (id SERIAL PRIMARY KEY, data JSONB DEFAULT '{}')`, inse
 
 1. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "name", value: "\"Bob\"", where: "id = 1"})` → verify `name` changed to `"Bob"`
 2. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "nested.level1.value", value: "42", where: "id = 1"})` → verify deep path set works
-3. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "newKey", value: "\"inserted\"", where: "id = 1", createMissing: true})` → verify new key added. **Note:** `pg_jsonb_insert` is for array targets only (see server-instructions §JSONB). Use `pg_jsonb_set` with `createMissing` for object key insertion
+3. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "newKey", value: "\"inserted\"", where: "id = 1", createMissing: true})` → verify new key added. **Note:** `pg_jsonb_insert` is for array targets only. Use `pg_jsonb_set` with `createMissing` for object key insertion
 4. `pg_jsonb_delete({table: "stress_jsonb_mut", column: "data", path: "tags", where: "id = 1"})` → verify `tags` key removed
 5. `pg_jsonb_merge` — standalone merge requires `base` + `overlay` params (not `doc1`/`doc2`). Use via Code Mode: `pg.jsonb.merge({base: {"a": 1, "b": 2}, overlay: {"b": 3, "c": 4}})` → verify merge result `{"a": 1, "b": 3, "c": 4}` (overlay wins on conflicts)
 6. Verify final state via `pg_jsonb_extract` — confirm all mutations applied correctly
@@ -533,7 +533,7 @@ Insert 5 rows into `stress_empty_table` all with `value: 42.00`, then:
 **3.3 Distinct/Frequency Edge Cases**
 
 17. `pg_stats_distinct({table: "stress_empty_table", column: "value"})` → with all same value: verify `distinctCount: 1`
-18. `pg_stats_frequency({table: "stress_empty_table", column: "value"})` → verify single entry with `count: 5` (or current row count) and `percentage: 100`
+18. `pg_stats_frequency({table: "stress_empty_table", column: "value"})` → verify single entry with `count: 5` (or current row count) and `percentage: 100` in the `distribution` array
 
 **3.4 Summary Edge Cases**
 
@@ -663,7 +663,7 @@ Insights are in-memory only — no cleanup needed.
 
 ### Category 2: Error Message Quality
 
-6. `pg_vector_insert` with a 128-dim vector into `test_embeddings` (384-dim column) → expect dimension mismatch error
+6. `pg_vector_insert` with a 128-dim vector into `test_embeddings` (384-dim, use parameter `column` instead of `vectorColumn`) → expect dimension mismatch error
 7. `pg_pgcrypto_hash` with invalid algorithm `"sha999"` → structured error
 
 ### Final Cleanup
