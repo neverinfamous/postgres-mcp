@@ -2,9 +2,9 @@
 
 **Step 1:** Read `C:\Users\chris\Desktop\postgres-mcp\test-server\test-resources.sql` to understand what resource seed data has been set up.
 
-**Step 2:** Test all 21 `postgres://` resources by reading each resource URI. For each resource, validate the output against the expected structure documented below.
+**Step 2:** Test all 23 `postgres://` resources by reading each resource URI. For each resource, validate the output against the expected structure documented below.
 
-### All 21 Resources
+### All 23 Resources
 
 | # | Resource URI | Expected Output Shape | Pass Criteria |
 |---|---|---|---|
@@ -29,6 +29,8 @@
 | 19 | `postgres://postgis` | `{ extensionInstalled, spatialColumns: [...], indexes: [...] }` | `spatialColumns` includes `test_locations.location`; GIST index detected |
 | 20 | `postgres://crypto` | `{ extensionInstalled, availableAlgorithms, passwordHashing, ... }` | Returns pgcrypto availability status and security recommendations |
 | 21 | `postgres://insights` | `{ insights: "..." }` or text memo | Returns accumulated business insights appended via `pg_append_insight`. May be empty on fresh server |
+| 22 | `postgres://audit` | `{ sessionTokenEstimate, mostUsedTools: [...], recentLogs: [...] }` | Returns audit trail with token summaries. May be empty unless tools have been executed. |
+| 23 | `postgres://help` | Markdown documentation | Returns documentation overview and available tools. Can also be accessed via `postgres://help/{group}` |
 
 ### How to Read Resources
 
@@ -49,6 +51,8 @@ These resources may return empty or "not configured" results depending on infras
 - `postgres://partman` — Only returns config if pg_partman is installed and `test-resources.sql` has been seeded.
 - `postgres://kcache` — Only returns stats if pg_stat_kcache is installed.
 - `postgres://insights` — Returns empty or default message if no insights have been appended via `pg_append_insight` during the current server session. This is in-memory only and resets on server restart.
+- `postgres://audit` — Only contains entries for mutations (`pg_write_query`, admin tools) or tools executed with Code Mode. Will be empty on a fresh session unless tools were executed first.
+- `postgres://help/{group}` — Depending on `--tool-filter` settings during server start, some group help files may not be registered. However, the base `postgres://help` is always available.
 
 ### Reporting Format
 
@@ -59,4 +63,4 @@ For each resource, report:
 
 ### Final Summary
 
-Provide a summary table of all 21 resources with their pass/partial/fail status. List any issues that require code fixes (e.g., resource handler bugs, missing error handling) separately from infrastructure-dependent limitations.
+Provide a summary table of all 23 resources with their pass/partial/fail status. List any issues that require code fixes (e.g., resource handler bugs, missing error handling) separately from infrastructure-dependent limitations.
