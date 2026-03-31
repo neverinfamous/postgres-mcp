@@ -75,10 +75,10 @@ We especially welcome contributions in these areas:
 
 ### 🔍 Medium Priority
 
-- **Enhanced Code Mode** features and sandbox capabilities
-- **Additional PostGIS / pgvector** tool coverage
-- **Extension integrations** (pg_partman, pg_cron, citext, ltree, pgcrypto)
-- **Documentation improvements** and examples
+- **Enhanced Code Mode** worker-thread operations and sandbox capabilities
+- **Additional PostGIS / pgvector** advanced spatial/math tool coverage
+- **New PostgreSQL extensions integrations** (e.g., TimescaleDB)
+- **Documentation improvements** and Playwright end-to-end examples
 
 ### 💡 Future Features
 
@@ -186,12 +186,13 @@ Every tool must return structured error responses — never raw exceptions:
 }
 ```
 
-Error codes should be module-prefixed (e.g., `SCHEMA_FETCH_FAILED`, `QUERY_TIMEOUT`). Use `try/catch` at boundaries, not every statement. Always propagate stack traces — don't swallow errors.
+Error logic should leverage the `PostgresMcpError` hierarchy (e.g., `ValidationError`, `QueryError`). Our Auto-refinement system automatically maps generic codes to specific ones (e.g., `QUERY_ERROR` → `TABLE_NOT_FOUND`) and populates suggestions. Catch at the handler boundary and return `formatHandlerError(error)` to ensure a highly-compliant JSON payload. Always propagate stack traces — don't swallow errors.
 
 ### Input Validation
 
-- All parameters are validated via **Zod schemas** with coercion where appropriate (e.g., `z.coerce.number()` for numeric params that may arrive as strings)
-- Invalid inputs must return structured errors, not raw Zod validation messages
+- All parameters are validated via **Zod schemas** with explicit coercion controls (e.g., `z.preprocess(coerceNumber, z.number().optional())` instead of aggressive `z.coerce.number()`)
+- Output schemas are strictly defined to guarantee AI agents receive deterministic P154-compliant structures
+- Invalid inputs must return structured errors, automatically handled by `formatHandlerError()` without raw Zod validation messages
 - SQL injection is prevented via **parameter binding** — never interpolate user input into SQL strings
 
 ### Logging
@@ -209,10 +210,10 @@ Use the centralized logger with structured payloads. Include: `module`, `operati
 
 postgres-mcp organizes tools into groups covering: `core`, `schema`, `introspection`, `migration`, `monitoring`, `performance`, `stats`, `text`, `jsonb`, `vector`, `admin`, `transactions`, `partitioning`, `backup`, `codemode`, and PostgreSQL extensions (`postgis`, `ltree`, `citext`, `pgcrypto`, `partman`, `cron`, `kcache`). When adding a new tool:
 
-1. **Define the tool** with its Zod input schema in the appropriate group under `src/constants/`
-2. **Implement the handler** in the corresponding adapter directory
-3. **Add structured error handling** using the pattern above
-4. **Write tests** — meaningful tests, not coverage boosters
+1. **Define the tool input and output schemas** using Zod in the appropriate group under `src/adapters/postgresql/schemas/`
+2. **Implement the handler** in the corresponding adapter directory under `src/adapters/postgresql/tools/`
+3. **Add structured error handling** by letting the handler return `formatHandlerError()` when exceptions are caught
+4. **Write meaningful Vitest tests** and update E2E spec files if making systemic changes
 5. **Add the tool to the group's help resource** (the markdown file under `src/constants/server-instructions/`)
 6. **Update `UNRELEASED.md`** with your change (see [Changelog](#-changelog) below)
 
@@ -301,19 +302,19 @@ Log all changes in **[`UNRELEASED.md`](UNRELEASED.md)** at the project root usin
 
 ```
 src/
-├── adapters/       # PostgreSQL query execution and result mapping
+├── adapters/       # PostgreSQL queries, handlers, Zod schemas, prompts, and resources
 ├── audit/          # JSONL audit trail, pre-mutation snapshots, interceptor
-├── auth/           # OAuth 2.1, bearer token, scope enforcement
+├── auth/           # Transport-agnostic OAuth 2.1, scopes, RF 6750 enforcement
 ├── cli/            # CLI argument parsing and server bootstrap
 ├── cli.ts          # Entry point
-├── codemode/       # Sandboxed JavaScript execution (Code Mode)
-├── constants/      # Tool definitions, help content, prompts
-├── filtering/      # Tool filter parsing, group/shortcut resolution
+├── codemode/       # Sandboxed JavaScript execution (Code Mode — VM & Worker Isolate)
+├── constants/      # Help content generation and dynamic server instructions
+├── filtering/      # Tool filter parsing, group resolution
 ├── pool/           # Connection pool management
 ├── server/         # MCP server setup, handler registration
 ├── transports/     # HTTP/SSE/stdio transport layer
-├── types/          # Shared TypeScript type definitions
-├── utils/          # Logging, sanitization, validation helpers
+├── types/          # Core TypeScript types (errors, schema, mcp, oauth)
+├── utils/          # Logging, sanitization, validation, errors helpers
 └── index.ts        # Public API exports
 ```
 
