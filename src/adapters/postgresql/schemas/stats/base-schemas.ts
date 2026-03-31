@@ -171,7 +171,7 @@ export const StatsSamplingSchemaBase = z.object({
     ),
   sampleSize: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Number of rows for random sampling (default: 100)"),
+    .describe("Number of rows for random sampling (default: 20)"),
   percentage: z
     .preprocess(coerceNumber, z.number().optional())
     .describe("Percentage for bernoulli/system sampling (0-100)"),
