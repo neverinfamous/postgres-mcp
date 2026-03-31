@@ -31,6 +31,7 @@
 - Refactored Vitest test suite to use SWC compilation
 - Updated npm dependencies (`@modelcontextprotocol/sdk`, `typescript`, `typescript-eslint`)
 - Updated `.env.example` templates and README context
+- Restrict max limits across all pg_stat_kcache resource tools to 25 to prevent context window payload bloat
 
 ### Removed
 - Obsolete shortcut action bundles (`META_GROUPS`)
@@ -63,6 +64,7 @@
 - Restored missing `pg_ltree_lca` constraint to properly handle single paths and common ancestors
 - Refined jsonb validation instructions indicating query paths
 - Removed mismatched `pg_capacity_planning` and `pg_pgcrypto_hash` tests from the `stats` and `vector` test sections in `test-tools-advanced-2.md`
+- Missing targetTable parameters within `test-tools-advanced-3` partman execution directives
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

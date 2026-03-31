@@ -289,7 +289,7 @@ No cleanup needed (kcache tools are read-only).
 4. `pg_partman_show_config({table: "test_logs"})` → verify config matches what was set
 5. `pg_partman_analyze_partition_health()` → verify health check works with active partman tables
 6. `pg_partman_create_parent({parentTable: "test_logs", controlColumn: "created_at", interval: "1 hour"})` → report: does it error because already managed, or overwrite?
-7. Cleanup: `pg_partman_undo_partition({parentTable: "test_logs"})` or note state for `reset-database.ps1`
+7. Cleanup: `pg_partman_undo_partition({parentTable: "test_logs", targetTable: "test_logs_archive"})` or note state for `reset-database.ps1`
 
 ### Final Cleanup
 
