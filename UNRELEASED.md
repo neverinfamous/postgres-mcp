@@ -62,9 +62,8 @@
 - `compact` internal boolean flag leaking into `pg_schema_snapshot` JSON response structures.
 - Inaccurate parameter references (`vectorA` to `vector1`) within advanced stress testing documentation.
 - Corrected `pg_stats_regression` parameter names in `test-tools-advanced-1.md` (`columnX`/`columnY` → `xColumn`/`yColumn`).
+- Fixed `pg_ltree_lca` constraint requiring 2 paths; now properly handles single paths and identical common ancestors mirroring native Postgres functionality.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows.
-
-

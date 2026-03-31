@@ -248,12 +248,24 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { paths } = LtreeLcaSchema.parse(params);
-        if (paths.length < 2) {
+        if (paths.length < 1) {
           throw new ValidationError(
-            `Minimum 2 paths required for lca, received ${String(paths.length)}.`,
+            `Minimum 1 path required for lca, received ${String(paths.length)}.`,
             { providedCount: paths.length }
           );
         }
+
+        // If all paths are identical, the LCA is the path itself
+        // (Postgres lca() natively returns the parent if given identical paths)
+        const allIdentical = paths.every(p => p === paths[0]);
+        if (allIdentical) {
+          return {
+            paths,
+            longestCommonAncestor: paths[0],
+            hasCommonAncestor: true,
+          };
+        }
+
         const arrayLiteral = paths
           .map((p) => `'${p.replace(/'/g, "''")}'::ltree`)
           .join(", ");
