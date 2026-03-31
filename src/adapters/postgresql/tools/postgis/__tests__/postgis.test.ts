@@ -871,8 +871,8 @@ describe("PostGIS Advanced Tool Edge Cases", () => {
       mockContext,
     )) as Record<string, unknown>;
 
-    // Should return empty object for undefined row
-    expect(result).toEqual({});
+    // Should return success: true for undefined row
+    expect(result).toEqual({ success: true });
   });
 
   it("pg_geo_index_optimize should warn when table filter matches nothing", async () => {

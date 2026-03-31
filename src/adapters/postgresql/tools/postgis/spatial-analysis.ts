@@ -145,6 +145,7 @@ export function createGeoIndexOptimizeTool(
       }
 
       return {
+        success: true,
         spatialIndexes: indexes.rows,
         tableStats: tableStats.rows,
         recommendations:
@@ -301,6 +302,7 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Build response
         const response: Record<string, unknown> = {
+          success: true,
           method,
           parameters:
             method === "kmeans"

@@ -55,9 +55,9 @@ export function createGeocodeTool(adapter: PostgresAdapter): ToolDefinition {
         // Add note about SRID for non-4326 cases
         const row = result.rows?.[0];
         if (row === undefined) {
-          return {};
+          return { success: true };
         }
-        const response: Record<string, unknown> = { ...row };
+        const response: Record<string, unknown> = { success: true, ...row };
         if (srid !== 4326) {
           response["note"] =
             `Coordinates are WGS84 lat/lng with SRID ${String(srid)} metadata. Use pg_geo_transform to convert to target CRS.`;
@@ -178,6 +178,7 @@ export function createGeoTransformTool(
 
         // Build response with truncation indicators if default limit was applied
         const response: Record<string, unknown> = {
+          success: true,
           results: result.rows,
           count: result.rows?.length ?? 0,
           fromSrid: fromSrid,

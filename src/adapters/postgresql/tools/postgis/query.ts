@@ -100,6 +100,7 @@ export function createPointInPolygonTool(
         const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
 
         const response: Record<string, unknown> = {
+          success: true,
           containingPolygons: result.rows,
           count: result.rows?.length ?? 0,
         };
@@ -201,7 +202,7 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
             LIMIT ${String(limitVal)}`;
 
         const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
-        return { results: result.rows, count: result.rows?.length ?? 0 };
+        return { success: true, results: result.rows, count: result.rows?.length ?? 0 };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_distance",
@@ -280,7 +281,7 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, [parsed.distance]);
 
         // Build response with truncation indicators if default limit was applied
-        const response: Record<string, unknown> = { results: result.rows };
+        const response: Record<string, unknown> = { success: true, results: result.rows };
 
         // Check if results were truncated (works for both default and explicit limits)
         if (effectiveLimit > 0) {
@@ -406,6 +407,7 @@ export function createIntersectionTool(
 
         const result = await adapter.executeQuery(sql, [parsed.geometry]);
         return {
+          success: true,
           intersecting: result.rows,
           count: result.rows?.length ?? 0,
           sridUsed: srid ?? "none (explicit SRID in geometry or GeoJSON)",
@@ -507,6 +509,7 @@ export function createBoundingBoxTool(
         ]);
 
         const response: Record<string, unknown> = {
+          success: true,
           results: result.rows,
           count: result.rows?.length ?? 0,
         };

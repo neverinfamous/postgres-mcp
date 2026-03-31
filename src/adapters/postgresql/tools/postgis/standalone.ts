@@ -105,6 +105,7 @@ export function createGeometryBufferTool(
         }
         const row = result.rows?.[0];
         const response: Record<string, unknown> = {
+          success: true,
           ...row,
           inputFormat: isGeoJson ? "GeoJSON" : "WKT",
         };
@@ -176,6 +177,7 @@ export function createGeometryIntersectionTool(
             });
         }
         return {
+          success: true,
           ...result.rows?.[0],
           geometry1Format: geom1.isGeoJson ? "GeoJSON" : "WKT",
           geometry2Format: geom2.isGeoJson ? "GeoJSON" : "WKT",
@@ -226,6 +228,7 @@ export function createGeometryTransformTool(
             });
         }
         return {
+          success: true,
           ...result.rows?.[0],
           fromSrid,
           toSrid,
