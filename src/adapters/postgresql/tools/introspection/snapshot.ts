@@ -353,6 +353,7 @@ export function createSchemaSnapshotTool(
         }
 
         return {
+          success: true,
           snapshot,
           stats,
           generatedAt: new Date().toISOString(),

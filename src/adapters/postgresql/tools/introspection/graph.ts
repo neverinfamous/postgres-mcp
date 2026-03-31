@@ -164,6 +164,7 @@ export function createDependencyGraphTool(
             }));
 
         return {
+          success: true,
           nodes,
           edges,
           circularDependencies: cycles,
@@ -301,6 +302,7 @@ export function createTopologicalSortTool(
         });
 
         return {
+          success: true,
           order,
           direction,
           hasCycles: sorted === null,
@@ -458,6 +460,7 @@ export function createCascadeSimulatorTool(
         }
 
         return {
+          success: true,
           sourceTable: sourceQName,
           operation,
           affectedTables: affected,

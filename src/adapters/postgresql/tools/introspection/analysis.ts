@@ -211,6 +211,7 @@ export function createConstraintAnalysisTool(
         }
 
         return {
+          success: true,
           findings,
           summary: {
             totalFindings: findings.length,
@@ -449,6 +450,7 @@ export function createMigrationRisksTool(
         }
 
         return {
+          success: true,
           ...(risks.length > 0 ? { risks } : {}),
           summary: {
             totalStatements: parsed.statements.length,
