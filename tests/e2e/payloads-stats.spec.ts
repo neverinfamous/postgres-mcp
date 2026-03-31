@@ -114,10 +114,10 @@ test.describe("Payload Contracts: Stats + Partitioning", () => {
     const response = JSON.parse((first as any).text);
     if (response.success === false) {
       expect(response.code).toBe("VALIDATION_ERROR");
-      expect(response.error).toContain("cannot exceed 1000");
+      expect(response.error).toContain("cannot exceed 100");
     } else {
       expect(response.success).toBe(true);
-      expect(response.rows.length).toBeLessThanOrEqual(1000);
+      expect(response.rows.length).toBeLessThanOrEqual(100);
     }
   });
 
