@@ -8,7 +8,7 @@
 import { z } from "zod";
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
-import { SandboxPool } from "../../../../codemode/sandbox.js";
+import { createSandboxPool, type ISandboxPool } from "../../../../codemode/index.js";
 import { CodeModeSecurityManager } from "../../../../codemode/security.js";
 import { createPgApi } from "../../../../codemode/api/index.js";
 import { toolNameToMethodName } from "../../../../codemode/api/group-api.js";
@@ -86,18 +86,20 @@ export const ExecuteCodeOutputSchema = z.object({
 }).extend(ErrorResponseFields.shape);
 
 // Singleton instances (initialized on first use)
-let sandboxPool: SandboxPool | null = null;
+let sandboxPool: ISandboxPool | null = null;
 let securityManager: CodeModeSecurityManager | null = null;
 
 /**
  * Initialize Code Mode infrastructure
  */
 function ensureInitialized(): {
-  pool: SandboxPool;
+  pool: ISandboxPool;
   security: CodeModeSecurityManager;
 } {
-  sandboxPool ??= new SandboxPool();
-  sandboxPool.initialize();
+  sandboxPool ??= createSandboxPool(process.env["CODEMODE_WORKER"] === "true" ? "worker" : "vm");
+  if ("initialize" in sandboxPool && typeof sandboxPool.initialize === "function") {
+    (sandboxPool as { initialize: () => void }).initialize();
+  }
   securityManager ??= new CodeModeSecurityManager();
   return { pool: sandboxPool, security: securityManager };
 }
@@ -158,7 +160,7 @@ return results;
     icons: getToolIcons("codemode", { destructiveHint: true }),
     handler: async (params: unknown) => {
       try {
-        const { code, readonly } = ExecuteCodeSchema.parse(params) as ExecuteCodeOptions;
+        const { code, readonly, timeout } = ExecuteCodeSchema.parse(params) as ExecuteCodeOptions;
 
         // Initialize infrastructure
       const { pool, security } = ensureInitialized();
@@ -215,7 +217,7 @@ return results;
       const transactionsBefore = new Set(adapter.getActiveTransactionIds());
 
       // Execute in sandbox
-      const result = await pool.execute(code, bindings);
+      const result = await pool.execute(code, bindings, timeout);
 
       // Cleanup orphaned transactions on failure
       // Any transaction started during execution but not committed/rolled back is orphaned
@@ -326,7 +328,9 @@ function enforceReadonly(
  */
 export function cleanupCodeMode(): void {
   if (sandboxPool) {
-    sandboxPool.dispose();
+    if ("dispose" in sandboxPool && typeof sandboxPool.dispose === "function") {
+      (sandboxPool as { dispose: () => void }).dispose();
+    }
     sandboxPool = null;
   }
 }

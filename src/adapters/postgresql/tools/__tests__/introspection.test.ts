@@ -1481,8 +1481,6 @@ describe("pg_migration_apply", () => {
     });
     // Duplicate check: no duplicates
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute migration SQL
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // INSERT RETURNING *
@@ -1500,8 +1498,6 @@ describe("pg_migration_apply", () => {
         },
       ],
     });
-    // COMMIT
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_apply")!;
     const result = (await tool.handler(
@@ -1513,20 +1509,23 @@ describe("pg_migration_apply", () => {
         sourceSystem: "agent",
       },
       mockContext,
-    )) as { success: boolean; record?: { version: string } };
+    )) as { success: boolean; record?: { version: string }, error?: string };
+
+    if (!result.success) console.error("XYZ-ERROR", result.error);
 
     expect(result.success).toBe(true);
     expect(result.record).toBeDefined();
     expect(result.record!.version).toBe("1.0.0");
 
     // Verify BEGIN was called
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("BEGIN");
+    expect(mockAdapter.beginTransaction).toHaveBeenCalled();
     // Verify migration SQL was executed
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+    expect(mockAdapter.executeOnConnection).toHaveBeenCalledWith(
+      expect.anything(),
       "CREATE TABLE users (id SERIAL PRIMARY KEY)",
     );
     // Verify COMMIT was called
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("COMMIT");
+    expect(mockAdapter.commitTransaction).toHaveBeenCalled();
   });
 
   it("should rollback and record failed entry on SQL error", async () => {
@@ -1536,14 +1535,10 @@ describe("pg_migration_apply", () => {
     });
     // Duplicate check: no duplicates
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute migration SQL — FAILS
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error('relation "users" already exists'),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // INSERT failed record (best-effort)
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -1561,7 +1556,7 @@ describe("pg_migration_apply", () => {
     expect(result.error).toContain("rolled back");
 
     // Verify ROLLBACK was called
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("ROLLBACK");
+    expect(mockAdapter.rollbackTransaction).toHaveBeenCalled();
     // Verify failed record was inserted
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("'failed'"),
@@ -1591,7 +1586,7 @@ describe("pg_migration_apply", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("Duplicate migration");
     // Should NOT have called BEGIN (rejected before execution)
-    expect(mockAdapter.executeQuery).not.toHaveBeenCalledWith("BEGIN");
+    expect(mockAdapter.beginTransaction).not.toHaveBeenCalled();
   });
 
   it("should return structured error for missing version", async () => {
@@ -1629,14 +1624,10 @@ describe("pg_migration_apply", () => {
     });
     // Duplicate check: no duplicates
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute migration SQL — FAILS
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error('syntax error at or near "CRATE"'),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // INSERT failed record — ALSO FAILS (best-effort path)
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("connection lost"),
@@ -1791,9 +1782,12 @@ describe("pg_migration_rollback", () => {
     expect(result.record.status).toBe("rolled_back");
 
     // Verify transaction sequence
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("BEGIN");
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("DROP TABLE users");
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("COMMIT");
+    expect(mockAdapter.beginTransaction).toHaveBeenCalled();
+    expect(mockAdapter.executeOnConnection).toHaveBeenCalledWith(
+      expect.anything(),
+      "DROP TABLE users",
+    );
+    expect(mockAdapter.commitTransaction).toHaveBeenCalled();
   });
 
   it("should reject already-rolled-back migration", async () => {
@@ -1881,14 +1875,10 @@ describe("pg_migration_rollback", () => {
         },
       ],
     });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute rollback SQL — FAILS
-    mockAdapter.executeQuery.mockRejectedValueOnce(
+    mockAdapter.executeOnConnection.mockRejectedValueOnce(
       new Error('table "users" does not exist'),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
     const result = (await tool.handler({ version: "1.0.0" }, mockContext)) as {
@@ -1899,7 +1889,7 @@ describe("pg_migration_rollback", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("Rollback failed");
     expect(result.error).toContain('table "users" does not exist');
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("ROLLBACK");
+    expect(mockAdapter.rollbackTransaction).toHaveBeenCalled();
   });
 });
 
@@ -2206,13 +2196,9 @@ describe("pg_migration_apply — uncovered branches", () => {
     });
     // checkDuplicateHash: no duplicate
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute migration SQL
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // INSERT RETURNING: empty
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // COMMIT
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_apply")!;
@@ -2235,14 +2221,10 @@ describe("pg_migration_apply — uncovered branches", () => {
     });
     // checkDuplicateHash: no duplicate
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Migration SQL fails
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("syntax error at position 42"),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Record failed entry
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -2259,7 +2241,7 @@ describe("pg_migration_apply — uncovered branches", () => {
     expect(result.error).toContain("syntax error");
     expect(result.error).toContain("rolled back");
     // Verify ROLLBACK was called
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("ROLLBACK");
+    expect(mockAdapter.rollbackTransaction).toHaveBeenCalled();
   });
 });
 
@@ -2363,14 +2345,10 @@ describe("pg_migration_rollback — uncovered branches", () => {
         },
       ],
     });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Rollback SQL fails
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("table does not exist"),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
     const result = (await tool.handler({ id: 3 }, mockContext)) as {

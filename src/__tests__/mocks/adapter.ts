@@ -138,6 +138,8 @@ export function createMockPostgresAdapter(): Partial<PostgresAdapter> & {
 } {
   const mockQueryResult = createMockQueryResult([{ id: 1, name: "test" }]);
 
+  const executeQueryMock = vi.fn().mockResolvedValue(mockQueryResult);
+
   return {
     type: "postgresql" as const,
     name: "PostgreSQL Adapter",
@@ -149,7 +151,7 @@ export function createMockPostgresAdapter(): Partial<PostgresAdapter> & {
     getHealth: vi.fn().mockResolvedValue(createMockHealthStatus()),
 
     // Query execution
-    executeQuery: vi.fn().mockResolvedValue(mockQueryResult),
+    executeQuery: executeQueryMock,
     executeReadQuery: vi.fn().mockResolvedValue(mockQueryResult),
     executeWriteQuery: vi.fn().mockResolvedValue(mockQueryResult),
 
@@ -160,8 +162,11 @@ export function createMockPostgresAdapter(): Partial<PostgresAdapter> & {
     createSavepoint: vi.fn().mockResolvedValue(undefined),
     releaseSavepoint: vi.fn().mockResolvedValue(undefined),
     rollbackToSavepoint: vi.fn().mockResolvedValue(undefined),
-    getTransactionConnection: vi.fn().mockReturnValue(undefined),
-    executeOnConnection: vi.fn().mockResolvedValue(createMockQueryResult()),
+    getTransactionConnection: vi.fn().mockReturnValue({}),
+    executeOnConnection: vi.fn().mockImplementation((_client, sql, params) => {
+      return executeQueryMock(sql, params) as unknown as Promise<unknown>;
+    }),
+    invalidateSchemaCache: vi.fn(),
 
     // Schema methods
     getSchema: vi.fn().mockResolvedValue(createMockSchemaInfo()),
