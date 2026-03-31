@@ -290,7 +290,7 @@ BEGIN
                  OR tablename LIKE 'spatial_places%'
                  OR tablename LIKE 'jsonb_%'
                  OR tablename LIKE 'notebook_%'
-                 OR tablename IN ('categories','documents','locations','vector_docs','txn_demo')
+                 OR tablename IN ('categories','documents','locations','vector_docs','txn_demo','t','t1','t2','test','temp')
                  OR tablename LIKE 'empty_%'
                  OR tablename LIKE 'batch_%'
                  OR tablename LIKE 'stress_%'
