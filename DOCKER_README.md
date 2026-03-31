@@ -201,6 +201,22 @@ Add this to your MCP client config (e.g., `~/.cursor/mcp.json` for Cursor):
 
 > **Aliases:** `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` are also supported (standard PostgreSQL client env vars).
 
+### 🔗 Database Connection Scenarios
+
+| Scenario                       | Host to Use                           | Example Connection String                         |
+| ------------------------------ | ------------------------------------- | ------------------------------------------------- |
+| **PostgreSQL on host machine** | `localhost` or `host.docker.internal` | `postgres://user:pass@localhost:5432/db`          |
+| **PostgreSQL in Docker**       | Container name or network             | `postgres://user:pass@postgres-container:5432/db` |
+| **Remote/Cloud PostgreSQL**    | Hostname or IP                        | `postgres://user:pass@db.example.com:5432/db`     |
+
+| Provider           | Example Hostname                                 |
+| ------------------ | ------------------------------------------------ |
+| AWS RDS PostgreSQL | `your-instance.xxxx.us-east-1.rds.amazonaws.com` |
+| Google Cloud SQL   | `project:region:instance` (via Cloud SQL Proxy)  |
+| Azure PostgreSQL   | `your-server.postgres.database.azure.com`        |
+| Supabase           | `db.xxxx.supabase.co`                            |
+| Neon               | `ep-xxx.us-east-1.aws.neon.tech`                 |
+
 ### 🛠️ Tool Filtering
 
 > [!IMPORTANT]
@@ -249,6 +265,17 @@ The `--tool-filter` argument accepts **groups** or **tool names** — mix and ma
 | `citext`        | 7     | citext (case-insensitive text)                                        |
 | `ltree`         | 9     | ltree (hierarchical data)                                             |
 | `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                          |
+
+### Syntax Reference
+
+| Prefix   | Target   | Example          | Effect                                        |
+| -------- | -------- | ---------------- | --------------------------------------------- |
+| _(none)_ | Group    | `core`           | **Whitelist Mode:** Enable ONLY this group    |
+| _(none)_ | Tool     | `pg_read_query`  | **Whitelist Mode:** Enable ONLY this tool     |
+| `+`      | Group    | `+vector`        | Add tools from this group to current set      |
+| `-`      | Group    | `-admin`         | Remove tools in this group from current set   |
+| `+`      | Tool     | `+pg_explain`    | Add one specific tool                         |
+| `-`      | Tool     | `-pg_drop_table` | Remove one specific tool                      |
 
 ## 🌐 HTTP/SSE Transport (Remote Access)
 
