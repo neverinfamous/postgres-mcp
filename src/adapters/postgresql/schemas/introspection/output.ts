@@ -41,7 +41,7 @@ export const DependencyGraphOutputSchema = z.object({
     })
     .optional(),
   hint: z.string().optional(),
-  success: z.boolean().optional(),
+  success: z.boolean(),
   error: z.string().optional(),
 }).extend(ErrorResponseFields.shape);
 
@@ -60,7 +60,7 @@ export const TopologicalSortOutputSchema = z.object({
   hasCycles: z.boolean().optional(),
   cycles: z.array(z.array(z.string())).optional(),
   hint: z.string().optional(),
-  success: z.boolean().optional(),
+  success: z.boolean(),
   error: z.string().optional(),
 }).extend(ErrorResponseFields.shape);
 
@@ -89,7 +89,7 @@ export const CascadeSimulatorOutputSchema = z.object({
       maxDepth: z.number(),
     })
     .optional(),
-  success: z.boolean().optional(),
+  success: z.boolean(),
   error: z.string().optional(),
 }).extend(ErrorResponseFields.shape);
 
@@ -111,7 +111,7 @@ export const SchemaSnapshotOutputSchema = z.object({
   generatedAt: z.string().optional(),
   compact: z.boolean().optional(),
   hint: z.string().optional(),
-  success: z.boolean().optional(),
+  success: z.boolean(),
   error: z.string().optional(),
 }).extend(ErrorResponseFields.shape);
 
@@ -135,7 +135,7 @@ export const ConstraintAnalysisOutputSchema = z.object({
     })
     .optional(),
   hint: z.string().optional(),
-  success: z.boolean().optional(),
+  success: z.boolean(),
   error: z.string().optional(),
 }).extend(ErrorResponseFields.shape);
 
@@ -161,7 +161,7 @@ export const MigrationRisksOutputSchema = z.object({
       estimatedLockImpact: z.string(),
     })
     .optional(),
-  success: z.boolean().optional(),
+  success: z.boolean(),
   error: z.string().optional(),
 }).extend(ErrorResponseFields.shape);
 
@@ -181,7 +181,7 @@ const MigrationRecordOutputEntry = z.object({
 });
 
 export const MigrationInitOutputSchema = z.object({
-  success: z.boolean().optional(),
+  success: z.boolean(),
   tableCreated: z.boolean().optional(),
   tableName: z.string().optional(),
   existingRecords: z.number().optional(),

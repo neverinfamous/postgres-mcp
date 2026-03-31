@@ -104,7 +104,7 @@
 - **Schema creation idempotency**: Unified `alreadyExisted` → `alreadyExists` across `pg_create_schema`, `pg_create_sequence`, `pg_create_view`
 - **Cron job name filter**: `pg_cron_job_run_details` `jobName` parameter now executes subquery resolution instead of being silently ignored
 - **Pgcrypto output symmetry**: `encrypted` → `encryptedData` in `pg_pgcrypto_encrypt` to match `pg_pgcrypto_decrypt` input
-- **Introspection fixes**: Cascade simulator no longer skips self-referencing FKs. `pg_schema_snapshot` recursively strips null values and empty entities
+- **Introspection fixes**: Cascade simulator no longer skips self-referencing FKs. `pg_schema_snapshot` recursively strips null values and empty entities. Made `success` field required in output schemas for introspection tools (`pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`, `pg_schema_snapshot`, `pg_constraint_analysis`, `pg_migration_risks`).
 - **Migration idempotency risk**: `pg_migration_risks` flags non-`IF NOT EXISTS` `CREATE TABLE` as `low` risk
 - **Partman missing-child grace**: `pg_partman_run_maintenance` intercepts `Child table does not exist <NULL>` for new partition sets, returns `success: true`
 - **Graph error categorization**: `pg_cascade_simulator` assigns `high` instead of `critical` for `DELETE` blocked by `RESTRICT` FKs
