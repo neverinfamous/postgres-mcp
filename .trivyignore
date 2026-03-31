@@ -10,3 +10,4 @@ mcp-audit.jsonl
 test-results.json
 logs/
 *.txt
+.vscode/
