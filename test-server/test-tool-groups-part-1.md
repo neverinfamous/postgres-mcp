@@ -1,0 +1,508 @@
+# postgres-mcp Tool Group **COMPLETE** Re-Testing
+
+**ESSENTIAL INSTRUCTIONS**
+
+- Execute **EVERY** numbered stress test below using direct MCP tool calls, **NOT** codemode.
+- Do not use scripts or terminal to replace planned tests.
+- Do not modify or skip tests.
+- Do not put temp files in root; Use C:\Users\chris\Desktop\postgres-mcp\tmp
+
+## Reporting Format
+
+- ❌ Fail: Tool errors or produces incorrect results (include error message)
+- ⚠️ Issue: Unexpected behavior or improvement opportunity
+- 📦 Payload: Unnecessarily large response that should be optimized — **blocking, equally important as ❌ bugs**. Oversized payloads waste LLM context window tokens and degrade downstream tool-calling quality. Report the response size in KB and suggest a concrete optimization (e.g., filter system tables, add `compact` option, omit empty arrays).
+
+> **Token estimates**: Every tool response includes `_meta.tokenEstimate` in its `content[].text` payload (approximate token count based on ~4 bytes/token). Code Mode responses include `metrics.tokenEstimate` instead. These are injected automatically by the adapter — no per-tool assertions needed, but report as ⚠️ if absent.
+
+## Test Database Schema
+
+The test database (`postgres`) contains these tables:
+
+| Table               | Rows | Key Columns                                                                        | JSONB Columns            | Tool Groups           |
+| ------------------- | ---- | ---------------------------------------------------------------------------------- | ------------------------ | --------------------- |
+| `test_products`     | 15   | id, name, description, price, created_at                                           | —                        | Core, Stats           |
+| `test_orders`       | 20   | id, product_id (FK), quantity, total_price, status                                 | —                        | Core, Stats, Trans    |
+| `test_jsonb_docs`   | 3    | id                                                                                 | metadata, settings, tags | JSONB (20 tools)      |
+| `test_articles`     | 3    | id, title, body, search_vector (TSVECTOR)                                          | —                        | Text                  |
+| `test_measurements` | 640  | id, sensor_id (INT 1-6), temperature, humidity, pressure                           | —                        | Stats (19 tools)      |
+| `test_embeddings`   | 75   | id, content, category, embedding (vector 384d)                                     | —                        | Vector (16 tools)     |
+| `test_locations`    | 25   | id, name, location (GEOMETRY POINT SRID 4326)                                      | —                        | PostGIS (15 tools)    |
+| `test_users`        | 3    | id, username (CITEXT), email (CITEXT)                                              | —                        | Citext (6 tools)      |
+| `test_categories`   | 6    | id, name, path (LTREE)                                                             | —                        | Ltree (8 tools)       |
+| `test_secure_data`  | 0    | id, user_id, sensitive_data (BYTEA), created_at                                    | —                        | pgcrypto (9 tools)    |
+| `test_events`       | 100  | id, event_type, event_date, payload (JSONB) — PARTITION BY RANGE                   | payload                  | Partitioning, Partman |
+| `test_logs`         | 0    | id, log_level, message, created_at — PARTITION BY RANGE                            | —                        | Partman               |
+| `test_departments`  | 3    | id, name, budget                                                                   | —                        | Introspection         |
+| `test_employees`    | 5    | id, name, department_id (FK CASCADE), manager_id (FK self-ref SET NULL), hire_date | —                        | Introspection         |
+| `test_projects`     | 2    | id, name, lead_id (FK SET NULL), department_id (FK RESTRICT)                       | —                        | Introspection         |
+| `test_assignments`  | 3    | id, employee_id (FK CASCADE), project_id (FK CASCADE), role — UNIQUE(emp,proj)     | —                        | Introspection         |
+| `test_audit_log`    | 3    | entry_id (no PK!), employee_id (FK, no index!), action, created_at                 | —                        | Introspection         |
+
+Schema objects: `test_schema`, `test_schema.order_seq` (starts at 1000), `test_order_summary` (view), `test_get_order_count()` (function).
+
+> **Note:** Row counts reflect the post-seed state after both `test-database.sql` and `test-resources.sql` run. The resource seed adds ~200 measurements (minus deletions by `id % 5 = 0 AND id > 400`), 25 embeddings (IDs 51-75), and 20 locations (IDs 6-25).
+Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_locations_geo` (GIST), `idx_categories_path` (GIST), HNSW on `test_embeddings.embedding`.
+
+## Testing Requirements
+
+1. Use existing `test_*` tables for read operations (SELECT, COUNT, EXISTS, etc.)
+2. Create temporary tables with `temp_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
+3. Test each tool with realistic inputs based on the schema above
+4. Clean up any `temp_*` tables after testing
+5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
+6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
+7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
+8. **Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md`. For EVERY tool in the group, you must explicitly log: Direct Call (Happy Path), Domain Error (Direct Call), Zod Empty Param (Direct Call), and Alias Acceptance (if applicable). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
+9. **No Scripted Loops**: You must test each error path by writing an individual, distinct tool call.
+10. **Pacing**: Test a maximum of 3-5 tools at a time. Report the results, update your matrix, and then move on to the next chunk.
+11. **Deterministic checklist first**: Complete ALL items in the Deterministic Checklist below before moving to the Strict Coverage Matrix exploration. The checklist uses exact inputs and expected outputs to ensure reproducible coverage every run.
+12. **Audit backup tools**: The 3 `pg_audit_*` tools require `--audit-backup` to be enabled on the test server. When enabled, destructive operations (`pg_truncate`, `pg_drop_table`, `pg_vacuum`, etc.) create gzip-compressed `.snapshot.json.gz` files alongside the audit log. **V2 features to verify**: `pg_audit_diff_backup` now returns a `volumeDrift` field (row count + size changes); `pg_audit_restore_backup` supports `restoreAs` for side-by-side non-destructive restore; and Code Mode calls through `pg_execute_code` that trigger destructive operations are also captured by the interceptor. When disabled, all 3 tools return `{success: false, error: "Audit backup not enabled"}`.
+
+Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) now return as parseable JSON objects via direct tool calls — not as raw MCP error strings. During error path testing, verify this: if a direct tool call for a nonexistent schema/table returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
+
+## Structured Error Response Pattern
+
+All tools must return errors as structured objects instead of throwing. A thrown error propagates as a raw MCP error, which is unhelpful to clients. The expected pattern:
+
+```json
+{ "success": false, "error": "Human-readable error message", "code": "QUERY_ERROR", "category": "query", "recoverable": false }
+```
+
+The enriched `ErrorResponse` from `formatHandlerError` always includes `success`, `error`, `code`, `category`, and `recoverable`. Optional fields `suggestion` and `details` may also be present. Some tools include additional context fields (e.g., `pg_transaction_execute` includes `statementsExecuted`, `failedStatement`, `autoRolledBack`). These are acceptable as long as `success: false` and `error` are always present.
+
+### Handler Error vs MCP Error — How to Distinguish
+
+There are two kinds of error responses. Only one is correct:
+
+| Type | Source | What you see | Verdict |
+|------|--------|--------------|---------|
+| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields | Correct |
+| **MCP error** ❌ | Uncaught throw propagates to MCP framework | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
+
+**Concrete examples:**
+
+```
+✅ Handler error (correct):
+{"success": false, "error": "Table \"public.nonexistent\" does not exist"}
+
+❌ MCP error (bug — handler threw instead of catching):
+content: [{type: "text", text: "Error: relation \"nonexistent\" does not exist"}]
+isError: true
+```
+
+The MCP error case means the handler is missing a `try/catch` block. When testing, if you see a raw error string (especially one containing PostgreSQL internal messages like `relation "..." does not exist` without a `success` field), report it as ❌.
+
+### Zod Validation Errors
+
+Calling a tool with wrong parameter types or missing required fields triggers a Zod validation error. If the handler has no outer `try/catch`, this surfaces as a raw MCP error. Test every tool with `{}` (empty params) if it has required parameters — the response must be a handler error, not an MCP error.
+
+**Error message format matters:** Zod `.refine()` failures produce a `ZodError` whose `.message` property is a **raw JSON array** of Zod issues (e.g., `[{"code":"custom","message":"..."}]`). If the handler catches the error with `error.message` instead of routing through `formatHandlerError`, this raw JSON leaks as the error string. All handlers must route through `formatHandlerError`, which duck-types the `.issues` array and produces clean `Validation error: name (or table alias) is required; Validation error: columns must not be empty` messages. If you see a raw JSON array in an error message, report it as ❌.
+
+**Zod refinement leak pattern:** The Split Schema pattern uses `.partial()` on input schemas so the SDK accepts `{}`. But `.partial()` only makes keys **optional** — it does NOT strip refinements like `.min(1)`, `.max(90)`, or `.min(-90).max(90)`. This applies to **ALL types** — strings, arrays, AND numbers:
+
+- `z.string().min(1)` + empty `""` → SDK rejects with raw MCP `-32602`
+- `z.array().min(1)` + empty `[]` → SDK rejects with raw MCP `-32602`
+- `z.number().min(-90).max(90)` + value `91` → SDK rejects with raw MCP `-32602`
+
+**Fix:** Remove ALL `.min(N)` / `.max(N)` refinements from the schema and validate inside the handler instead. Optional fields with `.default()` are safe because the default satisfies the constraint.
+
+**Required enum coercion pattern:** For **optional** enum params with defaults, `z.preprocess(coercer, z.enum([...]).optional().default(...))` works — the coercer returns `undefined` for invalid values → the `.default()` kicks in. For **required** enum params (no `.optional().default(...)`), this pattern **fails**: the SDK's `.partial()` wraps the preprocess in `.optional()`, but the inner `z.enum()` still rejects `undefined` → raw MCP `-32602`. **Fix:** Use `z.string()` in the schema and validate the enum inside the handler's `try/catch`, returning a structured error.
+
+**What to report:**
+
+- If a tool call returns a raw MCP error (no JSON body with `success` field), report it as ❌ with the tool name and the raw error message
+- If a tool returns `{success: false, error: "..."}` but the error string is a raw Zod JSON array (starts with `[{`), report as ❌ (handler uses `error.message` instead of `formatHandlerError`)
+- If a tool returns `{success: false, error: "Validation error: ..."}` with clean human-readable text, that is the correct behavior — do not report it as a failure
+- If a tool returns a successful response for an obviously invalid input (e.g., nonexistent table returns `{success: true}`), report it as ⚠️
+
+## Split Schema Pattern Verification
+
+All tools use the Split Schema pattern: a plain `z.object()` Base schema for MCP parameter visibility (used as `inputSchema`), and handler-side parsing via `z.preprocess()`, `.default({})`, or direct `.parse()` inside `try/catch`. Verify:
+
+1. **JSON Schema visibility**: Before testing tool behavior, call `tools/list` (or inspect the MCP server's tool definitions) and confirm each tool's `inputSchema` exposes its parameters. Tools with optional parameters (e.g., `schema`, `limit`, `direction`) must show non-empty `properties` in the JSON Schema. If a tool's `inputSchema` is empty or missing `properties`, report as a Split Schema violation.
+2. **Parameter visibility**: For tools with optional parameters (e.g., `schema`, `limit`), make a direct MCP call using those parameters. If the tool ignores or rejects documented parameters, report as a Split Schema violation.
+3. **Alias acceptance**: For tools with documented parameter aliases (e.g., table/tableName/name, sql/query), verify that direct MCP tool calls correctly accept the aliases—not just the primary parameter name. If a direct call using only an alias fails with a validation error like "X is required", report it as a Split Schema violation requiring a fix.
+4. **`z.preprocess()` as `inputSchema`**: If a tool uses `z.preprocess()` directly as its `inputSchema` (instead of a plain `SchemaBase`), parameter metadata is stripped from JSON Schema generation, making direct MCP calls unable to see or use those parameters. Report as a Split Schema violation.
+
+## P154 Object Existence Verification
+
+All tools should return structured error responses for nonexistent tables/schemas (via `formatHandlerError`). The 5 core convenience tools (pg_count, pg_exists, pg_upsert, pg_batch_insert, pg_truncate) implement explicit pre-checks and serve as canonical verification targets. Beyond those, **every tool group must have at least one nonexistent-table test in its checklist** — see the error-path items (marked 🔴) in each group's checklist in `test-group-tools.md`.
+
+For each P154 test, verify that calling with a nonexistent table (e.g., `table: "nonexistent_table_xyz"`) returns a handler error like `{success: false, error: "Table \"public.nonexistent_table_xyz\" does not exist"}` rather than a raw MCP error. Also verify that a nonexistent schema (e.g., `table: "fake_schema.users"`) produces a similarly clear handler error.
+
+Key PostgreSQL error codes that should be intercepted by `formatHandlerError` (not leaked as raw errors):
+
+| PG Error Code | Meaning | Expected Structured Message |
+|---------------|---------|---------------------------|
+| 42P01 | Undefined table | `Table "X" does not exist` |
+| 42P06 | Duplicate schema | `Schema "X" already exists` |
+| 42P07 | Duplicate table | `Table "X" already exists` |
+| 42701 | Duplicate column | `Column "X" already exists` |
+| 42703 | Undefined column | `Column "X" does not exist` |
+| 23505 | Unique violation | `Duplicate key: ...` |
+| 23503 | FK violation | `Foreign key constraint violated` |
+| 42601 | Syntax error | `SQL syntax error: ...` |
+| 3F000 | Invalid schema name | `Schema "X" does not exist` |
+| XX000 | Internal error | `Internal error: ...` |
+
+## Error Consistency Audit
+
+During testing, check for these inconsistencies across tool groups:
+
+1. **Throw-vs-return**: If a tool throws a raw error instead of returning `{success: false}`, report as ❌. Document which tool groups have the worst raw-error leakage.
+2. **Error field name**: All `{ success: false }` error responses should use `error` as the field name. If a tool uses a different field name for error context in a failure response, report as ⚠️.
+3. **Zod validation leaks**: If calling a tool with an invalid enum value or missing required field produces a raw MCP `-32602` Zod validation error instead of a structured response, report as ❌. This indicates the Zod schema is rejecting the input at the MCP framework level before the handler's `try/catch` can intercept.
+4. **Missing `formatHandlerError` wrapping**: postgres-mcp has a centralized `formatHandlerError` helper. If a handler catches errors but returns ad-hoc messages instead of using the centralized formatter, report which handler and the ad-hoc message pattern.
+5. **Orphaned output schemas**: If a schema is exported from `src/adapters/postgresql/schemas/` but the corresponding tool definition does not reference it via `outputSchema`, report as ⚠️. Use `grep_search` to check whether the schema name appears in any tool file. Defined-but-unwired schemas provide zero enforcement.
+6. **Inline output schemas**: If any tool defines `outputSchema: z.object({...})` inline in the handler file instead of importing a named schema from the `schemas/` directory, report as ⚠️. All output schemas must live in the appropriate `schemas/` directory with named exports.
+
+## Error Path Testing Checklist
+
+For each tool group under test, verify at least one scenario from each applicable row:
+
+| Error Scenario | Tool Groups to Test | Example Input |
+|----------------|-------------------|---------------|
+| Nonexistent table | All table-accepting tools | `table: "nonexistent_xyz"` |
+| Nonexistent schema | Core, introspection, schema | `schema: "fake_schema"` or `table: "fake_schema.users"` |
+| Invalid SQL syntax | Core (`read_query`, `write_query`) | `sql: "SELECTT * FROM"` |
+| Invalid column name | Stats, JSONB, text, vector, PostGIS | `column: "nonexistent_col"` |
+| Duplicate table/index | Core (`create_table`, `create_index`) | Create existing table |
+| Empty required array | Transactions | `statements: []` |
+| Missing required field via alias | Core, transactions | `sql` alias instead of `query` |
+| **Zod validation (empty params)** | **Every tool with required params** | `{}` (empty object — must return handler error, not MCP `-32602` error) |
+| **Zod validation (wrong type)** | **Tools with typed params** | Pass string where number expected, etc. |
+
+## Cleanup Conventions
+
+During testing, use these naming conventions:
+
+- **Temporary tables**: Prefix with `temp_` (e.g., `temp_analysis_results`)
+- **Test views**: Prefix with `test_view_` (e.g., `test_view_order_summary`)
+- **Test functions**: Prefix with `test_func_` (e.g., `test_func_calculate`)
+- **Test schemas**: Prefix with `test_schema_` (e.g., `test_schema_temp`)
+
+After testing, clean up:
+
+```sql
+-- List temp tables
+SELECT tablename FROM pg_tables
+WHERE schemaname = 'public' AND tablename LIKE 'temp_%';
+
+-- Drop temp table
+DROP TABLE IF EXISTS temp_my_test_table;
+```
+
+## Post-Test Procedures
+
+### Reporting Rules
+
+- Use ✅ only in inline notes during testing; omit from Final Summary
+- Do not mention what already works well or issues already documented in server-instructions.md and runtime hints
+
+### After Testing
+
+1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed including any files created during testing.
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in the files listed below, and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+3. **Read `code-map.md` before making changes and make all changes consistent with other tools.**
+4. **Scope of fixes** includes corrections to any of:
+   - Handler code
+   - `server-instructions.md`
+   - Test database (`test-database.sql`)
+   - This prompt (`test-tools.md`) and group file (`test-group-tools.md`)
+5. **User will handle validation**
+6. Update the changelog if there were any changes made (being careful not to create duplicate headers), and commit without pushing.
+7. Create a /session-summary in memory-journal-mcp for the issues and their fixes.
+8. Stop and briefly summarize the issues and their fixes.
+
+---
+
+## Part 1: Core & Schema
+
+> This is Part 1: Core & Schema of the testing suite. After finishing these groups, move on to the next part in a new thread.
+
+---
+
+### core Group-Specific Testing
+
+core Tool Group (20 tools +1 for code mode):
+
+1. 'pg_read_query'
+2. 'pg_write_query'
+3. 'pg_list_tables'
+4. 'pg_describe_table'
+5. 'pg_create_table'
+6. 'pg_drop_table'
+7. 'pg_get_indexes'
+8. 'pg_create_index'
+9. 'pg_drop_index'
+10. 'pg_list_objects'
+11. 'pg_object_details'
+12. 'pg_list_extensions'
+13. 'pg_analyze_db_health'
+14. 'pg_analyze_workload_indexes'
+15. 'pg_analyze_query_indexes'
+16. 'pg_upsert' (convenience)
+17. 'pg_batch_insert' (convenience)
+18. 'pg_count' (convenience)
+19. 'pg_exists' (convenience)
+20. 'pg_truncate' (convenience)
+21. 'pg_execute_code' (codemode, auto-added)
+
+All tools implement P154 structured error handling for nonexistent tables/schemas. The 5 convenience tools (pg_count, pg_exists, pg_upsert, pg_batch_insert, pg_truncate) use explicit pre-checks and serve as canonical P154 verification targets. Test with `test_products` and `test_orders`.
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+**Convenience tools (P154 canonical targets):**
+
+1. `pg_count({table: "test_products"})` → `{count: 15}`
+2. `pg_count({table: "test_products", where: "price > $1", params: [50]})` → `{count: N}` where N > 0
+3. `pg_count({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` mentioning table name
+4. `pg_count({table: "fake_schema.test_products"})` → `{success: false, error: "..."}` mentioning schema
+5. `pg_exists({table: "test_products"})` → `{exists: true, mode: "any_rows"}`
+6. `pg_exists({table: "test_products", where: "id = $1", params: [1]})` → `{exists: true, mode: "filtered"}`
+7. `pg_exists({table: "test_products", where: "id = $1", params: [99999]})` → `{exists: false, mode: "filtered"}`
+8. `pg_exists({table: "nonexistent_table_xyz"})` → `{success: false}` structured error
+9. `pg_truncate({table: "nonexistent_table_xyz"})` → `{success: false}` structured error
+10. `pg_batch_insert({table: "nonexistent_table_xyz", rows: [{id: 1}]})` → `{success: false}` structured error
+11. `pg_upsert({table: "nonexistent_table_xyz", data: {id: 1}, conflictColumns: ["id"]})` → `{success: false}` structured error
+
+**Read/Write/Schema tools:**
+
+12. `pg_read_query({sql: "SELECT COUNT(*) AS n FROM test_orders"})` → `{rows: [{n: 20}], rowCount: 1}`
+13. `pg_list_tables({schema: "public", limit: 5})` → `{tables: [...], count: 5, truncated: true}`
+14. `pg_describe_table({table: "test_products"})` → verify `columns` includes `id`, `name`, `price`; `primaryKey` present
+15. `pg_list_objects({type: "view"})` → verify `test_order_summary` appears in results
+16. `pg_object_details({name: "test_order_summary", type: "view"})` → verify `definition` field present
+17. `pg_get_indexes({table: "test_orders"})` → verify `idx_orders_status` and `idx_orders_date` in results
+18. `pg_list_extensions()` → verify response includes `pgcrypto`, `pg_trgm`, `vector` (or other installed extensions)
+19. `pg_analyze_db_health()` → verify `overallStatus` is one of: `healthy`, `needs_attention`, `critical`
+20. `pg_analyze_workload_indexes()` → verify response structure with `recommendations` or `queries` array
+21. `pg_analyze_query_indexes({sql: "SELECT * FROM test_products WHERE name = 'Widget'"})` → verify `plan` and `recommendations` fields present
+
+**Domain error paths (🔴):**
+
+22. 🔴 `pg_read_query({sql: "SELECT * FROM nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error, NOT MCP error
+23. 🔴 `pg_write_query({sql: "INSERT INTO nonexistent_xyz VALUES (1)"})` → `{success: false, error: "..."}` handler error
+24. 🔴 `pg_read_query({sql: "SELECT nonexistent_column FROM test_products"})` → `{success: false, error: "..."}` mentioning column name
+25. 🔴 `pg_list_tables({schema: "nonexistent_schema_xyz"})` → either empty results or `{success: false}` — not raw MCP error
+26. 🔴 `pg_describe_table({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` mentioning table name
+27. 🔴 `pg_describe_table({table: "test_schema.order_seq"})` → `{success: false, error: "..."}` mentioning "sequence" (not a table)
+28. 🔴 `pg_list_objects({type: "invalid_type"})` → `{success: false, error: "Validation error: ..."}` — NOT raw MCP `-32602` output validation error
+29. 🔴 `pg_drop_index({name: "nonexistent_index_xyz"})` → `{success: false, error: "..."}` handler error with hint
+
+**Zod validation error paths (🔴 — verify `"Validation error: ..."` format, NOT raw JSON array):**
+
+30. 🔴 `pg_create_table({})` → `{success: false, error: "Validation error: name (or table alias) is required; Validation error: columns must not be empty"}` — NOT raw JSON array, NOT raw MCP error
+31. 🔴 `pg_describe_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table` param)
+32. 🔴 `pg_read_query({})` → `{success: false, error: "Validation error: ..."}` (missing required `sql`)
+33. 🔴 `pg_write_query({})` → `{success: false, error: "Validation error: ..."}` (missing required `sql`)
+34. 🔴 `pg_create_index({})` → `{success: false, error: "Validation error: ..."}` (missing required params)
+35. 🔴 `pg_drop_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table`)
+36. 🔴 `pg_count({params: ["not_a_number"]})` → `{success: false, error: "..."}` structured error for bad param type
+
+**Alias acceptance (verify aliases produce identical results to primary parameter name):**
+
+37. `pg_count({tableName: "test_products"})` → same result as item 1 (`{count: 15}`)
+38. `pg_count({table: "test_products", condition: "price > 50"})` → same as `where` alias
+39. `pg_read_query({query: "SELECT 1 AS test"})` → works via `query` alias for `sql`
+40. `pg_exists({tableName: "test_products"})` → works via `tableName` alias for `table`
+41. `pg_describe_table({name: "test_products"})` → works via `name` alias for `table`
+42. `pg_analyze_query_indexes({query: "SELECT * FROM test_products"})` → works via `query` alias for `sql`
+
+**Create → Use → Drop lifecycle (temp tables):**
+
+43. `pg_create_table({name: "temp_lifecycle", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "name", type: "TEXT", notNull: true}]})` → `{success: true}`
+44. `pg_batch_insert({table: "temp_lifecycle", rows: [{name: "Alice"}, {name: "Bob"}], returning: ["id", "name"]})` → verify returned rows with auto-generated IDs
+45. `pg_upsert({table: "temp_lifecycle", data: {id: 1, name: "Alice Updated"}, conflictColumns: ["id"]})` → verify update
+46. `pg_count({table: "temp_lifecycle"})` → `{count: 2}`
+47. `pg_create_index({table: "temp_lifecycle", columns: ["name"], ifNotExists: true})` → `{success: true}`
+48. `pg_get_indexes({table: "temp_lifecycle"})` → verify the new index appears
+49. `pg_truncate({table: "temp_lifecycle", restartIdentity: true})` → `{success: true}`
+50. `pg_count({table: "temp_lifecycle"})` → `{count: 0}`
+51. `pg_drop_table({table: "temp_lifecycle", ifExists: true})` → `{success: true, existed: true}`
+52. `pg_drop_table({table: "temp_lifecycle", ifExists: true})` → `{success: true, existed: false}` (already dropped)
+
+**Code mode (`pg_execute_code`) deterministic items:**
+
+53. `pg_execute_code({code: "return await pg.core.help()"})` → verify lists ~20 core methods
+54. `pg_execute_code({code: "return await pg.count('test_products')"})` → verify works via top-level alias
+55. `pg_execute_code({code: "return await pg.exists('test_products', 'id = 1')"})` → verify positional args work
+56. `pg_execute_code({code: "return await pg.core.readQuery({sql: 'SELECT 1 AS n'})"})` → verify `{rows: [{n: 1}]}`
+57. `pg_execute_code({code: "return await pg.readQuery({sql: 'SELECT * FROM nonexistent_xyz'})"})` → verify error is returned (not thrown), contains `{success: false}` or error object
+
+---
+
+### transactions Group-Specific Testing
+
+transactions Tool Group (8 tools +1 for code mode):
+
+1. 'pg_transaction_begin',
+2. 'pg_transaction_commit'
+3. 'pg_transaction_rollback'
+4. 'pg_transaction_savepoint'
+5. 'pg_transaction_release'
+6. 'pg_transaction_rollback_to'
+7. 'pg_transaction_execute'
+8. 'pg_transaction_status'
+9. 'pg_execute_code' (codemode, auto-added)
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+1. `pg_transaction_begin()` → capture `transactionId`
+2. `pg_read_query({sql: "SELECT 1 AS test", transactionId: <id>})` → `{rows: [{test: 1}]}`
+3. `pg_transaction_savepoint({transactionId: <id>, name: "checklist_sp1"})` → `{success: true}`
+4. `pg_transaction_rollback_to({transactionId: <id>, name: "checklist_sp1"})` → `{success: true}`
+5. `pg_transaction_release({transactionId: <id>, name: "checklist_sp1"})` → note behavior (released savepoints cannot be rolled back to)
+6. `pg_transaction_commit({transactionId: <id>})` → `{success: true}`
+7. `pg_transaction_execute({statements: [{sql: "SELECT 1 AS a"}, {sql: "SELECT 2 AS b"}]})` → `{success: true, statementsExecuted: 2}`
+8. 🔴 `pg_transaction_commit({transactionId: "nonexistent-uuid"})` → `{success: false, error: "..."}` handler error
+9. 🔴 `pg_transaction_execute({})` → `{success: false, error: "..."}` (Zod validation — missing `statements`)
+
+**pg_transaction_status:**
+
+10. `pg_transaction_begin()` → capture `transactionId`, then `pg_transaction_status({transactionId: <id>})` → `{status: "active", transactionId: <id>}`
+11. After item 10: `pg_transaction_commit({transactionId: <id>})`, then `pg_transaction_status({transactionId: <id>})` → `{status: "not_found", transactionId: <id>}`
+12. `pg_transaction_begin()` → capture id, then `pg_read_query({sql: "SELECT FROM nonexistent_xyz", transactionId: <id>})` (force error), then `pg_transaction_status({transactionId: <id>})` → `{status: "aborted", transactionId: <id>}` — then rollback to clean up
+13. 🔴 `pg_transaction_status({transactionId: "nonexistent-uuid"})` → `{status: "not_found", transactionId: "nonexistent-uuid"}` — handler result, NOT MCP error
+14. 🔴 `pg_transaction_status({})` → `{success: false, error: "Validation error: ..."}` — Zod validation
+
+**Code mode parity (pg_transaction_status):**
+
+15. `pg_execute_code({code: "const tx = await pg.transactions.begin(); const s = await pg.transactions.status({transactionId: tx.transactionId}); await pg.transactions.rollback({transactionId: tx.transactionId}); return s"})` → verify `{status: "active"}`
+16. `pg_execute_code({code: "return await pg.transactions.help()"})` → verify `status` appears in method list
+
+---
+
+### jsonb Group-Specific Testing
+
+jsonb Tool Group (20 tools +1 for code mode):
+
+1. 'pg_jsonb_extract'
+2. 'pg_jsonb_set'
+3. 'pg_jsonb_insert'
+4. 'pg_jsonb_delete'
+5. 'pg_jsonb_contains'
+6. 'pg_jsonb_path_query'
+7. 'pg_jsonb_agg'
+8. 'pg_jsonb_object'
+9. 'pg_jsonb_array'
+10. 'pg_jsonb_keys'
+11. 'pg_jsonb_strip_nulls'
+12. 'pg_jsonb_typeof'
+13. 'pg_jsonb_validate_path'
+14. 'pg_jsonb_stats'
+15. 'pg_jsonb_merge'
+16. 'pg_jsonb_normalize'
+17. 'pg_jsonb_diff'
+18. 'pg_jsonb_index_suggest'
+19. 'pg_jsonb_security_scan'
+20. 'pg_jsonb_pretty'
+21. 'pg_execute_code' (codemode, auto-added)
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+**Test data:** Use `test_jsonb_docs` table which has these JSONB structures:
+
+- `metadata`: `{"type": "article", "author": "Alice", "views": 100}` / `{"type": "video", "author": "Bob", "duration": 3600}`
+- `settings`: `{"theme": "dark", "notifications": true}` / `{"quality": "hd", "autoplay": false}`
+- `tags`: `["tech", "news"]` / `["entertainment"]` / `["tech", "tutorial"]`
+- Nested access: `test_jsonb_docs` row 3 has `metadata.nested.level1.level2 = "deep"`
+- `test_events.payload` — `{"page": "home"}`
+
+**Checklist:**
+
+1. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "author", where: "id = 1"})` → result contains `"Alice"`
+2. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "nested.level1.level2", where: "id = 3"})` → result contains `"deep"`
+3. `pg_jsonb_keys({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → keys include `type`, `author`, `views`
+4. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "tags", where: "id = 1"})` → `"array"`
+5. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → `"object"`
+6. `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", contains: {"type": "article"}, where: "id = 1"})` → true
+7. `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata"})` → verify `topKeys` present, `typeDistribution` present
+8. `pg_jsonb_validate_path({path: "$.a.b.c"})` → valid (note: validates JSONPath syntax, not dot-notation — `"a.b.c"` is invalid JSONPath)
+9. `pg_jsonb_diff({doc1: {"a": 1, "b": 2}, doc2: {"a": 1, "c": 3}})` → verify `differences` array with `status` field (`"added"`, `"removed"`, `"modified"`), `hasDifferences: true`
+
+**pg_jsonb_pretty:**
+
+10. `pg_jsonb_pretty({json: "{\"a\":1,\"b\":2}"})` → verify pretty-printed JSON string with indentation
+11. `pg_jsonb_pretty({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → verify formatted output contains `"author": "Alice"` with indentation
+12. 🔴 `pg_jsonb_pretty({})` → `{success: false, error: "..."}` (Zod validation — must provide either `json` or `table`+`column`)
+
+**Domain error paths (🔴):**
+
+13. 🔴 `pg_jsonb_extract({table: "nonexistent_xyz", column: "data", path: "key"})` → `{success: false, error: "..."}` handler error
+14. 🔴 `pg_jsonb_keys({})` → `{success: false, error: "..."}` (Zod validation)
+15. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
+16. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", value: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` to 100 and return valid results (wrong-type numeric param coercion)
+
+---
+
+### text Group-Specific Testing
+
+text Tool Group (13 tools +1 for code mode)
+
+1. 'pg_text_search'
+2. 'pg_text_rank'
+3. 'pg_trigram_similarity'
+4. 'pg_fuzzy_match'
+5. 'pg_regexp_match'
+6. 'pg_like_search'
+7. 'pg_text_headline'
+8. 'pg_create_fts_index'
+9. 'pg_text_normalize'
+10. 'pg_text_sentiment'
+11. 'pg_text_to_vector'
+12. 'pg_text_to_query'
+13. 'pg_text_search_config'
+14. 'pg_execute_code' (codemode, auto-added)
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+**Test data:** Uses `test_articles` which has a GIN FTS index on `search_vector`.
+
+Searchable terms: `PostgreSQL`, `database`, `full-text`, `search`, `performance`, `query`, `MCP`, `protocol`.
+
+**Checklist:**
+
+1. `pg_text_search({table: "test_articles", column: "body", query: "PostgreSQL"})` → at least 1 result
+2. `pg_text_search({table: "test_articles", column: "body", query: "nonexistent_word_xyz"})` → 0 results
+3. `pg_trigram_similarity({table: "test_articles", column: "title", value: "Postgre", threshold: 0.1, limit: 5})` → results with similarity scores
+4. `pg_fuzzy_match({table: "test_articles", column: "title", value: "Postrgres", method: "levenshtein", maxDistance: 30, limit: 5})` → results with distances
+5. `pg_text_normalize({text: "café résumé"})` → accents removed
+6. `pg_text_to_vector({text: "hello world"})` → returns tsvector representation
+7. `pg_text_to_query({text: "hello world"})` → returns tsquery representation
+8. `pg_text_search_config()` → returns available configurations including `english`
+9. 🔴 `pg_text_search({table: "nonexistent_xyz", column: "body", query: "test"})` → `{success: false, error: "..."}` handler error
+10. 🔴 `pg_trigram_similarity({})` → `{success: false, error: "..."}` (Zod validation)
+11. 🔴 `pg_text_search({table: "test_articles", column: "body", query: "test", limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+
+---
+
+### schema Group-Specific Testing
+
+schema Tool Group (12 tools +1 for code mode)
+
+1. 'pg_list_schemas'
+2. 'pg_create_schema'
+3. 'pg_drop_schema'
+4. 'pg_list_sequences'
+5. 'pg_create_sequence'
+6. 'pg_drop_sequence'
+7. 'pg_list_views'
+8. 'pg_create_view'
+9. 'pg_drop_view'
+10. 'pg_list_functions'
+11. 'pg_list_triggers'
+12. 'pg_list_constraints'
+13. 'pg_execute_code' (codemode, auto-added)
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+1. `pg_list_schemas()` → verify `public` and `test_schema` in results
+2. `pg_list_views()` → verify `test_order_summary` in results
+3. `pg_list_sequences({schema: "test_schema"})` → verify `order_seq` appears
+4. `pg_list_functions({schema: "public", limit: 5})` → verify response structure
+5. `pg_list_constraints({table: "test_orders"})` → verify FK to `test_products` appears
+6. `pg_list_triggers({schema: "public"})` → verify response structure (may be empty)
+7. 🔴 `pg_list_constraints({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
+8. 🔴 `pg_create_sequence({name: "temp_seq_test", start: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error (wrong-type numeric param)

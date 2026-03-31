@@ -216,3 +216,304 @@ DROP TABLE IF EXISTS temp_my_test_table;
 8. Stop and briefly summarize the issues and their fixes.
 
 ---
+
+## Part 2: Performance & Backup
+
+> This is Part 2: Performance & Backup of the testing suite. After finishing these groups, move on to the next part in a new thread.
+
+---
+
+### performance Group-Specific Testing
+
+performance Tool Group (24 tools +1 code mode)
+
+1. 'pg_explain'
+2. 'pg_explain_analyze'
+3. 'pg_explain_buffers'
+4. 'pg_index_stats'
+5. 'pg_table_stats'
+6. 'pg_stat_statements'
+7. 'pg_stat_activity'
+8. 'pg_locks'
+9. 'pg_bloat_check'
+10. 'pg_cache_hit_ratio'
+11. 'pg_seq_scan_tables'
+12. 'pg_index_recommendations'
+13. 'pg_query_plan_compare'
+14. 'pg_performance_baseline'
+15. 'pg_connection_pool_optimize'
+16. 'pg_partition_strategy_suggest'
+17. 'pg_unused_indexes'
+18. 'pg_duplicate_indexes'
+19. 'pg_vacuum_stats'
+20. 'pg_query_plan_stats'
+21. 'pg_diagnose_database_performance'
+22. 'pg_detect_query_anomalies'
+23. 'pg_detect_bloat_risk'
+24. 'pg_detect_connection_spike'
+25. 'pg_execute_code' (codemode, auto-added)
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+**Existing performance tools:**
+
+1. `pg_explain({sql: "SELECT * FROM test_products WHERE id = 1"})` → verify plan returned
+2. `pg_explain({sql: "SELECT * FROM test_products WHERE id = $1", params: [1]})` → verify parameterized plan
+3. `pg_table_stats({limit: 3})` → verify `{tables: [...], count: 3, truncated: true, totalCount: N}`
+4. `pg_index_stats({limit: 3})` → verify `{indexes: [...], count: 3, truncated: true, totalCount: N}`
+5. `pg_cache_hit_ratio()` → verify `{heap_read, heap_hit, cache_hit_ratio}` where all are numbers or null
+6. `pg_bloat_check()` → verify returns `{tables, count}`
+7. `pg_seq_scan_tables({limit: 3, minScans: 1})` → verify `{tables, count: 3, truncated: true, totalCount: N}`
+8. `pg_unused_indexes({limit: 3})` → verify returns `{unusedIndexes, count}`
+9. `pg_duplicate_indexes()` → verify response structure
+
+**Diagnostics tool:**
+
+10. `pg_diagnose_database_performance()` → verify `{sections, overallScore, overallStatus, totalRecommendations, allRecommendations}` where `overallStatus` is one of `healthy`, `warning`, `critical`; `overallScore` is 0-100
+
+**Anomaly detection tools — pg_detect_query_anomalies:**
+
+11. `pg_detect_query_anomalies()` → verify `{anomalies, riskLevel, totalAnalyzed, anomalyCount, summary}` where `riskLevel` ∈ `{low, moderate, high, critical}`; `anomalyCount` matches `anomalies.length`
+12. `pg_detect_query_anomalies({threshold: 1.0})` → lower threshold may produce more anomalies; verify `anomalyCount >= 0`
+13. `pg_detect_query_anomalies({threshold: 5.0, minCalls: 100})` → higher threshold + minCalls should reduce noise; verify response structure
+
+**Anomaly detection tools — pg_detect_bloat_risk:**
+
+14. `pg_detect_bloat_risk()` → verify `{tables, highRiskCount, totalAnalyzed, summary}` where `highRiskCount >= 0` and `totalAnalyzed >= 0`
+15. `pg_detect_bloat_risk({schema: "public"})` → verify only `public` schema tables in results
+16. `pg_detect_bloat_risk({minRows: 1})` → lower threshold should include more tables; verify `totalAnalyzed` >= default result's `totalAnalyzed`
+17. `pg_detect_bloat_risk({schema: "nonexistent_schema_xyz"})` → should return valid response with `totalAnalyzed: 0` and empty `tables` (filter produces no matches, not an error)
+
+**Anomaly detection tools — pg_detect_connection_spike:**
+
+18. `pg_detect_connection_spike()` → verify `{totalConnections, maxConnections, usagePercent, byState, concentrations, warnings, riskLevel, summary}` where `totalConnections >= 1`, `maxConnections > 0`, `usagePercent` is 0-100, `riskLevel` ∈ `{low, moderate, high, critical}`
+19. `pg_detect_connection_spike({warningPercent: 10})` → lower threshold may produce more warnings; verify `warnings` is an array
+20. `pg_detect_connection_spike({warningPercent: 100})` → maximum threshold should produce fewer warnings; verify response structure
+
+**Domain error paths (🔴):**
+
+21. 🔴 `pg_table_stats({})` → verify returns handler error (not MCP error) for empty params or returns valid results
+22. 🔴 `pg_explain({})` → `{success: false, error: "..."}` (Zod validation — missing required `sql`)
+
+**Wrong-type numeric param coercion (🔴):**
+
+23. 🔴 `pg_table_stats({limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+24. 🔴 `pg_detect_query_anomalies({threshold: "abc"})` → must NOT return raw MCP error; `threshold` should silently coerce to default 2.0 and return valid results
+25. 🔴 `pg_detect_query_anomalies({minCalls: "abc"})` → must NOT return raw MCP error; `minCalls` should silently coerce to default 10 and return valid results
+26. 🔴 `pg_detect_bloat_risk({minRows: "abc"})` → must NOT return raw MCP error; `minRows` should silently coerce to default 1000 and return valid results
+27. 🔴 `pg_detect_connection_spike({warningPercent: "abc"})` → must NOT return raw MCP error; `warningPercent` should silently coerce to default 70 and return valid results
+
+**Code mode parity (anomaly detection):**
+
+28. `pg_execute_code({code: "return await pg.performance.detectQueryAnomalies()"})` → verify returns same structure as item 11
+29. `pg_execute_code({code: "return await pg.performance.detectBloatRisk({schema: 'public'})"})` → verify returns same structure as item 15
+30. `pg_execute_code({code: "return await pg.performance.detectConnectionSpike()"})` → verify returns same structure as item 18
+
+---
+
+---
+
+### admin Group-Specific Testing
+
+admin Tool Group (11 tools +1 code mode):
+
+1. 'pg_vacuum'
+2. 'pg_vacuum_analyze'
+3. 'pg_analyze'
+4. 'pg_reindex'
+5. 'pg_terminate_backend'
+6. 'pg_cancel_backend'
+7. 'pg_reload_conf'
+8. 'pg_set_config'
+9. 'pg_reset_stats'
+10. 'pg_cluster'
+11. 'pg_append_insight'
+12. 'pg_execute_code' (codemode, auto-added)
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+1. `pg_analyze({table: "test_products"})` → `{success: true}`
+2. `pg_vacuum({table: "test_products"})` → `{success: true}`
+3. `pg_reindex({target: "table", name: "test_products"})` → `{success: true}`
+4. `pg_cancel_backend({pid: 99999})` → `{success: false}` (invalid PID, no error thrown)
+5. `pg_set_config({name: "statement_timeout", value: "30000"})` → `{success: true}`
+
+**pg_append_insight:**
+
+6. `pg_append_insight({text: "Test insight from checklist"})` → verify `{success: true, insightCount: N, message: "..."}` where `insightCount >= 1`
+7. `pg_append_insight({text: "Second insight for testing"})` → verify `insightCount` is previous value + 1
+8. 🔴 `pg_append_insight({})` → `{success: false, error: "..."}` (Zod validation — missing required `text`)
+
+**Domain error paths (🔴):**
+
+9. 🔴 `pg_analyze({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error
+10. 🔴 `pg_reindex({})` → `{success: false, error: "..."}` (Zod validation)
+11. 🔴 `pg_cancel_backend({pid: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or `{success: false}` (wrong-type numeric param)
+
+---
+
+---
+
+### monitoring Group-Specific Testing
+
+monitoring group (11 tools +1 for code mode)
+
+1. 'pg_database_size'
+2. 'pg_table_sizes'
+3. 'pg_connection_stats'
+4. 'pg_replication_status'
+5. 'pg_server_version'
+6. 'pg_show_settings'
+7. 'pg_uptime'
+8. 'pg_recovery_status'
+9. 'pg_capacity_planning'
+10. 'pg_resource_usage_analyze'
+11. 'pg_alert_threshold_set'
+12. 'pg_execute_code' (codemode, auto-added)
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+1. `pg_database_size()` → `{bytes: N, size: "X MB/GB"}`
+2. `pg_table_sizes({limit: 3})` → verify `{tables, count, truncated}`
+3. `pg_connection_stats()` → verify `{totalConnections: N, maxConnections: N}`
+4. `pg_server_version()` → verify `{version: "X.Y", version_num: N}`
+5. `pg_uptime()` → verify `{uptime: {days, hours, minutes, seconds}}`
+6. `pg_show_settings({setting: "max_connections"})` → verify exact match returned
+7. `pg_recovery_status()` → verify `{in_recovery: boolean}`
+8. `pg_alert_threshold_set({metric: "connection_usage"})` → verify thresholds returned
+9. `pg_alert_threshold_set({metric: "invalid_metric_xyz"})` → `{success: false}` structured error
+10. 🔴 `pg_table_sizes({})` → verify returns handler error or valid defaults (not MCP error)
+11. 🔴 `pg_table_sizes({limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+
+---
+
+---
+
+### backup Group-Specific Testing
+
+backup Tool Group (12 tools +1 for code mode)
+
+1. 'pg_dump_table'
+2. 'pg_dump_schema'
+3. 'pg_copy_export'
+4. 'pg_copy_import'
+5. 'pg_create_backup_plan'
+6. 'pg_restore_command'
+7. 'pg_backup_physical'
+8. 'pg_restore_validate'
+9. 'pg_backup_schedule_optimize'
+10. 'pg_audit_list_backups'
+11. 'pg_audit_restore_backup'
+12. 'pg_audit_diff_backup'
+13. 'pg_execute_code' (codemode, auto-added)
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+1. `pg_dump_table({table: "test_products"})` → verify `ddl` contains `CREATE TABLE`
+2. `pg_dump_table({table: "test_products", includeData: true})` → verify `insertStatements` present
+3. `pg_copy_export({table: "test_products", limit: 3})` → verify `{data: "...", rowCount: 3}`
+4. `pg_copy_export({table: "test_products", format: "text"})` → verify tab-delimited output
+5. `pg_create_backup_plan({frequency: "daily", retention: 7})` → verify `{strategy}` present
+6. `pg_restore_command({filename: "backup.dump", database: "testdb"})` → verify `{command}` present
+7. 🔴 `pg_restore_command({})` → `{success: false, error: "..."}` (missing required `backupFile`)
+8. 🔴 `pg_backup_physical({})` → `{success: false, error: "..."}` (missing required `targetDir`)
+
+**Audit backup tools (require `--audit-backup` enabled on test server):**
+
+> These 3 tools return `{success: false, error: "Audit backup not enabled"}` when `--audit-backup` is not set.
+
+9. Setup: `pg_create_table({name: "temp_backup_test", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "name", type: "TEXT"}]})`, then `pg_batch_insert({table: "temp_backup_test", rows: [{name: "Alice"}, {name: "Bob"}]})`
+10. `pg_truncate({table: "temp_backup_test"})` → triggers snapshot creation; verify `{success: true}`
+11. `pg_audit_list_backups({target: "temp_backup_test"})` → verify `{snapshots: [...], count: N}` where `count >= 1`; each snapshot has `timestamp`, `tool`, `target`, `filename`
+12. `pg_audit_list_backups({tool: "pg_truncate"})` → verify filter returns only snapshots created by `pg_truncate`
+13. `pg_audit_list_backups()` → verify returns all snapshots; capture a `filename` from results for diff/restore tests
+
+**Audit diff workflow (V2 — volumeDrift):**
+
+14. After item 10: `pg_write_query({sql: "ALTER TABLE temp_backup_test ADD COLUMN drift_col TEXT"})` → introduces schema drift
+15. Also `pg_batch_insert({table: "temp_backup_test", rows: [{name: "Carol"}, {name: "Dave"}, {name: "Eve"}]})` → introduces row-count drift (now 5 rows vs 2 at snapshot time)
+16. `pg_audit_diff_backup({filename: <captured from item 13>})` → verify:
+    - `diff.additions` array contains entries for `drift_col` (added)
+    - `volumeDrift` object present (Note: `rowCountSnapshot` and `rowCountCurrent` may be omitted if table is unanalyzed, but `sizeBytesSnapshot` and `summary` should be present)
+    - `hasDrift: true`
+17. 🔴 `pg_audit_diff_backup({filename: "nonexistent_snapshot_xyz.json"})` → `{success: false, error: "..."}` handler error
+
+**Audit restore workflow (V2 — restoreAs non-destructive):**
+
+18. `pg_audit_restore_backup({filename: <captured from item 13>, dryRun: true})` → verify dry-run returns DDL preview (`ddl` field) without executing; `drift_col` still present on live table
+19. `pg_audit_restore_backup({filename: <captured from item 13>, restoreAs: "temp_backup_restored", confirm: true})` → verify:
+    - Response `{success: true}` — snapshot DDL applied under new name `temp_backup_restored`
+    - `temp_backup_test` still exists with `drift_col` (original unmodified)
+    - `pg_count({table: "temp_backup_restored"})` → `{count: 0}` (structure restored, data not copied by default)
+20. `pg_audit_restore_backup({filename: <captured from item 13>, confirm: true})` (no `restoreAs`) → verify in-place restore applies DDL (removes `drift_col`)
+21. 🔴 `pg_audit_restore_backup({filename: "nonexistent_snapshot_xyz.json", confirm: true})` → `{success: false, error: "..."}` handler error
+22. 🔴 `pg_audit_restore_backup({filename: <valid filename>})` without `confirm` → `{success: false, error: "..."}` (confirm required)
+
+**Code Mode audit coverage (Audit Interceptor integration):**
+
+23. `pg_execute_code({code: "await pg.core.dropTable({table: 'temp_codemode_audit', ifExists: true}); await pg.core.createTable({name: 'temp_codemode_audit', columns: [{name: 'id', type: 'SERIAL', primaryKey: true}]}); await pg.core.dropTable({table: 'temp_codemode_audit', ifExists: true}); return 'done'"})` → verify `{result: "done"}` then:
+24. `pg_audit_list_backups({tool: "pg_execute_code"})` → verify `count >= 1`; snapshots from Code Mode sandbox should appear with `tool: "pg_execute_code"` and a `target` matching `temp_codemode_audit`
+
+**Zod validation / disabled-state error paths (🔴):**
+
+25. 🔴 `pg_audit_diff_backup({})` → `{success: false, error: "..."}` (Zod validation — missing required `filename`)
+26. 🔴 `pg_audit_restore_backup({})` → `{success: false, error: "..."}` (Zod validation — missing required `filename`)
+
+**Code mode parity:**
+
+27. `pg_execute_code({code: "return await pg.backup.help()"})` → verify lists audit backup methods (`listBackups`, `diffBackup`, `restoreBackup`)
+28. `pg_execute_code({code: "return await pg.backup.listBackups()"})` → verify same structure as item 13
+
+**Cleanup:**
+
+29. `pg_drop_table({table: "temp_backup_test", ifExists: true})` → cleanup
+30. `pg_drop_table({table: "temp_backup_restored", ifExists: true})` → cleanup restoreAs target
+
+---
+
+---
+
+### introspection Group-Specific Testing
+
+introspection Tool Group (6 tools +1 for code mode)
+
+1. pg_dependency_graph
+2. pg_topological_sort
+3. pg_cascade_simulator
+4. pg_schema_snapshot
+5. pg_constraint_analysis
+6. pg_migration_risks
+7. pg_execute_code (codemode, auto-added)
+
+> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+
+**Test data:** Uses the interconnected `test_departments → test_employees → test_projects → test_assignments` FK chain for dependency/cascade testing. Also uses `test_audit_log` (deliberately missing PK and unindexed FK) for constraint analysis.
+
+**Key test scenarios:**
+
+- **pg_dependency_graph**: Run with defaults — verify multi-table graph, self-reference on `test_employees.manager_id`, row counts, cascade/restrict/set-null edge annotations
+- **pg_topological_sort**: Run with both `direction: "create"` and `direction: "drop"` — verify departments comes before employees in create order, reversed in drop
+- **pg_cascade_simulator**: Simulate `DELETE` on `test_departments` — should show CASCADE to employees→assignments, RESTRICT block from projects, and NO ACTION block from audit_log (via employees). Simulate `DROP` to see full impact
+- **pg_schema_snapshot**: Run with defaults and with `schema: "test_schema"` — verify comprehensive output (tables, views, indexes, constraints, functions, sequences). Test `compact: true` — verify tables section omits per-column details (no `columns` key in table rows) for reduced payload size
+- **pg_constraint_analysis**: Should detect: missing PK on `test_audit_log`, unindexed FK `test_audit_log.employee_id`
+- **pg_migration_risks**: Test with DDL statements including risky operations:
+  - `["ALTER TABLE test_employees DROP COLUMN hire_date"]` (column drop = data loss risk)
+  - `["ALTER TABLE test_orders ADD COLUMN status_new VARCHAR(20)"]` (safe)
+  - `["DROP TABLE test_assignments CASCADE"]` (cascade drop risk)
+
+**Checklist:**
+
+1. `pg_dependency_graph()` → verify multi-table graph with `test_departments`, `test_employees`, `test_projects`, `test_assignments`, edge annotations
+2. `pg_topological_sort({direction: "create"})` → verify `test_departments` appears before `test_employees`
+3. `pg_topological_sort({direction: "drop"})` → verify reversed order
+4. `pg_cascade_simulator({table: "test_departments", operation: "DELETE"})` → verify CASCADE path to employees→assignments, RESTRICT block from projects
+5. `pg_schema_snapshot({compact: true})` → verify tables section omits column details
+6. `pg_constraint_analysis()` → verify detects missing PK on `test_audit_log`, unindexed FK on `test_audit_log.employee_id`
+7. `pg_migration_risks({statements: ["ALTER TABLE test_employees DROP COLUMN hire_date"]})` → verify data loss risk flagged
+8. 🔴 `pg_dependency_graph({schema: "nonexistent_schema_xyz"})` → `{success: false, error: "..."}` handler error
+9. 🔴 `pg_cascade_simulator({})` → `{success: false, error: "..."}` (Zod validation — missing required `table`)
+
+**Code mode parity:**
+
+10. `pg_execute_code({code: "return await pg.introspection.help()"})` → verify lists 6 introspection methods
+11. `pg_execute_code({code: "return await pg.introspection.constraintAnalysis()"})` → verify same structure as item 6
