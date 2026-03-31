@@ -2,7 +2,7 @@
 
 **PostgreSQL MCP Server** enabling AI assistants to securely interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a single JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE transport, OAuth 2.1 authentication, and support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**248 Specialized Tools** · **22 Resources** · **20 AI-Powered Prompts**
+**248 Specialized Tools** · **23 Resources** · **20 AI-Powered Prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
@@ -24,7 +24,7 @@
 | Feature                                | Description                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **248 Specialized Tools**              | The largest and most token efficient PostgreSQL tool collection for MCP. Covers everything from basic CRUD and JSONB to advanced AI vector search, geospatial data, and job scheduling.                                                                                                                                               |
-| **22 Observability Resources**         | Get instant snapshots of your database health. Monitor performance, connection pools, replication lag, and locks in real-time.                                                                                                                                                                               |
+| **23 Observability Resources**         | Get instant snapshots of your database health. Monitor performance, connection pools, replication lag, and locks in real-time.                                                                                                                                                                               |
 | **20 AI-Powered Prompts**              | Let the AI guide you. Built-in workflows help you smoothly build queries, design schemas, tune performance, and manage backups safely.                                                                                                                                                                       |
 | **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Stop burning tokens on back-and-forth tool calls and reduce your AI overhead by up to 90%.                                                                                                       |
 | **Token-Optimized Payloads**           | Never guess your token spend. Every response includes a zero-cost token estimate, and our tools smartly summarize large datasets so agents always see the big picture without blowing the budget.                                                                                                            |
@@ -66,7 +66,7 @@
 
 > Extension tool counts include `create_extension` helpers but exclude Code Mode; the Tool Groups table below adds +1 per group for Code Mode.
 
-### MCP Resources (22)
+### MCP Resources (23)
 
 Real-time database meta-awareness - AI accesses these automatically:
 
@@ -79,6 +79,7 @@ Real-time database meta-awareness - AI accesses these automatically:
 | `postgres://indexes`      | Index usage statistics                        |
 | `postgres://activity`     | Current connections and active queries        |
 | `postgres://audit`        | Audit trail with token summary                |
+| `postgres://help/{group}` | Group-specific help and workflow resources    |
 
 **[Full resources list →](https://github.com/neverinfamous/postgres-mcp#resources)**
 
@@ -185,6 +186,8 @@ Add this to your MCP client config (e.g., `~/.cursor/mcp.json` for Cursor):
 | `METADATA_CACHE_TTL_MS` | `30000` | Schema cache TTL (ms) |
 | `POSTGRES_TOOL_FILTER` | — | Tool filter string (also `MCP_TOOL_FILTER`) |
 | `MCP_RATE_LIMIT_MAX` | `100` | Rate limit per IP per 15min window |
+| `MCP_REQUEST_TIMEOUT`| `300000` | HTTP request timeout (ms) for Slowloris protection |
+| `MCP_HEADERS_TIMEOUT`| `60000` | HTTP headers timeout (ms) |
 | `MCP_AUTH_TOKEN` | — | Simple bearer token for HTTP auth |
 | `TRUST_PROXY` | `false` | Trust X-Forwarded-For for client IP |
 | `OAUTH_ENABLED` | `false` | Enable OAuth 2.1 authentication |

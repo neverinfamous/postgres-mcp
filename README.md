@@ -4,7 +4,7 @@
 
 **PostgreSQL MCP Server** enabling AI assistants to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a single, secure JavaScript sandbox, eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
-**248 Specialized Tools** · **22 Resources** · **20 AI-Powered Prompts**
+**248 Specialized Tools** · **23 Resources** · **20 AI-Powered Prompts**
 
 [![GitHub](https://img.shields.io/badge/GitHub-neverinfamous/postgres--mcp-blue?logo=github)](https://github.com/neverinfamous/postgres-mcp)
 ![GitHub Release](https://img.shields.io/github/v/release/neverinfamous/postgres-mcp)
@@ -26,7 +26,7 @@
 | Feature                                | Description                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **248 Specialized Tools**              | The largest and most token efficient PostgreSQL tool collection for MCP. Covers everything from basic CRUD and JSONB to advanced AI vector search, geospatial data, and job scheduling.                                                                                                                                               |
-| **22 Observability Resources**         | Get instant snapshots of your database health. Monitor performance, connection pools, replication lag, and locks in real-time.                                                                                                                                                                               |
+| **23 Observability Resources**         | Get instant snapshots of your database health. Monitor performance, connection pools, replication lag, and locks in real-time.                                                                                                                                                                               |
 | **20 AI-Powered Prompts**              | Let the AI guide you. Built-in workflows help you smoothly build queries, design schemas, tune performance, and manage backups safely.                                                                                                                                                                       |
 | **Code Mode**                          | **Massive Token Savings:** Execute complex, multi-step operations inside a fast, secure JavaScript sandbox. Stop burning tokens on back-and-forth tool calls and reduce your AI overhead by up to 90%.                                                                                                       |
 | **Token-Optimized Payloads**           | Never guess your token spend. Every response includes a zero-cost token estimate, and our tools smartly summarize large datasets so agents always see the big picture without blowing the budget.                                                                                                            |
@@ -377,6 +377,8 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 | `METADATA_CACHE_TTL_MS` | `30000` | Schema cache TTL (ms) | — |
 | `POSTGRES_TOOL_FILTER` | — | Tool filter string (also `MCP_TOOL_FILTER`) | `--tool-filter` |
 | `MCP_RATE_LIMIT_MAX` | `100` | Rate limit per IP per 15min window | — |
+| `MCP_REQUEST_TIMEOUT`| `300000` | HTTP request timeout (ms) for Slowloris protection | — |
+| `MCP_HEADERS_TIMEOUT`| `60000` | HTTP headers timeout (ms) | — |
 | `TRUST_PROXY` | `false` | Trust X-Forwarded-For for client IP | `--trust-proxy` |
 | `OAUTH_ENABLED` | `false` | Enable OAuth 2.1 authentication | `--oauth-enabled` |
 | `OAUTH_ISSUER` | — | Authorization server URL | `--oauth-issuer` |
@@ -461,7 +463,7 @@ This server includes **20 intelligent prompts** for guided workflows:
 
 Resources give you instant snapshots of database state without writing queries. Perfect for quickly checking schema, health, or performance metrics — the AI can read these to understand your database context before suggesting changes.
 
-This server provides **22 resources** for structured data access:
+This server provides **23 resources** for structured data access:
 
 | Resource     | URI                       | Description                                        |
 | ------------ | ------------------------- | -------------------------------------------------- |
@@ -486,7 +488,8 @@ This server provides **22 resources** for structured data access:
 | PostGIS      | `postgres://postgis`      | PostGIS spatial columns and index status           |
 | Crypto       | `postgres://crypto`       | pgcrypto availability and security recommendations |
 | Insights     | `postgres://insights`     | AI-appended business insights and observations     |
-| Audit        | `postgres://audit`        | Audit trail with token summary and top tools  |
+| Audit        | `postgres://audit`        | Audit trail with token summary and top tools       |
+| Help         | `postgres://help/{group}` | Group-specific help and workflow documentation     |
 
 ## 🔧 Extension Support
 
