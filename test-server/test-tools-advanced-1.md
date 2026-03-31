@@ -2,11 +2,11 @@
 
 **ESSENTIAL INSTRUCTIONS**
 
-**Execute EVERY numbered stress test below using code mode (`pg_execute_code`).**
-**Do NOT use scripts or terminal to replace planned tests.**
-**Do NOT modify or skip tests.**
-**Do NOT run test-tools-advanced-2.md.**
-**All changes MUST be consistent with other postgres-mcp tools and `code-map.md`**
+- Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
+- Do not use scripts or terminal to replace planned tests.
+- Do not modify or skip tests.
+- Do not run test-tools-advanced-2.md.
+- All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
 
 ## Code Mode Execution
 
