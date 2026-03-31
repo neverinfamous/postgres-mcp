@@ -50,7 +50,7 @@ Error codes are module-prefixed (e.g., `PG_CONNECTION_FAILED`, `SCHEMA_NOT_FOUND
 
 ## 🧪 **Code Mode Sandbox Security**
 
-Code Mode executes user-provided JavaScript in a Node.js `vm` context. The `vm` module provides **script isolation, not security isolation** — it is not designed to resist a determined attacker with direct access. The following defense-in-depth mitigations significantly reduce risk within the intended **trusted AI agent** threat model:
+Code Mode executes user-provided JavaScript in a Node.js `vm` context or a true V8 isolate via `worker_threads` (recommended). The standard `vm` module provides **script isolation, not security isolation** — it is not designed to resist a determined attacker with direct access. However, isolating workloads into worker threads with strict resource limits, combined with the following defense-in-depth mitigations, significantly reduces risk within the intended **trusted AI agent** threat model:
 
 ### **Sandbox Restrictions**
 
@@ -72,6 +72,7 @@ When running in HTTP mode (`--transport http`), the following security measures 
 
 ### **Security Headers & Protections**
 
+- ✅ **DNS Rebinding Protection** — `validateHostHeader()` strictly validates `Host` headers
 - ✅ **X-Content-Type-Options: nosniff** — prevents MIME sniffing
 - ✅ **X-Frame-Options: DENY** — prevents clickjacking
 - ✅ **Content-Security-Policy: default-src 'none'; frame-ancestors 'none'** — prevents XSS and framing
@@ -93,8 +94,9 @@ When running in HTTP mode (`--transport http`), the following security measures 
 ### **Rate Limiting & Timeouts**
 
 - ✅ **Built-in Rate Limiting** — 100 requests/minute per IP
-- ✅ **Configurable** via `rateLimitMaxRequests` and `rateLimitWindowMs`
-- ✅ **Returns `429 Too Many Requests`** when exceeded
+- ✅ **Health Endpoint Bypass** — `/health` bypasses limits to ensure reliable load balancer checks
+- ✅ **Returns 429 Too Many Requests** with proper `Retry-After` headers when limits are exceeded
+- ✅ **Slowloris DoS Protection** — configurable read timeouts via `MCP_REQUEST_TIMEOUT` and `MCP_HEADERS_TIMEOUT`
 
 > **Reverse Proxy Note:** Rate limiting uses `req.socket.remoteAddress`. Behind a reverse proxy (e.g., nginx, Cloudflare Tunnel), all requests may share the same source IP. Ensure your proxy forwards distinct client IPs, or apply rate limiting at the proxy layer instead.
 
@@ -155,6 +157,12 @@ docker run --memory=1g --cpus=1 neverinfamous/postgres-mcp:latest
 
 ## 🔐 **Logging Security**
 
+### **Audit Subsystem**
+
+- ✅ **Full JSONL Audit Trails** — comprehensive logging array capturing mutations, Code Mode executions, and system events
+- ✅ **Session Token Estimates** — robust burn-rate tracking appended to log entries
+- ✅ **Pre-Mutation Snapshots** — interceptor captures table states before destructive administration operations
+
 ### **Credential Redaction**
 
 - ✅ **Sensitive fields automatically redacted** in logs: `password`, `secret`, `token`, `apikey`, `issuer`, `audience`, `jwksUri`, `credentials`, etc.
@@ -202,13 +210,15 @@ docker run --memory=1g --cpus=1 neverinfamous/postgres-mcp:latest
 - [x] Parameterized SQL queries throughout
 - [x] Identifier sanitization (table, column, schema, index names)
 - [x] Input validation via Zod schemas
-- [x] Code Mode sandbox isolation (vm context)
+- [x] Code Mode sandbox isolation (vm or worker_threads V8 isolate)
 - [x] Code Mode execution timeout (30s hard limit)
 - [x] Code Mode rate limiting (60 executions/min)
 - [x] Code Mode audit logging
 - [x] HTTP body size limit (configurable, default 1 MB)
 - [x] Configurable CORS with origin whitelist
 - [x] Rate limiting (100 req/min per IP)
+- [x] Slowloris DoS timeouts (`MCP_REQUEST_TIMEOUT`, `MCP_HEADERS_TIMEOUT`)
+- [x] DNS rebinding protection via Host header validation
 - [x] Security headers (CSP, X-Content-Type-Options, X-Frame-Options, Cache-Control, Referrer-Policy, Permissions-Policy)
 - [x] HSTS (opt-in)
 - [x] OAuth 2.1 with JWT/JWKS validation (RFC 9728, RFC 8414)
