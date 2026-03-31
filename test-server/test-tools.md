@@ -2,10 +2,10 @@
 
 **ESSENTIAL INSTRUCTIONS**
 
-**Execute EVERY numbered stress test below using DIRECT MCP tool calls. DO NOT TEST CODE MODE!**
-**Do NOT use scripts or terminal to replace planned tests!**
-**Do NOT modify or skip tests!**
-**NO TEMP FILES IN ROOT: USE C:\Users\chris\Desktop\postgres-mcp\tmp!**
+- Execute **EVERY** numbered stress test below using direct MCP tool calls, **NOT** codemode.
+- Do not use scripts or terminal to replace planned tests.
+- Do not modify or skip tests.
+- Do not put temp files in root; Use C:\Users\chris\Desktop\postgres-mcp\tmp
 
 ## Reporting Format
 
