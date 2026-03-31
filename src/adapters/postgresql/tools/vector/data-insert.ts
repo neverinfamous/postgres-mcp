@@ -148,6 +148,9 @@ export function createVectorInsertTool(
           resolvedTable,
           parsed.column,
           insertSchemaName,
+          (params as Record<string, unknown>)?.[
+            "transactionId"
+          ] as string | undefined
         );
         if (missing) {
           return { success: false, ...missing };
@@ -177,7 +180,13 @@ export function createVectorInsertTool(
           }
 
           const sql = `UPDATE ${tableName} SET ${setClauses.join(", ")} WHERE ${conflictCol} = $2`;
-          const result = await adapter.executeQuery(sql, queryParams);
+          const txId = (params as Record<string, unknown>)?.[
+            "transactionId"
+          ] as string | undefined;
+          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
+          const result = client 
+            ? await adapter.executeOnConnection(client, sql, queryParams)
+            : await adapter.executeQuery(sql, queryParams);
 
           if (result.rowsAffected === 0) {
             return {
@@ -212,7 +221,13 @@ export function createVectorInsertTool(
 
         const sql = `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES ('${vectorStr}'${params_.length > 0 ? ", " + values.slice(1).join(", ") : ""})`;
         try {
-          const result = await adapter.executeQuery(sql, params_);
+          const txId = (params as Record<string, unknown>)?.[
+            "transactionId"
+          ] as string | undefined;
+          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
+          const result = client 
+            ? await adapter.executeOnConnection(client, sql, params_)
+            : await adapter.executeQuery(sql, params_);
           return { success: true, rowsAffected: result.rowsAffected };
         } catch (error: unknown) {
           // Parse dimension mismatch errors for user-friendly message
@@ -358,6 +373,9 @@ export function createVectorBatchInsertTool(
           resolvedTable,
           parsed.column,
           resolvedSchema ?? "public",
+          (params as Record<string, unknown>)?.[
+            "transactionId"
+          ] as string | undefined
         );
         if (existenceError !== null) {
           return { success: false, ...existenceError };
@@ -404,7 +422,13 @@ export function createVectorBatchInsertTool(
 
         const sql = `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES ${valueRows.join(", ")} `;
         try {
-          const result = await adapter.executeQuery(sql, allParams);
+          const txId = (params as Record<string, unknown>)?.[
+            "transactionId"
+          ] as string | undefined;
+          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
+          const result = client 
+            ? await adapter.executeOnConnection(client, sql, allParams)
+            : await adapter.executeQuery(sql, allParams);
           return {
             success: true,
             rowsInserted: parsed.vectors.length,

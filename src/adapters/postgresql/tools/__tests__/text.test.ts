@@ -13,6 +13,10 @@ import {
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
 
+vi.mock("../vector/data.js", () => ({
+  checkTableAndColumn: vi.fn().mockResolvedValue(null),
+}));
+
 describe("getTextTools", () => {
   let adapter: PostgresAdapter;
   let tools: ReturnType<typeof getTextTools>;

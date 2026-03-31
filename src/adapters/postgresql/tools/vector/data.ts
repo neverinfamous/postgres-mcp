@@ -71,13 +71,18 @@ export async function checkTableAndColumn(
   table: string,
   column: string,
   schema: string,
+  transactionId?: string,
 ): Promise<{ error: string; code: string; category: string; suggestion: string } | null> {
+  const client = transactionId ? adapter.getTransactionConnection(transactionId) : undefined;
+  
   // Step 1: check column existence (fast path — covers the common success case)
   const colSql = `
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = $1 AND table_name = $2 AND column_name = $3
   `;
-  const colResult = await adapter.executeQuery(colSql, [schema, table, column]);
+  const colResult = client
+    ? await adapter.executeOnConnection(client, colSql, [schema, table, column])
+    : await adapter.executeQuery(colSql, [schema, table, column]);
   if ((colResult.rows?.length ?? 0) > 0) return null; // both exist
 
   // Step 2: disambiguate — is it the table or the column?
@@ -85,7 +90,9 @@ export async function checkTableAndColumn(
     SELECT 1 FROM information_schema.tables
     WHERE table_schema = $1 AND table_name = $2
   `;
-  const tblResult = await adapter.executeQuery(tblSql, [schema, table]);
+  const tblResult = client
+    ? await adapter.executeOnConnection(client, tblSql, [schema, table])
+    : await adapter.executeQuery(tblSql, [schema, table]);
   if ((tblResult.rows?.length ?? 0) === 0) {
     return {
       error: `Table '${table}' does not exist in schema '${schema}'`,

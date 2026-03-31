@@ -449,7 +449,7 @@ Confirm `test_jsonb_docs` row count is still 3 and contents are unchanged.
 ### Category 1: Error Message Quality
 
 1. `pg_text_search` on a non-text column → expect type validation error or graceful fallback
-2. `pg_create_fts_index` on `test_measurements` (no text columns) → expect error indicating no text columns
+2. `pg_create_fts_index` on `test_measurements` with missing column param → expect validation error "column is required"
 3. `pg_text_sentiment` with empty text → expect validation error
 
 ### Final Cleanup
@@ -658,7 +658,7 @@ Insights are in-memory only — no cleanup needed.
 
 ### Category 1: Vector Dimension Mismatches
 
-1. `pg_vector_insert` with a 3-dim vector `[1.0, 2.0, 3.0]` into `test_embeddings.embedding` (384-dim) → expect dimension error
+1. `pg_vector_insert` with a 3-dim vector `[1.0, 2.0, 3.0]` into `test_embeddings` (384-dim) → expect dimension error
 2. `pg_vector_search` with a 5-dim query vector on `test_embeddings` → expect dimension error
 3. `pg_vector_validate` with empty vector `[]` → expect `{valid: true, vectorDimensions: 0}`
 4. `pg_vector_validate` with single-element `[1.0]` → expect `{valid: true, vectorDimensions: 1}`
@@ -666,7 +666,7 @@ Insights are in-memory only — no cleanup needed.
 
 ### Category 2: Error Message Quality
 
-6. `pg_vector_insert` with a 128-dim vector into `test_embeddings` (384-dim, use parameter `column` instead of `vectorColumn`) → expect dimension mismatch error
+6. `pg_vector_insert` with a 128-dim vector into `test_embeddings` (384-dim, ensure parameter `column: "embedding"`) → expect dimension mismatch error
 7. `pg_pgcrypto_hash` with invalid algorithm `"sha999"` → structured error
 
 ### Final Cleanup

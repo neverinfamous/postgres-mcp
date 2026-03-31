@@ -14,6 +14,14 @@ import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
+
+vi.mock("../vector/data.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../vector/data.js")>();
+  return {
+    ...actual,
+    checkTableAndColumn: vi.fn().mockResolvedValue(null),
+  };
+});
 import {
   sanitizeIdentifier,
   validateIdentifier,
@@ -431,7 +439,6 @@ describe("Vector Tools WHERE Clause Injection", () => {
     it("should reject WHERE clause with injection", async () => {
       // Mock existence check and type check to pass so WHERE validation triggers
       mockAdapter.executeQuery
-        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check (checkTableAndColumn)
         .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] }); // type check
 
       const tool = vectorTools.find((t) => t.name === "pg_vector_search")!;

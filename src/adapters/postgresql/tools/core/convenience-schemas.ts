@@ -21,20 +21,25 @@ export async function validateTableExists(
   adapter: PostgresAdapter,
   table: string,
   schema: string,
+  transactionId?: string,
 ): Promise<string | null> {
+  const client = transactionId ? adapter.getTransactionConnection(transactionId) : undefined;
+
   // Check if the schema exists first for granular error messages
-  const schemaResult = await adapter.executeQuery(
-    `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-    [schema],
-  );
+  const schemaSql = `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`;
+  const schemaResult = client
+    ? await adapter.executeOnConnection(client, schemaSql, [schema])
+    : await adapter.executeQuery(schemaSql, [schema]);
+
   if (!schemaResult.rows || schemaResult.rows.length === 0) {
     return `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`;
   }
 
-  const result = await adapter.executeQuery(
-    `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-    [schema, table],
-  );
+  const tableSql = `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`;
+  const result = client
+    ? await adapter.executeOnConnection(client, tableSql, [schema, table])
+    : await adapter.executeQuery(tableSql, [schema, table]);
+
   if (!result.rows || result.rows.length === 0) {
     return `Table '${schema}.${table}' not found. Use pg_list_tables to see available tables.`;
   }

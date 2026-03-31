@@ -67,6 +67,9 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
           adapter,
           parsed.table,
           schemaName,
+          (params as Record<string, unknown>)?.[
+            "transactionId"
+          ] as string | undefined
         );
         if (validationError) {
           return { success: false, error: validationError };
@@ -115,7 +118,13 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
         const sql = `INSERT INTO ${qualifiedTable} (${columnList}) VALUES (${placeholders}) ON CONFLICT (${conflictCols}) ${conflictAction}${returningClause}`;
 
         try {
-          const result = await adapter.executeQuery(sql, values);
+          const txId = (params as Record<string, unknown>)?.[
+            "transactionId"
+          ] as string | undefined;
+          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
+          const result = client 
+            ? await adapter.executeOnConnection(client, sql, values)
+            : await adapter.executeQuery(sql, values);
           // Determine if it was an insert or update from xmax
           // xmax = 0 means INSERT, xmax > 0 means UPDATE
           const firstRow = result.rows?.[0];
@@ -212,6 +221,9 @@ export function createBatchInsertTool(
         adapter,
         parsed.table,
         schemaName,
+        (params as Record<string, unknown>)?.[
+          "transactionId"
+        ] as string | undefined
       );
       if (validationError) {
         return { success: false, error: validationError };
@@ -240,7 +252,13 @@ export function createBatchInsertTool(
         const allRows: Record<string, unknown>[] = [];
         for (const _row of parsed.rows) {
           const sql = `INSERT INTO ${qualifiedTable} DEFAULT VALUES${returningClause}`;
-          const result = await adapter.executeQuery(sql);
+          const txId = (params as Record<string, unknown>)?.[
+            "transactionId"
+          ] as string | undefined;
+          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
+          const result = client 
+            ? await adapter.executeOnConnection(client, sql)
+            : await adapter.executeQuery(sql);
           totalAffected += result.rowsAffected ?? 1;
           if (result.rows && result.rows.length > 0) {
             allRows.push(...result.rows);
@@ -285,7 +303,13 @@ export function createBatchInsertTool(
 
       let result;
       try {
-        result = await adapter.executeQuery(sql, values);
+        const txId = (params as Record<string, unknown>)?.[
+          "transactionId"
+        ] as string | undefined;
+        const client = txId ? adapter.getTransactionConnection(txId) : undefined;
+        result = client 
+          ? await adapter.executeOnConnection(client, sql, values)
+          : await adapter.executeQuery(sql, values);
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_batch_insert",

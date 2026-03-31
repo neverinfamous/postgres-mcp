@@ -36,7 +36,7 @@
 ### Fixed
 - Migration rollback transaction isolation to prevent unmanaged auto-commits.
 - Missing `success: true` properties and P154 error structures across all 230+ tools.
-- Docker multi-arch image push pipeline to resolve concurrent blob sync errors (Issue #92).
+- Docker Hub `toomanyrequests` rate-limit blocks during multi-arch image CI/CD pipelines by enforcing authenticated pulls for security scanning.
 - Schema state invalidation missing DDL regex detection to flush caches on state alteration.
 - Code Mode evaluation bypass on `readonly: true`, `-32602` schema errors on empty inputs, and exposed `pg.backup` namespace aliases.
 - Memory limit exhaustion by forcing default `limit` integer coercions on unbounded queries.
@@ -53,6 +53,9 @@
 - Ad-hoc validation logic bypassing `formatHandlerErrorResponse` formatting in `admin` tools (`pg_analyze`, `pg_reindex`, `pg_cluster`).
 - Empty array rendering in `pg_schema_snapshot` payload preventing optimized token footprints.
 - Insufficient validation constraints on `pg_text_sentiment` permitting empty analysis payloads.
+- Missing positional mappings for Introspection and Migration Code Mode tool aliases preventing shorthand property resolution.
+- Transaction ID propagation gaps in `text` and `vector` tools, ensuring full isolation compliance within Code Mode sandboxes.
+- P154 validation omissions in `pg_text_search` and `pg_create_fts_index` causing unhandled database exceptions on invalid columns rather than structured errors.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.

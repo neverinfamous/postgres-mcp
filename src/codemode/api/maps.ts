@@ -578,6 +578,21 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   // Wrapper functions (soundex/metaphone call fuzzyMatch)
   soundex: ["table", "column", "value"],
   metaphone: ["table", "column", "value"],
+
+  // ============ INTROSPECTION GROUP ============
+  dependencyGraph: "schema",
+  topologicalSort: "schema",
+  cascadeSimulator: "table",
+  schemaSnapshot: "schema",
+  constraintAnalysis: "schema",
+  migrationRisks: "statements",
+
+  // ============ MIGRATION GROUP ============
+  init: "schema",
+  record: ["version", "migrationSql"],
+  apply: ["version", "migrationSql"],
+  // Explicitly skipping rollback and status to prevent TS1117 collisions with transactions group
+  history: "status",
 };
 
 /**

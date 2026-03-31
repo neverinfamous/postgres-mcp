@@ -20,6 +20,7 @@ import {
   sanitizeIdentifiers,
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
+import { checkTableAndColumn } from "../vector/data.js";
 import { sanitizeFtsConfig } from "../../../../utils/fts-config.js";
 import {
   coerceLimit,
@@ -70,6 +71,24 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
           throw new ValidationError("Either 'table' or 'tableName' is required");
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const insertSchemaName = parsed.schema ?? "public";
+        
+        // P154: Pre-validate table and columns exist
+        for (const col of cols) {
+          const missing = await checkTableAndColumn(
+            adapter,
+            resolvedTable,
+            col,
+            insertSchemaName,
+            (params as Record<string, unknown>)?.[
+              "transactionId"
+            ] as string | undefined
+          );
+          if (missing) {
+            return { success: false, ...missing };
+          }
+        }
+
         const sanitizedCols = sanitizeIdentifiers(cols);
         const selectCols =
           parsed.select !== undefined && parsed.select.length > 0
@@ -381,8 +400,23 @@ export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
         const ifNotExists = useIfNotExists ? "IF NOT EXISTS " : "";
 
         // Build qualified table name with schema support
-        const tableName = sanitizeTableName(resolvedTable, parsed.schema);
+        const schemaName = parsed.schema ?? "public";
+        const tableName = sanitizeTableName(resolvedTable, schemaName);
         const columnName = sanitizeIdentifier(parsed.column);
+
+        // P154: Pre-validate table and columns exist
+        const missing = await checkTableAndColumn(
+          adapter,
+          resolvedTable,
+          parsed.column,
+          schemaName,
+          (params as Record<string, unknown>)?.[
+            "transactionId"
+          ] as string | undefined
+        );
+        if (missing) {
+          return { success: false, ...missing };
+        }
 
         // Check if index exists before creation (to accurately report 'skipped')
         let existedBefore = false;
