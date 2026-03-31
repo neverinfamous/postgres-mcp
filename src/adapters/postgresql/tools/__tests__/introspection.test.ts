@@ -970,7 +970,7 @@ describe("pg_schema_snapshot", () => {
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(9);
   });
 
-  it("should omit columns from tables when compact is true", async () => {
+  it("should omit columns from tables by default (compact: true)", async () => {
     // Mock 9 section queries
     for (let i = 0; i < 9; i++) {
       mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -979,7 +979,7 @@ describe("pg_schema_snapshot", () => {
     }
 
     const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
-    const result = (await tool.handler({ compact: true }, mockContext)) as {
+    const result = (await tool.handler({}, mockContext)) as {
       snapshot: Record<string, unknown>;
       stats: Record<string, number>;
       compact?: boolean;
@@ -993,7 +993,7 @@ describe("pg_schema_snapshot", () => {
     expect(tablesSql).not.toContain("attname");
   });
 
-  it("should include columns by default when compact is not set", async () => {
+  it("should include columns when compact is explicitly false", async () => {
     // Mock 9 section queries
     for (let i = 0; i < 9; i++) {
       mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -1002,11 +1002,11 @@ describe("pg_schema_snapshot", () => {
     }
 
     const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
-    const result = (await tool.handler({}, mockContext)) as {
+    const result = (await tool.handler({ compact: false }, mockContext)) as {
       compact?: boolean;
     };
 
-    // compact should not be in response when not set
+    // compact should not be in response when false
     expect(result.compact).toBeUndefined();
     // First call (tables query) should contain the columns subquery
     const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;

@@ -135,6 +135,7 @@ export function createMockPostgresAdapter(): Partial<PostgresAdapter> & {
   listTables: ReturnType<typeof vi.fn>;
   listSchemas: ReturnType<typeof vi.fn>;
   getSchema: ReturnType<typeof vi.fn>;
+  executeOnConnection: ReturnType<typeof vi.fn>;
 } {
   const mockQueryResult = createMockQueryResult([{ id: 1, name: "test" }]);
 
