@@ -1,11 +1,11 @@
-# Advanced Stress Test — postgres-mcp — Part 2
+# Advanced Stress Test — postgres-mcp — Part 5
 
 **ESSENTIAL INSTRUCTIONS**
 
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run test-tools-advanced-1.md, test-tools-advanced-3.md, test-tools-advanced-4.md, test-tools-advanced-5.md, test-tools-advanced-6.md, test-tools-advanced-7.md, test-tools-advanced-8.md.
+- Do not run test-tools-advanced-1.md, test-tools-advanced-2.md, test-tools-advanced-3.md, test-tools-advanced-4.md, test-tools-advanced-6.md, test-tools-advanced-7.md, test-tools-advanced-8.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
 - Do not do anything other than these tests.
 
@@ -64,92 +64,113 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 ## Post-Test Procedures
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-2.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-5.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass. Highlight the single most expensive code mode block.
 5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
-## jsonb Group Advanced Tests
+## postgis Group Advanced Tests
 
-### jsonb Group Tools (20 +1 code mode)
+### postgis Group Tools (15 +1 code mode)
 
-1. pg_jsonb_extract
-2. pg_jsonb_set
-3. pg_jsonb_insert
-4. pg_jsonb_delete
-5. pg_jsonb_contains
-6. pg_jsonb_path_query
-7. pg_jsonb_agg
-8. pg_jsonb_object
-9. pg_jsonb_array
-10. pg_jsonb_keys
-11. pg_jsonb_strip_nulls
-12. pg_jsonb_typeof
-13. pg_jsonb_validate_path
-14. pg_jsonb_stats
-15. pg_jsonb_merge
-16. pg_jsonb_normalize
-17. pg_jsonb_diff
-18. pg_jsonb_index_suggest
-19. pg_jsonb_security_scan
-20. pg_jsonb_pretty
-21. pg_execute_code (auto-added)
+1. pg_postgis_create_extension
+2. pg_geometry_column
+3. pg_point_in_polygon
+4. pg_distance
+5. pg_buffer
+6. pg_intersection
+7. pg_bounding_box
+8. pg_spatial_index
+9. pg_geocode
+10. pg_geo_transform
+11. pg_geo_index_optimize
+12. pg_geo_cluster
+13. pg_geometry_buffer
+14. pg_geometry_intersection
+15. pg_geometry_transform
+16. pg_execute_code (auto-added)
 
-### Category 1: JSONB Mutation Workflow
+### Category 1: Boundary Coordinates
 
-Create `stress_jsonb_mut (id SERIAL PRIMARY KEY, data JSONB DEFAULT '{}')`, insert one row with `data: {"name": "Alice", "tags": ["a", "b"], "nested": {"level1": {"value": 1}}}`, then test:
-
-1. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "name", value: "\"Bob\"", where: "id = 1"})` → verify `name` changed to `"Bob"`
-2. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "nested.level1.value", value: "42", where: "id = 1"})` → verify deep path set works
-3. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "newKey", value: "\"inserted\"", where: "id = 1", createMissing: true})` → verify new key added. **Note:** `pg_jsonb_insert` is for array targets only. Use `pg_jsonb_set` with `createMissing` for object key insertion
-4. `pg_jsonb_delete({table: "stress_jsonb_mut", column: "data", path: "tags", where: "id = 1"})` → verify `tags` key removed
-5. `pg_jsonb_merge` — standalone merge requires `base` + `overlay` params (not `doc1`/`doc2`). Use via Code Mode: `pg.jsonb.merge({base: {"a": 1, "b": 2}, overlay: {"b": 3, "c": 4}})` → verify merge result `{"a": 1, "b": 3, "c": 4}` (overlay wins on conflicts)
-6. Verify final state via `pg_jsonb_extract` on specific paths or `pg_read_query` — confirm all mutations applied correctly
-
-**pg_jsonb_pretty (mutation + standalone):**
-
-7. `pg_jsonb_pretty({table: "stress_jsonb_mut", column: "data", where: "id = 1"})` → verify the mutated JSONB is pretty-printed with indentation
-8. `pg_jsonb_pretty({json: "{\"compact\":true,\"nested\":{\"a\":1}}"})` → verify standalone pretty-print with indentation
-9. Cleanup: Drop `stress_jsonb_mut`
-
-### Category 2: Error Message Quality
-
-10. `pg_jsonb_extract({table: "nonexistent_table_xyz", column: "data", path: "test"})` → structured error
-11. `pg_jsonb_set({table: "test_jsonb_docs", column: "metadata", path: "author", value: "\"Modified\"", where: "id = 99999"})` → report behavior for nonexistent row
+1. `pg_geocode` with lat=91, lng=0 → expect bounds validation error (lat ±90°)
+2. `pg_geocode` with lat=0, lng=181 → expect bounds validation error (lng ±180°)
+3. `pg_geocode` with lat=90, lng=180 (exact boundary) → should succeed
+4. `pg_geocode` with lat=-90, lng=-180 (exact boundary) → should succeed
+5. `pg_distance` with out-of-bounds point (e.g., lat=100) along with required `table` and `column` kwargs → expect bounds validation error
+6. `pg_point_in_polygon` with out-of-bounds point (e.g., lat=100) along with required `table` and `column` kwargs → expect bounds validation error
 
 ### Final Cleanup
 
-Confirm `test_jsonb_docs` row count is still 3 and contents are unchanged.
+Confirm `test_locations` count is still 25 (post-resource-seed baseline).
 
 ---
 
-## text Group Advanced Tests
+## ltree Group Advanced Tests
 
-### text Group Tools (13 +1 code mode)
+### ltree Group Tools (8 +1 code mode)
 
-1. pg_text_search
-2. pg_text_rank
-3. pg_trigram_similarity
-4. pg_fuzzy_match
-5. pg_regexp_match
-6. pg_like_search
-7. pg_text_headline
-8. pg_create_fts_index
-9. pg_text_normalize
-10. pg_text_sentiment
-11. pg_text_to_vector
-12. pg_text_to_query
-13. pg_text_search_config
-14. pg_execute_code (auto-added)
+1. pg_ltree_create_extension
+2. pg_ltree_query
+3. pg_ltree_subpath
+4. pg_ltree_lca
+5. (Removed obsolete pg_ltree_match)
+6. pg_ltree_list_columns
+7. pg_ltree_convert_column
+8. pg_ltree_create_index
+9. pg_execute_code (auto-added)
 
-### Category 1: Error Message Quality
+### Category 1: Edge Cases
 
-1. `pg_text_search` on a non-text column → expect type validation error or graceful fallback
-2. `pg_create_fts_index` on `test_measurements` with missing column param → expect validation error "column is required"
-3. `pg_text_sentiment` with empty text → expect validation error
+1. `pg_ltree_query` with `path: ""` (empty string) → report behavior
+2. `pg_ltree_subpath` with `path: "a"`, `offset: 0`, `length: 1` → expect `"a"`
+3. `pg_ltree_subpath` with `path: "a.b.c"`, `offset: 5` (beyond depth) → expect structured error with `pathDepth`
+4. `pg_ltree_subpath` with negative offset `offset: -1` → expect last label
+5. `pg_ltree_lca` with only 1 path → expect `{hasCommonAncestor: true}` with the identical path returned
+6. `pg_ltree_lca` with identical paths `["electronics.phones", "electronics.phones"]` → expect `{hasCommonAncestor: true}` and returns `"electronics.phones"`
+7. `pg_ltree_lca` with paths having no common ancestor `["electronics", "clothing"]` → expect empty/null ancestor
+8. `pg_ltree_query({table: "test_products", column: "name", path: "electronics"})` → error about non-ltree column
 
 ### Final Cleanup
 
-Confirm `test_articles` row count is still 3.
+Confirm `test_categories` count is still 6.
+
+---
+
+## pgcrypto Group Advanced Tests
+
+### pgcrypto Group Tools (9 +1 code mode)
+
+1. pg_pgcrypto_create_extension
+2. pg_pgcrypto_hash
+3. pg_pgcrypto_hmac
+4. pg_pgcrypto_encrypt
+5. pg_pgcrypto_decrypt
+6. pg_pgcrypto_gen_random_uuid
+7. pg_pgcrypto_gen_random_bytes
+8. pg_pgcrypto_gen_salt
+9. pg_pgcrypto_crypt
+10. pg_execute_code (auto-added)
+
+### Category 1: Full Encrypt/Decrypt Workflow
+
+1. `pg_pgcrypto_encrypt({data: "sensitive-data-123", password: "strongpass"})` → capture encrypted output
+2. `pg_pgcrypto_decrypt({encryptedData: <captured>, password: "strongpass"})` → expect `"sensitive-data-123"`
+3. `pg_pgcrypto_decrypt({encryptedData: <captured>, password: "wrongpass"})` → expect structured error
+
+### Category 2: Password Hash/Verify Workflow
+
+4. `pg_pgcrypto_gen_salt({type: "bf", iterations: 4})` → capture salt
+5. `pg_pgcrypto_crypt({password: "mypassword", salt: <captured>})` → capture hash
+6. `pg_pgcrypto_crypt({password: "mypassword", salt: <hash>})` → expect same hash (verification succeeds)
+7. `pg_pgcrypto_crypt({password: "wrongpassword", salt: <hash>})` → expect different hash (verification fails)
+
+### Category 3: Error Message Quality
+
+8. `pg_pgcrypto_decrypt` with wrong password on encrypted data → expect structured error
+9. `pg_pgcrypto_hash` with invalid algorithm `"sha999"` → structured error
+
+### Final Cleanup
+
+No cleanup needed (pgcrypto tools are stateless computations).

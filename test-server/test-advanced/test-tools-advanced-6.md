@@ -1,11 +1,11 @@
-# Advanced Stress Test — postgres-mcp — Part 2
+# Advanced Stress Test — postgres-mcp — Part 6
 
 **ESSENTIAL INSTRUCTIONS**
 
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run test-tools-advanced-1.md, test-tools-advanced-3.md, test-tools-advanced-4.md, test-tools-advanced-5.md, test-tools-advanced-6.md, test-tools-advanced-7.md, test-tools-advanced-8.md.
+- Do not run test-tools-advanced-1.md, test-tools-advanced-2.md, test-tools-advanced-3.md, test-tools-advanced-4.md, test-tools-advanced-5.md, test-tools-advanced-7.md, test-tools-advanced-8.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
 - Do not do anything other than these tests.
 
@@ -64,92 +64,127 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 ## Post-Test Procedures
 
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-2.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in test-tools-advanced-6.md (this prompt) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass. Highlight the single most expensive code mode block.
 5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
-## jsonb Group Advanced Tests
+## citext Group Advanced Tests
 
-### jsonb Group Tools (20 +1 code mode)
+### citext Group Tools (6 +1 code mode)
 
-1. pg_jsonb_extract
-2. pg_jsonb_set
-3. pg_jsonb_insert
-4. pg_jsonb_delete
-5. pg_jsonb_contains
-6. pg_jsonb_path_query
-7. pg_jsonb_agg
-8. pg_jsonb_object
-9. pg_jsonb_array
-10. pg_jsonb_keys
-11. pg_jsonb_strip_nulls
-12. pg_jsonb_typeof
-13. pg_jsonb_validate_path
-14. pg_jsonb_stats
-15. pg_jsonb_merge
-16. pg_jsonb_normalize
-17. pg_jsonb_diff
-18. pg_jsonb_index_suggest
-19. pg_jsonb_security_scan
-20. pg_jsonb_pretty
-21. pg_execute_code (auto-added)
+1. pg_citext_create_extension
+2. pg_citext_convert_column
+3. pg_citext_list_columns
+4. pg_citext_analyze_candidates
+5. pg_citext_compare
+6. pg_citext_analyze_candidates (alias context)
+7. pg_execute_code (auto-added)
 
-### Category 1: JSONB Mutation Workflow
+### Category 1: Edge Cases
 
-Create `stress_jsonb_mut (id SERIAL PRIMARY KEY, data JSONB DEFAULT '{}')`, insert one row with `data: {"name": "Alice", "tags": ["a", "b"], "nested": {"level1": {"value": 1}}}`, then test:
-
-1. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "name", value: "\"Bob\"", where: "id = 1"})` → verify `name` changed to `"Bob"`
-2. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "nested.level1.value", value: "42", where: "id = 1"})` → verify deep path set works
-3. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "newKey", value: "\"inserted\"", where: "id = 1", createMissing: true})` → verify new key added. **Note:** `pg_jsonb_insert` is for array targets only. Use `pg_jsonb_set` with `createMissing` for object key insertion
-4. `pg_jsonb_delete({table: "stress_jsonb_mut", column: "data", path: "tags", where: "id = 1"})` → verify `tags` key removed
-5. `pg_jsonb_merge` — standalone merge requires `base` + `overlay` params (not `doc1`/`doc2`). Use via Code Mode: `pg.jsonb.merge({base: {"a": 1, "b": 2}, overlay: {"b": 3, "c": 4}})` → verify merge result `{"a": 1, "b": 3, "c": 4}` (overlay wins on conflicts)
-6. Verify final state via `pg_jsonb_extract` on specific paths or `pg_read_query` — confirm all mutations applied correctly
-
-**pg_jsonb_pretty (mutation + standalone):**
-
-7. `pg_jsonb_pretty({table: "stress_jsonb_mut", column: "data", where: "id = 1"})` → verify the mutated JSONB is pretty-printed with indentation
-8. `pg_jsonb_pretty({json: "{\"compact\":true,\"nested\":{\"a\":1}}"})` → verify standalone pretty-print with indentation
-9. Cleanup: Drop `stress_jsonb_mut`
-
-### Category 2: Error Message Quality
-
-10. `pg_jsonb_extract({table: "nonexistent_table_xyz", column: "data", path: "test"})` → structured error
-11. `pg_jsonb_set({table: "test_jsonb_docs", column: "metadata", path: "author", value: "\"Modified\"", where: "id = 99999"})` → report behavior for nonexistent row
+1. `pg_citext_convert_column` on a non-text column (e.g., `test_products.price` which is DECIMAL) → expect `{success: false, allowedTypes, suggestion}`
+2. `pg_citext_analyze_candidates` with `excludeSystemSchemas: false` → verify more results than with `true`
+3. `pg_citext_compare` with identical values `{value1: "test", value2: "test"}` → both `citextEqual` and `textEqual` should be `true`
+4. `pg_citext_compare` with unicode: `{value1: "café", value2: "CAFÉ"}` → report behavior (accent handling)
 
 ### Final Cleanup
 
-Confirm `test_jsonb_docs` row count is still 3 and contents are unchanged.
+No cleanup needed (citext tests are read-only or non-destructive).
 
 ---
 
-## text Group Advanced Tests
+## cron Group Advanced Tests
 
-### text Group Tools (13 +1 code mode)
+### cron Group Tools (8 +1 code mode)
 
-1. pg_text_search
-2. pg_text_rank
-3. pg_trigram_similarity
-4. pg_fuzzy_match
-5. pg_regexp_match
-6. pg_like_search
-7. pg_text_headline
-8. pg_create_fts_index
-9. pg_text_normalize
-10. pg_text_sentiment
-11. pg_text_to_vector
-12. pg_text_to_query
-13. pg_text_search_config
-14. pg_execute_code (auto-added)
+1. pg_cron_create_extension
+2. pg_cron_schedule
+3. pg_cron_schedule_in_database
+4. pg_cron_unschedule
+5. pg_cron_alter_job
+6. pg_cron_list_jobs
+7. pg_cron_job_run_details
+8. pg_cron_cleanup_history
+9. pg_execute_code (auto-added)
 
-### Category 1: Error Message Quality
+### Category 1: Edge Cases
 
-1. `pg_text_search` on a non-text column → expect type validation error or graceful fallback
-2. `pg_create_fts_index` on `test_measurements` with missing column param → expect validation error "column is required"
-3. `pg_text_sentiment` with empty text → expect validation error
+1. `pg_cron_schedule({name: "stress_dup_job", schedule: "0 0 * * *", command: "SELECT 1"})` → capture jobId
+2. `pg_cron_schedule({name: "stress_dup_job", schedule: "0 1 * * *", command: "SELECT 2"})` → report behavior: does it error on duplicate name, or overwrite?
+3. `pg_cron_schedule({name: "stress_bad_cron", schedule: "invalid cron", command: "SELECT 1"})` → report whether validation catches invalid expression or defers to pg_cron
+4. `pg_cron_schedule({name: "stress_bad_sql", schedule: "0 0 * * *", command: "SELECT * FROM nonexistent_xyz"})` → report: does scheduling succeed (SQL validated on execution, not schedule-time)?
+5. `pg_cron_job_run_details({jobName: "stress_dup_job"})` → report behavior (if tool exists)
+6. Cleanup: `pg_cron_unschedule` all `stress_*` jobs
+
+### Category 2: Error Message Quality
+
+7. `pg_cron_schedule({name: "stress_bad_cron", schedule: "invalid cron", command: "SELECT 1"})` → report behavior
 
 ### Final Cleanup
 
-Confirm `test_articles` row count is still 3.
+Unschedule all `stress_*` jobs created during testing.
+
+---
+
+## kcache Group Advanced Tests
+
+### kcache Group Tools (7 +1 code mode)
+
+1. pg_kcache_create_extension
+2. pg_kcache_query_stats
+3. pg_kcache_top_cpu
+4. pg_kcache_top_io
+5. pg_kcache_database_stats
+6. pg_kcache_resource_analysis
+7. pg_kcache_reset
+8. pg_execute_code (auto-added)
+
+### Category 1: Stress Tests
+
+1. `pg_kcache_query_stats({limit: 0})` → verify unlimited mode works or report behavior
+2. `pg_kcache_top_cpu({limit: 0})` → same
+3. `pg_kcache_top_io({type: "reads", limit: 3})` → verify `type: "reads"` filter works
+4. `pg_kcache_top_io({type: "writes", limit: 3})` → verify `type: "writes"` filter works
+5. `pg_kcache_top_io({type: "invalid_type", limit: 3})` → report: structured error or accepted?
+6. `pg_kcache_database_stats()` with no activity → verify graceful empty response
+
+### Final Cleanup
+
+No cleanup needed (kcache tools are read-only).
+
+---
+
+## partman Group Advanced Tests
+
+### partman Group Tools (10 +1 code mode)
+
+1. pg_partman_create_extension
+2. pg_partman_create_parent
+3. pg_partman_run_maintenance
+4. pg_partman_show_partitions
+5. pg_partman_show_config
+6. pg_partman_check_default
+7. pg_partman_partition_data
+8. pg_partman_set_retention
+9. pg_partman_undo_partition
+10. pg_partman_analyze_partition_health
+11. pg_execute_code (auto-added)
+
+**Requires `test_logs` table (PARTITION BY RANGE on `created_at`, no existing partitions).**
+
+### Category 1: Lifecycle Stress
+
+1. `pg_partman_create_parent({parentTable: "test_logs", controlColumn: "created_at", interval: "1 day", startPartition: "now"})` → verify success and partitions created
+2. `pg_partman_run_maintenance({parentTable: "test_logs"})` → verify success
+3. `pg_partman_run_maintenance({parentTable: "test_logs"})` immediately again → verify idempotent (no error, no duplicate partitions)
+4. `pg_partman_show_config({table: "test_logs"})` → verify config matches what was set
+5. `pg_partman_analyze_partition_health()` → verify health check works with active partman tables
+6. `pg_partman_create_parent({parentTable: "test_logs", controlColumn: "created_at", interval: "1 hour"})` → report: does it error because already managed, or overwrite?
+7. Cleanup: `pg_partman_undo_partition({parentTable: "test_logs", targetTable: "test_logs_archive"})` or note state for `reset-database.ps1`
+
+### Final Cleanup
+
+Undo partman management on `test_logs` or note state for reset.

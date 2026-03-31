@@ -5,7 +5,7 @@
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run test-tools-advanced-2.md, test-tools-advanced-3.md, test-tools-advanced-4.md.
+- Do not run test-tools-advanced-2.md, test-tools-advanced-3.md, test-tools-advanced-4.md, test-tools-advanced-5.md, test-tools-advanced-6.md, test-tools-advanced-7.md, test-tools-advanced-8.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
 - Do not do anything other than these tests.
 
@@ -372,57 +372,3 @@ Drop all `stress_*` tables and indexes. Confirm `test_products` row count is sti
 ### Final Cleanup
 
 Verify `test_products` row count is still 15 and no `stress_*` tables remain.
-
----
-
-## jsonb Group Advanced Tests
-
-### jsonb Group Tools (20 +1 code mode)
-
-1. pg_jsonb_extract
-2. pg_jsonb_set
-3. pg_jsonb_insert
-4. pg_jsonb_delete
-5. pg_jsonb_contains
-6. pg_jsonb_path_query
-7. pg_jsonb_agg
-8. pg_jsonb_object
-9. pg_jsonb_array
-10. pg_jsonb_keys
-11. pg_jsonb_strip_nulls
-12. pg_jsonb_typeof
-13. pg_jsonb_validate_path
-14. pg_jsonb_stats
-15. pg_jsonb_merge
-16. pg_jsonb_normalize
-17. pg_jsonb_diff
-18. pg_jsonb_index_suggest
-19. pg_jsonb_security_scan
-20. pg_jsonb_pretty
-21. pg_execute_code (auto-added)
-
-### Category 1: JSONB Mutation Workflow
-
-Create `stress_jsonb_mut (id SERIAL PRIMARY KEY, data JSONB DEFAULT '{}')`, insert one row with `data: {"name": "Alice", "tags": ["a", "b"], "nested": {"level1": {"value": 1}}}`, then test:
-
-1. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "name", value: "\"Bob\"", where: "id = 1"})` → verify `name` changed to `"Bob"`
-2. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "nested.level1.value", value: "42", where: "id = 1"})` → verify deep path set works
-3. `pg_jsonb_set({table: "stress_jsonb_mut", column: "data", path: "newKey", value: "\"inserted\"", where: "id = 1", createMissing: true})` → verify new key added. **Note:** `pg_jsonb_insert` is for array targets only. Use `pg_jsonb_set` with `createMissing` for object key insertion
-4. `pg_jsonb_delete({table: "stress_jsonb_mut", column: "data", path: "tags", where: "id = 1"})` → verify `tags` key removed
-5. `pg_jsonb_merge` — standalone merge requires `base` + `overlay` params (not `doc1`/`doc2`). Use via Code Mode: `pg.jsonb.merge({base: {"a": 1, "b": 2}, overlay: {"b": 3, "c": 4}})` → verify merge result `{"a": 1, "b": 3, "c": 4}` (overlay wins on conflicts)
-6. Verify final state via `pg_jsonb_extract` on specific paths or `pg_read_query` — confirm all mutations applied correctly
-
-**pg_jsonb_pretty (mutation + standalone):**
-
-7. `pg_jsonb_pretty({table: "stress_jsonb_mut", column: "data", where: "id = 1"})` → verify the mutated JSONB is pretty-printed with indentation
-8. `pg_jsonb_pretty({json: "{\"compact\":true,\"nested\":{\"a\":1}}"})` → verify standalone pretty-print with indentation
-9. Cleanup: Drop `stress_jsonb_mut`
-
-### Category 2: Error Message Quality
-
-10. `pg_jsonb_extract({table: "nonexistent_table_xyz", column: "data", path: "test"})` → structured error
-11. `pg_jsonb_set({table: "test_jsonb_docs", column: "metadata", path: "author", value: "\"Modified\"", where: "id = 99999"})` → report behavior for nonexistent row
-
-### Final Cleanup
-
-Confirm `test_jsonb_docs` row count is still 3 and contents are unchanged.

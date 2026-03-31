@@ -11,14 +11,18 @@ This directory contains the "Second-Pass" advanced tests for the `postgres-mcp` 
 
 ## Execution Parts
 
-The original monolithic advanced stress testing suite was split into four manageable parts to preserve agent attention spans and prevent LLM context window exhaustion.
+The original monolithic advanced stress testing suite was split into eight manageable parts to preserve agent attention spans and prevent LLM context window exhaustion.
 
 | File | Primary Focus | Key Validations |
 | ---- | ------------- | --------------- |
-| `test-tools-advanced-1.md` | Transactions, JSONB, Ltree, partial Core | Error propagation, boundary logic, rollback simulation, JSON object path extraction limits. |
-| `test-tools-advanced-2.md` | Stats, Text, Vector, Admin | Maximum token/payload dimensions (Top N limits), Full-Text-Search edge cases, HNSW clustering constraints. |
-| `test-tools-advanced-3.md` | Schema, Introspection, Performance, partial Core | Schema manipulation edge cases, memory footprint optimizations (e.g., `compact: true`), performance metric bounds. |
-| `test-tools-advanced-4.md` | Partitioning, Partman, Cron, PostGIS, pgcrypto | Security/encryption bounds, geometric data handling timeouts, partman automated partition creation rollbacks. |
+| `test-tools-advanced-1.md` | Core, Transactions | Transaction rollback recovery, idempotent DDL bounds, boundary logic, state pollution testing. |
+| `test-tools-advanced-2.md` | JSONB, Text | JSON object path mutation workflows, full-text search parameters edge-cases. |
+| `test-tools-advanced-3.md` | Stats, Admin | Statistical analysis edge cases, Top-N token payloads, admin query logging bounds. |
+| `test-tools-advanced-4.md` | Vector, Performance | Anomaly detection thresholds, geometric correlations, HNSW index parameter limits. |
+| `test-tools-advanced-5.md` | PostGIS, Ltree, pgcrypto | Geometric out-of-bounds validations, path hierarchy boundaries, structured crypto errors. |
+| `test-tools-advanced-6.md` | Citext, Cron, KCache, Partman | KCache token exhaustion safeguards, idempotent partman schema routing logic boundaries. |
+| `test-tools-advanced-7.md` | Introspection, Migration | Object discovery filters, record-vs-apply tracking logic, self-referencing cascades. |
+| `test-tools-advanced-8.md` | Backup, Cross-Group | V2 Backup volumeDrift parameters, audit interceptor code-mode coverage, multi-group memory retention limits. |
 
 > **Note:** The exact tool group breakdown may shift over time. Always defer to the headings within the specific `.md` files to see what groups are covered in that pass.
 
