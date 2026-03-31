@@ -331,7 +331,7 @@ Drop all `stress_*` tables and indexes. Confirm `test_products` row count is sti
       {sql: "SELECT COUNT(*) AS after FROM test_products"}
     ]
     ```
-22. Verify: `results[0].rows[0].before` = 15 (or current count), `results[2].rows[0].after` = before + 1
+22. Verify: `parseInt(results[0].rows[0].before)` = 15 (or current count), `parseInt(results[2].rows[0].after)` = before + 1
 23. Cleanup: Delete the inserted row
 
 ### Category 4: Transaction Execute Failure Rollback

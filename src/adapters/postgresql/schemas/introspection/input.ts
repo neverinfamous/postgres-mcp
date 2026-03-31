@@ -138,7 +138,7 @@ export const SchemaSnapshotSchemaBase = z.object({
     .boolean()
     .optional()
     .describe(
-      "Omit column details from tables section for reduced payload size (default: false). Use pg_describe_table to drill into specific tables",
+      "Omit column details from tables section for reduced payload size (default: true). Set to false to include full column schemas.",
     ),
 });
 
@@ -162,9 +162,9 @@ export const SchemaSnapshotSchema = z
         ]),
       )
       .optional(),
-    compact: z.boolean().optional(),
+    compact: z.boolean().optional().default(true),
   })
-  .default({});
+  .default({ compact: true });
 
 /**
  * pg_constraint_analysis input

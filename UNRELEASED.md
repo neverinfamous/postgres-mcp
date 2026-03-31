@@ -22,6 +22,7 @@
 - Modularized 20+ large files (>500 lines) into smaller components.
 - Minimized tool payload size (~30-41% token reduction) by collapsing repetitive properties.
 - Optimized stats and admin tool responses to conditionally omit empty arrays, reducing token usage.
+- `pg_schema_snapshot` now defaults to `compact: true` to significantly reduce payload footprint by omitting verbose column definitions.
 - Optimized Zod schema evaluation logic for faster execution speed.
 - Applied `openWorldHint: false` to all 231 tools.
 - Reduced npm package size (-1.65 MB) by excluding source maps and tests.
@@ -57,6 +58,7 @@
 - Transaction ID propagation gaps in `text` and `vector` tools, ensuring full isolation compliance within Code Mode sandboxes.
 - P154 validation omissions in `pg_text_search` and `pg_create_fts_index` causing unhandled database exceptions on invalid columns rather than structured errors.
 - Missing error parser mapping for `invalid input syntax for type` resulting in generic `QUERY_ERROR` instead of `VALIDATION_ERROR`.
+- Corrected Javascript string arithmetic bugs in transaction boundary tests (`test-tools-advanced-1.md`) when validating row counts.
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.
