@@ -61,6 +61,7 @@
 - Corrected Javascript string arithmetic bugs in transaction boundary tests (`test-tools-advanced-1.md`) when validating row counts.
 - `compact` internal boolean flag leaking into `pg_schema_snapshot` JSON response structures.
 - Inaccurate parameter references (`vectorA` to `vector1`) within advanced stress testing documentation.
+- Corrected `pg_stats_regression` parameter names in `test-tools-advanced-1.md` (`columnX`/`columnY` → `xColumn`/`yColumn`).
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks.

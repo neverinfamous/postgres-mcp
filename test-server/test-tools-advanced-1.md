@@ -7,7 +7,7 @@
 - Do not modify or skip tests.
 - Do not run test-tools-advanced-2.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Focus only on these tests.
+- Do not do anything other than these tests.
 
 ## Code Mode Execution
 
@@ -492,7 +492,7 @@ Confirm `test_articles` row count is still 3.
 
 1. `pg_stats_correlation({table: "test_products", column1: "id", column2: "id"})` → self-correlation ≈ 1.0
 2. `pg_stats_hypothesis({table: "test_measurements", column: "temperature", hypothesizedMean: 999})` → should reject null hypothesis (very different from actual mean)
-3. `pg_stats_regression` on single row → expect graceful handling (regression undefined for n=1)
+3. `pg_stats_regression` on single row (use `xColumn`/`yColumn` params, NOT `columnX`/`columnY`) → expect graceful handling (regression undefined for n=1)
 4. `pg_stats_correlation` — on `stress_empty_table` with single row, use `id` and `value` → expect null or degenerate correlation (single point)
 5. `pg_stats_hypothesis` with `hypothesizedMean: 40` on single row → expect degenerate test result (n=1)
 
