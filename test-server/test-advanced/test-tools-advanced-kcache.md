@@ -67,7 +67,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
 2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
 3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
-4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass. Highlight the single most expensive code mode block.
+4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting the testing prompt itself. Highlight the single most expensive code mode block.
 5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
@@ -87,8 +87,8 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 
 ### Category 1: Stress Tests
 
-1. `pg_kcache_query_stats({limit: 0})` → verify unlimited mode works or report behavior
-2. `pg_kcache_top_cpu({limit: 0})` → same
+1. `pg_kcache_query_stats({limit: 0})` → verify validation rejection (limit must be >= 1)
+2. `pg_kcache_top_cpu({limit: 0})` → same validation rejection
 3. `pg_kcache_top_io({type: "reads", limit: 3})` → verify `type: "reads"` filter works
 4. `pg_kcache_top_io({type: "writes", limit: 3})` → verify `type: "writes"` filter works
 5. `pg_kcache_top_io({type: "invalid_type", limit: 3})` → report: structured error or accepted?

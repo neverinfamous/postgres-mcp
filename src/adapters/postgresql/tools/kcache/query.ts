@@ -49,8 +49,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const limit = parsed.limit;
 
-        if (limit !== undefined && (limit < 0 || limit > 10)) {
-          throw new ValidationError("limit must be between 0 and 10");
+        if (limit !== undefined && (limit < 1 || limit > 10)) {
+          throw new ValidationError("limit must be between 1 and 10");
         }
 
         const orderBy = parsed.orderBy;
@@ -77,8 +77,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const cols = await getKcacheColumnNames(adapter);
 
         const DEFAULT_LIMIT = 5;
-        const limitVal = limit ?? DEFAULT_LIMIT;
-        const effectiveLimit = limitVal === 0 ? 10 : limitVal;
+        const effectiveLimit = limit ?? DEFAULT_LIMIT;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           queryPreviewLength === 0
@@ -205,13 +204,12 @@ in user CPU (application code) vs system CPU (kernel operations).`,
             compact: z.boolean().optional(),
           })
           .parse(params ?? {});
-        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 10)) {
-          throw new ValidationError("limit must be between 0 and 10");
+        if (parsed.limit !== undefined && (parsed.limit < 1 || parsed.limit > 10)) {
+          throw new ValidationError("limit must be between 1 and 10");
         }
 
         const DEFAULT_LIMIT = 5;
-        const limitVal = parsed.limit ?? DEFAULT_LIMIT;
-        const effectiveLimit = limitVal === 0 ? 10 : limitVal;
+        const effectiveLimit = parsed.limit ?? DEFAULT_LIMIT;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
@@ -346,13 +344,12 @@ which represent actual disk access (not just shared buffer hits).`,
           );
         }
         const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
-        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 10)) {
-          throw new ValidationError("limit must be between 0 and 10");
+        if (parsed.limit !== undefined && (parsed.limit < 1 || parsed.limit > 10)) {
+          throw new ValidationError("limit must be between 1 and 10");
         }
 
         const DEFAULT_LIMIT = 5;
-        const limitVal = parsed.limit ?? DEFAULT_LIMIT;
-        const effectiveLimit = limitVal === 0 ? 10 : limitVal;
+        const effectiveLimit = parsed.limit ?? DEFAULT_LIMIT;
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
