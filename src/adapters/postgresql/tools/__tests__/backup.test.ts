@@ -192,7 +192,7 @@ describe("pg_audit_diff_backup", () => {
     const result = (await tool.handler({ filename: "t1_snapshot.json" }, mockContext)) as any;
     
     expect(result.success).toBe(true);
-    expect(result.hasDrift).toBe(true);
+    expect(result.hasDifferences).toBe(true);
     expect(result.diff.additions.some((line: string) => line.includes("new_col"))).toBe(true);
     expect(result.volumeDrift.rowCountSnapshot).toBe(10);
     expect(result.volumeDrift.rowCountCurrent).toBe(15);

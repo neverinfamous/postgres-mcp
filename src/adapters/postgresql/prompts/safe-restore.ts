@@ -55,7 +55,7 @@ pg_audit_diff_backup { filename: "<snapshot_filename>" }
 \`\`\`
 
 Review:
-- **Schema drift** (\`hasDrift\`): Were columns added, removed, or modified?
+- **Schema drift** (\`hasDifferences\`): Were columns added, removed, or modified?
 - **Volume drift** (\`volumeDrift\`): Did row count or table size change significantly?
 - If the object was **dropped** (\`objectExists: false\`), a direct restore may be appropriate.
 
