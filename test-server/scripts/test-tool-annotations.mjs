@@ -3,13 +3,14 @@ import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const projectDir = resolve(__dirname, '..')
+const projectDir = resolve(__dirname, '..', '..')
 
 // Ensure DB connection env vars are present (inherit from shell or use Docker defaults)
 if (!process.env.POSTGRES_CONNECTION_STRING && !process.env.DATABASE_URL) {
-    process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD ?? process.env.PGPASSWORD ?? 'postgres'
-    process.env.POSTGRES_USER = process.env.POSTGRES_USER ?? process.env.PGUSER ?? 'postgres'
-    process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE ?? process.env.PGDATABASE ?? 'postgres'
+    process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD || 'postgres'
+    process.env.POSTGRES_USER = process.env.POSTGRES_USER || process.env.PGUSER || 'postgres'
+    process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE || process.env.PGDATABASE || 'postgres'
+    process.env.POSTGRES_HOST = process.env.POSTGRES_HOST || process.env.PGHOST || '127.0.0.1'
 }
 const proc = spawn('node', ['dist/cli.js', '--instruction-level', 'essential'], {
     cwd: projectDir,
