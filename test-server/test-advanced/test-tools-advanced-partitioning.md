@@ -53,6 +53,14 @@ All tests should be executed via `pg_execute_code` code mode. Tests are written 
 5. `pg_create_partitioned_table` -> Generate `stress_list_parent` by `category`.
 6. Attach list values array `["A", "B"]` to child `stress_list_p1`. Then try to create a default partition `stress_list_default`. Verify payload returns correct lists.
 
+## Post-Test Procedures
+
+1. Confirm cleanup of all `stress_*` object.
+2. **Fix EVERY finding**.
+3. Update the changelog with any changes made.
+4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
+5. Stop and briefly summarize the testing results and fixes.
+
 ### Final Cleanup
 
 Confirm any temporary state is cleaned up.

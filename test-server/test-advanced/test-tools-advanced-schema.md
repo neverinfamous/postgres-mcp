@@ -53,6 +53,14 @@ All tests should be executed via `pg_execute_code` code mode. Tests are written 
 4. `pg_create_sequence` -> Set bounds parameters to `maxvalue: 5`, `increment: 2`. Run queries using the sequence until it exceeds `maxvalue` boundary.
 5. Capture structured P154 error output when sequence exhaustion natively throws postgres syntax errors. Let the handler wrap it.
 
+## Post-Test Procedures
+
+1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
+4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
+5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
+
 ### Final Cleanup
 
 Confirm any temporary state is cleaned up.

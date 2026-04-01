@@ -46,7 +46,7 @@ Flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a speci
 1. Confirm cleanup of all `stress_*` object.
 2. **Fix EVERY finding**.
 3. Update the changelog with any changes made.
-4. **Token Audit**: Sum the `metrics.tokenEstimate` and report the **Total Tokens Used**.
+4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
 5. Stop and briefly summarize the testing results and fixes.
 
 ---
