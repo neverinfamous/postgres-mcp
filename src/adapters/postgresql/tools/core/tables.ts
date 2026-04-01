@@ -282,6 +282,11 @@ export function createCreateTableTool(
 
         await adapter.executeQuery(sql);
 
+        // Manually invalidate metadata cache for deterministic updates
+        // This is necessary because pg_create_table uses executeQuery directly 
+        // to bypass validateQuery, meaning it misses executeWriteQuery's cache invalidation.
+        adapter.invalidateTableCache(name, schema ?? "public");
+
         return {
           success: true,
           table: `${schema ?? "public"}.${name}`,
@@ -336,6 +341,9 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
         const sql = `DROP TABLE ${ifExistsClause}${schemaPrefix}"${table}"${cascadeClause}`;
 
         await adapter.executeQuery(sql);
+
+        // Manually invalidate metadata cache for deterministic updates
+        adapter.invalidateTableCache(table, schemaName);
 
         return {
           success: true,

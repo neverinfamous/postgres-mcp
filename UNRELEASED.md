@@ -76,6 +76,8 @@
 - Unbounded payloads in `pg_copy_export` exceeding 50KB strings causing context window exhaustion
 - `pg_cluster` schema validation improperly requiring an index when clustering a previously clustered table
 - Generic `OPERATION_FAILED` error codes in `pg_cancel_backend` and `pg_terminate_backend` replaced with specific `PROCESS_NOT_FOUND`
+- Metadata caching defect where `pg_create_table` and `pg_drop_table` bypassed Code Mode invalidation, leading to stale schema artifacts and `pg_audit_diff_backup` failures
+- Weak TypeScript assertions in the Vitest `MockPostgresAdapter` triggering strict-typing pipeline errors
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

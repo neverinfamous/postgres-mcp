@@ -136,6 +136,7 @@ export function createMockPostgresAdapter(): Partial<PostgresAdapter> & {
   listSchemas: ReturnType<typeof vi.fn>;
   getSchema: ReturnType<typeof vi.fn>;
   executeOnConnection: ReturnType<typeof vi.fn>;
+  invalidateTableCache: ReturnType<typeof vi.fn>;
 } {
   const mockQueryResult = createMockQueryResult([{ id: 1, name: "test" }]);
 
@@ -168,6 +169,7 @@ export function createMockPostgresAdapter(): Partial<PostgresAdapter> & {
       return executeQueryMock(sql, params) as unknown as Promise<unknown>;
     }),
     invalidateSchemaCache: vi.fn(),
+    invalidateTableCache: vi.fn((_tableName: string, _schemaName?: string) => undefined),
 
     // Schema methods
     getSchema: vi.fn().mockResolvedValue(createMockSchemaInfo()),
