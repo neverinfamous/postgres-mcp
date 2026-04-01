@@ -82,7 +82,11 @@
 - Fixed inaccurate testing prompt assumptions evaluating `pg_audit_restore_backup` error types and `volumeDrift` `pg_class` statistical caches
 - Resolved metadata cache staleness in `pg_audit_restore_backup` where restored schemas via code mode were not systematically invalidated, causing subsequent mapping drift
 - Minimized token payload overhead in `pg_audit_diff_backup` by adding a configurable `compact: boolean` parameter to omit full redundant snapshot/current DDL strings
-
+- Overhauled `pg_audit_list_backups` with automatic payload compaction (`compact: true`) for results exceeding 20 snapshots, saving over 3000 tokens per large codebase request
+- Eliminated `pg_audit_diff_backup` DDL schema drift false positives by accurately extracting and formatting `PRIMARY KEY` mappings via `pg_get_indexdef`
+- Fixed `volumeDrift` analytics silently dropping `rowCountCurrent` metrics for truncated tables (`reltuples = -1`) by introducing an instantaneous `COUNT(*)` fallback
+- Refined validation in `pg_audit_restore_backup` to guarantee `dryRun: true` definitively bypasses side-by-side `restoreAs` persistent table allocations
+- Corrected `OBJECT_ALREADY_EXISTS` error string interpolation in `pg_audit_restore_backup` to explicitly surface the colliding table name instead of a cryptic `duplicate key value`
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows

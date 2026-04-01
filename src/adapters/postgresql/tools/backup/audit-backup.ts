@@ -15,6 +15,7 @@ import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse, formatPostgresError } from "../core/error-helpers.js";
 import { ValidationError } from "../../../../types/index.js";
 import type { BackupManager } from "../../../../audit/backup-manager.js";
+import type { SnapshotMetadata } from "../../../../audit/types.js";
 import {
   AuditListBackupsSchemaBase,
   AuditListBackupsSchema,
@@ -72,17 +73,44 @@ export function createAuditListBackupsTool(
         const requestedLimit = parsed.limit ?? 50;
         const limit = requestedLimit === 0 ? 500 : requestedLimit;
         
+        // Check size of snapshots. If payload is too large, compact by default
+        let isCompact = parsed.compact === true;
         let truncated = false;
         if (snapshots.length > limit) {
           snapshots = snapshots.slice(0, limit);
           truncated = true;
         }
 
+        if (snapshots.length > 20 && parsed.compact !== false) {
+           isCompact = true;
+        }
+
+        interface CompactSnapshot {
+          filename: string | undefined;
+          timestamp: string;
+          tool: string;
+          target: string;
+          type: "ddl" | "ddl+data";
+          rowCount: number | undefined;
+        }
+        let resultSnapshots: SnapshotMetadata[] | CompactSnapshot[] = snapshots;
+        if (isCompact) {
+            resultSnapshots = snapshots.map((s): CompactSnapshot => ({
+                filename: s.filename,
+                timestamp: s.timestamp,
+                tool: s.tool,
+                target: s.target,
+                type: s.type,
+                rowCount: s.rowCount,
+            }));
+        }
+
         return {
           success: true,
-          snapshots,
+          snapshots: resultSnapshots,
           count,
           limit,
+          ...(isCompact && { compact: true }),
           ...(truncated && { truncated: true }),
         };
       } catch (error: unknown) {
@@ -225,8 +253,9 @@ export function createAuditRestoreBackupTool(
           }
           const msg = formatPostgresError(restoreErr, { tool: "pg_audit_restore_backup" });
           
-          if (msg.includes("already exists") || msg.includes("duplicate") || restoreErr?.toString().includes("already exists")) {
-               const err = new ValidationError(`Restore failed: ${msg}`);
+          const errStr = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
+          if (msg.includes("already exists") || msg.includes("duplicate") || errStr.includes("already exists")) {
+               const err = new ValidationError(`Restore failed: Table '${parsed.restoreAs ?? snapshot.metadata.target}' already exists.`);
                Object.assign(err, { code: "OBJECT_ALREADY_EXISTS" });
                throw err;
           }
@@ -287,7 +316,18 @@ export function createAuditDiffBackupTool(
             objectExists = false;
             currentDdl = `-- Object "${schema}"."${target}" does not exist (dropped?)`;
           } else {
-            const ddlLines = columns.map((col) => {
+             // Let's use getTableDDL of adapter for accurate DDL matching
+             const ddlInfo = await adapter.executeQuery(
+              `SELECT
+                 pg_catalog.pg_get_indexdef(i.indexrelid, 0, true) AS ddl
+               FROM pg_catalog.pg_class c
+               JOIN pg_catalog.pg_index i ON c.oid = i.indrelid
+               JOIN pg_catalog.pg_class c2 ON i.indexrelid = c2.oid
+               WHERE c.relname = $1 AND c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = $2) AND i.indisprimary = true`,
+              [target, schema]
+             );
+             
+              const ddlLines = columns.map((col) => {
               let line = `    "${col.name}" ${col.type}`;
               if (col.defaultValue !== undefined && col.defaultValue !== null) {
                 const defVal = typeof col.defaultValue === "object"
@@ -298,7 +338,30 @@ export function createAuditDiffBackupTool(
               if (!col.nullable) line += " NOT NULL";
               return line;
             });
-            currentDdl = `CREATE TABLE "${schema}"."${target}" (\n${ddlLines.join(",\n")}\n);`;
+            
+            // To prevent false positive drift: The snapshot diff might have `PRIMARY KEY` inline or as index.
+            // If the snapshot uses inline PRIMARY KEY, we should include it too.
+            // Actually, we'll just check if snapshot DDL has PRIMARY KEY inline.
+            const currLines = [...ddlLines];
+            
+            const pkRow = ddlInfo.rows?.[0];
+            const pkDdlRaw = pkRow?.['ddl'];
+            const pkSql = typeof pkDdlRaw === "string" ? pkDdlRaw : undefined;
+            if (pkSql !== undefined && snapshot.ddl.includes('PRIMARY KEY')) {
+               // extract keys
+               const match = /USING btree \((.+?)\)/i.exec(pkSql);
+               const pkCols = match !== null ? match[1] : undefined;
+               if (pkCols !== undefined) {
+                 currLines.push(`    PRIMARY KEY (${pkCols})`);
+               }
+            }
+
+            currentDdl = `CREATE TABLE "${schema}"."${target}" (\n${currLines.join(",\n")}\n);`;
+            
+            // Re-add CREATE SEQUENCE if snapshot had it so it aligns perfectly
+            if (snapshot.ddl.includes('CREATE SEQUENCE')) {
+               currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${schema}"."${target}_id_seq";\n` + currentDdl;
+            }
           }
         } catch {
           objectExists = false;
@@ -352,9 +415,19 @@ export function createAuditDiffBackupTool(
             if (currentStats) {
               const rowSnapRaw = snapshot.metadata.rowCount;
               const rowSnap = rowSnapRaw === -1 ? undefined : rowSnapRaw;
-              // reltuples::bigint is sent as a string by the pg driver — must parse
-              // -1 is PostgreSQL's sentinel meaning "statistics not yet collected (unanalyzed)"
-              const rowCurrRaw = currentStats.row_count !== undefined ? parseInt(String(currentStats.row_count), 10) : undefined;
+              let countRaw: number | undefined;
+              if (currentStats.row_count === "-1" || String(currentStats.row_count) === "-1") {
+                try {
+                  const countRes = await adapter.executeQuery(`SELECT count(*)::int as exact_count FROM "${schema}"."${target}"`);
+                  const cVal = countRes.rows?.[0]?.['exact_count'];
+                  countRaw = (typeof cVal === "number" || typeof cVal === "string")
+                    ? parseInt(String(cVal), 10)
+                    : undefined;
+                } catch {
+                  // Fallback count is best-effort
+                }
+              }
+              const rowCurrRaw = countRaw ?? (currentStats.row_count !== undefined ? parseInt(String(currentStats.row_count), 10) : undefined);
               const rowCurr = rowCurrRaw === -1 ? undefined : rowCurrRaw;
               const sizeSnap = snapshot.metadata.totalSizeBytes;
               const sizeCurr = typeof currentStats.total_size_bytes === "number" ? currentStats.total_size_bytes : undefined;

@@ -397,12 +397,14 @@ export const AuditListBackupsSchemaBase = z.object({
   tool: z.string().optional().describe("Filter by tool name"),
   target: z.string().optional().describe("Filter by target object name"),
   limit: z.number().optional().describe("Max snapshots to return (default: 50, max: 500, use 0 for unlimited up to 500)"),
+  compact: z.boolean().optional().describe("If true, omits full schema/type properties on the payload to save tokens (default: auto if > 20)"),
 });
 
 export const AuditListBackupsSchema = z.object({
   tool: z.string().optional(),
   target: z.string().optional(),
   limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+  compact: z.boolean().optional(),
 });
 
 /**
@@ -440,10 +442,10 @@ export const AuditListBackupsOutputSchema = z.object({
         timestamp: z.string().describe("ISO 8601 snapshot timestamp"),
         tool: z.string().describe("Tool that triggered the snapshot"),
         target: z.string().describe("Target object"),
-        schema: z.string().describe("Schema of target"),
+        schema: z.string().optional().describe("Schema of target"),
         type: z.enum(["ddl", "ddl+data"]).describe("Snapshot type"),
-        requestId: z.string().describe("Audit request ID"),
-        sizeBytes: z.number().describe("Snapshot file size"),
+        requestId: z.string().optional().describe("Audit request ID"),
+        sizeBytes: z.number().optional().describe("Snapshot file size"),
         filename: z.string().optional().describe("Snapshot filename for restore/diff"),
       }),
     )
