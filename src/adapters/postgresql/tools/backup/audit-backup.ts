@@ -81,7 +81,7 @@ export function createAuditListBackupsTool(
           truncated = true;
         }
 
-        if (snapshots.length > 20 && parsed.compact !== false) {
+        if ((parsed.compact ?? true)) {
            isCompact = true;
         }
 
