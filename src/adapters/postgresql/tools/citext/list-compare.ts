@@ -44,15 +44,7 @@ Useful for auditing case-insensitive columns.`,
           limit?: unknown;
         };
         const { schema } = parsed;
-        const rawLimit = parsed.limit;
-        const userLimit =
-          rawLimit === undefined
-            ? undefined
-            : typeof rawLimit === "number"
-              ? rawLimit
-              : Number(rawLimit);
-        const safeLimit =
-          userLimit !== undefined && isNaN(userLimit) ? undefined : userLimit;
+        const safeLimit = parsed.limit as number | undefined;
 
         if (safeLimit !== undefined && safeLimit < 0) {
           throw new ValidationError("limit must be non-negative");

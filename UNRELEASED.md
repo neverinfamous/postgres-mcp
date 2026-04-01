@@ -98,6 +98,7 @@
 - Optimized `pg_audit_list_backups` payload efficiency by drastically lowering default limits from 50 to 20 and implicitly stripping empty snapshot records
 - Reduced `pg_citext_schema_advisor` payload footprint by omitting irrelevant "keep" recommendations when `compact: true` (default)
 - Unified inconsistent `schema "..." does not exist` regex matching across `pg_citext_*` by standardizing error templates and expanding `SCHEMA_NOT_FOUND` regex bounds
+- Eliminated redundant `limit` parameter type coercion block inside `citext` handler logic, relying on standardized Zod schema preprocessing
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows
