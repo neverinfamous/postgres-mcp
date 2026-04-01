@@ -148,10 +148,10 @@ export function createJsonbExtractTool(
             return row;
           });
           const allNulls = rows?.every((r) => r["value"] === null) ?? false;
-          const response: { rows: unknown; count: number; hint?: string } = {
-            rows,
+          const response: { rows?: unknown; count: number; hint?: string } = {
             count: rows?.length ?? 0,
           };
+          if (rows && rows.length > 0) response.rows = rows;
           if (allNulls && (rows?.length ?? 0) > 0) {
             response.hint =
               "All values are null - path may not exist in data. Use pg_jsonb_typeof to check.";
@@ -165,13 +165,13 @@ export function createJsonbExtractTool(
         // Check if all results are null (path may not exist)
         const allNulls = rows?.every((r) => r.value === null) ?? false;
         const response: {
-          rows: { value: unknown }[] | undefined;
+          rows?: { value: unknown }[];
           count: number;
           hint?: string;
         } = {
-          rows,
           count: rows?.length ?? 0,
         };
+        if (rows && rows.length > 0) response.rows = rows;
         if (allNulls && (rows?.length ?? 0) > 0) {
           response.hint =
             "All values are null - path may not exist in data. Use pg_jsonb_typeof to check.";
@@ -270,15 +270,15 @@ export function createJsonbContainsTool(
           !Array.isArray(value) &&
           Object.keys(value).length === 0;
         const response: {
-          rows: unknown;
+          rows?: unknown;
           count: number;
           truncated?: boolean;
           totalCount?: number;
           warning?: string;
         } = {
-          rows,
           count: rows.length,
         };
+        if (rows.length > 0) response.rows = rows;
         if (isTruncated) {
           response.truncated = true;
           // Get exact total count
@@ -357,11 +357,12 @@ export function createJsonbPathQueryTool(
           : allResults;
 
         const response: {
-          results: unknown[];
+          results?: unknown[];
           count: number;
           truncated?: boolean;
           totalCount?: number;
-        } = { results, count: results.length };
+        } = { count: results.length };
+        if (results.length > 0) response.results = results;
         if (isTruncated) {
           response.truncated = true;
           // Get exact total count

@@ -89,11 +89,20 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
         if (path.length === 0) {
           const sql = `UPDATE ${qualifiedTable} SET "${column}" = $1::jsonb WHERE ${sanitizeWhereClause(where)}`;
           const result = await adapter.executeQuery(sql, [toJsonString(value)]);
-          return {
+          const response: {
+            success: boolean;
+            rowsAffected: number;
+            hint?: string;
+            warning?: string;
+          } = {
             success: true,
-            rowsAffected: result.rowsAffected,
+            rowsAffected: result.rowsAffected ?? 0,
             hint: "Replaced entire column value (empty path)",
           };
+          if ((result.rowsAffected ?? 0) === 0) {
+            response.warning = "No rows found matching the WHERE clause";
+          }
+          return response;
         }
 
         // For deep nested paths with createMissing=true, build intermediate objects
@@ -117,11 +126,20 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
           expr = `jsonb_set(${expr}, '${fullPathStr}'::text[], $1::jsonb, true)`;
           sql = `UPDATE ${qualifiedTable} SET "${column}" = ${expr} WHERE ${sanitizeWhereClause(where)}`;
           const result = await adapter.executeQuery(sql, [toJsonString(value)]);
-          return {
+          const response: {
+            success: boolean;
+            rowsAffected: number;
+            hint?: string;
+            warning?: string;
+          } = {
             success: true,
-            rowsAffected: result.rowsAffected,
+            rowsAffected: result.rowsAffected ?? 0,
             hint: "rowsAffected counts matched rows, not path creations",
           };
+          if ((result.rowsAffected ?? 0) === 0) {
+            response.warning = "No rows found matching the WHERE clause";
+          }
+          return response;
         } else {
           // Use COALESCE to handle NULL columns - initialize to empty object
           sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_set(COALESCE("${column}", '{}'::jsonb), $1, $2::jsonb, $3) WHERE ${sanitizeWhereClause(where)}`;
@@ -133,7 +151,16 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
           const hint = createFlag
             ? "NULL columns initialized to {}; createMissing creates path if absent"
             : "createMissing=false: path must exist or value won't be set";
-          return { success: true, rowsAffected: result.rowsAffected, hint };
+          const response: {
+            success: boolean;
+            rowsAffected: number;
+            hint?: string;
+            warning?: string;
+          } = { success: true, rowsAffected: result.rowsAffected ?? 0, hint };
+          if ((result.rowsAffected ?? 0) === 0) {
+            response.warning = "No rows found matching the WHERE clause";
+          }
+          return response;
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
@@ -240,7 +267,15 @@ export function createJsonbInsertTool(
           toJsonString(parsed.value),
           parsed.insertAfter ?? false,
         ]);
-        return { success: true, rowsAffected: result.rowsAffected };
+        const response: {
+          success: boolean;
+          rowsAffected: number;
+          warning?: string;
+        } = { success: true, rowsAffected: result.rowsAffected ?? 0 };
+        if ((result.rowsAffected ?? 0) === 0) {
+          response.warning = "No rows found matching the WHERE clause";
+        }
+        return response;
       } catch (error: unknown) {
         // Improve specific PostgreSQL error messages
         if (
@@ -347,11 +382,20 @@ export function createJsonbDeleteTool(
         const pathExpr = useArrayOperator ? `#- $1` : `- $1`;
         const sql = `UPDATE ${qualifiedTable} SET "${column}" = "${column}" ${pathExpr} WHERE ${sanitizeWhereClause(parsed.where)}`;
         const result = await adapter.executeQuery(sql, [pathForPostgres]);
-        return {
+        const response: {
+          success: boolean;
+          rowsAffected: number;
+          hint?: string;
+          warning?: string;
+        } = {
           success: true,
-          rowsAffected: result.rowsAffected,
+          rowsAffected: result.rowsAffected ?? 0,
           hint: "rowsAffected counts matched rows, not whether key existed",
         };
+        if ((result.rowsAffected ?? 0) === 0) {
+          response.warning = "No rows found matching the WHERE clause";
+        }
+        return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_delete",

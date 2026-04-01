@@ -90,12 +90,19 @@ export function createJsonbValidatePathTool(
             parsed.path,
             varsJson,
           ]);
-          return {
+          const results = result.rows?.map((r) => r["result"]);
+          const response: {
+            valid: boolean;
+            path: string;
+            results?: unknown[];
+            varsUsed: boolean;
+          } = {
             valid: true,
             path: parsed.path,
-            results: result.rows?.map((r) => r["result"]),
             varsUsed: parsed.vars !== undefined,
           };
+          if (results && results.length > 0) response.results = results;
+          return response;
         } else {
           const sql = `SELECT $1::jsonpath as path`;
           await adapter.executeQuery(sql, [parsed.path]);
@@ -402,7 +409,12 @@ export function createJsonbNormalizeTool(
             };
           }
         }
-        return { rows: result.rows, count: result.rows?.length ?? 0, mode };
+        const response: { rows?: unknown[]; count: number; mode: string } = {
+          count: result.rows?.length ?? 0,
+          mode,
+        };
+        if (result.rows && result.rows.length > 0) response.rows = result.rows;
+        return response;
       } catch (error: unknown) {
         // Improve error for array columns with object-only modes
         if (
@@ -505,12 +517,18 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
           toJsonString(parsed.doc2),
         ]);
 
-        return {
-          differences: result.rows,
+        const response: {
+          differences?: unknown[];
+          hasDifferences: boolean;
+          comparison: string;
+          hint: string;
+        } = {
           hasDifferences: (result.rows?.length ?? 0) > 0,
           comparison: "shallow",
           hint: "Compares top-level keys only. Nested object changes show as modified.",
         };
+        if (result.rows && result.rows.length > 0) response.differences = result.rows;
+        return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_diff",

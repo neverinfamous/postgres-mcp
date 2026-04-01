@@ -164,12 +164,17 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
           : "";
         const sql = `SELECT DISTINCT jsonb_object_keys("${column}") as key FROM ${qualifiedTable}${whereClause}`;
         const result = await adapter.executeQuery(sql);
-        const keys = result.rows?.map((r) => r["key"]) as string[];
-        return {
-          keys,
+        const keys: string[] = (result.rows ?? []).map((r) => r["key"] as string);
+        const response: {
+          keys?: string[];
+          count: number;
+          hint: string;
+        } = {
           count: keys?.length ?? 0,
           hint: "Returns unique keys deduplicated across all matching rows",
         };
+        if (keys.length > 0) response.keys = keys;
+        return response;
       } catch (error: unknown) {
         // Improve error for array columns
         if (
@@ -232,10 +237,15 @@ export function createJsonbTypeofTool(
         const sql = `SELECT jsonb_typeof("${column}"${pathExpr}) as type, ("${column}" IS NULL) as column_null FROM ${qualifiedTable}${whereClause}`;
         const queryParams = pathArray ? [pathArray] : [];
         const result = await adapter.executeQuery(sql, queryParams);
-        const types = result.rows?.map((r) => r["type"]) as (string | null)[];
+        const types: (string | null)[] = (result.rows ?? []).map((r) => r["type"] as string | null);
         const columnNull =
           result.rows?.some((r) => r["column_null"] === true) ?? false;
-        return { types, count: types?.length ?? 0, columnNull };
+        const response: { types?: (string | null)[]; count: number; columnNull: boolean } = {
+          count: types?.length ?? 0,
+          columnNull,
+        };
+        if (types.length > 0) response.types = types;
+        return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_typeof",

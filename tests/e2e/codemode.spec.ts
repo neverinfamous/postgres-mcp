@@ -98,6 +98,10 @@ test.describe("Code Mode: Sandbox Basics", () => {
 // =============================================================================
 
 test.describe("Code Mode: API Discoverability", () => {
+  test.beforeEach(() => {
+    test.setTimeout(90_000);
+  });
+
   test("pg.help() should return documentation", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
     try {

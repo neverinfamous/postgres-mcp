@@ -110,6 +110,8 @@
 - Fixed `PostgresMcpError` to correctly apply category refinements from error considerations, overriding generic object initializations
 - Optimized the responses of `pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`, `pg_constraint_analysis`, and `pg_schema_snapshot` to strictly omit empty structural arrays/objects (`[]` and `{}`), improving token efficiency for down-stream LLMs.
 - Replaced generic Javascript exceptions in `pg_cascade_simulator` target lookups with strictly typed `ValidationError` classes mapped to `TABLE_NOT_FOUND`
+- Optimized JSONB tools (`pg_jsonb_read`, `pg_jsonb_transform`, `pg_jsonb_analytics`, `pg_jsonb_write`, `pg_jsonb_query`, `pg_jsonb_pretty`) to structurally omit empty arrays and object responses without values to enhance token efficiency
+- Added explicit warnings for `rowsAffected === 0` in jsonb write operations (`pg_jsonb_set`, `pg_jsonb_insert`, `pg_jsonb_delete`) to improve error visibility when no rows match the `WHERE` clause
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows

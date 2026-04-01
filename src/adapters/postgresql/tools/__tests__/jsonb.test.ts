@@ -823,7 +823,7 @@ describe("jsonb analytics uncovered branches", () => {
       { table: "users", column: "data" },
       mockContext,
     )) as { hint: string; recommendations: string[] };
-    expect(result.recommendations).toHaveLength(0);
+    expect(result.recommendations).toBeUndefined();
     expect(result.hint).toContain("existing indexes");
   });
 
@@ -968,7 +968,7 @@ describe("jsonb analytics uncovered branches", () => {
       { table: "users", column: "tags" },
       mockContext,
     )) as { topKeys: unknown[]; hint: string };
-    expect(result.topKeys).toHaveLength(0);
+    expect(result.topKeys).toBeUndefined();
     expect(result.hint).toContain("array");
   });
 

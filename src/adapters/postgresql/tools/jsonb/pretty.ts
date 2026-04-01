@@ -101,11 +101,19 @@ export function createJsonbPrettyTool(
             (row as { formatted: string }).formatted ?? "null",
         }));
 
-        return {
+        const response: {
+          success: boolean;
+          rows?: { formatted: string }[];
+          count?: number;
+        } = {
           success: true,
-          rows,
-          count: rows.length,
         };
+        if (rows.length > 0) {
+          response.rows = rows;
+          response.count = rows.length;
+        }
+
+        return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_jsonb_pretty" });
       }

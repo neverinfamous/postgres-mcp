@@ -125,15 +125,18 @@ export function createJsonbIndexSuggestTool(
         }
 
         const response: {
-          keyDistribution: typeof keys;
-          existingIndexes: unknown;
-          recommendations: string[];
+          keyDistribution?: typeof keys;
+          existingIndexes?: unknown;
+          recommendations?: string[];
           hint?: string;
-        } = {
-          keyDistribution: keys,
-          existingIndexes: indexResult.rows,
-          recommendations,
-        };
+        } = {};
+        if (keys.length > 0) response.keyDistribution = keys;
+        if ((indexResult.rows?.length ?? 0) > 0) {
+          response.existingIndexes = indexResult.rows;
+        }
+        if (recommendations.length > 0) {
+          response.recommendations = recommendations;
+        }
 
         if (recommendations.length === 0) {
           if ((indexResult.rows?.length ?? 0) > 0) {
@@ -284,12 +287,17 @@ export function createJsonbSecurityScanTool(
           });
         }
 
-        return {
+        const response: {
+          scannedRows: number;
+          issues?: { type: string; key: string; count: number }[];
+          riskLevel: string;
+        } = {
           scannedRows: actualRowsScanned,
-          issues,
           riskLevel:
             issues.length === 0 ? "low" : issues.length < 3 ? "medium" : "high",
         };
+        if (issues.length > 0) response.issues = issues;
+        return response;
       } catch (error: unknown) {
         if (
           error instanceof Error &&
@@ -435,13 +443,21 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
             'topKeys empty for array columns - use pg_jsonb_normalize mode: "array" to analyze elements';
         }
 
-        return {
-          basics: basicsNormalized,
-          topKeys,
-          typeDistribution,
+        const response: {
+          basics?: typeof basicsNormalized;
+          topKeys?: typeof topKeys;
+          typeDistribution?: typeof typeDistribution;
+          sqlNullCount: number;
+          hint?: string;
+        } = {
           sqlNullCount,
-          hint,
         };
+        if (basicsNormalized) response.basics = basicsNormalized;
+        if (topKeys.length > 0) response.topKeys = topKeys;
+        if (typeDistribution.length > 0) response.typeDistribution = typeDistribution;
+        if (hint) response.hint = hint;
+
+        return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_stats",
