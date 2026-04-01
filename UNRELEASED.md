@@ -105,6 +105,8 @@
 - Optimized token payload architecture in `pg_cron_list_jobs` via a `compact` payload toggle truncating oversized job schedule commands
 - Unified inconsistent `invalid schedule` regex matching across `pg_cron_*` tools mapping into standardized `VALIDATION_ERROR` boundaries
 - Eliminated redundant `formatHandlerErrorResponse` generic string handlers inside `scheduling.ts` favoring pipeline normalization
+- Ensure `pg_cron_unschedule` correctly falls back to `jobId` lookups to handle inactive jobs by name, circumventing pg_cron's active-only name filters
+- Optimize `pg_cron_list_jobs` and `pg_cron_job_run_details` by structurally omitting empty payload array brackets and summary structures when zero jobs exist
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows

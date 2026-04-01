@@ -191,7 +191,7 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
 
         return {
           success: true,
-          jobs,
+          ...(jobs.length > 0 ? { jobs } : {}),
           count: jobs.length,
           ...(truncated ? { truncated: true, totalCount } : {}),
           hint:
@@ -201,7 +201,6 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
         };
       } catch (error: unknown) {
         return {
-          jobs: [],
           count: 0,
           ...formatHandlerErrorResponse(error, { tool: "pg_cron_list_jobs" }),
         };
@@ -367,16 +366,14 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
 
         return {
           success: true,
-          runs: rows,
+          ...(rows.length > 0 ? { runs: rows } : {}),
           count: rows.length,
           ...(truncated ? { truncated: true, totalCount } : {}),
-          summary: summaryStats,
+          ...(rows.length > 0 ? { summary: summaryStats } : {}),
         };
       } catch (error: unknown) {
         return {
-          runs: [],
           count: 0,
-          summary: { succeeded: 0, failed: 0, running: 0 },
           ...formatHandlerErrorResponse(error, {
             tool: "pg_cron_job_run_details",
           }),

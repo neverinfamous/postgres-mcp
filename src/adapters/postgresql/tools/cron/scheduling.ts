@@ -228,7 +228,10 @@ export function createCronUnscheduleTool(adapter: PostgresAdapter): ToolDefiniti
         // - cron.unschedule(text) only finds active jobs by name
         let sql: string;
         let queryParams: unknown[];
-        if (useJobName) {
+        if (jobInfo !== null) {
+          sql = "SELECT cron.unschedule($1::bigint) as removed";
+          queryParams = [jobInfo.jobid];
+        } else if (useJobName) {
           sql = "SELECT cron.unschedule($1::text) as removed";
           queryParams = [parsed.jobName];
         } else {
