@@ -377,8 +377,9 @@ export function createAuditDiffBackupTool(
             
             // Re-add CREATE SEQUENCE if snapshot had it so it aligns perfectly
             if (snapshot.ddl.includes('CREATE SEQUENCE')) {
-               const seqMatch = snapshot.ddl.match(/CREATE SEQUENCE IF NOT EXISTS "([^"]+)"\."([^"]+)"/i);
-               if (seqMatch) {
+               const seqRegex = /CREATE SEQUENCE IF NOT EXISTS "([^"]+)"\."([^"]+)"/i;
+               const seqMatch = seqRegex.exec(snapshot.ddl);
+               if (seqMatch !== null && seqMatch[1] !== undefined && seqMatch[2] !== undefined) {
                    currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${seqMatch[1]}"."${seqMatch[2]}";\n` + currentDdl;
                } else {
                    currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${schema}"."${target}_id_seq";\n` + currentDdl;
