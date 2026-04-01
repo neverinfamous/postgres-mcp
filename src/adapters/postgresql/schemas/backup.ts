@@ -426,6 +426,7 @@ export const AuditRestoreBackupSchema = z.object({
  */
 export const AuditDiffBackupSchema = z.object({
   filename: z.string().optional().describe("Snapshot filename from pg_audit_list_backups"),
+  compact: z.boolean().optional().describe("If true, omits full DDL strings from response to save tokens (default: false)"),
 });
 
 /**

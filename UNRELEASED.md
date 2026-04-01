@@ -80,6 +80,8 @@
 - Weak TypeScript assertions in the Vitest `MockPostgresAdapter` triggering strict-typing pipeline errors
 - Missing DDL `CREATE SEQUENCE` generation in `pg_audit_restore_backup` caused by unmapped sequences, now fallback-extracted via `DEFAULT nextval()`
 - Fixed inaccurate testing prompt assumptions evaluating `pg_audit_restore_backup` error types and `volumeDrift` `pg_class` statistical caches
+- Resolved metadata cache staleness in `pg_audit_restore_backup` where restored schemas via code mode were not systematically invalidated, causing subsequent mapping drift
+- Minimized token payload overhead in `pg_audit_diff_backup` by adding a configurable `compact: boolean` parameter to omit full redundant snapshot/current DDL strings
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

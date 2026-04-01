@@ -195,6 +195,13 @@ export function createAuditRestoreBackupTool(
 
           await adapter.executeQuery("COMMIT");
 
+          // Invalidate cache since we modified table schema/data
+          if (parsed.restoreAs) {
+            adapter.invalidateTableCache(parsed.restoreAs, snapshot.metadata.schema);
+          } else {
+            adapter.invalidateTableCache(snapshot.metadata.target, snapshot.metadata.schema);
+          }
+
           return {
             success: true,
             restored: true,
@@ -392,8 +399,10 @@ export function createAuditDiffBackupTool(
             },
           }),
           ...(volumeDrift && { volumeDrift }),
-          snapshotDdl: snapshot.ddl,
-          currentDdl,
+          ...(!parsed.compact && {
+            snapshotDdl: snapshot.ddl,
+            currentDdl,
+          }),
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_audit_diff_backup" });
