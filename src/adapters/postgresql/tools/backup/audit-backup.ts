@@ -13,7 +13,7 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { readOnly, admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse, formatPostgresError } from "../core/error-helpers.js";
-import { ValidationError } from "../../../../types/index.js";
+import { ValidationError, QueryError } from "../../../../types/index.js";
 import type { BackupManager } from "../../../../audit/backup-manager.js";
 import type { SnapshotMetadata } from "../../../../audit/types.js";
 import {
@@ -153,7 +153,9 @@ export function createAuditRestoreBackupTool(
 
         const snapshot = await backupManager.getSnapshot(parsed.filename);
         if (!snapshot) {
-          throw new Error(`Query failed: Snapshot not found: ${parsed.filename}`);
+          const err = new QueryError(`Snapshot not found: ${parsed.filename}`);
+          Object.assign(err, { code: "RESOURCE_NOT_FOUND" });
+          throw err;
         }
 
         // §2: Rewrite DDL/data for restoreAs (side-by-side restore)
@@ -297,7 +299,9 @@ export function createAuditDiffBackupTool(
 
         const snapshot = await backupManager.getSnapshot(parsed.filename);
         if (!snapshot) {
-          throw new Error(`Query failed: Snapshot not found: ${parsed.filename}`);
+          const err = new QueryError(`Snapshot not found: ${parsed.filename}`);
+          Object.assign(err, { code: "RESOURCE_NOT_FOUND" });
+          throw err;
         }
 
         // Get current live schema for the target object
@@ -352,7 +356,13 @@ export function createAuditDiffBackupTool(
                const match = /USING btree \((.+?)\)/i.exec(pkSql);
                const pkCols = match !== null ? match[1] : undefined;
                if (pkCols !== undefined) {
-                 currLines.push(`    PRIMARY KEY (${pkCols})`);
+                 // pg_get_indexdef might not quote column names, whereas pg_dump always does.
+                 // We quote them here to perfectly match the snapshot's DDL and avoid false positive drift.
+                 const quotedCols = pkCols
+                   .split(',')
+                   .map(c => c.trim().startsWith('"') ? c.trim() : `"${c.trim()}"`)
+                   .join(', ');
+                 currLines.push(`    PRIMARY KEY (${quotedCols})`);
                }
             }
 

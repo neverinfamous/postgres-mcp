@@ -87,6 +87,7 @@
 - Fixed `volumeDrift` analytics silently dropping `rowCountCurrent` metrics for truncated tables (`reltuples = -1`) by introducing an instantaneous `COUNT(*)` fallback
 - Refined validation in `pg_audit_restore_backup` to guarantee `dryRun: true` definitively bypasses side-by-side `restoreAs` persistent table allocations
 - Corrected `OBJECT_ALREADY_EXISTS` error string interpolation in `pg_audit_restore_backup` to explicitly surface the colliding table name instead of a cryptic `duplicate key value`
+- Replaced generic Javascript exceptions in `pg_audit_diff_backup` and `pg_audit_restore_backup` with strictly typed `QueryError` classes mapped to `RESOURCE_NOT_FOUND` for missing snapshots
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows
