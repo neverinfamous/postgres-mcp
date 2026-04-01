@@ -13,106 +13,52 @@
 - Filter-aware instruction generation based on tool filters and verbosity levels
 - 22 group-specific help resources accessible via `postgres://help`
 - Playwright E2E coverage for Code Mode, authentication, and backups
-- Advanced stress test Code Mode prompts for the `monitoring`, `schema`, and `partitioning` tool groups
 
 ### Changed
-- Explicitly mandate session-level token tracking via `postgres://audit` in all testing prompts
-- Standardized token monitoring and reporting instructions across all test-tool-groups and codemode prompts
-- Refactored advanced stress testing suite into logic-based modular parts
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`
-- Expanded `PostgresMcpError` to track categories, suggestions, and serialization context
 - Centralized default connection pool timeout to 30,000ms
-- Standardized file and directory names to kebab-case convention
-- Modularized 20+ large files into smaller components
-- Minimized tool payload size (~30-41% token reduction) by collapsing repetitive properties
-- Optimized stats and admin tool responses to conditionally omit empty arrays
-- Default `pg_schema_snapshot` to `compact: true` to significantly reduce payload footprint
-- Optimized Zod schema evaluation logic for faster execution speed
-- Applied `openWorldHint: false` to all 231 tools
+- Expanded `PostgresMcpError` to track categories, suggestions, and serialization context
+- Modularized source files and standardized file/directory names to kebab-case convention
+- Minimized tool payload sizes overall (~30-41% token reduction) by collapsing repetitive properties and selectively omitting empty arrays/objects
+- Added `compact` toggle (default: `true`) to schemas, audits, cron, and citext tools to significantly conserve token payloads
+- Reduced default item limits across high-chatter tools (e.g., `pg_audit_list_backups`, `pg_stat_kcache`) to prevent context window bloat
+- Applied `openWorldHint: false` to all tools
 - Reduced npm package size by excluding source maps and tests
 - Refactored Vitest test suite to use SWC compilation
 - Updated npm dependencies (`@modelcontextprotocol/sdk`, `typescript`, `typescript-eslint`)
 - Updated `.env.example` templates and README context
-- Restrict max limits across all pg_stat_kcache resource tools to 25 to prevent context window payload bloat
 
 ### Removed
 - Obsolete shortcut action bundles (`META_GROUPS`)
 - Unused `hono` router dependency
 
 ### Fixed
+- Missing `success: true` properties and standardized P154 error structures across all 230+ tools
 - Migration rollback transaction isolation to prevent unmanaged auto-commits
-- Missing `success: true` properties and P154 error structures across all 230+ tools
-- Docker Hub rate-limit blocks during multi-arch image pipelines by enforcing authenticated pulls
 - Schema state invalidation missing DDL regex detection
 - Code Mode evaluation bypasses on readonly fields, schema errors, and exposed aliases
 - Memory limit exhaustion by enforcing defaults on unbounded queries
 - Backup restoration ordering and sequence defects
 - Introspection cascade simulator truncating self-referencing foreign keys
 - Partman initialization routines failing on missing child tables
-- Scientific notation serialization bug in database seed script generating intervals
-- Inaccurate tool test instructions requiring superfluous parameters
-- Inconsistent 'does not exist' error messaging in `stats` tools
-- Zod validation leak returning schema errors instead of handler exceptions in `stats` tools
-- Split Schema violations and ad-hoc validation logic overriding structures in `admin` tools
-- Empty array rendering in `pg_schema_snapshot` payloads
-- Insufficient validation constraints on `pg_text_sentiment` permitting empty analysis payloads
-- Missing positional mappings for Introspection and Migration Code Mode tool aliases
+- Metadata caching defects causing stale schema artifacts and Code Mode invalidation failures
+- Inconsistent 'does not exist' error messaging, regex matching, and validation leaks across multiple tool groups
+- Missing positional mappings for Introspection and Migration Code Mode aliases
 - Transaction ID propagation gaps in `text` and `vector` tools
-- Massive gap of 92 unlisted tool executions across 36 direct and Code Mode deterministic testing checklists
-- Unhandled P154 validation database exceptions in `pg_text_search` and `pg_create_fts_index`
-- Missing error parser mapping for invalid input syntax types resulting in generic errors
-- Javascript string arithmetic bugs in transaction boundary tests
-- Internal `compact` boolean flag leaking into `pg_schema_snapshot` JSON response structures
-- Inaccurate parameter references and misattributions within advanced stress testing documentation
-- Fixed inaccurate tool name pg_citext_analyze_candidates (alias context) in test-tools-advanced-citext.md
-- Restored missing `pg_ltree_lca` constraint to properly handle single paths and common ancestors
-- Refined jsonb validation instructions indicating query paths
-- Removed mismatched `pg_capacity_planning` and `pg_pgcrypto_hash` tests from the `stats` and `vector` test sections in `test-tools-advanced-2.md`
-- Missing targetTable parameters within `test-tools-advanced-3` partman execution directives
-- Replaced generic PG query exceptions in `pg_distance` and `pg_point_in_polygon` out-of-bounds checks with specific `ValidationError` structures (P154 compliance)
-- Corrected inaccuracies in `test-tools-advanced-3.md` removing obsolete `pg_ltree_match` and `pg_citext_schema_advisor` tool names and rectifying assumed implicit kwargs in postgis coordinate tests
-- Reduced `pg_kcache` top resource query tool default unbounded limits (`limit: 0`) from `25` down to `10` to prevent token exhaustion payload bloat
-- Added explicit validation rejecting `path: ""` (empty string) in `pg_ltree_query` to prevent unbounded match-all payload exhaustion
-- Missing column headers in `pg_copy_export` empty table payloads
-- Unbounded payloads in `pg_copy_export` exceeding 50KB strings causing context window exhaustion
-- `pg_cluster` schema validation improperly requiring an index when clustering a previously clustered table
-- Generic `OPERATION_FAILED` error codes in `pg_cancel_backend` and `pg_terminate_backend` replaced with specific `PROCESS_NOT_FOUND`
-- Metadata caching defect where `pg_create_table` and `pg_drop_table` bypassed Code Mode invalidation, leading to stale schema artifacts and `pg_audit_diff_backup` failures
-- Weak TypeScript assertions in the Vitest `MockPostgresAdapter` triggering strict-typing pipeline errors
-- Missing DDL `CREATE SEQUENCE` generation in `pg_audit_restore_backup` caused by unmapped sequences, now fallback-extracted via `DEFAULT nextval()`
-- Fixed inaccurate testing prompt assumptions evaluating `pg_audit_restore_backup` error types and `volumeDrift` `pg_class` statistical caches
-- Resolved metadata cache staleness in `pg_audit_restore_backup` where restored schemas via code mode were not systematically invalidated, causing subsequent mapping drift
-- Minimized token payload overhead in `pg_audit_diff_backup` by adding a configurable `compact: boolean` parameter to omit full redundant snapshot/current DDL strings
-- Overhauled `pg_audit_list_backups` with automatic payload compaction (`compact: true`) for results exceeding 20 snapshots, saving over 3000 tokens per large codebase request
-- Eliminated `pg_audit_diff_backup` DDL schema drift false positives by accurately extracting and formatting `PRIMARY KEY` mappings via `pg_get_indexdef`
-- Fixed `volumeDrift` analytics silently dropping `rowCountCurrent` metrics for truncated tables (`reltuples = -1`) by introducing an instantaneous `COUNT(*)` fallback
-- Refined validation in `pg_audit_restore_backup` to guarantee `dryRun: true` definitively bypasses side-by-side `restoreAs` persistent table allocations
-- Corrected `OBJECT_ALREADY_EXISTS` error string interpolation in `pg_audit_restore_backup` to explicitly surface the colliding table name instead of a cryptic `duplicate key value`
-- Replaced generic Javascript exceptions in `pg_audit_diff_backup` and `pg_audit_restore_backup` with strictly typed `QueryError` classes mapped to `RESOURCE_NOT_FOUND` for missing snapshots
-- Remedied stale table cache evaluations in `pg_audit_diff_backup` by forcing adapter cache invalidation prior to schema extraction
-- Implemented proper `hasDifferences` output resolution in `pg_audit_diff_backup` extending drift evaluations to encompass both schema additions/removals and `volumeDrift` mutations
-- Optimized token payload overhead in `pg_audit_diff_backup` by truncating excessively large additions and removals arrays to 50 items when compact mode is enabled
-- Further minimized `pg_audit_list_backups` payload footprint by omitting redundant `-1` rowCount values and skipping empty properties
-- Enforced `compact: true` as the universal default for `pg_audit_diff_backup` and `pg_audit_list_backups` to guarantee payload token efficiency and mitigate context window exhaustion during stress testing
-- Fixed `pg_audit_diff_backup` sequence drift false positives by extracting exact sequence names from snapshot DDL instead of assuming `_id_seq` default suffixes
-- Preserved numeric sequence suffixes (`_id_seq8`) during `pg_audit_restore_backup` side-by-side non-destructive restorations to avert sequence metadata collisions
-- Optimized `pg_audit_list_backups` payload efficiency by drastically lowering default limits from 50 to 20 and implicitly stripping empty snapshot records
-- Reduced `pg_citext_schema_advisor` payload footprint by omitting irrelevant "keep" recommendations when `compact: true` (default)
-- Unified inconsistent `schema "..." does not exist` regex matching across `pg_citext_*` by standardizing error templates and expanding `SCHEMA_NOT_FOUND` regex bounds
-- Eliminated redundant `limit` parameter type coercion block inside `citext` handler logic, relying on standardized Zod schema preprocessing
-- Optimized token payload overhead in `pg_cron_job_run_details` via a `compact` parameter that truncates string elements and is enabled by default
-- Fixed inaccurate `summary` statistics in `pg_cron_job_run_details` failing to reflect the total aggregate statuses when `limit` constraints were applied
-- Optimized token payload architecture in `pg_cron_list_jobs` via a `compact` payload toggle truncating oversized job schedule commands
-- Unified inconsistent `invalid schedule` regex matching across `pg_cron_*` tools mapping into standardized `VALIDATION_ERROR` boundaries
-- Eliminated redundant `formatHandlerErrorResponse` generic string handlers inside `scheduling.ts` favoring pipeline normalization
-- Ensure `pg_cron_unschedule` correctly falls back to `jobId` lookups to handle inactive jobs by name, circumventing pg_cron's active-only name filters
-- Optimize `pg_cron_list_jobs` and `pg_cron_job_run_details` by structurally omitting empty payload array brackets and summary structures when zero jobs exist
-- Fixed `PostgresMcpError` to correctly apply category refinements from error considerations, overriding generic object initializations
-- Optimized the responses of `pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`, `pg_constraint_analysis`, and `pg_schema_snapshot` to strictly omit empty structural arrays/objects (`[]` and `{}`), improving token efficiency for down-stream LLMs.
-- Replaced generic Javascript exceptions in `pg_cascade_simulator` target lookups with strictly typed `ValidationError` classes mapped to `TABLE_NOT_FOUND`
-- Optimized JSONB tools (`pg_jsonb_read`, `pg_jsonb_transform`, `pg_jsonb_analytics`, `pg_jsonb_write`, `pg_jsonb_query`, `pg_jsonb_pretty`) to structurally omit empty arrays and object responses without values to enhance token efficiency
-- Added explicit warnings for `rowsAffected === 0` in jsonb write operations (`pg_jsonb_set`, `pg_jsonb_insert`, `pg_jsonb_delete`) to improve error visibility when no rows match the `WHERE` clause
-- Missing `success: true` properties across JSONB read, query, transform, and analytics tools to ensure output schema compliance
+- Missing column headers and unbounded payloads in `pg_copy_export` empty table executions
+- Internal boolean flags leaking into schema JSON response structures
+- Schema drift false positives in `pg_audit_diff_backup` for primary keys and sequences
+- Proper `hasDifferences` output resolution in backup audits extending to volume mutations
+- Analytics volume drift silently dropping metrics for truncated tables
+- Dry-run validation in `pg_audit_restore_backup` failing to bypass persistent table allocations
+- Preserved numeric sequence suffixes during side-by-side data restorations
+- Inaccurate `summary` statistics in `pg_cron_job_run_details` when limits were applied
+- Inactive job failures in `pg_cron_unschedule` handled via `jobId` fallback lookups
+- JavaScript string arithmetic bugs in transaction boundary tests
+- Error category refinements in `PostgresMcpError` overriding generic instantiations
+- Explicit warnings for zero rows affected in JSONB write operations
+- Docker Hub rate-limit blocks during multi-arch image pipelines by enforcing authenticated pulls
+
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows
