@@ -81,7 +81,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 3. pg_citext_list_columns
 4. pg_citext_analyze_candidates
 5. pg_citext_compare
-6. pg_citext_analyze_candidates (alias context)
+6. pg_citext_schema_advisor
 7. pg_execute_code (auto-added)
 
 ### Category 1: Edge Cases

@@ -64,6 +64,7 @@
 - Javascript string arithmetic bugs in transaction boundary tests
 - Internal `compact` boolean flag leaking into `pg_schema_snapshot` JSON response structures
 - Inaccurate parameter references and misattributions within advanced stress testing documentation
+- Fixed inaccurate tool name pg_citext_analyze_candidates (alias context) in test-tools-advanced-citext.md
 - Restored missing `pg_ltree_lca` constraint to properly handle single paths and common ancestors
 - Refined jsonb validation instructions indicating query paths
 - Removed mismatched `pg_capacity_planning` and `pg_pgcrypto_hash` tests from the `stats` and `vector` test sections in `test-tools-advanced-2.md`
