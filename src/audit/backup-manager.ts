@@ -372,12 +372,26 @@ export class BackupManager {
       for (const seq of ownedSeqs) {
         sequenceDdls += `CREATE SEQUENCE IF NOT EXISTS "${schemaName}"."${seq}";\n`;
       }
-    } catch {
-      // Best effort for sequences
+    } catch (seqErr) {
+      const msg = seqErr instanceof Error ? seqErr.message : String(seqErr);
+      process.stderr.write(`[AUDIT-BACKUP] Sequence query failed for ${tableName}: ${msg}\n`);
     }
 
     const tableInfo = await adapter.describeTable(tableName, schemaName);
     const columns = tableInfo.columns ?? [];
+    
+    // Fallback: If sequenceDdls is empty, extract sequences from DEFAULT nextval('...')
+    if (!sequenceDdls) {
+      for (const col of columns) {
+        if (typeof col.defaultValue === "string" && col.defaultValue.includes("nextval(")) {
+          const match = /nextval\('([^']+)'::regclass\)/.exec(col.defaultValue);
+          if (match?.[1]) {
+            const seqName = match[1].replace(/"/g, ''); // Extract sequence name
+            sequenceDdls += `CREATE SEQUENCE IF NOT EXISTS "${schemaName}"."${seqName}";\n`;
+          }
+        }
+      }
+    }
 
     const ddlLines = columns.map((col) => {
       let line = `    "${col.name}" ${col.type}`;

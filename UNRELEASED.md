@@ -78,6 +78,8 @@
 - Generic `OPERATION_FAILED` error codes in `pg_cancel_backend` and `pg_terminate_backend` replaced with specific `PROCESS_NOT_FOUND`
 - Metadata caching defect where `pg_create_table` and `pg_drop_table` bypassed Code Mode invalidation, leading to stale schema artifacts and `pg_audit_diff_backup` failures
 - Weak TypeScript assertions in the Vitest `MockPostgresAdapter` triggering strict-typing pipeline errors
+- Missing DDL `CREATE SEQUENCE` generation in `pg_audit_restore_backup` caused by unmapped sequences, now fallback-extracted via `DEFAULT nextval()`
+- Fixed inaccurate testing prompt assumptions evaluating `pg_audit_restore_backup` error types and `volumeDrift` `pg_class` statistical caches
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
