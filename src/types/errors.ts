@@ -49,7 +49,6 @@ export class PostgresMcpError extends Error {
   ) {
     super(message, { cause: options?.cause });
     this.name = this.constructor.name;
-    this.category = category;
     this.recoverable = options?.recoverable ?? false;
     this.details = options?.details;
 
@@ -57,8 +56,9 @@ export class PostgresMcpError extends Error {
     const match = findSuggestion(message);
     this.suggestion = options?.suggestion ?? match?.suggestion;
 
-    // Prefer the suggestion's specific code over generic category codes
+    // Prefer the suggestion's specific code and category over generic ones
     this.code = match?.code && REFINABLE_CODES.has(code) ? match.code : code;
+    this.category = (match?.category !== undefined && REFINABLE_CODES.has(code)) ? match.category : category;
 
     // Capture stack trace
     Error.captureStackTrace?.(this, this.constructor);

@@ -231,12 +231,14 @@ export function createCronUnscheduleTool(adapter: PostgresAdapter): ToolDefiniti
         if (jobInfo !== null) {
           sql = "SELECT cron.unschedule($1::bigint) as removed";
           queryParams = [jobInfo.jobid];
-        } else if (useJobName) {
-          sql = "SELECT cron.unschedule($1::text) as removed";
-          queryParams = [parsed.jobName];
-        } else {
+        } else if (parsed.jobId !== undefined) {
+          // Fallback to jobId if name lookup fails or isn't used
           sql = "SELECT cron.unschedule($1::bigint) as removed";
           queryParams = [parsed.jobId];
+        } else {
+          // Name only, and lookup failed. Try text-based unschedule (only works for active)
+          sql = "SELECT cron.unschedule($1::text) as removed";
+          queryParams = [parsed.jobName];
         }
 
         const result = await adapter.executeQuery(sql, queryParams);

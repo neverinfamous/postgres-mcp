@@ -189,16 +189,25 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
           totalCount !== undefined &&
           jobs.length < totalCount;
 
-        return {
+        const resultPayload: Record<string, unknown> = {
           success: true,
-          ...(jobs.length > 0 ? { jobs } : {}),
           count: jobs.length,
-          ...(truncated ? { truncated: true, totalCount } : {}),
-          hint:
-            unnamedCount > 0
-              ? `${String(unnamedCount)} job(s) have no name. Use jobId to reference them with alterJob or unschedule.`
-              : undefined,
         };
+
+        if (jobs.length > 0) {
+          resultPayload["jobs"] = jobs;
+        }
+
+        if (truncated) {
+          resultPayload["truncated"] = true;
+          resultPayload["totalCount"] = totalCount;
+        }
+
+        if (unnamedCount > 0) {
+          resultPayload["hint"] = `${String(unnamedCount)} job(s) have no name. Use jobId to reference them with alterJob or unschedule.`;
+        }
+
+        return resultPayload;
       } catch (error: unknown) {
         return {
           count: 0,
@@ -364,13 +373,22 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
           totalCount !== undefined &&
           rows.length < totalCount;
 
-        return {
+        const resultPayload: Record<string, unknown> = {
           success: true,
-          ...(rows.length > 0 ? { runs: rows } : {}),
           count: rows.length,
-          ...(truncated ? { truncated: true, totalCount } : {}),
-          ...(rows.length > 0 ? { summary: summaryStats } : {}),
         };
+
+        if (rows.length > 0) {
+          resultPayload["runs"] = rows;
+          resultPayload["summary"] = summaryStats;
+        }
+
+        if (truncated) {
+          resultPayload["truncated"] = true;
+          resultPayload["totalCount"] = totalCount;
+        }
+
+        return resultPayload;
       } catch (error: unknown) {
         return {
           count: 0,
