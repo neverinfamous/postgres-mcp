@@ -513,15 +513,15 @@ test.describe("Errors: Admin", () => {
     }
   });
 
-  test("terminate_backend with invalid PID → OPERATION_FAILED", async ({}, testInfo) => {
+  test("terminate_backend with invalid PID → PROCESS_NOT_FOUND", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_terminate_backend", {
         pid: -99999,
       });
-      // PG returns false for nonexistent pid, now reshaped to OPERATION_FAILED
+      // PG returns false for nonexistent pid, now reshaped to PROCESS_NOT_FOUND
       expectHandlerError(p);
-      expect(p.code).toBe("OPERATION_FAILED");
+      expect(p.code).toBe("PROCESS_NOT_FOUND");
     } finally {
       await client.close();
     }

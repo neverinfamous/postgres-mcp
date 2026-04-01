@@ -108,7 +108,7 @@ export function createTerminateBackendTool(adapter: PostgresAdapter): ToolDefini
           return {
             success: false,
             error: "Failed to terminate backend. Process may not exist or permission denied.",
-            code: "OPERATION_FAILED",
+            code: "PROCESS_NOT_FOUND",
             category: "query",
             suggestion: "Verify the PID exists and you have permission to terminate it.",
             recoverable: false,
@@ -149,7 +149,7 @@ export function createCancelBackendTool(adapter: PostgresAdapter): ToolDefinitio
           return {
             success: false,
             error: "Failed to cancel query. Process may not exist or permission denied.",
-            code: "OPERATION_FAILED",
+            code: "PROCESS_NOT_FOUND",
             category: "query",
             suggestion: "Verify the PID exists and you have permission to cancel its query.",
             recoverable: false,

@@ -329,7 +329,7 @@ export const ClusterSchemaBase = z.object({
   index: z
     .string()
     .optional()
-    .describe("Index to cluster on (required when table specified)"),
+    .describe("Index to cluster on (optional if table previously clustered)"),
   indexName: z.string().optional().describe("Alias for index"),
   schema: z.string().optional().describe("Schema name"),
 });
@@ -346,22 +346,21 @@ export const ClusterSchema = z
       index: z
         .string()
         .optional()
-        .describe("Index to cluster on (required when table specified)"),
+        .describe("Index to cluster on (optional if table previously clustered)"),
       schema: z.string().optional(),
     }),
   )
   .refine(
     (data) => {
-      // table and index must both be specified or both be omitted
+      // If index is specified, table MUST be specified
       const parsed = data as { table?: string; index?: string };
-      const hasTable = parsed.table !== undefined;
-      const hasIndex = parsed.index !== undefined;
-      // Both must be present or both absent
-      return hasTable === hasIndex;
+      if (parsed.index !== undefined && parsed.table === undefined) {
+        return false;
+      }
+      return true;
     },
     {
-      message:
-        "table and index must both be specified together, or both omitted for database-wide re-cluster",
+      message: "table is required when specifying an index",
     },
   );
 

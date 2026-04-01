@@ -74,6 +74,8 @@
 - Added explicit validation rejecting `path: ""` (empty string) in `pg_ltree_query` to prevent unbounded match-all payload exhaustion
 - Missing column headers in `pg_copy_export` empty table payloads
 - Unbounded payloads in `pg_copy_export` exceeding 50KB strings causing context window exhaustion
+- `pg_cluster` schema validation improperly requiring an index when clustering a previously clustered table
+- Generic `OPERATION_FAILED` error codes in `pg_cancel_backend` and `pg_terminate_backend` replaced with specific `PROCESS_NOT_FOUND`
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

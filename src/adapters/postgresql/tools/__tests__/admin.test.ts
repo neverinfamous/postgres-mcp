@@ -522,7 +522,7 @@ describe("pg_terminate_backend", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Failed to terminate");
-    expect(result.code).toBe("OPERATION_FAILED");
+    expect(result.code).toBe("PROCESS_NOT_FOUND");
   });
 
   it("should expose parameters in schema for MCP visibility", () => {
@@ -580,7 +580,7 @@ describe("pg_cancel_backend", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Failed to cancel");
-    expect(result.code).toBe("OPERATION_FAILED");
+    expect(result.code).toBe("PROCESS_NOT_FOUND");
   });
 
   it("should expose parameters in schema for MCP visibility", () => {
@@ -829,18 +829,22 @@ describe("pg_cluster", () => {
     expect(schema.shape?.["schema"]).toBeDefined();
   });
 
-  it("should return structured error when table specified without index", async () => {
-    const tool = tools.find((t) => t.name === "pg_cluster")!;
+  it("should cluster table without index (postgres uses previously clustered index)", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
     const result = (await tool.handler({ table: "users" }, mockContext)) as {
       success: boolean;
-      error: string;
+      message: string;
+      table: string;
     };
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain(
-      "table and index must both be specified together",
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith('CLUSTER "users"');
+    expect(result.success).toBe(true);
+    expect(result.message).toBe(
+      "Re-clustered users using its existing clustered index",
     );
+    expect(result.table).toBe("users");
   });
 
   it("should return structured error when index specified without table", async () => {
@@ -856,7 +860,7 @@ describe("pg_cluster", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain(
-      "table and index must both be specified together",
+      "table is required when specifying an index",
     );
   });
 });

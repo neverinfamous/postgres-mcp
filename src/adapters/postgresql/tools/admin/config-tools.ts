@@ -9,7 +9,6 @@ import type { ToolDefinition, RequestContext } from "../../../../types/index.js"
 import { admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeIdentifier, sanitizeTableName } from "../../../../utils/identifiers.js";
 import {
   buildProgressContext,
@@ -141,23 +140,22 @@ export function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         // Table-specific CLUSTER
-        // index is guaranteed by schema refine when table is specified
-        if (parsed.index === undefined) {
-          return new ValidationError(
-            "table and index must both be specified together, or both omitted for database-wide re-cluster"
-          ).toResponse();
-        }
         const tableName = sanitizeTableName(parsed.table, parsed.schema);
-        const sql = `CLUSTER ${tableName} USING ${sanitizeIdentifier(parsed.index)}`;
+        let sql = `CLUSTER ${tableName}`;
+        if (parsed.index !== undefined) {
+          sql += ` USING ${sanitizeIdentifier(parsed.index)}`;
+        }
         await adapter.executeQuery(sql);
 
         await sendProgress(progress, 2, 2, "CLUSTER complete");
 
         return {
           success: true,
-          message: `Clustered ${parsed.table} using index ${parsed.index}`,
+          message: parsed.index
+            ? `Clustered ${parsed.table} using index ${parsed.index}`
+            : `Re-clustered ${parsed.table} using its existing clustered index`,
           table: parsed.table,
-          index: parsed.index,
+          ...(parsed.index && { index: parsed.index }),
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_cluster" });
