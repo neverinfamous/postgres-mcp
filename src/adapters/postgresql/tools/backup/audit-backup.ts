@@ -379,8 +379,10 @@ export function createAuditDiffBackupTool(
             if (snapshot.ddl.includes('CREATE SEQUENCE')) {
                const seqRegex = /CREATE SEQUENCE IF NOT EXISTS "([^"]+)"\."([^"]+)"/i;
                const seqMatch = seqRegex.exec(snapshot.ddl);
-               if (seqMatch !== null && seqMatch[1] !== undefined && seqMatch[2] !== undefined) {
-                   currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${seqMatch[1]}"."${seqMatch[2]}";\n` + currentDdl;
+               const seqSchema = seqMatch?.[1];
+               const seqName = seqMatch?.[2];
+               if (seqSchema !== undefined && seqName !== undefined) {
+                   currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${seqSchema}"."${seqName}";\n` + currentDdl;
                } else {
                    currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${schema}"."${target}_id_seq";\n` + currentDdl;
                }
