@@ -88,6 +88,8 @@
 - Refined validation in `pg_audit_restore_backup` to guarantee `dryRun: true` definitively bypasses side-by-side `restoreAs` persistent table allocations
 - Corrected `OBJECT_ALREADY_EXISTS` error string interpolation in `pg_audit_restore_backup` to explicitly surface the colliding table name instead of a cryptic `duplicate key value`
 - Replaced generic Javascript exceptions in `pg_audit_diff_backup` and `pg_audit_restore_backup` with strictly typed `QueryError` classes mapped to `RESOURCE_NOT_FOUND` for missing snapshots
+- Remedied stale table cache evaluations in `pg_audit_diff_backup` by forcing adapter cache invalidation prior to schema extraction
+- Implemented proper `hasDifferences` output resolution in `pg_audit_diff_backup` extending drift evaluations to encompass both schema additions/removals and `volumeDrift` mutations
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows

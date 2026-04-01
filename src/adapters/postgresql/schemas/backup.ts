@@ -485,7 +485,7 @@ export const AuditDiffBackupOutputSchema = z
     success: z.boolean().optional().describe("Whether the operation succeeded"),
     metadata: z.record(z.string(), z.unknown()).optional().describe("Snapshot metadata"),
     objectExists: z.boolean().optional().describe("Whether target object still exists"),
-    hasDrift: z.boolean().optional().describe("Whether schema has drifted"),
+    hasDifferences: z.boolean().optional().describe("Whether schema or volume has drifted"),
     diff: z
       .object({
         additions: z.array(z.string()).describe("Lines added since snapshot"),

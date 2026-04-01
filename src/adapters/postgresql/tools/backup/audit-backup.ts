@@ -312,6 +312,8 @@ export function createAuditDiffBackupTool(
         let objectExists = true;
 
         try {
+          // Force invalidate cache to ensure we get the live schema for an accurate diff
+          adapter.invalidateTableCache(target, schema);
           // Use adapter's describeTable to get current state
           const tableInfo = await adapter.describeTable(target, schema);
           const columns = tableInfo.columns ?? [];
@@ -399,7 +401,7 @@ export function createAuditDiffBackupTool(
           }
         }
 
-        const hasDrift = additions.length > 0 || removals.length > 0;
+        const schemaDrift = additions.length > 0 || removals.length > 0;
 
         // §3: Volume drift analysis — compare snapshot metadata against current pg_class stats
         let volumeDrift: {
@@ -469,13 +471,18 @@ export function createAuditDiffBackupTool(
             // Volume drift is best-effort
           }
         }
+        
+        let hasDifferences = schemaDrift;
+        if (volumeDrift && ((volumeDrift.rowCountCurrent !== undefined && volumeDrift.rowCountSnapshot !== undefined && volumeDrift.rowCountCurrent !== volumeDrift.rowCountSnapshot) || (volumeDrift.sizeBytesCurrent !== undefined && volumeDrift.sizeBytesSnapshot !== undefined && volumeDrift.sizeBytesCurrent !== volumeDrift.sizeBytesSnapshot))) {
+            hasDifferences = true;
+        }
 
         return {
           success: true,
           metadata: snapshot.metadata,
           objectExists,
-          hasDrift,
-          ...(hasDrift && {
+          hasDifferences,
+          ...(schemaDrift && {
             diff: {
               additions,
               removals,
