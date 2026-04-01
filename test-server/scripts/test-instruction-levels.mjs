@@ -17,13 +17,14 @@ import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const PROJECT_DIR = resolve(__dirname, '..')
+const PROJECT_DIR = resolve(__dirname, '..', '..')
 
 // Ensure DB connection env vars are present (inherit from shell or use Docker defaults)
 if (!process.env.POSTGRES_CONNECTION_STRING && !process.env.DATABASE_URL) {
-    process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD ?? process.env.PGPASSWORD ?? 'postgres'
-    process.env.POSTGRES_USER = process.env.POSTGRES_USER ?? process.env.PGUSER ?? 'postgres'
-    process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE ?? process.env.PGDATABASE ?? 'postgres'
+    process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD || 'postgres'
+    process.env.POSTGRES_USER = process.env.POSTGRES_USER || process.env.PGUSER || 'postgres'
+    process.env.POSTGRES_DATABASE = process.env.POSTGRES_DATABASE || process.env.PGDATABASE || 'postgres'
+    process.env.POSTGRES_HOST = process.env.POSTGRES_HOST || process.env.PGHOST || '127.0.0.1'
 }
 
 /**
@@ -79,6 +80,12 @@ function testServer(args) {
                 },
             }) + '\n'
         )
+
+        proc.on('exit', (code) => {
+            if (code !== 0 && code !== null) {
+                reject(new Error(`Server exited prematurely with code ${code} (ensure PostgreSQL is running on 5432)`))
+            }
+        })
 
         setTimeout(() => {
             proc.kill()
