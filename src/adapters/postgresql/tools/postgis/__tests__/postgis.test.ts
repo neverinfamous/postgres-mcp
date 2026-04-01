@@ -459,7 +459,7 @@ describe("Error Handling", () => {
       success: false,
       error: 'extension "postgis" is not available',
       code: 'QUERY_ERROR',
-      category: 'query'
+      category: 'config'
     });
   });
 });
