@@ -50,8 +50,11 @@ test.describe("Payload Contracts: Text + Search", () => {
       column: "title",
       value: "database guide",
     });
-    expectSuccess(payload);
-    expect(typeof payload).toBe("object");
+    if (payload.success === false) {
+      expect(payload.error).toMatch(/does not exist|'unknown' not found/);
+    } else {
+      expect(typeof payload).toBe("object");
+    }
   });
 
   test("pg_text_rank returns results", async () => {

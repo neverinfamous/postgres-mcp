@@ -763,7 +763,7 @@ describe("HttpTransport", () => {
         transport as unknown as { config: Record<string, unknown> }
       ).config;
 
-      expect(config.host).toBe("localhost");
+      expect(config.host).toBe("127.0.0.1");
       expect(config.enableRateLimit).toBe(true);
       expect(config.enableHSTS).toBe(false);
     });

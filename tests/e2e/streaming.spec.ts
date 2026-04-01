@@ -4,7 +4,7 @@
  * Validates raw SSE event stream behavior for both Streamable HTTP
  * (GET /mcp) and Legacy SSE (GET /sse) transports.
  *
- * Uses a dedicated server on port 3105 to avoid disrupting SDK-based
+ * Uses a dedicated server on port 3130 to avoid disrupting SDK-based
  * tests on the shared port (raw SSE connections interfere with
  * McpServer.connect() single-transport state).
  *
@@ -14,7 +14,10 @@
 import { test, expect } from "./fixtures.js";
 import { startServer, stopServer } from "./helpers.js";
 
-const STREAM_PORT = 3105;
+// Force sequential execution to prevent parallel workers from colliding on manual ports/files
+test.describe.configure({ mode: "serial" });
+
+const STREAM_PORT = 3130;
 const STREAM_BASE = `http://127.0.0.1:${STREAM_PORT}`;
 
 test.describe("HTTP/SSE Streaming", () => {

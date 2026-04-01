@@ -14,7 +14,7 @@ import { test, expect } from "./fixtures.js";
 import { startServer, stopServer, createClient, callToolAndParse } from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
-const AUDIT_PORT_BASE = 3160;
+const AUDIT_PORT_BASE = 3180;
 const AUDIT_FILTER = "core,transactions,introspection";
 
 function auditLogPath(suffix: string): string {
@@ -39,7 +39,7 @@ test.describe("Audit Token Summary Accuracy", () => {
     try {
       client = await createClient(`http://127.0.0.1:${port}`);
 
-      const toolsToCall = [
+      const toolsToCall: Array<{ name: string, args: Record<string, unknown> }> = [
         { name: "pg_transaction_begin", args: {} },
         { name: "pg_read_query", args: { sql: "SELECT 1 AS test_val" } },
         { name: "pg_list_tables", args: { limit: 2 } },
@@ -78,7 +78,7 @@ test.describe("Audit Token Summary Accuracy", () => {
       const resource = await client.readResource({ uri: "postgres://audit" });
       expect(resource.contents).toBeDefined();
       
-      const body = JSON.parse(resource.contents[0]!.text!) as {
+      const body = JSON.parse((resource.contents[0] as any).text!) as {
         summary: {
           totalTokenEstimate: number;
           callCount: number;
@@ -133,7 +133,7 @@ test.describe("Audit Token Summary Accuracy", () => {
       await new Promise(r => setTimeout(r, 600));
 
       const resource = await client.readResource({ uri: "postgres://audit" });
-      const body = JSON.parse(resource.contents[0]!.text!) as any;
+      const body = JSON.parse((resource.contents[0] as any).text!) as any;
 
       // pg_schema_snapshot should be the #1 tool in tokens used
       expect(body.summary.topToolsByTokens[0].tool).toBe("pg_schema_snapshot");

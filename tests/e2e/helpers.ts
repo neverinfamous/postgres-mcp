@@ -13,8 +13,9 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import type { TestInfo } from "@playwright/test";
 import { expect } from "@playwright/test";
 
-const DEFAULT_POSTGRES_URL =
-  "postgres://postgres:postgres@localhost:5432/postgres";
+function getDefaultPostgresUrl(): string {
+  return process.env.MCP_TEST_DB || "postgres://postgres:postgres@127.0.0.1:5432/postgres";
+}
 
 // ─── Client creation ────────────────────────────────────────────────────────
 
@@ -23,19 +24,19 @@ const DEFAULT_POSTGRES_URL =
  * Falls back to DEFAULT_BASE_URL if not set.
  */
 export function getBaseURL(testInfo: TestInfo): string {
-  return (testInfo.project.use as { baseURL?: string }).baseURL ?? (process.env.MCP_TEST_URL || "http://localhost:3000");
+  return (testInfo.project.use as { baseURL?: string }).baseURL ?? (process.env.MCP_TEST_URL || "http://127.0.0.1:3000");
 }
 
 /**
  * Create a connected MCP client via SSE transport.
  * Caller is responsible for calling `client.close()` in a finally block.
  *
- * @param baseURL - Server base URL. Defaults to `http://localhost:3000`.
+ * @param baseURL - Server base URL. Defaults to `http://127.0.0.1:3000`.
  */
 export async function createClient(
   baseURL?: string,
 ): Promise<Client> {
-  const url = new URL(`${baseURL ?? process.env.MCP_TEST_URL ?? "http://localhost:3000"}/sse`);
+  const url = new URL(`${baseURL ?? process.env.MCP_TEST_URL ?? "http://127.0.0.1:3000"}/sse`);
   const maxRetries = 3;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -159,7 +160,7 @@ export async function startServer(
       "http",
       "--port",
       String(port),
-      ...(!hasPostgres ? ["--postgres", DEFAULT_POSTGRES_URL] : []),
+      ...(!hasPostgres ? ["--postgres", getDefaultPostgresUrl()] : []),
       "--tool-filter",
       "+all",
       ...extraArgs,
@@ -174,13 +175,20 @@ export async function startServer(
     },
   );
 
+  proc.stderr?.on("data", (data) => {
+    console.error(`[${label}:${port}] STDERR: ${String(data)}`);
+  });
+  proc.stdout?.on("data", (data) => {
+    console.log(`[${label}:${port}] STDOUT: ${String(data)}`);
+  });
+
   serverProcesses.set(port, proc);
 
   // Wait for server readiness
-  const maxAttempts = 30;
+  const maxAttempts = 60;
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const res = await fetch(`http://localhost:${port}/health`);
+      const res = await fetch(`http://127.0.0.1:${port}/health`);
       if (res.ok) return;
     } catch {
       // Not ready yet

@@ -71,7 +71,10 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Handle CSV format (default)
         if (format === "csv" || format === undefined) {
-          const headers = result.fields ? result.fields.map(f => f.name) : [];
+          const firstRow = result.rows?.[0];
+          const headers = result.fields
+            ? result.fields.map(f => f.name)
+            : (firstRow != null ? Object.keys(firstRow) : []);
           const delim = delimiter ?? ",";
           const lines: string[] = [];
           
@@ -145,7 +148,10 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Handle TEXT format - tab-delimited with \N for NULLs
         if (format === "text") {
-          const headers = result.fields ? result.fields.map(f => f.name) : [];
+          const firstRow = result.rows?.[0];
+          const headers = result.fields
+            ? result.fields.map(f => f.name)
+            : (firstRow != null ? Object.keys(firstRow) : []);
           const delim = delimiter ?? "\t";
           const lines: string[] = [];
 

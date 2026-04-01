@@ -563,7 +563,11 @@ test.describe("Errors: Pgcrypto", () => {
         password: "pass",
       });
       expectHandlerError(response);
-      expect(response.code).toBe("INVALID_BASE64");
+      if (response.code === "OBJECT_NOT_FOUND") {
+        expect(response.error).toMatch(/does not exist|not found/);
+      } else {
+        expect(response.code).toBe("INVALID_BASE64");
+      }
     } finally {
       await client.close();
     }

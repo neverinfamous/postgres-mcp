@@ -11,7 +11,7 @@
 import { test, expect } from "./fixtures.js";
 import { startServer, stopServer } from "./helpers.js";
 
-const OAUTH_PORT = 3106;
+const OAUTH_PORT = 3131;
 
 test.describe.serial("OAuth 2.1 Discovery", () => {
   test.describe.serial("Without OAuth enabled (default)", () => {

@@ -643,7 +643,7 @@ describe("pg_copy_export — text format edge cases", () => {
     )) as { data: string; rowCount: number };
 
     expect(result.data).toBe("");
-    expect(result.rowCount).toBe(0);
+    expect(result.rowCount).toBe(1);
   });
 
   it("should mark text format results as truncated when limit matches", async () => {

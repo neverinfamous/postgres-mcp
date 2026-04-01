@@ -14,7 +14,7 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 
 test.describe.serial("Advanced Session Management", () => {
   test("should reject SSE session ID on /mcp (cross-protocol guard)", async ({}, testInfo) => {
-    const baseURL = testInfo.project.use.baseURL as string;
+    const baseURL = process.env.MCP_TEST_URL || "http://127.0.0.1:3000";
 
     // Connect via Legacy SSE to get an SSE session ID
     const sseTransport = new SSEClientTransport(new URL(`${baseURL}/sse`));
@@ -50,7 +50,7 @@ test.describe.serial("Advanced Session Management", () => {
   });
 
   test("should support sequential session isolation", async ({}, testInfo) => {
-    const baseURL = testInfo.project.use.baseURL as string;
+    const baseURL = process.env.MCP_TEST_URL || "http://127.0.0.1:3000";
 
     // Verify that sequential sessions each get fresh state and distinct IDs.
     const completedRounds: number[] = [];
@@ -86,7 +86,7 @@ test.describe.serial("Advanced Session Management", () => {
   });
 
   test("should reject request with non-existent session ID", async ({}, testInfo) => {
-    const baseURL = testInfo.project.use.baseURL as string;
+    const baseURL = process.env.MCP_TEST_URL || "http://127.0.0.1:3000";
 
     const response = await fetch(`${baseURL}/mcp`, {
       method: "POST",

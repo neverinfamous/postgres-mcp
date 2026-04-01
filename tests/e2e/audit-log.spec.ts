@@ -22,6 +22,9 @@ import { test, expect } from "./fixtures.js";
 import { startServer, stopServer, createClient, callToolRaw, callToolAndParse } from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
+// Force sequential execution to prevent parallel workers from colliding on manual ports/files
+test.describe.configure({ mode: "serial" });
+
 const AUDIT_PORT_BASE = 3150;
 
 /** Tool filter that includes both core (read-scope) and transactions (write-scope) */

@@ -9,7 +9,6 @@ export default defineConfig({
   globalSetup: "./tests/e2e/global-setup.ts",
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
   projects: [

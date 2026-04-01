@@ -10,6 +10,9 @@
 import { test, expect } from "./fixtures.js";
 import { startServer, stopServer, createClient } from "./helpers.js";
 
+// Force sequential execution to prevent parallel workers from colliding on manual ports/files
+test.describe.configure({ mode: "serial" });
+
 const FILTER_PORT_BASE = 3110;
 
 test.describe("Tool Filter Runtime Behavior", () => {

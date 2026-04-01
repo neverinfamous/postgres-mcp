@@ -76,7 +76,7 @@ export async function startHttpServer(
     options.serverHost ??
     process.env["MCP_HOST"] ??
     process.env["HOST"] ??
-    "localhost";
+    "127.0.0.1";
 
   // Create OAuth components if enabled
   let resourceServer: OAuthResourceServer | undefined;

@@ -151,6 +151,7 @@ export class HttpTransport {
       this.server.on("error", reject);
 
       this.server.listen(this.config.port, this.config.host, () => {
+        logger.info(
           `HTTP transport listening on ${this.config.host ?? "127.0.0.1"}:${String(this.config.port)}`,
         );
         resolve();
@@ -229,14 +230,19 @@ export class HttpTransport {
     }
 
     // DNS rebinding protection — only for localhost-bound servers
-    const host = this.config.host ?? "localhost";
+    const host = this.config.host ?? "127.0.0.1";
+    if (
       host === "127.0.0.1" ||
-      host === "::1"
+      host === "::1" ||
+      host === "localhost"
+    ) {
       if (!validateHostHeader(req, res)) {
         return;
       }
     }
 
+    const url = new URL(
+      req.url ?? "/",
       `http://${req.headers.host ?? "127.0.0.1"}`,
     );
 

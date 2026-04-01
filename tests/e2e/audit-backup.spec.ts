@@ -26,6 +26,9 @@ import {
 } from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
+// Force sequential execution to prevent parallel workers from colliding on manual ports/files
+test.describe.configure({ mode: "serial" });
+
 const BACKUP_PORT_BASE = 3160;
 
 /** Generate a unique temp directory path for the audit log */
