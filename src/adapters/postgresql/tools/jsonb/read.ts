@@ -148,7 +148,8 @@ export function createJsonbExtractTool(
             return row;
           });
           const allNulls = rows?.every((r) => r["value"] === null) ?? false;
-          const response: { rows?: unknown; count: number; hint?: string } = {
+          const response: { success: boolean; rows?: unknown; count: number; hint?: string } = {
+            success: true,
             count: rows?.length ?? 0,
           };
           if (rows && rows.length > 0) response.rows = rows;
@@ -165,10 +166,12 @@ export function createJsonbExtractTool(
         // Check if all results are null (path may not exist)
         const allNulls = rows?.every((r) => r.value === null) ?? false;
         const response: {
+          success: boolean;
           rows?: { value: unknown }[];
           count: number;
           hint?: string;
         } = {
+          success: true,
           count: rows?.length ?? 0,
         };
         if (rows && rows.length > 0) response.rows = rows;
@@ -270,12 +273,14 @@ export function createJsonbContainsTool(
           !Array.isArray(value) &&
           Object.keys(value).length === 0;
         const response: {
+          success: boolean;
           rows?: unknown;
           count: number;
           truncated?: boolean;
           totalCount?: number;
           warning?: string;
         } = {
+          success: true,
           count: rows.length,
         };
         if (rows.length > 0) response.rows = rows;
@@ -357,11 +362,12 @@ export function createJsonbPathQueryTool(
           : allResults;
 
         const response: {
+          success: boolean;
           results?: unknown[];
           count: number;
           truncated?: boolean;
           totalCount?: number;
-        } = { count: results.length };
+        } = { success: true, count: results.length };
         if (results.length > 0) response.results = results;
         if (isTruncated) {
           response.truncated = true;

@@ -101,6 +101,7 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
           const sql = `SELECT ${groupExpr} as group_key, jsonb_agg(${selectExpr}${aggOrderBy}) as items FROM ${qualifiedTable} t${whereClause}${groupClause}${limitClause}`;
           const result = await adapter.executeQuery(sql);
           return {
+            success: true,
             result: result.rows,
             count: result.rows?.length ?? 0,
             grouped: true,
@@ -112,11 +113,12 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
           const arr = result.rows?.[0]?.["result"] ?? [];
           const count = Array.isArray(arr) ? arr.length : 0;
           const response: {
+            success: boolean;
             result: unknown;
             count: number;
             grouped: boolean;
             hint?: string;
-          } = { result: arr, count, grouped: false };
+          } = { success: true, result: arr, count, grouped: false };
           if (count === 0) {
             response.hint = "No rows matched - returns empty array []";
           }
@@ -166,10 +168,12 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql);
         const keys: string[] = (result.rows ?? []).map((r) => r["key"] as string);
         const response: {
+          success: boolean;
           keys?: string[];
           count: number;
           hint: string;
         } = {
+          success: true,
           count: keys?.length ?? 0,
           hint: "Returns unique keys deduplicated across all matching rows",
         };
@@ -240,7 +244,8 @@ export function createJsonbTypeofTool(
         const types: (string | null)[] = (result.rows ?? []).map((r) => r["type"] as string | null);
         const columnNull =
           result.rows?.some((r) => r["column_null"] === true) ?? false;
-        const response: { types?: (string | null)[]; count: number; columnNull: boolean } = {
+        const response: { success: boolean; types?: (string | null)[]; count: number; columnNull: boolean } = {
+          success: true,
           count: types?.length ?? 0,
           columnNull,
         };

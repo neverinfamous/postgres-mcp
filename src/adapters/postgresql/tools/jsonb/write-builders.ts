@@ -67,7 +67,7 @@ export function createJsonbObjectTool(
 
         // Handle empty pairs - return empty object
         if (entries.length === 0) {
-          return { object: {} };
+          return { success: true, object: {} };
         }
 
         const args = entries.flatMap(([k, v]) => [k, toJsonString(v)]);
@@ -79,7 +79,7 @@ export function createJsonbObjectTool(
           .join(", ");
         const sql = `SELECT jsonb_build_object(${placeholders}) as result`;
         const result = await adapter.executeQuery(sql, args);
-        return { object: result.rows?.[0]?.["result"] ?? {} };
+        return { success: true, object: result.rows?.[0]?.["result"] ?? {} };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_object",
@@ -122,7 +122,7 @@ export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
           throw new Error("Validation error: 'values' must be an array");
         }
         if (values.length === 0) {
-          return { array: [] };
+          return { success: true, array: [] };
         }
         const placeholders = values
           .map((_, i) => `$${String(i + 1)}::jsonb`)
@@ -132,7 +132,7 @@ export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
           sql,
           values.map((v) => toJsonString(v)),
         );
-        return { array: result.rows?.[0]?.["result"] };
+        return { success: true, array: result.rows?.[0]?.["result"] };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_array",
@@ -185,6 +185,7 @@ export function createJsonbStripNullsTool(
           const previewSql = `SELECT "${column}" as before, jsonb_strip_nulls("${column}") as after FROM ${qualifiedTable} WHERE ${sanitizeWhereClause(whereClause)}`;
           const result = await adapter.executeQuery(previewSql);
           return {
+            success: true,
             preview: true,
             rows: result.rows,
             count: result.rows?.length ?? 0,
@@ -194,7 +195,7 @@ export function createJsonbStripNullsTool(
 
         const sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_strip_nulls("${column}") WHERE ${sanitizeWhereClause(whereClause)}`;
         const result = await adapter.executeQuery(sql);
-        return { rowsAffected: result.rowsAffected };
+        return { success: true, rowsAffected: result.rowsAffected };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_strip_nulls",

@@ -92,11 +92,13 @@ export function createJsonbValidatePathTool(
           ]);
           const results = result.rows?.map((r) => r["result"]);
           const response: {
+            success: boolean;
             valid: boolean;
             path: string;
             results?: unknown[];
             varsUsed: boolean;
           } = {
+            success: true,
             valid: true,
             path: parsed.path,
             varsUsed: parsed.vars !== undefined,
@@ -106,10 +108,11 @@ export function createJsonbValidatePathTool(
         } else {
           const sql = `SELECT $1::jsonpath as path`;
           await adapter.executeQuery(sql, [parsed.path]);
-          return { valid: true, path: parsed.path };
+          return { success: true, valid: true, path: parsed.path };
         }
       } catch (error: unknown) {
         return {
+          success: false,
           valid: false,
           path: parsed.path,
           error: error instanceof Error ? error.message : "Invalid path",
@@ -262,14 +265,14 @@ export function createJsonbMergeTool(adapter: PostgresAdapter): ToolDefinition {
             parsed.overlay,
             useMergeArrays,
           );
-          return { merged, deep: true, mergeArrays: useMergeArrays };
+          return { success: true, merged, deep: true, mergeArrays: useMergeArrays };
         } else {
           const sql = `SELECT $1::jsonb || $2::jsonb as result`;
           const result = await adapter.executeQuery(sql, [
             toJsonString(parsed.base),
             toJsonString(parsed.overlay),
           ]);
-          return { merged: result.rows?.[0]?.["result"], deep: false };
+          return { success: true, merged: result.rows?.[0]?.["result"], deep: false };
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
@@ -409,7 +412,8 @@ export function createJsonbNormalizeTool(
             };
           }
         }
-        const response: { rows?: unknown[]; count: number; mode: string } = {
+        const response: { success: boolean; rows?: unknown[]; count: number; mode: string } = {
+          success: true,
           count: result.rows?.length ?? 0,
           mode,
         };
@@ -518,11 +522,13 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
         ]);
 
         const response: {
+          success: boolean;
           differences?: unknown[];
           hasDifferences: boolean;
           comparison: string;
           hint: string;
         } = {
+          success: true,
           hasDifferences: (result.rows?.length ?? 0) > 0,
           comparison: "shallow",
           hint: "Compares top-level keys only. Nested object changes show as modified.",

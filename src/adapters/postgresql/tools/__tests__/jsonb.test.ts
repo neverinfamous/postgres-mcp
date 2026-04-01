@@ -311,7 +311,7 @@ describe("JSONB Tools", () => {
         mockContext,
       )) as { object: Record<string, unknown> };
 
-      expect(result).toEqual({ object: { name: "John", age: 30 } });
+      expect(result).toEqual({ success: true, object: { name: "John", age: 30 } });
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
         expect.stringContaining("jsonb_build_object"),
         expect.anything(),

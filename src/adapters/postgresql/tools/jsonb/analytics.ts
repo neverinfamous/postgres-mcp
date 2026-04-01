@@ -125,11 +125,12 @@ export function createJsonbIndexSuggestTool(
         }
 
         const response: {
+          success: boolean;
           keyDistribution?: typeof keys;
           existingIndexes?: unknown;
           recommendations?: string[];
           hint?: string;
-        } = {};
+        } = { success: true };
         if (keys.length > 0) response.keyDistribution = keys;
         if ((indexResult.rows?.length ?? 0) > 0) {
           response.existingIndexes = indexResult.rows;
@@ -288,10 +289,12 @@ export function createJsonbSecurityScanTool(
         }
 
         const response: {
+          success: boolean;
           scannedRows: number;
           issues?: { type: string; key: string; count: number }[];
           riskLevel: string;
         } = {
+          success: true,
           scannedRows: actualRowsScanned,
           riskLevel:
             issues.length === 0 ? "low" : issues.length < 3 ? "medium" : "high",
@@ -444,12 +447,14 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         const response: {
+          success: boolean;
           basics?: typeof basicsNormalized;
           topKeys?: typeof topKeys;
           typeDistribution?: typeof typeDistribution;
           sqlNullCount: number;
           hint?: string;
         } = {
+          success: true,
           sqlNullCount,
         };
         if (basicsNormalized) response.basics = basicsNormalized;
