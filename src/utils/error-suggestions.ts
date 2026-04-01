@@ -141,7 +141,7 @@ const ERROR_SUGGESTIONS: {
     code: "COLUMN_NOT_FOUND",
   },
   {
-    pattern: /schema ".*" does not exist/i,
+    pattern: /schema ["'].*["'] does not exist/i,
     suggestion:
       "Schema not found. Use pg_list_schemas to see available schemas.",
     category: ErrorCategory.RESOURCE,

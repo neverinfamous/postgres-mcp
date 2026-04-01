@@ -65,7 +65,7 @@ Useful for auditing case-insensitive columns.`,
             [schema],
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-            throw new ValidationError(`Schema '${schema}' does not exist. Verify the schema name.`);
+            throw new ValidationError(`Schema "${schema}" does not exist. Verify the schema name.`);
           }
         }
 

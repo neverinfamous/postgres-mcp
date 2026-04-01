@@ -183,6 +183,7 @@ export const CitextSchemaAdvisorSchemaBase = z.object({
   table: z.string().optional().describe("Table name to analyze (required)"),
   tableName: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name (default: public)"),
+  compact: z.boolean().optional().describe("Omit recommendations to 'keep' current types (default: true)"),
 });
 
 /**
@@ -194,6 +195,7 @@ export const CitextSchemaAdvisorSchema = z
   .transform((data) => ({
     table: data.table ?? data.tableName ?? "",
     schema: data.schema,
+    compact: data.compact ?? true,
   }))
   .refine((data) => data.table !== "", {
     message: "table (or tableName alias) is required",

@@ -85,7 +85,7 @@ Looks for common patterns like email, username, name, slug, etc.`,
           [schema],
         );
         if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-          throw new ValidationError(`Schema '${schema}' does not exist. Verify the schema name.`);
+          throw new ValidationError(`Schema "${schema}" does not exist. Verify the schema name.`);
         }
       }
 
@@ -265,7 +265,11 @@ Requires the 'table' parameter to specify which table to analyze.`,
     icons: getToolIcons("citext", readOnly("Citext Schema Advisor")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { table, schema } = CitextSchemaAdvisorSchema.parse(params);
+        const { table, schema, compact } = CitextSchemaAdvisorSchema.parse(params) as {
+          table: string;
+          schema?: string;
+          compact: boolean;
+        };
         const schemaName = schema ?? "public";
         const qualifiedTable = `"${schemaName}"."${table}"`;
 
@@ -365,7 +369,7 @@ Requires the 'table' parameter to specify which table to analyze.`,
               confidence: "medium",
               reason: `Column name may benefit from case-insensitivity (${colName})`,
             });
-          } else {
+          } else if (!compact) {
             recommendations.push({
               column: col["column_name"] as string,
               currentType: dataType,
