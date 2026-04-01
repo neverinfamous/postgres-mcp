@@ -90,6 +90,8 @@
 - Replaced generic Javascript exceptions in `pg_audit_diff_backup` and `pg_audit_restore_backup` with strictly typed `QueryError` classes mapped to `RESOURCE_NOT_FOUND` for missing snapshots
 - Remedied stale table cache evaluations in `pg_audit_diff_backup` by forcing adapter cache invalidation prior to schema extraction
 - Implemented proper `hasDifferences` output resolution in `pg_audit_diff_backup` extending drift evaluations to encompass both schema additions/removals and `volumeDrift` mutations
+- Optimized token payload overhead in `pg_audit_diff_backup` by truncating excessively large additions and removals arrays to 50 items when compact mode is enabled
+- Further minimized `pg_audit_list_backups` payload footprint by omitting redundant `-1` rowCount values and skipping empty properties
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows

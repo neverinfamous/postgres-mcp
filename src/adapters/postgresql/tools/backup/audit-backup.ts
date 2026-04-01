@@ -91,18 +91,23 @@ export function createAuditListBackupsTool(
           tool: string;
           target: string;
           type: "ddl" | "ddl+data";
-          rowCount: number | undefined;
+          rowCount?: number;
         }
         let resultSnapshots: SnapshotMetadata[] | CompactSnapshot[] = snapshots;
         if (isCompact) {
-            resultSnapshots = snapshots.map((s): CompactSnapshot => ({
-                filename: s.filename,
-                timestamp: s.timestamp,
-                tool: s.tool,
-                target: s.target,
-                type: s.type,
-                rowCount: s.rowCount,
-            }));
+            resultSnapshots = snapshots.map((s): CompactSnapshot => {
+                const compactSnap: CompactSnapshot = {
+                    filename: s.filename,
+                    timestamp: s.timestamp,
+                    tool: s.tool,
+                    target: s.target,
+                    type: s.type,
+                };
+                if (s.rowCount !== undefined && s.rowCount !== -1) {
+                    compactSnap.rowCount = s.rowCount;
+                }
+                return compactSnap;
+            });
         }
 
         return {
@@ -484,8 +489,12 @@ export function createAuditDiffBackupTool(
           hasDifferences,
           ...(schemaDrift && {
             diff: {
-              additions,
-              removals,
+              ...(additions.length > 0 && { 
+                additions: parsed.compact && additions.length > 50 ? [...additions.slice(0, 50), `... and ${String(additions.length - 50)} more`] : additions 
+              }),
+              ...(removals.length > 0 && { 
+                removals: parsed.compact && removals.length > 50 ? [...removals.slice(0, 50), `... and ${String(removals.length - 50)} more`] : removals 
+              }),
             },
           }),
           ...(volumeDrift && { volumeDrift }),

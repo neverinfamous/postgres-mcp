@@ -488,8 +488,8 @@ export const AuditDiffBackupOutputSchema = z
     hasDifferences: z.boolean().optional().describe("Whether schema or volume has drifted"),
     diff: z
       .object({
-        additions: z.array(z.string()).describe("Lines added since snapshot"),
-        removals: z.array(z.string()).describe("Lines removed since snapshot"),
+        additions: z.array(z.string()).optional().describe("Lines added since snapshot"),
+        removals: z.array(z.string()).optional().describe("Lines removed since snapshot"),
       })
       .optional()
       .describe("Schema differences"),
