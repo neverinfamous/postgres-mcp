@@ -273,8 +273,8 @@ describe("pg_cron_unschedule", () => {
     )) as { jobId: number | null };
 
     expect(mockAdapter.executeQuery).toHaveBeenLastCalledWith(
-      "SELECT cron.unschedule($1::text) as removed",
-      ["heartbeat"],
+      "SELECT cron.unschedule($1::bigint) as removed",
+      [10],
     );
     // Verify jobId is returned from lookup
     expect(result.jobId).toBe(10);
@@ -1051,12 +1051,12 @@ describe("cron.ts uncovered branches", () => {
 
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
     const result = (await tool.handler({}, mockContext)) as {
-      jobs: unknown[];
+      jobs?: unknown[];
       count: number;
       error: string;
     };
 
-    expect(result.jobs).toEqual([]);
+    expect(result.jobs).toBeUndefined();
     expect(result.count).toBe(0);
     expect(result.error).toContain("does not exist");
   });
@@ -1093,12 +1093,12 @@ describe("cron.ts uncovered branches", () => {
 
     const tool = tools.find((t) => t.name === "pg_cron_job_run_details")!;
     const result = (await tool.handler({}, mockContext)) as {
-      runs: unknown[];
+      runs?: unknown[];
       count: number;
       error: string;
     };
 
-    expect(result.runs).toEqual([]);
+    expect(result.runs).toBeUndefined();
     expect(result.count).toBe(0);
     expect(result.error).toContain("does not exist");
   });
