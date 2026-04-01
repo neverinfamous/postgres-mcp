@@ -119,7 +119,7 @@ describe("pg_dependency_graph", () => {
 
     expect(result.nodes).toHaveLength(2);
     expect(result.edges).toHaveLength(1);
-    expect(result.circularDependencies).toHaveLength(0);
+    expect(result.circularDependencies).toBeUndefined();
     expect(result.stats.totalTables).toBe(2);
     expect(result.stats.totalRelationships).toBe(1);
   });
