@@ -70,7 +70,7 @@ export function createAuditListBackupsTool(
         }
 
         const count = snapshots.length;
-        const requestedLimit = parsed.limit ?? 50;
+        const requestedLimit = parsed.limit ?? 20;
         const limit = requestedLimit === 0 ? 500 : requestedLimit;
         
         // Check size of snapshots. If payload is too large, compact by default
@@ -112,7 +112,7 @@ export function createAuditListBackupsTool(
 
         return {
           success: true,
-          snapshots: resultSnapshots,
+          ...(resultSnapshots.length > 0 && { snapshots: resultSnapshots }),
           count,
           limit,
           ...(isCompact && { compact: true }),
@@ -178,10 +178,10 @@ export function createAuditRestoreBackupTool(
 
           // Prevent sequence collisions on side-by-side restores by rewriting sequence names
           const safeOriginalTarget = originalTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const seqPattern1 = new RegExp(`${safeOriginalTarget}_id_seq`, 'g');
-          const seqPattern2 = new RegExp(`${safeOriginalTarget}_seq`, 'g');
-          ddl = ddl.replace(seqPattern1, `${restoreName}_id_seq`);
-          ddl = ddl.replace(seqPattern2, `${restoreName}_seq`);
+          const seqPattern1 = new RegExp(`${safeOriginalTarget}_id_seq([0-9]*)`, 'g');
+          const seqPattern2 = new RegExp(`${safeOriginalTarget}_seq([0-9]*)`, 'g');
+          ddl = ddl.replace(seqPattern1, `${restoreName}_id_seq$1`);
+          ddl = ddl.replace(seqPattern2, `${restoreName}_seq$1`);
           
           // Rewrite data INSERT statements if present
           if (dataStatements) {
@@ -377,7 +377,12 @@ export function createAuditDiffBackupTool(
             
             // Re-add CREATE SEQUENCE if snapshot had it so it aligns perfectly
             if (snapshot.ddl.includes('CREATE SEQUENCE')) {
-               currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${schema}"."${target}_id_seq";\n` + currentDdl;
+               const seqMatch = snapshot.ddl.match(/CREATE SEQUENCE IF NOT EXISTS "([^"]+)"\."([^"]+)"/i);
+               if (seqMatch) {
+                   currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${seqMatch[1]}"."${seqMatch[2]}";\n` + currentDdl;
+               } else {
+                   currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${schema}"."${target}_id_seq";\n` + currentDdl;
+               }
             }
           }
         } catch {

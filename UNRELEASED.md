@@ -93,6 +93,9 @@
 - Optimized token payload overhead in `pg_audit_diff_backup` by truncating excessively large additions and removals arrays to 50 items when compact mode is enabled
 - Further minimized `pg_audit_list_backups` payload footprint by omitting redundant `-1` rowCount values and skipping empty properties
 - Enforced `compact: true` as the universal default for `pg_audit_diff_backup` and `pg_audit_list_backups` to guarantee payload token efficiency and mitigate context window exhaustion during stress testing
+- Fixed `pg_audit_diff_backup` sequence drift false positives by extracting exact sequence names from snapshot DDL instead of assuming `_id_seq` default suffixes
+- Preserved numeric sequence suffixes (`_id_seq8`) during `pg_audit_restore_backup` side-by-side non-destructive restorations to avert sequence metadata collisions
+- Optimized `pg_audit_list_backups` payload efficiency by drastically lowering default limits from 50 to 20 and implicitly stripping empty snapshot records
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows
