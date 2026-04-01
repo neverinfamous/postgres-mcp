@@ -96,7 +96,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 
 ### Category 2: Topological Sort Completeness
 
-6. `pg_topological_sort({direction: "create"})` → verify isolated tables (no FK, e.g., `test_articles`, `test_measurements`) appear in order at level 0 with empty `dependencies`
+6. `pg_topological_sort({direction: "create"})` → verify isolated tables (no FK, e.g., `test_articles`, `test_measurements`) appear in order at level 0 and structurally omit their `dependencies` array (for token efficiency)
 7. `pg_topological_sort({direction: "drop"})` → verify same isolated tables still appear (direction shouldn't lose tables)
 8. Compare create vs drop: count of tables should be identical in both directions
 9. `pg_topological_sort({excludeExtensionSchemas: false})` → verify more tables than with `true`
