@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Audit Diff Payload Optimization** — Updated `pg_audit_diff_backup` to default to `compact: true`, bypassing redundant full DDL blocks in the response payload to conserve token consumption (saving ~1000+ tokens per evaluation) while preserving pure diff analysis.
+- **Introspection Payload Optimization** — Updated `pg_schema_snapshot` to structurally omit `0`-value keys and empty fields from the `stats` telemetry block, significantly reducing redundant token payload lengths on localized snapshot requests.
 
 See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 

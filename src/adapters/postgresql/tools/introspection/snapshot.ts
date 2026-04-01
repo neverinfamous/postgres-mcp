@@ -353,10 +353,15 @@ export function createSchemaSnapshotTool(
           stats.extensions = extResult.rows?.length ?? 0;
         }
 
+        const finalStats: Record<string, number> = {};
+        for (const [k, v] of Object.entries(stats)) {
+          if (v > 0) finalStats[k] = v;
+        }
+
         return {
           success: true,
           ...(Object.keys(snapshot).length > 0 ? { snapshot } : {}),
-          stats,
+          ...(Object.keys(finalStats).length > 0 ? { stats: finalStats } : {}),
           generatedAt: new Date().toISOString(),
         };
       } catch (error: unknown) {
