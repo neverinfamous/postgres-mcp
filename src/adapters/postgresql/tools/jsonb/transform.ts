@@ -76,11 +76,7 @@ export function createJsonbValidatePathTool(
           typeof parsed.path !== "string" ||
           parsed.path.trim() === ""
         ) {
-          return {
-            success: false,
-            error:
-              "Validation error: path is required and must be a non-empty string",
-          };
+          throw new ValidationError("path is required and must be a non-empty string");
         }
         if (parsed.testValue !== undefined) {
           const varsJson = parsed.vars ? JSON.stringify(parsed.vars) : "{}";
@@ -111,10 +107,12 @@ export function createJsonbValidatePathTool(
           return { success: true, valid: true, path: parsed.path };
         }
       } catch (error: unknown) {
+        if (error instanceof ValidationError) {
+          return formatHandlerErrorResponse(error, { tool: "pg_jsonb_validate_path" });
+        }
         return {
-          success: false,
+          success: true,
           valid: false,
-          path: parsed.path,
           error: error instanceof Error ? error.message : "Invalid path",
         };
       }
@@ -301,25 +299,87 @@ export function createJsonbNormalizeTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
-        const parsed = JsonbNormalizeSchema.parse(params);
-        const table = parsed.table;
-        const column = parsed.column;
-        if (!table || !column) {
-          return { success: false, error: "table and column are required" };
-        }
-        const whereClause = parsed.where
-          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
-          : "";
+        const parsed = JsonbNormalizeSchema.parse(params) as {
+          json?: string;
+          table?: string;
+          column?: string;
+          where?: string;
+          mode?: string;
+          schema?: string;
+          idColumn?: string;
+        };
         const mode = parsed.mode ?? "keys";
 
         // Validate mode parameter
         const validModes = ["keys", "array", "pairs", "flatten"];
         if (!validModes.includes(mode)) {
-          return {
-            success: false,
-            error: `pg_jsonb_normalize: Invalid mode '${mode}'. Valid modes: ${validModes.join(", ")}`,
-          };
+          throw new ValidationError(`pg_jsonb_normalize: Invalid mode '${mode}'. Valid modes: ${validModes.join(", ")}`);
         }
+
+        if (parsed.json) {
+           let sql: string;
+           if (mode === "array") {
+             sql = `SELECT 'raw_json' as source_id, jsonb_array_elements($1::jsonb) as element`;
+           } else if (mode === "flatten") {
+             sql = `
+                    WITH RECURSIVE
+                    source_rows AS (
+                        SELECT 'raw_json' as source_id, $1::jsonb as doc
+                    ),
+                    flattened AS (
+                        SELECT
+                            sr.source_id,
+                            kv.key as path,
+                            kv.value,
+                            jsonb_typeof(kv.value) as value_type
+                        FROM source_rows sr, jsonb_each(sr.doc) kv
+
+                        UNION ALL
+
+                        SELECT
+                            f.source_id,
+                            f.path || '.' || kv.key,
+                            kv.value,
+                            jsonb_typeof(kv.value)
+                        FROM flattened f, jsonb_each(f.value) kv
+                        WHERE jsonb_typeof(f.value) = 'object'
+                    )
+                    SELECT source_id, path as key, value, value_type FROM flattened
+                    WHERE value_type != 'object' OR value = '{}'::jsonb
+                    ORDER BY source_id, path
+                `;
+           } else if (mode === "pairs") {
+             sql = `SELECT 'raw_json' as source_id, key, value FROM jsonb_each($1::jsonb)`;
+           } else {
+             sql = `SELECT 'raw_json' as source_id, key, value FROM jsonb_each_text($1::jsonb)`;
+           }
+
+           const result = await adapter.executeQuery(sql, [parsed.json]);
+           if (mode === "flatten" && (result.rows?.length ?? 0) === 0) {
+              const typeCheck = await adapter.executeQuery(`SELECT jsonb_typeof($1::jsonb) as type`, [parsed.json]);
+              if (typeCheck.rows?.[0]?.["type"] === "array") {
+                throw new ValidationError("pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.");
+              }
+           }
+           const response: { success: boolean; rows?: unknown[]; count: number; mode: string } = {
+             success: true,
+             count: result.rows?.length ?? 0,
+             mode,
+           };
+           if (result.rows && result.rows.length > 0) response.rows = result.rows;
+           return response;
+        }
+
+        const table = parsed.table;
+        const column = parsed.column;
+        if (!table || !column) {
+          throw new ValidationError("Either 'json' (raw string) or 'table' + 'column' (table mode) is required");
+        }
+        const whereClause = parsed.where
+          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+          : "";
+
+
 
         // Validate schema existence for non-public schemas
         const schemaName = parsed.schema ?? "public";
@@ -329,10 +389,7 @@ export function createJsonbNormalizeTool(
             [schemaName],
           );
           if (!schemaResult.rows || schemaResult.rows.length === 0) {
-            return {
-              success: false,
-              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
-            };
+            throw new ValidationError(`Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`);
           }
         }
 
@@ -406,10 +463,7 @@ export function createJsonbNormalizeTool(
           const typeCheckSql = `SELECT jsonb_typeof(${columnName}) as type FROM ${tableName}${whereClause} LIMIT 1`;
           const typeResult = await adapter.executeQuery(typeCheckSql);
           if (typeResult.rows?.[0]?.["type"] === "array") {
-            return {
-              success: false,
-              error: `pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.`,
-            };
+            throw new ValidationError(`pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.`);
           }
         }
         const response: { success: boolean; rows?: unknown[]; count: number; mode: string } = {
@@ -425,19 +479,19 @@ export function createJsonbNormalizeTool(
           error instanceof Error &&
           error.message.includes("cannot call jsonb_each")
         ) {
-          return {
-            success: false,
-            error: `pg_jsonb_normalize requires object columns for this mode. For array columns, use mode: 'array'.`,
-          };
+          return formatHandlerErrorResponse(
+            new ValidationError(`pg_jsonb_normalize requires object columns for this mode. For array columns, use mode: 'array'.`),
+            { tool: "pg_jsonb_normalize" }
+          );
         }
         if (
           error instanceof Error &&
           error.message.includes("cannot extract elements from an object")
         ) {
-          return {
-            success: false,
-            error: `pg_jsonb_normalize 'array' mode requires array columns. For object columns, use mode: 'keys' or 'pairs'.`,
-          };
+          return formatHandlerErrorResponse(
+            new ValidationError(`pg_jsonb_normalize 'array' mode requires array columns. For object columns, use mode: 'keys' or 'pairs'.`),
+            { tool: "pg_jsonb_normalize" }
+          );
         }
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_normalize",
@@ -491,11 +545,7 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           parsed = JsonbDiffSchema.parse(params);
         } catch {
-          return {
-            success: false,
-            error:
-              "pg_jsonb_diff requires two JSONB objects. Arrays and primitive values are not supported. Use {} format for both doc1 and doc2.",
-          };
+          throw new ValidationError("pg_jsonb_diff requires two JSONB objects. Arrays and primitive values are not supported. Use {} format for both doc1 and doc2.");
         }
 
         const sql = `

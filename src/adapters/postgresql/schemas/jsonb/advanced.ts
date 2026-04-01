@@ -14,6 +14,7 @@ import { ErrorResponseFields } from "../error-response-fields.js";
 // ============== NORMALIZE SCHEMA ==============
 // Base schema (for MCP inputSchema visibility - no preprocess)
 export const JsonbNormalizeSchemaBase = z.object({
+  json: z.string().optional().describe("Raw JSON string to normalize"),
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column"),
@@ -37,10 +38,10 @@ export const JsonbNormalizeSchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbNormalizeSchemaRefined = JsonbNormalizeSchemaBase.refine(
-  (data) => data.table !== undefined || data.tableName !== undefined,
-  { message: "Either 'table' or 'tableName' is required" },
-).refine((data) => data.column !== undefined || data.col !== undefined, {
-  message: "Either 'column' or 'col' is required",
+  (data) => data.json !== undefined || (data.table !== undefined || data.tableName !== undefined),
+  { message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required" },
+).refine((data) => data.json !== undefined || (data.column !== undefined || data.col !== undefined), {
+  message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
 });
 
 // Full schema with preprocess (for handler parsing)

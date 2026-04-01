@@ -13,6 +13,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import { coerceLimit, DEFAULT_QUERY_LIMIT } from "../../../../utils/query-helpers.js";
 import {
@@ -97,10 +98,10 @@ export function createJsonbExtractTool(
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
         if (parsed.path === undefined) {
-          return { success: false, error: "path is required" };
+          throw new ValidationError("path is required");
         }
         // Use normalizePathToArray for PostgreSQL #> operator
         const pathArray = normalizePathToArray(parsed.path);
@@ -111,7 +112,7 @@ export function createJsonbExtractTool(
           table,
           parsed.schema,
         );
-        if (tableError) return tableError;
+        if (tableError) throw new ValidationError(tableError.error);
 
         // Build select expression with optional additional columns
         let selectExpr = `${sanitizeIdentifier(column)} #> $1 as extracted_value`;
@@ -208,7 +209,7 @@ export function createJsonbContainsTool(
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
 
         // Validate schema and build qualified table name
@@ -217,7 +218,7 @@ export function createJsonbContainsTool(
           table,
           parsed.schema,
         );
-        if (tableError) return tableError;
+        if (tableError) throw new ValidationError(tableError.error);
 
         const { select, where } = parsed;
         // Parse JSON string values from MCP clients
@@ -328,7 +329,7 @@ export function createJsonbPathQueryTool(
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
 
         // Validate schema and build qualified table name
@@ -337,7 +338,7 @@ export function createJsonbPathQueryTool(
           table,
           parsed.schema,
         );
-        if (tableError) return tableError;
+        if (tableError) throw new ValidationError(tableError.error);
 
         const { path, vars, where } = parsed;
         const whereClause = where ? ` WHERE ${sanitizeWhereClause(where)}` : "";
@@ -389,10 +390,10 @@ export function createJsonbPathQueryTool(
           /syntax error/i.test(error.message) &&
           /jsonpath/i.test(error.message)
         ) {
-          return {
-            success: false,
-            error: `Invalid JSONPath syntax. Use $.key, $.array[*], or $.* ? (@.field > 10) syntax.`,
-          };
+          return formatHandlerErrorResponse(
+            new ValidationError("Invalid JSONPath syntax. Use $.key, $.array[*], or $.* ? (@.field > 10) syntax."),
+            { tool: "pg_jsonb_path_query" }
+          );
         }
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_path_query",

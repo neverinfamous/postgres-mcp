@@ -14,6 +14,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import { resolveJsonbTable } from "./read.js";
 import {
@@ -58,10 +59,7 @@ export function createJsonbPrettyTool(
               formatted: pretty,
             };
           } catch {
-            return {
-              success: false,
-              error: "Invalid JSON string",
-            };
+            throw new ValidationError("Invalid JSON string");
           }
         }
 
@@ -70,11 +68,7 @@ export function createJsonbPrettyTool(
         const column = parsed.column ?? parsed.col;
 
         if (!table || !column) {
-          return {
-            success: false,
-            error:
-              "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
-          };
+          throw new ValidationError("Either 'json' (raw string) or 'table' + 'column' (table mode) is required");
         }
 
         const [qualifiedTable, tableError] = await resolveJsonbTable(

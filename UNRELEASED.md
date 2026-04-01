@@ -58,7 +58,9 @@
 - Error category refinements in `PostgresMcpError` overriding generic instantiations
 - Explicit warnings for zero rows affected in JSONB write operations
 - Docker Hub rate-limit blocks during multi-arch image pipelines by enforcing authenticated pulls
+- 'pg_jsonb_normalize' incorrectly requiring 'table' and 'column' parameters for standalone 'json' instances
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
+- Replaced inline error returns across JSONB tools with structured `ValidationError` instances, preserving standard error output
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows

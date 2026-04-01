@@ -13,6 +13,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   JsonbAggSchemaBase,
@@ -44,7 +45,7 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
         const parsed = JsonbAggSchema.parse(params);
         const table = parsed.table;
         if (!table) {
-          return { success: false, error: "table is required" };
+          throw new ValidationError("table is required");
         }
 
         // Validate schema and build qualified table name
@@ -150,7 +151,7 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
         const table = parsed.table;
         const column = parsed.column;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
 
         // Validate schema and build qualified table name
@@ -185,10 +186,10 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
           error instanceof Error &&
           error.message.includes("cannot call jsonb_object_keys")
         ) {
-          return {
-            success: false,
-            error: `pg_jsonb_keys requires object columns. For array columns, use pg_jsonb_normalize with mode: 'array'.`,
-          };
+          return formatHandlerErrorResponse(
+            new ValidationError(`pg_jsonb_keys requires object columns. For array columns, use pg_jsonb_normalize with mode: 'array'.`),
+            { tool: "pg_jsonb_keys" }
+          );
         }
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_keys",
@@ -217,7 +218,7 @@ export function createJsonbTypeofTool(
         const table = parsed.table;
         const column = parsed.column;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
 
         // Validate schema and build qualified table name

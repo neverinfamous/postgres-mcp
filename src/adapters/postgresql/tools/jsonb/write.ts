@@ -11,6 +11,7 @@ import type {
 } from "../../../../types/index.js";
 
 
+import { ValidationError } from "../../../../types/errors.js";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -47,7 +48,7 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
         const { value, where, createMissing } = parsed;
 
@@ -57,30 +58,22 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
           table,
           parsed.schema,
         );
-        if (tableError) return tableError;
+        if (tableError) throw new ValidationError(tableError.error);
 
         // Normalize path to array format
         if (parsed.path === undefined) {
-          return { success: false, error: "path is required" };
+          throw new ValidationError("path is required");
         }
         const path = normalizePathToArray(parsed.path);
 
         // Validate required 'where' parameter
         if (!where || where.trim() === "") {
-          return {
-            success: false,
-            error:
-              'pg_jsonb_set requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
-          };
+          throw new ValidationError('pg_jsonb_set requires a WHERE clause to identify rows to update. Example: where: "id = 1"');
         }
 
         // Validate value is provided (undefined would set column to null)
         if (value === undefined) {
-          return {
-            success: false,
-            error:
-              "pg_jsonb_set requires a value parameter. To remove a key, use pg_jsonb_delete instead.",
-          };
+          throw new ValidationError("pg_jsonb_set requires a value parameter. To remove a key, use pg_jsonb_delete instead.");
         }
 
         const createFlag = createMissing !== false;
@@ -190,7 +183,7 @@ export function createJsonbInsertTool(
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
 
         // Validate schema and build qualified table name
@@ -199,21 +192,17 @@ export function createJsonbInsertTool(
           table,
           parsed.schema,
         );
-        if (tableError) return tableError;
+        if (tableError) throw new ValidationError(tableError.error);
 
         // Normalize path - convert numeric segments to numbers for PostgreSQL
         if (parsed.path === undefined) {
-          return { success: false, error: "path is required" };
+          throw new ValidationError("path is required");
         }
         const path = normalizePathForInsert(parsed.path);
 
         // Validate required 'where' parameter
         if (!parsed.where || parsed.where.trim() === "") {
-          return {
-            success: false,
-            error:
-              'pg_jsonb_insert requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
-          };
+          throw new ValidationError('pg_jsonb_insert requires a WHERE clause to identify rows to update. Example: where: "id = 1"');
         }
 
         // Check for NULL columns first - jsonb_insert requires existing array context
@@ -221,10 +210,7 @@ export function createJsonbInsertTool(
         const checkResult = await adapter.executeQuery(checkSql);
         const nullCount = Number(checkResult.rows?.[0]?.["null_count"] ?? 0);
         if (nullCount > 0) {
-          return {
-            success: false,
-            error: `pg_jsonb_insert cannot operate on NULL columns. Use pg_jsonb_set to initialize the column first: pg_jsonb_set({table: "${table}", column: "${column}", path: "myarray", value: [], where: "..."})`,
-          };
+          throw new ValidationError(`pg_jsonb_insert cannot operate on NULL columns. Use pg_jsonb_set to initialize the column first: pg_jsonb_set({table: "${table}", column: "${column}", path: "myarray", value: [], where: "..."})`);
         }
 
         // Validate target path points to an array, not an object
@@ -238,10 +224,7 @@ export function createJsonbInsertTool(
             | string
             | undefined;
           if (columnType && columnType !== "array") {
-            return {
-              success: false,
-              error: `pg_jsonb_insert requires an array target. Column contains '${columnType}'. Use pg_jsonb_set for objects.`,
-            };
+            throw new ValidationError(`pg_jsonb_insert requires an array target. Column contains '${columnType}'. Use pg_jsonb_set for objects.`);
           }
         } else {
           // Check the parent path type
@@ -254,10 +237,7 @@ export function createJsonbInsertTool(
             | string
             | undefined;
           if (targetType && targetType !== "array") {
-            return {
-              success: false,
-              error: `pg_jsonb_insert requires an array target. Path '${parentPathStrings.join(".")}' contains '${targetType}'. Use pg_jsonb_set for objects.`,
-            };
+            throw new ValidationError(`pg_jsonb_insert requires an array target. Path '${parentPathStrings.join(".")}' contains '${targetType}'. Use pg_jsonb_set for objects.`);
           }
         }
 
@@ -282,19 +262,19 @@ export function createJsonbInsertTool(
           error instanceof Error &&
           error.message.includes("cannot replace existing key")
         ) {
-          return {
-            success: false,
-            error: `pg_jsonb_insert is for arrays only. For objects, use pg_jsonb_set. If updating an existing array element, use pg_jsonb_set.`,
-          };
+          return formatHandlerErrorResponse(
+            new ValidationError(`pg_jsonb_insert is for arrays only. For objects, use pg_jsonb_set. If updating an existing array element, use pg_jsonb_set.`),
+            { tool: "pg_jsonb_insert" }
+          );
         }
         if (
           error instanceof Error &&
           error.message.includes("path element is not an integer")
         ) {
-          return {
-            success: false,
-            error: `pg_jsonb_insert requires numeric index for array position. Use array format with number: ["tags", 0] not ["tags", "0"] or "tags.0"`,
-          };
+          return formatHandlerErrorResponse(
+            new ValidationError(`pg_jsonb_insert requires numeric index for array position. Use array format with number: ["tags", 0] not ["tags", "0"] or "tags.0"`),
+            { tool: "pg_jsonb_insert" }
+          );
         }
         return formatHandlerErrorResponse(error, {
             tool: "pg_jsonb_insert",
@@ -323,7 +303,7 @@ export function createJsonbDeleteTool(
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
 
         // Validate schema and build qualified table name
@@ -332,30 +312,22 @@ export function createJsonbDeleteTool(
           table,
           parsed.schema,
         );
-        if (tableError) return tableError;
+        if (tableError) throw new ValidationError(tableError.error);
 
         // Validate required 'where' parameter
         if (!parsed.where || parsed.where.trim() === "") {
-          return {
-            success: false,
-            error:
-              'pg_jsonb_delete requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
-          };
+          throw new ValidationError('pg_jsonb_delete requires a WHERE clause to identify rows to update. Example: where: "id = 1"');
         }
 
         // Validate path is not empty
         if (parsed.path === undefined) {
-          return { success: false, error: "path is required" };
+          throw new ValidationError("path is required");
         }
         if (
           parsed.path === "" ||
           (Array.isArray(parsed.path) && parsed.path.length === 0)
         ) {
-          return {
-            success: false,
-            error:
-              "pg_jsonb_delete requires a non-empty path. Provide a key name or path to delete.",
-          };
+          throw new ValidationError("pg_jsonb_delete requires a non-empty path. Provide a key name or path to delete.");
         }
 
         // Determine if path should be treated as nested (array path) or single key
