@@ -52,7 +52,7 @@ export const TopologicalSortOutputSchema = z.object({
         table: z.string(),
         schema: z.string(),
         level: z.number(),
-        dependencies: z.array(z.string()),
+        dependencies: z.array(z.string()).optional(),
       }),
     )
     .optional(),
@@ -130,8 +130,8 @@ export const ConstraintAnalysisOutputSchema = z.object({
   summary: z
     .object({
       totalFindings: z.number(),
-      byType: z.record(z.string(), z.number()),
-      bySeverity: z.record(z.string(), z.number()),
+      byType: z.record(z.string(), z.number()).optional(),
+      bySeverity: z.record(z.string(), z.number()).optional(),
     })
     .optional(),
   hint: z.string().optional(),

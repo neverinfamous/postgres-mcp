@@ -723,7 +723,7 @@ describe("pg_cascade_simulator", () => {
     )) as { success: false; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should preserve NO ACTION label (not conflate with RESTRICT)", async () => {
