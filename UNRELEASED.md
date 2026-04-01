@@ -59,6 +59,7 @@
 - Explicit warnings for zero rows affected in JSONB write operations
 - Docker Hub rate-limit blocks during multi-arch image pipelines by enforcing authenticated pulls
 - 'pg_jsonb_normalize' incorrectly requiring 'table' and 'column' parameters for standalone 'json' instances
+- Handled native Error conversions to explicit `ValidationError` mappings preventing generic `QUERY_ERROR` fallbacks in JSONB operations
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

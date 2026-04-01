@@ -7,6 +7,7 @@
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
 import { z } from "zod";
+import { ValidationError } from "../../../../types/errors.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -114,12 +115,12 @@ export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
         // Support both 'values' and 'elements' parameter names
         const values = parsed.values ?? parsed.elements;
         if (values === undefined) {
-          throw new Error(
-            "Validation error: Either 'values' or 'elements' must be provided",
+          throw new ValidationError(
+            "Either 'values' or 'elements' must be provided",
           );
         }
         if (!Array.isArray(values)) {
-          throw new Error("Validation error: 'values' must be an array");
+          throw new ValidationError("'values' must be an array");
         }
         if (values.length === 0) {
           return { success: true, array: [] };
@@ -162,7 +163,7 @@ export function createJsonbStripNullsTool(
         const column = parsed.column;
         const whereClause = parsed.where;
         if (!table || !column) {
-          throw new Error("Validation error: table and column are required");
+          throw new ValidationError("table and column are required");
         }
 
         // Validate schema and build qualified table name
@@ -175,8 +176,8 @@ export function createJsonbStripNullsTool(
 
         // Validate required 'where' parameter before SQL execution
         if (whereClause === undefined || typeof whereClause !== "string" || whereClause.trim() === "") {
-          throw new Error(
-            'Validation error: pg_jsonb_strip_nulls requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
+          throw new ValidationError(
+            'pg_jsonb_strip_nulls requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
           );
         }
 
