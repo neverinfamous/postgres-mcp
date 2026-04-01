@@ -106,9 +106,6 @@ or interval syntax (e.g., "30 seconds"). Note: pg_cron allows duplicate job name
             : undefined,
         };
       } catch (error: unknown) {
-        if (error instanceof Error && error.message.includes("invalid schedule")) {
-          return formatHandlerErrorResponse(new ValidationError(`Invalid cron schedule expression provided`, { params }), { tool: "pg_cron_schedule" });
-        }
         return formatHandlerErrorResponse(error, { tool: "pg_cron_schedule" });
       }
     },

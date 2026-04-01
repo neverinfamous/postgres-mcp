@@ -100,6 +100,11 @@
 - Reduced `pg_citext_schema_advisor` payload footprint by omitting irrelevant "keep" recommendations when `compact: true` (default)
 - Unified inconsistent `schema "..." does not exist` regex matching across `pg_citext_*` by standardizing error templates and expanding `SCHEMA_NOT_FOUND` regex bounds
 - Eliminated redundant `limit` parameter type coercion block inside `citext` handler logic, relying on standardized Zod schema preprocessing
+- Optimized token payload overhead in `pg_cron_job_run_details` via a `compact` parameter that truncates string elements and is enabled by default
+- Fixed inaccurate `summary` statistics in `pg_cron_job_run_details` failing to reflect the total aggregate statuses when `limit` constraints were applied
+- Optimized token payload architecture in `pg_cron_list_jobs` via a `compact` payload toggle truncating oversized job schedule commands
+- Unified inconsistent `invalid schedule` regex matching across `pg_cron_*` tools mapping into standardized `VALIDATION_ERROR` boundaries
+- Eliminated redundant `formatHandlerErrorResponse` generic string handlers inside `scheduling.ts` favoring pipeline normalization
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows

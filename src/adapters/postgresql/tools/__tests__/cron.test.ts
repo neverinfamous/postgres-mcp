@@ -425,7 +425,7 @@ describe("pg_cron_job_run_details", () => {
   it("should get job run details", async () => {
     // Mock COUNT query first (for truncation indicator)
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ total: 3 }],
+      rows: [{ status: "succeeded", total: 2 }, { status: "failed", total: 1 }],
     });
     // Mock main query
     mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -729,7 +729,7 @@ describe("pg_cron string jobId coercion", () => {
   it("should accept string jobId in pg_cron_job_run_details", async () => {
     // Mock COUNT query first (for truncation indicator)
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ total: 1 }],
+      rows: [{ status: "succeeded", total: 1 }],
     });
     // Mock main query
     mockAdapter.executeQuery.mockResolvedValueOnce({

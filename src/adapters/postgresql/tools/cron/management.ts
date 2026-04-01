@@ -97,7 +97,12 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
     icons: getToolIcons("cron", readOnly("List Cron Jobs")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = CronListJobsSchema.parse(params ?? {});
+        const parsed = CronListJobsSchema.parse(params ?? {}) as {
+          active?: boolean;
+          limit?: unknown;
+          compact?: boolean;
+        };
+        const compact = parsed.compact ?? true;
 
         let sql = `
                 SELECT
@@ -122,7 +127,7 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
         sql += " ORDER BY jobid";
 
         // Safely coerce limit — NaN/non-finite → undefined (falls back to default 50)
-        const rawLimit = parsed.limit as unknown;
+        const rawLimit = parsed.limit;
         const coercedLimit =
           rawLimit !== undefined && rawLimit !== null
             ? Number(rawLimit)
@@ -157,13 +162,20 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
 
         // Normalize jobid to number (PostgreSQL BIGINT may return as string)
         const jobs = (result.rows ?? []).map(
-          (row: Record<string, unknown>) => ({
-            ...row,
-            jobid:
-              row["jobid"] !== null && row["jobid"] !== undefined
-                ? Number(row["jobid"])
-                : null,
-          }),
+          (row: Record<string, unknown>) => {
+            let cmd = row["command"] as string | undefined;
+            if (compact && cmd && cmd.length > 200) {
+              cmd = cmd.substring(0, 197) + "...";
+            }
+            return {
+              ...row,
+              command: cmd,
+              jobid:
+                row["jobid"] !== null && row["jobid"] !== undefined
+                  ? Number(row["jobid"])
+                  : null,
+            };
+          },
         );
 
         // Count unnamed jobs for hint
@@ -218,12 +230,15 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
           jobName,
           status,
           limit: rawLimitValue,
+          compact: isCompact,
         } = CronJobRunDetailsSchema.parse(params) as {
           jobId?: number;
           jobName?: string;
           status?: string;
           limit?: unknown;
+          compact?: boolean;
         };
+        const compact = isCompact ?? true;
 
         // Safely coerce limit — NaN/non-finite → undefined (falls back to default 50)
         const coercedLimit =
@@ -276,12 +291,19 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
 
         // Get total count for truncation indicator (only needed when limiting)
         let totalCount: number | undefined;
+        const summaryStats = { succeeded: 0, failed: 0, running: 0 };
+        
         if (limitVal !== null) {
-          const countSql = `SELECT COUNT(*)::int as total FROM cron.job_run_details ${whereClause}`;
+          const countSql = `SELECT status, COUNT(*)::int as total FROM cron.job_run_details ${whereClause} GROUP BY status`;
           const countResult = await adapter.executeQuery(countSql, queryParams);
-          totalCount =
-            (countResult.rows?.[0] as { total: number } | undefined)?.total ??
-            0;
+          totalCount = 0;
+          for (const row of countResult.rows ?? []) {
+            const rowData = row as { status: string; total: number };
+            totalCount += rowData.total;
+            if (rowData.status === "succeeded") summaryStats.succeeded = rowData.total;
+            if (rowData.status === "failed") summaryStats.failed = rowData.total;
+            if (rowData.status === "running") summaryStats.running = rowData.total;
+          }
         }
 
         const limitClause =
@@ -307,26 +329,35 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
         const result = await adapter.executeQuery(sql, queryParams);
 
         // Normalize runid and jobid to numbers (PostgreSQL BIGINT may return as strings)
-        const rows = (result.rows ?? []).map((r: Record<string, unknown>) => ({
-          ...r,
-          runid:
-            r["runid"] !== null && r["runid"] !== undefined
-              ? Number(r["runid"])
-              : null,
-          jobid:
-            r["jobid"] !== null && r["jobid"] !== undefined
-              ? Number(r["jobid"])
-              : null,
-        }));
-        const succeeded = rows.filter(
-          (r: Record<string, unknown>) => r["status"] === "succeeded",
-        ).length;
-        const failed = rows.filter(
-          (r: Record<string, unknown>) => r["status"] === "failed",
-        ).length;
-        const running = rows.filter(
-          (r: Record<string, unknown>) => r["status"] === "running",
-        ).length;
+        const rows = (result.rows ?? []).map((r: Record<string, unknown>) => {
+          let cmd = r["command"] as string;
+          let retMsg = r["return_message"] as string | null;
+
+          if (compact) {
+            if (cmd && cmd.length > 200) cmd = cmd.substring(0, 197) + "...";
+            if (retMsg && retMsg.length > 200) retMsg = retMsg.substring(0, 197) + "...";
+          }
+
+          return {
+            ...r,
+            command: cmd,
+            return_message: retMsg,
+            runid:
+              r["runid"] !== null && r["runid"] !== undefined
+                ? Number(r["runid"])
+                : null,
+            jobid:
+              r["jobid"] !== null && r["jobid"] !== undefined
+                ? Number(r["jobid"])
+                : null,
+          };
+        });
+
+        if (limitVal === null) {
+          summaryStats.succeeded = rows.filter((r) => (r as Record<string, unknown>)["status"] === "succeeded").length;
+          summaryStats.failed = rows.filter((r) => (r as Record<string, unknown>)["status"] === "failed").length;
+          summaryStats.running = rows.filter((r) => (r as Record<string, unknown>)["status"] === "running").length;
+        }
 
         // Determine if results were truncated (only when limiting)
         const truncated =
@@ -339,11 +370,7 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
           runs: rows,
           count: rows.length,
           ...(truncated ? { truncated: true, totalCount } : {}),
-          summary: {
-            succeeded,
-            failed,
-            running,
-          },
+          summary: summaryStats,
         };
       } catch (error: unknown) {
         return {

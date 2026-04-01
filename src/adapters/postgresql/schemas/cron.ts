@@ -300,12 +300,14 @@ export const CronAlterJobSchema = z
 export const CronListJobsSchemaBase = z.object({
   active: z.boolean().optional().describe("Filter by active status"),
   limit: z.union([z.number(), z.string()]).optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
+  compact: z.boolean().optional().describe("Whether to truncate long text fields like command (default: true)"),
 });
 
 export const CronListJobsSchema = z.object({
   active: z.boolean().optional().describe("Filter by active status"),
   limit: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
-});
+  compact: z.boolean().optional().default(true).describe("Whether to truncate long text fields"),
+}).default({ compact: true });
 
 export const CronJobRunDetailsSchemaBase = z.object({
   jobId: z.union([z.number(), z.string()]).optional().describe("Filter by job ID"),
@@ -315,6 +317,7 @@ export const CronJobRunDetailsSchemaBase = z.object({
     .optional()
     .describe("Filter by status (running, succeeded, failed)"),
   limit: z.union([z.number(), z.string()]).optional().describe("Maximum records to return (default: 10)"),
+  compact: z.boolean().optional().describe("Whether to truncate long text fields like command and return_message (default: true)"),
 });
 
 export const CronJobRunDetailsSchema = z
@@ -327,8 +330,9 @@ export const CronJobRunDetailsSchema = z
       .describe("Filter by status (running, succeeded, failed)"),
     limit: z.preprocess(coerceNumber, z.number().optional()).optional()
       .describe("Maximum records to return (default: 10)"),
+    compact: z.boolean().optional().default(true).describe("Whether to truncate long text fields"),
   })
-  .default({})
+  .default({ compact: true })
   .transform((data) => ({
     ...data,
     jobId: data.jobId !== undefined && data.jobId !== null ? Number(data.jobId) : undefined,

@@ -82,9 +82,10 @@ const ERROR_SUGGESTIONS: {
     code: "DIMENSION_MISMATCH",
   },
   {
-    pattern: /invalid schedule: invalid cron/i,
+    pattern: /Invalid cron schedule/i,
     suggestion: "Use a valid cron schedule expression (e.g. '0 0 * * *').",
     category: ErrorCategory.VALIDATION,
+    code: "VALIDATION_ERROR",
   },
   {
     pattern: /is already managed by pg_partman/i,
