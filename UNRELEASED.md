@@ -23,6 +23,8 @@
 - Added `compact` toggle (default: `true`) to schemas, audits, cron, and citext tools to significantly conserve token payloads
 - Reduced default item limits across high-chatter tools (e.g., `pg_audit_list_backups`, `pg_stat_kcache`) to prevent context window bloat
 - Applied `openWorldHint: false` to all tools
+- Optimized payload efficiency in `pg_jsonb_agg` by structurally omitting the empty array result field to conserve tokens
+- Standardized `count` response property unconditionally in table mode for `pg_jsonb_pretty` to maintain response schema integrity
 - Reduced npm package size by excluding source maps and tests
 - Refactored Vitest test suite to use SWC compilation
 - Updated npm dependencies (`@modelcontextprotocol/sdk`, `typescript`, `typescript-eslint`)

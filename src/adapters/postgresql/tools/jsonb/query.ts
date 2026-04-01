@@ -101,12 +101,19 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
             : "";
           const sql = `SELECT ${groupExpr} as group_key, jsonb_agg(${selectExpr}${aggOrderBy}) as items FROM ${qualifiedTable} t${whereClause}${groupClause}${limitClause}`;
           const result = await adapter.executeQuery(sql);
-          return {
+          const count = result.rows?.length ?? 0;
+          const response: {
+            success: boolean;
+            result?: unknown;
+            count: number;
+            grouped: boolean;
+          } = {
             success: true,
-            result: result.rows,
-            count: result.rows?.length ?? 0,
+            count,
             grouped: true,
           };
+          if (count > 0) response.result = result.rows;
+          return response;
         } else {
           const innerSql = `SELECT * FROM ${qualifiedTable} t${whereClause}${orderByClause}${limitClause}`;
           const sql = `SELECT jsonb_agg(${selectExpr.replace(/\bt\./g, "sub.")}) as result FROM (${innerSql}) sub`;
@@ -115,11 +122,12 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
           const count = Array.isArray(arr) ? arr.length : 0;
           const response: {
             success: boolean;
-            result: unknown;
+            result?: unknown;
             count: number;
             grouped: boolean;
             hint?: string;
-          } = { success: true, result: arr, count, grouped: false };
+          } = { success: true, count, grouped: false };
+          if (count > 0) response.result = arr;
           if (count === 0) {
             response.hint = "No rows matched - returns empty array []";
           }

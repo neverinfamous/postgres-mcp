@@ -98,13 +98,13 @@ export function createJsonbPrettyTool(
         const response: {
           success: boolean;
           rows?: { formatted: string }[];
-          count?: number;
+          count: number;
         } = {
           success: true,
+          count: rows.length,
         };
         if (rows.length > 0) {
           response.rows = rows;
-          response.count = rows.length;
         }
 
         return response;
