@@ -108,6 +108,7 @@
 - Ensure `pg_cron_unschedule` correctly falls back to `jobId` lookups to handle inactive jobs by name, circumventing pg_cron's active-only name filters
 - Optimize `pg_cron_list_jobs` and `pg_cron_job_run_details` by structurally omitting empty payload array brackets and summary structures when zero jobs exist
 - Fixed `PostgresMcpError` to correctly apply category refinements from error considerations, overriding generic object initializations
+- Optimized the responses of `pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`, `pg_constraint_analysis`, and `pg_schema_snapshot` to strictly omit empty structural arrays/objects (`[]` and `{}`), improving token efficiency for down-stream LLMs.
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows

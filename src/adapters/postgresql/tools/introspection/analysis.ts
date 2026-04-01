@@ -212,7 +212,7 @@ export function createConstraintAnalysisTool(
 
         return {
           success: true,
-          findings,
+          ...(findings.length > 0 ? { findings } : {}),
           summary: {
             totalFindings: findings.length,
             byType,

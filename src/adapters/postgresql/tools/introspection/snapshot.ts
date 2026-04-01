@@ -355,7 +355,7 @@ export function createSchemaSnapshotTool(
 
         return {
           success: true,
-          snapshot,
+          ...(Object.keys(snapshot).length > 0 ? { snapshot } : {}),
           stats,
           generatedAt: new Date().toISOString(),
         };

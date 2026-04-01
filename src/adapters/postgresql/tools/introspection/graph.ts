@@ -165,14 +165,17 @@ export function createDependencyGraphTool(
 
         return {
           success: true,
-          nodes,
-          edges,
-          circularDependencies: cycles,
+          ...(nodes.length > 0 ? { nodes } : {}),
+          ...(edges.length > 0 ? { edges } : {}),
+          ...(cycles.length > 0 ? { circularDependencies: cycles } : {}),
           stats: {
             totalTables: allNodes.size,
             totalRelationships: fks.length,
             maxDepth,
-            ...(parsed.compact ? {} : { rootTables, leafTables }),
+            ...(parsed.compact ? {} : { 
+              ...(rootTables.length > 0 ? { rootTables } : {}),
+              ...(leafTables.length > 0 ? { leafTables } : {})
+            }),
           },
         };
       } catch (error: unknown) {
@@ -303,7 +306,7 @@ export function createTopologicalSortTool(
 
         return {
           success: true,
-          order,
+          ...(order.length > 0 ? { order } : {}),
           direction,
           hasCycles: sorted === null,
           ...(cycles.length > 0 ? { cycles } : {}),
@@ -463,7 +466,7 @@ export function createCascadeSimulatorTool(
           success: true,
           sourceTable: sourceQName,
           operation,
-          affectedTables: affected,
+          ...(affected.length > 0 ? { affectedTables: affected } : {}),
           severity,
           stats: {
             totalTablesAffected: affected.length,
