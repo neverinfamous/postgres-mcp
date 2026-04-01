@@ -82,6 +82,7 @@ export interface SnapshotQueryAdapter {
   }>;
   describeTable(table: string, schema?: string): Promise<{
     columns?: { name: string; type: string; nullable: boolean; defaultValue?: unknown }[];
+    primaryKey?: string[] | null;
   }>;
 }
 
@@ -406,6 +407,11 @@ export class BackupManager {
       return line;
     });
 
+    const primaryKey = tableInfo.primaryKey;
+    if (primaryKey && primaryKey.length > 0) {
+      ddlLines.push(`    PRIMARY KEY (${primaryKey.map((k) => `"${k}"`).join(", ")})`);
+    }
+
     return `${sequenceDdls}CREATE TABLE "${schemaName}"."${tableName}" (\n${ddlLines.join(",\n")}\n);`;
   }
 
@@ -432,10 +438,27 @@ export class BackupManager {
         | undefined;
       if (sizeRow) {
         // reltuples::bigint is sent as a string by the pg driver — must parse
-        const rowCount =
+        let rowCount =
           sizeRow.row_count !== undefined
             ? parseInt(String(sizeRow.row_count), 10)
             : undefined;
+
+        // -1 indicates statistics are stale (table unanalyzed). Fallback to fast exact count.
+        if (rowCount === -1) {
+          try {
+            const countResult = await adapter.executeQuery(
+              `SELECT COUNT(*) as _c FROM "${schemaName}"."${tableName}"`
+            );
+            const cVal = countResult.rows?.[0]?.['_c'];
+            rowCount = (typeof cVal === "number" || typeof cVal === "string") 
+              ? parseInt(String(cVal), 10) 
+              : -1;
+            if (isNaN(rowCount)) rowCount = -1;
+          } catch {
+            // Count fallback is best-effort
+          }
+        }
+
         const totalSizeBytes =
           typeof sizeRow.total_size_bytes === "number"
             ? sizeRow.total_size_bytes

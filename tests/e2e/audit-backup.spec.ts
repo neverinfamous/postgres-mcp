@@ -176,8 +176,10 @@ test.describe("Audit Backup Snapshots", () => {
       const filename = snapshots[snapshots.length - 1]!.filename as string;
 
       // Diff the snapshot against current live schema
+      // Pass compact: false to ensure DDL strings are returned for the test
       const diffResult = await callToolAndParse(client, "pg_audit_diff_backup", {
         filename,
+        compact: false,
       });
 
       // Verify response structure
@@ -454,9 +456,9 @@ test.describe("Audit Backup Snapshots", () => {
       const volumeDrift = diffResult.volumeDrift as Record<string, unknown> | undefined;
       expect(volumeDrift).toBeDefined();
       
-      // Because we never analyzed, the row snapshot is -1.
+      // Even though we never analyzed, the fallback SELECT COUNT(*) ensures we get 0 instead of -1.
       if (volumeDrift!.rowCountSnapshot !== undefined) {
-        expect(volumeDrift!.rowCountSnapshot as number).toBe(-1);
+        expect(volumeDrift!.rowCountSnapshot as number).toBe(0);
       }
     } finally {
       if (client) await client.close();
