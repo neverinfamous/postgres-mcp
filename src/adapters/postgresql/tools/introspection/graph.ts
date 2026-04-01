@@ -10,6 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
+import { ValidationError } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -300,7 +301,9 @@ export function createTopologicalSortTool(
             table: parts[1] ?? name,
             schema: parts[0] ?? "public",
             level: levelMap.get(name) ?? 0,
-            dependencies: [...(dependsOn.get(name) ?? [])].sort(),
+            ...((dependsOn.get(name) ?? new Set()).size > 0
+              ? { dependencies: [...(dependsOn.get(name) ?? [])].sort() }
+              : {}),
           };
         });
 
@@ -355,7 +358,7 @@ export function createCascadeSimulatorTool(
 
         // Check if source table exists
         if (!tableMap.has(sourceQName)) {
-          throw new Error(`Table "${sourceQName}" does not exist`);
+          throw new ValidationError(`Table '${sourceQName}' does not exist. Use pg_list_tables to verify.`);
         }
 
         // Build reverse adjacency: for each table, find what references it

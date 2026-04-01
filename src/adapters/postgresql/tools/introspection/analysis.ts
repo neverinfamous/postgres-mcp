@@ -215,8 +215,8 @@ export function createConstraintAnalysisTool(
           ...(findings.length > 0 ? { findings } : {}),
           summary: {
             totalFindings: findings.length,
-            byType,
-            bySeverity,
+            ...(Object.keys(byType).length > 0 ? { byType } : {}),
+            ...(Object.keys(bySeverity).length > 0 ? { bySeverity } : {}),
           },
         };
       } catch (error: unknown) {
