@@ -12,7 +12,6 @@ import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   KcacheDatabaseStatsSchemaBase,
-  KcacheDatabaseStatsSchema,
   KcacheResourceAnalysisSchemaBase,
   KcacheCreateExtensionOutputSchema,
   KcacheDatabaseStatsOutputSchema,
@@ -82,7 +81,7 @@ Shows total CPU time, I/O, and page faults across all queries.`,
     icons: getToolIcons("kcache", readOnly("Kcache Database Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { database } = KcacheDatabaseStatsSchema.parse(params);
+        const { database, compact } = KcacheDatabaseStatsSchemaBase.parse(params ?? {});
         const cols = await getKcacheColumnNames(adapter);
 
         let sql: string;
@@ -129,10 +128,23 @@ Shows total CPU time, I/O, and page faults across all queries.`,
         }
 
         const result = await adapter.executeQuery(sql, queryParams);
+        const rawRows = result.rows ?? [];
+        const isCompact = compact ?? true;
+        const rows = isCompact
+          ? rawRows.map(row => {
+              const obj: Record<string, unknown> = {};
+              for (const [key, value] of Object.entries(row)) {
+                if (value !== 0 && value !== "0" && value !== "0 bytes") {
+                  obj[key] = value;
+                }
+              }
+              return obj;
+            })
+          : rawRows;
 
         return {
-          databaseStats: result.rows ?? [],
-          count: result.rows?.length ?? 0,
+          databaseStats: rows,
+          count: rows.length,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {

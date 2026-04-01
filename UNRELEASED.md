@@ -20,7 +20,7 @@
 - Expanded `PostgresMcpError` to track categories, suggestions, and serialization context
 - Modularized source files and standardized file/directory names to kebab-case convention
 - Minimized tool payload sizes overall (~30-41% token reduction) by collapsing repetitive properties and selectively omitting empty arrays/objects
-- Added `compact` toggle (default: `true`) to schemas, audits, cron, and citext tools to significantly conserve token payloads
+- Added `compact` toggle (default: `true`) to schemas, audits, cron, citext, and kcache tools to significantly conserve token payloads
 - Reduced default item limits across high-chatter tools (e.g., `pg_audit_list_backups`, `pg_stat_kcache`) to prevent context window bloat
 - Applied `openWorldHint: false` to all tools
 - Optimized payload efficiency in `pg_jsonb_agg` by structurally omitting the empty array result field to conserve tokens

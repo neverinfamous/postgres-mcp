@@ -104,6 +104,10 @@ export const KcacheDatabaseStatsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Database name (current database if omitted)"),
+  compact: z
+    .boolean()
+    .optional()
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
 export const KcacheDatabaseStatsSchema = z.preprocess(
