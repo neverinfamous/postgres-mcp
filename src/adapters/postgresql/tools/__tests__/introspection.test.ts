@@ -956,8 +956,8 @@ describe("pg_schema_snapshot", () => {
       stats: Record<string, number>;
     };
 
-    // Extensions should be 0 with no extensions query fired
-    expect(result.stats["extensions"]).toBe(0);
+    // Extensions should be omitted with no extensions query fired
+    expect(result.stats["extensions"]).toBeUndefined();
     // Verify no call contained the extensions query (skip first call which is schema check)
     const allSqlCalls = mockAdapter.executeQuery.mock.calls.map(
       (call) => call[0] as string,
