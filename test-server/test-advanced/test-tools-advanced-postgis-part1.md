@@ -1,4 +1,4 @@
-# Advanced Stress Test — postgres-mcp — transactions Group
+# Advanced Stress Test — postgres-mcp — postgis Group (Part 1)
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -213,67 +213,45 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 ---
 
-## transactions Group Advanced Tests
+## postgis Group Advanced Tests
 
-### transactions Group Tools (8 + 1 code mode)
+### postgis Group Tools (15 + 1 code mode)
 
-1. `pg_transaction_begin`
-2. `pg_transaction_commit`
-3. `pg_transaction_rollback`
-4. `pg_transaction_savepoint`
-5. `pg_transaction_release`
-6. `pg_transaction_rollback_to`
-7. `pg_transaction_execute`
-8. `pg_transaction_status`
-9. `pg_execute_code` (auto-added)
+1. `pg_postgis_create_extension`
+2. `pg_geometry_column`
+3. `pg_point_in_polygon`
+4. `pg_distance`
+5. `pg_buffer`
+6. `pg_intersection`
+7. `pg_bounding_box`
+8. `pg_spatial_index`
+9. `pg_geocode`
+10. `pg_geo_transform`
+11. `pg_geo_index_optimize`
+12. `pg_geo_cluster`
+13. `pg_geometry_buffer`
+14. `pg_geometry_intersection`
+15. `pg_geometry_transform`
+16. `pg_execute_code` (auto-added)
 
 ### Category 1: Boundary Values & Empty States
 
 Test tools against extreme characters, non-applicable parameters, and zero-state topologies.
 
-1. `pg_transaction_execute` → Feed perfectly empty execution properties (`statements: []`). Does logic gracefully skip querying natively bypassing safely logic completely natively bounded securely?
-2. `pg_transaction_status` → Establish mapping bounds wrapping explicitly tracking status values completely. `begin` -> observe `active` -> `commit` -> observe cleanly `not_found` explicitly safely.
-3. `pg_transaction_begin` → Push cleanly wrapped logical mapping natively enforcing `isolation_level: "SERIALIZABLE"`. Check internal maps logically bounding wrapping mappings accurately globally efficiently completely purely natively securely cleanly smoothly.
+1. `pg_distance` → Map perfectly identical coordinate mappings between Source and Target polygons natively. Validate the Postgres mapping engine natively returns `distance: 0` without dividing-by-zero faults dynamically.
+2. `pg_geo_cluster` → Pass explicitly negative mapping thresholds dynamically `epsg: -99` or `distance: -100`. Verify parameters bounds assert mapped Zod formats correctly natively tracking bounds limits correctly.
+3. `pg_buffer` / `pg_geometry_buffer` → Attempt to pass `radius: -50`. Does spatial mapping invert the geometry locally or fault mapping boundaries reliably?
 
 ### Category 2: State Pollution & Idempotency
 
 Ensure tools execute safely when repeated identically multiple times.
 
-4. `pg_transaction_rollback` → Attempt cleanly explicit double-rollbacks safely targeting equivalent tracking configurations globally. Observe cleanly bounded mapping limitations directly smoothly cleanly bounding mapping limits flawlessly securely dynamically natively efficiently tracking logic exactly dynamically successfully.
-5. Create duplicate savepoints -> Execute `pg_transaction_savepoint` with completely identical names nested cleanly seamlessly securely inside perfectly seamlessly wrapping transaction mapping blocks. Does Postgres index mapping gracefully tracking exactly flawlessly inside correctly?
+4. `pg_geometry_column` → Pass the schema mappings accurately iteratively against the selfsame target geometry column parameters natively twice. Does index parsing securely throw a safe bypass map natively?
+5. `pg_postgis_create_extension` → Double-execute cleanly on active test databases to securely check `alreadyExists` states dynamically across Sandbox parameters natively.
 
 ### Category 3: Alias & Parameter Combinations
 
 Test parametric fallback modes and configuration matrices.
 
-6. `pg_transaction_begin` → Enforce strict blocks parsing logic mapping seamlessly boundaries using `read_only: true`. Explicitly attempt mutating writes tracking variables natively seamlessly tracking bounding exceptions flawlessly dynamically cleanly tracking blocks flawlessly seamlessly cleanly correctly bounds locally parsing gracefully mapped softly exactly neatly.
-7. `pg_transaction_execute` -> Combine `read_only` blocks explicitly checking cleanly tracking parameter properties smoothly parsing directly tracking bounds efficiently perfectly natively securely exactly natively cleanly efficiently. 
+6. `pg_geo_transform` / `pg_geometry_transform` → Switch dynamic variables between native coordinate references dynamically natively (SRID `4326` to SRID `3857`). Guarantee Javascript parameters seamlessly resolve typecast bounding boxes cleanly without numeric extraction truncation dynamically.
 
-### Category 4: Error Message Quality
-
-Ensure tools predictably return typed `VALIDATION_ERROR`, etc.
-
-8. `pg_transaction_status` → Map strictly impossible tracking logic correctly safely mapping natively parsing bounds correctly explicitly dynamically mapping `transactionId: "nonexistent-uuid"`. Check strictly structured mappings parsing safely accurately gracefully neatly mapping typed bindings `VALIDATION_ERROR` seamlessly natively accurately seamlessly efficiently correctly effectively properly exactly.
-9. Aborted State Maps -> Inject intentional schema mappings (e.g. `SELECT * FROM nonexistent`) gracefully generating bounds correctly dynamically mapping `status: "aborted"` efficiently mapping limits exactly safely wrapping cleanly effortlessly seamlessly accurately purely efficiently smoothly.
-
-### Category 5: Complex Flow Architectures
-
-Verify that complex native functions execute logic correctly dynamically.
-
-10. Multi-Step Execution Bounds -> Execute tightly constrained parameters parsing seamlessly dynamically mapping logic gracefully across deep natively tracked boundaries seamlessly successfully cleanly tracking natively bounded parsing maps exactly tightly cleanly exactly correctly dynamically properly dynamically properly effectively tracking perfectly safely securely. 
-    a) Run `pg_transaction_execute` accurately seamlessly executing exactly 3 identical seamless mapping logically tracking queries properly.
-    b) Intentionally fail query 2 perfectly dynamically cleanly directly wrapping parsing properly correctly smartly cleanly flawlessly natively safely cleanly efficiently natively efficiently accurately correctly effortlessly gracefully effortlessly logically bounded safely structurally correctly dynamically smartly smartly.
-
-### Category 6: Extended Cross-Schema Formatting
-
-11. `pg_transaction_savepoint` -> Parse explicit bounds mapped smoothly correctly seamlessly directly wrapping tightly perfectly logically natively mapping properties smartly cleanly perfectly flawlessly purely efficiently smartly exactly expertly safely expertly. 
-
-### Category 7: Large Payload & Truncation Verification
-
-Ensure sweeping reads cap context window exposure.
-
-12. Massive Code Mode Block Wrapper -> Enclose purely native parsing logic tracking maps executing exactly seamlessly perfectly properly mapping bounds softly wrapping gracefully tightly seamlessly bounding natively wrapping tracking completely cleanly smartly neatly perfectly explicitly logically limits mapping explicit limits completely effectively flawlessly smartly tracking dynamically gracefully flawlessly natively implicitly wrapping `transaction.autoRollback` parsing properly tightly bounds correctly globally seamlessly securely dynamically tightly explicitly perfectly locally dynamically seamlessly expertly efficiently smoothly softly strictly.
-
-### Final Cleanup
-
-13. Native Execution -> Drop any experimental tables.

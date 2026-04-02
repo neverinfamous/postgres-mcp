@@ -23,6 +23,8 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ### Changed
 
+- Harmonized test prompt architecture: split 6 monolithic Advanced Code Mode tests into part 1/2 pairings, injected missing Structured Error verification boilerplates into all 28 advanced files, and remediated cross-group testing logic loops
+
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`
 - Centralized default connection pool timeout to 30,000ms
 - Expanded `PostgresMcpError` to track categories, suggestions, and serialization context

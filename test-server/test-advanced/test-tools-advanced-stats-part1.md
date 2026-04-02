@@ -1,4 +1,4 @@
-# Advanced Stress Test — postgres-mcp — transactions Group
+# Advanced Stress Test — postgres-mcp — stats Group (Part 1)
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -7,7 +7,7 @@
 - Do not modify or skip tests.
 - Do not run any other test files.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests. Ignore distractions in terminal.
+- Do not do anything other than these tests.
 - Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
@@ -213,67 +213,62 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 ---
 
-## transactions Group Advanced Tests
+## stats Group Advanced Tests
 
-### transactions Group Tools (8 + 1 code mode)
+### stats Group Tools (19 +1 code mode)
 
-1. `pg_transaction_begin`
-2. `pg_transaction_commit`
-3. `pg_transaction_rollback`
-4. `pg_transaction_savepoint`
-5. `pg_transaction_release`
-6. `pg_transaction_rollback_to`
-7. `pg_transaction_execute`
-8. `pg_transaction_status`
-9. `pg_execute_code` (auto-added)
+1. pg_stats_descriptive
+2. pg_stats_percentiles
+3. pg_stats_correlation
+4. pg_stats_regression
+5. pg_stats_time_series
+6. pg_stats_distribution
+7. pg_stats_hypothesis
+8. pg_stats_sampling
+9. pg_stats_row_number
+10. pg_stats_rank
+11. pg_stats_lag_lead
+12. pg_stats_running_total
+13. pg_stats_moving_avg
+14. pg_stats_ntile
+15. pg_stats_outliers
+16. pg_stats_top_n
+17. pg_stats_distinct
+18. pg_stats_frequency
+19. pg_stats_summary
+20. pg_execute_code (auto-added)
 
 ### Category 1: Boundary Values & Empty States
 
-Test tools against extreme characters, non-applicable parameters, and zero-state topologies.
+> Tests 1–8 above (in core Category 1) already exercise `pg_stats_descriptive` and `pg_stats_percentiles` on `stress_empty_table`. These additional tests focus on stats-specific edge cases.
 
-1. `pg_transaction_execute` → Feed perfectly empty execution properties (`statements: []`). Does logic gracefully skip querying natively bypassing safely logic completely natively bounded securely?
-2. `pg_transaction_status` → Establish mapping bounds wrapping explicitly tracking status values completely. `begin` -> observe `active` -> `commit` -> observe cleanly `not_found` explicitly safely.
-3. `pg_transaction_begin` → Push cleanly wrapped logical mapping natively enforcing `isolation_level: "SERIALIZABLE"`. Check internal maps logically bounding wrapping mappings accurately globally efficiently completely purely natively securely cleanly smoothly.
+**1.1 Statistical Edge Cases**
 
-### Category 2: State Pollution & Idempotency
+1. `pg_stats_correlation({table: "test_products", column1: "id", column2: "id"})` → self-correlation ≈ 1.0
+2. `pg_stats_hypothesis({table: "test_measurements", column: "temperature", hypothesizedMean: 999})` → should reject null hypothesis (very different from actual mean)
+3. `pg_stats_regression` on single row (use `xColumn`/`yColumn` params, NOT `columnX`/`columnY`) → expect graceful handling (regression undefined for n=1)
+4. `pg_stats_correlation` — on `stress_empty_table` with single row, use `id` and `value` → expect null or degenerate correlation (single point)
+5. `pg_stats_hypothesis` with `hypothesizedMean: 40` on single row → expect degenerate test result (n=1)
 
-Ensure tools execute safely when repeated identically multiple times.
+### Category 2: Window Function Boundary Values
 
-4. `pg_transaction_rollback` → Attempt cleanly explicit double-rollbacks safely targeting equivalent tracking configurations globally. Observe cleanly bounded mapping limitations directly smoothly cleanly bounding mapping limits flawlessly securely dynamically natively efficiently tracking logic exactly dynamically successfully.
-5. Create duplicate savepoints -> Execute `pg_transaction_savepoint` with completely identical names nested cleanly seamlessly securely inside perfectly seamlessly wrapping transaction mapping blocks. Does Postgres index mapping gracefully tracking exactly flawlessly inside correctly?
+> Uses `stress_empty_table` (created in core Category 1). Insert data as needed for edge case testing.
 
-### Category 3: Alias & Parameter Combinations
+**2.1 Single-Row Window Functions**
 
-Test parametric fallback modes and configuration matrices.
+6. `pg_stats_row_number({table: "stress_empty_table", column: "value", orderBy: "id", limit: 5})` → with 1 row: verify `row_number: 1` returned
+7. `pg_stats_lag_lead({table: "stress_empty_table", column: "value", orderBy: "id", direction: "lag", limit: 5})` → with 1 row: verify `lag_value: null` (no previous row)
+8. `pg_stats_running_total({table: "stress_empty_table", column: "value", orderBy: "id", limit: 5})` → with 1 row: verify `running_total` equals the value itself
 
-6. `pg_transaction_begin` → Enforce strict blocks parsing logic mapping seamlessly boundaries using `read_only: true`. Explicitly attempt mutating writes tracking variables natively seamlessly tracking bounding exceptions flawlessly dynamically cleanly tracking blocks flawlessly seamlessly cleanly correctly bounds locally parsing gracefully mapped softly exactly neatly.
-7. `pg_transaction_execute` -> Combine `read_only` blocks explicitly checking cleanly tracking parameter properties smoothly parsing directly tracking bounds efficiently perfectly natively securely exactly natively cleanly efficiently. 
+**2.2 Identical Values (Ranking Edge Cases)**
 
-### Category 4: Error Message Quality
+Insert 5 rows into `stress_empty_table` all with `value: 42.00`, then:
 
-Ensure tools predictably return typed `VALIDATION_ERROR`, etc.
+9. `pg_stats_rank({table: "stress_empty_table", column: "value", orderBy: "value", limit: 10})` → verify all rows get `rank: 1` (all tied)
+10. `pg_stats_rank({table: "stress_empty_table", column: "value", orderBy: "value", method: "dense_rank", limit: 10})` → verify all rows get `dense_rank: 1`
+11. `pg_stats_ntile({table: "stress_empty_table", column: "value", orderBy: "value", buckets: 10, limit: 10})` → with 5 rows and 10 buckets: verify bucket assignment (some buckets empty, rows distributed across buckets 1-5)
 
-8. `pg_transaction_status` → Map strictly impossible tracking logic correctly safely mapping natively parsing bounds correctly explicitly dynamically mapping `transactionId: "nonexistent-uuid"`. Check strictly structured mappings parsing safely accurately gracefully neatly mapping typed bindings `VALIDATION_ERROR` seamlessly natively accurately seamlessly efficiently correctly effectively properly exactly.
-9. Aborted State Maps -> Inject intentional schema mappings (e.g. `SELECT * FROM nonexistent`) gracefully generating bounds correctly dynamically mapping `status: "aborted"` efficiently mapping limits exactly safely wrapping cleanly effortlessly seamlessly accurately purely efficiently smoothly.
+**2.3 Window Size Exceeds Data**
 
-### Category 5: Complex Flow Architectures
+12. `pg_stats_moving_avg({table: "stress_empty_table", column: "value", orderBy: "id", windowSize: 100, limit: 10})` → with 5 rows: verify graceful handling (window > data), moving averages still computed
 
-Verify that complex native functions execute logic correctly dynamically.
-
-10. Multi-Step Execution Bounds -> Execute tightly constrained parameters parsing seamlessly dynamically mapping logic gracefully across deep natively tracked boundaries seamlessly successfully cleanly tracking natively bounded parsing maps exactly tightly cleanly exactly correctly dynamically properly dynamically properly effectively tracking perfectly safely securely. 
-    a) Run `pg_transaction_execute` accurately seamlessly executing exactly 3 identical seamless mapping logically tracking queries properly.
-    b) Intentionally fail query 2 perfectly dynamically cleanly directly wrapping parsing properly correctly smartly cleanly flawlessly natively safely cleanly efficiently natively efficiently accurately correctly effortlessly gracefully effortlessly logically bounded safely structurally correctly dynamically smartly smartly.
-
-### Category 6: Extended Cross-Schema Formatting
-
-11. `pg_transaction_savepoint` -> Parse explicit bounds mapped smoothly correctly seamlessly directly wrapping tightly perfectly logically natively mapping properties smartly cleanly perfectly flawlessly purely efficiently smartly exactly expertly safely expertly. 
-
-### Category 7: Large Payload & Truncation Verification
-
-Ensure sweeping reads cap context window exposure.
-
-12. Massive Code Mode Block Wrapper -> Enclose purely native parsing logic tracking maps executing exactly seamlessly perfectly properly mapping bounds softly wrapping gracefully tightly seamlessly bounding natively wrapping tracking completely cleanly smartly neatly perfectly explicitly logically limits mapping explicit limits completely effectively flawlessly smartly tracking dynamically gracefully flawlessly natively implicitly wrapping `transaction.autoRollback` parsing properly tightly bounds correctly globally seamlessly securely dynamically tightly explicitly perfectly locally dynamically seamlessly expertly efficiently smoothly softly strictly.
-
-### Final Cleanup
-
-13. Native Execution -> Drop any experimental tables.

@@ -7,70 +7,241 @@
 - Do not modify or skip tests.
 - Do not run test-tools-advanced-1.md through test-tools-advanced-7.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests. Ignore distractions in terminal.
-- Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
 
-All tests should be executed via `pg_execute_code` code mode. Code Mode is explicitly designed for multi-group coordination inside a single sandboxed worker securely properly exactly perfectly gracefully logically.
+All tests should be executed via `pg_execute_code` code mode. Code Mode is explicitly designed for multi-group coordination inside a single sandboxed worker.
 
 **Key rules:**
-- Use `pg.<group>.help()` to discover method names and parameters for each group natively flawlessly
-- State **persists** across `pg_execute_code` calls smoothly flawlessly securely effectively carefully neatly expertly expertly exactly natively structurally
-- Group multiple related tests into a single code mode call cleanly practically beautifully effortlessly appropriately precisely precisely expertly safely wrapping logic explicitly explicitly beautifully tightly perfectly precisely effectively properly optimally flawlessly smoothly cleanly correctly properly gracefully cleanly practically tightly smartly accurately tracking accurately efficiently
+- Use `pg.<group>.help()` to discover method names and parameters natively.
+- State **persists** across `pg_execute_code` calls.
+- Group multiple related tests into a single code mode call cleanly.
 
-## Naming & Cleanup
+## Test Database Schema
 
-- **Temporary structures**: Prefix with `stress_cross_`
-- **Cleanup**: Attempt to remove all `stress_cross_*` objects after testing globally seamlessly explicitly strictly explicitly perfectly properly dynamically beautifully expertly exactly strictly securely.
+The test database (`postgres`) contains these tables:
 
-## Reporting Format
+| Table               | Rows | Key Columns                                                                        | JSONB Columns            | Tool Groups           |
+| ------------------- | ---- | ---------------------------------------------------------------------------------- | ------------------------ | --------------------- |
+| `test_products`     | 15   | id, name, description, price, created_at                                           | —                        | Core, Stats           |
+| `test_orders`       | 20   | id, product_id (FK), quantity, total_price, status                                 | —                        | Core, Stats, Trans    |
+| `test_jsonb_docs`   | 3    | id                                                                                 | metadata, settings, tags | JSONB (20 tools)      |
+| `test_articles`     | 3    | id, title, body, search_vector (TSVECTOR)                                          | —                        | Text                  |
+| `test_measurements` | 500  | id, sensor_id (INT 1-6), temperature, humidity, pressure                           | —                        | Stats (19 tools)      |
+| `test_embeddings`   | 50   | id, content, category, embedding (vector 384d)                                     | —                        | Vector (16 tools)     |
+| `test_locations`    | 5    | id, name, location (GEOMETRY POINT SRID 4326)                                      | —                        | PostGIS (15 tools)    |
+| `test_users`        | 3    | id, username (CITEXT), email (CITEXT)                                              | —                        | Citext (6 tools)      |
+| `test_categories`   | 6    | id, name, path (LTREE)                                                             | —                        | Ltree (8 tools)       |
+| `test_secure_data`  | 0    | id, user_id, sensitive_data (BYTEA), created_at                                    | —                        | pgcrypto (9 tools)    |
+| `test_events`       | 100  | id, event_type, event_date, payload (JSONB) — PARTITION BY RANGE                   | payload                  | Partitioning, Partman |
+| `test_logs`         | 0    | id, log_level, message, created_at — PARTITION BY RANGE                            | —                        | Partman               |
+| `test_departments`  | 3    | id, name, budget                                                                   | —                        | Introspection         |
+| `test_employees`    | 5    | id, name, department_id (FK CASCADE), manager_id (FK self-ref SET NULL), hire_date | —                        | Introspection         |
+| `test_projects`     | 2    | id, name, lead_id (FK SET NULL), department_id (FK RESTRICT)                       | —                        | Introspection         |
+| `test_assignments`  | 3    | id, employee_id (FK CASCADE), project_id (FK CASCADE), role — UNIQUE(emp,proj)     | —                        | Introspection         |
+| `test_audit_log`    | 3    | entry_id (no PK!), employee_id (FK, no index!), action, created_at                 | —                        | Introspection         |
 
-- ❌ Fail: Tool errors or produces incorrect results (include error message)
-- ⚠️ Issue: Unexpected behavior or improvement opportunity
-- 📦 Payload: Unnecessarily large response that should be optimized. **You MUST monitor `metrics.tokenEstimate` for every operation**. Report the response size in tokens/KB and suggest a concrete optimization.
-- ✅ Confirmed: Edge case handled correctly (use only inline during testing).
+Schema objects: `test_schema`, `test_schema.order_seq` (starts at 1000), `test_order_summary` (view), `test_get_order_count()` (function).
+Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_locations_geo` (GIST), `idx_categories_path` (GIST), HNSW on `test_embeddings.embedding`.
 
-### Error Code Consistency
+## Testing Requirements
 
-When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code seamlessly explicitly smartly correctly expertly exactly cleanly (e.g., `VALIDATION_ERROR`, `TRANSACTION_ERROR`).
+1. Use existing `test_*` tables for read operations (SELECT, COUNT, EXISTS, etc.)
+2. Create temporary tables with `stress_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
+3. Test each tool with realistic inputs based on the schema above
+4. Clean up any `stress_*` tables after testing
+5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
+6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
+7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
+8. **Advanced Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md` in C:\Users\chris\Desktop\postgres-mcp\tmp. For EVERY tool in the advanced test categories, you must explicitly track completions. Do not proceed to the final summary until every check is marked with a ✅.
+9. **Scripting Efficiency**: You should bundle multiple tool checks into a single `pg_execute_code` call to save LLM context window tokens. Use conditional checks to aggregate errors and return a `failures` array.
+10. **Pacing**: Test up to an entire tool group in a single script if feasible, but limit scripts to ~10-15 steps to remain manageable. Report the aggregated results, update your matrix, and move to the next group.
+11. **Deterministic checklist first**: Complete ALL items in the Deterministic Checklist below using Code Mode before moving to the Strict Coverage Matrix exploration.
+12. **Audit backup tools**: The 3 `pg_audit_*` tools require `--audit-backup` to be enabled on the test server. When enabled, destructive operations (`pg_truncate`, `pg_drop_table`, `pg_vacuum`, etc.) create gzip-compressed `.snapshot.json.gz` files alongside the audit log. **V2 features to verify**: `pg_audit_diff_backup` now returns a `volumeDrift` field (row count + size changes); `pg_audit_restore_backup` supports `restoreAs` for side-by-side non-destructive restore; and Code Mode calls through `pg_execute_code` that trigger destructive operations are also captured by the interceptor. When disabled, all 3 tools return `{success: false, error: "Audit backup not enabled"}`.
+
+Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) return as parseable JSON objects. During error path testing, verify this: if an invalid Code Mode call returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
+
+
+## Structured Error Response Pattern
+
+All tools must return errors as structured objects instead of throwing. A thrown error propagates as a raw MCP error, which is unhelpful to clients. The expected pattern:
+
+```json
+{ "success": false, "error": "Human-readable error message", "code": "QUERY_ERROR", "category": "query", "recoverable": false }
+```
+
+The enriched `ErrorResponse` from `formatHandlerError` always includes `success`, `error`, `code`, `category`, and `recoverable`. Optional fields `suggestion` and `details` may also be present. Some tools include additional context fields (e.g., `pg_transaction_execute` includes `statementsExecuted`, `failedStatement`, `autoRolledBack`). These are acceptable as long as `success: false` and `error` are always present.
+
+### Handler Error vs MCP Error — How to Distinguish
+
+There are two kinds of error responses. Only one is correct:
+
+| Type | Source | What you see | Verdict |
+|------|--------|--------------|---------|
+| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields | Correct |
+| **MCP error** ❌ | Uncaught throw propagates to MCP framework | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
+
+**Concrete examples:**
+
+```
+✅ Handler error (correct):
+{"success": false, "error": "Table \"public.nonexistent\" does not exist"}
+
+❌ MCP error (bug — handler threw instead of catching):
+content: [{type: "text", text: "Error: relation \"nonexistent\" does not exist"}]
+isError: true
+```
+
+The MCP error case means the handler is missing a `try/catch` block. When testing, if you see a raw error string (especially one containing PostgreSQL internal messages like `relation "..." does not exist` without a `success` field), report it as ❌.
+
+### Zod Validation Errors
+
+Calling a tool with wrong parameter types or missing required fields triggers a Zod validation error. If the handler has no outer `try/catch`, this surfaces as a raw MCP error. Test every tool with `{}` (empty params) if it has required parameters — the response must be a handler error, not an MCP error.
+
+**Error message format matters:** Zod `.refine()` failures produce a `ZodError` whose `.message` property is a **raw JSON array** of Zod issues (e.g., `[{"code":"custom","message":"..."}]`). If the handler catches the error with `error.message` instead of routing through `formatHandlerError`, this raw JSON leaks as the error string. All handlers must route through `formatHandlerError`, which duck-types the `.issues` array and produces clean `Validation error: name (or table alias) is required; Validation error: columns must not be empty` messages. If you see a raw JSON array in an error message, report it as ❌.
+
+**Zod refinement leak pattern:** The Split Schema pattern uses `.partial()` on input schemas so the SDK accepts `{}`. But `.partial()` only makes keys **optional** — it does NOT strip refinements like `.min(1)`, `.max(90)`, or `.min(-90).max(90)`. This applies to **ALL types** — strings, arrays, AND numbers:
+
+- `z.string().min(1)` + empty `""` → SDK rejects with raw MCP `-32602`
+- `z.array().min(1)` + empty `[]` → SDK rejects with raw MCP `-32602`
+- `z.number().min(-90).max(90)` + value `91` → SDK rejects with raw MCP `-32602`
+
+**Fix:** Remove ALL `.min(N)` / `.max(N)` refinements from the schema and validate inside the handler instead. Optional fields with `.default()` are safe because the default satisfies the constraint.
+
+**Required enum coercion pattern:** For **optional** enum params with defaults, `z.preprocess(coercer, z.enum([...]).optional().default(...))` works — the coercer returns `undefined` for invalid values → the `.default()` kicks in. For **required** enum params (no `.optional().default(...)`), this pattern **fails**: the SDK's `.partial()` wraps the preprocess in `.optional()`, but the inner `z.enum()` still rejects `undefined` → raw MCP `-32602`. **Fix:** Use `z.string()` in the schema and validate the enum inside the handler's `try/catch`, returning a structured error.
+
+**What to report:**
+
+- If a tool call returns a raw MCP error (no JSON body with `success` field), report it as ❌ with the tool name and the raw error message
+- If a tool returns `{success: false, error: "..."}` but the error string is a raw Zod JSON array (starts with `[{`), report as ❌ (handler uses `error.message` instead of `formatHandlerError`)
+- If a tool returns `{success: false, error: "Validation error: ..."}` with clean human-readable text, that is the correct behavior — do not report it as a failure
+- If a tool returns a successful response for an obviously invalid input (e.g., nonexistent table returns `{success: true}`), report it as ⚠️
+
+## Split Schema Pattern Verification
+
+All tools use the Split Schema pattern: a plain `z.object()` Base schema for MCP parameter visibility (used as `inputSchema`), and handler-side parsing via `z.preprocess()`, `.default({})`, or direct `.parse()` inside `try/catch`. Verify:
+
+1. **JSON Schema visibility**: Before testing tool behavior, call `tools/list` (or inspect the MCP server's tool definitions) and confirm each tool's `inputSchema` exposes its parameters. Tools with optional parameters (e.g., `schema`, `limit`, `direction`) must show non-empty `properties` in the JSON Schema. If a tool's `inputSchema` is empty or missing `properties`, report as a Split Schema violation.
+2. **Parameter visibility**: For tools with optional parameters (e.g., `schema`, `limit`), make a Code Mode call using those parameters. If the tool ignores or rejects documented parameters, report as a Split Schema violation.
+3. **Alias acceptance**: For tools with documented parameter aliases (e.g., table/tableName/name, sql/query), verify that Code Mode calls correctly accept the aliases—not just the primary parameter name. If a call using only an alias fails with a validation error like "X is required", report it as a Split Schema violation requiring a fix.
+4. **`z.preprocess()` as `inputSchema`**: If a tool uses `z.preprocess()` directly as its `inputSchema` (instead of a plain `SchemaBase`), parameter metadata is stripped from JSON Schema generation, making MCP tooling unable to see or use those parameters. Report as a Split Schema violation.
+
+## P154 Object Existence Verification
+
+All tools should return structured error responses for nonexistent tables/schemas (via `formatHandlerError`). The 5 core convenience tools (pg_count, pg_exists, pg_upsert, pg_batch_insert, pg_truncate) implement explicit pre-checks and serve as canonical verification targets. Beyond those, **every tool group must have at least one nonexistent-table test in its checklist** — see the error-path items (marked 🔴) in each group's checklist in `test-group-tools.md`.
+
+For each P154 test, verify that calling with a nonexistent table (e.g., `table: "nonexistent_table_xyz"`) returns a handler error like `{success: false, error: "Table \"public.nonexistent_table_xyz\" does not exist"}` rather than a raw MCP error. Also verify that a nonexistent schema (e.g., `table: "fake_schema.users"`) produces a similarly clear handler error.
+
+Key PostgreSQL error codes that should be intercepted by `formatHandlerError` (not leaked as raw errors):
+
+| PG Error Code | Meaning | Expected Structured Message |
+|---------------|---------|---------------------------|
+| 42P01 | Undefined table | `Table "X" does not exist` |
+| 42P06 | Duplicate schema | `Schema "X" already exists` |
+| 42P07 | Duplicate table | `Table "X" already exists` |
+| 42701 | Duplicate column | `Column "X" already exists` |
+| 42703 | Undefined column | `Column "X" does not exist` |
+| 23505 | Unique violation | `Duplicate key: ...` |
+| 23503 | FK violation | `Foreign key constraint violated` |
+| 42601 | Syntax error | `SQL syntax error: ...` |
+| 3F000 | Invalid schema name | `Schema "X" does not exist` |
+| XX000 | Internal error | `Internal error: ...` |
+
+## Error Consistency Audit
+
+During testing, check for these inconsistencies across tool groups:
+
+1. **Throw-vs-return**: If a tool throws a raw error instead of returning `{success: false}`, report as ❌. Document which tool groups have the worst raw-error leakage.
+2. **Error field name**: All `{ success: false }` error responses should use `error` as the field name. If a tool uses a different field name for error context in a failure response, report as ⚠️.
+3. **Zod validation leaks**: If calling a tool with an invalid enum value or missing required field produces a raw MCP `-32602` Zod validation error instead of a structured response, report as ❌. This indicates the Zod schema is rejecting the input at the MCP framework level before the handler's `try/catch` can intercept.
+4. **Missing `formatHandlerError` wrapping**: postgres-mcp has a centralized `formatHandlerError` helper. If a handler catches errors but returns ad-hoc messages instead of using the centralized formatter, report which handler and the ad-hoc message pattern.
+5. **Orphaned output schemas**: If a schema is exported from `src/adapters/postgresql/schemas/` but the corresponding tool definition does not reference it via `outputSchema`, report as ⚠️. Use `grep_search` to check whether the schema name appears in any tool file. Defined-but-unwired schemas provide zero enforcement.
+6. **Inline output schemas**: If any tool defines `outputSchema: z.object({...})` inline in the handler file instead of importing a named schema from the `schemas/` directory, report as ⚠️. All output schemas must live in the appropriate `schemas/` directory with named exports.
+
+## Error Path Testing Checklist
+
+For each tool group under test, verify at least one scenario from each applicable row:
+
+| Error Scenario | Tool Groups to Test | Example Input |
+|----------------|-------------------|---------------|
+| Nonexistent table | All table-accepting tools | `table: "nonexistent_xyz"` |
+| Nonexistent schema | Core, introspection, schema | `schema: "fake_schema"` or `table: "fake_schema.users"` |
+| Invalid SQL syntax | Core (`read_query`, `write_query`) | `sql: "SELECTT * FROM"` |
+| Invalid column name | Stats, JSONB, text, vector, PostGIS | `column: "nonexistent_col"` |
+| Duplicate table/index | Core (`create_table`, `create_index`) | Create existing table |
+| Empty required array | Transactions | `statements: []` |
+| Missing required field via alias | Core, transactions | `sql` alias instead of `query` |
+| **Zod validation (empty params)** | **Every tool with required params** | `{}` (empty object — must return handler error, not MCP `-32602` error) |
+| **Zod validation (wrong type)** | **Tools with typed params** | Pass string where number expected, etc. |
+
+## Cleanup Conventions
+
+During testing, use these naming conventions:
+
+- **Temporary tables**: Prefix with `stress_` (e.g., `stress_analysis_results`)
+- **Test views**: Prefix with `test_view_` (e.g., `test_view_order_summary`)
+- **Test functions**: Prefix with `test_func_` (e.g., `test_func_calculate`)
+- **Test schemas**: Prefix with `test_schema_` (e.g., `test_schema_temp`)
+
+After testing, clean up:
+
+```sql
+-- List temp tables
+SELECT tablename FROM pg_tables
+WHERE schemaname = 'public' AND tablename LIKE 'stress_%';
+
+-- Drop temp table
+DROP TABLE IF EXISTS stress_my_test_table;
+```
 
 ## Post-Test Procedures
 
-1. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems.
-2. Update the changelog if there are any changes made (being careful not to create duplicate headers) and commit without pushing.
-3. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
-4. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
+### Reporting Rules
+
+- Use ✅ only in inline notes during testing; omit from Final Summary
+- Do not mention what already works well or issues already documented in server-instructions.md and runtime hints
+
+### After Testing
+
+1. **Cleanup**: Confirm all `stress_*` tables and temporary testing data are removed
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, 📦 Payload problems (responses that should be truncated or offer a `limit` param) and files listed below. All changes MUST be consistent with other postgres-mcp tools and `code-map.md`
+3. **Scope of fixes** includes corrections to any of:
+   - Handler code
+   - `server-instructions.md`
+   - Test database (`test-database.sql`)
+   - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
+4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
+5. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive Code Mode execution block.
+6. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
 ## cross-group Advanced Workflows
 
-> **Purpose**: Test realistic deep multi-group pipelines dynamically tracked purely inside Javascript worker threads. These catch serialization, token bound, isolation, and handler decoupling bugs that identical API calls miss natively accurately cleverly efficiently tracking effectively expertly smoothly successfully expertly flawlessly perfectly efficiently purely optimally accurately correctly correctly reliably precisely smartly expertly smartly cleanly natively correctly optimally structurally properly intelligently efficiently natively intelligently gracefully dynamically carefully efficiently safely seamlessly safely smartly smartly safely perfectly smoothly correctly explicitly creatively structurally cleanly elegantly. 
+> **Purpose**: Test realistic deep multi-group pipelines dynamically tracked purely inside Javascript worker threads. These catch serialization, token bound, isolation, and handler decoupling bugs that identical API calls miss natively.
 
 ### Category 1: Core → JSONB → Stats (Data Pipeline)
 
-1. Create a `stress_cross_data` table mapping seamlessly explicitly elegantly `SERIAL` id natively gracefully creatively dynamically structurally creatively intelligently beautifully smartly gracefully perfectly expertly efficiently natively cleverly properly wrapping efficiently smartly tracking structurally flawlessly dynamically smartly perfectly elegantly efficiently cleanly smartly cleanly carefully tightly optimally natively efficiently precisely effectively efficiently elegantly smartly efficiently creatively securely smartly tightly smartly cleverly intelligently expertly correctly tightly optimally effectively explicitly accurately optimally smoothly explicitly efficiently successfully correctly elegantly reliably expertly securely smartly correctly successfully tightly intelligently smartly intelligently cleverly carefully wisely dynamically elegantly expertly optimally creatively intelligently elegantly intelligently perfectly optimally carefully skillfully smartly seamlessly correctly effortlessly creatively creatively cleverly cleanly flawlessly safely elegantly elegantly optimally properly effectively gracefully successfully properly efficiently explicitly explicitly precisely expertly creatively perfectly properly securely effectively securely carefully tightly tightly cleanly explicitly securely effectively gracefully cleanly.
-    a) Populate perfectly smoothly explicitly explicitly optimally cleanly structurally safely exactly expertly tightly dynamically flawlessly smartly explicitly.
-    b) Invoke `pg.jsonb.extract` tracking purely inside Code Mode beautifully cleanly correctly flawlessly efficiently efficiently correctly strictly successfully precisely safely efficiently smoothly expertly expertly effectively expertly smoothly.
-    c) Bridge the extracted dynamic arrays safely cleanly directly into `pg.stats.percentiles` natively correctly safely gracefully elegantly smartly beautifully explicitly intelligently cleverly creatively securely accurately dynamically correctly efficiently flawlessly wrapping logic natively tightly creatively exactly gracefully exactly flawlessly safely seamlessly smoothly smoothly dynamically beautifully beautifully exactly successfully securely correctly successfully expertly tracking elegantly natively gracefully properly correctly gracefully cleverly perfectly strictly reliably professionally effectively safely exactly optimally successfully explicitly optimally strictly effectively correctly seamlessly safely effectively properly cleanly effectively exactly expertly strictly safely reliably flawlessly beautifully flawlessly seamlessly elegantly properly smartly flawlessly smartly expertly appropriately. Ensure token metrics gracefully limit accurately smartly cleverly gracefully reliably cleverly accurately safely properly securely optimally seamlessly safely smartly tracking successfully cleanly effectively elegantly cleanly smartly effortlessly carefully expertly tracking safely efficiently cleanly cleanly intelligently correctly successfully smartly cleanly smartly gracefully smoothly optimally cleanly structurally perfectly properly smartly successfully dynamically elegantly smoothly wisely intelligently smartly perfectly cleverly expertly perfectly explicitly professionally intelligently intelligently explicitly cleanly smartly successfully accurately flawlessly beautifully ideally cleverly effectively smartly seamlessly correctly smartly seamlessly cleverly beautifully cleanly explicitly nicely accurately effectively ideally smartly exactly skillfully accurately intelligently carefully beautifully skillfully beautifully tightly correctly appropriately successfully carefully cleanly sensibly accurately smoothly brilliantly intelligently perfectly explicitly neatly intelligently efficiently skillfully cleverly expertly explicitly precisely beautifully successfully appropriately elegantly properly properly explicitly neatly cleanly securely properly nicely smoothly logically cleanly expertly completely appropriately beautifully exactly correctly accurately.
+1. Create a `stress_cross_data` table mapping `SERIAL` id to `JSONB` blobs.
+    a) Populate 100 rows containing nested numeric telemetry inside the JSONB structure using `pg.core.batchInsert`.
+    b) Invoke `pg.jsonb.extract` to cleanly extract the nested array values across all rows.
+    c) Bridge the extracted dynamic arrays safely into `pg.stats.percentiles` to verify math operations on dynamically transformed JSON arrays limit accurately.
 
 ### Category 2: Core → Vector → Text (AI Search Pipeline)
 
-2. Create `stress_cross_ai` explicitly mapping natively completely cleanly `VECTOR`, `TEXT`, `JSONB` parameters cleanly successfully intelligently optimally accurately completely appropriately comprehensively accurately gracefully tightly effectively expertly beautifully beautifully completely securely explicitly gracefully elegantly successfully appropriately dynamically ideally strictly expertly nicely beautifully nicely expertly fully correctly adequately gracefully appropriately logically cleverly wonderfully elegantly safely carefully effectively exactly tightly intelligently accurately nicely precisely nicely clearly adequately natively dynamically ideally effectively appropriately safely beautifully smartly appropriately correctly properly brilliantly reliably correctly reliably smoothly carefully brilliantly appropriately safely smartly properly expertly carefully brilliantly perfectly correctly neatly professionally perfectly accurately strictly cleverly dynamically flawlessly perfectly purely effectively efficiently effectively safely completely perfectly directly correctly reliably purely seamlessly carefully appropriately properly smartly properly smartly directly effortlessly smartly beautifully logically effectively seamlessly adequately completely logically adequately logically perfectly flawlessly gracefully ideally gracefully cleanly expertly flawlessly appropriately brilliantly efficiently.
-    a) Inject 3 rows explicitly smoothly securely optimally dynamically.
-    b) Capture `pg.vector.search` locally smoothly completely flawlessly clearly cleanly beautifully effortlessly safely professionally accurately nicely expertly expertly explicitly securely ideally skillfully efficiently successfully beautifully wonderfully fully explicitly gracefully clearly efficiently correctly expertly nicely smoothly correctly smoothly gracefully efficiently explicitly flawlessly creatively beautifully logically exactly properly expertly confidently appropriately optimally seamlessly nicely nicely correctly perfectly gracefully explicitly confidently appropriately dynamically correctly ideally smartly properly perfectly intelligently completely thoroughly correctly neatly carefully creatively nicely correctly directly cleverly smoothly confidently nicely expertly brilliantly flawlessly intelligently flawlessly explicitly beautifully natively fully flawlessly effortlessly intelligently smoothly correctly tightly effectively smoothly carefully cleanly accurately efficiently professionally effortlessly creatively excellently excellently safely excellently reliably securely smoothly completely beautifully comprehensively thoroughly directly directly tightly exactly natively intelligently directly perfectly sensibly explicitly effectively cleverly creatively successfully excellently smartly nicely perfectly gracefully effectively expertly thoughtfully efficiently fully wisely comprehensively completely comprehensively strictly brilliantly ideally effectively fully cleanly explicitly intelligently successfully effectively neatly explicitly appropriately thoroughly accurately properly confidently perfectly perfectly properly carefully optimally wonderfully properly completely cleanly adequately nicely properly thoroughly dynamically intelligently accurately smoothly flawlessly adequately correctly optimally correctly explicitly properly clearly excellently clearly smoothly appropriately professionally expertly thoughtfully brilliantly flawlessly efficiently comfortably perfectly efficiently securely dynamically accurately effectively. 
-    c) Execute perfectly smoothly `pg.text.search` purely directly cleverly wrapping purely tracking creatively creatively completely cleverly purely securely beautifully correctly comprehensively beautifully reliably clearly appropriately completely properly expertly completely competently comfortably fully intelligently wisely strictly intelligently completely expertly efficiently fully explicitly successfully expertly properly expertly dynamically securely successfully correctly carefully dynamically securely smartly nicely thoroughly tightly expertly nicely directly cleverly expertly directly fully flawlessly dynamically securely correctly flawlessly logically explicitly correctly correctly securely directly successfully logically safely correctly completely exactly cleanly intelligently smoothly perfectly confidently cleverly explicitly directly flawlessly expertly smartly intelligently competently perfectly tightly flawlessly optimally.
+2. Create `stress_cross_ai` mapping `VECTOR`, `TEXT`, and `JSONB` parameters cleanly.
+    a) Inject 3 rows with explicit embeddings and text descriptions.
+    b) Capture `pg.vector.search` locally to find the nearest neighbor.
+    c) Execute `pg.text.search` purely using the extracted ID from the vector search to confirm string metadata alignment safely.
 
 ### Category 3: Transactions → Admin → Migration (Exception IPC Parity)
 
-3. Deep Handler Validation: `pg.transactions.begin` then `pg.migration.apply`. Force a synthetic parser failure seamlessly efficiently safely exactly comprehensively flawlessly flawlessly cleanly dynamically properly gracefully adequately completely perfectly optimally fully appropriately properly successfully successfully excellently perfectly comfortably effectively brilliantly logically cleanly professionally precisely expertly properly adequately comprehensively smartly nicely precisely intelligently confidently safely strictly specifically ideally smartly effectively brilliantly cleanly intelligently thoroughly explicitly excellently properly expertly thoughtfully natively specifically explicitly effectively sensibly wisely properly optimally smoothly logically fully expertly correctly brilliantly cleverly smartly carefully directly expertly comfortably completely appropriately comprehensively ideally intelligently correctly smartly safely thoughtfully adequately intelligently strictly flawlessly adequately effectively correctly gracefully nicely safely comfortably completely properly properly seamlessly gracefully explicitly smartly thoughtfully tightly effectively flawlessly cleanly professionally optimally directly correctly brilliantly carefully elegantly thoughtfully neatly correctly smoothly beautifully comprehensively clearly brilliantly securely dynamically efficiently explicitly intelligently accurately explicitly carefully directly confidently efficiently fully directly carefully exactly logically efficiently efficiently ideally adequately cleverly flawlessly expertly thoroughly properly efficiently nicely safely intelligently seamlessly excellently fully cleanly efficiently creatively correctly explicitly successfully completely expertly confidently beautifully cleanly successfully precisely brilliantly confidently perfectly smoothly natively explicitly elegantly gracefully exactly explicitly accurately expertly properly dynamically explicitly professionally intelligently smoothly cleanly safely explicitly effectively nicely dynamically appropriately safely smoothly properly directly cleanly safely successfully confidently cleanly brilliantly correctly securely cleanly cleanly completely neatly strictly successfully perfectly directly easily flawlessly neatly brilliantly safely expertly securely ideally quickly safely explicitly correctly explicitly carefully exactly securely precisely thoughtfully fully precisely flawlessly directly thoroughly securely intelligently explicitly correctly completely optimally excellently professionally expertly dynamically cleanly correctly confidently optimally perfectly smoothly directly exactly specifically carefully cleanly accurately smartly exactly confidently smartly. Ensure `pg.transactions.rollback` smartly safely flawlessly fully explicitly explicitly efficiently completely exactly fully explicitly securely explicitly elegantly intelligently intelligently cleanly completely actively clearly flawlessly quickly excellently actively appropriately safely elegantly adequately logically efficiently competently completely gracefully thoroughly strictly ideally optimally actively beautifully deeply exactly appropriately correctly actively smartly appropriately optimally exactly correctly smoothly appropriately successfully elegantly safely deeply carefully cleanly completely clearly smoothly thoroughly wonderfully correctly competently thoughtfully securely smartly skillfully purely fully thoroughly expertly smoothly successfully securely properly neatly optimally successfully fully exactly precisely logically flawlessly directly completely thoughtfully excellently comfortably explicitly purely seamlessly safely smartly correctly fully strictly purely perfectly seamlessly efficiently efficiently wonderfully confidently optimally flawlessly cleanly purely elegantly correctly completely correctly accurately smoothly securely accurately effectively carefully safely tightly perfectly professionally quickly exactly strictly properly elegantly safely securely purely purely securely accurately efficiently natively securely securely smartly ideally effectively sensibly clearly neatly nicely actively efficiently explicitly optimally professionally precisely explicitly quickly explicitly actively reliably explicitly flawlessly confidently safely thoroughly accurately quickly adequately thoroughly neatly perfectly correctly flawlessly strictly comfortably directly exactly professionally actively creatively wisely fully natively smoothly deeply purely correctly cleverly deeply.
+3. Deep Handler Validation: Call `pg.transactions.begin` then `pg.migration.apply`. Force a synthetic parser failure seamlessly (e.g. invalid migration path). Ensure `pg.transactions.rollback` smartly cleans up the migration partial state cleanly, and retrieve the audit log inside the same script using `pg.admin` to verify the rollback was recorded gracefully.
 
-### Category 4: Vector → JSONB → Code Mode Context Limits 
+### Category 4: Vector → JSONB → Code Mode Context Limits
 
-4. Inject specifically safely clearly strictly appropriately ideally logically efficiently safely beautifully thoroughly comfortably purely expertly properly clearly fully deeply wisely explicitly thoroughly flawlessly correctly skillfully efficiently perfectly securely intelligently intelligently completely effectively efficiently expertly securely purely safely gracefully expertly easily safely efficiently confidently properly smartly thoroughly reliably natively correctly optimally explicitly explicitly quickly purely thoughtfully easily carefully effortlessly thoroughly exactly ideally adequately easily correctly carefully gracefully cleanly comfortably precisely dynamically safely flawlessly easily completely dynamically thoroughly intelligently elegantly explicitly quickly accurately thoughtfully wisely explicitly elegantly neatly dynamically exactly comfortably nicely thoroughly purely explicitly cleanly cleverly perfectly exactly wonderfully optimally explicitly seamlessly clearly purely dynamically precisely flawlessly deeply carefully completely clearly skillfully intelligently explicitly natively intelligently gracefully directly actively reliably logically explicit perfectly tightly thoroughly explicit properly dynamically confidently carefully competently sensibly safely thoughtfully cleanly correctly intelligently smartly nicely thoughtfully thoughtfully intelligently correctly efficiently correctly strictly optimally successfully specifically elegantly purely explicitly sensibly gracefully cleverly natively brilliantly excellently cleverly correctly properly correctly cleanly efficiently flawlessly optimally wonderfully cleanly seamlessly comprehensively correctly completely properly actively nicely thoughtfully purely deeply beautifully sensibly actively seamlessly securely efficiently tightly effectively elegantly appropriately safely thoughtfully comprehensively properly carefully expertly elegantly strictly clearly gracefully cleanly. 
-    Wrap purely locally appropriately cleanly purely tightly correctly specifically explicitly cleanly logically explicitly intelligently efficiently correctly comfortably completely thoroughly nicely excellently purely successfully seamlessly brilliantly cleanly confidently explicitly effectively precisely wisely safely expertly directly dynamically dynamically safely expertly explicitly precisely correctly natively neatly cleanly optimally smoothly correctly smoothly optimally perfectly elegantly carefully confidently purely successfully carefully expertly cleanly thoughtfully wonderfully appropriately fully directly appropriately logically strictly purely deeply beautifully effectively wisely thoroughly successfully intelligently ideally actively cleanly correctly explicitly dynamically fully explicit fully cleanly beautifully thoughtfully thoughtfully properly natively perfectly smartly safely.
+4. Inject 500 large mock vectors directly into a Code Mode array and batch insert them, immediately pulling them back via `pg.jsonb.extract` and reading the payload size natively. Verify the sandbox context limits gracefully reject massive allocations or return `metrics.tokenEstimate` effectively.
 
 ### Final Reporting
 
-Verify completely seamlessly flawlessly gracefully dynamically properly cleanly intelligently flawlessly smartly smartly specifically fully completely smoothly beautifully smoothly precisely directly clearly fully neatly actively explicit comfortably cleanly quickly intelligently properly wisely sensibly accurately intelligently explicitly nicely efficiently natively carefully efficiently purely elegantly completely smoothly intelligently securely reliably properly smartly securely appropriately efficiently wisely smoothly thoughtfully deeply cleanly sensibly quickly explicitly neatly clearly purely explicit cleanly confidently sensibly successfully carefully efficiently expertly expertly optimally intelligently thoroughly perfectly strictly securely smoothly dynamically securely correctly successfully purely safely excellently comprehensively seamlessly safely thoughtfully appropriately safely correctly brilliantly securely precisely ideally properly purely accurately successfully neatly logically efficiently expertly appropriately carefully successfully skillfully thoroughly dynamically effectively smoothly excellently smartly effectively easily purely logically properly completely cleanly correctly carefully smoothly perfectly safely natively nicely tightly cleanly beautifully explicitly brilliantly cleanly comprehensively comprehensively neatly brilliantly intelligently properly correctly clearly safely explicitly confidently expertly easily sensibly explicitly safely securely easily reliably purely explicitly smartly sensibly correctly cleanly ideally comprehensively elegantly accurately purely easily fully reliably skillfully gracefully brilliantly purely smartly cleanly confidently logically dynamically brilliantly ideally smartly directly comprehensively properly explicitly fully smartly properly nicely optimally confidently carefully flawlessly thoughtfully accurately appropriately nicely purely wisely efficiently properly comfortably easily exactly explicitly securely carefully safely smartly gracefully safely flawlessly purely easily optimally gracefully exactly successfully intelligently safely clearly safely smartly correctly comprehensively flawlessly successfully purely explicitly flawlessly brilliantly smartly thoroughly nicely perfectly directly correctly skillfully comfortably seamlessly cleverly dynamically smartly easily expertly cleverly cleanly efficiently.
+Verify completely flawlessly that all state chains correctly dropped and temporary `stress_cross_` structures are removed cleanly.

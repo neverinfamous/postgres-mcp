@@ -1,18 +1,21 @@
-# Advanced Stress Test — postgres-mcp — transactions Group
+# postgres-mcp Codemode Re-Testing — postgres-mcp — cross-group Integration
 
 **ESSENTIAL INSTRUCTIONS**
 
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run any other test files.
+- Do not run test-tools-advanced-1.md through test-tools-advanced-7.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests. Ignore distractions in terminal.
-- Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
 
-All tests should be executed via `pg_execute_code` code mode. Native direct tool calls are not to be used unless explicitly compared. State persists across sequential code mode logic inside a script.
+All tests should be executed via `pg_execute_code` code mode. Code Mode is explicitly designed for multi-group coordination inside a single sandboxed worker.
+
+**Key rules:**
+- Use `pg.<group>.help()` to discover method names and parameters natively.
+- State **persists** across `pg_execute_code` calls.
+- Group multiple related tests into a single code mode call cleanly.
 
 ## Test Database Schema
 
@@ -44,9 +47,9 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 ## Testing Requirements
 
 1. Use existing `test_*` tables for read operations (SELECT, COUNT, EXISTS, etc.)
-2. Create temporary tables with `stress_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
+2. Create temporary tables with `temp_*` prefix for write operations (CREATE, INSERT, DROP, etc.)
 3. Test each tool with realistic inputs based on the schema above
-4. Clean up any `stress_*` tables after testing
+4. Clean up any `temp_*` tables after testing
 5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
 6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
 7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
@@ -175,7 +178,7 @@ For each tool group under test, verify at least one scenario from each applicabl
 
 During testing, use these naming conventions:
 
-- **Temporary tables**: Prefix with `stress_` (e.g., `stress_analysis_results`)
+- **Temporary tables**: Prefix with `temp_` (e.g., `temp_analysis_results`)
 - **Test views**: Prefix with `test_view_` (e.g., `test_view_order_summary`)
 - **Test functions**: Prefix with `test_func_` (e.g., `test_func_calculate`)
 - **Test schemas**: Prefix with `test_schema_` (e.g., `test_schema_temp`)
@@ -185,10 +188,10 @@ After testing, clean up:
 ```sql
 -- List temp tables
 SELECT tablename FROM pg_tables
-WHERE schemaname = 'public' AND tablename LIKE 'stress_%';
+WHERE schemaname = 'public' AND tablename LIKE 'temp_%';
 
 -- Drop temp table
-DROP TABLE IF EXISTS stress_my_test_table;
+DROP TABLE IF EXISTS temp_my_test_table;
 ```
 
 ## Post-Test Procedures
@@ -200,7 +203,7 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 ### After Testing
 
-1. **Cleanup**: Confirm all `stress_*` tables and temporary testing data are removed
+1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed
 2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, 📦 Payload problems (responses that should be truncated or offer a `limit` param) and files listed below. All changes MUST be consistent with other postgres-mcp tools and `code-map.md`
 3. **Scope of fixes** includes corrections to any of:
    - Handler code
@@ -213,67 +216,32 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 ---
 
-## transactions Group Advanced Tests
+## cross-group Advanced Workflows
 
-### transactions Group Tools (8 + 1 code mode)
+> **Purpose**: Test realistic deep multi-group pipelines dynamically tracked purely inside Javascript worker threads. These catch serialization, token bound, isolation, and handler decoupling bugs that identical API calls miss natively.
 
-1. `pg_transaction_begin`
-2. `pg_transaction_commit`
-3. `pg_transaction_rollback`
-4. `pg_transaction_savepoint`
-5. `pg_transaction_release`
-6. `pg_transaction_rollback_to`
-7. `pg_transaction_execute`
-8. `pg_transaction_status`
-9. `pg_execute_code` (auto-added)
+### Category 1: Core → JSONB → Stats (Data Pipeline)
 
-### Category 1: Boundary Values & Empty States
+1. Create a `temp_cross_data` table mapping `SERIAL` id to `JSONB` blobs.
+    a) Populate 100 rows containing nested numeric telemetry inside the JSONB structure using `pg.core.batchInsert`.
+    b) Invoke `pg.jsonb.extract` to cleanly extract the nested array values across all rows.
+    c) Bridge the extracted dynamic arrays safely into `pg.stats.percentiles` to verify math operations on dynamically transformed JSON arrays limit accurately.
 
-Test tools against extreme characters, non-applicable parameters, and zero-state topologies.
+### Category 2: Core → Vector → Text (AI Search Pipeline)
 
-1. `pg_transaction_execute` → Feed perfectly empty execution properties (`statements: []`). Does logic gracefully skip querying natively bypassing safely logic completely natively bounded securely?
-2. `pg_transaction_status` → Establish mapping bounds wrapping explicitly tracking status values completely. `begin` -> observe `active` -> `commit` -> observe cleanly `not_found` explicitly safely.
-3. `pg_transaction_begin` → Push cleanly wrapped logical mapping natively enforcing `isolation_level: "SERIALIZABLE"`. Check internal maps logically bounding wrapping mappings accurately globally efficiently completely purely natively securely cleanly smoothly.
+2. Create `temp_cross_ai` mapping `VECTOR`, `TEXT`, and `JSONB` parameters cleanly.
+    a) Inject 3 rows with explicit embeddings and text descriptions.
+    b) Capture `pg.vector.search` locally to find the nearest neighbor.
+    c) Execute `pg.text.search` purely using the extracted ID from the vector search to confirm string metadata alignment safely.
 
-### Category 2: State Pollution & Idempotency
+### Category 3: Transactions → Admin → Migration (Exception IPC Parity)
 
-Ensure tools execute safely when repeated identically multiple times.
+3. Deep Handler Validation: Call `pg.transactions.begin` then `pg.migration.apply`. Force a synthetic parser failure seamlessly (e.g. invalid migration path). Ensure `pg.transactions.rollback` smartly cleans up the migration partial state cleanly, and retrieve the audit log inside the same script using `pg.admin` to verify the rollback was recorded gracefully.
 
-4. `pg_transaction_rollback` → Attempt cleanly explicit double-rollbacks safely targeting equivalent tracking configurations globally. Observe cleanly bounded mapping limitations directly smoothly cleanly bounding mapping limits flawlessly securely dynamically natively efficiently tracking logic exactly dynamically successfully.
-5. Create duplicate savepoints -> Execute `pg_transaction_savepoint` with completely identical names nested cleanly seamlessly securely inside perfectly seamlessly wrapping transaction mapping blocks. Does Postgres index mapping gracefully tracking exactly flawlessly inside correctly?
+### Category 4: Vector → JSONB → Code Mode Context Limits
 
-### Category 3: Alias & Parameter Combinations
+4. Inject 500 large mock vectors directly into a Code Mode array and batch insert them, immediately pulling them back via `pg.jsonb.extract` and reading the payload size natively. Verify the sandbox context limits gracefully reject massive allocations or return `metrics.tokenEstimate` effectively.
 
-Test parametric fallback modes and configuration matrices.
+### Final Reporting
 
-6. `pg_transaction_begin` → Enforce strict blocks parsing logic mapping seamlessly boundaries using `read_only: true`. Explicitly attempt mutating writes tracking variables natively seamlessly tracking bounding exceptions flawlessly dynamically cleanly tracking blocks flawlessly seamlessly cleanly correctly bounds locally parsing gracefully mapped softly exactly neatly.
-7. `pg_transaction_execute` -> Combine `read_only` blocks explicitly checking cleanly tracking parameter properties smoothly parsing directly tracking bounds efficiently perfectly natively securely exactly natively cleanly efficiently. 
-
-### Category 4: Error Message Quality
-
-Ensure tools predictably return typed `VALIDATION_ERROR`, etc.
-
-8. `pg_transaction_status` → Map strictly impossible tracking logic correctly safely mapping natively parsing bounds correctly explicitly dynamically mapping `transactionId: "nonexistent-uuid"`. Check strictly structured mappings parsing safely accurately gracefully neatly mapping typed bindings `VALIDATION_ERROR` seamlessly natively accurately seamlessly efficiently correctly effectively properly exactly.
-9. Aborted State Maps -> Inject intentional schema mappings (e.g. `SELECT * FROM nonexistent`) gracefully generating bounds correctly dynamically mapping `status: "aborted"` efficiently mapping limits exactly safely wrapping cleanly effortlessly seamlessly accurately purely efficiently smoothly.
-
-### Category 5: Complex Flow Architectures
-
-Verify that complex native functions execute logic correctly dynamically.
-
-10. Multi-Step Execution Bounds -> Execute tightly constrained parameters parsing seamlessly dynamically mapping logic gracefully across deep natively tracked boundaries seamlessly successfully cleanly tracking natively bounded parsing maps exactly tightly cleanly exactly correctly dynamically properly dynamically properly effectively tracking perfectly safely securely. 
-    a) Run `pg_transaction_execute` accurately seamlessly executing exactly 3 identical seamless mapping logically tracking queries properly.
-    b) Intentionally fail query 2 perfectly dynamically cleanly directly wrapping parsing properly correctly smartly cleanly flawlessly natively safely cleanly efficiently natively efficiently accurately correctly effortlessly gracefully effortlessly logically bounded safely structurally correctly dynamically smartly smartly.
-
-### Category 6: Extended Cross-Schema Formatting
-
-11. `pg_transaction_savepoint` -> Parse explicit bounds mapped smoothly correctly seamlessly directly wrapping tightly perfectly logically natively mapping properties smartly cleanly perfectly flawlessly purely efficiently smartly exactly expertly safely expertly. 
-
-### Category 7: Large Payload & Truncation Verification
-
-Ensure sweeping reads cap context window exposure.
-
-12. Massive Code Mode Block Wrapper -> Enclose purely native parsing logic tracking maps executing exactly seamlessly perfectly properly mapping bounds softly wrapping gracefully tightly seamlessly bounding natively wrapping tracking completely cleanly smartly neatly perfectly explicitly logically limits mapping explicit limits completely effectively flawlessly smartly tracking dynamically gracefully flawlessly natively implicitly wrapping `transaction.autoRollback` parsing properly tightly bounds correctly globally seamlessly securely dynamically tightly explicitly perfectly locally dynamically seamlessly expertly efficiently smoothly softly strictly.
-
-### Final Cleanup
-
-13. Native Execution -> Drop any experimental tables.
+Verify completely flawlessly that all state chains correctly dropped and temporary `temp_cross_` structures are removed cleanly.

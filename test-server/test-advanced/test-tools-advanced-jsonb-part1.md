@@ -1,4 +1,4 @@
-# Advanced Stress Test — postgres-mcp — transactions Group
+# Advanced Stress Test — postgres-mcp — jsonb Group (Part 1)
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -213,67 +213,83 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 ---
 
-## transactions Group Advanced Tests
+## jsonb Group Advanced Tests
 
-### transactions Group Tools (8 + 1 code mode)
+### jsonb Group Tools (20 + 1 code mode)
 
-1. `pg_transaction_begin`
-2. `pg_transaction_commit`
-3. `pg_transaction_rollback`
-4. `pg_transaction_savepoint`
-5. `pg_transaction_release`
-6. `pg_transaction_rollback_to`
-7. `pg_transaction_execute`
-8. `pg_transaction_status`
-9. `pg_execute_code` (auto-added)
+1. pg_jsonb_extract
+2. pg_jsonb_set
+3. pg_jsonb_insert
+4. pg_jsonb_delete
+5. pg_jsonb_contains
+6. pg_jsonb_path_query
+7. pg_jsonb_agg
+8. pg_jsonb_object
+9. pg_jsonb_array
+10. pg_jsonb_keys
+11. pg_jsonb_strip_nulls
+12. pg_jsonb_typeof
+13. pg_jsonb_validate_path
+14. pg_jsonb_stats
+15. pg_jsonb_merge
+16. pg_jsonb_normalize
+17. pg_jsonb_diff
+18. pg_jsonb_index_suggest
+19. pg_jsonb_security_scan
+20. pg_jsonb_pretty
+21. pg_execute_code (auto-added)
 
 ### Category 1: Boundary Values & Empty States
 
-Test tools against extreme characters, non-applicable parameters, and zero-state topologies.
+Test handling of extreme size, depth, and edge-case literal values.
 
-1. `pg_transaction_execute` → Feed perfectly empty execution properties (`statements: []`). Does logic gracefully skip querying natively bypassing safely logic completely natively bounded securely?
-2. `pg_transaction_status` → Establish mapping bounds wrapping explicitly tracking status values completely. `begin` -> observe `active` -> `commit` -> observe cleanly `not_found` explicitly safely.
-3. `pg_transaction_begin` → Push cleanly wrapped logical mapping natively enforcing `isolation_level: "SERIALIZABLE"`. Check internal maps logically bounding wrapping mappings accurately globally efficiently completely purely natively securely cleanly smoothly.
+**1.1 Deep Nesting and Extraction**
+1. Insert a 15-level deeply nested JSON document into a new `stress_jsonb_test` table.
+2. `pg_jsonb_extract` → target `level1.level2...level15`. Verify retrieval.
+3. `pg_jsonb_extract` → target a non-existent path `{path: "level1.wrong"}`. Expect clean validation handling or empty result.
+
+**1.2 Massive Arrays**
+4. Insert a JSON array containing 1,000 identical sub-objects.
+5. `pg_jsonb_path_query` → use standard JSON Path parsing to filter and return exactly 50 objects.
+6. `pg_jsonb_delete` → trigger an out-of-bounds error on `index: 999999`. Expect native PostgreSQL behavior (silent success/no-op).
+
+**1.3 Degenerate Literals**
+7. `pg_jsonb_typeof` → test against raw literal parameters `{json: "{}"}` (empty object), `{json: "[]"}` (empty array), and `{json: "null"}`.
+8. `pg_jsonb_keys` → attempt to retrieve keys from a scalar primitive `{table: "test_jsonb_docs", column: "tags"}` (array column) or a literal `{json: "42"}`. Expect structured error preventing `jsonb_object_keys` exception.
+9. `pg_jsonb_path_query` → query against an empty array `[]`.
 
 ### Category 2: State Pollution & Idempotency
 
-Ensure tools execute safely when repeated identically multiple times.
+**2.1 Idempotent Write Operations**
+10. `pg_jsonb_insert` → attempt to override an existing key, then insert a completely new missing key. Ensure it operates predictably without crashing.
+11. `pg_jsonb_delete` → delete the exact same key twice consecutively. Should succeed idempotently without throwing.
+12. `pg_jsonb_set` + `pg_jsonb_delete` → SET a new path on an existing row, then immediately DELETE that path. Verify row returns to original state.
 
-4. `pg_transaction_rollback` → Attempt cleanly explicit double-rollbacks safely targeting equivalent tracking configurations globally. Observe cleanly bounded mapping limitations directly smoothly cleanly bounding mapping limits flawlessly securely dynamically natively efficiently tracking logic exactly dynamically successfully.
-5. Create duplicate savepoints -> Execute `pg_transaction_savepoint` with completely identical names nested cleanly seamlessly securely inside perfectly seamlessly wrapping transaction mapping blocks. Does Postgres index mapping gracefully tracking exactly flawlessly inside correctly?
+### Category 3: Cross-Tool Consistency
 
-### Category 3: Alias & Parameter Combinations
+Ensure tools agree on types, paths, and values.
 
-Test parametric fallback modes and configuration matrices.
+**3.1 Type Agreement**
+13. `pg_jsonb_typeof` vs `pg_jsonb_keys` → Verify that if `typeof` returns `"object"`, `keys` successfully enumerates it.
+14. `pg_jsonb_extract` + `pg_jsonb_set` Round-trip → Set a nested number field (e.g., `42`), extract it, and verify the type inside code mode using `typeof result === 'number'`. It must not be a double-escaped string.
 
-6. `pg_transaction_begin` → Enforce strict blocks parsing logic mapping seamlessly boundaries using `read_only: true`. Explicitly attempt mutating writes tracking variables natively seamlessly tracking bounding exceptions flawlessly dynamically cleanly tracking blocks flawlessly seamlessly cleanly correctly bounds locally parsing gracefully mapped softly exactly neatly.
-7. `pg_transaction_execute` -> Combine `read_only` blocks explicitly checking cleanly tracking parameter properties smoothly parsing directly tracking bounds efficiently perfectly natively securely exactly natively cleanly efficiently. 
+**3.2 Operation Parity**
+15. `pg_jsonb_normalize` → Test `mode: "flatten"` and verify the leaf node paths exactly match what `pg_jsonb_extract` would require to reach those nodes.
+16. `pg_jsonb_merge` vs `pg_jsonb_normalize` → Merge two documents where one overrides the other, then normalize both the standalone result and the base documents. Verify consistency.
 
-### Category 4: Error Message Quality
+### Category 4: Analytics Tool Stress
 
-Ensure tools predictably return typed `VALIDATION_ERROR`, etc.
+Stress test the analysis and scanning tools on degenerate and dangerous patterns.
 
-8. `pg_transaction_status` → Map strictly impossible tracking logic correctly safely mapping natively parsing bounds correctly explicitly dynamically mapping `transactionId: "nonexistent-uuid"`. Check strictly structured mappings parsing safely accurately gracefully neatly mapping typed bindings `VALIDATION_ERROR` seamlessly natively accurately seamlessly efficiently correctly effectively properly exactly.
-9. Aborted State Maps -> Inject intentional schema mappings (e.g. `SELECT * FROM nonexistent`) gracefully generating bounds correctly dynamically mapping `status: "aborted"` efficiently mapping limits exactly safely wrapping cleanly effortlessly seamlessly accurately purely efficiently smoothly.
+**4.1 Indexing and Suggestions**
+17. `pg_jsonb_index_suggest` → test on `test_jsonb_docs.metadata` (object column) vs `test_jsonb_docs.tags` (array column). Array columns should gracefully report no keys / return validation error since `jsonb_each` doesn't work on arrays.
+18. `pg_jsonb_index_suggest` → test on a column that already has a GIN index (create one on a temporary table first). Verify the tool correctly detects the existing index and avoids duplicate recommendations.
 
-### Category 5: Complex Flow Architectures
+**4.2 Security Scanning**
+19. `pg_jsonb_security_scan` → Insert intentionally malicious payloads: script tags `<script>alert(1)</script>`, SQL injection strings `' OR 1=1; DROP TABLE users; --`, and mock credentials `{"api_key": "sk_test_123"}`. Verify detection.
+20. `pg_jsonb_security_scan` → test with a large `sampleSize` parameter (allow coercion testing as well).
 
-Verify that complex native functions execute logic correctly dynamically.
+**4.3 Statistical Analysis**
+21. `pg_jsonb_stats` → Test on an entirely empty table. Expect graceful zero-state, not division-by-zero crashes.
+22. `pg_jsonb_stats` → Test on a table with heterogeneous types in the same column (mixed objects, arrays, and scalars). Verify `typeDistribution` sums correctly.
 
-10. Multi-Step Execution Bounds -> Execute tightly constrained parameters parsing seamlessly dynamically mapping logic gracefully across deep natively tracked boundaries seamlessly successfully cleanly tracking natively bounded parsing maps exactly tightly cleanly exactly correctly dynamically properly dynamically properly effectively tracking perfectly safely securely. 
-    a) Run `pg_transaction_execute` accurately seamlessly executing exactly 3 identical seamless mapping logically tracking queries properly.
-    b) Intentionally fail query 2 perfectly dynamically cleanly directly wrapping parsing properly correctly smartly cleanly flawlessly natively safely cleanly efficiently natively efficiently accurately correctly effortlessly gracefully effortlessly logically bounded safely structurally correctly dynamically smartly smartly.
-
-### Category 6: Extended Cross-Schema Formatting
-
-11. `pg_transaction_savepoint` -> Parse explicit bounds mapped smoothly correctly seamlessly directly wrapping tightly perfectly logically natively mapping properties smartly cleanly perfectly flawlessly purely efficiently smartly exactly expertly safely expertly. 
-
-### Category 7: Large Payload & Truncation Verification
-
-Ensure sweeping reads cap context window exposure.
-
-12. Massive Code Mode Block Wrapper -> Enclose purely native parsing logic tracking maps executing exactly seamlessly perfectly properly mapping bounds softly wrapping gracefully tightly seamlessly bounding natively wrapping tracking completely cleanly smartly neatly perfectly explicitly logically limits mapping explicit limits completely effectively flawlessly smartly tracking dynamically gracefully flawlessly natively implicitly wrapping `transaction.autoRollback` parsing properly tightly bounds correctly globally seamlessly securely dynamically tightly explicitly perfectly locally dynamically seamlessly expertly efficiently smoothly softly strictly.
-
-### Final Cleanup
-
-13. Native Execution -> Drop any experimental tables.

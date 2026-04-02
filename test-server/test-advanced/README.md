@@ -11,19 +11,25 @@ This directory contains the "Second-Pass" advanced tests for the `postgres-mcp` 
 
 ## Execution Parts
 
-The original monolithic advanced stress testing suite was split into 22 granular parts to preserve agent attention spans and prevent LLM context window exhaustion. Each file strictly tests one major domain or cross-domain group.
+The original monolithic advanced stress testing suite was split into 28 granular parts to preserve agent attention spans and prevent LLM context window exhaustion. Each file strictly tests one major domain or cross-domain group.
 
 | File | Primary Focus | Key Validations |
 | ---- | ------------- | --------------- |
-| `test-tools-advanced-core.md` | Core | Idempotent DDL bounds, boundary logic, state pollution testing. |
+| `test-tools-advanced-core-part1.md` | Core | Idempotent DDL bounds, boundary logic, empty states. |
+| `test-tools-advanced-core-part2.md` | Core | State pollution, duplicate object detection, alias combinations. |
 | `test-tools-advanced-transactions.md` | Transactions | Transaction rollback recovery, abandoned transactions, rapid state transitions. |
-| `test-tools-advanced-jsonb.md` | JSONB | JSON object path mutation workflows, nested key operations. |
+| `test-tools-advanced-jsonb-part1.md` | JSONB | JSON object path mutation workflows. |
+| `test-tools-advanced-jsonb-part2.md` | JSONB | Nested key operations, array mutations. |
 | `test-tools-advanced-text.md` | Text | Full-text search edge cases, dictionary normalization limits. |
-| `test-tools-advanced-stats.md` | Stats | Statistical analysis edge cases, Top-N token payloads. |
+| `test-tools-advanced-stats-part1.md` | Stats | Statistical analysis boundary testing. |
+| `test-tools-advanced-stats-part2.md` | Stats | Top-N token payloads, extreme standard deviation handling. |
 | `test-tools-advanced-admin.md` | Admin | Query logging bounds, insight memo truncation handling. |
-| `test-tools-advanced-vector.md` | Vector | Geometric correlations, HNSW index parameter limits. |
-| `test-tools-advanced-performance.md` | Performance | Anomaly detection thresholds, explain plan payload truncations. |
-| `test-tools-advanced-postgis.md` | PostGIS | Geometric out-of-bounds validations. |
+| `test-tools-advanced-vector-part1.md` | Vector | Geometric correlations. |
+| `test-tools-advanced-vector-part2.md` | Vector | HNSW index parameter limits. |
+| `test-tools-advanced-performance-part1.md` | Performance | Anomaly detection thresholds. |
+| `test-tools-advanced-performance-part2.md` | Performance | Explain plan payload truncations. |
+| `test-tools-advanced-postgis-part1.md` | PostGIS | Geometric out-of-bounds validations. |
+| `test-tools-advanced-postgis-part2.md` | PostGIS | Spatial intersections boundary loops. |
 | `test-tools-advanced-ltree.md` | Ltree | Path hierarchy node boundaries, missing l-nodes. |
 | `test-tools-advanced-pgcrypto.md` | pgcrypto | Structured crypto errors, algorithm boundary validations. |
 | `test-tools-advanced-citext.md` | Citext | Case-insensitive extension parity edge cases. |
