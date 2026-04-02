@@ -215,6 +215,26 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 ## vector Group Advanced Tests
 
+### vector Group Tools (16 + 1 code mode)
+
+1. pg_vector_create_extension
+2. pg_vector_add_column
+3. pg_vector_insert
+4. pg_vector_batch_insert
+5. pg_vector_search
+6. pg_vector_create_index
+7. pg_vector_distance
+8. pg_vector_normalize
+9. pg_vector_aggregate
+10. pg_vector_validate
+11. pg_vector_cluster
+12. pg_vector_index_optimize
+13. pg_hybrid_search
+14. pg_vector_performance
+15. pg_vector_dimension_reduce
+16. pg_vector_embed
+17. pg_execute_code (auto-added)
+
 ### Category 1: Boundary Values & Empty States
 
 **1.1 Edge Case Creation**
