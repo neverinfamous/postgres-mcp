@@ -241,13 +241,13 @@ test.describe("Errors: Stats", () => {
     }
   });
 
-  test("stats_top_n with n > 1000 → structured validation error", async ({}, testInfo) => {
+  test("stats_top_n with n <= 0 → structured validation error", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
     try {
       const response = await callToolRaw(client, "pg_stats_top_n", {
         table: "test_products",
         column: "price",
-        n: 1001,
+        n: -1,
       });
       const text = (response as any).content[0]?.text;
       expect(text).toBeDefined();

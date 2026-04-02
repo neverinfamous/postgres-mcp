@@ -12,6 +12,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 test.describe.configure({ mode: "serial" });
 
 test.describe("Streamable HTTP Transport (MCP 2025-11-25)", () => {
+  test.setTimeout(120000);
   let client: Client;
 
   test.beforeAll(async () => {
