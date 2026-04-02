@@ -85,12 +85,12 @@ export function createVectorClusterTool(
         if (k === undefined) {
           throw new ValidationError("k (or clusters alias) is required");
         }
-        if (isNaN(k)) {
+        if (!Number.isFinite(k) || isNaN(k)) {
           return {
             success: false,
-            error: `Validation error: k must be a valid number,
+            error: `Validation error: k must be a finite positive number, received "${String(parsed.k)}"`,
             code: 'VALIDATION_ERROR',
-            category: 'validation', received "${String(parsed.k)}"`,
+            category: 'validation',
             suggestion: "Provide a numeric value for k (e.g., 3, 5, 10)",
           };
         }
