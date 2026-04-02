@@ -38,7 +38,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Standardized `count` response unconditionally in table mode for `pg_jsonb_pretty`
 - Reduced npm package size by excluding source maps and tests
 - Refactored Vitest test suite to use SWC compilation
-- Updated npm dependencies (`@modelcontextprotocol/sdk`, `typescript`, `typescript-eslint`)
+- Updated npm dependencies (`@modelcontextprotocol/sdk`, `@playwright/test`, `typescript`, `typescript-eslint`)
 
 ### Removed
 
@@ -112,3 +112,5 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Replaced inline error returns across JSONB tools with structured `ValidationError` instances preserving standard error output
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows
+- Patched npm-bundled vulnerabilities in Dockerfile: GHSA-73rr-hh4g-fpgx (`diff@8.0.4`), CVE-2026-25547 (`@isaacs/brace-expansion@5.0.1`), CVE-2026-23950/CVE-2026-24842 (`tar@7.5.13`), and CVE-2026-27904/CVE-2026-27903 (`minimatch@10.2.5`) via manual `npm pack` replacements and exact-version `overrides` in `package.json`
+
