@@ -634,10 +634,10 @@ Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, 
 - \`pg_vector_dimension_reduce\`: Direct mode returns \`{reduced: [...], originalDimensions, targetDimensions}\`. Table mode returns \`{rows: [{id, original_dimensions, reduced}], processedCount, summarized}\`. Default \`summarize: true\` in table mode returns compact \`{preview, dimensions, truncated}\` format. Use \`summarize: false\` for full vectors
 - \`pg_vector_distance\`: Calculate distance between two vectors. \`metric\`: 'l2' (default), 'cosine', 'inner_product'. Returns \`{distance, metric}\`
 - \`pg_vector_cluster\`: \`clusters\` = \`k\`. Returns centroids with \`{preview, dimensions, truncated}\` format for large vectors (>10 dims)—use \`pg_vector_distance\` to assign rows
-- \`pg_vector_create_index\`: Use \`type\` (or alias \`method\`) with values 'ivfflat' or 'hnsw'. IVFFlat: \`lists\` param. HNSW: \`m\`, \`efConstruction\` params
+- \`pg_vector_create_index\`: Use \`type\` (or alias \`method\`) with values 'ivfflat' or 'hnsw'. IVFFlat: \`lists\` param. HNSW: \`m\`, \`efConstruction\` (or snake_case alias \`ef_construction\`) params
 - \`pg_vector_performance\`: Auto-generates testVector from first row if omitted. Returns \`testVectorSource: 'auto-generated from first row'|'user-provided'\`
 - \`pg_vector_validate\`: Returns \`{valid: bool, vectorDimensions}\`. Empty vector \`[]\` returns \`{valid: true, vectorDimensions: 0}\`
 - ⛔ \`pg_vector_embed\`: Demo only (hash-based). Use OpenAI/Cohere for production.
-- \`pg_hybrid_search\`: Supports \`schema.table\` format (auto-parsed). Combines vector similarity and full-text search with weighted scoring. \`textColumn\` auto-detects type: uses tsvector columns directly, wraps text columns with \`to_tsvector()\`. Code mode alias: \`pg.hybridSearch()\` → \`pg.vector.hybridSearch()\`
+- \`pg_hybrid_search\`: Supports \`schema.table\` format (auto-parsed). Combines vector similarity and full-text search with weighted scoring. ⚠️ Text query param is \`textQuery\` (alias: \`queryText\`) — **not** \`query\`. \`textColumn\` auto-detects type: uses tsvector columns directly, wraps text columns with \`to_tsvector()\`. Code mode alias: \`pg.hybridSearch()\` → \`pg.vector.hybridSearch()\`
 - 📝 **Error Handling**: Vector tools return \`{success: false, error: "...", suggestion: "..."}\` for validation/semantic errors (dimension mismatch, non-vector column, table not found). Check \`success\` field before processing results.`],
 ]);
