@@ -92,13 +92,13 @@ export function createStatsTopNTool(
           where,
           selectColumns,
         } = parsed;
-        let n =
+        const n =
           parsed.n === undefined || Number.isNaN(parsed.n) ? 10 : parsed.n;
-        if (n > 100) {
-          n = 100;
-        }
         if (n <= 0) {
           throw new ValidationError("Parameter 'n' must be greater than 0.");
+        }
+        if (n > 100) {
+          throw new ValidationError("Parameter 'n' cannot exceed 100.");
         }
         const direction = parsed.direction ?? "desc";
         const schemaName = schema ?? "public";
@@ -212,15 +212,15 @@ export function createStatsDistinctTool(
         };
 
         const { table, column, schema, where } = parsed;
-        let limit =
+        const limit =
           parsed.limit === undefined || Number.isNaN(parsed.limit)
             ? 100
             : parsed.limit;
-        if (limit > 1000) {
-          limit = 1000;
-        }
         if (limit <= 0) {
           throw new ValidationError("Parameter 'limit' must be greater than 0.");
+        }
+        if (limit > 1000) {
+          throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
         }
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where
@@ -293,15 +293,15 @@ export function createStatsFrequencyTool(
         };
 
         const { table, column, schema, where } = parsed;
-        let limit =
+        const limit =
           parsed.limit === undefined || Number.isNaN(parsed.limit)
             ? 20
             : parsed.limit;
-        if (limit > 1000) {
-          limit = 1000;
-        }
         if (limit <= 0) {
           throw new ValidationError("Parameter 'limit' must be greater than 0.");
+        }
+        if (limit > 1000) {
+          throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
         }
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where
