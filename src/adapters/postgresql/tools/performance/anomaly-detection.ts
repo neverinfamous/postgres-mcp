@@ -68,8 +68,8 @@ const QueryAnomaliesInputBase = z.object({
 });
 
 const QueryAnomaliesInput = QueryAnomaliesInputBase.transform((data) => ({
-  threshold: Math.max(0.5, Math.min(10, safeNum(data.threshold, 2.0))),
-  minCalls: Math.max(1, Math.min(10000, safeNum(data.minCalls, 10))),
+  threshold: safeNum(data.threshold, 2.0),
+  minCalls: safeNum(data.minCalls, 10),
 }));
 
 export function createDetectQueryAnomaliesTool(
@@ -103,6 +103,20 @@ export function createDetectQueryAnomaliesTool(
         }
 
         const { threshold, minCalls } = parsed.data;
+        
+        if (threshold < 0.5 || threshold > 10) {
+          return {
+            success: false,
+            error: "Validation error: threshold must be between 0.5 and 10",
+          };
+        }
+        
+        if (minCalls < 1 || minCalls > 10000) {
+          return {
+            success: false,
+            error: "Validation error: minCalls must be between 1 and 10000",
+          };
+        }
 
         // Check if pg_stat_statements is available
         const extCheck = await adapter.executeQuery(
@@ -209,7 +223,7 @@ const BloatRiskInputBase = z.object({
 
 const BloatRiskInput = BloatRiskInputBase.transform((data) => ({
   schema: data.schema,
-  minRows: Math.max(0, Math.min(1000000, safeNum(data.minRows, 1000))),
+  minRows: safeNum(data.minRows, 1000),
 }));
 
 export function createDetectBloatRiskTool(
@@ -243,8 +257,22 @@ export function createDetectBloatRiskTool(
 
         const { schema, minRows } = parsed.data;
 
+        if (minRows < 0 || minRows > 1000000) {
+          return {
+            success: false,
+            error: "Validation error: minRows must be between 0 and 1000000",
+          };
+        }
+
         let schemaFilter: string;
         if (schema) {
+          const check = await adapter.executeQuery("SELECT 1 FROM information_schema.schemata WHERE schema_name = $1", [schema]);
+          if (!check.rows || check.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schema}' does not exist.`,
+            };
+          }
           validateIdentifier(schema);
           schemaFilter = `AND schemaname = '${schema}'`;
         } else {

@@ -406,6 +406,16 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
 
         const { schema, topN } = parsed.data;
 
+        if (schema) {
+          const check = await adapter.executeQuery("SELECT 1 FROM information_schema.schemata WHERE schema_name = $1", [schema]);
+          if (!check.rows || check.rows.length === 0) {
+            return {
+              success: false,
+              error: `Schema '${schema}' does not exist.`,
+            };
+          }
+        }
+
         // Run all diagnostics in parallel
         const [
           slowQueries,

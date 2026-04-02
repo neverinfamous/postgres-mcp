@@ -27,7 +27,7 @@ export function createStatStatementsTool(
     limit: z
       .any()
       .optional()
-      .describe("Max statements to return (default: 20, use 0 for all)"),
+      .describe("Max statements to return (default: 20, max: 500, use 0 for max 500)"),
     orderBy: z
       .unknown()
       .optional()
@@ -56,7 +56,7 @@ export function createStatStatementsTool(
       try {
         const parsed = StatStatementsSchema.parse(params);
         const rawLimit = Number(parsed.limit);
-        const limit =
+        const userLimit =
           parsed.limit === undefined
             ? 20
             : isNaN(rawLimit)
@@ -64,6 +64,8 @@ export function createStatStatementsTool(
               : rawLimit === 0
                 ? null
                 : rawLimit;
+        // Cap at 500 to prevent payload blowout from large pg_stat_statements tables
+        const limit = userLimit === null ? 500 : Math.min(userLimit, 500);
         const rawOrderBy: unknown = parsed.orderBy;
         let orderBy = "total_time";
         if (typeof rawOrderBy === "string" && ["total_time", "calls", "mean_time", "rows"].includes(rawOrderBy)) {
@@ -251,7 +253,7 @@ export function createQueryPlanStatsTool(
       try {
         const parsed = QueryPlanStatsSchema.parse(params);
         const rawLimit = Number(parsed.limit);
-        const limit =
+        const userLimit =
           parsed.limit === undefined
             ? 20
             : isNaN(rawLimit)
@@ -259,6 +261,8 @@ export function createQueryPlanStatsTool(
               : rawLimit === 0
                 ? null
                 : rawLimit;
+        // Cap at 500 to match pg_stat_statements payload safety
+        const limit = userLimit === null ? 500 : Math.min(userLimit, 500);
         const rawTruncate = Number(parsed.truncateQuery);
         const truncateLen =
           parsed.truncateQuery === undefined

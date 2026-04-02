@@ -62,6 +62,10 @@ export function createQueryPlanCompareTool(
   const QueryPlanCompareSchemaBase = z.object({
     query1: z.string().optional().describe("First SQL query"),
     query2: z.string().optional().describe("Second SQL query"),
+    sql1: z.string().optional().describe("Alias for query1"),
+    sql2: z.string().optional().describe("Alias for query2"),
+    sqlA: z.string().optional().describe("Alias for query1"),
+    sqlB: z.string().optional().describe("Alias for query2"),
     params1: z
       .array(z.unknown())
       .optional()
@@ -85,12 +89,14 @@ export function createQueryPlanCompareTool(
     if (typeof input !== "object" || input === null) return input;
     const obj = input as Record<string, unknown>;
     const result = { ...obj };
-    // Alias: sql1 → query1, sql2 → query2
-    if (result["query1"] === undefined && result["sql1"] !== undefined) {
-      result["query1"] = result["sql1"];
+    // Alias: sql1/sqlA → query1, sql2/sqlB → query2
+    if (result["query1"] === undefined) {
+      if (result["sql1"] !== undefined) result["query1"] = result["sql1"];
+      else if (result["sqlA"] !== undefined) result["query1"] = result["sqlA"];
     }
-    if (result["query2"] === undefined && result["sql2"] !== undefined) {
-      result["query2"] = result["sql2"];
+    if (result["query2"] === undefined) {
+      if (result["sql2"] !== undefined) result["query2"] = result["sql2"];
+      else if (result["sqlB"] !== undefined) result["query2"] = result["sqlB"];
     }
     return result;
   }, QueryPlanCompareSchemaBase);

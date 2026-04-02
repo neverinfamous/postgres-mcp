@@ -71,6 +71,10 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Added missing `success: true` fields to responses across `pg_capacity_planning`, `pg_alert_threshold_set`, and other monitoring group tools
 - Fixed `pg_partman` tools schema detection properly reporting missing extensions via `ExtensionNotAvailableError`
 - Corrected `pg_partman_show_config` to elegantly return `TABLE_NOT_FOUND` when queried with an unmanaged table alias
+- Added `sqlA`/`sqlB` aliases (in addition to `sql1`/`sql2`) to `pg_query_plan_compare` schema base for full Code Mode parity
+- Replaced silent clamping in `pg_detect_query_anomalies` (threshold, minCalls) and `pg_detect_bloat_risk` (minRows) with explicit structured validation errors
+- Added schema existence pre-checks (P154) to `pg_detect_bloat_risk` and `pg_diagnose_database_performance`
+- Capped `pg_stat_statements` and `pg_query_plan_stats` maximum return limit at 500 rows to prevent unbounded payload blowout on large `pg_stat_statements` tables
 
 ### Security
 - Replaced raw Postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks
