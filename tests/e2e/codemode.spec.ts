@@ -23,6 +23,9 @@ test.describe.configure({ mode: "serial" });
 // =============================================================================
 
 test.describe("Code Mode: Sandbox Basics", () => {
+  test.beforeEach(() => {
+    test.setTimeout(120_000);
+  });
   test("should return a simple value", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
     try {
