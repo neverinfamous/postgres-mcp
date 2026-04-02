@@ -33,6 +33,8 @@ export {
 // citext schemas
 export {
   preprocessCitextTableParams,
+  CitextCreateExtensionSchemaBase,
+  CitextCreateExtensionSchema,
   CitextCompareSchemaBase,
   CitextCompareSchema,
   CitextConvertColumnSchemaBase,

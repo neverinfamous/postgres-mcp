@@ -46,6 +46,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 ### Fixed
 
 - Standardized `success: true` properties and P154 error structures across all 230+ tools; replaced inline `{success: false}` fallbacks and generic `QUERY_ERROR` returns with explicit `ValidationError` instances
+- Remediated Split Schema Pattern violation in `pg_citext_create_extension` by adding `CitextCreateExtensionSchema` to intercept optional schema definitions and block missing properties from reaching framework boundaries
 - Enforced explicit `ValidationError` rejections on `limit` and `n` parameters to prevent silent clamping and unbounded token payload bloat; applied hard `.max()` caps in window statistics, grouped time-series, distinct/frequency analysis, advanced statistical queries, and `pg_append_insight` payloads
 - Migration rollback transaction isolation to prevent unmanaged auto-commits
 - Schema state invalidation missing DDL regex detection

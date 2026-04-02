@@ -12,9 +12,17 @@ import { coerceNumber } from "../../../../utils/query-helpers.js";
 // Compare Schema
 // =============================================================================
 
+export const CitextCreateExtensionSchemaBase = z.object({
+  schema: z.string().optional().describe("Schema in which to install the extension (default: public)")
+});
+
+export const CitextCreateExtensionSchema = z
+  .preprocess(normalizeOptionalParams, CitextCreateExtensionSchemaBase);
+
 /**
  * Base schema for MCP visibility - shows parameters with optional types for framework passthrough.
  */
+
 export const CitextCompareSchemaBase = z.object({
   value1: z.string().optional().describe("First value to compare"),
   value2: z.string().optional().describe("Second value to compare"),

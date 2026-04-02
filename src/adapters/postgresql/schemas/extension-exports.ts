@@ -279,6 +279,8 @@ export {
   KcacheResourceAnalysisOutputSchema,
   KcacheResetOutputSchema,
   // citext
+  CitextCreateExtensionSchemaBase,
+  CitextCreateExtensionSchema,
   CitextCompareSchemaBase,
   CitextCompareSchema,
   CitextConvertColumnSchema,

@@ -11,11 +11,12 @@ import {
   ExtensionNotAvailableError,
   ValidationError,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  CitextCreateExtensionSchemaBase,
+  CitextCreateExtensionSchema,
   CitextConvertColumnSchema,
   CitextConvertColumnSchemaBase,
   CitextCreateExtensionOutputSchema,
@@ -33,16 +34,24 @@ export function createCitextExtensionTool(
     description: `Enable the citext extension for case-insensitive text columns.
 citext is ideal for emails, usernames, and other identifiers where case shouldn't matter.`,
     group: "citext",
-    inputSchema: z.object({}),
+    inputSchema: CitextCreateExtensionSchemaBase,
     outputSchema: CitextCreateExtensionOutputSchema,
     annotations: write("Create Citext Extension"),
     icons: getToolIcons("citext", write("Create Citext Extension")),
-    handler: async (_params: unknown, _context: RequestContext) => {
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
-        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS citext");
+        const parsed = CitextCreateExtensionSchema.parse(params ?? {});
+        const schema = (parsed as { schema?: string }).schema;
+        
+        let query = "CREATE EXTENSION IF NOT EXISTS citext";
+        if (typeof schema === "string" && schema.length > 0) {
+          query += ` SCHEMA "${schema}"`;
+        }
+        
+        await adapter.executeQuery(query);
         return {
           success: true,
-          message: "citext extension enabled",
+          message: "citext extension enabled" + (typeof schema === "string" ? ` in schema ${schema}` : ""),
           usage:
             "Create columns with type CITEXT instead of TEXT for case-insensitive comparisons",
         };
