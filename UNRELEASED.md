@@ -5,7 +5,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ## [Unreleased]
 
-### Added
+#### Added
 
 - Transport-agnostic Auth module (`src/auth/transport-agnostic.ts`)
 - OAuth enhancements supporting `SCOPE_PATTERNS`, `BASE_SCOPES`, and RFC 6750
@@ -20,12 +20,11 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - 22 group-specific help resources accessible via `postgres://help`
 - Playwright E2E coverage for Code Mode, authentication, and backups
 - `toType` parameter in `pg_citext_convert_column` for pure `text` type conversions
-- `keys` and `values` parallel array parameters in `pg_jsonb_object`, enabling `{ keys: ["a","b"], values: [1,2] }` as an alternative to `{ data: {a:1, b:2} }`; mismatched array lengths produce a clear `ValidationError`
-- `indexName` and `name` alias parameters in `pg_vector_create_index` allowing callers to specify a custom index name instead of the auto-generated `idx_{table}_{column}_{type}` default
+- Parallel array parameters (`keys`, `values`) in `pg_jsonb_object`
+- `indexName` and `name` alias parameters in `pg_vector_create_index`
+- `value` alias parameter in `pg_jsonb_pretty` for ergonomic harmony with builder tools
 
 ### Changed
-
-- Harmonized test prompt architecture: split 6 monolithic Advanced Code Mode tests into part 1/2 pairings, injected missing Structured Error verification boilerplates into all 28 advanced files, and remediated cross-group testing logic loops
 
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`
 - Centralized default connection pool timeout to 30,000ms
@@ -38,6 +37,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Standardized `count` response unconditionally in table mode for `pg_jsonb_pretty`
 - Reduced npm package size by excluding source maps and tests
 - Refactored Vitest test suite to use SWC compilation
+- Harmonized test prompt architecture: split monolithic Code Mode tests, injected Structured Error boilerplates, and certified operational parity across all Core, JSONB, and Vector tools
 - Updated npm dependencies (`@modelcontextprotocol/sdk`, `@playwright/test`, `typescript`, `typescript-eslint`)
 
 ### Removed
@@ -47,68 +47,48 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ### Fixed
 
-- Standardized `success: true` properties and P154 error structures across all 230+ tools; replaced inline `{success: false}` fallbacks and generic `QUERY_ERROR` returns with explicit `ValidationError` instances
-- Remediated Split Schema Pattern violation in `pg_citext_create_extension` by adding `CitextCreateExtensionSchema` to intercept optional schema definitions and block missing properties from reaching framework boundaries
-- Enforced explicit `ValidationError` rejections on `limit` and `n` parameters to prevent silent clamping and unbounded token payload bloat; applied hard `.max()` caps in window statistics, grouped time-series, distinct/frequency analysis, advanced statistical queries, and `pg_append_insight` payloads
-- Migration rollback transaction isolation to prevent unmanaged auto-commits
-- Schema state invalidation missing DDL regex detection
-- Code Mode evaluation bypasses on readonly fields, schema errors, and exposed aliases
-- Memory limit exhaustion by enforcing defaults on unbounded queries
-- Backup restoration ordering and sequence defects
-- Introspection cascade simulator truncating self-referencing foreign keys
-- Partman initialization routines failing on missing child tables
-- Metadata caching defects causing stale schema artifacts and Code Mode invalidation failures
-- Inconsistent 'does not exist' error messaging, regex matching, and validation leaks
-- Missing positional mappings for Introspection and Migration Code Mode aliases
-- Transaction ID propagation gaps in `text` and `vector` tools
-- Missing column headers and unbounded payloads in `pg_copy_export` empty table executions
-- Internal boolean flags leaking into schema JSON response structures
-- Schema drift false positives in `pg_audit_diff_backup` for primary keys and sequences
-- `hasDifferences` output resolution in backup audits extended to volume mutations
-- Analytics volume drift silently dropping metrics for truncated tables
-- Dry-run validation in `pg_audit_restore_backup` failing to bypass persistent table allocations
-- Numeric sequence suffixes preserved during side-by-side data restorations
-- Inaccurate `summary` statistics in `pg_cron_job_run_details` when limits were applied
-- `pg_cron_unschedule` inactive-job failures mapped to `JOB_NOT_FOUND` via `jobId` fallback; `pg_cron` listing and cleanup tools now safely invoke unbounded behavior when passed `limit: 0`, enforce strict Zod evaluation across all optional integers to avoid silent payload reductions, and `pg_cron_alter_job` resolves native missing `jobName` aliases via internal lookups
-- Mapped raw schema and relation errors to structured `EXTENSION_MISSING` code in `pg_cron` tools when the extension is absent
-- JavaScript string arithmetic bugs in transaction boundary tests
-- Docker Hub rate-limit blocks during multi-arch image pipelines by enforcing authenticated pulls
-- `pg_jsonb_normalize`, `pg_jsonb_typeof`, `pg_jsonb_keys`, and `pg_jsonb_path_query` incorrectly requiring `table` and `column` parameters for standalone `json` instances
-- `pg_drop_schema` native Postgres dependency errors re-thrown as structured validation errors
-- Timing defects in admin vacuum/analyze tools causing progress logging before validation failures
-- Incorrect schema documentation for `pg_audit_list_backups` limit defaults
-- Dot-splitting parser in `citext` schemas failing on regex-heavy identifier names
-- `pg_reindex` valid `target` scope enlarged to correctly permit the `system` keyword
-- Structured error handling for absent indexes in `pg_cluster` commands through mapped contexts
-- `VACUUM` and `ANALYZE` tool executions translated to parenthesized syntax with `skipLocked`, `truncate`, and `verbose` support
-- Asynchronous flush synchronization enforced within `postgres://audit` resource to eliminate millisecond-precision timing flakes in E2E tests
+- Standardized `success: true` properties and P154 error structures across all 230+ tools, replacing inline `{success: false}` fallbacks with explicit `ValidationError` instances
+- Prevented token payload bloat by enforcing explicit validations, `.max()` caps, and strict truncation bounds on high-volume inputs/outputs (`limit`, `n`, `pg_vector_search`, `pg_jsonb_normalize`)
+- Fixed Split Schema Pattern violations across `pg_hybrid_search`, `pg_jsonb_merge`, `pg_jsonb_normalize`, `pg_vector_create_index`, and `pg_citext_create_extension` by adding correct schema definitions and alias support
+- Resolved Zod validation handling and eliminated framework refine leaks in vector tools (e.g., `pg_vector_batch_insert`, `pg_vector_create_extension`, `pg_vector_dimension_reduce`)
+- Restructured malformed error strings across Vector tools to ensure proper object fields and zero-suppression
+- Repaired migration rollback transaction isolation to prevent unmanaged auto-commits
+- Fixed schema state invalidation missing DDL regex detection
+- Adjusted Code Mode evaluation bypasses for readonly fields, schema errors, and exposed aliases
+- Fixed backup restoration ordering and sequence defects, including dry-run validation failures and schema drift false positives
+- Remediated introspection cascade simulator truncating self-referencing foreign keys
+- Handled Partman initialization routines failing on missing child tables
+- Patched metadata caching defects causing stale schema artifacts and Code Mode invalidation failures
+- Resolved inconsistent 'does not exist' error messaging, regex matching, and validation leaks
+- Added missing positional mappings for Introspection and Migration Code Mode aliases
+- Fixed transaction ID propagation gaps in `text` and `vector` tools
+- Added missing column headers and capped unbounded payloads in `pg_copy_export` empty table executions
+- Removed internal boolean flags leaking into schema JSON response structures
+- Extended `hasDifferences` output resolution in backup audits to volume mutations
+- Fixed analytics volume drift silently dropping metrics for truncated tables
+- Corrected inaccurate `summary` statistics in `pg_cron_job_run_details` when limits were applied
+- Mapped raw schema/relation errors to structured `EXTENSION_MISSING` and `JOB_NOT_FOUND` codes in `pg_cron` tools
+- Resolved JavaScript string arithmetic bugs in transaction boundary tests
+- Bypassed Docker Hub rate-limit blocks during multi-arch image pipelines by enforcing authenticated pulls
+- Standardized parameter requirements in `pg_jsonb_normalize`, `pg_jsonb_typeof`, `pg_jsonb_keys`, and `pg_jsonb_path_query` to allow standalone `json` instances
+- Mapped `pg_drop_schema` native Postgres dependency errors to structured validation errors
+- Corrected timing defects in admin vacuum/analyze tools causing progress logging before validation failures
+- Fixed schema documentation for `pg_audit_list_backups` limit defaults
+- Fixed dot-splitting parser in `citext` schemas failing on regex-heavy identifier names
+- Enlarged `pg_reindex` valid `target` scope to correctly permit the `system` keyword
+- Structured error handling for absent indexes in `pg_cluster` commands
+- Applied parenthesized syntax with `skipLocked`, `truncate`, and `verbose` support to `VACUUM` and `ANALYZE` tools
+- Enforced asynchronous flush synchronization within `postgres://audit` resource to eliminate millisecond-precision timing flakes in E2E tests
 - Mapped raw Postgres configuration errors to structured `VALIDATION_ERROR` responses for invalid parameters in `pg_set_config`
-- Updated `pg_citext_compare` input validation to natively accept empty strings internally without throwing `VALIDATION_ERROR`s when executing case-insensitive comparisons
-- Fixed Split Schema Violations in `pg_hybrid_search` where parameter aliases (`queryVector`, `queryText`) were ignored due to missing schema declarations
-- Remediated high-volume MCP payload bloat in `pg_vector_search` ensuring vectors returned in results are safely parsed and truncated
-- Hardened boundary conditions in `pg_vector_distance` and `pg_vector_normalize` by catching empty payloads and returning structured validation errors
-- Resolved Zod validation handling in `pg_vector_batch_insert` ensuring malformed vector arrays return standard MCP `success: false` schema instead of leaking Zod exceptions
-- Patched idempotency gaps in `pg_vector_create_index` enabling safe resolution when `ifNotExists: true` is triggered on pre-existing indexes
-- Restored missing alias support for `ef_construction` in `pg_vector_create_index`, remediating a Split Schema Pattern violation
-- Enforced strict Zod schema parsing in `pg_vector_create_extension` to close parameter validation leaks
-- Fixed `JsonbIndexSuggestOutputSchema` mismatch in `pg_jsonb_index_suggest` where `keyDistribution` and `existingIndexes` fields were incorrectly nested under `analyzed` rather than matching the root-level emission of the handler
-- Certified Code Mode parity across all 20 Core tools, confirming correct schema propagation for boundary testing, nonexistent variables, alias mapping, and `limit: 0` query resolution
-- Fixed Split Schema Violations in `pg_jsonb_merge` and `pg_jsonb_normalize` by correctly evaluating stringified JSON schemas and nested base parameters
-- Replaced Postgres `\b` word boundary regex with native `\y` matching in `pg_jsonb_security_scan` to prevent SQL Injection payload regressions
-- Certified Code Mode parity across JSONB tools (Part 1 & 2), confirming deep nesting resolution, unbounded array deletion scoping, cross-tool consistency tests, array/object native equivalence for inserts, and literal document evaluation for merge operations
-- Enforced strict truncation bounds and `truncated` limit flags across `pg_jsonb_normalize` to safely process massive multi-row JSON arrays and objects without excessive payload bloat
-- Certified Code Mode parity across Vector tools (Part 1), confirming strict Zod validation against mismatched array dimensions, zero-suppression for P154 object existence errors, and comprehensive structural parity against boundary conditions
-- Fixed malformed error string literal in `pg_vector_cluster` where the `isNaN` handler path embedded the `code` and `category` fields as raw text inside the error message string; restructured as proper separate object fields and extended the guard to `!Number.isFinite(k)` to also reject `Infinity`/`-Infinity` with a clear structured error
-- Fixed unstructured Error leak in `pg_vector_dimension_reduce` by wrapping domain errors with proper `VALIDATION_ERROR` codes
-- Eliminated Zod framework refine leak in `VectorCreateIndexSchema` by extracting inline validation to handler-side
-- Added missing `column` and `col` aliases for vector-column mappings in `pg_hybrid_search` complying with standard Vector group API patterns
-- Fixed missing `success: true` flags in successful responses for `pg_vector_search`, `pg_vector_validate`, `pg_vector_cluster`, `pg_vector_index_optimize`, `pg_vector_dimension_reduce`, `pg_vector_embed`, `pg_hybrid_search`, and `pg_vector_performance` ensuring strict structural parity with the MCP Server error pattern and standardized success shapes
-- Supported raw JSON string literal validation across JSONB tools by enforcing explicit JSON parsing inside `toJsonString`, preventing double-encoding of primitive representations, and intercepting maliciously formatted literals with structured ValidationError codes
-- Fixed `pg_jsonb_validate_path` incorrectly returning `{success: true, valid: false}` for syntactically invalid JSONPath expressions; now returns `{success: false}` via `formatHandlerErrorResponse` wrapping a `ValidationError` with a helpful `$`-prefix hint
-- Fixed `pg_jsonb_object` silently returning `{success: true, object: {}}` when called with no key-value pairs; now raises a `ValidationError` requiring at least one entry via `data`, `object`, or `pairs`
-- Added `value` as an alias for the `json` parameter in `pg_jsonb_pretty`, harmonizing ergonomics with other builder tools that accept `value` as a content parameter
-- Updated unit test `pg_jsonb_validate_path > should return invalid for bad path` to assert `success: false` and a `VALIDATION_ERROR`-scoped message; removed stale assertions for the old `{success: true, valid: false}` response shape
-- Fixed `pg_jsonb_object` incorrectly escaping parallel arrays via Code Mode into `{data: {keys: [], values: []}}` due to `OBJECT_WRAP_MAP` ignoring `"keys"` and `"values"` in its `skipKeys` array; added keys ensuring parallel shapes map to PostgreSQL parameters correctly
+- Updated `pg_citext_compare` input validation to natively accept empty strings internally
+- Patched idempotency gaps in `pg_vector_create_index` for `ifNotExists: true` on pre-existing indexes
+- Corrected `JsonbIndexSuggestOutputSchema` mismatch in `pg_jsonb_index_suggest` where fields were incorrectly nested
+- Replaced Postgres `\b` word boundary regex with native `\y` matching in `pg_jsonb_security_scan` to prevent SQL injection regressions
+- Supported raw JSON string literal validation across JSONB tools by enforcing explicit JSON parsing inside `toJsonString`
+- Adjusted `pg_jsonb_validate_path` to return structured `ValidationError` with `$`-prefix hint for invalid expressions instead of `{success: true, valid: false}`
+- Required at least one entry via `data`, `object`, or `pairs` in `pg_jsonb_object` instead of silently returning empty objects
+- Fixed `pg_jsonb_object` incorrectly escaping parallel arrays via Code Mode by updating `OBJECT_WRAP_MAP` skip keys
+
 ### Security
 
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
