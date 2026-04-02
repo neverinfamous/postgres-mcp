@@ -104,6 +104,8 @@ export {
   DatabaseSizeSchema,
   TableSizesSchemaBase,
   TableSizesSchema,
+  ConnectionStatsSchemaBase,
+  ConnectionStatsSchema,
   ShowSettingsSchemaBase,
   ShowSettingsSchema,
   AlertThresholdSetSchemaBase,

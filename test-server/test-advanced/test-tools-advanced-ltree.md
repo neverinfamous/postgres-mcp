@@ -4,11 +4,11 @@
 
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
-- Do not modify or skip tests.
-- Do not run any other test files.
+- Do not modify or skip tests, run any other test files, or do anything other than these tests. Ignore distractions in terminal from work being done in other thread.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests. Ignore distractions in terminal.
-- Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
+- Allow me to handle Lint, typecheck, Vitest, and Playwright. You cannot restart the server in Antigravity as the cache has to be refreshed manually.
+- If you have trouble saving task.md because it already exists, use a different filename.
+- Please let me handle checking lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
 
@@ -209,7 +209,7 @@ DROP TABLE IF EXISTS stress_my_test_table;
    - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
 4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 5. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive Code Mode execution block.
-6. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
+6. Stop and briefly summarize the testing results and fixes, **ensuring the total token count is prominently displayed.**
 
 ---
 
@@ -255,7 +255,7 @@ Test parametric fallback modes and configuration matrices.
 Ensure tools predictably return typed `VALIDATION_ERROR`, etc.
 
 9. `pg_ltree_query` → Point to a nonexistent column on an existing table. Assert typing throws exactly `COLUMN_NOT_FOUND`.
-10. `pg_ltree_match` → Target `table: "missing_hierarchies_123"`. Ensure `TABLE_NOT_FOUND` wraps seamlessly. 
+10. `pg_ltree_match` → Target `table: "missing_hierarchies_123"`. Ensure `TABLE_NOT_FOUND` wraps seamlessly.
 11. Environment Mock -> Manually drop the `ltree` extension directly using pure SQL within Code Mode. Then execute `pg_ltree_lca`. Validate error returned is typed `EXTENSION_MISSING` (or a cleanly handled syntax wrapper).
 12. Restore the extension via `pg_ltree_create_extension()` directly afterwards.
 
@@ -266,7 +266,7 @@ Verify that complex native functions calculate topological positions precisely.
 13. `pg_ltree_lca` → Request LCA for two completely disjointed, non-overlapping paths with different root origins (`A.B.C` vs `Z.Y.X`). Verify clean empty response natively rather than an indexing fault.
 14. `pg_ltree_lca` → Execute against an array composed strictly of exactly identically repeated path definitions (`["Root.Node", "Root.Node", "Root.Node"]`).
 
-### Category 6: Code Mode Parity 
+### Category 6: Code Mode Parity
 
 15. Serialization IPC Check: Pull `pg_ltree_list_columns()` via Code Mode. Verify the resultant column mapping accurately isolates tables explicitly defined as hierarchical versus standard properties safely without JS coercion string anomalies.
 

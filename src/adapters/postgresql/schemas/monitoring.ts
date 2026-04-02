@@ -19,6 +19,15 @@ export const DatabaseSizeSchemaBase = z.object({
     .describe("Database name (current if omitted)"),
 });
 
+export const ConnectionStatsSchemaBase = z.object({
+  database: z.string().optional().describe("Filter by specific database name"),
+});
+
+export const ConnectionStatsSchema = z.preprocess(
+  defaultToEmpty,
+  ConnectionStatsSchemaBase
+);
+
 export const DatabaseSizeSchema = z.preprocess(
   defaultToEmpty,
   DatabaseSizeSchemaBase,

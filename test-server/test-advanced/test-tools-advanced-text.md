@@ -4,11 +4,11 @@
 
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
-- Do not modify or skip tests.
-- Do not run any other test files.
+- Do not modify or skip tests, run any other test files, or do anything other than these tests. Ignore distractions in terminal from work being done in other thread.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests. Ignore distractions in terminal.
-- Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
+- Allow me to handle Lint, typecheck, Vitest, and Playwright. You cannot restart the server in Antigravity as the cache has to be refreshed manually.
+- If you have trouble saving task.md because it already exists, use a different filename.
+- Please let me handle checking lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
 
@@ -209,7 +209,7 @@ DROP TABLE IF EXISTS stress_my_test_table;
    - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
 4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 5. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive Code Mode execution block.
-6. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
+6. Stop and briefly summarize the testing results and fixes, **ensuring the total token count is prominently displayed.**
 
 ---
 
@@ -266,7 +266,7 @@ Verify that complex native functions execute logic correctly dynamically.
 
 9. Multi-Step Query Flow -> Use Javascript within Sandbox layer seamlessly natively safely gracefully wrapping mapping boundaries cleanly over execution layers:
     a) Construct `pg_text_to_query` from a raw phrase dynamically mapping cleanly.
-    b) Pass that dynamically mapped variable perfectly cleanly directly into `pg_text_search` purely across internal Javascript layers securely natively tracking maps dynamically mapped safely efficiently wrapping variables limits perfectly tracking parsing variables securely locally smoothly securely gracefully safely efficiently securely perfectly dynamically natively natively purely securely natively safely boundaries directly parsing correctly inside memory purely seamlessly. Validate token sizes correctly safely natively cleanly mapping mappings internally. 
+    b) Pass that dynamically mapped variable perfectly cleanly directly into `pg_text_search` purely across internal Javascript layers securely natively tracking maps dynamically mapped safely efficiently wrapping variables limits perfectly tracking parsing variables securely locally smoothly securely gracefully safely efficiently securely perfectly dynamically natively natively purely securely natively safely boundaries directly parsing correctly inside memory purely seamlessly. Validate token sizes correctly safely natively cleanly mapping mappings internally.
 
 ### Category 6: Extended Cross-Schema Formatting
 

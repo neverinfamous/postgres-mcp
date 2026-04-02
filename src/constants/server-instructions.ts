@@ -146,7 +146,7 @@ export const HELP_CONTENT: ReadonlyMap<string, string> = new Map([
 Core: \`vacuum()\`, \`vacuumAnalyze()\`, \`analyze()\`, \`reindex()\`, \`cluster()\`, \`setConfig()\`, \`reloadConf()\`, \`resetStats()\`, \`cancelBackend()\`, \`terminateBackend()\`, \`appendInsight()\`
 
 - All admin tools support \`schema.table\` format (auto-parsed, embedded schema takes priority over explicit \`schema\` param)
-- \`vacuum({ table?, full?, analyze?, verbose? })\`: Without \`table\`, vacuums ALL tables. \`verbose\` output goes to PostgreSQL server logs
+- \`vacuum({ table?, full?, analyze?, verbose? })\`: Without \`table\`, vacuums ALL tables. \`verbose\` output goes to logs. Note: Vacuum timing logic triggers log progress feedback *after* validation execution correctly.
 - \`reindex({ target, name?, concurrently? })\`: Targets: 'table', 'index', 'schema', 'database'. \`database\` target defaults to current db when \`name\` omitted
 - \`cluster()\`: Without args, re-clusters all previously-clustered tables. With args, requires BOTH \`table\` AND \`index\`
 - \`setConfig({ name, value, isLocal? })\`: \`isLocal: true\` applies only to current transaction
@@ -206,10 +206,10 @@ Response Structures:
 Core: \`createExtension()\`, \`convertColumn()\`, \`listColumns()\`, \`analyzeCandidates()\`, \`compare()\`, \`schemaAdvisor()\`
 
 - \`pg_citext_create_extension\`: Enable citext extension (idempotent). Returns \`{success, message, usage}\`
-- \`pg_citext_convert_column\`: Supports \`schema.table\` format (auto-parsed). ⛔ Only allows text-based columns (text, varchar, character varying)—non-text columns return \`{success: false, error, allowedTypes, suggestion}\`. When views depend on column, returns \`{success: false, dependentViews, hint}\`—drop/recreate views manually. \`col\` alias for \`column\`. Returns \`{previousType}\` showing original type
+- \`pg_citext_convert_column\`: Supports \`schema.table\` format (auto-parsed). ⛔ Only allows text-based columns (text, varchar, character varying). Supports optional \`toType\` parameter for pure \`text\` type conversions (useful for reversion). \`col\` alias for \`column\`. Returns \`{previousType}\` showing original type
 - \`pg_citext_list_columns\`: Default \`limit: 100\` (use \`0\` for all). Returns \`{columns: [{table_schema, table_name, column_name, is_nullable, column_default}], count, totalCount, truncated}\`. Optional \`schema\`, \`limit\` filters. Supports \`compact\` mode (default: \`true\`) to structurally omit empty arrays
 - \`pg_citext_analyze_candidates\`: Default \`limit: 50\` (use \`0\` for all). Default \`excludeSystemSchemas: true\` filters out extension schemas (cron, topology, partman, tiger) when no \`schema\`/\`table\` filter specified—use \`excludeSystemSchemas: false\` to include all. Returns \`truncated: true\` + \`totalCount\` when results are limited. Scans tables for TEXT/VARCHAR columns matching common patterns (email, username, name, etc.). Optional \`schema\`, \`table\`, \`limit\`, \`excludeSystemSchemas\`, \`patterns\` filters. Returns \`{candidates, count, totalCount, truncated, summary: {highConfidence, mediumConfidence}, recommendation, patternsUsed, excludedSchemas?}\`. Supports \`compact\` mode (default: \`true\`) to structurally omit empty arrays
-- \`pg_citext_compare\`: Test case-insensitive comparison. Returns \`{value1, value2, citextEqual, textEqual, lowerEqual, extensionInstalled}\`
+- \`pg_citext_compare\`: Test case-insensitive comparison. Returns \`{value1, value2, citextEqual, textEqual, lowerEqual, extensionInstalled}\`. Empty strings are handled gracefully natively without throwing validation errors.
 - \`pg_citext_schema_advisor\`: Supports \`schema.table\` format (auto-parsed). Analyzes specific table. Returns \`{table, recommendations: [{column, currentType, previousType?, recommendation, confidence, reason}], summary, nextSteps}\`. \`tableName\` alias for \`table\`. Already-citext columns include \`previousType: "text or varchar (converted)"\`
 
 **Discovery**: \`pg.citext.help()\` returns \`{methods, methodAliases, examples}\` object`],
@@ -245,7 +245,8 @@ Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unsched
 12. **pg_get_indexes without table**: Returns ALL database indexes (potentially large). Use \`table\` param for specific table
 13. **pg_upsert/pg_batch_insert RETURNING**: \`returning\` param must be array of column names: \`["id", "name"]\`. ⛔ \`"*"\` wildcard not supported
 14. **Small tables**: Optimizer correctly uses Seq Scan for <1000 rows—this is expected behavior
-
+15. **Token Payload Bounds**: Global limit constraints (\`n\`, \`limit\`, \`sanitizeResult\`) are strictly clamped to prevent token bloat, generating typically ~30-41% token reductions.
+16. **Structured Errors**: P154 validation replaces legacy \`{success: false}\` failures with explicit \`ValidationError\` exceptions, to strictly prevent underlying Postgres SQL syntax leakage.
 ## 🔄 Response Structures
 
 | Tool                          | Returns                                                                                                                                     | Notes                                                                                                                                                                                                                                                  |
@@ -335,13 +336,14 @@ Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`sc
 - \`pg_jsonb_set\`: \`createMissing=true\` creates full nested paths; initializes NULL columns to \`{}\`. Empty path (\`''\` or \`[]\`) replaces entire column value
 - \`pg_jsonb_strip_nulls\`: ⚠️ Requires \`where\`/\`filter\` clause—write operations must be targeted. Use \`preview: true\` to see changes first
 - \`pg_jsonb_agg\`: Supports AS aliases in select: \`["id", "metadata->>'name' AS name"]\`. ⚠️ \`->>\` returns text—use \`->\` to preserve JSON types
-- \`pg_jsonb_object\`: Use \`data\`, \`object\`, or \`pairs\` parameter: \`{data: {name: "John", age: 30}}\`. Also accepts parallel arrays: \`{keys: ["name", "age"], values: ["John", 30]}\`. ⚠️ Empty params return a validation error. Returns \`{object: {...}}\`
-- \`pg_jsonb_normalize\`: \`flatten\` doesn't descend into arrays; \`keys\` returns text (use \`pairs\` for JSON types). Supports standalone \`json\` instances without requiring \`table\` and \`column\`
-- \`pg_jsonb_stats\`: Returns column-level statistics. \`topKeysLimit\` controls key count (default: 20). ⚠️ \`typeDistribution\` null type = SQL NULL columns (entire column NULL, not JSON \`null\` literal). Use \`sqlNullCount\` for explicit count
-- \`pg_jsonb_pretty\`: Two modes: (1) Pass raw JSON via \`json\` or \`value\` param—formats with indentation locally. (2) Pass \`table\` + \`column\` (+ optional \`where\`/\`filter\`, \`limit\`)—uses PostgreSQL's native \`jsonb_pretty()\`. Table mode defaults to \`limit: 10\`. Supports \`schema.table\` format. Returns \`{formatted}\` (raw mode) or \`{rows: [{formatted}], count}\` (table mode)
-- \`pg_jsonb_validate_path\`: Returns \`{success: true, valid: true}\` for valid JSONPath expressions starting with \`$\`. Returns \`{success: false}\` (structured error) for syntactically invalid paths — use \`$.key.path\` not \`key.path\` dot-notation
-- ⛔ **Object-only tools**: \`diff\`, \`merge\`, \`keys\`, \`indexSuggest\`, \`securityScan\`, \`stats\`—topKeys require JSONB objects, throw descriptive errors for arrays
-- ⛔ **Array-only tools**: \`insert\`—requires JSONB arrays, throws errors for objects
+- \`pg_jsonb_object\`: Use \`data\`, \`object\`, or \`pairs\` parameter: \`{data: {name: "John", age: 30}}\`. Also accepts parallel arrays (\`{keys: ["n"], values: [1]}\`). ⚠️ Must provide at least one entry; empty configurations throw validation errors. Array escaping is handled safely in Code Mode without parallel array leakage. Returns \`{object: {...}}\`
+- \`pg_jsonb_normalize\`: \`flatten\` doesn't descend into arrays; \`keys\` returns text (use \`pairs\` for JSON types). Standardizes validation requiring either (\`table\` + \`column\`) OR \`json\` payload.
+- \`pg_jsonb_stats\`: Returns column-level statistics. \`topKeysLimit\` controls key count (default: 20). ⚠️ \`typeDistribution\` null type = SQL NULL columns. Use \`sqlNullCount\` for explicit count
+- \`pg_jsonb_pretty\`: Two modes: (1) Pass raw JSON via \`json\` or \`value\` param—formats locally. (2) Pass \`table\` + \`column\`—uses native \`jsonb_pretty()\`. Table mode returns standardized \`count\` and defaults to \`limit: 10\`. Returns \`{formatted}\` or \`{rows, count}\`
+- \`pg_jsonb_validate_path\`: Returns \`{success: true, valid: true}\` for valid paths starting with \`$\`. Throws explicit \`ValidationError\` with \`$\`-prefix hints for invalid paths — use \`$.key\` not \`key\`.
+- 🛡️ **Validation Consistency**: \`pg_jsonb_typeof\`, \`pg_jsonb_keys\`, and \`pg_jsonb_path_query\` share standard parameter validation. String literal validations natively enforce explicit JSON parsing to prevent text injection.
+- ⛔ **Object-only tools**: \`diff\`, \`merge\`, \`keys\`, \`indexSuggest\`, \`securityScan\`, \`stats\` require JSONB objects, throw descriptive errors for arrays
+- ⛔ **Array-only tools**: \`insert\` requires JSONB arrays, throws errors for objects
 - 📝 \`normalize\` modes: \`pairs\`/\`keys\`/\`flatten\` for objects; \`array\` for arrays
 - 📦 **AI-Optimized Payloads**: \`contains\` and \`pathQuery\` default to 100 results. Returns \`truncated\` + \`totalCount\` when capped. Use \`limit: 0\` for all rows
 
@@ -389,15 +391,15 @@ Core: \`databaseSize()\`, \`tableSizes()\`, \`connectionStats()\`, \`showSetting
 
 - \`databaseSize()\`: Returns \`{bytes: number, size: string}\`. Optional \`database\` param for specific db
 - \`tableSizes({ limit?, schema? })\`: Default limit 50. Returns \`{tables: [...], count, truncated?, totalCount?}\`. \`truncated: true\` + \`totalCount\` when limited. Use \`limit: 0\` for all
-- \`connectionStats()\`: Returns \`{byDatabaseAndState, totalConnections: number, maxConnections: number}\`
-- \`showSettings({ setting?, limit? })\`: Default limit 50 when no pattern. Returns \`{settings: [...], count, truncated?, totalCount?}\`. Accepts \`pattern\`, \`setting\`, or \`name\`. Exact names auto-match; \`%\` for LIKE patterns
+- \`connectionStats({ filter? })\`: Requires P154 existence checks. Returns \`{byDatabaseAndState, totalConnections: number, maxConnections: number}\`
+- \`showSettings({ setting?, limit? })\`: Clamped to a maximum of 100 rows to prevent unmanageable token bloat. Default limit 50 when no pattern. Accepts \`pattern\`, \`setting\`, or \`name\`. Exact names auto-match; \`%\` for LIKE patterns
 - \`capacityPlanning({days: 90})\`: \`days\` = \`projectionDays\`. Returns \`{current, growth, projection, recommendations}\` with numeric fields. ⛔ Negative days rejected
 - \`uptime()\`: Returns \`{start_time: string, uptime: {days, hours, minutes, seconds, milliseconds}}\`
 - \`serverVersion()\`: Returns \`{full_version: string, version: string, version_num: number}\`
 - \`recoveryStatus()\`: Returns \`{in_recovery: boolean, last_replay_timestamp: string|null}\`
 - \`replicationStatus()\`: Returns \`{role: 'primary'|'replica', replicas: [...]}\` for primary, or \`{role: 'replica', replay_lag, ...}\` for replica
 - \`resourceUsageAnalyze()\`: Returns \`{backgroundWriter, checkpoints, connectionDistribution, bufferUsage, activity, analysis}\` with all counts as numbers
-- \`alertThresholdSet({metric?: 'connection_usage'})\`: Returns recommended thresholds. Invalid metric returns \`{success: false, error: "..."}\`. Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
+- \`alertThresholdSet({metric, warningThreshold?, criticalThreshold?})\`: Enforces threshold bounds. Returns recommended mapping or sets them. Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
 
 📦 **AI-Optimized Payloads**: Tools return limited results by default to reduce context size:
 
@@ -634,10 +636,10 @@ Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, 
 - \`pg_vector_dimension_reduce\`: Direct mode returns \`{reduced: [...], originalDimensions, targetDimensions}\`. Table mode returns \`{rows: [{id, original_dimensions, reduced}], processedCount, summarized}\`. Default \`summarize: true\` in table mode returns compact \`{preview, dimensions, truncated}\` format. Use \`summarize: false\` for full vectors
 - \`pg_vector_distance\`: Calculate distance between two vectors. \`metric\`: 'l2' (default), 'cosine', 'inner_product'. Returns \`{distance, metric}\`
 - \`pg_vector_cluster\`: \`clusters\` = \`k\`. Returns centroids with \`{preview, dimensions, truncated}\` format for large vectors (>10 dims)—use \`pg_vector_distance\` to assign rows
-- \`pg_vector_create_index\`: Use \`type\` (or alias \`method\`) with values 'ivfflat' or 'hnsw'. IVFFlat: \`lists\` param. HNSW: \`m\`, \`efConstruction\` (or snake_case alias \`ef_construction\`) params
+- \`pg_vector_create_index\`: Use \`type\` (or alias \`method\`) with values 'ivfflat' or 'hnsw'. IVFFlat: \`lists\` param. HNSW: \`m\`, \`efConstruction\` params. Supports explicit index naming via \`indexName\` (alias \`name\`). Includes strict idempotency support with \`ifNotExists: true\`.
 - \`pg_vector_performance\`: Auto-generates testVector from first row if omitted. Returns \`testVectorSource: 'auto-generated from first row'|'user-provided'\`
 - \`pg_vector_validate\`: Returns \`{valid: bool, vectorDimensions}\`. Empty vector \`[]\` returns \`{valid: true, vectorDimensions: 0}\`
 - ⛔ \`pg_vector_embed\`: Demo only (hash-based). Use OpenAI/Cohere for production.
 - \`pg_hybrid_search\`: Supports \`schema.table\` format (auto-parsed). Combines vector similarity and full-text search with weighted scoring. ⚠️ Text query param is \`textQuery\` (alias: \`queryText\`) — **not** \`query\`. \`textColumn\` auto-detects type: uses tsvector columns directly, wraps text columns with \`to_tsvector()\`. Code mode alias: \`pg.hybridSearch()\` → \`pg.vector.hybridSearch()\`
-- 📝 **Error Handling**: Vector tools return \`{success: false, error: "...", suggestion: "..."}\` for validation/semantic errors (dimension mismatch, non-vector column, table not found). Check \`success\` field before processing results.`],
+- 📝 **Error Handling & Validation**: Vector tools return structured validation errors (\`{success: false, error: "..."}\`) for dimension mismatches. Zod validation has been strictly enforced to eliminate internal framework refine leaks (no \`_truncated\` exposure in outputs). Token clamping on vector size uses strict payload \`limit\` parameters.`],
 ]);

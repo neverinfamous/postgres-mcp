@@ -4,11 +4,11 @@
 
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
-- Do not modify or skip tests.
-- Do not run any other test files.
+- Do not modify or skip tests, run any other test files, or do anything other than these tests. Ignore distractions in terminal from work being done in other thread.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests.
-- Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
+- Allow me to handle Lint, typecheck, Vitest, and Playwright. You cannot restart the server in Antigravity as the cache has to be refreshed manually.
+- If you have trouble saving task.md because it already exists, use a different filename.
+- Please let me handle checking lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
 
@@ -209,7 +209,7 @@ DROP TABLE IF EXISTS stress_my_test_table;
    - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
 4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 5. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive Code Mode execution block.
-6. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
+6. Stop and briefly summarize the testing results and fixes, **ensuring the total token count is prominently displayed.**
 
 ---
 
@@ -234,7 +234,7 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 **1.2 List Partition Limits**
 4. `pg_create_partitioned_table` -> Generate `stress_part_list_parent` by column `category` (TEXT).
-5. Attach list values array `["Alpha", "Bravo"]` to child `stress_part_l1`. 
+5. Attach list values array `["Alpha", "Bravo"]` to child `stress_part_l1`.
 6. Attempt to attach duplicate value `["Alpha"]` to `stress_part_l2`. Expect `VALIDATION_ERROR`.
 
 ### Category 2: State Pollution & Idempotency
@@ -258,7 +258,7 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 **5.1 High Volume Sub-Partitions**
 14. Use Code Mode script to generate 50 micro-range partitions (e.g., bounds of 1 unit each) dynamically.
-15. Call `pg_list_partitions` on the parent. Monitor `metrics.tokenEstimate` to ensure token bounds don't explode. Ensure `truncated` flag kicks in successfully if `limit` is explicitly mapped. 
+15. Call `pg_list_partitions` on the parent. Monitor `metrics.tokenEstimate` to ensure token bounds don't explode. Ensure `truncated` flag kicks in successfully if `limit` is explicitly mapped.
 
 ### Category 6: Code Mode Parity
 

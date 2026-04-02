@@ -19,6 +19,8 @@ import {
   DatabaseSizeSchema,
   TableSizesSchemaBase,
   TableSizesSchema,
+  ConnectionStatsSchemaBase,
+  ConnectionStatsSchema,
   ShowSettingsSchemaBase,
   ShowSettingsSchema,
   // Output schemas
@@ -188,15 +190,13 @@ export function createConnectionStatsTool(
     name: "pg_connection_stats",
     description: "Get connection statistics by database and state.",
     group: "monitoring",
-    inputSchema: z.object({
-      database: z.string().optional().describe("Filter by specific database name"),
-    }),
+    inputSchema: ConnectionStatsSchemaBase,
     outputSchema: ConnectionStatsOutputSchema,
     annotations: readOnly("Connection Stats"),
     icons: getToolIcons("monitoring", readOnly("Connection Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = (params ?? {}) as { database?: string };
+        const parsed = ConnectionStatsSchema.parse(params ?? {}) as { database?: string };
         const database = parsed.database;
 
         // P154: Validate database existence before querying
