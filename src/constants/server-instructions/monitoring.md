@@ -3,7 +3,7 @@
 Core: `databaseSize()`, `tableSizes()`, `connectionStats()`, `showSettings()`, `capacityPlanning()`, `uptime()`, `serverVersion()`, `recoveryStatus()`, `replicationStatus()`, `resourceUsageAnalyze()`, `alertThresholdSet()`
 
 - `databaseSize()`: Returns `{success: true, bytes: number, size: string}`. Optional `database` param for specific db
-- `tableSizes({ limit?, schema? })`: Default limit 50. Returns `{success: true, tables: [...], count, truncated?, totalCount?}`. `truncated: true` + `totalCount` when limited. Use `limit: 0` for all
+- `tableSizes({ limit?, schema? })`: Clamped to a maximum of 100 rows to prevent unmanageable token bloat. Default limit 10. Returns `{success: true, tables: [...], count, truncated?, totalCount?}`. `truncated: true` + `totalCount` when limited. Use `limit: 0` for up to 100 rows (maximum allowed)
 - `connectionStats({ database? })`: Requires P154 existence checks. Returns `{success: true, byDatabaseAndState, totalConnections: number, maxConnections: number}`
 - `showSettings({ setting?, limit? })`: Clamped to a maximum of 100 rows to prevent unmanageable token bloat. Default limit 50 when no pattern. Accepts `pattern`, `setting`, `name`, or `like`. Exact names auto-match; `%` for LIKE patterns
 - `capacityPlanning({days: 90})`: `days` = `projectionDays`. Returns `{success: true, current, growth, projection, recommendations}` with numeric fields. ⛔ Negative days rejected
@@ -16,7 +16,7 @@ Core: `databaseSize()`, `tableSizes()`, `connectionStats()`, `showSettings()`, `
 
 📦 **AI-Optimized Payloads**: Tools return limited results by default to reduce context size:
 
-- `tableSizes({ limit? })`: Default 50 rows. Returns `truncated: true` + `totalCount` when limited. Use `limit: 0` for all
+- `tableSizes({ limit? })`: Default 10 rows. Returns `truncated: true` + `totalCount` when limited. Use `limit: 0` for up to 100 rows (maximum allowed)
 - `showSettings({ limit? })`: Default 50 rows when no pattern specified. Use `limit: 0` for up to 100 rows (maximum allowed) or specify a pattern
 
 Aliases: `tables`→`tableSizes`, `connections`→`connectionStats`, `settings`/`config`→`showSettings`, `alerts`/`thresholds`→`alertThresholdSet`
