@@ -4,7 +4,7 @@ Core: `databaseSize()`, `tableSizes()`, `connectionStats()`, `showSettings()`, `
 
 - `databaseSize()`: Returns `{bytes: number, size: string}`. Optional `database` param for specific db
 - `tableSizes({ limit?, schema? })`: Default limit 50. Returns `{tables: [...], count, truncated?, totalCount?}`. `truncated: true` + `totalCount` when limited. Use `limit: 0` for all
-- `connectionStats({ filter? })`: Requires P154 existence checks. Returns `{byDatabaseAndState, totalConnections: number, maxConnections: number}`
+- `connectionStats({ database? })`: Requires P154 existence checks. Returns `{byDatabaseAndState, totalConnections: number, maxConnections: number}`
 - `showSettings({ setting?, limit? })`: Clamped to a maximum of 100 rows to prevent unmanageable token bloat. Default limit 50 when no pattern. Accepts `pattern`, `setting`, or `name`. Exact names auto-match; `%` for LIKE patterns
 - `capacityPlanning({days: 90})`: `days` = `projectionDays`. Returns `{current, growth, projection, recommendations}` with numeric fields. ⛔ Negative days rejected
 - `uptime()`: Returns `{start_time: string, uptime: {days, hours, minutes, seconds, milliseconds}}`
