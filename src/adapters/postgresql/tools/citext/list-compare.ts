@@ -46,8 +46,8 @@ Useful for auditing case-insensitive columns.`,
         const { schema } = parsed;
         const safeLimit = parsed.limit as number | undefined;
 
-        if (safeLimit !== undefined && safeLimit < 0) {
-          throw new ValidationError("limit must be non-negative");
+        if (safeLimit !== undefined && safeLimit <= 0) {
+          throw new ValidationError("limit must be greater than 0");
         }
         // Validate schema existence when specified
         if (schema !== undefined) {
@@ -57,7 +57,7 @@ Useful for auditing case-insensitive columns.`,
             [schema],
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-            throw new ValidationError(`Schema "${schema}" does not exist. Verify the schema name.`);
+            throw new ValidationError(`Schema "${schema}" does not exist. Verify the schema name.`, { code: "SCHEMA_NOT_FOUND" });
           }
         }
 
@@ -114,6 +114,7 @@ Useful for auditing case-insensitive columns.`,
           effectiveLimit !== undefined && columns.length < totalCount;
 
         return {
+          success: true,
           columns,
           count: columns.length,
           totalCount,
@@ -173,6 +174,7 @@ Useful for testing citext behavior before converting columns.`,
 
           const row = result.rows?.[0];
           return {
+            success: true,
             value1,
             value2,
             citextEqual: row?.["citext_equal"] as boolean,
@@ -192,6 +194,7 @@ Useful for testing citext behavior before converting columns.`,
 
           const row = result.rows?.[0];
           return {
+            success: true,
             value1,
             value2,
             textEqual: row?.["text_equal"] as boolean,

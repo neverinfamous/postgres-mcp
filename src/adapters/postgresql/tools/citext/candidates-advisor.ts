@@ -54,8 +54,8 @@ Looks for common patterns like email, username, name, slug, etc.`,
       } = parsed;
       const safeLimit = parsed.limit as number | undefined;
 
-      if (safeLimit !== undefined && safeLimit < 0) {
-        throw new ValidationError("limit must be non-negative");
+      if (safeLimit !== undefined && safeLimit <= 0) {
+        throw new ValidationError("limit must be greater than 0");
       }
 
       // Validate table/schema existence before querying
@@ -68,7 +68,7 @@ Looks for common patterns like email, username, name, slug, etc.`,
           [schemaName, table],
         );
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          throw new ValidationError(`Table ${qualifiedTable} does not exist. Verify the table name and schema.`);
+          throw new ValidationError(`Table ${qualifiedTable} does not exist. Verify the table name and schema.`, { code: "TABLE_NOT_FOUND" });
         }
       } else if (schema !== undefined) {
         const schemaCheck = await adapter.executeQuery(
@@ -77,7 +77,7 @@ Looks for common patterns like email, username, name, slug, etc.`,
           [schema],
         );
         if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-          throw new ValidationError(`Schema "${schema}" does not exist. Verify the schema name.`);
+          throw new ValidationError(`Schema "${schema}" does not exist. Verify the schema name.`, { code: "SCHEMA_NOT_FOUND" });
         }
       }
 
@@ -206,6 +206,7 @@ Looks for common patterns like email, username, name, slug, etc.`,
       }
 
       return {
+        success: true,
         candidates,
         count: candidates.length,
         totalCount,
@@ -275,7 +276,7 @@ Requires the 'table' parameter to specify which table to analyze.`,
         );
 
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          throw new ValidationError(`Table ${qualifiedTable} not found. Verify the table name and schema.`);
+          throw new ValidationError(`Table ${qualifiedTable} not found. Verify the table name and schema.`, { code: "TABLE_NOT_FOUND" });
         }
 
         const colResult = await adapter.executeQuery(
@@ -380,6 +381,7 @@ Requires the 'table' parameter to specify which table to analyze.`,
         ).length;
 
         return {
+          success: true,
           table: `${schemaName}.${table}`,
           recommendations,
           summary: {

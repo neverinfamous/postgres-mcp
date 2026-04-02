@@ -99,7 +99,7 @@ Note: If views depend on this column, you must drop and recreate them manually b
         );
 
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          throw new ValidationError(`Table ${qualifiedTable} does not exist. Verify the table name and schema.`);
+          throw new ValidationError(`Table ${qualifiedTable} does not exist. Verify the table name and schema.`, { code: "TABLE_NOT_FOUND" });
         }
 
         const colCheck = await adapter.executeQuery(
@@ -114,7 +114,7 @@ Note: If views depend on this column, you must drop and recreate them manually b
         );
 
         if (!colCheck.rows || colCheck.rows.length === 0) {
-          throw new ValidationError(`Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`);
+          throw new ValidationError(`Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`, { code: "COLUMN_NOT_FOUND" });
         }
 
         const dataType = colCheck.rows[0]?.["data_type"] as string;
