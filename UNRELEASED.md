@@ -67,7 +67,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Dry-run validation in `pg_audit_restore_backup` failing to bypass persistent table allocations
 - Numeric sequence suffixes preserved during side-by-side data restorations
 - Inaccurate `summary` statistics in `pg_cron_job_run_details` when limits were applied
-- `pg_cron_unschedule` inactive-job failures mapped to `JOB_NOT_FOUND` via `jobId` fallback; `pg_cron` listing and cleanup tools now safely invoke unbounded behavior when passed `limit: 0`, and enforce strict Zod evaluation across all optional integers to avoid silent payload reductions
+- `pg_cron_unschedule` inactive-job failures mapped to `JOB_NOT_FOUND` via `jobId` fallback; `pg_cron` listing and cleanup tools now safely invoke unbounded behavior when passed `limit: 0`, enforce strict Zod evaluation across all optional integers to avoid silent payload reductions, and `pg_cron_alter_job` resolves native missing `jobName` aliases via internal lookups
 - Mapped raw schema and relation errors to structured `EXTENSION_MISSING` code in `pg_cron` tools when the extension is absent
 - JavaScript string arithmetic bugs in transaction boundary tests
 - Docker Hub rate-limit blocks during multi-arch image pipelines by enforcing authenticated pulls

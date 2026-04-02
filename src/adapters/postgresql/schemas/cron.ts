@@ -251,6 +251,8 @@ export const CronUnscheduleSchema = CronUnscheduleSchemaBase.refine(
 
 export const CronAlterJobSchemaBase = z.object({
   jobId: z.union([z.number(), z.string()]).optional().describe("Job ID to modify"),
+  jobName: z.string().optional().describe("Job name to modify"),
+  name: z.string().optional().describe("Alias for jobName"),
   schedule: z
     .string()
     .optional()
@@ -266,6 +268,8 @@ export const CronAlterJobSchemaBase = z.object({
 export const CronAlterJobSchema = z
   .object({
     jobId: z.union([z.number(), z.string()]).optional().describe("Job ID to modify"),
+    jobName: z.string().optional().describe("Job name to modify"),
+    name: z.string().optional().describe("Alias for jobName"),
     schedule: z
       .string()
       .optional()
@@ -289,12 +293,13 @@ export const CronAlterJobSchema = z
     },
   )
   .refine(
-    (data) => data.jobId !== undefined,
-    { message: "jobId is required" }
+    (data) => data.jobId !== undefined || data.jobName !== undefined || data.name !== undefined,
+    { message: "Either jobId or jobName (or name alias) must be provided" }
   )
   .transform((data) => ({
     ...data,
-    jobId: Number(data.jobId),
+    jobId: data.jobId !== undefined && data.jobId !== null ? Number(data.jobId) : undefined,
+    jobName: data.jobName ?? data.name,
   }));
 
 export const CronListJobsSchemaBase = z.object({

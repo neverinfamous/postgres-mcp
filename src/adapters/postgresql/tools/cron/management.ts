@@ -41,14 +41,43 @@ or active status. Only specify the parameters you want to change.`,
     icons: getToolIcons("cron", write("Alter Cron Job")),
     handler: async (params: unknown, _context: RequestContext) => {
       let parsedJobId: number | undefined;
+      let parsedJobName: string | undefined;
       try {
-        const { jobId, schedule, command, database, username, active } =
-          CronAlterJobSchema.parse(params);
+        const { jobId, jobName, schedule, command, database, username, active } =
+          CronAlterJobSchema.parse(params) as {
+            jobId?: number;
+            jobName?: string;
+            schedule?: string;
+            command?: string;
+            database?: string;
+            username?: string;
+            active?: boolean;
+          };
+        
         parsedJobId = jobId;
+        parsedJobName = jobName;
+        
+        // Look up job info if jobName is provided instead of jobId
+        if (parsedJobId === undefined && parsedJobName !== undefined) {
+            const lookupSql = "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1";
+            const lookupResult = await adapter.executeQuery(lookupSql, [parsedJobName]);
+            if (lookupResult.rows && lookupResult.rows.length > 0) {
+              parsedJobId = Number(lookupResult.rows[0]?.["jobid"]);
+            } else {
+              return {
+                  success: false,
+                  error: `Job '${parsedJobName}' not found. Use pg_cron_list_jobs to see available jobs.`,
+                  code: "JOB_NOT_FOUND",
+                  category: "resource",
+                  suggestion: "Job not found. Use pg_cron_list_jobs to see available jobs.",
+                  recoverable: false,
+              };
+            }
+        }
 
         const sql = `SELECT cron.alter_job($1, $2, $3, $4, $5, $6)`;
         const queryParams = [
-          jobId,
+          parsedJobId,
           schedule ?? null,
           command ?? null,
           database ?? null,
@@ -60,7 +89,7 @@ or active status. Only specify the parameters you want to change.`,
 
         return {
           success: true,
-          jobId,
+          jobId: parsedJobId,
           changes: {
             schedule: schedule ?? undefined,
             command: command ?? undefined,
@@ -68,7 +97,7 @@ or active status. Only specify the parameters you want to change.`,
             username: username ?? undefined,
             active: active ?? undefined,
           },
-          message: `Job ${String(jobId)} updated successfully`,
+          message: `Job ${String(parsedJobId)} ${parsedJobName ? `("${parsedJobName}") ` : ""}updated successfully`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
