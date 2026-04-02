@@ -436,13 +436,18 @@ export function createPartmanShowConfigTool(
         ).length;
         const truncated = applyLimit && totalCount > limit;
 
-        // Provide hint if a specific table was requested but not found
-        let notFoundHint: string | undefined;
         if (
           parsed.parentTable !== undefined &&
           configsWithStatus.length === 0
         ) {
-          notFoundHint = `Table '${parsed.parentTable}' is not managed by pg_partman. Use pg_partman_create_parent to set up partitioning.`;
+          return {
+            success: false,
+            error: `Table '${parsed.parentTable}' is not managed by pg_partman.`,
+            code: "TABLE_NOT_FOUND",
+            category: "resource",
+            suggestion: "Use pg_partman_create_parent to set up partitioning.",
+            recoverable: false
+          };
         }
 
         return {
@@ -451,12 +456,10 @@ export function createPartmanShowConfigTool(
           truncated,
           totalCount,
           orphanedCount: orphanedCount > 0 ? orphanedCount : undefined,
-          hint:
-            notFoundHint ??
-            (orphanedCount > 0
+          hint: orphanedCount > 0
               ? `${String(orphanedCount)} orphaned config(s) found - parent table no longer exists. ` +
                 `To clean up, use raw SQL: DELETE FROM ${partmanSchema}.part_config WHERE parent_table = '<table_name>';`
-              : undefined),
+              : undefined,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_partman_show_config" });

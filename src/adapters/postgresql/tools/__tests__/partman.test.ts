@@ -330,7 +330,7 @@ describe("pg_partman_create_parent", () => {
         interval: "1 month",
       },
       mockContext,
-    )) as { success: boolean; error: string; hint: string };
+    )) as { success: boolean; error: string; hint: string; suggestion?: string };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("already managed by pg_partman");
@@ -375,7 +375,7 @@ describe("pg_partman_create_parent", () => {
         interval: "1 day",
       },
       mockContext,
-    )) as { success: boolean; error: string; hint: string };
+    )) as { success: boolean; error: string; hint: string; details?: { hint?: string } };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("not a partitioned table");
@@ -402,7 +402,7 @@ describe("pg_partman_create_parent", () => {
         interval: "999xyz", // Invalid interval format that passes Zod string check
       },
       mockContext,
-    )) as { success: boolean; error: string; examples: string[] };
+    )) as { success: boolean; error: string; examples: string[]; details?: { examples?: string[] } };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Invalid interval format");
@@ -641,7 +641,7 @@ describe("pg_partman_run_maintenance", () => {
     const result = (await tool.handler(
       { parentTable: "public.events" },
       mockContext,
-    )) as { success: boolean; error: string };
+    )) as { success: boolean; error: string; message?: string };
 
     expect(result.success).toBe(true);
     expect(result.message).toContain(
@@ -1937,7 +1937,7 @@ describe("pg_partman_set_retention", () => {
         retention: "30 days",
       },
       mockContext,
-    )) as { success: boolean; error: string; hint: string };
+    )) as { success: boolean; error: string; hint: string; details?: { hint: string } };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("No pg_partman configuration found");
@@ -2113,7 +2113,7 @@ describe("pg_partman_undo_partition", () => {
         targetTable: "public.events_archive",
       },
       mockContext,
-    )) as { success: boolean; error: string; hint: string };
+    )) as { success: boolean; error: string; hint: string; details?: { hint: string } };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("No pg_partman configuration found");
@@ -2486,30 +2486,19 @@ describe("partman helpers uncovered branches", () => {
     );
   });
 
-  // helpers.ts L21: getPartmanSchema when schema is NOT found → defaults to 'partman'
-  // When schema is 'partman' (not 'public'), callPartmanProcedure skips alias creation
-  it("should default to partman schema and skip alias when part_config not found", async () => {
+  it("should return error when pg_partman is not installed (part_config not found)", async () => {
     mockAdapter.executeQuery
-      // 1. getPartmanSchema → returns no rows → defaults to 'partman'
-      .mockResolvedValueOnce({ rows: [] })
-      // 2. checkTableExists for parentTable (P154 NEW)
-      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
-      // 3. checkTableExists for targetTable
-      .mockResolvedValueOnce({ rows: [{ "1": 1 }] })
-      // 4. The actual CALL (no alias needed since schema != 'public')
+      // 1. getPartmanSchema → returns no rows → throws ExtensionNotAvailableError
       .mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_partman_undo_partition")!;
     const result = (await tool.handler(
       { parentTable: "public.events", targetTable: "public.events_archive" },
       mockContext,
-    )) as { success: boolean };
+    )) as { success: boolean, error: string };
 
-    expect(result.success).toBe(true);
-    // Should NOT have called ensurePartmanSchemaAlias
-    expect(mockAdapter.executeQuery).not.toHaveBeenCalledWith(
-      "CREATE SCHEMA IF NOT EXISTS partman",
-    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("is not installed or enabled");
   });
 });
 
@@ -2535,6 +2524,7 @@ describe("pg_partman_check_default — uncovered branches", () => {
       success: boolean;
       error: string;
       hint: string;
+      details?: { hint: string };
     };
 
     expect(result.success).toBe(false);
@@ -2550,7 +2540,7 @@ describe("pg_partman_check_default — uncovered branches", () => {
     const result = (await tool.handler(
       { parentTable: "public.nonexistent" },
       mockContext,
-    )) as { success: boolean; error: string; hint: string };
+    )) as { success: boolean; error: string; hint: string; details?: { hint: string } };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("does not exist");
@@ -2700,6 +2690,7 @@ describe("pg_partman_partition_data — uncovered branches", () => {
       success: boolean;
       error: string;
       hint: string;
+      details?: { hint: string };
     };
 
     expect(result.success).toBe(false);
@@ -2769,7 +2760,7 @@ describe("pg_partman_partition_data — uncovered branches", () => {
     const result = (await tool.handler(
       { parentTable: "public.events" },
       mockContext,
-    )) as { success: boolean; error: string; hint: string };
+    )) as { success: boolean; error: string; hint: string; details?: { hint: string } };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Failed to move data");
@@ -2909,7 +2900,7 @@ describe("pg_partman_create_parent — uncovered branches", () => {
         interval: "invalid_interval",
       },
       mockContext,
-    )) as { success: boolean; error: string; examples: string[] };
+    )) as { success: boolean; error: string; examples: string[]; details?: { examples: string[] } };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Invalid interval format");
@@ -3020,13 +3011,16 @@ describe("pg_partman_set_retention — uncovered branches", () => {
   });
 
   it("should return error when retention is missing (undefined)", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ table_schema: "partman" }],
+    }); // getPartmanSchema mock
+
     const tool = tools.find((t) => t.name === "pg_partman_set_retention")!;
     const result = (await tool.handler(
       { parentTable: "public.events" },
       mockContext,
     )) as { success: boolean; error: string; hint: string };
 
-    // getPartmanSchema
     // The handler checks parentTable first, then gets partmanSchema, then checks retention === undefined
     expect(result.success).toBe(false);
     expect(result.error).toContain("Missing required parameter: retention");

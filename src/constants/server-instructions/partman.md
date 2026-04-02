@@ -10,3 +10,4 @@
 - `pg_partman_analyze_partition_health`: Default `limit: 50` (use `0` for all). Returns `truncated` + `totalCount` when limited. `summary.overallHealth`: 'healthy'|'warnings'|'issues_found'
 - 📝 **Schema Resolution**: All partman tools auto-prefix `public.` when no schema specified in `parentTable`
 - 📝 **Aliases**: `parentTable` accepts `table`, `parent`, `name`. `controlColumn` accepts `control`, `column`. `targetTable` accepts `target`
+- 📝 **Strict Error Handling**: Attempting to query unmanaged tables (e.g. via `pg_partman_show_config`) throws `TABLE_NOT_FOUND`. Missing the extension completely throws `EXTENSION_MISSING` — remediate via `pg_partman_create_extension` before using partman tools.

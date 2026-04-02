@@ -5,7 +5,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { ValidationError } from "../../../../types/index.js";
+import { ValidationError, ExtensionNotAvailableError } from "../../../../types/index.js";
 
 /**
  * Default row limit for partman list/analysis tools.
@@ -43,7 +43,16 @@ export async function getPartmanSchema(
         AND table_schema IN ('partman', 'public')
         LIMIT 1
     `);
-  return (result.rows?.[0]?.["table_schema"] as string) ?? "partman";
+
+  const schema = result.rows?.[0]?.["table_schema"] as string | undefined;
+  
+  if (!schema) {
+    throw new ExtensionNotAvailableError("pg_partman", {
+      hint: "Run pg_partman_create_extension() first."
+    });
+  }
+  
+  return schema;
 }
 
 /**
