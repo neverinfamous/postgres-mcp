@@ -171,13 +171,12 @@ describe("VectorCreateIndexSchema", () => {
     expect(result.type).toBe("hnsw");
   });
 
-  it("should throw when type is missing", () => {
-    expect(() =>
-      VectorCreateIndexSchema.parse({
-        table: "embeddings",
-        column: "vector",
-      }),
-    ).toThrow("type (or method alias) is required");
+  it("should allow missing type (validation moved to handler)", () => {
+    const result = VectorCreateIndexSchema.parse({
+      table: "embeddings",
+      column: "vector",
+    });
+    expect(result.type).toBeUndefined();
   });
 
   it("should accept all HNSW parameters", () => {
@@ -2721,13 +2720,12 @@ describe("VectorCreateIndexSchema", () => {
     expect(result.column).toBe("vector");
   });
 
-  it("should throw when neither type nor method provided", () => {
-    expect(() =>
-      VectorCreateIndexSchema.parse({
-        table: "embeddings",
-        column: "vector",
-      }),
-    ).toThrow("type (or method alias) is required");
+  it("should allow neither type nor method provided (validation moved to handler)", () => {
+    const result = VectorCreateIndexSchema.parse({
+      table: "embeddings",
+      column: "vector",
+    });
+    expect(result.type).toBeUndefined();
   });
 });
 
