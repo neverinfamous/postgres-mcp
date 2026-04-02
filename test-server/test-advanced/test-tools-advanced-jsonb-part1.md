@@ -209,7 +209,7 @@ DROP TABLE IF EXISTS stress_my_test_table;
    - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
 4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
 5. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive Code Mode execution block.
-6. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
+6. Stop and briefly summarize the testing results and fixes, **ensuring the total token count is prominently displayed.**
 
 ---
 

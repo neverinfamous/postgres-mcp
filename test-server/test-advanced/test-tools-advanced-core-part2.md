@@ -5,10 +5,10 @@
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run any other test files.
+- Do not run any other test files or do anything other than these tests. Ignore distractions in terminal from work being done in other thread.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests. Ignore distractions in terminal.
-- Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
+- Allow me to handle Lint, typecheck, Vitest, and Playwright. You cannot restart the server in Antigravity as the cache has to be refreshed manually.
+- If you have trouble saving task.md, save it to a different location or use a different filename.
 
 ## Code Mode Execution
 
@@ -108,3 +108,23 @@ Expect: `{success: false, hasError: true, hasTableName: true}`
 ### Final Cleanup
 
 Drop all `stress_*` tables and indexes. Confirm `test_products` row count is still 15 (no pollution).
+
+## Post-Test Procedures
+
+### Reporting Rules
+
+- Use ✅ only in inline notes during testing; omit from Final Summary
+- Do not mention what already works well or issues already documented in server-instructions.md and runtime hints
+
+### After Testing
+
+1. **Cleanup**: Confirm all `stress_*` tables and temporary testing data are removed
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, 📦 Payload problems (responses that should be truncated or offer a `limit` param) and files listed below. All changes MUST be consistent with other postgres-mcp tools and `code-map.md`
+3. **Scope of fixes** includes corrections to any of:
+   - Handler code
+   - `server-instructions.md`
+   - Test database (`test-database.sql`)
+   - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
+4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
+5. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive Code Mode execution block.
+6. Stop and briefly summarize the testing results and fixes, **ensuring the total token count is prominently displayed.**
