@@ -41,7 +41,7 @@ All tests should be executed via `pg_execute_code` code mode. Tests are written 
 
 ### Error Code Consistency
 
-When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code (e.g., `VALIDATION_ERROR`, `TABLE_NOT_FOUND`, `PID_NOT_FOUND`).
+When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code (e.g., `VALIDATION_ERROR`, `TABLE_NOT_FOUND`, `PROCESS_NOT_FOUND`).
 
 ## Post-Test Procedures
 
@@ -78,7 +78,7 @@ Test admin tools against empty, deleted, and anomalous states.
 2. `pg_vacuum` → Insert 50 rows into a temporary table, then delete them all. Run `pg_vacuum` and verify it executes without error.
 3. `pg_vacuum` → Run on a table with 0 rows (never inserted into).
 4. `pg_set_config` → Use an empty string for the value `{name: "work_mem", value: ""}`. Expect structured error rather than crashed session.
-5. Process Kills → Test `pg_cancel_backend` and `pg_terminate_backend` with anomalous PIDs: `0`, `-1`, and `2147483647` (Max Int). Ensure `VALIDATION_ERROR` or clean `PID_NOT_FOUND` prevents propagation.
+5. Process Kills → Test `pg_cancel_backend` and `pg_terminate_backend` with anomalous PIDs: `0`, `-1`, and `2147483647` (Max Int). Ensure `VALIDATION_ERROR` or clean `PROCESS_NOT_FOUND` prevents propagation.
 
 ### Category 2: State Pollution & Idempotency
 
