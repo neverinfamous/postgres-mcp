@@ -461,8 +461,8 @@ describe("JSONB Tools", () => {
       expect(result.results).toHaveLength(2);
     });
 
-    it("should return invalid for bad path", async () => {
-      mockAdapter.executeQuery.mockRejectedValueOnce(new Error("Invalid path"));
+    it("should return structured error for bad path", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(new Error("syntax error at end of jsonpath input"));
 
       const tool = findTool("pg_jsonb_validate_path");
       const result = (await tool!.handler(
@@ -470,10 +470,14 @@ describe("JSONB Tools", () => {
           path: "$.invalid[[[",
         },
         mockContext,
-      )) as { valid: boolean; error: string };
+      )) as { success: boolean; error: string; valid?: boolean };
 
-      expect(result.valid).toBe(false);
+      // Invalid paths now return success: false (structured error) — not success: true with valid: false
+      expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
+      expect(result.error).toContain("Invalid JSONPath expression");
+      // valid field is not present in error responses (success: false path)
+      expect(result.valid).toBeUndefined();
     });
   });
 
