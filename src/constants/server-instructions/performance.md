@@ -8,7 +8,7 @@ Wrappers (3): `blockingQueries()`→`locks({showBlocked:true})`, `longRunningQue
 - `explainAnalyze({ sql, format?, params? })`: Same format/params options as explain
 - `explainBuffers({ sql, params? })`: Always returns JSON format (includes buffer statistics)
 - `indexRecommendations({ sql?, params? })`: Pass `params: [value]` for parameterized queries (e.g., `sql: 'SELECT * FROM orders WHERE id = $1', params: [5]`)
-- `queryPlanCompare({ query1, query2, params1?, params2?, compact? })`: Compare two query plans. Use `compact: true` to exclusively fetch analysis metrics, omitting large JSON execution plans and saving substantial token bandwidth.
+- `queryPlanCompare({ query1, query2, params1?, params2?, compact? })`: Compare two query plans. Accepts `sql1`/`sql2` or `sqlA`/`sqlB` as aliases for `query1`/`query2`. Use `compact: true` to fetch analysis metrics only, omitting large JSON execution plans.
 - `partitionStrategySuggest({ table })`: Accepts `schema.table` format (auto-parsed) or separate `table` + `schema` params
 - ⚠️ **Data Type Awareness**: Query literals must match column types exactly—`WHERE sensor_id = 1` (integer), not `'sensor_1'` (string)
 
@@ -19,9 +19,11 @@ Aliases: `cacheStats`→`cacheHitRatio`, `queryStats`→`statStatements`, `activ
 - `indexStats({ limit? })`: Default 50 rows. Returns `truncated: true` + `totalCount` when limited. Use `limit: 0` for all
 - `tableStats({ limit? })`: Default 50 rows. Returns `truncated: true` + `totalCount` when limited. Use `limit: 0` for all
 - `vacuumStats({ limit? })`: Default 50 rows. Same truncation indicators. Use `limit: 0` for all
-- `statStatements({ limit?, orderBy? })`: Default 20 rows. Returns `truncated: true` + `totalCount` when limited. Use `limit: 0` for all
+- `statStatements({ limit?, orderBy? })`: Default 20 rows, **max 500**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 500-row cap
 - `unusedIndexes({ limit?, summary? })`: Default 20 rows. Use `summary: true` for aggregated stats by schema
-- `queryPlanStats({ limit?, truncateQuery? })`: Default 20 rows, queries truncated to 100 chars. Use `truncateQuery: 0` for full text
+- `queryPlanStats({ limit?, truncateQuery? })`: Default 20 rows, **max 500**, queries truncated to 100 chars. Use `truncateQuery: 0` for full text
+- `detectQueryAnomalies({ threshold?, minCalls? })`: `threshold` must be 0.5–10 (default 2.0); `minCalls` must be 1–10000 (default 10). Out-of-range values return a structured validation error
+- `detectBloatRisk({ minRows?, schema? })`: `minRows` must be 0–1,000,000 (default 1000). Nonexistent `schema` returns a P154 existence error
 
 📍 **Code Mode Note**: `pg_performance_baseline` → `pg.performance.baseline()` (not `performanceBaseline`). `indexRecommendations` accepts `query` alias for `sql`
 
