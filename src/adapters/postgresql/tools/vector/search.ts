@@ -224,6 +224,7 @@ export function createVectorCreateIndexTool(
           m,
           efConstruction,
           schema,
+          indexName: customIndexName,
         } = VectorCreateIndexSchema.parse(params);
 
         // Validate required params with clear errors
@@ -254,7 +255,8 @@ export function createVectorCreateIndexTool(
 
         // Include metric in index name to allow multiple indexes with different metrics
         const metricSuffix = metric !== "l2" ? `_${metric}` : "";
-        const indexNameRaw = `idx_${table}_${column}_${type}${metricSuffix}`;
+        const autoIndexName = `idx_${table}_${column}_${type}${metricSuffix}`;
+        const indexNameRaw = customIndexName ?? autoIndexName;
         const indexName = sanitizeIdentifier(indexNameRaw);
 
         // Map metric to PostgreSQL operator class

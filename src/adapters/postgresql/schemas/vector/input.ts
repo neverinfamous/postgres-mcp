@@ -131,6 +131,8 @@ export const VectorCreateIndexSchemaBase = z.object({
   ef_construction: z.preprocess(coerceNumber, z.number().optional()).optional()
     .describe("Alias for efConstruction"),
   schema: z.string().optional().describe("Database schema (default: public)"),
+  indexName: z.string().optional().describe("Custom index name (default: auto-generated from table_column_type)"),
+  name: z.string().optional().describe("Alias for indexName"),
 });
 
 // Transformed schema with alias resolution
@@ -163,6 +165,7 @@ export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
       m: data.m,
       efConstruction: data.efConstruction ?? data.ef_construction,
       schema: data.schema,
+      indexName: data.indexName ?? data.name,
     };
   }
 );
