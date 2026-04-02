@@ -76,6 +76,9 @@ export function createAlertThresholdSetTool(
 
         // Validate constraint percentages
         const validatePercent = (val: string | undefined): void => {
+          if (val?.trim() === "") {
+            throw new ValidationError(`Threshold percentage cannot be empty`);
+          }
           if (val?.includes('%')) {
             const num = parseFloat(val.replace(/[^\d.-]/g, ''));
             if (num < 0 || num > 100) {
