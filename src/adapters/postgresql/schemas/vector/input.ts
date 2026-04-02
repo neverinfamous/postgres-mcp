@@ -128,6 +128,8 @@ export const VectorCreateIndexSchemaBase = z.object({
   m: z.preprocess(coerceNumber, z.number().optional()).optional().describe("HNSW m parameter"),
   efConstruction: z.preprocess(coerceNumber, z.number().optional()).optional()
     .describe("HNSW ef_construction parameter"),
+  ef_construction: z.preprocess(coerceNumber, z.number().optional()).optional()
+    .describe("Alias for efConstruction"),
   schema: z.string().optional().describe("Database schema (default: public)"),
 });
 
@@ -159,7 +161,7 @@ export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
       ifNotExists: data.ifNotExists,
       lists: data.lists,
       m: data.m,
-      efConstruction: data.efConstruction,
+      efConstruction: data.efConstruction ?? data.ef_construction,
       schema: data.schema,
     };
   },

@@ -375,13 +375,26 @@ export const JsonbIndexSuggestOutputSchema = z.object({
     .array(z.string())
     .optional()
     .describe("Index creation SQL recommendations"),
-  analyzed: z
-    .object({
-      topKeys: z.number().optional().describe("Number of top keys analyzed"),
-      existingIndexes: z.number().optional().describe("Existing indexes found"),
-    })
+  keyDistribution: z
+    .array(
+      z.object({
+        key: z.string(),
+        frequency: z.number(),
+        value_type: z.string(),
+      })
+    )
     .optional()
-    .describe("Analysis details"),
+    .describe("Key frequency distribution"),
+  existingIndexes: z
+    .array(
+      z.object({
+        indexname: z.string(),
+        indexdef: z.string(),
+      })
+    )
+    .optional()
+    .describe("Existing indexes found"),
+  hint: z.string().optional().describe("Additional hint"),
   success: z.boolean().optional().describe("False on error"),
   error: z.string().optional().describe("Error message"),
 }).extend(ErrorResponseFields.shape);

@@ -5,10 +5,10 @@
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run any other test files.
+- Do not run any other test files or do anything other than these tests. Ignore distractions in terminal from work being done in other thread.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests. Ignore distractions in terminal.
-- Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
+- Allow me to handle Lint, typecheck, Vitest, and Playwright. You cannot restart the server in Antigravity as the cache has to be refreshed manually.
+- If you have trouble saving task.md, save it to a different location or use a different filename.
 
 ## Code Mode Execution
 
@@ -229,4 +229,3 @@ DROP TABLE IF EXISTS stress_my_test_table;
 ### Category 3: Alias & Parameter Combinations
 
 4. Test `m` and `ef_construction` parameter aliases if applicable, mapping them through JS properties.
-
