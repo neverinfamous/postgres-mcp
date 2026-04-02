@@ -81,7 +81,7 @@
 - Verified advanced stress tests for the citext tool group, confirming edge cases with missing schema handles, proper Code Mode idempotent array conversions, payload truncation handling for `limit: 0`, and explicit schema error wrapping (avoiding `QUERY_ERROR`) without payload bloat
 - Fixed dot-splitting table parser in `citext` schemas failing on regex-heavy identifier names
 - Added `toType` parameter to `pg_citext_convert_column` enabling native conversion of citext columns back to pure `text` types
-- Enforced explicitly structured `ValidationError` instances for `limit <= 0` in `pg_citext_list_columns` and `pg_citext_analyze_candidates`, and clamped maximum limit to 100 to prevent token bloat
+- Enforced explicitly structured `ValidationError` instances for `limit <= 0` or `limit > 100` in `pg_citext_list_columns` and `pg_citext_analyze_candidates`, replacing silent clamping with strict rejection to prevent token bloat
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Replaced inline error returns across JSONB tools with structured `ValidationError` instances, preserving standard error output

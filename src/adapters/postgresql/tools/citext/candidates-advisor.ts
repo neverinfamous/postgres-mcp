@@ -89,9 +89,9 @@ Looks for common patterns like email, username, name, slug, etc.`,
       // Default limit of 50 to prevent large payloads and transport truncation
       const DEFAULT_LIMIT = 50;
       const MAX_LIMIT = 100;
-      let effectiveLimit = safeLimit ?? DEFAULT_LIMIT;
+      const effectiveLimit = safeLimit ?? DEFAULT_LIMIT;
       if (effectiveLimit > MAX_LIMIT) {
-          effectiveLimit = MAX_LIMIT;
+          throw new ValidationError(`limit must not exceed ${String(MAX_LIMIT)}`, { code: "VALIDATION_ERROR" });
       }
 
       // Exclude system schemas by default when no table filter is specified

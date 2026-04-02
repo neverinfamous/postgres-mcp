@@ -60,9 +60,9 @@ Useful for auditing case-insensitive columns.`,
         const DEFAULT_LIMIT = 50;
         const MAX_LIMIT = 100;
         
-        let effectiveLimit = safeLimit ?? DEFAULT_LIMIT;
+        const effectiveLimit = safeLimit ?? DEFAULT_LIMIT;
         if (effectiveLimit > MAX_LIMIT) {
-             effectiveLimit = MAX_LIMIT;
+             throw new ValidationError(`limit must not exceed ${String(MAX_LIMIT)}`, { code: "VALIDATION_ERROR" });
         }
 
         // Validate schema existence when specified
