@@ -325,42 +325,64 @@ export function createJsonbPathQueryTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = JsonbPathQuerySchema.parse(params);
-        // Resolve table/column from optional aliases
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
-        if (!table || !column) {
-          throw new ValidationError("table and column are required");
-        }
-
-        // Validate schema and build qualified table name
-        const [qualifiedTable, tableError] = await resolveJsonbTable(
-          adapter,
-          table,
-          parsed.schema,
-        );
-        if (tableError) throw new ValidationError(tableError.error);
-
+        const json = parsed.json;
         const { path, vars, where } = parsed;
-        const whereClause = where ? ` WHERE ${sanitizeWhereClause(where)}` : "";
         const varsJson = vars ? JSON.stringify(vars) : "{}";
 
         // Coerce limit (default 100, 0 = unlimited)
         const resolvedLimit = coerceLimit(parsed.limit, DEFAULT_QUERY_LIMIT);
         const effectiveLimit = resolvedLimit ?? 0;
 
-        const baseSql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
+        let allResults: unknown[] = [];
+        let isTruncated = false;
+        let exactTotalCount: number | undefined;
 
-        // Fetch limit+1 rows to detect truncation without a separate count query
-        const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
-        const sql =
-          fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
-        const result = await adapter.executeQuery(sql, [path, varsJson]);
-        const allResults = result.rows?.map((r) => r["result"]) ?? [];
-        const isTruncated =
-          effectiveLimit > 0 && allResults.length > effectiveLimit;
-        const results = isTruncated
-          ? allResults.slice(0, effectiveLimit)
-          : allResults;
+        if (json !== undefined) {
+          // Query directly against literal JSON
+          const baseSql = `SELECT jsonb_path_query($1::jsonb, $2::jsonpath, $3::jsonb) as result`;
+          const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
+          const sql = fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
+          const result = await adapter.executeQuery(sql, [json, path, varsJson]);
+          allResults = result.rows?.map((r) => r["result"]) ?? [];
+          isTruncated = effectiveLimit > 0 && allResults.length > effectiveLimit;
+          if (isTruncated) {
+            const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query($1::jsonb, $2::jsonpath, $3::jsonb)) sub`;
+            const countResult = await adapter.executeQuery(countSql, [json, path, varsJson]);
+            exactTotalCount = Number(countResult.rows?.[0]?.["total"] ?? allResults.length);
+          }
+        } else {
+          if (!table || !column) {
+            throw new ValidationError("table and column are required");
+          }
+
+          // Validate schema and build qualified table name
+          const [qualifiedTable, tableError] = await resolveJsonbTable(
+            adapter,
+            table,
+            parsed.schema,
+          );
+          if (tableError) throw new ValidationError(tableError.error);
+
+          const whereClause = where ? ` WHERE ${sanitizeWhereClause(where)}` : "";
+          const baseSql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
+
+          // Fetch limit+1 rows to detect truncation without a separate count query
+          const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
+          const sql = fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
+          const result = await adapter.executeQuery(sql, [path, varsJson]);
+          allResults = result.rows?.map((r) => r["result"]) ?? [];
+          isTruncated = effectiveLimit > 0 && allResults.length > effectiveLimit;
+          
+          if (isTruncated) {
+            const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) FROM ${qualifiedTable}${whereClause}) sub`;
+            const countResult = await adapter.executeQuery(countSql, [path, varsJson]);
+            exactTotalCount = Number(countResult.rows?.[0]?.["total"] ?? allResults.length);
+          }
+        }
+
+        const results = isTruncated ? allResults.slice(0, effectiveLimit) : allResults;
 
         const response: {
           success: boolean;
@@ -372,15 +394,9 @@ export function createJsonbPathQueryTool(
         if (results.length > 0) response.results = results;
         if (isTruncated) {
           response.truncated = true;
-          // Get exact total count
-          const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) FROM ${qualifiedTable}${whereClause}) sub`;
-          const countResult = await adapter.executeQuery(countSql, [
-            path,
-            varsJson,
-          ]);
-          response.totalCount = Number(
-            countResult.rows?.[0]?.["total"] ?? results.length,
-          );
+          if (exactTotalCount !== undefined) {
+            response.totalCount = exactTotalCount;
+          }
         }
         return response;
       } catch (error: unknown) {

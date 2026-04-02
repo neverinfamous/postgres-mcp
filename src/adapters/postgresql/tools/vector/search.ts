@@ -17,7 +17,7 @@ import {
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
-import { checkTableAndColumn } from "./data.js";
+import { checkTableAndColumn, parseVector, truncateVector } from "./data.js";
 import {
   VectorSearchSchemaBase,
   VectorCreateIndexSchemaBase,
@@ -133,9 +133,23 @@ export function createVectorSearchTool(
             (r: Record<string, unknown>) => r["distance"] === null,
           ).length;
 
+          // Truncate vector columns to prevent giant MCP payloads
+          const finalRows = (result.rows ?? []).map((row) => {
+            const newRow = { ...row };
+            for (const [k, v] of Object.entries(newRow)) {
+              if (typeof v === "string" && v.startsWith("[") && v.endsWith("]")) {
+                const vec = parseVector(v);
+                if (vec) {
+                  newRow[k] = truncateVector(vec);
+                }
+              }
+            }
+            return newRow;
+          });
+
           const response: Record<string, unknown> = {
-            results: result.rows,
-            count: result.rows?.length ?? 0,
+            results: finalRows,
+            count: finalRows.length,
             metric: metric ?? "l2",
           };
 

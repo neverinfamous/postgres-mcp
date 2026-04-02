@@ -158,24 +158,33 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
         const parsed = JsonbKeysSchema.parse(params);
         const table = parsed.table;
         const column = parsed.column;
-        if (!table || !column) {
-          throw new ValidationError("table and column are required");
+        let keys: string[] = [];
+        
+        if (parsed.json !== undefined) {
+          const sql = `SELECT DISTINCT jsonb_object_keys($1::jsonb) as key`;
+          const result = await adapter.executeQuery(sql, [parsed.json]);
+          keys = (result.rows ?? []).map((r) => r["key"] as string);
+        } else {
+          if (!table || !column) {
+            throw new ValidationError("table and column are required");
+          }
+
+          // Validate schema and build qualified table name
+          const [qualifiedTable, tableError] = await resolveJsonbTable(
+            adapter,
+            table,
+            parsed.schema,
+          );
+          if (tableError) return tableError;
+
+          const whereClause = parsed.where
+            ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+            : "";
+          const sql = `SELECT DISTINCT jsonb_object_keys("${column}") as key FROM ${qualifiedTable}${whereClause}`;
+          const result = await adapter.executeQuery(sql);
+          keys = (result.rows ?? []).map((r) => r["key"] as string);
         }
-
-        // Validate schema and build qualified table name
-        const [qualifiedTable, tableError] = await resolveJsonbTable(
-          adapter,
-          table,
-          parsed.schema,
-        );
-        if (tableError) return tableError;
-
-        const whereClause = parsed.where
-          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
-          : "";
-        const sql = `SELECT DISTINCT jsonb_object_keys("${column}") as key FROM ${qualifiedTable}${whereClause}`;
-        const result = await adapter.executeQuery(sql);
-        const keys: string[] = (result.rows ?? []).map((r) => r["key"] as string);
+        
         const response: {
           success: boolean;
           keys?: string[];
@@ -225,34 +234,47 @@ export function createJsonbTypeofTool(
         const parsed = JsonbTypeofSchema.parse(params);
         const table = parsed.table;
         const column = parsed.column;
-        if (!table || !column) {
-          throw new ValidationError("table and column are required");
-        }
+        let types: (string | null)[] = [];
+        let columnNull = false;
 
-        // Validate schema and build qualified table name
-        const [qualifiedTable, tableError] = await resolveJsonbTable(
-          adapter,
-          table,
-          parsed.schema,
-        );
-        if (tableError) return tableError;
-
-        const whereClause = parsed.where
-          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
-          : "";
         // Normalize path to array format (accepts both string and array)
         const pathArray =
           parsed.path !== undefined
             ? normalizePathToArray(parsed.path)
             : undefined;
-        const pathExpr = pathArray !== undefined ? ` #> $1` : "";
-        // Include column IS NULL check to disambiguate NULL column vs null path result
-        const sql = `SELECT jsonb_typeof("${column}"${pathExpr}) as type, ("${column}" IS NULL) as column_null FROM ${qualifiedTable}${whereClause}`;
-        const queryParams = pathArray ? [pathArray] : [];
-        const result = await adapter.executeQuery(sql, queryParams);
-        const types: (string | null)[] = (result.rows ?? []).map((r) => r["type"] as string | null);
-        const columnNull =
-          result.rows?.some((r) => r["column_null"] === true) ?? false;
+
+        if (parsed.json !== undefined) {
+          const pathExpr = pathArray !== undefined ? ` #> $2` : "";
+          const sql = `SELECT jsonb_typeof($1::jsonb${pathExpr}) as type, false as column_null`;
+          const queryParams = pathArray ? [parsed.json, pathArray] : [parsed.json];
+          const result = await adapter.executeQuery(sql, queryParams);
+          types = (result.rows ?? []).map((r) => r["type"] as string | null);
+        } else {
+          if (!table || !column) {
+            throw new ValidationError("table and column are required");
+          }
+
+          // Validate schema and build qualified table name
+          const [qualifiedTable, tableError] = await resolveJsonbTable(
+            adapter,
+            table,
+            parsed.schema,
+          );
+          if (tableError) return tableError;
+
+          const whereClause = parsed.where
+            ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
+            : "";
+          const pathExpr = pathArray !== undefined ? ` #> $1` : "";
+          // Include column IS NULL check to disambiguate NULL column vs null path result
+          const sql = `SELECT jsonb_typeof("${column}"${pathExpr}) as type, ("${column}" IS NULL) as column_null FROM ${qualifiedTable}${whereClause}`;
+          const queryParams = pathArray ? [pathArray] : [];
+          const result = await adapter.executeQuery(sql, queryParams);
+          types = (result.rows ?? []).map((r) => r["type"] as string | null);
+          columnNull =
+            result.rows?.some((r) => r["column_null"] === true) ?? false;
+        }
+
         const response: { success: boolean; types?: (string | null)[]; count: number; columnNull: boolean } = {
           success: true,
           count: types?.length ?? 0,

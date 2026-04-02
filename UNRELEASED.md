@@ -71,7 +71,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Mapped raw schema and relation errors to structured `EXTENSION_MISSING` code in `pg_cron` tools when the extension is absent
 - JavaScript string arithmetic bugs in transaction boundary tests
 - Docker Hub rate-limit blocks during multi-arch image pipelines by enforcing authenticated pulls
-- `pg_jsonb_normalize` incorrectly requiring `table` and `column` parameters for standalone `json` instances
+- `pg_jsonb_normalize`, `pg_jsonb_typeof`, `pg_jsonb_keys`, and `pg_jsonb_path_query` incorrectly requiring `table` and `column` parameters for standalone `json` instances
 - `pg_drop_schema` native Postgres dependency errors re-thrown as structured validation errors
 - Timing defects in admin vacuum/analyze tools causing progress logging before validation failures
 - Incorrect schema documentation for `pg_audit_list_backups` limit defaults
@@ -82,6 +82,11 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Asynchronous flush synchronization enforced within `postgres://audit` resource to eliminate millisecond-precision timing flakes in E2E tests
 - Mapped raw Postgres configuration errors to structured `VALIDATION_ERROR` responses for invalid parameters in `pg_set_config`
 - Updated `pg_citext_compare` input validation to natively accept empty strings internally without throwing `VALIDATION_ERROR`s when executing case-insensitive comparisons
+- Fixed Split Schema Violations in `pg_hybrid_search` where parameter aliases (`queryVector`, `queryText`) were ignored due to missing schema declarations
+- Remediated high-volume MCP payload bloat in `pg_vector_search` ensuring vectors returned in results are safely parsed and truncated
+- Hardened boundary conditions in `pg_vector_distance` and `pg_vector_normalize` by catching empty payloads and returning structured validation errors
+- Resolved Zod validation handling in `pg_vector_batch_insert` ensuring malformed vector arrays return standard MCP `success: false` schema instead of leaking Zod exceptions
+- Patched idempotency gaps in `pg_vector_create_index` enabling safe resolution when `ifNotExists: true` is triggered on pre-existing indexes
 ### Security
 
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

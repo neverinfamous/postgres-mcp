@@ -170,6 +170,7 @@ export const JsonbContainsSchema = z.preprocess(
 // ============== PATH QUERY SCHEMA ==============
 // Base schema (for MCP inputSchema visibility - no preprocess)
 export const JsonbPathQuerySchemaBase = z.object({
+  json: z.string().optional().describe("Raw JSON string to query against"),
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column name"),
@@ -196,11 +197,11 @@ export const JsonbPathQuerySchemaBase = z.object({
 const JsonbPathQuerySchemaRefined = JsonbPathQuerySchemaBase.extend({
   limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
 }).refine(
-  (data) => data.table !== undefined || data.tableName !== undefined,
-  { message: "Either 'table' or 'tableName' is required" },
+  (data) => data.json !== undefined || (data.table !== undefined || data.tableName !== undefined),
+  { message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required" },
 )
-  .refine((data) => data.column !== undefined || data.col !== undefined, {
-    message: "Either 'column' or 'col' is required",
+  .refine((data) => data.json !== undefined || (data.column !== undefined || data.col !== undefined), {
+    message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
   })
   .refine((data) => data.path !== undefined, {
     message: "path is required",
@@ -308,6 +309,7 @@ export const JsonbDeleteSchema = z.preprocess(
 // ============== TYPEOF SCHEMA ==============
 // Base schema (for MCP inputSchema visibility - no preprocess)
 export const JsonbTypeofSchemaBase = z.object({
+  json: z.string().optional().describe("Raw JSON string"),
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column name"),
@@ -323,10 +325,10 @@ export const JsonbTypeofSchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbTypeofSchemaRefined = JsonbTypeofSchemaBase.refine(
-  (data) => data.table !== undefined || data.tableName !== undefined,
-  { message: "Either 'table' or 'tableName' is required" },
-).refine((data) => data.column !== undefined || data.col !== undefined, {
-  message: "Either 'column' or 'col' is required",
+  (data) => data.json !== undefined || (data.table !== undefined || data.tableName !== undefined),
+  { message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required" },
+).refine((data) => data.json !== undefined || (data.column !== undefined || data.col !== undefined), {
+  message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
 });
 
 // Full schema with preprocess (for handler parsing)
@@ -338,6 +340,7 @@ export const JsonbTypeofSchema = z.preprocess(
 // ============== KEYS SCHEMA ==============
 // Base schema (for MCP inputSchema visibility - no preprocess)
 export const JsonbKeysSchemaBase = z.object({
+  json: z.string().optional().describe("Raw JSON string"),
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column name"),
@@ -349,10 +352,10 @@ export const JsonbKeysSchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbKeysSchemaRefined = JsonbKeysSchemaBase.refine(
-  (data) => data.table !== undefined || data.tableName !== undefined,
-  { message: "Either 'table' or 'tableName' is required" },
-).refine((data) => data.column !== undefined || data.col !== undefined, {
-  message: "Either 'column' or 'col' is required",
+  (data) => data.json !== undefined || (data.table !== undefined || data.tableName !== undefined),
+  { message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required" },
+).refine((data) => data.json !== undefined || (data.column !== undefined || data.col !== undefined), {
+  message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
 });
 
 // Full schema with preprocess (for handler parsing)
