@@ -39,6 +39,7 @@ export function createJsonbPrettyTool(
       try {
         const parsed = JsonbPrettySchema.parse(params) as {
           json?: string;
+          value?: string;
           table?: string;
           tableName?: string;
           column?: string;
@@ -49,10 +50,11 @@ export function createJsonbPrettyTool(
           schema?: string;
         };
 
-        // Mode 1: Raw JSON string
-        if (parsed.json) {
+        // Mode 1: Raw JSON string (accepts both 'json' and 'value' alias)
+        const rawJson = parsed.json ?? parsed.value;
+        if (rawJson) {
           try {
-            const obj: unknown = JSON.parse(parsed.json);
+            const obj: unknown = JSON.parse(rawJson);
             const pretty = JSON.stringify(obj, null, 2);
             return {
               success: true,

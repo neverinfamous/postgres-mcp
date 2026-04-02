@@ -66,9 +66,11 @@ export function createJsonbObjectTool(
 
         const entries = Object.entries(pairs);
 
-        // Handle empty pairs - return empty object
+        // Handle empty pairs - return validation error
         if (entries.length === 0) {
-          return { success: true, object: {} };
+          throw new ValidationError(
+            "pg_jsonb_object requires at least one key-value pair. Use data: {key: value} or object: {key: value}.",
+          );
         }
 
         const args = entries.flatMap(([k, v]) => [k, toJsonString(v)]);

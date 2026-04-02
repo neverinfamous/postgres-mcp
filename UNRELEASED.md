@@ -100,6 +100,9 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Eliminated Zod framework refine leak in `VectorCreateIndexSchema` by extracting inline validation to handler-side
 - Added missing `column` and `col` aliases for vector-column mappings in `pg_hybrid_search` complying with standard Vector group API patterns
 - Supported raw JSON string literal validation across JSONB tools by enforcing explicit JSON parsing inside `toJsonString`, preventing double-encoding of primitive representations, and intercepting maliciously formatted literals with structured ValidationError codes
+- Fixed `pg_jsonb_validate_path` incorrectly returning `{success: true, valid: false}` for syntactically invalid JSONPath expressions; now returns `{success: false}` via `formatHandlerErrorResponse` wrapping a `ValidationError` with a helpful `$`-prefix hint
+- Fixed `pg_jsonb_object` silently returning `{success: true, object: {}}` when called with no key-value pairs; now raises a `ValidationError` requiring at least one entry via `data`, `object`, or `pairs`
+- Added `value` as an alias for the `json` parameter in `pg_jsonb_pretty`, harmonizing ergonomics with other builder tools that accept `value` as a content parameter
 ### Security
 
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

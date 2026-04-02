@@ -111,11 +111,14 @@ export function createJsonbValidatePathTool(
         if (error instanceof ValidationError) {
           return formatHandlerErrorResponse(error, { tool: "pg_jsonb_validate_path" });
         }
-        return {
-          success: true,
-          valid: false,
-          error: error instanceof Error ? error.message : "Invalid path",
-        };
+        // Invalid JSONPath syntax — return structured error with valid: false
+        // Using success: false (not success: true) to signal caller the path is unusable
+        return formatHandlerErrorResponse(
+          new ValidationError(
+            `Invalid JSONPath expression: ${error instanceof Error ? error.message : "syntax error"}. JSONPath must start with '$' (e.g., "$.a.b.c", "$.items[*]").`,
+          ),
+          { tool: "pg_jsonb_validate_path" },
+        );
       }
     },
   };

@@ -18,6 +18,10 @@ export const JsonbPrettySchemaBase = z.object({
     .string()
     .optional()
     .describe("Raw JSON string to format (use this OR table+column)"),
+  value: z
+    .string()
+    .optional()
+    .describe("Raw JSON string to format (alias for json)"),
   table: z.string().optional().describe("Table name (for formatting column data)"),
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column name"),
