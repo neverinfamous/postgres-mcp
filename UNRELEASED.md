@@ -26,6 +26,7 @@
 - Optimized payload efficiency in `pg_jsonb_agg` by structurally omitting the empty array result field to conserve tokens
 - Standardized `count` response property unconditionally in table mode for `pg_jsonb_pretty` to maintain response schema integrity
 - Optimized payload efficiency in `ltree` tools by structurally omitting empty arrays (`results`, `columns`) and enforcing a default `limit` of 50 for pattern matching and queries
+- Optimized payload efficiency in `pg_citext_analyze_candidates` by selectively omitting the default `patternsUsed` array to conserve tokens
 - Reduced npm package size by excluding source maps and tests
 - Refactored Vitest test suite to use SWC compilation
 - Updated npm dependencies (`@modelcontextprotocol/sdk`, `typescript`, `typescript-eslint`)
