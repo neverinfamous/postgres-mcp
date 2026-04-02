@@ -37,7 +37,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Standardized `count` response unconditionally in table mode for `pg_jsonb_pretty`
 - Reduced npm package size by excluding source maps and tests
 - Refactored Vitest test suite to use SWC compilation
-- Harmonized test prompt architecture: split monolithic Code Mode tests, injected Structured Error boilerplates, and certified operational parity across all Core, JSONB, and Vector tools
+- Harmonized test prompt architecture: split monolithic Code Mode tests, injected Structured Error boilerplates, and certified operational parity across all Core, JSONB, Vector, ltree, kcache, and migration tools
 - Updated npm dependencies (`@modelcontextprotocol/sdk`, `@playwright/test`, `typescript`, `typescript-eslint`)
 
 ### Removed
