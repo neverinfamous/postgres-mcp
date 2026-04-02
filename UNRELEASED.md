@@ -76,6 +76,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Added schema existence pre-checks (P154) to `pg_detect_bloat_risk` and `pg_diagnose_database_performance`
 - Capped `pg_stat_statements` and `pg_query_plan_stats` maximum return limit at 500 rows to prevent unbounded payload blowout on large `pg_stat_statements` tables
 - Fixed Split Schema violation in `pg_performance_baseline`: extracted plain `PerformanceBaselineSchemaBase` for `inputSchema` (MCP parameter visibility), keeping `z.preprocess()` wrapper only for handler-side parsing
+- Updated `performance.md` server instructions: documented `baseline({ name? })` param (now MCP-visible), `detectConnectionSpike({ warningPercent? })` correct param name and clamp range, and `seqScanTables` payload limits in the AI-Optimized Payloads section
 
 ### Security
 - Replaced raw Postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks

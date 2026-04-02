@@ -22,9 +22,11 @@ Aliases: `cacheStats`→`cacheHitRatio`, `queryStats`→`statStatements`, `activ
 - `statStatements({ limit?, orderBy? })`: Default 20 rows, **max 500**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 500-row cap
 - `unusedIndexes({ limit?, summary? })`: Default 20 rows. Use `summary: true` for aggregated stats by schema
 - `queryPlanStats({ limit?, truncateQuery? })`: Default 20 rows, **max 500**, queries truncated to 100 chars. Use `truncateQuery: 0` for full text
+- `seqScanTables({ minScans?, schema?, limit? })`: Default `minScans: 10`, `limit: 50`. Use `minScans: 0` for all tables; `limit: 0` for unlimited. Returns `truncated: true` + `totalCount` when limited
 - `detectQueryAnomalies({ threshold?, minCalls? })`: `threshold` must be 0.5–10 (default 2.0); `minCalls` must be 1–10000 (default 10). Out-of-range values return a structured validation error
 - `detectBloatRisk({ minRows?, schema? })`: `minRows` must be 0–1,000,000 (default 1000). Nonexistent `schema` returns a P154 existence error
+- `detectConnectionSpike({ warningPercent? })`: Default 70. Flags users/apps holding ≥ `warningPercent`% of connections. Value is clamped to 10–100 (not `threshold` — that key is ignored)
 
-📍 **Code Mode Note**: `pg_performance_baseline` → `pg.performance.baseline()` (not `performanceBaseline`). `indexRecommendations` accepts `query` alias for `sql`
+📍 **Code Mode Note**: `pg_performance_baseline` → `pg.performance.baseline({ name? })` (not `performanceBaseline`). Optional `name` param labels the snapshot; defaults to an ISO timestamp. `indexRecommendations` accepts `query` alias for `sql`
 
 **Top-Level Aliases**: `pg.explain()`, `pg.explainAnalyze()`, `pg.cacheHitRatio()`, `pg.indexStats()`, `pg.tableStats()`, `pg.indexRecommendations()`, `pg.bloatCheck()`, `pg.vacuumStats()`, `pg.unusedIndexes()`, `pg.duplicateIndexes()`, `pg.seqScanTables()`, `pg.diagnoseDatabasePerformance()`, `pg.detectQueryAnomalies()`, `pg.detectBloatRisk()`, `pg.detectConnectionSpike()`
