@@ -46,8 +46,8 @@ Useful for auditing case-insensitive columns.`,
         const { schema } = parsed;
         const safeLimit = parsed.limit as number | undefined;
 
-        if (safeLimit !== undefined && safeLimit <= 0) {
-          throw new ValidationError("limit must be greater than 0");
+        if (safeLimit !== undefined && safeLimit < 0) {
+          throw new ValidationError("limit must be non-negative");
         }
         // Validate schema existence when specified
         if (schema !== undefined) {

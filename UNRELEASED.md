@@ -75,6 +75,7 @@
 - Implemented payload truncation caps for maximum limits in window statistics, grouped time-series, distinct/frequency analysis, and advanced `pg_stats_top_n` queries
 - Verified advanced stress tests for the stats tool group, confirming edge cases with empty tables, missing numeric exceptions, Code Mode window function pipelines, and regression boundaries without payload bloat
 - Verified advanced stress tests for the backup tool group, confirming snapshot lifecycle integrity, non-destructive `restoreAs` isolation, Code Mode `pg_execute_code` audit tracking, and volume drift accuracy without payload bloat
+- Verified advanced stress tests for the citext tool group, confirming edge cases with missing schema handles, proper Code Mode idempotent array conversions, payload truncation handling for `limit: 0`, and explicit schema error wrapping (avoiding `QUERY_ERROR`) without payload bloat
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Replaced inline error returns across JSONB tools with structured `ValidationError` instances, preserving standard error output

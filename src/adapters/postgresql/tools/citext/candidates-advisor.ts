@@ -54,8 +54,8 @@ Looks for common patterns like email, username, name, slug, etc.`,
       } = parsed;
       const safeLimit = parsed.limit as number | undefined;
 
-      if (safeLimit !== undefined && safeLimit <= 0) {
-        throw new ValidationError("limit must be greater than 0");
+      if (safeLimit !== undefined && safeLimit < 0) {
+        throw new ValidationError("limit must be non-negative");
       }
 
       // Validate table/schema existence before querying
