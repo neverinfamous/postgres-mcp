@@ -36,9 +36,21 @@ import {
 
 /**
  * Convert value to a valid JSON string for PostgreSQL's ::jsonb cast
- * Always uses JSON.stringify to ensure proper encoding
+ * If the value is a string that looks like a JSON object or array, it is parsed and
+ * validated to support raw JSON literals, throwing a ValidationError if malformed.
  */
 export function toJsonString(value: unknown): string {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        JSON.parse(trimmed);
+        return trimmed;
+      } catch {
+        throw new ValidationError("Invalid JSON string literal provided");
+      }
+    }
+  }
   return JSON.stringify(value);
 }
 

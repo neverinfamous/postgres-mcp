@@ -99,6 +99,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Fixed unstructured Error leak in `pg_vector_dimension_reduce` by wrapping domain errors with proper `VALIDATION_ERROR` codes
 - Eliminated Zod framework refine leak in `VectorCreateIndexSchema` by extracting inline validation to handler-side
 - Added missing `column` and `col` aliases for vector-column mappings in `pg_hybrid_search` complying with standard Vector group API patterns
+- Supported raw JSON string literal validation across JSONB tools by enforcing explicit JSON parsing inside `toJsonString`, preventing double-encoding of primitive representations, and intercepting maliciously formatted literals with structured ValidationError codes
 ### Security
 
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
