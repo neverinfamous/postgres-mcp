@@ -163,7 +163,7 @@ const ERROR_SUGGESTIONS: {
     code: "INDEX_NOT_FOUND",
   },
   {
-    pattern: /no previously clustered index/i,
+    pattern: /an index is required for clustering/i,
     suggestion:
       "An index is required for clustering. Provide an 'index' name, or cluster a table that was previously clustered.",
     category: ErrorCategory.VALIDATION,
