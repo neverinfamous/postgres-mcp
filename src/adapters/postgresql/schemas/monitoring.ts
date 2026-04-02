@@ -67,17 +67,18 @@ export const ShowSettingsSchema = z.preprocess(
 );
 
 export const AlertThresholdSetSchemaBase = z.object({
-  metric: z
+  metric: z.string().describe("Specific metric to set thresholds for"),
+  warningThreshold: z
     .string()
-    .optional()
-    .describe(
-      "Specific metric to get thresholds for, or all if not specified. Valid: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time",
-    ),
+    .describe("Warning threshold (e.g. '70%')"),
+  criticalThreshold: z
+    .string()
+    .describe("Critical threshold (e.g. '90%')"),
 });
 
 export const AlertThresholdSetSchema = z.preprocess(
   defaultToEmpty,
-  AlertThresholdSetSchemaBase,
+  AlertThresholdSetSchemaBase
 );
 
 export const CapacityPlanningSchemaBase = z.object({

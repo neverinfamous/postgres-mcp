@@ -188,26 +188,50 @@ export function createConnectionStatsTool(
     name: "pg_connection_stats",
     description: "Get connection statistics by database and state.",
     group: "monitoring",
-    inputSchema: z.object({}).strict(),
+    inputSchema: z.object({
+      database: z.string().optional().describe("Filter by specific database name"),
+    }),
     outputSchema: ConnectionStatsOutputSchema,
     annotations: readOnly("Connection Stats"),
     icons: getToolIcons("monitoring", readOnly("Connection Stats")),
-    handler: async (_params: unknown, _context: RequestContext) => {
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
+        const parsed = (params ?? {}) as { database?: string };
+        const database = parsed.database;
+
+        // P154: Validate database existence before querying
+        if (database) {
+          const dbCheck = await adapter.executeQuery(
+            `SELECT 1 FROM pg_database WHERE datname = $1`,
+            [database]
+          );
+          if (dbCheck.rows?.length === 0) {
+            return {
+              success: false,
+              error: `Database '${database}' does not exist.`,
+            };
+          }
+        }
+
+        const dbClause = database ? `AND datname = $1` : "";
+        const queryParams = database ? [database] : [];
+
         const sql = `SELECT datname, state, count(*) as connections
                           FROM pg_stat_activity
                           WHERE pid != pg_backend_pid()
+                          ${dbClause}
                           GROUP BY datname, state
                           ORDER BY datname, state`;
 
-        const result = await adapter.executeQuery(sql);
+        const result = await adapter.executeQuery(sql, queryParams);
 
         const maxResult = await adapter.executeQuery(`SHOW max_connections`);
         const maxConnections = maxResult.rows?.[0]?.["max_connections"];
 
-        const totalResult = await adapter.executeQuery(
-          `SELECT count(*) as total FROM pg_stat_activity`,
-        );
+        let totalQuery = `SELECT count(*) as total FROM pg_stat_activity`;
+        if (database) totalQuery += ` WHERE datname = $1`;
+        
+        const totalResult = await adapter.executeQuery(totalQuery, queryParams);
 
         // Coerce connection counts to numbers
         const byDatabaseAndState = (result.rows ?? []).map(
@@ -376,9 +400,11 @@ export function createShowSettingsTool(
         }
       }
 
-      // Build LIMIT clause if limit is specified
-      const limitClause =
-        limit !== undefined && limit > 0 ? ` LIMIT ${String(limit)}` : "";
+      // Build LIMIT clause and clamp to 100 max to prevent unmanageable token payload output
+      const maxLimit = 100;
+      let appliedLimit = limit !== undefined && limit > 0 ? limit : maxLimit;
+      if (appliedLimit > maxLimit) appliedLimit = maxLimit;
+      const limitClause = ` LIMIT ${String(appliedLimit)}`;
 
       const sql = `SELECT name, setting, unit, category, short_desc
                         FROM pg_settings
@@ -389,7 +415,7 @@ export function createShowSettingsTool(
       const rows = result.rows ?? [];
 
       // If limit was applied, get total count to indicate truncation
-      if (limit !== undefined && limit > 0 && rows.length === limit) {
+      if (rows.length === appliedLimit) {
         const countSql = `SELECT count(*) as total FROM pg_settings ${whereClause}`;
         const countResult = await adapter.executeQuery(countSql, queryParams);
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);

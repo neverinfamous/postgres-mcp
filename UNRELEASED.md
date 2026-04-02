@@ -61,6 +61,9 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Adjusted `pg_jsonb_validate_path` to return structured `ValidationError` with `$`-prefix hint
 - Required at least one entry via `data`, `object`, or `pairs` in `pg_jsonb_object`
 - Fixed `pg_jsonb_object` incorrectly escaping parallel arrays via Code Mode
+- Clamped unbound limits in `pg_show_settings` to a maximum of 100 rows to prevent unmanageable token bloat
+- Fixed `pg_connection_stats` input schema to use filtering and enforce P154 existence checks
+- Enforced required `warningThreshold` and `criticalThreshold` validations in `pg_alert_threshold_set`
 
 ### Security
 - Replaced raw Postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks

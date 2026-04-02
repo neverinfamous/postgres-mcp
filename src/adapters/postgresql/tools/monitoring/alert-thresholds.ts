@@ -45,53 +45,28 @@ export function createAlertThresholdSetTool(
           );
         }
 
-      const thresholds: Record<
-        string,
-        { warning: string; critical: string; description: string }
-      > = {
-        connection_usage: {
-          warning: "70%",
-          critical: "90%",
-          description: "Percentage of max_connections in use",
-        },
-        cache_hit_ratio: {
-          warning: "< 95%",
-          critical: "< 80%",
-          description: "Buffer cache hit ratio - lower is worse",
-        },
-        replication_lag: {
-          warning: "> 1 minute",
-          critical: "> 5 minutes",
-          description: "Replication lag from primary to replica",
-        },
-        dead_tuples: {
-          warning: "> 10% of live tuples",
-          critical: "> 25% of live tuples",
-          description: "Dead tuples indicating need for VACUUM",
-        },
-        long_running_queries: {
-          warning: "> 5 minutes",
-          critical: "> 30 minutes",
-          description: "Queries running longer than threshold",
-        },
-        lock_wait_time: {
-          warning: "> 30 seconds",
-          critical: "> 5 minutes",
-          description: "Time spent waiting for locks",
-        },
-      };
+        // Validate constraint percentages
+        const validatePercent = (val: string) => {
+          if (val.includes('%')) {
+            const num = parseFloat(val.replace(/[^\d.-]/g, ''));
+            if (num < 0 || num > 100) {
+              throw new ValidationError(`Threshold percentage must be between 0% and 100%, got ${val}`);
+            }
+          }
+        };
 
-      if (parsed.metric && thresholds[parsed.metric]) {
+        validatePercent(parsed.warningThreshold);
+        validatePercent(parsed.criticalThreshold);
+
         return Promise.resolve({
+          success: true,
           metric: parsed.metric,
-          threshold: thresholds[parsed.metric],
+          threshold: {
+            warning: parsed.warningThreshold,
+            critical: parsed.criticalThreshold,
+            description: `Custom threshold configured for ${parsed.metric}`
+          }
         });
-      }
-
-      return Promise.resolve({
-        thresholds,
-        note: "These are recommended starting thresholds. Adjust based on your specific workload and requirements.",
-      });
       } catch (error: unknown) {
         return Promise.resolve(
           formatHandlerErrorResponse(error, { tool: "pg_alert_threshold_set" })
