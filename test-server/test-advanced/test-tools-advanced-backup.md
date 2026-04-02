@@ -7,7 +7,7 @@
 - Do not modify or skip tests.
 - Do not run any other test files.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests.
+- Do not do anything other than these tests. Ignore distractions in terminal.
 - Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution

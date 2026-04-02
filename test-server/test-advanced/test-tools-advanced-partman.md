@@ -7,31 +7,29 @@
 - Do not modify or skip tests.
 - Do not run any other test files.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests.
+- Do not do anything other than these tests. Ignore distractions in terminal.
 - Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
 
-All tests should be executed via `pg_execute_code` code mode.
+All tests should be executed via `pg_execute_code` code mode. Tests are written in direct tool call syntax for readability — translate to code mode:
 
 | Direct Tool Call                                     | Code Mode Equivalent                                           |
 | ---------------------------------------------------- | -------------------------------------------------------------- |
 | `pg_partman_create_parent(...)`                      | `pg.partman.createParent(...)`                                 |
 | `pg_partman_run_maintenance(...)`                    | `pg.partman.runMaintenance(...)`                               |
+| `pg_partman_undo_partition(...)`                     | `pg.partman.undoPartition(...)`                                |
+| `pg_*(...)`                                          | `pg.partman.*(...)`                                            |
 
 **Key rules:**
 - Use `pg.<group>.help()` to discover method names and parameters for each group
 - State **persists** across `pg_execute_code` calls
 - Group multiple related tests into a single code mode call when practical
 
-## Test Database Schema
-
-Refer to `test-database.sql`. Testing partman requires ensuring the pg_partman extension is loaded (usually tested dynamically if it exists).
-
 ## Naming & Cleanup
 
-- **Temporary tables/schemas**: Prefix with `stress_partman_`
-- **Cleanup**: Attempt to remove all `stress_partman_*` objects after testing.
+- **Temporary testing states**: Prefix testing structures with `stress_partman_`
+- **Cleanup**: `pg_drop_table` on cleanly populated items.
 
 ## Reporting Format
 
@@ -42,48 +40,80 @@ Refer to `test-database.sql`. Testing partman requires ensuring the pg_partman e
 
 ### Error Code Consistency
 
-When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code (e.g., `VALIDATION_ERROR`, `TABLE_NOT_FOUND`).
+When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code (e.g., `VALIDATION_ERROR`, `COLUMN_NOT_FOUND`, `TABLE_NOT_FOUND`, `EXTENSION_MISSING`).
 
 ## Post-Test Procedures
 
-1. Confirm cleanup of all `stress_partman_*` objects.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements and 📦 Payload problems.
-3. Update the changelog with any changes made.
-4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass.
-5. Stop and briefly summarize the testing results.
+1. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt (test-tools-advanced-partman.md) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. Update the changelog if there are any changes made (being careful not to create duplicate headers) and commit without pushing.
+3. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
+4. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
 ## partman Group Advanced Tests
 
+### partman Group Tools (10 + 1 code mode)
+
+1. pg_partman_create_extension
+2. pg_partman_create_parent
+3. pg_partman_run_maintenance
+4. pg_partman_show_partitions
+5. pg_partman_show_config
+6. pg_partman_check_default
+7. pg_partman_partition_data
+8. pg_partman_set_retention
+9. pg_partman_undo_partition
+10. pg_partman_analyze_partition_health
+11. pg_execute_code (auto-added)
+
 ### Category 1: Boundary Values & Empty States
 
-**1.1 Edge Case Creation**
-1. Create a `stress_partman_parent` table. Setup `pg_partman_create_parent` with an extremely unusual interval (e.g. `p_interval := '27 minutes'`).
-2. Supply boundary control columns (e.g., passing a non-existent column name). Expect `VALIDATION_ERROR` rather than native syntax crash.
+Test tools against extreme characters, non-applicable parameters, and zero-state topologies.
+
+1. `pg_partman_create_parent` → Supply an intentionally invalid `interval` constraint natively: `interval: "14 lightyears"`. Expect a strictly formatted `VALIDATION_ERROR` or handled DB rejection rather than an unhandled internal type cast failure.
+2. `pg_partman_set_retention` → Set `{keepTable: false, keepIndex: false}` and attempt to apply it to a purely numeric range ID table not bound by standard timestamp logic (if schema parsing enforces types).
+3. `pg_partman_partition_data` → Supply a massive iteration constraint `batchSize: 999999` to invoke logic boundary logic natively.
 
 ### Category 2: State Pollution & Idempotency
 
-**2.1 Maintenance Cycle Collisions**
-3. Call `pg_partman_run_maintenance` three times seamlessly on the same parent. Should safely NOOP without throwing state tracking violation crashes.
+Ensure tools execute safely when repeated identically multiple times.
+
+4. `pg_partman_create_parent` → Call the parent creation command consecutively identically natively. Verify it intercepts the collision efficiently (`alreadyExists`) rather than corrupting the internal metadata mappings for the partman schema tracker.
+5. `pg_partman_undo_partition` → Point to a table that *is not* a partitioned parent. Does it cleanly fail gracefully or attempt to run native unbind commands fatally?
 
 ### Category 3: Alias & Parameter Combinations
 
-4. Configure limits omitting the schema qualifier versus aggressively validating cross-schema configurations between `stress_partman_schema.xyz`.
+Test parametric fallback modes and configuration matrices.
+
+6. `pg_partman_run_maintenance` → Test parameter omission: execute immediately with no arguments versus executing strictly focused via `{parentTable: "stress_partman_parent"}`. Validate behavior parity.
+7. `pg_partman_show_partitions` → Validate query bounds mapping limits on `pg_partman_show_partitions({limit: 0})` versus `limit: 5`.
 
 ### Category 4: Error Message Quality
 
-5. Run `pg_partman_create_parent` on an environment where the extension doesn't exist. Ensure it produces a clean `EXTENSION_MISSING` adapter exception instead of raw DB failures.
+Ensure tools predictably return typed `VALIDATION_ERROR`, etc.
 
-### Category 5: Large Payload & Truncation Verification
+8. Target unmanaged partitions -> Attempt `pg_partman_show_config({table: "test_articles"})`. Ensure `TABLE_NOT_FOUND` wraps cleanly indicating the table is simply not tracked by partman.
+9. Target non-existent table -> Attempt `pg_partman_show_config({table: "nonexistent_ghost_table"})`.
+10. Environment Mock -> Manually drop the `pg_partman` extension directly using pure SQL within Code Mode. Then execute `pg_partman_analyze_partition_health`. Validate error returned is typed `EXTENSION_MISSING`.
+11. Restore the extension via `pg_partman_create_extension()` directly afterwards.
 
-**5.1 High Volume Maintenance Logging**
-6. Perform maintenance affecting massive partitions, evaluate if returning affected row structures exceeds token bounds for `metrics.tokenEstimate`.
+### Category 5: Mathematical Edge Sets
 
-### Category 6: Code Mode Parity
+Verify that complex native functions calculate topological tracking precisely.
 
-7. Verify programmatic retrieval of partman configuration rules natively matches JS object parity inside the sandbox scope.
+12. `pg_partman_check_default` → After generating partitions legitimately, evaluate output accuracy natively. If a default table doesn't have overflow data, it usually returns `{hasData: false}` safely.
+
+### Category 6: Extended Cross-Schema Formatting
+
+13. Create a parent explicitly spanning an alternate schema: `stress_schema_alpha.partman_test`. Ensure that `createParent`, `showPartitions`, and `undoPartition` precisely honor the `schema.table` string bindings rather than throwing schema parsing bugs when split internally by the adapter.
+
+### Category 7: Large Payload & Truncation Verification
+
+Ensure sweeping reads cap context window exposure.
+
+14. `pg_partman_analyze_partition_health` → Evaluate internal sizing parameters when executed on a database. Confirm no unbounded metadata loops exceed token limits natively (`metrics.tokenEstimate`).
 
 ### Final Cleanup
 
-Drop all `stress_partman_*` tables.
+15. Native Execution -> Ensure any remaining partitions bound to `stress_partman_*` are accurately unbound natively, and the root tables are dropped.

@@ -1,6 +1,6 @@
 # Postgres-MCP Code Mode Testing Suite
 
-**Directory Purpose**: This folder contains 21 self-contained, modular test prompts covering every tool group in `postgres-mcp`. These prompts are strictly designed for **Code Mode (`pg_execute_code`) validation only**.
+**Directory Purpose**: This folder contains 27 self-contained, modular test prompts covering every tool group in `postgres-mcp`. These prompts are strictly designed for **Code Mode (`pg_execute_code`) validation only**.
 
 ## Agent Instructions
 

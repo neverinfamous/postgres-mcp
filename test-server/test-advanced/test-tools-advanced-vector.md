@@ -7,7 +7,7 @@
 - Do not modify or skip tests.
 - Do not run any other test files.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests.
+- Do not do anything other than these tests. Ignore distractions in terminal.
 - Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
@@ -38,10 +38,10 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 ## Post-Test Procedures
 
 1. Confirm cleanup of all `stress_vector_*` objects.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements and 📦 Payload problems.
-3. Update the changelog with any changes made.
-4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass.
-5. Stop and briefly summarize the testing results.
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt (test-tools-advanced-vector.md) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+3. Update the changelog if there are any changes made (being careful not to create duplicate headers) and commit without pushing.
+4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
+5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
@@ -60,7 +60,7 @@ When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) th
 
 ### Category 3: Alias & Parameter Combinations
 
-4. Test `m` and `ef_construction` parameter aliases if applicable, mapping them through JS properties. 
+4. Test `m` and `ef_construction` parameter aliases if applicable, mapping them through JS properties.
 
 ### Category 4: Error Message Quality
 

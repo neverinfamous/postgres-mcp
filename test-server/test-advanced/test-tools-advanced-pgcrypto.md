@@ -7,12 +7,19 @@
 - Do not modify or skip tests.
 - Do not run any other test files.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests.
+- Do not do anything other than these tests. Ignore distractions in terminal.
 - Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
 
-All tests should be executed via `pg_execute_code` code mode.
+All tests should be executed via `pg_execute_code` code mode. Tests are written in direct tool call syntax for readability — translate to code mode:
+
+| Direct Tool Call                                     | Code Mode Equivalent                                           |
+| ---------------------------------------------------- | -------------------------------------------------------------- |
+| `pg_pgcrypto_encrypt(...)`                           | `pg.pgcrypto.encrypt(...)`                                     |
+| `pg_pgcrypto_hash(...)`                              | `pg.pgcrypto.hash(...)`                                        |
+| `pg_pgcrypto_decrypt(...)`                           | `pg.pgcrypto.decrypt(...)`                                     |
+| `pg_*(...)`                                          | `pg.pgcrypto.*(...)`                                           |
 
 **Key rules:**
 - Use `pg.<group>.help()` to discover method names and parameters for each group
@@ -21,8 +28,8 @@ All tests should be executed via `pg_execute_code` code mode.
 
 ## Naming & Cleanup
 
-- **Temporary tables/schemas**: Prefix with `stress_pgcrypto_`
-- **Cleanup**: Attempt to remove all `stress_pgcrypto_*` objects after testing.
+- **Temporary testing states**: Prefix testing structures with `stress_pgcrypto_`
+- **Cleanup**: `pg_drop_table` on cleanly populated items.
 
 ## Reporting Format
 
@@ -33,48 +40,72 @@ All tests should be executed via `pg_execute_code` code mode.
 
 ### Error Code Consistency
 
-When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code (e.g., `VALIDATION_ERROR`, `TABLE_NOT_FOUND`).
+When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code (e.g., `VALIDATION_ERROR`, `COLUMN_NOT_FOUND`, `TABLE_NOT_FOUND`, `EXTENSION_MISSING`).
 
 ## Post-Test Procedures
 
-1. Confirm cleanup of all `stress_pgcrypto_*` objects.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements and 📦 Payload problems.
-3. Update the changelog with any changes made.
-4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass.
-5. Stop and briefly summarize the testing results.
+1. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt (test-tools-advanced-pgcrypto.md) and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
+2. Update the changelog if there are any changes made (being careful not to create duplicate headers) and commit without pushing.
+3. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
+4. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
 ## pgcrypto Group Advanced Tests
 
+### pgcrypto Group Tools (9 + 1 code mode)
+
+1. `pg_pgcrypto_create_extension`
+2. `pg_pgcrypto_hash`
+3. `pg_pgcrypto_hmac`
+4. `pg_pgcrypto_encrypt`
+5. `pg_pgcrypto_decrypt`
+6. `pg_pgcrypto_gen_random_uuid`
+7. `pg_pgcrypto_gen_random_bytes`
+8. `pg_pgcrypto_gen_salt`
+9. `pg_pgcrypto_crypt`
+10. `pg_execute_code` (auto-added)
+
 ### Category 1: Boundary Values & Empty States
 
-**1.1 Algorithm Bounds Testing**
-1. Call hashing mechanisms with empty string targets. Should successfully return deterministic hash string values.
-2. Supply explicitly unsupported algorithms (e.g. `algo: "md-minus-5"`). Note the error envelope ensures a `VALIDATION_ERROR` rather than postgres native syntax failures.
+Test tools against extreme characters, non-applicable parameters, and zero-state topologies.
+
+1. `pg_pgcrypto_hash` → Supply a perfect empty string `data: ""` to hashing functions natively. Ensure deterministic zero-state processing executes via DB instead of Zod trapping it prematurely natively.
+2. `pg_pgcrypto_encrypt` → Supply a completely empty password key mapping (`password: ""`) vs `data: ""`. Does pgcrypto allow blank symmetrical keys securely natively?
+3. `pg_pgcrypto_gen_random_uuid` → Pass extreme boundary generation limits `count: 999999` constraints. Evaluate buffer sizing execution handlers natively.
 
 ### Category 2: State Pollution & Idempotency
 
-**2.1 Massive Iteration Salts**
-3. Create salt generation iterating the hashing load boundary limits. Idempotently trigger 5 independent salt generations inside sandbox code execution to verify process thread stability.
+Ensure tools execute safely when repeated identically multiple times.
+
+4. `pg_pgcrypto_create_extension` → Execute natively consecutively multiple times inside a Code Mode execution. Verify `{success: true}` handles `alreadyExists` natively.
 
 ### Category 3: Alias & Parameter Combinations
 
-4. Check default fallback aliases if an algorithm isn't supplied (does it default to `bf` or `sha256` properly?).
+Test parametric fallback modes and configuration matrices.
+
+5. `pg_pgcrypto_gen_random_bytes` → Parameter matrix encoding test: map through explicitly supported encodings (`hex`, `base64`, `raw`). Validate native type enforcement safely processes inside Javascript payloads cleanly natively across DB string bindings.
 
 ### Category 4: Error Message Quality
 
-5. Attempt PGP decryption using an entirely mismatched symmetric key. Ensure the generated native exception code is correctly translated to `CRYPTO_DECRYPTION_ERROR` or similar structured output.
+Ensure tools predictably return typed `VALIDATION_ERROR`, etc.
 
-### Category 5: Large Payload & Truncation Verification
+6. `pg_pgcrypto_decrypt` → Pass absolute structurally invalid garbage strings (`data: "12345!@#$"`) into decrypt parameters mapping natively. Identify exactly how strictly Postgres wraps the parser parsing failure to standard P154 typing formats versus crashing the driver.
+7. Environment Mock -> Manually drop the `pgcrypto` extension directly using pure SQL within Code Mode. Then execute `pg_pgcrypto_hmac`. Validate error returned is typed `EXTENSION_MISSING` (or a cleanly handled syntax wrapper natively).
+8. Restore the extension via `pg_pgcrypto_create_extension()` directly afterwards.
 
-**5.1 Heavy Byte Stream Decryption**
-6. Feed exceptionally long strings or mock large payload texts (50KB raw buffers) into symmetric encryption loops using `pg_execute_code` dynamically. Monitor `metrics.tokenEstimate` to ascertain token overhead.
+### Category 5: Complex Flow Architectures
 
-### Category 6: Code Mode Parity
+Verify that complex native functions execute mathematical hashes correctly dynamically.
 
-7. Verify programmatic hashing (e.g. creating user password salts via Code Mode JS bindings) behaves identically across the RPC bridge dynamically versus native direct function invocation payloads.
+9. Dynamic Flow Check → Encrypt a target string payload via Javascript execution (`pg_pgcrypto_encrypt`), store the output natively cleanly against `stress_pgcrypto_cache`, retrieve the row directly against a database read mechanism, then push the variable purely into `pg_pgcrypto_decrypt` strictly verifying data integrity over the serialization framework manually dynamically without explicit direct inputs.
+
+### Category 6: Large Payload & Truncation Verification
+
+Ensure sweeping reads cap context window exposure.
+
+10. Execute UUID mass generation (`count: 100`) strictly evaluating Javascript token mapping sizing native properties. Ensure returned array handles native mappings strictly to verify bounds.
 
 ### Final Cleanup
 
-Drop all `stress_pgcrypto_*` tables.
+11. Native Execution -> Drop any experimental tables.

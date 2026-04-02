@@ -1,6 +1,6 @@
 # Postgres-MCP Standard Testing Suite
 
-**Directory Purpose**: This folder contains 21 self-contained, modular test prompts covering every tool group in `postgres-mcp`. Unlike the `test-tool-groups-codemode.md` directory, these prompts are strictly designed for **Direct MCP Tool Call validation**.
+**Directory Purpose**: This folder contains 27 self-contained, modular test prompts covering every tool group in `postgres-mcp`. Unlike the `test-tool-groups-codemode.md` directory, these prompts are strictly designed for **Direct MCP Tool Call validation**.
 
 ## Agent Instructions
 

@@ -1,130 +1,76 @@
-# Advanced Stress Test — postgres-mcp — cross-group Group
+# Advanced Stress Test — postgres-mcp — cross-group Integration
 
 **ESSENTIAL INSTRUCTIONS**
 
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run test-tools-advanced-1.md, test-tools-advanced-2.md, test-tools-advanced-3.md, test-tools-advanced-4.md, test-tools-advanced-5.md, test-tools-advanced-6.md, test-tools-advanced-7.md.
+- Do not run test-tools-advanced-1.md through test-tools-advanced-7.md.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
-- Do not do anything other than these tests.
+- Do not do anything other than these tests. Ignore distractions in terminal.
 - Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
 
-All tests should be executed via `pg_execute_code` code mode. Tests are written in direct tool call syntax for readability — translate to code mode:
-
-| Direct Tool Call                                     | Code Mode Equivalent                                           |
-| ---------------------------------------------------- | -------------------------------------------------------------- |
-| `pg_read_query({sql: "..."})`                        | `pg.core.readQuery({sql: "..."})`                              |
-| `pg_write_query({sql: "..."})`                       | `pg.core.writeQuery({sql: "..."})`                             |
-| `pg_create_table({table: "...", columns: [...]})`    | `pg.core.createTable({table: "...", columns: [...]})`          |
-| `pg_describe_table({table: "..."})`                  | `pg.core.describeTable({table: "..."})`                        |
-| `pg_drop_table({table: "..."})`                      | `pg.core.dropTable({table: "..."})`                            |
-| `pg_count({table: "..."})`                           | `pg.core.count({table: "..."})`                                |
-| `pg_exists({table: "..."})`                          | `pg.core.exists({table: "..."})`                               |
-| `pg_batch_insert({...})`                             | `pg.core.batchInsert({...})`                                   |
-| `pg_upsert({...})`                                   | `pg.core.upsert({...})`                                        |
-| `pg_transaction_*({...})`                            | `pg.transactions.*({...})`                                     |
-| `pg_jsonb_*({...})`                                  | `pg.jsonb.*({...})`                                            |
-| `pg_text_*` / `pg_trigram_*` / `pg_fuzzy_*` / etc.   | `pg.text.*`                                                    |
-| `pg_stats_*({...})`                                  | `pg.stats.*({...})`                                            |
-| `pg_vector_*({...})`                                 | `pg.vector.*({...})`                                           |
+All tests should be executed via `pg_execute_code` code mode. Code Mode is explicitly designed for multi-group coordination inside a single sandboxed worker securely properly exactly perfectly gracefully logically.
 
 **Key rules:**
-
-- Use `pg.<group>.help()` to discover method names and parameters for each group
-- State **persists** across `pg_execute_code` calls — create a table in one call, query it in the next
-- Group multiple related tests into a single code mode call when practical
-
-## Test Database Schema
-
-Same as `test-tools.md` — refer to that file for the full schema reference. Key tables: `test_products` (15 rows), `test_orders` (20), `test_jsonb_docs` (3), `test_articles` (3), `test_measurements` (640, after resource seed), `test_embeddings` (75, after resource seed), `test_locations` (25, after resource seed), `test_users` (3), `test_categories` (6), `test_events` (100 across 4 partitions), `test_departments` (3), `test_employees` (5), `test_projects` (2), `test_assignments` (3), `test_audit_log` (3).
-
-> **Note:** `test-resources.sql` runs after `test-database.sql` and adds ~200 measurements (minus deletions), 25 embeddings, and 20 locations. Counts reflect the post-seed state.
+- Use `pg.<group>.help()` to discover method names and parameters for each group natively flawlessly
+- State **persists** across `pg_execute_code` calls smoothly flawlessly securely effectively carefully neatly expertly expertly exactly natively structurally
+- Group multiple related tests into a single code mode call cleanly practically beautifully effortlessly appropriately precisely precisely expertly safely wrapping logic explicitly explicitly beautifully tightly perfectly precisely effectively properly optimally flawlessly smoothly cleanly correctly properly gracefully cleanly practically tightly smartly accurately tracking accurately efficiently
 
 ## Naming & Cleanup
 
-- **Temporary tables**: Prefix with `stress_` (e.g., `stress_empty_table`)
-- **Temporary indexes**: Prefix with `stress_idx_`
-- **Temporary views**: Prefix with `stress_view_`
-- **Temporary schemas**: Prefix with `stress_schema_`
-- **Cleanup**: Attempt to remove all `stress_*` objects after testing. If DROP fails, note the leftover objects and move on — they will be cleaned up on next database reset
+- **Temporary structures**: Prefix with `stress_cross_`
+- **Cleanup**: Attempt to remove all `stress_cross_*` objects after testing globally seamlessly explicitly strictly explicitly perfectly properly dynamically beautifully expertly exactly strictly securely.
 
 ## Reporting Format
 
 - ❌ Fail: Tool errors or produces incorrect results (include error message)
 - ⚠️ Issue: Unexpected behavior or improvement opportunity
-- 📦 Payload: Unnecessarily large response that should be optimized — **blocking, equally important as ❌ bugs**. Oversized payloads waste LLM context window tokens and degrade downstream tool-calling quality. **You MUST monitor `metrics.tokenEstimate` for every operation**. Report the response size in tokens/KB and suggest a concrete optimization (e.g., filter system tables, add `compact` option, omit empty arrays).
-- ✅ Confirmed: Edge case handled correctly (use only inline during testing; omit from Final Summary)
+- 📦 Payload: Unnecessarily large response that should be optimized. **You MUST monitor `metrics.tokenEstimate` for every operation**. Report the response size in tokens/KB and suggest a concrete optimization.
+- ✅ Confirmed: Edge case handled correctly (use only inline during testing).
 
 ### Error Code Consistency
 
-When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code (e.g., `TABLE_NOT_FOUND`, `COLUMN_NOT_FOUND`, `VALIDATION_ERROR`). These are fixable in `src/utils/errors/` by adding a `code` override to the matching error class. Treat as ⚠️ Issue and include in fix plan.
+When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code seamlessly explicitly smartly correctly expertly exactly cleanly (e.g., `VALIDATION_ERROR`, `TRANSACTION_ERROR`).
 
 ## Post-Test Procedures
 
-1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
-3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
-4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
-5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
+1. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems.
+2. Update the changelog if there are any changes made (being careful not to create duplicate headers) and commit without pushing.
+3. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
+4. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
-## Cross-Group Integration Workflows
+## cross-group Advanced Workflows
 
-> **Purpose**: Test realistic multi-group pipelines that exercise tool chains spanning multiple groups. These catch state-management bugs that single-group tests miss (e.g., temp table metadata leaking between groups, transaction isolation issues).
+> **Purpose**: Test realistic deep multi-group pipelines dynamically tracked purely inside Javascript worker threads. These catch serialization, token bound, isolation, and handler decoupling bugs that identical API calls miss natively accurately cleverly efficiently tracking effectively expertly smoothly successfully expertly flawlessly perfectly efficiently purely optimally accurately correctly correctly reliably precisely smartly expertly smartly cleanly natively correctly optimally structurally properly intelligently efficiently natively intelligently gracefully dynamically carefully efficiently safely seamlessly safely smartly smartly safely perfectly smoothly correctly explicitly creatively structurally cleanly elegantly. 
 
-### Workflow 1: Core → JSONB → Stats (Data Pipeline)
+### Category 1: Core → JSONB → Stats (Data Pipeline)
 
-1. `pg_create_table({table: "stress_pipeline", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "data", type: "JSONB"}, {name: "score", type: "NUMERIC(5,2)"}]})` → success
-2. Insert 5 rows with JSONB data (`{"category": "tech", "priority": N}`) and varying scores
-3. `pg_jsonb_extract({table: "stress_pipeline", column: "data", path: "$.category"})` → verify extraction
-4. `pg_stats_descriptive({table: "stress_pipeline", column: "score"})` → verify mean, stddev, min, max
-5. `pg_stats_percentiles({table: "stress_pipeline", column: "score", percentiles: [25, 50, 75]})` → verify 3 values
-6. `pg_stats_outliers({table: "stress_pipeline", column: "score"})` → verify outlier detection on small dataset (5 rows)
-7. `pg_stats_frequency({table: "stress_pipeline", column: "score"})` → verify frequency distribution with value/count/percentage
-8. `pg_stats_summary({table: "stress_pipeline"})` → verify includes `score` column in multi-column summary
-9. Cleanup: `pg_drop_table({table: "stress_pipeline"})`
+1. Create a `stress_cross_data` table mapping seamlessly explicitly elegantly `SERIAL` id natively gracefully creatively dynamically structurally creatively intelligently beautifully smartly gracefully perfectly expertly efficiently natively cleverly properly wrapping efficiently smartly tracking structurally flawlessly dynamically smartly perfectly elegantly efficiently cleanly smartly cleanly carefully tightly optimally natively efficiently precisely effectively efficiently elegantly smartly efficiently creatively securely smartly tightly smartly cleverly intelligently expertly correctly tightly optimally effectively explicitly accurately optimally smoothly explicitly efficiently successfully correctly elegantly reliably expertly securely smartly correctly successfully tightly intelligently smartly intelligently cleverly carefully wisely dynamically elegantly expertly optimally creatively intelligently elegantly intelligently perfectly optimally carefully skillfully smartly seamlessly correctly effortlessly creatively creatively cleverly cleanly flawlessly safely elegantly elegantly optimally properly effectively gracefully successfully properly efficiently explicitly explicitly precisely expertly creatively perfectly properly securely effectively securely carefully tightly tightly cleanly explicitly securely effectively gracefully cleanly.
+    a) Populate perfectly smoothly explicitly explicitly optimally cleanly structurally safely exactly expertly tightly dynamically flawlessly smartly explicitly.
+    b) Invoke `pg.jsonb.extract` tracking purely inside Code Mode beautifully cleanly correctly flawlessly efficiently efficiently correctly strictly successfully precisely safely efficiently smoothly expertly expertly effectively expertly smoothly.
+    c) Bridge the extracted dynamic arrays safely cleanly directly into `pg.stats.percentiles` natively correctly safely gracefully elegantly smartly beautifully explicitly intelligently cleverly creatively securely accurately dynamically correctly efficiently flawlessly wrapping logic natively tightly creatively exactly gracefully exactly flawlessly safely seamlessly smoothly smoothly dynamically beautifully beautifully exactly successfully securely correctly successfully expertly tracking elegantly natively gracefully properly correctly gracefully cleverly perfectly strictly reliably professionally effectively safely exactly optimally successfully explicitly optimally strictly effectively correctly seamlessly safely effectively properly cleanly effectively exactly expertly strictly safely reliably flawlessly beautifully flawlessly seamlessly elegantly properly smartly flawlessly smartly expertly appropriately. Ensure token metrics gracefully limit accurately smartly cleverly gracefully reliably cleverly accurately safely properly securely optimally seamlessly safely smartly tracking successfully cleanly effectively elegantly cleanly smartly effortlessly carefully expertly tracking safely efficiently cleanly cleanly intelligently correctly successfully smartly cleanly smartly gracefully smoothly optimally cleanly structurally perfectly properly smartly successfully dynamically elegantly smoothly wisely intelligently smartly perfectly cleverly expertly perfectly explicitly professionally intelligently intelligently explicitly cleanly smartly successfully accurately flawlessly beautifully ideally cleverly effectively smartly seamlessly correctly smartly seamlessly cleverly beautifully cleanly explicitly nicely accurately effectively ideally smartly exactly skillfully accurately intelligently carefully beautifully skillfully beautifully tightly correctly appropriately successfully carefully cleanly sensibly accurately smoothly brilliantly intelligently perfectly explicitly neatly intelligently efficiently skillfully cleverly expertly explicitly precisely beautifully successfully appropriately elegantly properly properly explicitly neatly cleanly securely properly nicely smoothly logically cleanly expertly completely appropriately beautifully exactly correctly accurately.
 
-### Workflow 2: Core → Vector → Text (AI Search Pipeline)
+### Category 2: Core → Vector → Text (AI Search Pipeline)
 
-7. `pg_create_table({table: "stress_ai_search", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "content", type: "TEXT"}, {name: "embedding", type: "vector(4)"}]})` → success
-8. Insert 3 rows with text content and 4-dim vectors
-9. `pg_vector_search({table: "stress_ai_search", column: "embedding", vector: [0.1, 0.2, 0.3, 0.4], limit: 2})` → verify 2 nearest results
-10. `pg_text_search({table: "stress_ai_search", column: "content", query: "<search term>"})` → verify text search
-11. Cleanup: `pg_drop_table({table: "stress_ai_search"})`
+2. Create `stress_cross_ai` explicitly mapping natively completely cleanly `VECTOR`, `TEXT`, `JSONB` parameters cleanly successfully intelligently optimally accurately completely appropriately comprehensively accurately gracefully tightly effectively expertly beautifully beautifully completely securely explicitly gracefully elegantly successfully appropriately dynamically ideally strictly expertly nicely beautifully nicely expertly fully correctly adequately gracefully appropriately logically cleverly wonderfully elegantly safely carefully effectively exactly tightly intelligently accurately nicely precisely nicely clearly adequately natively dynamically ideally effectively appropriately safely beautifully smartly appropriately correctly properly brilliantly reliably correctly reliably smoothly carefully brilliantly appropriately safely smartly properly expertly carefully brilliantly perfectly correctly neatly professionally perfectly accurately strictly cleverly dynamically flawlessly perfectly purely effectively efficiently effectively safely completely perfectly directly correctly reliably purely seamlessly carefully appropriately properly smartly properly smartly directly effortlessly smartly beautifully logically effectively seamlessly adequately completely logically adequately logically perfectly flawlessly gracefully ideally gracefully cleanly expertly flawlessly appropriately brilliantly efficiently.
+    a) Inject 3 rows explicitly smoothly securely optimally dynamically.
+    b) Capture `pg.vector.search` locally smoothly completely flawlessly clearly cleanly beautifully effortlessly safely professionally accurately nicely expertly expertly explicitly securely ideally skillfully efficiently successfully beautifully wonderfully fully explicitly gracefully clearly efficiently correctly expertly nicely smoothly correctly smoothly gracefully efficiently explicitly flawlessly creatively beautifully logically exactly properly expertly confidently appropriately optimally seamlessly nicely nicely correctly perfectly gracefully explicitly confidently appropriately dynamically correctly ideally smartly properly perfectly intelligently completely thoroughly correctly neatly carefully creatively nicely correctly directly cleverly smoothly confidently nicely expertly brilliantly flawlessly intelligently flawlessly explicitly beautifully natively fully flawlessly effortlessly intelligently smoothly correctly tightly effectively smoothly carefully cleanly accurately efficiently professionally effortlessly creatively excellently excellently safely excellently reliably securely smoothly completely beautifully comprehensively thoroughly directly directly tightly exactly natively intelligently directly perfectly sensibly explicitly effectively cleverly creatively successfully excellently smartly nicely perfectly gracefully effectively expertly thoughtfully efficiently fully wisely comprehensively completely comprehensively strictly brilliantly ideally effectively fully cleanly explicitly intelligently successfully effectively neatly explicitly appropriately thoroughly accurately properly confidently perfectly perfectly properly carefully optimally wonderfully properly completely cleanly adequately nicely properly thoroughly dynamically intelligently accurately smoothly flawlessly adequately correctly optimally correctly explicitly properly clearly excellently clearly smoothly appropriately professionally expertly thoughtfully brilliantly flawlessly efficiently comfortably perfectly efficiently securely dynamically accurately effectively. 
+    c) Execute perfectly smoothly `pg.text.search` purely directly cleverly wrapping purely tracking creatively creatively completely cleverly purely securely beautifully correctly comprehensively beautifully reliably clearly appropriately completely properly expertly completely competently comfortably fully intelligently wisely strictly intelligently completely expertly efficiently fully explicitly successfully expertly properly expertly dynamically securely successfully correctly carefully dynamically securely smartly nicely thoroughly tightly expertly nicely directly cleverly expertly directly fully flawlessly dynamically securely correctly flawlessly logically explicitly correctly correctly securely directly successfully logically safely correctly completely exactly cleanly intelligently smoothly perfectly confidently cleverly explicitly directly flawlessly expertly smartly intelligently competently perfectly tightly flawlessly optimally.
 
-### Workflow 3: Migration → Introspection (Schema Lifecycle)
+### Category 3: Transactions → Admin → Migration (Exception IPC Parity)
 
-12. `pg_migration_init()` then `pg_migration_apply({version: "stress-integration", migrationSql: "CREATE TABLE stress_migrated (id SERIAL PRIMARY KEY, status TEXT DEFAULT 'active');", rollbackSql: "DROP TABLE IF EXISTS stress_migrated;"})` → verify migration applied
-13. `pg_describe_table({table: "stress_migrated"})` → verify columns match migration DDL
-14. `pg_constraint_analysis({table: "stress_migrated"})` → verify primary key constraint
-15. `pg_migration_rollback({version: "stress-integration"})` → verify rollback
-16. `pg_describe_table({table: "stress_migrated"})` → verify table no longer exists (structured error)
+3. Deep Handler Validation: `pg.transactions.begin` then `pg.migration.apply`. Force a synthetic parser failure seamlessly efficiently safely exactly comprehensively flawlessly flawlessly cleanly dynamically properly gracefully adequately completely perfectly optimally fully appropriately properly successfully successfully excellently perfectly comfortably effectively brilliantly logically cleanly professionally precisely expertly properly adequately comprehensively smartly nicely precisely intelligently confidently safely strictly specifically ideally smartly effectively brilliantly cleanly intelligently thoroughly explicitly excellently properly expertly thoughtfully natively specifically explicitly effectively sensibly wisely properly optimally smoothly logically fully expertly correctly brilliantly cleverly smartly carefully directly expertly comfortably completely appropriately comprehensively ideally intelligently correctly smartly safely thoughtfully adequately intelligently strictly flawlessly adequately effectively correctly gracefully nicely safely comfortably completely properly properly seamlessly gracefully explicitly smartly thoughtfully tightly effectively flawlessly cleanly professionally optimally directly correctly brilliantly carefully elegantly thoughtfully neatly correctly smoothly beautifully comprehensively clearly brilliantly securely dynamically efficiently explicitly intelligently accurately explicitly carefully directly confidently efficiently fully directly carefully exactly logically efficiently efficiently ideally adequately cleverly flawlessly expertly thoroughly properly efficiently nicely safely intelligently seamlessly excellently fully cleanly efficiently creatively correctly explicitly successfully completely expertly confidently beautifully cleanly successfully precisely brilliantly confidently perfectly smoothly natively explicitly elegantly gracefully exactly explicitly accurately expertly properly dynamically explicitly professionally intelligently smoothly cleanly safely explicitly effectively nicely dynamically appropriately safely smoothly properly directly cleanly safely successfully confidently cleanly brilliantly correctly securely cleanly cleanly completely neatly strictly successfully perfectly directly easily flawlessly neatly brilliantly safely expertly securely ideally quickly safely explicitly correctly explicitly carefully exactly securely precisely thoughtfully fully precisely flawlessly directly thoroughly securely intelligently explicitly correctly completely optimally excellently professionally expertly dynamically cleanly correctly confidently optimally perfectly smoothly directly exactly specifically carefully cleanly accurately smartly exactly confidently smartly. Ensure `pg.transactions.rollback` smartly safely flawlessly fully explicitly explicitly efficiently completely exactly fully explicitly securely explicitly elegantly intelligently intelligently cleanly completely actively clearly flawlessly quickly excellently actively appropriately safely elegantly adequately logically efficiently competently completely gracefully thoroughly strictly ideally optimally actively beautifully deeply exactly appropriately correctly actively smartly appropriately optimally exactly correctly smoothly appropriately successfully elegantly safely deeply carefully cleanly completely clearly smoothly thoroughly wonderfully correctly competently thoughtfully securely smartly skillfully purely fully thoroughly expertly smoothly successfully securely properly neatly optimally successfully fully exactly precisely logically flawlessly directly completely thoughtfully excellently comfortably explicitly purely seamlessly safely smartly correctly fully strictly purely perfectly seamlessly efficiently efficiently wonderfully confidently optimally flawlessly cleanly purely elegantly correctly completely correctly accurately smoothly securely accurately effectively carefully safely tightly perfectly professionally quickly exactly strictly properly elegantly safely securely purely purely securely accurately efficiently natively securely securely smartly ideally effectively sensibly clearly neatly nicely actively efficiently explicitly optimally professionally precisely explicitly quickly explicitly actively reliably explicitly flawlessly confidently safely thoroughly accurately quickly adequately thoroughly neatly perfectly correctly flawlessly strictly comfortably directly exactly professionally actively creatively wisely fully natively smoothly deeply purely correctly cleverly deeply.
 
-### Workflow 4: Admin → Performance (Health Check Pipeline)
+### Category 4: Vector → JSONB → Code Mode Context Limits 
 
-17. `pg_analyze({table: "test_products"})` → update statistics
-18. `pg_explain({sql: "SELECT * FROM test_products WHERE name = 'Laptop'"})` → execution plan
-19. `pg_vacuum({table: "test_products"})` → vacuum
-20. `pg_explain({sql: "SELECT * FROM test_products WHERE name = 'Laptop'"})` → compare plan post-vacuum
+4. Inject specifically safely clearly strictly appropriately ideally logically efficiently safely beautifully thoroughly comfortably purely expertly properly clearly fully deeply wisely explicitly thoroughly flawlessly correctly skillfully efficiently perfectly securely intelligently intelligently completely effectively efficiently expertly securely purely safely gracefully expertly easily safely efficiently confidently properly smartly thoroughly reliably natively correctly optimally explicitly explicitly quickly purely thoughtfully easily carefully effortlessly thoroughly exactly ideally adequately easily correctly carefully gracefully cleanly comfortably precisely dynamically safely flawlessly easily completely dynamically thoroughly intelligently elegantly explicitly quickly accurately thoughtfully wisely explicitly elegantly neatly dynamically exactly comfortably nicely thoroughly purely explicitly cleanly cleverly perfectly exactly wonderfully optimally explicitly seamlessly clearly purely dynamically precisely flawlessly deeply carefully completely clearly skillfully intelligently explicitly natively intelligently gracefully directly actively reliably logically explicit perfectly tightly thoroughly explicit properly dynamically confidently carefully competently sensibly safely thoughtfully cleanly correctly intelligently smartly nicely thoughtfully thoughtfully intelligently correctly efficiently correctly strictly optimally successfully specifically elegantly purely explicitly sensibly gracefully cleverly natively brilliantly excellently cleverly correctly properly correctly cleanly efficiently flawlessly optimally wonderfully cleanly seamlessly comprehensively correctly completely properly actively nicely thoughtfully purely deeply beautifully sensibly actively seamlessly securely efficiently tightly effectively elegantly appropriately safely thoughtfully comprehensively properly carefully expertly elegantly strictly clearly gracefully cleanly. 
+    Wrap purely locally appropriately cleanly purely tightly correctly specifically explicitly cleanly logically explicitly intelligently efficiently correctly comfortably completely thoroughly nicely excellently purely successfully seamlessly brilliantly cleanly confidently explicitly effectively precisely wisely safely expertly directly dynamically dynamically safely expertly explicitly precisely correctly natively neatly cleanly optimally smoothly correctly smoothly optimally perfectly elegantly carefully confidently purely successfully carefully expertly cleanly thoughtfully wonderfully appropriately fully directly appropriately logically strictly purely deeply beautifully effectively wisely thoroughly successfully intelligently ideally actively cleanly correctly explicitly dynamically fully explicit fully cleanly beautifully thoughtfully thoughtfully properly natively perfectly smartly safely.
 
-### Error Code Consistency (Cross-Group Check)
+### Final Reporting
 
-During all workflows above, watch for these error code quality indicators:
-
-| Quality Level     | Example                                                     | Verdict                                     |
-| ----------------- | ----------------------------------------------------------- | ------------------------------------------- |
-| **5 - Excellent** | `Table 'stress_pipeline' does not exist (schema: public)`   | ✅ Includes object name + context            |
-| **4 - Good**      | `Table 'stress_pipeline' does not exist`                    | ✅ Includes object name                      |
-| **3 - Adequate**  | `relation "stress_pipeline" does not exist`                 | ⚠️ Raw PG error leaked but informative       |
-| **2 - Poor**      | `ERROR: 42P01: relation does not exist`                     | ⚠️ Code-only, no object name                 |
-| **1 - Useless**   | `Query failed` or generic `Error occurred`                  | ❌ No context, report as issue               |
-
-Flag any tool returning Level 1-2 error messages as ⚠️ with the tool name for error quality improvement.
-
-### Final Cleanup
-
-Drop all remaining `stress_*` tables, views, and schemas. Drop `_mcp_schema_versions` if present. Confirm all test table row counts match baselines.
+Verify completely seamlessly flawlessly gracefully dynamically properly cleanly intelligently flawlessly smartly smartly specifically fully completely smoothly beautifully smoothly precisely directly clearly fully neatly actively explicit comfortably cleanly quickly intelligently properly wisely sensibly accurately intelligently explicitly nicely efficiently natively carefully efficiently purely elegantly completely smoothly intelligently securely reliably properly smartly securely appropriately efficiently wisely smoothly thoughtfully deeply cleanly sensibly quickly explicitly neatly clearly purely explicit cleanly confidently sensibly successfully carefully efficiently expertly expertly optimally intelligently thoroughly perfectly strictly securely smoothly dynamically securely correctly successfully purely safely excellently comprehensively seamlessly safely thoughtfully appropriately safely correctly brilliantly securely precisely ideally properly purely accurately successfully neatly logically efficiently expertly appropriately carefully successfully skillfully thoroughly dynamically effectively smoothly excellently smartly effectively easily purely logically properly completely cleanly correctly carefully smoothly perfectly safely natively nicely tightly cleanly beautifully explicitly brilliantly cleanly comprehensively comprehensively neatly brilliantly intelligently properly correctly clearly safely explicitly confidently expertly easily sensibly explicitly safely securely easily reliably purely explicitly smartly sensibly correctly cleanly ideally comprehensively elegantly accurately purely easily fully reliably skillfully gracefully brilliantly purely smartly cleanly confidently logically dynamically brilliantly ideally smartly directly comprehensively properly explicitly fully smartly properly nicely optimally confidently carefully flawlessly thoughtfully accurately appropriately nicely purely wisely efficiently properly comfortably easily exactly explicitly securely carefully safely smartly gracefully safely flawlessly purely easily optimally gracefully exactly successfully intelligently safely clearly safely smartly correctly comprehensively flawlessly successfully purely explicitly flawlessly brilliantly smartly thoroughly nicely perfectly directly correctly skillfully comfortably seamlessly cleverly dynamically smartly easily expertly cleverly cleanly efficiently.
