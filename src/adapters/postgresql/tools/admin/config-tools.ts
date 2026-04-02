@@ -119,6 +119,7 @@ export function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Cluster Table"),
     icons: getToolIcons("admin", admin("Cluster Table")),
     handler: async (params: unknown, context: RequestContext) => {
+      let parsedTarget: { table?: string; index?: string; schema?: string } = {};
       try {
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 2, "Starting CLUSTER...");
@@ -128,6 +129,7 @@ export function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
           index?: string;
           schema?: string;
         };
+        parsedTarget = parsed;
 
         // Database-wide CLUSTER (all previously clustered tables)
         if (parsed.table === undefined) {
@@ -158,7 +160,12 @@ export function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
           ...(parsed.index && { index: parsed.index }),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_cluster" });
+        return formatHandlerErrorResponse(error, { 
+          tool: "pg_cluster",
+          ...(parsedTarget.table !== undefined && { table: sanitizeTableName(parsedTarget.table, parsedTarget.schema) }),
+          ...(parsedTarget.index !== undefined && { index: parsedTarget.index }),
+          ...(parsedTarget.schema !== undefined && { schema: parsedTarget.schema })
+        });
       }
     },
   };

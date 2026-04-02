@@ -133,6 +133,9 @@ export class AuditLogger {
     // Stderr mode has no file to read from
     if (this.stderrMode) return [];
 
+    // Force flush buffered entries to ensure the read includes up-to-the-millisecond events
+    await this.flush();
+
     try {
       const info = await stat(this.config.logPath).catch(() => null);
       if (!info) return [];

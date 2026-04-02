@@ -39,19 +39,33 @@ export function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("admin", admin("Vacuum")),
     handler: async (params: unknown, context: RequestContext) => {
       try {
-        const { table, schema, full, verbose, analyze } =
-          VacuumSchema.parse(params);
+        const parsed = VacuumSchema.parse(params) as {
+          table?: string;
+          schema?: string;
+          full?: boolean;
+          verbose?: boolean;
+          analyze?: boolean;
+          skipLocked?: boolean;
+          truncate?: boolean;
+        };
+        const { table, schema, full, verbose, analyze, skipLocked, truncate } = parsed;
 
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 2, "Starting VACUUM...");
 
-        const fullClause = full === true ? "FULL " : "";
-        const verboseClause = verbose === true ? "VERBOSE " : "";
-        const analyzeClause = analyze === true ? "ANALYZE " : "";
+        const options: string[] = [];
+        if (full === true) options.push("FULL");
+        if (verbose === true) options.push("VERBOSE");
+        if (analyze === true) options.push("ANALYZE");
+        if (skipLocked === true) options.push("SKIP_LOCKED");
+        if (truncate === true) options.push("TRUNCATE");
+        if (truncate === false) options.push("TRUNCATE false");
+
+        const optionsClause = options.length > 0 ? `(${options.join(", ")}) ` : "";
         const target =
           table !== undefined ? sanitizeTableName(table, schema) : "";
 
-        const sql = `VACUUM ${fullClause}${verboseClause}${analyzeClause}${target}`;
+        const sql = `VACUUM ${optionsClause}${target}`;
         await adapter.executeQuery(sql);
 
         await sendProgress(progress, 2, 2, "VACUUM complete");
@@ -90,17 +104,32 @@ export function createVacuumAnalyzeTool(adapter: PostgresAdapter): ToolDefinitio
     icons: getToolIcons("admin", admin("Vacuum Analyze")),
     handler: async (params: unknown, context: RequestContext) => {
       try {
-        const { table, schema, verbose, full } = VacuumSchema.parse(params);
+        const parsed = VacuumSchema.parse(params) as {
+          table?: string;
+          schema?: string;
+          full?: boolean;
+          verbose?: boolean;
+          skipLocked?: boolean;
+          truncate?: boolean;
+        };
+        const { table, schema, verbose, full, skipLocked, truncate } = parsed;
 
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 2, "Starting VACUUM ANALYZE...");
 
-        const fullClause = full === true ? "FULL " : "";
-        const verboseClause = verbose === true ? "VERBOSE " : "";
+        const options: string[] = [];
+        if (full === true) options.push("FULL");
+        if (verbose === true) options.push("VERBOSE");
+        options.push("ANALYZE");
+        if (skipLocked === true) options.push("SKIP_LOCKED");
+        if (truncate === true) options.push("TRUNCATE");
+        if (truncate === false) options.push("TRUNCATE false");
+
+        const optionsClause = options.length > 0 ? `(${options.join(", ")}) ` : "";
         const target =
           table !== undefined ? sanitizeTableName(table, schema) : "";
 
-        const sql = `VACUUM ${fullClause}${verboseClause}ANALYZE ${target}`;
+        const sql = `VACUUM ${optionsClause}${target}`;
         await adapter.executeQuery(sql);
 
         await sendProgress(progress, 2, 2, "VACUUM ANALYZE complete");
@@ -138,7 +167,14 @@ export function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("admin", admin("Analyze")),
     handler: async (params: unknown, context: RequestContext) => {
       try {
-        const { table, schema, columns } = AnalyzeSchema.parse(params);
+        const parsed = AnalyzeSchema.parse(params) as {
+          table?: string;
+          schema?: string;
+          columns?: string[];
+          verbose?: boolean;
+          skipLocked?: boolean;
+        };
+        const { table, schema, columns, verbose, skipLocked } = parsed;
 
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 2, "Starting ANALYZE...");
@@ -158,8 +194,13 @@ export function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
           columns !== undefined && columns.length > 0
             ? `(${sanitizeIdentifiers(columns).join(", ")})`
             : "";
+        
+        const options: string[] = [];
+        if (verbose === true) options.push("VERBOSE");
+        if (skipLocked === true) options.push("SKIP_LOCKED");
+        const optionsClause = options.length > 0 ? `(${options.join(", ")}) ` : "";
 
-        const sql = `ANALYZE ${target}${columnClause}`;
+        const sql = `ANALYZE ${optionsClause}${target}${columnClause}`;
         await adapter.executeQuery(sql);
 
         await sendProgress(progress, 2, 2, "ANALYZE complete");
@@ -170,6 +211,9 @@ export function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
           ...(table !== undefined && { table }),
           ...(schema !== undefined && { schema }),
           ...(columns !== undefined && columns.length > 0 && { columns }),
+          ...(verbose === true && {
+            hint: "Verbose output written to PostgreSQL server logs",
+          }),
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_analyze" });

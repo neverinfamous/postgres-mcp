@@ -55,6 +55,8 @@ export const VacuumSchemaBase = z.object({
   full: z.boolean().optional().describe("Full vacuum (rewrites table)"),
   analyze: z.boolean().optional().describe("Update statistics"),
   verbose: z.boolean().optional().describe("Print progress"),
+  skipLocked: z.boolean().optional().describe("Skip locked relations"),
+  truncate: z.boolean().optional().describe("Truncate empty pages at the end of the table"),
 });
 
 // Preprocess schema for handlers (resolves aliases and parses schema.table)
@@ -66,6 +68,8 @@ export const VacuumSchema = z.preprocess(
     full: z.boolean().optional().describe("Full vacuum (rewrites table)"),
     analyze: z.boolean().optional().describe("Update statistics"),
     verbose: z.boolean().optional().describe("Print progress"),
+    skipLocked: z.boolean().optional().describe("Skip locked relations"),
+    truncate: z.boolean().optional().describe("Truncate empty pages at the end of the table"),
   }),
 );
 
@@ -89,6 +93,8 @@ export const AnalyzeSchemaBase = z.object({
     .array(z.string())
     .optional()
     .describe("Specific columns to analyze"),
+  verbose: z.boolean().optional().describe("Print progress"),
+  skipLocked: z.boolean().optional().describe("Skip locked relations"),
 });
 
 // Preprocess schema for handlers (resolves aliases and parses schema.table)
@@ -101,6 +107,8 @@ export const AnalyzeSchema = z.preprocess(
       .array(z.string())
       .optional()
       .describe("Specific columns to analyze"),
+    verbose: z.boolean().optional().describe("Print progress"),
+    skipLocked: z.boolean().optional().describe("Skip locked relations"),
   }),
 );
 
@@ -134,7 +142,7 @@ export const ReindexSchemaBase = z.object({
   target: z
     .string()
     .optional()
-    .describe("What to reindex (table, index, schema, database)"),
+    .describe("What to reindex (table, index, schema, database, system)"),
   name: z
     .string()
     .optional()
@@ -160,7 +168,7 @@ export const ReindexSchema = z
     z.object({
       target: z
         .string()
-        .describe("What to reindex (table, index, schema, database)"),
+        .describe("What to reindex (table, index, schema, database, system)"),
       name: z
         .string()
         .optional()
@@ -172,7 +180,7 @@ export const ReindexSchema = z
   )
   .refine(
     (data) => {
-      const validTargets = ["table", "index", "schema", "database"];
+      const validTargets = ["table", "index", "schema", "database", "system"];
       const parsed = data as { target: string; name?: string };
       if (!validTargets.includes(parsed.target)) {
         return false;
@@ -180,7 +188,7 @@ export const ReindexSchema = z
       return true;
     },
     {
-      message: "target must be one of 'table', 'index', 'schema', or 'database'",
+      message: "target must be one of 'table', 'index', 'schema', 'database', or 'system'",
     }
   )
   .refine(
@@ -445,7 +453,7 @@ export const AppendInsightSchema = z.preprocess(
     return result;
   },
   z.object({
-    insight: z.string().describe("Business insight to record"),
+    insight: z.string().max(1000, "Insight text must be 1000 characters or less").describe("Business insight to record"),
   })
 );
 

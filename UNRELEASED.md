@@ -70,6 +70,11 @@
 - Mapped raw schema and relation errors directly to structured `EXTENSION_MISSING` code in `pg_cron` tools when the extension is missing
 - Fixed silent unbounded payload bloat in `pg_cron` listing routines by strictly rejecting `limit: 0` with a `ValidationError`
 - Corrected error code propagation in `pg_cron_unschedule` by mapping nonexistent jobs to `JOB_NOT_FOUND` instead of generic queries
+- Enlarged `pg_reindex` valid `target` scope to correctly permit the `system` keyword
+- Structured error handling for absent indexes in `pg_cluster` commands through mapped contexts
+- Translated missing `skipLocked`, `truncate`, and `verbose` options into parenthesized `VACUUM` and `ANALYZE` tool executions
+- Restrained unchecked telemetry scale via hard `.max(1000)` validations in `pg_append_insight` payloads
+- Eliminated millisecond-precision timing flakes in E2E tests by forcing asynchronous flush synchronization within the `postgres://audit` resource
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

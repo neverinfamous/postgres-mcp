@@ -113,7 +113,7 @@ describe("pg_vacuum", () => {
       message: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM FULL ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (FULL) ");
     expect(result.message).toContain("FULL");
   });
 
@@ -123,7 +123,7 @@ describe("pg_vacuum", () => {
     const tool = tools.find((t) => t.name === "pg_vacuum")!;
     await tool.handler({ verbose: true }, mockContext);
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM VERBOSE ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (VERBOSE) ");
   });
 
   it("should accept undefined (no args) and vacuum all tables", async () => {
@@ -148,7 +148,7 @@ describe("pg_vacuum", () => {
       message: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM ANALYZE ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (ANALYZE) ");
     expect(result.message).toBe("VACUUM ANALYZE completed");
   });
 
@@ -165,7 +165,7 @@ describe("pg_vacuum", () => {
     };
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      "VACUUM FULL ANALYZE ",
+      "VACUUM (FULL, ANALYZE) ",
     );
     expect(result.message).toBe("VACUUM FULL ANALYZE completed");
   });
@@ -234,7 +234,7 @@ describe("pg_vacuum_analyze", () => {
       message: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM ANALYZE ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (ANALYZE) ");
     expect(result.success).toBe(true);
     expect(result.message).toBe("VACUUM ANALYZE completed");
   });
@@ -246,7 +246,7 @@ describe("pg_vacuum_analyze", () => {
     await tool.handler({ table: "orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      'VACUUM ANALYZE "orders"',
+      'VACUUM (ANALYZE) "orders"',
     );
   });
 
@@ -257,7 +257,7 @@ describe("pg_vacuum_analyze", () => {
     await tool.handler({ verbose: true, table: "users" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      'VACUUM VERBOSE ANALYZE "users"',
+      'VACUUM (VERBOSE, ANALYZE) "users"',
     );
   });
 
@@ -270,7 +270,7 @@ describe("pg_vacuum_analyze", () => {
       message: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM ANALYZE ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (ANALYZE) ");
     expect(result.success).toBe(true);
   });
 
@@ -284,7 +284,7 @@ describe("pg_vacuum_analyze", () => {
     };
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      "VACUUM FULL ANALYZE ",
+      "VACUUM (FULL, ANALYZE) ",
     );
     expect(result.message).toBe("VACUUM FULL ANALYZE completed");
   });
