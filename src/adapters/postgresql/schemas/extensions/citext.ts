@@ -26,10 +26,10 @@ export const CitextCompareSchemaBase = z.object({
  */
 export const CitextCompareSchema = z
   .preprocess(normalizeOptionalParams, CitextCompareSchemaBase)
-  .refine((data) => typeof data.value1 === "string" && data.value1.length > 0, {
+  .refine((data) => typeof data.value1 === "string", {
     message: "value1 is required",
   })
-  .refine((data) => typeof data.value2 === "string" && data.value2.length > 0, {
+  .refine((data) => typeof data.value2 === "string", {
     message: "value2 is required",
   });
 
