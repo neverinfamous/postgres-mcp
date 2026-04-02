@@ -21,6 +21,7 @@ import {
 import {
   VectorCreateExtensionOutputSchema,
   VectorAddColumnOutputSchema,
+  VectorCreateExtensionSchemaBase,
 } from "../../schemas/index.js";
 import { coerceNumber } from "../../../../utils/query-helpers.js";
 
@@ -116,15 +117,15 @@ export function createVectorExtensionTool(
     name: "pg_vector_create_extension",
     description: "Enable the pgvector extension for vector similarity search.",
     group: "vector",
-    inputSchema: z.object({}),
+    inputSchema: VectorCreateExtensionSchemaBase,
     outputSchema: VectorCreateExtensionOutputSchema,
     annotations: write("Create Vector Extension"),
     icons: getToolIcons("vector", write("Create Vector Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
       try {
-        const ExtensionSchema = z.object({}).strict();
-        ExtensionSchema.parse(_params ?? {});
-        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS vector");
+        const parsed = VectorCreateExtensionSchemaBase.parse(_params ?? {});
+        const schemaClause = parsed.schema ? ` SCHEMA ${sanitizeIdentifier(parsed.schema)}` : "";
+        await adapter.executeQuery(`CREATE EXTENSION IF NOT EXISTS vector${schemaClause}`);
         return { success: true, message: "pgvector extension enabled" };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {

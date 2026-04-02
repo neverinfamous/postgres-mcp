@@ -98,6 +98,7 @@ export {
   // Utilities
   FiniteNumberArray,
   // Output schemas
+  VectorCreateExtensionSchemaBase,
   VectorCreateExtensionOutputSchema,
   VectorAddColumnOutputSchema,
   VectorInsertOutputSchema,

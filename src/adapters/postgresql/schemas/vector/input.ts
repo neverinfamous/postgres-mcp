@@ -169,3 +169,8 @@ export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
     };
   }
 );
+
+// Base schema exposure for MCP
+export const VectorCreateExtensionSchemaBase = z.object({
+  schema: z.string().optional().describe("Database schema to create the extension in (default: public)"),
+});
