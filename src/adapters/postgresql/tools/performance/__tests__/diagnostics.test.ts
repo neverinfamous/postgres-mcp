@@ -512,14 +512,18 @@ describe("pg_diagnose_database_performance", () => {
   });
 
   it("should pass schema filter to top tables", async () => {
+    // calls[0]: schema existence check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }], // schema exists
+    });
     setupHealthyDefaults(mockAdapter);
 
     const tool = findTool(tools, "pg_diagnose_database_performance");
     await tool.handler({ schema: "sales" }, mockContext);
 
-    // The top tables queries (calls 6 and 7, 0-indexed) should contain the schema filter
-    const sizeQuery = mockAdapter.executeQuery.mock.calls[6]?.[0] as string;
-    const activityQuery = mockAdapter.executeQuery.mock.calls[7]?.[0] as string;
+    // The top tables queries are now calls 7 and 8 (0-indexed), shifted by the schema existence check
+    const sizeQuery = mockAdapter.executeQuery.mock.calls[7]?.[0] as string;
+    const activityQuery = mockAdapter.executeQuery.mock.calls[8]?.[0] as string;
     expect(sizeQuery).toContain("schemaname = 'sales'");
     expect(activityQuery).toContain("schemaname = 'sales'");
   });
