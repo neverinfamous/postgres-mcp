@@ -333,7 +333,7 @@ export function createStatsRegressionTool(
         );
         const row = result.rows?.[0];
 
-        if (!row) return { error: "No regression data found" };
+        if (!row) throw new ValidationError("No regression data found");
 
         const response: Record<string, unknown> = {
           table: `${schema ?? "public"}.${table}`,

@@ -12,6 +12,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import { validateTableExists } from "./math-utils.js";
 import {
@@ -76,6 +77,9 @@ export function createStatsSamplingTool(
         // If sampleSize is provided, always use ORDER BY RANDOM() LIMIT n for exact counts
         // TABLESAMPLE BERNOULLI/SYSTEM are percentage-based and cannot guarantee exact row counts
         if (sampleSize !== undefined) {
+          if (sampleSize <= 0) {
+            throw new ValidationError("Parameter 'sampleSize' must be greater than 0.");
+          }
           const limit = sampleSize;
           sql = `
                     SELECT ${columns}

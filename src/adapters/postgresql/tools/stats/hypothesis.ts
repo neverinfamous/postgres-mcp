@@ -235,7 +235,7 @@ export function createStatsHypothesisTool(
               stddev: string | number;
             }
           | undefined;
-        if (!row) return { error: "No data found" };
+        if (!row) throw new ValidationError("No data found");
 
         const n = Number(row.n);
         const sampleMean = Number(row.mean);

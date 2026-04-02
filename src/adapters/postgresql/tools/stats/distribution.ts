@@ -12,6 +12,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import { validateNumericColumn } from "./math-utils.js";
 import {
@@ -178,11 +179,18 @@ export function createStatsDistributionTool(
         };
 
         if (groupBy !== undefined) {
-          // Handle groupLimit: undefined uses default (20), 0 means no limit
+          // Handle groupLimit: undefined uses default (20), 0 raises validation error
           const DEFAULT_GROUP_LIMIT = 20;
+          const MAX_GROUP_LIMIT = 1000;
+          
+          if (groupLimit !== undefined && groupLimit <= 0) {
+            throw new ValidationError("Parameter 'groupLimit' must be greater than 0.");
+          }
+          let effectiveGroupLimit = groupLimit ?? DEFAULT_GROUP_LIMIT;
+          if (effectiveGroupLimit > MAX_GROUP_LIMIT) {
+            effectiveGroupLimit = MAX_GROUP_LIMIT;
+          }
           const userProvidedGroupLimit = groupLimit !== undefined;
-          const effectiveGroupLimit =
-            groupLimit === 0 ? undefined : (groupLimit ?? DEFAULT_GROUP_LIMIT);
 
           // Get distinct groups first
           const groupsQuery = `
@@ -275,7 +283,7 @@ export function createStatsDistributionTool(
         // Ungrouped distribution (existing logic)
         const moments = await computeMoments();
         if (moments === null) {
-          return { error: "No data or all nulls in column" };
+          throw new ValidationError("No data or all nulls in column");
         }
 
         const { minVal, maxVal, skewness, kurtosis } = moments;

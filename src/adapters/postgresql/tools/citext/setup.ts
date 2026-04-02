@@ -74,7 +74,9 @@ Note: If views depend on this column, you must drop and recreate them manually b
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = CitextConvertColumnSchema.parse(params ?? {});
+        // Since we didn't type it fully, we'll cast parts manually
         const { table, column, schema: schemaOpt } = parsed;
+        const toType = (parsed as unknown as { toType: string }).toType;
         const schemaName = schemaOpt ?? "public";
         const qualifiedTable = `"${schemaName}"."${table}"`;
 
@@ -121,32 +123,47 @@ Note: If views depend on this column, you must drop and recreate them manually b
         const udtName = colCheck.rows[0]?.["udt_name"] as string;
         // Normalize type: use udt_name for user-defined types (like citext)
         const currentType = dataType === "USER-DEFINED" ? udtName : dataType;
-        if (udtName === "citext") {
+        if (currentType === toType || (currentType === 'citext' && toType === 'citext')) {
           return {
             success: true,
-            message: `Column ${column} is already citext`,
-            wasAlreadyCitext: true,
+            message: `Column ${column} is already ${toType}`,
+            wasAlreadyCitext: currentType === "citext",
           };
         }
 
-        // Validate that the column is a text-based type
-        const allowedTypes = [
-          "text",
-          "character varying",
-          "character",
-          "char",
-          "varchar",
-        ];
         const normalizedType = dataType.toLowerCase();
-        if (!allowedTypes.includes(normalizedType)) {
-          throw new ValidationError(
-            `Column "${column}" is type "${currentType}", not a text-based type. citext conversion only works for text-based columns.`,
-            {
-              currentType,
-              allowedTypes: ["text", "varchar", "character varying"],
-              code: "COLUMN_TYPE_MISMATCH"
+        
+        // When converting TO citext, the source must be text-based
+        if (toType === "citext") {
+            const allowedTypes = [
+              "text",
+              "character varying",
+              "character",
+              "char",
+              "varchar",
+            ];
+            
+            if (!allowedTypes.includes(normalizedType)) {
+              throw new ValidationError(
+                `Column "${column}" is type "${currentType}", not a text-based type. citext conversion only works for text-based columns.`,
+                {
+                  currentType,
+                  allowedTypes: ["text", "varchar", "character varying"],
+                  code: "COLUMN_TYPE_MISMATCH"
+                }
+              );
             }
-          );
+        } else {
+            // When converting FROM citext to pure TEXT
+            if (currentType !== "citext") {
+                 // Technically we could allow general conversions, but this tool is citext specific
+                 if (currentType !== "citext" && normalizedType !== "citext") {
+                     throw new ValidationError(
+                       `Column "${column}" is type "${currentType}". This tool is designed to convert text columns to citext, or citext columns back to text.`,
+                       { currentType, code: "COLUMN_TYPE_MISMATCH" }
+                     );
+                 }
+            }
         }
 
         // Check for dependent views before attempting the conversion
@@ -188,12 +205,12 @@ Note: If views depend on this column, you must drop and recreate them manually b
         try {
           await adapter.executeQuery(`
                     ALTER TABLE ${qualifiedTable}
-                    ALTER COLUMN "${column}" TYPE citext USING "${column}"::citext
+                    ALTER COLUMN "${column}" TYPE ${toType} USING "${column}"::${toType}
                 `);
 
           return {
             success: true,
-            message: `Column ${column} converted from ${currentType} to citext`,
+            message: `Column ${column} converted from ${currentType} to ${toType}`,
             table: qualifiedTable,
             previousType: currentType,
             affectedViews:

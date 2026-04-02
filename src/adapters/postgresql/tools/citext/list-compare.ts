@@ -41,14 +41,30 @@ Useful for auditing case-insensitive columns.`,
       try {
         const parsed = CitextListColumnsSchema.parse(params) as {
           schema?: string;
+          table?: string;
           limit?: unknown;
         };
-        const { schema } = parsed;
+        const { schema, table } = parsed;
         const safeLimit = parsed.limit as number | undefined;
 
-        if (safeLimit !== undefined && safeLimit < 0) {
-          throw new ValidationError("limit must be non-negative");
+        if (safeLimit !== undefined) {
+          if (safeLimit < 0) {
+            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+          }
+          if (safeLimit === 0) {
+            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+          }
         }
+
+        // Default limit of 50 to prevent large payloads, max 100
+        const DEFAULT_LIMIT = 50;
+        const MAX_LIMIT = 100;
+        
+        let effectiveLimit = safeLimit ?? DEFAULT_LIMIT;
+        if (effectiveLimit > MAX_LIMIT) {
+             effectiveLimit = MAX_LIMIT;
+        }
+
         // Validate schema existence when specified
         if (schema !== undefined) {
           const schemaCheck = await adapter.executeQuery(
@@ -61,11 +77,6 @@ Useful for auditing case-insensitive columns.`,
           }
         }
 
-        // Default limit of 100 to prevent large payloads
-        const DEFAULT_LIMIT = 100;
-        const effectiveLimit =
-          safeLimit === 0 ? undefined : (safeLimit ?? DEFAULT_LIMIT);
-
         const conditions: string[] = [
           "udt_name = 'citext'",
           "table_schema NOT IN ('pg_catalog', 'information_schema')",
@@ -76,6 +87,11 @@ Useful for auditing case-insensitive columns.`,
         if (schema !== undefined) {
           conditions.push(`table_schema = $${String(paramIndex++)}`);
           queryParams.push(schema);
+        }
+
+        if (table !== undefined) {
+          conditions.push(`table_name = $${String(paramIndex++)}`);
+          queryParams.push(table);
         }
 
         const whereClause = conditions.join(" AND ");
@@ -121,6 +137,7 @@ Useful for auditing case-insensitive columns.`,
           truncated,
           ...(effectiveLimit !== undefined && { limit: effectiveLimit }),
           ...(schema !== undefined && { schema }),
+          ...(table !== undefined && { table }),
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {

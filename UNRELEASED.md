@@ -73,9 +73,14 @@
 - Corrected schema documentation for `pg_audit_list_backups` to reflect the implemented default limit of 20 instead of 50
 - Enforced explicitly structured `ValidationError` instances for `limit <= 0` or `n <= 0` in all stats tools (window statistics, time-series, advanced), preventing silent valid defaults
 - Implemented payload truncation caps for maximum limits in window statistics, grouped time-series, distinct/frequency analysis, and advanced `pg_stats_top_n` queries
+- Replaced inline `success: false` object returns with explicitly structured `ValidationError` throws in Stats tools (correlation, hypothesis, distribution)
+- Added rigorous `sampleSize` validation in `pg_stats_sampling` to prevent undefined behavior and token bloat on negative boundaries
 - Verified advanced stress tests for the stats tool group, confirming edge cases with empty tables, missing numeric exceptions, Code Mode window function pipelines, and regression boundaries without payload bloat
 - Verified advanced stress tests for the backup tool group, confirming snapshot lifecycle integrity, non-destructive `restoreAs` isolation, Code Mode `pg_execute_code` audit tracking, and volume drift accuracy without payload bloat
 - Verified advanced stress tests for the citext tool group, confirming edge cases with missing schema handles, proper Code Mode idempotent array conversions, payload truncation handling for `limit: 0`, and explicit schema error wrapping (avoiding `QUERY_ERROR`) without payload bloat
+- Fixed dot-splitting table parser in `citext` schemas failing on regex-heavy identifier names
+- Added `toType` parameter to `pg_citext_convert_column` enabling native conversion of citext columns back to pure `text` types
+- Enforced explicitly structured `ValidationError` instances for `limit <= 0` in `pg_citext_list_columns` and `pg_citext_analyze_candidates`, and clamped maximum limit to 100 to prevent token bloat
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Replaced inline error returns across JSONB tools with structured `ValidationError` instances, preserving standard error output

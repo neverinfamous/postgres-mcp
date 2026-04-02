@@ -62,7 +62,10 @@ export function preprocessCitextTableParams(input: unknown): unknown {
   if (
     typeof result["table"] === "string" &&
     result["table"].includes(".") &&
-    result["schema"] === undefined
+    result["schema"] === undefined &&
+    /^[^.]+\.[^.]+$/.test(result["table"]) &&
+    !result["table"].includes("(") &&
+    !result["table"].includes("[")
   ) {
     const parts = result["table"].split(".");
     if (parts.length === 2) {
@@ -84,9 +87,10 @@ export function preprocessCitextTableParams(input: unknown): unknown {
 export const CitextConvertColumnSchemaBase = z.object({
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Alias for table"),
-  column: z.string().optional().describe("Text column to convert to citext"),
+  column: z.string().optional().describe("Text column to convert from/to citext"),
   col: z.string().optional().describe("Alias for column"),
   schema: z.string().optional().describe("Schema name (default: public)"),
+  toType: z.string().optional().describe("Target data type (e.g. text, varchar, citext) (default: citext)"),
 });
 
 /**
@@ -99,6 +103,7 @@ export const CitextConvertColumnSchema = z
     table: data.table ?? "",
     column: data.column ?? data.col ?? "",
     schema: data.schema,
+    toType: data.toType?.toLowerCase() ?? "citext",
   }))
   .refine((data) => data.table !== "", {
     message: "table is required",
@@ -115,26 +120,33 @@ export const CitextListColumnsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Schema name to filter (all schemas if omitted)"),
+  table: z.string().optional().describe("Table name to filter"),
+  tableName: z.string().optional().describe("Alias for table name"),
   limit: z
     .number()
     .optional()
-    .describe("Maximum number of columns to return (default: 100, 0 for all)"),
+    .describe("Maximum number of columns to return (default: 50, max 100)"),
 });
 
 /**
  * Schema for listing citext columns.
- * Preprocesses to handle empty/null params.
+ * Preprocesses to handle empty/null params and table name aliases.
  */
 export const CitextListColumnsSchema = z.preprocess(
   (input) => {
-    const obj = normalizeOptionalParams(input);
+    const obj = preprocessCitextTableParams(normalizeOptionalParams(input));
     if (typeof obj === "object" && obj !== null && "limit" in obj) {
-      obj["limit"] = coerceNumber(obj["limit"]);
+      (obj as Record<string, unknown>)["limit"] = coerceNumber((obj as Record<string, unknown>)["limit"]);
     }
     return obj;
   },
   CitextListColumnsSchemaBase,
-);
+)
+.transform((data) => ({
+  schema: data.schema,
+  table: data.table ?? data.tableName,
+  limit: data.limit,
+}));
 
 /**
  * Base schema for MCP visibility - shows all parameters for analyzeCandidates.
@@ -263,6 +275,7 @@ export const CitextListColumnsOutputSchema = z
     truncated: z.boolean().optional().describe("Results were truncated"),
     limit: z.number().optional().describe("Limit applied"),
     schema: z.string().optional().describe("Schema filter applied"),
+    table: z.string().optional().describe("Table filter applied"),
     success: z.boolean().optional().describe("Whether operation succeeded"),
     error: z.string().optional().describe("Error message"),
   })

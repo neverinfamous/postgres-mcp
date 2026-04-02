@@ -54,8 +54,13 @@ Looks for common patterns like email, username, name, slug, etc.`,
       } = parsed;
       const safeLimit = parsed.limit as number | undefined;
 
-      if (safeLimit !== undefined && safeLimit < 0) {
-        throw new ValidationError("limit must be non-negative");
+      if (safeLimit !== undefined) {
+        if (safeLimit < 0) {
+          throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+        }
+        if (safeLimit === 0) {
+          throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+        }
       }
 
       // Validate table/schema existence before querying
@@ -83,8 +88,11 @@ Looks for common patterns like email, username, name, slug, etc.`,
 
       // Default limit of 50 to prevent large payloads and transport truncation
       const DEFAULT_LIMIT = 50;
-      const effectiveLimit =
-        safeLimit === 0 ? undefined : (safeLimit ?? DEFAULT_LIMIT);
+      const MAX_LIMIT = 100;
+      let effectiveLimit = safeLimit ?? DEFAULT_LIMIT;
+      if (effectiveLimit > MAX_LIMIT) {
+          effectiveLimit = MAX_LIMIT;
+      }
 
       // Exclude system schemas by default when no table filter is specified
       const excludeSystemSchemas = userExcludeSystemSchemas ?? true;

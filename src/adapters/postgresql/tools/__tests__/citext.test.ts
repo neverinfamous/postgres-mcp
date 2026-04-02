@@ -242,37 +242,18 @@ describe("Citext Tools", () => {
       expect(result.count).toBe(100);
       expect(result.totalCount).toBe(150);
       expect(result.truncated).toBe(true);
-      expect(result.limit).toBe(100);
+      expect(result.limit).toBe(50);
     });
 
-    it("should return all results with limit: 0", async () => {
-      mockAdapter.executeQuery
-        .mockResolvedValueOnce({ rows: [{ total: 3 }] })
-        .mockResolvedValueOnce({
-          rows: [
-            { table_schema: "public", table_name: "a", column_name: "col" },
-            { table_schema: "public", table_name: "b", column_name: "col" },
-            { table_schema: "public", table_name: "c", column_name: "col" },
-          ],
-        });
-
+    it("should return structured error for limit: 0", async () => {
       const tool = findTool("pg_citext_list_columns");
       const result = (await tool!.handler({ limit: 0 }, mockContext)) as {
-        count: number;
-        totalCount: number;
-        truncated: boolean;
-        limit?: number;
+        success: boolean;
+        error: string;
       };
 
-      expect(result.count).toBe(3);
-      expect(result.totalCount).toBe(3);
-      expect(result.truncated).toBe(false);
-      expect(result.limit).toBeUndefined();
-      // Verify no LIMIT clause in query
-      expect(mockAdapter.executeQuery).toHaveBeenLastCalledWith(
-        expect.not.stringContaining("LIMIT"),
-        [],
-      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("must be greater than 0");
     });
   });
 
