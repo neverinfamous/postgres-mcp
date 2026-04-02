@@ -376,6 +376,14 @@ export function parsePostgresError(
     );
   }
 
+  // 42501 — insufficient privilege (permission denied bounds)
+  if (pgCode === "42501" || /permission denied/i.test(msg)) {
+    throw new Error(
+      `Permission denied: ${msg}. The current user lacks the necessary privileges to perform this operation or access this object.`,
+      { cause: error },
+    );
+  }
+
   // 3F000 — invalid schema name
   if (pgCode === "3F000" || /schema ["'].*["'] does not exist/i.test(msg)) {
     if (context.tool?.startsWith("pg_cron_") && /schema ["']cron["']/i.test(msg)) {

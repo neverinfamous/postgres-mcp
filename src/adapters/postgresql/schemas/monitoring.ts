@@ -50,6 +50,10 @@ export const ShowSettingsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Setting name pattern (LIKE syntax with %)"),
+  like: z
+    .string()
+    .optional()
+    .describe("Alias for pattern - setting name or pattern"),
   setting: z
     .string()
     .optional()
@@ -67,8 +71,8 @@ export const ShowSettingsSchema = z.preprocess(
   ShowSettingsSchemaBase.extend({
     limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
   }).transform((data) => {
-    // Resolve alias: setting or name → pattern
-    const pattern = data.pattern ?? data.setting ?? data.name;
+    // Resolve alias: like, setting or name → pattern
+    const pattern = data.pattern ?? data.like ?? data.setting ?? data.name;
     // Default limit to 50 only when NO filter is specified (to avoid 415+ results)
     const limit = data.limit ?? (pattern === undefined ? 50 : undefined);
     return { pattern, limit };

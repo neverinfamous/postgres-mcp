@@ -64,6 +64,8 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Clamped unbound limits in `pg_show_settings` to a maximum of 100 rows to prevent unmanageable token bloat
 - Fixed `pg_connection_stats` input schema to use filtering and enforce P154 existence checks
 - Enforced required `warningThreshold` and `criticalThreshold` validations in `pg_alert_threshold_set`
+- Mapped Postgres authorization bounds error (`42501`) gracefully to structured error payloads
+- Added `like` alias parameter support and deduplicated wildcard logic in `pg_show_settings`
 
 ### Security
 - Replaced raw Postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks
