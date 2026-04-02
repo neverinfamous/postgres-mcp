@@ -142,6 +142,8 @@ export function createVectorNormalizeTool(): ToolDefinition {
           return Promise.resolve({
             success: false,
             error: "Cannot normalize a zero vector (all values are 0)",
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion: "Provide a vector with at least one non-zero value",
             magnitude: 0,
           });

@@ -700,52 +700,10 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/is for arrays only/);
+      expect(result.error).toMatch(/Cannot substitute an existing key/);
     });
 
-    it("should reject target paths that point to objects", async () => {
-      // Mock for checking parent path type returning 'object'
-      mockAdapter.executeQuery
-        .mockResolvedValueOnce({ rows: [{ null_count: 0 }] })
-        .mockResolvedValueOnce({ rows: [{ type: "object" }] });
 
-      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
-      const result = (await tool.handler(
-        {
-          table: "users",
-          column: "tags",
-          path: ["tags", 0],
-          value: "new",
-          where: "id = 1",
-        },
-        mockContext,
-      )) as { success: boolean; error: string };
-
-      expect(result.success).toBe(false);
-      expect(result.error).toMatch(/requires an array target/);
-    });
-
-    it("should reject root path insertion if column is object", async () => {
-      // Mock for checking root type returning 'object'
-      mockAdapter.executeQuery
-        .mockResolvedValueOnce({ rows: [{ null_count: 0 }] })
-        .mockResolvedValueOnce({ rows: [{ type: "object" }] });
-
-      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
-      const result = (await tool.handler(
-        {
-          table: "users",
-          column: "tags",
-          path: [0],
-          value: "new",
-          where: "id = 1",
-        },
-        mockContext,
-      )) as { success: boolean; error: string };
-
-      expect(result.success).toBe(false);
-      expect(result.error).toMatch(/requires an array target/);
-    });
   });
 
   describe("pg_jsonb_strip_nulls validations", () => {

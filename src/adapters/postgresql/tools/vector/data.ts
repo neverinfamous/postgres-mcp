@@ -116,7 +116,7 @@ export function createVectorExtensionTool(
     name: "pg_vector_create_extension",
     description: "Enable the pgvector extension for vector similarity search.",
     group: "vector",
-    inputSchema: z.object({}).strict(),
+    inputSchema: z.object({}),
     outputSchema: VectorCreateExtensionOutputSchema,
     annotations: write("Create Vector Extension"),
     icons: getToolIcons("vector", write("Create Vector Extension")),
@@ -191,6 +191,15 @@ export function createVectorAddColumnTool(
           return {
             success: false,
             error: "column (or col) parameter is required",
+            code: 'VALIDATION_ERROR',
+            category: 'validation',
+            requiredParams: ["table", "column", "dimensions"],
+          };
+        }
+        if (parsed.dimensions === undefined) {
+          return {
+            success: false,
+            error: "dimensions parameter is required",
             code: 'VALIDATION_ERROR',
             category: 'validation',
             requiredParams: ["table", "column", "dimensions"],

@@ -93,7 +93,8 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Certified Code Mode parity across all 20 Core tools, confirming correct schema propagation for boundary testing, nonexistent variables, alias mapping, and `limit: 0` query resolution
 - Fixed Split Schema Violations in `pg_jsonb_merge` and `pg_jsonb_normalize` by correctly evaluating stringified JSON schemas and nested base parameters
 - Replaced Postgres `\b` word boundary regex with native `\y` matching in `pg_jsonb_security_scan` to prevent SQL Injection payload regressions
-- Certified Code Mode parity across JSONB tools (Part 1), confirming deep nesting resolution, unbounded array deletion scoping, and cross-tool consistency tests
+- Certified Code Mode parity across JSONB tools (Part 1 & 2), confirming deep nesting resolution, unbounded array deletion scoping, cross-tool consistency tests, array/object native equivalence for inserts, and literal document evaluation for merge operations
+- Certified Code Mode parity across Vector tools (Part 1), confirming strict Zod validation against mismatched array dimensions, zero-suppression for P154 object existence errors, and comprehensive structural parity against boundary conditions
 ### Security
 
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

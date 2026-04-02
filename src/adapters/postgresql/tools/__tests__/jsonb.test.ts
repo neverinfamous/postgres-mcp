@@ -98,11 +98,7 @@ describe("JSONB Tools", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ null_count: 0 }],
       });
-      // Second call: array type check
-      mockAdapter.executeQuery.mockResolvedValueOnce({
-        rows: [{ type: "array" }],
-      });
-      // Third call: actual insert
+      // Second call: actual insert
       mockAdapter.executeQuery.mockResolvedValueOnce({ rowsAffected: 1 });
 
       const tool = findTool("pg_jsonb_insert");
@@ -1707,10 +1703,6 @@ describe("jsonb/write.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ null_count: 0 }],
     });
-    // Type check
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ type: "array" }],
-    });
     // Insert fails
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("cannot replace existing key"),
@@ -1727,7 +1719,7 @@ describe("jsonb/write.ts — uncovered branches", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain("arrays only");
+    expect(result.error).toContain("Cannot substitute an existing key");
   });
 
   // write.ts: pg_jsonb_insert wraps 'path element is not an integer' (L262)
@@ -1735,9 +1727,7 @@ describe("jsonb/write.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ null_count: 0 }],
     });
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ type: "array" }],
-    });
+    // Insert fails
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("path element is not an integer"),
     );

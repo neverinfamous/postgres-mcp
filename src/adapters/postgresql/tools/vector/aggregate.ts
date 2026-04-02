@@ -337,12 +337,16 @@ export function createVectorValidateTool(
               return {
                 success: false,
                 error: `Table '${parsed.table}' does not exist in schema '${schemaName}'`,
+                code: "TABLE_NOT_FOUND",
+                category: "validation",
                 suggestion: "Use pg_list_tables to find available tables",
               };
             }
             return {
               success: false,
               error: `Column '${parsed.column}' does not exist in table '${parsed.table}'`,
+              code: "COLUMN_NOT_FOUND",
+              category: "validation",
               suggestion: "Use pg_describe_table to find available columns",
             };
           }

@@ -170,7 +170,7 @@ export function createJsonbInsertTool(
   return {
     name: "pg_jsonb_insert",
     description:
-      "Insert value into JSONB array. Index -1 inserts BEFORE last element; use insertAfter:true with -1 to append at end.",
+      "Insert value into JSONB array or object. For arrays, index -1 inserts BEFORE last element (use insertAfter:true to append). For objects, throws error if key already exists.",
     group: "jsonb",
     inputSchema: JsonbInsertSchemaBase,
     outputSchema: JsonbInsertOutputSchema,
@@ -213,33 +213,9 @@ export function createJsonbInsertTool(
           throw new ValidationError(`pg_jsonb_insert cannot operate on NULL columns. Use pg_jsonb_set to initialize the column first: pg_jsonb_set({table: "${table}", column: "${column}", path: "myarray", value: [], where: "..."})`);
         }
 
-        // Validate target path points to an array, not an object
-        // Get the parent path (one level up from where we're inserting)
-        const parentPath = path.slice(0, -1);
-        if (parentPath.length === 0) {
-          // Inserting at root level - check column type
-          const typeCheckSql = `SELECT jsonb_typeof("${column}") as type FROM ${qualifiedTable} WHERE ${sanitizeWhereClause(parsed.where)} LIMIT 1`;
-          const typeResult = await adapter.executeQuery(typeCheckSql);
-          const columnType = typeResult.rows?.[0]?.["type"] as
-            | string
-            | undefined;
-          if (columnType && columnType !== "array") {
-            throw new ValidationError(`pg_jsonb_insert requires an array target. Column contains '${columnType}'. Use pg_jsonb_set for objects.`);
-          }
-        } else {
-          // Check the parent path type
-          const typeCheckSql = `SELECT jsonb_typeof("${column}" #> $1) as type FROM ${qualifiedTable} WHERE ${sanitizeWhereClause(parsed.where)} LIMIT 1`;
-          const parentPathStrings = parentPath.map((p) => String(p));
-          const typeResult = await adapter.executeQuery(typeCheckSql, [
-            parentPathStrings,
-          ]);
-          const targetType = typeResult.rows?.[0]?.["type"] as
-            | string
-            | undefined;
-          if (targetType && targetType !== "array") {
-            throw new ValidationError(`pg_jsonb_insert requires an array target. Path '${parentPathStrings.join(".")}' contains '${targetType}'. Use pg_jsonb_set for objects.`);
-          }
-        }
+        // Determine target path type for potential error context later if needed
+        // PostgreSQL natively allows jsonb_insert on both arrays and objects (for objects, fails if key exists)
+
 
         const sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_insert("${column}", $1, $2::jsonb, $3) WHERE ${sanitizeWhereClause(parsed.where)}`;
         const result = await adapter.executeQuery(sql, [
@@ -263,13 +239,14 @@ export function createJsonbInsertTool(
           error.message.includes("cannot replace existing key")
         ) {
           return formatHandlerErrorResponse(
-            new ValidationError(`pg_jsonb_insert is for arrays only. For objects, use pg_jsonb_set. If updating an existing array element, use pg_jsonb_set.`),
+            new ValidationError(`Cannot substitute an existing key. For objects, use pg_jsonb_set to update existing keys. For arrays, use pg_jsonb_set to replace an element.`),
             { tool: "pg_jsonb_insert" }
           );
         }
         if (
           error instanceof Error &&
-          error.message.includes("path element is not an integer")
+          error.message.includes("is not an integer") &&
+          error.message.includes("path element")
         ) {
           return formatHandlerErrorResponse(
             new ValidationError(`pg_jsonb_insert requires numeric index for array position. Use array format with number: ["tags", 0] not ["tags", "0"] or "tags.0"`),
