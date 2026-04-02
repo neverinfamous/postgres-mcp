@@ -513,11 +513,24 @@ test.describe("Errors: Admin", () => {
     }
   });
 
-  test("terminate_backend with invalid PID → PROCESS_NOT_FOUND", async ({}, testInfo) => {
+  test("terminate_backend with negative PID → VALIDATION_ERROR", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_terminate_backend", {
         pid: -99999,
+      });
+      expectHandlerError(p);
+      expect(p.code).toBe("VALIDATION_ERROR");
+    } finally {
+      await client.close();
+    }
+  });
+
+  test("terminate_backend with nonexistent PID → PROCESS_NOT_FOUND", async ({}, testInfo) => {
+    const client = await createClient(getBaseURL(testInfo));
+    try {
+      const p = await callToolAndParse(client, "pg_terminate_backend", {
+        pid: 99999999,
       });
       // PG returns false for nonexistent pid, now reshaped to PROCESS_NOT_FOUND
       expectHandlerError(p);

@@ -39,11 +39,12 @@ export function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("admin", admin("Vacuum")),
     handler: async (params: unknown, context: RequestContext) => {
       try {
+        const { table, schema, full, verbose, analyze } =
+          VacuumSchema.parse(params);
+
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 2, "Starting VACUUM...");
 
-        const { table, schema, full, verbose, analyze } =
-          VacuumSchema.parse(params);
         const fullClause = full === true ? "FULL " : "";
         const verboseClause = verbose === true ? "VERBOSE " : "";
         const analyzeClause = analyze === true ? "ANALYZE " : "";
@@ -89,10 +90,11 @@ export function createVacuumAnalyzeTool(adapter: PostgresAdapter): ToolDefinitio
     icons: getToolIcons("admin", admin("Vacuum Analyze")),
     handler: async (params: unknown, context: RequestContext) => {
       try {
+        const { table, schema, verbose, full } = VacuumSchema.parse(params);
+
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 2, "Starting VACUUM ANALYZE...");
 
-        const { table, schema, verbose, full } = VacuumSchema.parse(params);
         const fullClause = full === true ? "FULL " : "";
         const verboseClause = verbose === true ? "VERBOSE " : "";
         const target =
@@ -136,10 +138,10 @@ export function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("admin", admin("Analyze")),
     handler: async (params: unknown, context: RequestContext) => {
       try {
+        const { table, schema, columns } = AnalyzeSchema.parse(params);
+
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 2, "Starting ANALYZE...");
-
-        const { table, schema, columns } = AnalyzeSchema.parse(params);
 
         // Validate: columns requires table
         if (

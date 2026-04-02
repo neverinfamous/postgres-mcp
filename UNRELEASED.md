@@ -67,6 +67,8 @@
 - Replaced generic `{success: false}` error responses in `ltree` tools with structured `ValidationError` instances for table, column, and extension validation checks
 - Standardized `pg_drop_schema` to intercept native Postgres dependency errors and re-throw them as explicitly structured `ValidationError` instances
 - Mapped schema filtering validation checks in `pg_list_sequences` to throw `VALIDATION_ERROR` rather than generic `QUERY_ERROR`
+- Enforced positive integer validation via Zod in admin backend cancellation tools to natively surface `VALIDATION_ERROR` and prevent DB propagation
+- Fixed parse timing defects in admin vacuum and analyze tools that prematurely logged progress before validation failures
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

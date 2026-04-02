@@ -39,14 +39,14 @@ export function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, context: RequestContext) => {
       let parsedTarget: string | undefined;
       try {
-        const progress = buildProgressContext(context);
-        await sendProgress(progress, 1, 3, "Starting REINDEX...");
-
         const parsed = ReindexSchema.parse(params) as {
           target: string;
           name?: string;
           concurrently?: boolean;
         };
+
+        const progress = buildProgressContext(context);
+        await sendProgress(progress, 1, 3, "Starting REINDEX...");
         parsedTarget = parsed.target;
         const concurrentlyClause =
           parsed.concurrently === true ? "CONCURRENTLY " : "";

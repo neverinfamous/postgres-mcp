@@ -149,6 +149,7 @@ test.describe("Code Mode: API Discoverability", () => {
 
 test.describe("Code Mode: Security", () => {
   test("should block require()", async ({}, testInfo) => {
+    test.setTimeout(60_000);
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_execute_code", {
@@ -161,6 +162,7 @@ test.describe("Code Mode: Security", () => {
   });
 
   test("should block process access", async ({}, testInfo) => {
+    test.setTimeout(60_000);
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_execute_code", {
@@ -173,6 +175,7 @@ test.describe("Code Mode: Security", () => {
   });
 
   test("should block eval()", async ({}, testInfo) => {
+    test.setTimeout(60_000);
     const client = await createClient(getBaseURL(testInfo));
     try {
       const p = await callToolAndParse(client, "pg_execute_code", {

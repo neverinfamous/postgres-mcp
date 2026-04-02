@@ -224,7 +224,7 @@ export const TerminateBackendSchemaBase = z.object({
 export const TerminateBackendSchema = z.preprocess(
   preprocessPidParams,
   z.object({
-    pid: z.number().describe("Process ID to terminate"),
+    pid: z.number().int().positive().describe("Process ID to terminate"),
   }),
 );
 
@@ -238,7 +238,7 @@ export const CancelBackendSchemaBase = z.object({
 export const CancelBackendSchema = z.preprocess(
   preprocessPidParams,
   z.object({
-    pid: z.number().describe("Process ID to cancel"),
+    pid: z.number().int().positive().describe("Process ID to cancel"),
   }),
 );
 
