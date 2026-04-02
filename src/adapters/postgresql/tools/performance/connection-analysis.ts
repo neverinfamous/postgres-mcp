@@ -51,7 +51,7 @@ export function createDetectConnectionSpikeTool(
       "by user, application, state, and wait events. Flags when a single " +
       "user or application monopolizes the connection pool, or when " +
       "idle-in-transaction connections accumulate.",
-    inputSchema: ConnectionSpikeInputBase.shape,
+    inputSchema: ConnectionSpikeInputBase, // Split Schema: full ZodObject for MCP parameter visibility
     outputSchema: z.object({
       totalConnections: z.number().optional(),
       maxConnections: z.number().optional(),

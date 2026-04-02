@@ -373,7 +373,7 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
       "slow queries, blocking locks, connection pressure, cache hit ratio, " +
       "disk usage, and top tables by size and activity. Returns per-section " +
       "health ratings and recommendations with an overall health score.",
-    inputSchema: DiagnoseInputSchemaBase.shape,
+    inputSchema: DiagnoseInputSchemaBase, // Split Schema: full ZodObject for MCP parameter visibility
     outputSchema: z.object({
       sections: z.object({
         slowQueries: z.record(z.string(), z.unknown()),

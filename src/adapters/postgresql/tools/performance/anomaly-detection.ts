@@ -81,7 +81,7 @@ export function createDetectQueryAnomaliesTool(
       "Detects queries deviating from their historical execution time norms " +
       "using z-score analysis. Requires pg_stat_statements extension. " +
       "Returns anomalous queries ranked by deviation severity with risk level.",
-    inputSchema: QueryAnomaliesInputBase.shape,
+    inputSchema: QueryAnomaliesInputBase, // Split Schema: full ZodObject for MCP parameter visibility
     outputSchema: z.object({
       anomalies: z.array(z.record(z.string(), z.unknown())).optional(),
       riskLevel: z.enum(["low", "moderate", "high", "critical"]).optional(),
@@ -235,7 +235,7 @@ export function createDetectBloatRiskTool(
       "Scores tables by bloat risk using multiple factors: dead tuple ratio, " +
       "vacuum staleness, table size, and autovacuum effectiveness. " +
       "Returns per-table risk scores (0-100) with actionable recommendations.",
-    inputSchema: BloatRiskInputBase.shape,
+    inputSchema: BloatRiskInputBase, // Split Schema: full ZodObject for MCP parameter visibility
     outputSchema: z.object({
       tables: z.array(z.record(z.string(), z.unknown())).optional(),
       highRiskCount: z.number().optional(),
