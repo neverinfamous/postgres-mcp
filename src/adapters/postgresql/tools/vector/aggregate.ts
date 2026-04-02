@@ -203,6 +203,7 @@ export function createVectorAggregateTool(
           }
 
           const response: Record<string, unknown> = {
+            success: true,
             groups,
             count: groups.length,
           };
@@ -232,6 +233,7 @@ export function createVectorAggregateTool(
         const vec = parseVector(row["average_vector"]);
 
         const response: Record<string, unknown> = {
+          success: true,
           average_vector:
             parsed.summarizeVector && vec !== null
               ? truncateVector(vec)
@@ -402,6 +404,7 @@ export function createVectorValidateTool(
             : true;
 
         return {
+          success: true,
           valid,
           vectorDimensions,
           columnDimensions,

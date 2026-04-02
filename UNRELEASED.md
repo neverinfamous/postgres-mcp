@@ -102,6 +102,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Fixed unstructured Error leak in `pg_vector_dimension_reduce` by wrapping domain errors with proper `VALIDATION_ERROR` codes
 - Eliminated Zod framework refine leak in `VectorCreateIndexSchema` by extracting inline validation to handler-side
 - Added missing `column` and `col` aliases for vector-column mappings in `pg_hybrid_search` complying with standard Vector group API patterns
+- Fixed missing `success: true` flags in successful responses for `pg_vector_validate`, `pg_vector_cluster`, `pg_vector_index_optimize`, `pg_vector_dimension_reduce`, `pg_vector_embed`, `pg_hybrid_search`, and `pg_vector_performance` ensuring strict structural parity with the MCP Server error pattern and standardized success shapes
 - Supported raw JSON string literal validation across JSONB tools by enforcing explicit JSON parsing inside `toJsonString`, preventing double-encoding of primitive representations, and intercepting maliciously formatted literals with structured ValidationError codes
 - Fixed `pg_jsonb_validate_path` incorrectly returning `{success: true, valid: false}` for syntactically invalid JSONPath expressions; now returns `{success: false}` via `formatHandlerErrorResponse` wrapping a `ValidationError` with a helpful `$`-prefix hint
 - Fixed `pg_jsonb_object` silently returning `{success: true, object: {}}` when called with no key-value pairs; now raises a `ValidationError` requiring at least one entry via `data`, `object`, or `pairs`

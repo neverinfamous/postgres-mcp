@@ -273,6 +273,7 @@ export function createHybridSearchTool(
         try {
           const result = await adapter.executeQuery(sql, [parsed.textQuery]);
           return {
+            success: true,
             results: result.rows,
             count: result.rows?.length ?? 0,
             vectorWeight,
@@ -535,6 +536,7 @@ export function createVectorPerformanceTool(
         );
 
         const response: Record<string, unknown> = {
+          success: true,
           table: parsed.table,
           column: parsed.column,
           tableSize: stats.table_size,

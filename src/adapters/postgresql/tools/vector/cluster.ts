@@ -215,6 +215,7 @@ export function createVectorClusterTool(
         });
 
         return {
+          success: true,
           k: k,
           iterations: maxIter,
           sampleSize: vectors.length,

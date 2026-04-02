@@ -182,6 +182,7 @@ export function createVectorIndexOptimizeTool(
         }
 
         return {
+          success: true,
           table: parsed.table,
           column: parsed.column,
           dimensions,
@@ -328,6 +329,7 @@ export function createVectorDimensionReduceTool(
           }
 
           return {
+            success: true,
             originalDimensions: originalDim,
             targetDimensions: targetDim,
             reduced: reduceVector(parsed.vector, targetDim, seed),
@@ -412,6 +414,7 @@ export function createVectorDimensionReduceTool(
           }
 
           const response: Record<string, unknown> = {
+            success: true,
             mode: "table",
             table: parsed.table,
             column: parsed.column,
@@ -527,6 +530,7 @@ export function createVectorEmbedTool(): ToolDefinition {
             };
 
         return Promise.resolve({
+          success: true,
           embedding: embeddingOutput,
           dimensions: dims,
           textLength: parsed.text.length,
