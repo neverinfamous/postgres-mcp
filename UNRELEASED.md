@@ -67,9 +67,9 @@
 - Parsing timing defects in admin vacuum/analyze tools causing progress logging before validation failures
 - Incorrect schema documentation for `pg_audit_list_backups` limit defaults
 - Dot-splitting parser in `citext` schemas failing on regex-heavy identifier names
-- Mapped raw schema and relation errors directly to structured \`ExtensionNotAvailableError\` in \`pg_cron\` tools when the extension is missing
-- Fixed silent unbounded payload bloat in \`pg_cron\` listing routines by strictly rejecting \`limit: 0\` with a \`ValidationError\`
-- Corrected error code propagation in \`pg_cron_unschedule\` by mapping nonexistent jobs to \`JOB_NOT_FOUND\` instead of generic queries
+- Mapped raw schema and relation errors directly to structured `EXTENSION_MISSING` code in `pg_cron` tools when the extension is missing
+- Fixed silent unbounded payload bloat in `pg_cron` listing routines by strictly rejecting `limit: 0` with a `ValidationError`
+- Corrected error code propagation in `pg_cron_unschedule` by mapping nonexistent jobs to `JOB_NOT_FOUND` instead of generic queries
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

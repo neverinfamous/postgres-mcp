@@ -280,7 +280,7 @@ describe("ExtensionNotAvailableError", () => {
     expect(error.message).toBe(
       "Extension 'pgvector' is not installed or enabled",
     );
-    expect(error.code).toBe("EXTENSION_NOT_AVAILABLE");
+    expect(error.code).toBe("EXTENSION_MISSING");
     expect(error.name).toBe("ExtensionNotAvailableError");
     expect(error.details).toEqual({ extension: "pgvector" });
   });

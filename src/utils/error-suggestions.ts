@@ -291,7 +291,7 @@ const ERROR_SUGGESTIONS: {
     suggestion:
       "Extension is not installed on this PostgreSQL server. Contact your database administrator.",
     category: ErrorCategory.CONFIGURATION,
-    code: "EXTENSION_NOT_AVAILABLE",
+    code: "EXTENSION_MISSING",
   },
 
   // Codemode errors

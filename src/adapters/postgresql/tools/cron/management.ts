@@ -132,13 +132,20 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
           rawLimit !== undefined && rawLimit !== null
             ? Number(rawLimit)
             : undefined;
-        const limitRaw =
-          coercedLimit !== undefined &&
-          !isNaN(coercedLimit) &&
-          isFinite(coercedLimit) &&
-          coercedLimit >= 0
-            ? Math.floor(coercedLimit)
-            : undefined;
+        
+        if (coercedLimit !== undefined && (isNaN(coercedLimit) || !isFinite(coercedLimit) || coercedLimit < 0)) {
+          return {
+            count: 0,
+            success: false,
+            error: `Invalid limit value: ${String(rawLimit)}. Must be a positive integer.`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
+          };
+        }
+
+        const limitRaw = coercedLimit !== undefined ? Math.floor(coercedLimit) : undefined;
+
         if (limitRaw === 0) {
           return {
             count: 0,
@@ -264,13 +271,19 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
           rawLimitValue !== undefined && rawLimitValue !== null
             ? Number(rawLimitValue)
             : undefined;
-        const limit =
-          coercedLimit !== undefined &&
-          !isNaN(coercedLimit) &&
-          isFinite(coercedLimit) &&
-          coercedLimit >= 0
-            ? Math.floor(coercedLimit)
-            : undefined;
+
+        if (coercedLimit !== undefined && (isNaN(coercedLimit) || !isFinite(coercedLimit) || coercedLimit < 0)) {
+          return {
+             count: 0,
+             success: false,
+             error: `Invalid limit value: ${String(rawLimitValue)}. Must be a positive integer.`,
+             code: "VALIDATION_ERROR",
+             category: "validation",
+             recoverable: false,
+          };
+        }
+
+        const limit = coercedLimit !== undefined ? Math.floor(coercedLimit) : undefined;
 
         const VALID_STATUSES = ["running", "succeeded", "failed"];
         if (status !== undefined && !VALID_STATUSES.includes(status)) {

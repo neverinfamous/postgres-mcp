@@ -218,7 +218,7 @@ export class ExtensionNotAvailableError extends PostgresMcpError {
   ) {
     super(
       `Extension '${extensionName}' is not installed or enabled`,
-      "EXTENSION_NOT_AVAILABLE",
+      "EXTENSION_MISSING",
       ErrorCategory.CONFIGURATION,
       {
         suggestion: `Install the '${extensionName}' extension with CREATE EXTENSION ${extensionName}.`,
