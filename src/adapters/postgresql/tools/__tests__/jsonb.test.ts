@@ -293,7 +293,7 @@ describe("JSONB Tools", () => {
   });
 
   describe("pg_jsonb_object", () => {
-    it("should build JSONB object from key-value pairs", async () => {
+    it("should build JSONB object from key-value pairs (data mode)", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ result: { name: "John", age: 30 } }],
       });
@@ -312,6 +312,46 @@ describe("JSONB Tools", () => {
         expect.stringContaining("jsonb_build_object"),
         expect.anything(),
       );
+    });
+
+    it("should build JSONB object from parallel keys/values arrays", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ result: { a: "1", b: "2" } }],
+      });
+
+      const tool = findTool("pg_jsonb_object");
+      const result = (await tool!.handler(
+        { keys: ["a", "b"], values: ["1", "2"] },
+        mockContext,
+      )) as { success: boolean; object: Record<string, unknown> };
+
+      expect(result.success).toBe(true);
+      expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+        expect.stringContaining("jsonb_build_object"),
+        expect.anything(),
+      );
+    });
+
+    it("should return validation error when keys/values lengths differ", async () => {
+      const tool = findTool("pg_jsonb_object");
+      const result = (await tool!.handler(
+        { keys: ["a", "b"], values: ["only_one"] },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("same length");
+    });
+
+    it("should return validation error for empty params", async () => {
+      const tool = findTool("pg_jsonb_object");
+      const result = (await tool!.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("at least one key-value pair");
     });
   });
 

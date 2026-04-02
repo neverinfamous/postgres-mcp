@@ -20,6 +20,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - 22 group-specific help resources accessible via `postgres://help`
 - Playwright E2E coverage for Code Mode, authentication, and backups
 - `toType` parameter in `pg_citext_convert_column` for pure `text` type conversions
+- `keys` and `values` parallel array parameters in `pg_jsonb_object`, enabling `{ keys: ["a","b"], values: [1,2] }` as an alternative to `{ data: {a:1, b:2} }`; mismatched array lengths produce a clear `ValidationError`
 
 ### Changed
 

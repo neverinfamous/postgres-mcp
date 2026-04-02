@@ -24,6 +24,7 @@ import {
 // Schema for pg_jsonb_object - accepts 'data', 'object', or 'pairs' parameter containing key-value pairs
 // For code mode: pg.jsonb.object({name: "John", age: 30}) - passes through OBJECT_WRAP_MAP → {data: {...}}
 // For MCP tools: {data: {name: "John", age: 30}} or {pairs: {...}} or {object: {...}}
+// Also supports parallel arrays: {keys: ["a","b"], values: ["1","2"]}
 const JsonbObjectSchema = z
   .object({
     data: z
@@ -38,9 +39,17 @@ const JsonbObjectSchema = z
       .record(z.string(), z.unknown())
       .optional()
       .describe("Alias for data (legacy)"),
+    keys: z
+      .array(z.string())
+      .optional()
+      .describe('Key names when using parallel arrays: ["name", "age"]'),
+    values: z
+      .array(z.unknown())
+      .optional()
+      .describe('Values when using parallel arrays: ["Alice", 30]'),
   })
   .describe(
-    "Build a JSONB object from key-value pairs. Use data: {key: value} or object: {key: value}.",
+    'Build a JSONB object from key-value pairs. Use data: {key: value}, or parallel arrays: keys: ["k"], values: ["v"].',
   );
 
 export function createJsonbObjectTool(
@@ -49,7 +58,7 @@ export function createJsonbObjectTool(
   return {
     name: "pg_jsonb_object",
     description:
-      'Build a JSONB object. Use data: {name: "John", age: 30} or object: {name: "John"}. Returns {object: {...}}.',
+      'Build a JSONB object. Use data: {name: "John", age: 30} or parallel arrays keys: ["name"], values: ["John"]. Returns {object: {...}}.',
     group: "jsonb",
     inputSchema: JsonbObjectSchema,
     outputSchema: JsonbObjectOutputSchema,
@@ -60,18 +69,33 @@ export function createJsonbObjectTool(
         // Parse the input
         const parsed = JsonbObjectSchema.parse(params);
 
-        // Support multiple parameter names: data, object, pairs (in priority order)
-        const pairs: Record<string, unknown> =
-          parsed.data ?? parsed.object ?? parsed.pairs ?? {};
+        // Mode 1: parallel arrays (keys + values)
+        let pairs: Record<string, unknown>;
+        if (parsed.keys !== undefined || parsed.values !== undefined) {
+          const keys = parsed.keys ?? [];
+          const vals = parsed.values ?? [];
+          if (keys.length !== vals.length) {
+            throw new ValidationError(
+              `pg_jsonb_object: keys and values arrays must have the same length (got ${String(keys.length)} keys, ${String(vals.length)} values).`,
+            );
+          }
+          if (keys.length === 0) {
+            throw new ValidationError(
+              "pg_jsonb_object requires at least one key-value pair. Use data: {key: value} or keys: [...], values: [...].",
+            );
+          }
+          pairs = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
+        } else {
+          // Mode 2: object parameter (data / object / pairs)
+          pairs = parsed.data ?? parsed.object ?? parsed.pairs ?? {};
+          if (Object.keys(pairs).length === 0) {
+            throw new ValidationError(
+              "pg_jsonb_object requires at least one key-value pair. Use data: {key: value} or keys: [...], values: [...].",
+            );
+          }
+        }
 
         const entries = Object.entries(pairs);
-
-        // Handle empty pairs - return validation error
-        if (entries.length === 0) {
-          throw new ValidationError(
-            "pg_jsonb_object requires at least one key-value pair. Use data: {key: value} or object: {key: value}.",
-          );
-        }
 
         const args = entries.flatMap(([k, v]) => [k, toJsonString(v)]);
         const placeholders = entries
