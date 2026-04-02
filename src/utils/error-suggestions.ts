@@ -105,6 +105,13 @@ const ERROR_SUGGESTIONS: {
     code: "JOB_NAME_CONFLICT",
   },
 
+  {
+    pattern: /(unrecognized configuration parameter|invalid value for parameter)/i,
+    suggestion: "Verify the configuration parameter name and value. Use pg_show_settings to see available parameters.",
+    category: ErrorCategory.VALIDATION,
+    code: "VALIDATION_ERROR",
+  },
+
   // Resource errors — specific codes for table/column not found
   {
     pattern: /(?<!of )relation ".*" does not exist/i,

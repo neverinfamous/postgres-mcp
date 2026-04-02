@@ -77,6 +77,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Structured error handling for absent indexes in `pg_cluster` commands through mapped contexts
 - `VACUUM` and `ANALYZE` tool executions translated to parenthesized syntax with `skipLocked`, `truncate`, and `verbose` support
 - Asynchronous flush synchronization enforced within `postgres://audit` resource to eliminate millisecond-precision timing flakes in E2E tests
+- Mapped raw Postgres configuration errors to structured `VALIDATION_ERROR` responses for invalid parameters in `pg_set_config`
 
 ### Security
 
