@@ -13,20 +13,18 @@
 - Filter-aware instruction generation based on tool filters and verbosity levels
 - 22 group-specific help resources accessible via `postgres://help`
 - Playwright E2E coverage for Code Mode, authentication, and backups
+- `toType` parameter in `pg_citext_convert_column` for pure `text` type conversions
 
 ### Changed
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`
 - Centralized default connection pool timeout to 30,000ms
 - Expanded `PostgresMcpError` to track categories, suggestions, and serialization context
 - Modularized source files and standardized file/directory names to kebab-case convention
-- Minimized tool payload sizes overall (~30-41% token reduction) by collapsing repetitive properties and selectively omitting empty arrays/objects
+- Minimized tool payload sizes overall (~30-41% token reduction) by selectively collapsing repetitive arrays and outputs (e.g., in `ltree`, `jsonb`, and `citext`)
 - Added `compact` toggle (default: `true`) to schemas, audits, cron, citext, and kcache tools to significantly conserve token payloads
 - Reduced default item limits across high-chatter tools (e.g., `pg_audit_list_backups`, `pg_stat_kcache`) to prevent context window bloat
 - Applied `openWorldHint: false` to all tools
-- Optimized payload efficiency in `pg_jsonb_agg` by structurally omitting the empty array result field to conserve tokens
-- Standardized `count` response property unconditionally in table mode for `pg_jsonb_pretty` to maintain response schema integrity
-- Optimized payload efficiency in `ltree` tools by structurally omitting empty arrays (`results`, `columns`) and enforcing a default `limit` of 50 for pattern matching and queries
-- Optimized payload efficiency in `pg_citext_analyze_candidates` by selectively omitting the default `patternsUsed` array to conserve tokens
+- Standardized `count` response unconditionally in table mode for `pg_jsonb_pretty`
 - Reduced npm package size by excluding source maps and tests
 - Refactored Vitest test suite to use SWC compilation
 - Updated npm dependencies (`@modelcontextprotocol/sdk`, `typescript`, `typescript-eslint`)
@@ -38,6 +36,9 @@
 
 ### Fixed
 - Missing `success: true` properties and standardized P154 error structures across all 230+ tools
+- Standardized error handling to use explicitly structured `ValidationError` instances instead of generic `QUERY_ERROR` or `{success: false}` inline fallbacks across all tools
+- Corrected silent clamping of `limit` and `n` parameters by enforcing explicit `ValidationError` rejections to avoid token payload bloat
+- Implemented payload truncation caps for maximum limits in window statistics, grouped time-series, distinct/frequency analysis, and advanced statistical queries
 - Migration rollback transaction isolation to prevent unmanaged auto-commits
 - Schema state invalidation missing DDL regex detection
 - Code Mode evaluation bypasses on readonly fields, schema errors, and exposed aliases
@@ -46,7 +47,7 @@
 - Introspection cascade simulator truncating self-referencing foreign keys
 - Partman initialization routines failing on missing child tables
 - Metadata caching defects causing stale schema artifacts and Code Mode invalidation failures
-- Inconsistent 'does not exist' error messaging, regex matching, and validation leaks across multiple tool groups
+- Inconsistent 'does not exist' error messaging, regex matching, and validation leaks
 - Missing positional mappings for Introspection and Migration Code Mode aliases
 - Transaction ID propagation gaps in `text` and `vector` tools
 - Missing column headers and unbounded payloads in `pg_copy_export` empty table executions
@@ -59,29 +60,14 @@
 - Inaccurate `summary` statistics in `pg_cron_job_run_details` when limits were applied
 - Inactive job failures in `pg_cron_unschedule` handled via `jobId` fallback lookups
 - JavaScript string arithmetic bugs in transaction boundary tests
-- Error category refinements in `PostgresMcpError` overriding generic instantiations
 - Explicit warnings for zero rows affected in JSONB write operations
 - Docker Hub rate-limit blocks during multi-arch image pipelines by enforcing authenticated pulls
-- 'pg_jsonb_normalize' incorrectly requiring 'table' and 'column' parameters for standalone 'json' instances
-- Handled native Error conversions to explicit `ValidationError` mappings preventing generic `QUERY_ERROR` fallbacks in JSONB operations
-- Kcache tools (`queryStats`, `topCpu`, `topIo`, `resourceAnalysis`) silently clamping `limit: 0` to 10 instead of rejecting with `VALIDATION_ERROR`
-- Replaced generic `{success: false}` error responses in `ltree` tools with structured `ValidationError` instances for table, column, and extension validation checks
-- Standardized `pg_drop_schema` to intercept native Postgres dependency errors and re-throw them as explicitly structured `ValidationError` instances
-- Mapped schema filtering validation checks in `pg_list_sequences` to throw `VALIDATION_ERROR` rather than generic `QUERY_ERROR`
-- Enforced positive integer validation via Zod in admin backend cancellation tools to natively surface `VALIDATION_ERROR` and prevent DB propagation
-- Fixed parse timing defects in admin vacuum and analyze tools that prematurely logged progress before validation failures
-- Verified advanced stress tests for the admin tool group, confirming boundary state handling, exact error routing (TABLE_NOT_FOUND), and Code Mode parity without payload bloat
-- Corrected schema documentation for `pg_audit_list_backups` to reflect the implemented default limit of 20 instead of 50
-- Enforced explicitly structured `ValidationError` instances for `limit <= 0` or `n <= 0` in all stats tools (window statistics, time-series, advanced), preventing silent valid defaults
-- Implemented payload truncation caps for maximum limits in window statistics, grouped time-series, distinct/frequency analysis, and advanced `pg_stats_top_n` queries
-- Replaced inline `success: false` object returns with explicitly structured `ValidationError` throws in Stats tools (correlation, hypothesis, distribution)
-- Added rigorous `sampleSize` validation in `pg_stats_sampling` to prevent undefined behavior and token bloat on negative boundaries
-- Verified advanced stress tests for the stats tool group, confirming edge cases with empty tables, missing numeric exceptions, Code Mode window function pipelines, and regression boundaries without payload bloat
-- Verified advanced stress tests for the backup tool group, confirming snapshot lifecycle integrity, non-destructive `restoreAs` isolation, Code Mode `pg_execute_code` audit tracking, and volume drift accuracy without payload bloat
-- Verified advanced stress tests for the citext tool group, confirming edge cases with missing schema handles, proper Code Mode idempotent array conversions, payload truncation handling for `limit: 0`, and explicit schema error wrapping (avoiding `QUERY_ERROR`) without payload bloat
-- Fixed dot-splitting table parser in `citext` schemas failing on regex-heavy identifier names
-- Added `toType` parameter to `pg_citext_convert_column` enabling native conversion of citext columns back to pure `text` types
-- Enforced explicitly structured `ValidationError` instances for `limit <= 0` or `limit > 100` in `pg_citext_list_columns` and `pg_citext_analyze_candidates`, replacing silent clamping with strict rejection to prevent token bloat
+- `pg_jsonb_normalize` incorrectly requiring `table` and `column` parameters for standalone `json` instances
+- Intercepted native Postgres dependency errors in `pg_drop_schema` to re-throw structured validation errors
+- Parsing timing defects in admin vacuum/analyze tools causing progress logging before validation failures
+- Incorrect schema documentation for `pg_audit_list_backups` limit defaults
+- Dot-splitting parser in `citext` schemas failing on regex-heavy identifier names
+
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Replaced inline error returns across JSONB tools with structured `ValidationError` instances, preserving standard error output
