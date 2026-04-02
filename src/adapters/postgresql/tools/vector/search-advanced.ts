@@ -33,6 +33,8 @@ export function createHybridSearchTool(
     tableName: z.string().optional().describe("Alias for table"),
     vectorColumn: z.string().optional().describe("Vector column"),
     vectorCol: z.string().optional().describe("Alias for vectorColumn"),
+    column: z.string().optional().describe("Alias for vectorColumn"),
+    col: z.string().optional().describe("Alias for vectorColumn"),
     textColumn: z.string().optional().describe("Text column for FTS"),
     vector: z.array(z.number()).optional().describe("Query vector"),
     queryVector: z.array(z.number()).optional().describe("Alias for vector"),
@@ -49,7 +51,7 @@ export function createHybridSearchTool(
 
   const HybridSearchSchema = HybridSearchSchemaBase.transform((data) => ({
     table: data.table ?? data.tableName ?? "",
-    vectorColumn: data.vectorColumn ?? data.vectorCol ?? "",
+    vectorColumn: data.vectorColumn ?? data.vectorCol ?? data.column ?? data.col ?? "",
     textColumn: data.textColumn,
     vector: data.vector ?? data.queryVector,
     textQuery: data.textQuery ?? data.queryText,

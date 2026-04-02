@@ -437,6 +437,8 @@ export function createVectorDimensionReduceTool(
           success: false,
           error:
             "Either vector (for direct mode) or table+column (for table mode) must be provided",
+          code: "VALIDATION_ERROR",
+          category: "validation",
           suggestion:
             "Provide vector: [...] OR table: '...' and column: '...'",
         };
