@@ -66,7 +66,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Enforced required `warningThreshold` and `criticalThreshold` validations in `pg_alert_threshold_set`
 - Mapped Postgres authorization bounds error (`42501`) gracefully to structured error payloads
 - Added `like` alias parameter support and deduplicated wildcard logic in `pg_show_settings`
-
+- Added missing `success: true` fields to responses across `pg_capacity_planning`, `pg_alert_threshold_set`, and other monitoring group tools
 ### Security
 - Replaced raw Postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows

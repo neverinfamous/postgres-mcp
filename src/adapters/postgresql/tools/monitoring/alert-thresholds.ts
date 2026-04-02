@@ -101,12 +101,14 @@ export function createAlertThresholdSetTool(
 
         if (parsed.metric && thresholds[parsed.metric]) {
           return Promise.resolve({
+            success: true,
             metric: parsed.metric,
             threshold: thresholds[parsed.metric],
           });
         }
 
         return Promise.resolve({
+          success: true,
           thresholds,
           note: "These are recommended starting thresholds. Adjust based on your specific workload and requirements.",
         });

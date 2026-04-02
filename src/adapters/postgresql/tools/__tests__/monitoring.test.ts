@@ -1210,21 +1210,21 @@ describe("monitoring.ts branch coverage", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = tools.find((t) => t.name === "pg_database_size")!;
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   it("pg_server_version returns undefined row", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = tools.find((t) => t.name === "pg_server_version")!;
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   it("pg_uptime returns undefined row", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = tools.find((t) => t.name === "pg_uptime")!;
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   it("pg_resource_usage_analyze PG17+ code path", async () => {
@@ -1796,7 +1796,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = findTool("pg_database_size");
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   // basic.ts L68-72: pg_database_size DB error
@@ -1818,7 +1818,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = findTool("pg_server_version");
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   // basic.ts L336-340: pg_server_version DB error
@@ -1839,7 +1839,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = findTool("pg_uptime");
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   // basic.ts L478-482: pg_uptime DB error

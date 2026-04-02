@@ -128,6 +128,7 @@ export function createCapacityPlanningTool(
       const totalDeletesRaw = tableData?.["total_deletes"];
 
       return {
+        success: true,
         current: {
           databaseSize: coercedDbSize,
           tableCount:

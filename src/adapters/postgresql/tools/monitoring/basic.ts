@@ -69,8 +69,9 @@ export function createDatabaseSizeTool(
         const row = result.rows?.[0] as
           | { bytes: string | number; size: string }
           | undefined;
-        if (!row) return row;
+        if (!row) return { success: true };
         return {
+          success: true,
           ...row,
           bytes: parseInt(String(row.bytes), 10),
         };
@@ -167,6 +168,7 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
         return {
+          success: true,
           tables,
           count: tables.length,
           totalCount,
@@ -174,7 +176,7 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
         };
       }
 
-      return { tables, count: tables.length };
+      return { success: true, tables, count: tables.length };
     },
   };
 }
@@ -253,6 +255,7 @@ export function createConnectionStatsTool(
         const maxRaw = maxConnections;
 
         return {
+          success: true,
           byDatabaseAndState,
           totalConnections:
             typeof totalRaw === "number"
@@ -302,13 +305,13 @@ export function createReplicationStatusTool(
                               pg_last_wal_receive_lsn() as receive_lsn,
                               pg_last_wal_replay_lsn() as replay_lsn`;
           const result = await adapter.executeQuery(sql);
-          return { role: "replica", ...result.rows?.[0] };
+          return { success: true, role: "replica", ...result.rows?.[0] };
         } else {
           const sql = `SELECT client_addr, state, sent_lsn, write_lsn, flush_lsn, replay_lsn,
                               now() - backend_start as connection_duration
                               FROM pg_stat_replication`;
           const result = await adapter.executeQuery(sql);
-          return { role: "primary", replicas: result.rows };
+          return { success: true, role: "primary", replicas: result.rows };
         }
       } catch (err) {
         return formatHandlerErrorResponse(err, { tool: "pg_replication_status" });
@@ -341,8 +344,9 @@ export function createServerVersionTool(
         const row = result.rows?.[0] as
           | { full_version: string; version: string; version_num: string }
           | undefined;
-        if (!row) return row;
+        if (!row) return { success: true };
         return {
+          success: true,
           ...row,
           version_num: parseInt(row.version_num, 10),
         };
@@ -421,6 +425,7 @@ export function createShowSettingsTool(
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
         return {
+          success: true,
           settings: rows,
           count: rows.length,
           totalCount,
@@ -429,6 +434,7 @@ export function createShowSettingsTool(
       }
 
       return {
+        success: true,
         settings: rows,
         count: rows.length,
       };
@@ -458,7 +464,7 @@ export function createUptimeTool(adapter: PostgresAdapter): ToolDefinition {
         const row = result.rows?.[0] as
           | { start_time: string; total_seconds: string | number }
           | undefined;
-        if (!row) return row;
+        if (!row) return { success: true };
 
         // Parse total seconds into components
         const totalSeconds = Number(row.total_seconds);
@@ -469,6 +475,7 @@ export function createUptimeTool(adapter: PostgresAdapter): ToolDefinition {
         const milliseconds = parseFloat(((totalSeconds % 1) * 1000).toFixed(3));
 
         return {
+          success: true,
           start_time: row.start_time,
           uptime: {
             days,
@@ -508,7 +515,7 @@ export function createRecoveryStatusTool(
                               ELSE NULL
                           END as last_replay_timestamp`;
         const result = await adapter.executeQuery(sql);
-        return result.rows?.[0];
+        return { success: true, ...result.rows?.[0] };
       } catch (err) {
         return formatHandlerErrorResponse(err, { tool: "pg_recovery_status" });
       }

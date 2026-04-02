@@ -183,6 +183,7 @@ export function createResourceUsageAnalyzeTool(
         : undefined;
 
       return {
+        success: true,
         backgroundWriter: coercedBgWriter,
         checkpoints: coercedCheckpoints,
         connectionDistribution: coercedConnDist,
