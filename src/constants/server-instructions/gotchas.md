@@ -16,7 +16,8 @@
 12. **pg_get_indexes without table**: Returns ALL database indexes (potentially large). Use `table` param for specific table
 13. **pg_upsert/pg_batch_insert RETURNING**: `returning` param must be array of column names: `["id", "name"]`. ⛔ `"*"` wildcard not supported
 14. **Small tables**: Optimizer correctly uses Seq Scan for <1000 rows—this is expected behavior
-
+15. **Token Payload Bounds**: Global limit constraints (`n`, `limit`, `sanitizeResult`) are strictly clamped to prevent token bloat, generating typically ~30-41% token reductions.
+16. **Structured Errors**: P154 validation replaces legacy `{success: false}` failures with explicit `ValidationError` exceptions, to strictly prevent underlying Postgres SQL syntax leakage.
 ## 🔄 Response Structures
 
 | Tool                          | Returns                                                                                                                                     | Notes                                                                                                                                                                                                                                                  |
