@@ -156,11 +156,18 @@ const ERROR_SUGGESTIONS: {
     code: "SCHEMA_NOT_FOUND",
   },
   {
-    pattern: /index ".*" does not exist/i,
+    pattern: /index ["'].*["'] (?:does not exist|not found)/i,
     suggestion:
       "Index not found. Use pg_get_indexes to see available indexes.",
     category: ErrorCategory.RESOURCE,
     code: "INDEX_NOT_FOUND",
+  },
+  {
+    pattern: /no previously clustered index/i,
+    suggestion:
+      "An index is required for clustering. Provide an 'index' name, or cluster a table that was previously clustered.",
+    category: ErrorCategory.VALIDATION,
+    code: "VALIDATION_ERROR",
   },
   {
     pattern: /database ".*" does not exist/i,

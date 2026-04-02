@@ -287,6 +287,12 @@ export function parsePostgresError(
       context.tool === "pg_cluster" &&
       (/index/i.test(msg) || context.index)
     ) {
+      if (/there is no previously clustered index/i.test(msg)) {
+        throw new Error(
+          `An index is required for clustering. Provide an 'index' name, or cluster a table that was previously clustered.`,
+          { cause: error },
+        );
+      }
       const match = /index "([^"]+)"/i.exec(msg);
       const indexName = match?.[1] ?? context.index ?? "unknown";
       throw new Error(
