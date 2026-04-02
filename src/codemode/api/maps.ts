@@ -619,10 +619,10 @@ export const OBJECT_WRAP_MAP: Record<
 > = {
   object: {
     wrapKey: "data",
-    skipKeys: ["data", "object", "pairs"],
-  }, // pg.jsonb.object({key: val}) → {data: {key: val}}
+    skipKeys: ["data", "object", "pairs", "keys", "values"],
+  }, // pg.jsonb.object({key: val}) → {data: {key: val}}; parallel arrays passed through
   jsonbObject: {
     wrapKey: "data",
-    skipKeys: ["data", "object", "pairs"],
+    skipKeys: ["data", "object", "pairs", "keys", "values"],
   }, // alias
 };
