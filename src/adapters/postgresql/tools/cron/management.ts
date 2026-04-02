@@ -139,8 +139,19 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
           coercedLimit >= 0
             ? Math.floor(coercedLimit)
             : undefined;
+        if (limitRaw === 0) {
+          return {
+            count: 0,
+            success: false,
+            error: "limit: 0 is not allowed. To retrieve all records safely, omit the limit parameter which defaults to 50, or explicitly request a bounded limit.",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
+          };
+        }
+        
         // Get total count first if we're limiting
-        const limitVal = limitRaw === 0 ? null : (limitRaw ?? 50);
+        const limitVal = limitRaw ?? 50;
         let totalCount: number | undefined;
 
         if (limitVal !== null) {
@@ -294,8 +305,18 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
         const whereClause =
           conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-        // Handle limit: 0 as "no limit" (return all rows), consistent with other AI-optimized tools
-        const limitVal = limit === 0 ? null : (limit ?? 10);
+        if (limit === 0) {
+          return {
+            count: 0,
+            success: false,
+            error: "limit: 0 is not allowed. To retrieve all records safely, omit the limit parameter which defaults to 10, or explicitly request a bounded limit.",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
+          };
+        }
+
+        const limitVal = limit ?? 10;
 
         // Get total count for truncation indicator (only needed when limiting)
         let totalCount: number | undefined;

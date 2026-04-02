@@ -458,8 +458,8 @@ describe("Error Handling", () => {
     expect(result).toMatchObject({
       success: false,
       error: 'extension "postgis" is not available',
-      code: 'QUERY_ERROR',
-      category: 'config'
+      code: "EXTENSION_NOT_AVAILABLE",
+      category: "config",
     });
   });
 });

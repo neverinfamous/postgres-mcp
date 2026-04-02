@@ -12,9 +12,9 @@
 
 import { test, expect } from "./fixtures.js";
 
-const RATE_PORT_1 = 3104;
-const RATE_PORT_2 = 3105;
-const RATE_PORT_3 = 3106;
+const RATE_PORT_1 = 4104;
+const RATE_PORT_2 = 4105;
+const RATE_PORT_3 = 4106;
 
 test.describe.serial("Rate Limiting", () => {
   test("should return 429 after exceeding rate limit", async () => {

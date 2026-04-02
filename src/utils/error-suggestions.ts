@@ -135,6 +135,13 @@ const ERROR_SUGGESTIONS: {
     code: "OBJECT_NOT_FOUND",
   },
   {
+    pattern: /Job .* not found/i,
+    suggestion:
+      "Job not found. Use pg_cron_list_jobs to see available jobs.",
+    category: ErrorCategory.RESOURCE,
+    code: "JOB_NOT_FOUND",
+  },
+  {
     pattern: /column ["'].*["'] (does not exist|not found)/i,
     suggestion:
       "Column not found. Use pg_describe_table to see available columns.",
@@ -284,6 +291,7 @@ const ERROR_SUGGESTIONS: {
     suggestion:
       "Extension is not installed on this PostgreSQL server. Contact your database administrator.",
     category: ErrorCategory.CONFIGURATION,
+    code: "EXTENSION_NOT_AVAILABLE",
   },
 
   // Codemode errors
