@@ -14,6 +14,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   sanitizeIdentifier,
   sanitizeIdentifiers,
@@ -21,7 +22,6 @@ import {
 } from "../../../../utils/identifiers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
-  coerceLimit,
   buildLimitClause,
 } from "../../../../utils/query-helpers.js";
 import {
@@ -104,7 +104,18 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        const limitVal = coerceLimit(parsed.limit);
+        const safeLimit = parsed.limit as number | undefined;
+        let limitVal = 100;
+        if (safeLimit !== undefined) {
+          if (safeLimit < 0) {
+            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+          } else if (safeLimit === 0) {
+            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+          } else if (safeLimit > 100) {
+            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+          }
+          limitVal = safeLimit;
+        }
         const limitClause = buildLimitClause(limitVal);
 
         const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
@@ -117,7 +128,7 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
           ...(truncated
             ? {
                 truncated: true,
-                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+                hint: `Results limited to ${String(limitVal)}. Use a higher limit or refine your query.`,
               }
             : {}),
         };

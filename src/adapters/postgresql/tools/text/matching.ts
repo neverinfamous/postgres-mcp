@@ -22,7 +22,6 @@ import {
 } from "../../../../utils/identifiers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
-  coerceLimit,
   buildLimitClause,
 } from "../../../../utils/query-helpers.js";
 import {
@@ -65,7 +64,18 @@ export function createTrigramSimilarityTool(
             : isNaN(rawThresh)
               ? 0.3
               : rawThresh;
-        const limitVal = coerceLimit(parsed.limit);
+        const safeLimit = parsed.limit as number | undefined;
+        let limitVal = 100;
+        if (safeLimit !== undefined) {
+          if (safeLimit < 0) {
+            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+          } else if (safeLimit === 0) {
+            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+          } else if (safeLimit > 100) {
+            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+          }
+          limitVal = safeLimit;
+        }
         const limitClause = buildLimitClause(limitVal);
 
         // The preprocessor guarantees table is set (converts tableName → table)
@@ -100,7 +110,7 @@ export function createTrigramSimilarityTool(
           ...(truncated
             ? {
                 truncated: true,
-                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+                hint: `Results limited to ${String(limitVal)}. Use a higher limit or refine your query.`,
               }
             : {}),
         };
@@ -183,7 +193,18 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
             : isNaN(rawMaxDist)
               ? 3
               : rawMaxDist;
-        const limitVal = coerceLimit(parsed.limit);
+        const safeLimit = parsed.limit as number | undefined;
+        let limitVal = 100;
+        if (safeLimit !== undefined) {
+          if (safeLimit < 0) {
+            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+          } else if (safeLimit === 0) {
+            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+          } else if (safeLimit > 100) {
+            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+          }
+          limitVal = safeLimit;
+        }
         const limitClause = buildLimitClause(limitVal);
 
         // The preprocessor guarantees table is set (converts tableName → table)
@@ -222,7 +243,7 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
           ...(truncated
             ? {
                 truncated: true,
-                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+                hint: `Results limited to ${String(limitVal)}. Use a higher limit or refine your query.`,
               }
             : {}),
         };
@@ -272,7 +293,18 @@ export function createRegexpMatchTool(
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        const limitVal = coerceLimit(parsed.limit);
+        const safeLimit = parsed.limit as number | undefined;
+        let limitVal = 100;
+        if (safeLimit !== undefined) {
+          if (safeLimit < 0) {
+            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+          } else if (safeLimit === 0) {
+            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+          } else if (safeLimit > 100) {
+            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+          }
+          limitVal = safeLimit;
+        }
         const limitClause = buildLimitClause(limitVal);
 
         const sql = `SELECT ${selectCols} FROM ${tableName} WHERE ${columnName} ${op} $1${additionalWhere}${limitClause}`;
@@ -285,7 +317,7 @@ export function createRegexpMatchTool(
           ...(truncated
             ? {
                 truncated: true,
-                hint: `Results limited to ${String(limitVal)}. Use limit: 0 for all rows.`,
+                hint: `Results limited to ${String(limitVal)}. Use a higher limit or refine your query.`,
               }
             : {}),
         };
