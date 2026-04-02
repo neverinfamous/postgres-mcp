@@ -93,7 +93,7 @@ export function createVectorDistanceTool(
 
         const sql = `SELECT '${v1}'::vector ${op} '${v2}':: vector as distance`;
         const result = await adapter.executeQuery(sql);
-        return { distance: result.rows?.[0]?.["distance"], metric };
+        return { success: true, distance: result.rows?.[0]?.["distance"], metric };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_vector_distance" });
       }
@@ -149,7 +149,7 @@ export function createVectorNormalizeTool(): ToolDefinition {
 
         const normalized = parsed.vector.map((x) => x / magnitude);
 
-        return Promise.resolve({ normalized, magnitude });
+        return Promise.resolve({ success: true, normalized, magnitude });
       } catch (error: unknown) {
         return Promise.resolve(formatHandlerErrorResponse(error, { tool: "pg_vector_normalize" }));
       }

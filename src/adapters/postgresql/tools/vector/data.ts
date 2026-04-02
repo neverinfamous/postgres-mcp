@@ -122,6 +122,8 @@ export function createVectorExtensionTool(
     icons: getToolIcons("vector", write("Create Vector Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
       try {
+        const ExtensionSchema = z.object({}).strict();
+        ExtensionSchema.parse(_params ?? {});
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS vector");
         return { success: true, message: "pgvector extension enabled" };
       } catch (error: unknown) {

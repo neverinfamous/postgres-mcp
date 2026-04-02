@@ -88,6 +88,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Resolved Zod validation handling in `pg_vector_batch_insert` ensuring malformed vector arrays return standard MCP `success: false` schema instead of leaking Zod exceptions
 - Patched idempotency gaps in `pg_vector_create_index` enabling safe resolution when `ifNotExists: true` is triggered on pre-existing indexes
 - Restored missing alias support for `ef_construction` in `pg_vector_create_index`, remediating a Split Schema Pattern violation
+- Enforced strict Zod schema parsing in `pg_vector_create_extension` to close parameter validation leaks
 - Fixed `JsonbIndexSuggestOutputSchema` mismatch in `pg_jsonb_index_suggest` where `keyDistribution` and `existingIndexes` fields were incorrectly nested under `analyzed` rather than matching the root-level emission of the handler
 - Certified Code Mode parity across all 20 Core tools, confirming correct schema propagation for boundary testing, nonexistent variables, alias mapping, and `limit: 0` query resolution
 ### Security
