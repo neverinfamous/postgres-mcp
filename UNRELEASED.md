@@ -65,6 +65,8 @@
 - Handled native Error conversions to explicit `ValidationError` mappings preventing generic `QUERY_ERROR` fallbacks in JSONB operations
 - Kcache tools (`queryStats`, `topCpu`, `topIo`, `resourceAnalysis`) silently clamping `limit: 0` to 10 instead of rejecting with `VALIDATION_ERROR`
 - Replaced generic `{success: false}` error responses in `ltree` tools with structured `ValidationError` instances for table, column, and extension validation checks
+- Standardized `pg_drop_schema` to intercept native Postgres dependency errors and re-throw them as explicitly structured `ValidationError` instances
+- Mapped schema filtering validation checks in `pg_list_sequences` to throw `VALIDATION_ERROR` rather than generic `QUERY_ERROR`
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

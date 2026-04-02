@@ -5,107 +5,76 @@
 - Execute **EVERY** numbered stress test below using code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not run test-tools-advanced-1.md, test-tools-advanced-2.md, test-tools-advanced-3.md, test-tools-advanced-5.md, test-tools-advanced-6.md, test-tools-advanced-7.md, test-tools-advanced-8.md.
+- Do not run any other test files.
 - All changes **MUST** be consistent with other postgres-mcp tools and `code-map.md`.
 - Do not do anything other than these tests.
 - Please let me handle Lint, typecheck, vitest, and playwright. You cannot restart the server in antigravity as the cache has to be refreshed manually.
 
 ## Code Mode Execution
 
-All tests should be executed via `pg_execute_code` code mode. Tests are written in direct tool call syntax for readability — translate to code mode:
-
-| Direct Tool Call                                     | Code Mode Equivalent                                           |
-| ---------------------------------------------------- | -------------------------------------------------------------- |
-| `pg_read_query({sql: "..."})`                        | `pg.core.readQuery({sql: "..."})`                              |
-| `pg_write_query({sql: "..."})`                       | `pg.core.writeQuery({sql: "..."})`                             |
-| `pg_create_table({table: "...", columns: [...]})`    | `pg.core.createTable({table: "...", columns: [...]})`          |
-| `pg_describe_table({table: "..."})`                  | `pg.core.describeTable({table: "..."})`                        |
-| `pg_drop_table({table: "..."})`                      | `pg.core.dropTable({table: "..."})`                            |
-| `pg_count({table: "..."})`                           | `pg.core.count({table: "..."})`                                |
-| `pg_exists({table: "..."})`                          | `pg.core.exists({table: "..."})`                               |
-| `pg_batch_insert({...})`                             | `pg.core.batchInsert({...})`                                   |
-| `pg_upsert({...})`                                   | `pg.core.upsert({...})`                                        |
-| `pg_transaction_*({...})`                            | `pg.transactions.*({...})`                                     |
-| `pg_jsonb_*({...})`                                  | `pg.jsonb.*({...})`                                            |
-| `pg_text_*` / `pg_trigram_*` / `pg_fuzzy_*` / etc.   | `pg.text.*`                                                    |
-| `pg_stats_*({...})`                                  | `pg.stats.*({...})`                                            |
-| `pg_vector_*({...})`                                 | `pg.vector.*({...})`                                           |
+All tests should be executed via `pg_execute_code` code mode.
 
 **Key rules:**
-
 - Use `pg.<group>.help()` to discover method names and parameters for each group
-- State **persists** across `pg_execute_code` calls — create a table in one call, query it in the next
+- State **persists** across `pg_execute_code` calls
 - Group multiple related tests into a single code mode call when practical
-
-## Test Database Schema
-
-Same as `test-tools.md` — refer to that file for the full schema reference. Key tables: `test_products` (15 rows), `test_orders` (20), `test_jsonb_docs` (3), `test_articles` (3), `test_measurements` (640, after resource seed), `test_embeddings` (75, after resource seed), `test_locations` (25, after resource seed), `test_users` (3), `test_categories` (6), `test_events` (100 across 4 partitions), `test_departments` (3), `test_employees` (5), `test_projects` (2), `test_assignments` (3), `test_audit_log` (3).
-
-> **Note:** `test-resources.sql` runs after `test-database.sql` and adds ~200 measurements (minus deletions), 25 embeddings, and 20 locations. Counts reflect the post-seed state.
 
 ## Naming & Cleanup
 
-- **Temporary tables**: Prefix with `stress_` (e.g., `stress_empty_table`)
-- **Temporary indexes**: Prefix with `stress_idx_`
-- **Temporary views**: Prefix with `stress_view_`
-- **Temporary schemas**: Prefix with `stress_schema_`
-- **Cleanup**: Attempt to remove all `stress_*` objects after testing. If DROP fails, note the leftover objects and move on — they will be cleaned up on next database reset
+- **Temporary tables/schemas**: Prefix with `stress_vector_`
+- **Cleanup**: Attempt to remove all `stress_vector_*` objects after testing.
 
 ## Reporting Format
 
 - ❌ Fail: Tool errors or produces incorrect results (include error message)
 - ⚠️ Issue: Unexpected behavior or improvement opportunity
-- 📦 Payload: Unnecessarily large response that should be optimized — **blocking, equally important as ❌ bugs**. Oversized payloads waste LLM context window tokens and degrade downstream tool-calling quality. **You MUST monitor `metrics.tokenEstimate` for every operation**. Report the response size in tokens/KB and suggest a concrete optimization (e.g., filter system tables, add `compact` option, omit empty arrays).
-- ✅ Confirmed: Edge case handled correctly (use only inline during testing; omit from Final Summary)
+- 📦 Payload: Unnecessarily large response that should be optimized. **You MUST monitor `metrics.tokenEstimate` for every operation**. Report the response size in tokens/KB and suggest a concrete optimization.
+- ✅ Confirmed: Edge case handled correctly (use only inline during testing).
 
 ### Error Code Consistency
 
-When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code (e.g., `TABLE_NOT_FOUND`, `COLUMN_NOT_FOUND`, `VALIDATION_ERROR`). These are fixable in `src/utils/errors/` by adding a `code` override to the matching error class. Treat as ⚠️ Issue and include in fix plan.
+When rating errors, flag any generic code (`RESOURCE_ERROR`, `UNKNOWN_ERROR`) that should be a specific code (e.g., `VALIDATION_ERROR`, `TABLE_NOT_FOUND`).
 
 ## Post-Test Procedures
 
-1. Confirm cleanup of all `stress_*` object and any temporary files you might have created in the repository during testing.
-2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in this prompt and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
-3. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
-4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass, not counting this testing prompt itself. Highlight the single most expensive code mode block.
-5. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
+1. Confirm cleanup of all `stress_vector_*` objects.
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements and 📦 Payload problems.
+3. Update the changelog with any changes made.
+4. **Token Audit**: Sum the `metrics.tokenEstimate` from all your `pg_execute_code` executions and report the **Total Tokens Used** for this test pass.
+5. Stop and briefly summarize the testing results.
 
 ---
 
 ## vector Group Advanced Tests
 
-### vector Group Tools (16 +1 code mode)
+### Category 1: Boundary Values & Empty States
 
-1. pg_vector_create_extension
-2. pg_vector_add_column
-3. pg_vector_insert
-4. pg_vector_batch_insert
-5. pg_vector_search
-6. pg_vector_create_index
-7. pg_vector_distance
-8. pg_vector_normalize
-9. pg_vector_aggregate
-10. pg_vector_validate
-11. pg_vector_cluster
-12. pg_vector_index_optimize
-13. pg_hybrid_search
-14. pg_vector_performance
-15. pg_vector_dimension_reduce
-16. pg_vector_embed
-17. pg_execute_code (auto-added)
+**1.1 Edge Case Creation**
+1. Search vectors using entirely mismatched dimensions (e.g. querying a 1536-dim vector against a 3-dim stored record). Assert `VALIDATION_ERROR` triggers elegantly.
+2. Insert empty arrays `[]` into vector columns.
 
-### Category 1: Vector Dimension Mismatches
+### Category 2: State Pollution & Idempotency
 
-1. `pg_vector_insert` with a 3-dim vector `[1.0, 2.0, 3.0]` into `test_embeddings` (384-dim) → expect dimension error
-2. `pg_vector_search` with a 5-dim query vector on `test_embeddings` → expect dimension error
-3. `pg_vector_validate` with empty vector `[]` → expect `{valid: true, vectorDimensions: 0}`
-4. `pg_vector_validate` with single-element `[1.0]` → expect `{valid: true, vectorDimensions: 1}`
-5. `pg_vector_distance` between vectors of different dimensions `[1,2,3]` vs `[1,2]` (use `vector1` and `vector2` params) → expect error
+**2.1 HNSW / IVFFLAT Idempotency**
+3. Create an HNSW index on `stress_vector_table`. Call drop, then recreate identically. Ensure state logic bounds prevent deadlocks.
 
-### Category 2: Error Message Quality
+### Category 3: Alias & Parameter Combinations
 
-6. `pg_vector_insert` with a 128-dim vector into `test_embeddings` (384-dim, ensure parameter `column: "embedding"`) → expect dimension mismatch error
+4. Test `m` and `ef_construction` parameter aliases if applicable, mapping them through JS properties. 
+
+### Category 4: Error Message Quality
+
+5. Execute similarity searches on tables that do not have `pgvector` columns. Assert `COLUMN_NOT_FOUND` or equivalent validation kicks in avoiding generic syntax crashes.
+
+### Category 5: Large Payload & Truncation Verification
+
+**5.1 High Volume Vector Extracts**
+6. Extract 500 embedding rows in code mode and ensure the payload bounds cleanly estimate the token depth, utilizing `.truncated: true` logic if limits are naturally exceeded.
+
+### Category 6: Code Mode Parity
+
+7. Build vector matrices in code mode using native arrays and write them directly into the DB via `upsert` vs native `pg_write_query` to verify serialization parity for JS arrays → Postgres Vectors.
 
 ### Final Cleanup
 
-Confirm `test_embeddings` count is still 75 (post-resource-seed baseline).
+Drop all `stress_vector_*` tables.

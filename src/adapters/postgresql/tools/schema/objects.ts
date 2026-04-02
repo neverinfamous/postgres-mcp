@@ -15,6 +15,7 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   CreateSchemaSchemaBase,
   CreateSchemaSchema,
@@ -163,6 +164,13 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : String(error);
+          if (msg.includes("because other objects depend on it")) {
+            throw new ValidationError(
+              `Cannot drop schema '${name}' because other objects depend on it. Use cascade: true to drop it and all its objects.`,
+              { schema: name }
+            );
+          }
           return formatHandlerErrorResponse(error, {
               tool: "pg_drop_schema",
               schema: name,
@@ -213,8 +221,8 @@ export function createListSequencesTool(
             return {
               success: false,
               error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-              code: "QUERY_ERROR",
-              category: "query",
+              code: "VALIDATION_ERROR",
+              category: "validation",
               recoverable: false
             };
           }
