@@ -396,7 +396,7 @@ export const BackupScheduleOptimizeOutputSchema = z.object({
 export const AuditListBackupsSchemaBase = z.object({
   tool: z.string().optional().describe("Filter by tool name"),
   target: z.string().optional().describe("Filter by target object name"),
-  limit: z.number().optional().describe("Max snapshots to return (default: 50, max: 500, use 0 for unlimited up to 500)"),
+  limit: z.number().optional().describe("Max snapshots to return (default: 20, max: 500, use 0 for unlimited up to 500)"),
   compact: z.boolean().optional().describe("If true, omits full schema/type properties on the payload to save tokens (default: auto if > 20)"),
 });
 

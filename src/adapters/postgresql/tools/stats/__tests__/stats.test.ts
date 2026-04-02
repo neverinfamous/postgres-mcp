@@ -2253,18 +2253,7 @@ describe("pg_stats_time_series optional params", () => {
     );
   });
 
-  it("should handle limit:0 for no limit", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "1": 1 }] });
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ data_type: "timestamp without time zone" }],
-    });
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ data_type: "numeric" }],
-    });
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ time_bucket: "2024-01-01", value: 100, count: 10 }],
-    });
-
+  it("should return error for limit:0", async () => {
     const tool = tools.find((t) => t.name === "pg_stats_time_series")!;
     const result = (await tool.handler(
       {
@@ -2275,9 +2264,11 @@ describe("pg_stats_time_series optional params", () => {
         limit: 0,
       },
       mockContext,
-    )) as Record<string, unknown>;
-    // With limit:0, no LIMIT clause should be present, and no truncation
-    expect(result.buckets).toBeDefined();
+    )) as { success: boolean; error: string; code?: string };
+    
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.error).toContain("must be greater than 0");
   });
 
   it("should handle groupBy with groupLimit", async () => {
