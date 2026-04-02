@@ -1,4 +1,6 @@
-# postgres-mcp Tool Group Re-Testing: [jsonb]
+# postgres-mcp Tool Group Re-Testing: [core] (Part 2)
+
+> **NOTICE**: This file has been split to optimize token footprint. This is Part 2.
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -219,88 +221,75 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 ---
 
-## Group Focus: jsonb
+## Group Focus: core
 
-### jsonb Group-Specific Testing
+### core Group-Specific Testing
 
-jsonb Tool Group (20 tools +1 for code mode):
+core Tool Group (20 tools +1 for code mode):
 
-1. 'pg_jsonb_extract'
-2. 'pg_jsonb_set'
-3. 'pg_jsonb_insert'
-4. 'pg_jsonb_delete'
-5. 'pg_jsonb_contains'
-6. 'pg_jsonb_path_query'
-7. 'pg_jsonb_agg'
-8. 'pg_jsonb_object'
-9. 'pg_jsonb_array'
-10. 'pg_jsonb_keys'
-11. 'pg_jsonb_strip_nulls'
-12. 'pg_jsonb_typeof'
-13. 'pg_jsonb_validate_path'
-14. 'pg_jsonb_stats'
-15. 'pg_jsonb_merge'
-16. 'pg_jsonb_normalize'
-17. 'pg_jsonb_diff'
-18. 'pg_jsonb_index_suggest'
-19. 'pg_jsonb_security_scan'
-20. 'pg_jsonb_pretty'
+11. 'pg_object_details'
+12. 'pg_list_extensions'
+13. 'pg_analyze_db_health'
+14. 'pg_analyze_workload_indexes'
+15. 'pg_analyze_query_indexes'
+16. 'pg_upsert' (convenience)
+17. 'pg_batch_insert' (convenience)
+18. 'pg_count' (convenience)
+19. 'pg_exists' (convenience)
+20. 'pg_truncate' (convenience)
 21. 'pg_execute_code' (codemode, auto-added)
+
+All tools implement P154 structured error handling for nonexistent tables/schemas. The 5 convenience tools (pg_count, pg_exists, pg_upsert, pg_batch_insert, pg_truncate) use explicit pre-checks and serve as canonical P154 verification targets. Test with `test_products` and `test_orders`.
 
 > **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
 
-**Test data:** Use `test_jsonb_docs` table which has these JSONB structures:
+**Convenience tools (P154 canonical targets):**
 
-- `metadata`: `{"type": "article", "author": "Alice", "views": 100}` / `{"type": "video", "author": "Bob", "duration": 3600}`
-- `settings`: `{"theme": "dark", "notifications": true}` / `{"quality": "hd", "autoplay": false}`
-- `tags`: `["tech", "news"]` / `["entertainment"]` / `["tech", "tutorial"]`
-- Nested access: `test_jsonb_docs` row 3 has `metadata.nested.level1.level2 = "deep"`
-- `test_events.payload` — `{"page": "home"}`
+1. `pg_count({table: "test_products"})` → `{count: 15}`
+2. `pg_count({table: "test_products", where: "price > $1", params: [50]})` → `{count: N}` where N > 0
+3. `pg_count({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` mentioning table name
+4. `pg_count({table: "fake_schema.test_products"})` → `{success: false, error: "..."}` mentioning schema
+5. `pg_exists({table: "test_products"})` → `{exists: true, mode: "any_rows"}`
+6. `pg_exists({table: "test_products", where: "id = $1", params: [1]})` → `{exists: true, mode: "filtered"}`
+7. `pg_exists({table: "test_products", where: "id = $1", params: [99999]})` → `{exists: false, mode: "filtered"}`
+8. `pg_exists({table: "nonexistent_table_xyz"})` → `{success: false}` structured error
+9. `pg_truncate({table: "nonexistent_table_xyz"})` → `{success: false}` structured error
+10. `pg_batch_insert({table: "nonexistent_table_xyz", rows: [{id: 1}]})` → `{success: false}` structured error
+11. `pg_upsert({table: "nonexistent_table_xyz", data: {id: 1}, conflictColumns: ["id"]})` → `{success: false}` structured error
 
-**Checklist:**
+**Read/Write/Schema tools:**
 
-1. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "author", where: "id = 1"})` → result contains `"Alice"`
-2. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "nested.level1.level2", where: "id = 3"})` → result contains `"deep"`
-3. `pg_jsonb_keys({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → keys include `type`, `author`, `views`
-4. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "tags", where: "id = 1"})` → `"array"`
-5. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → `"object"`
-6. `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", contains: {"type": "article"}, where: "id = 1"})` → true
-7. `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata"})` → verify `topKeys` present, `typeDistribution` present
-8. `pg_jsonb_validate_path({path: "$.a.b.c"})` → valid (note: validates JSONPath syntax, not dot-notation — `"a.b.c"` is invalid JSONPath)
-9. `pg_jsonb_diff({doc1: {"a": 1, "b": 2}, doc2: {"a": 1, "c": 3}})` → verify `differences` array with `status` field (`"added"`, `"removed"`, `"modified"`), `hasDifferences: true`
-
-**pg_jsonb_pretty:**
-
-10. `pg_jsonb_pretty({json: "{\"a\":1,\"b\":2}"})` → verify pretty-printed JSON string with indentation
-11. `pg_jsonb_pretty({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → verify formatted output contains `"author": "Alice"` with indentation
-12. 🔴 `pg_jsonb_pretty({})` → `{success: false, error: "..."}` (Zod validation — must provide either `json` or `table`+`column`)
+16. `pg_object_details({name: "test_order_summary", type: "view"})` → verify `definition` field present
+18. `pg_list_extensions()` → verify response includes `pgcrypto`, `pg_trgm`, `vector` (or other installed extensions)
+19. `pg_analyze_db_health()` → verify `overallStatus` is one of: `healthy`, `needs_attention`, `critical`
+20. `pg_analyze_workload_indexes()` → verify response structure with `recommendations` or `queries` array
+21. `pg_analyze_query_indexes({sql: "SELECT * FROM test_products WHERE name = 'Widget'"})` → verify `plan` and `recommendations` fields present
 
 **Domain error paths (🔴):**
 
-13. 🔴 `pg_jsonb_extract({table: "nonexistent_xyz", column: "data", path: "key"})` → `{success: false, error: "..."}` handler error
-14. 🔴 `pg_jsonb_keys({})` → `{success: false, error: "..."}` (Zod validation)
-15. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
-16. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", value: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` to 100 and return valid results (wrong-type numeric param coercion)
+**Zod validation error paths (🔴 — verify `"Validation error: ..."` format, NOT raw JSON array):**
 
-17. `pg_jsonb_index_suggest()` → verify happy path expected behavior
-18. 🔴 `pg_jsonb_index_suggest({})` → verify structured P154 error response or valid defaults
-19. `pg_jsonb_security_scan()` → verify happy path expected behavior
-20. 🔴 `pg_jsonb_security_scan({})` → verify structured P154 error response or valid defaults
-21. `pg_jsonb_agg()` → verify happy path expected behavior
-22. 🔴 `pg_jsonb_agg({})` → verify structured P154 error response or valid defaults
-23. `pg_jsonb_path_query()` → verify happy path expected behavior
-24. 🔴 `pg_jsonb_path_query({})` → verify structured P154 error response or valid defaults
-25. `pg_jsonb_merge()` → verify happy path expected behavior
-26. 🔴 `pg_jsonb_merge({})` → verify structured P154 error response or valid defaults
-27. `pg_jsonb_normalize()` → verify happy path expected behavior
-28. 🔴 `pg_jsonb_normalize({})` → verify structured P154 error response or valid defaults
-29. `pg_jsonb_array()` → verify happy path expected behavior
-30. 🔴 `pg_jsonb_array({})` → verify structured P154 error response or valid defaults
-31. `pg_jsonb_strip_nulls()` → verify happy path expected behavior
-32. 🔴 `pg_jsonb_strip_nulls({})` → verify structured P154 error response or valid defaults
-33. `pg_jsonb_set()` → verify happy path expected behavior
-34. 🔴 `pg_jsonb_set({})` → verify structured P154 error response or valid defaults
-35. `pg_jsonb_insert()` → verify happy path expected behavior
-36. 🔴 `pg_jsonb_insert({})` → verify structured P154 error response or valid defaults
-37. `pg_jsonb_delete()` → verify happy path expected behavior
-38. 🔴 `pg_jsonb_delete({})` → verify structured P154 error response or valid defaults
+36. 🔴 `pg_count({params: ["not_a_number"]})` → `{success: false, error: "..."}` structured error for bad param type
+
+**Alias acceptance (verify aliases produce identical results to primary parameter name):**
+
+37. `pg_count({tableName: "test_products"})` → same result as item 1 (`{count: 15}`)
+38. `pg_count({table: "test_products", condition: "price > 50"})` → same as `where` alias
+40. `pg_exists({tableName: "test_products"})` → works via `tableName` alias for `table`
+42. `pg_analyze_query_indexes({query: "SELECT * FROM test_products"})` → works via `query` alias for `sql`
+
+**Create → Use → Drop lifecycle (temp tables):**
+
+44. `pg_batch_insert({table: "temp_lifecycle", rows: [{name: "Alice"}, {name: "Bob"}], returning: ["id", "name"]})` → verify returned rows with auto-generated IDs
+45. `pg_upsert({table: "temp_lifecycle", data: {id: 1, name: "Alice Updated"}, conflictColumns: ["id"]})` → verify update
+46. `pg_count({table: "temp_lifecycle"})` → `{count: 2}`
+49. `pg_truncate({table: "temp_lifecycle", restartIdentity: true})` → `{success: true}`
+50. `pg_count({table: "temp_lifecycle"})` → `{count: 0}`
+
+**Code mode (`pg_execute_code`) deterministic items:**
+
+53. `pg_execute_code({code: "return await pg.core.help()"})` → verify lists ~20 core methods
+54. `pg_execute_code({code: "return await pg.count('test_products')"})` → verify works via top-level alias
+55. `pg_execute_code({code: "return await pg.exists('test_products', 'id = 1')"})` → verify positional args work
+56. `pg_execute_code({code: "return await pg.core.readQuery({sql: 'SELECT 1 AS n'})"})` → verify `{rows: [{n: 1}]}`
+57. `pg_execute_code({code: "return await pg.readQuery({sql: 'SELECT * FROM nonexistent_xyz'})"})` → verify error is returned (not thrown), contains `{success: false}` or error object

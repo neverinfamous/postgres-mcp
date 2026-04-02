@@ -1,4 +1,6 @@
-# postgres-mcp Codemode Re-Testing: [postgis]
+# postgres-mcp Tool Group Re-Testing: [vector] (Part 2)
+
+> **NOTICE**: This file has been split to optimize token footprint. This is Part 2.
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -216,66 +218,43 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 ---
 
-## Group Focus: postgis
+## Group Focus: vector
 
-### postgis Group-Specific Testing
+### vector Group-Specific Testing
 
-postgis Tool Group (15 tools +1 for code mode)
+vector Tool Group (16 tools +1 for code mode)
 
-1. 'pg_postgis_create_extension'
-2. 'pg_geometry_column'
-3. 'pg_point_in_polygon'
-4. 'pg_distance'
-5. 'pg_buffer'
-6. 'pg_intersection'
-7. 'pg_bounding_box'
-8. 'pg_spatial_index'
-9. 'pg_geocode'
-10. 'pg_geo_transform'
-11. 'pg_geo_index_optimize'
-12. 'pg_geo_cluster'
-13. 'pg_geometry_buffer'
-14. 'pg_geometry_intersection'
-15. 'pg_geometry_transform'
-16. 'pg_execute_code' (codemode, auto-added)
+9. pg_vector_aggregate
+10. pg_vector_validate
+11. pg_vector_cluster
+12. pg_vector_index_optimize
+13. pg_hybrid_search
+14. pg_vector_performance
+15. pg_vector_dimension_reduce
+16. pg_vector_embed
+17. pg_execute_code (codemode, auto-added)
 
 > **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
-**Test data:** Uses `test_locations.location` (POINT with SRID 4326, WGS84). GIST index on `location`.
+**Test data:** Uses `test_embeddings` with 384-dimension vectors (50 rows, 5 categories: tech, science, business, sports, entertainment). HNSW index on `embedding` column using cosine distance.
 
-Cities: New York, Los Angeles, Chicago, London, Tokyo.
+**Checklist** (Use Code Mode for vector operations to avoid truncation):
 
-Test distance calculations between cities (e.g., New York ↔ London).
+1. Via code mode: read first embedding from `test_embeddings`, then search with it → verify results returned with distances
+2. `pg_vector_validate({vector: [1.0, 2.0, 3.0]})` → `{valid: true, vectorDimensions: 3}`
+3. `pg_vector_validate({vector: []})` → `{valid: true, vectorDimensions: 0}`
+6. `pg_vector_aggregate({table: "test_embeddings", column: "embedding"})` → verify `{average_vector, count: 50}`
+8. 🔴 `pg_vector_validate({})` → `{success: false, error: "..."}` (Zod validation — missing required `vector`)
 
-**Checklist:**
-
-1. `pg_geocode({lat: 40.7128, lng: -74.006})` → verify `{geojson, wkt}` present
-2. `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: 100000})` → expect: New York in results
-3. `pg_bounding_box({table: "test_locations", column: "location", minLat: 34, maxLat: 42, minLng: -119, maxLng: -73})` → expect: NY, LA, Chicago
-4. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
-5. 🔴 `pg_distance({table: "nonexistent_xyz", column: "geom", lat: 0, lng: 0, distance: 100})` → `{success: false, error: "..."}` handler error
-6. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
-7. 🔴 `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `distance` (wrong-type numeric param)
-
-13. `pg_geo_transform()` → verify happy path expected behavior
-14. 🔴 `pg_geo_transform({})` → verify structured P154 error response or valid defaults
-15. `pg_point_in_polygon()` → verify happy path expected behavior
-16. 🔴 `pg_point_in_polygon({})` → verify structured P154 error response or valid defaults
-17. `pg_buffer()` → verify happy path expected behavior
-18. 🔴 `pg_buffer({})` → verify structured P154 error response or valid defaults
-19. `pg_intersection()` → verify happy path expected behavior
-20. 🔴 `pg_intersection({})` → verify structured P154 error response or valid defaults
-21. `pg_postgis_create_extension()` → verify happy path expected behavior
-22. 🔴 `pg_postgis_create_extension({})` → verify structured P154 error response or valid defaults
-23. `pg_geometry_column()` → verify happy path expected behavior
-24. 🔴 `pg_geometry_column({})` → verify structured P154 error response or valid defaults
-25. `pg_spatial_index()` → verify happy path expected behavior
-26. 🔴 `pg_spatial_index({})` → verify structured P154 error response or valid defaults
-27. `pg_geo_cluster()` → verify happy path expected behavior
-28. 🔴 `pg_geo_cluster({})` → verify structured P154 error response or valid defaults
-29. `pg_geometry_buffer()` → verify happy path expected behavior
-30. 🔴 `pg_geometry_buffer({})` → verify structured P154 error response or valid defaults
-31. `pg_geometry_intersection()` → verify happy path expected behavior
-32. 🔴 `pg_geometry_intersection({})` → verify structured P154 error response or valid defaults
-33. `pg_geometry_transform()` → verify happy path expected behavior
-34. 🔴 `pg_geometry_transform({})` → verify structured P154 error response or valid defaults
+13. `pg_vector_cluster()` → verify happy path expected behavior
+14. 🔴 `pg_vector_cluster({})` → verify structured P154 error response or valid defaults
+21. `pg_vector_index_optimize()` → verify happy path expected behavior
+22. 🔴 `pg_vector_index_optimize({})` → verify structured P154 error response or valid defaults
+23. `pg_vector_dimension_reduce()` → verify happy path expected behavior
+24. 🔴 `pg_vector_dimension_reduce({})` → verify structured P154 error response or valid defaults
+25. `pg_vector_embed()` → verify happy path expected behavior
+26. 🔴 `pg_vector_embed({})` → verify structured P154 error response or valid defaults
+27. `pg_hybrid_search()` → verify happy path expected behavior
+28. 🔴 `pg_hybrid_search({})` → verify structured P154 error response or valid defaults
+29. `pg_vector_performance()` → verify happy path expected behavior
+30. 🔴 `pg_vector_performance({})` → verify structured P154 error response or valid defaults

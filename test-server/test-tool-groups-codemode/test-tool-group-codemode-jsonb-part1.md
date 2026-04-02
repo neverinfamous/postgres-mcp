@@ -1,4 +1,6 @@
-# postgres-mcp Codemode Re-Testing: [stats]
+# postgres-mcp Tool Group Re-Testing: [jsonb] (Part 1)
+
+> **NOTICE**: This file has been split to optimize token footprint. This is Part 1.
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -216,91 +218,58 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 ---
 
-## Group Focus: stats
+## Group Focus: jsonb
 
-### stats Group-Specific Testing
+### jsonb Group-Specific Testing
 
-stats Group (19 tools +1 for code mode)
+jsonb Tool Group (20 tools +1 for code mode):
 
-1. 'pg_stats_descriptive'
-2. 'pg_stats_percentiles'
-3. 'pg_stats_correlation'
-4. 'pg_stats_regression'
-5. 'pg_stats_time_series'
-6. 'pg_stats_distribution'
-7. 'pg_stats_hypothesis'
-8. 'pg_stats_sampling'
-9. 'pg_stats_row_number'
-10. 'pg_stats_rank'
-11. 'pg_stats_lag_lead'
-12. 'pg_stats_running_total'
-13. 'pg_stats_moving_avg'
-14. 'pg_stats_ntile'
-15. 'pg_stats_outliers'
-16. 'pg_stats_top_n'
-17. 'pg_stats_distinct'
-18. 'pg_stats_frequency'
-19. 'pg_stats_summary'
-20. 'pg_execute_code' (codemode, auto-added)
+1. 'pg_jsonb_extract'
+2. 'pg_jsonb_set'
+3. 'pg_jsonb_insert'
+4. 'pg_jsonb_delete'
+5. 'pg_jsonb_contains'
+6. 'pg_jsonb_path_query'
+7. 'pg_jsonb_agg'
+8. 'pg_jsonb_object'
+9. 'pg_jsonb_array'
+10. 'pg_jsonb_keys'
+21. 'pg_execute_code' (codemode, auto-added)
 
 > **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
-**Test data:** Uses `test_measurements` (500 rows, sensor_id 1-6, columns: temperature, humidity, pressure, measured_at).
+**Test data:** Use `test_jsonb_docs` table which has these JSONB structures:
 
-**Original 8 tools — Checklist:**
+- `metadata`: `{"type": "article", "author": "Alice", "views": 100}` / `{"type": "video", "author": "Bob", "duration": 3600}`
+- `settings`: `{"theme": "dark", "notifications": true}` / `{"quality": "hd", "autoplay": false}`
+- `tags`: `["tech", "news"]` / `["entertainment"]` / `["tech", "tutorial"]`
+- Nested access: `test_jsonb_docs` row 3 has `metadata.nested.level1.level2 = "deep"`
+- `test_events.payload` — `{"page": "home"}`
 
-1. `pg_stats_descriptive({table: "test_measurements", column: "temperature"})` → verify `mean`, `stddev`, `min`, `max` present
-2. `pg_stats_percentiles({table: "test_measurements", column: "temperature", percentiles: [0.25, 0.5, 0.75]})` → verify 3 percentile values
-3. `pg_stats_correlation({table: "test_measurements", column1: "temperature", column2: "humidity"})` → verify correlation value between -1 and 1
-4. `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: 10})` → verify `buckets` array with 10 entries
-5. `pg_stats_time_series({table: "test_measurements", timeColumn: "measured_at", valueColumn: "temperature", interval: "day"})` → verify time series data returned
-6. `pg_stats_sampling({table: "test_measurements", sampleSize: 10})` → verify exactly 10 rows returned
-7. `pg_stats_sampling({table: "test_measurements", method: "bernoulli", percentage: 10})` → verify sample returned with `method: "bernoulli"`
-8. `pg_stats_hypothesis({table: "test_measurements", column: "temperature", hypothesizedMean: 27})` → verify `results.pValue` present
+**Checklist:**
 
-**Window function tools:**
+1. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "author", where: "id = 1"})` → result contains `"Alice"`
+2. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "nested.level1.level2", where: "id = 3"})` → result contains `"deep"`
+3. `pg_jsonb_keys({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → keys include `type`, `author`, `views`
+6. `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", contains: {"type": "article"}, where: "id = 1"})` → true
 
-9. `pg_stats_row_number({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify 5 rows returned, each with `row_number` field (1-5)
-10. `pg_stats_row_number({table: "test_measurements", column: "temperature", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `row_number` resets per sensor_id partition
-11. `pg_stats_rank({table: "test_measurements", column: "temperature", orderBy: "temperature", limit: 5})` → verify rows with `rank` field
-12. `pg_stats_rank({table: "test_measurements", column: "temperature", orderBy: "temperature", method: "dense_rank", limit: 5})` → verify `dense_rank` — no gaps in ranking
-13. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lag", limit: 5})` → verify rows with `lag_value` field; first row's `lag_value` should be null
-14. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lead", offset: 2, limit: 5})` → verify `lead_value` with offset 2
-15. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify rows with `running_total` field, monotonically increasing
-16. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `running_total` resets per sensor_id
-17. `pg_stats_moving_avg({table: "test_measurements", column: "temperature", orderBy: "measured_at", windowSize: 5, limit: 5})` → verify rows with `moving_avg` field
-18. `pg_stats_ntile({table: "test_measurements", column: "temperature", orderBy: "temperature", buckets: 4, limit: 10})` → verify rows with `ntile` field (values 1-4)
-
-**Outlier detection and analysis tools:**
-
-19. `pg_stats_outliers({table: "test_measurements", column: "temperature"})` → verify `{outliers, outlierCount, method, stats}` where `method` is `"iqr"` (default)
-20. `pg_stats_outliers({table: "test_measurements", column: "temperature", method: "zscore", threshold: 2})` → verify same shape with `method: "zscore"`
-21. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3})` → verify exactly 3 rows, descending order by default
-22. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3, direction: "asc"})` → verify 3 rows in ascending order
-23. `pg_stats_distinct({table: "test_measurements", column: "sensor_id"})` → verify `{values, distinctCount}` with `distinctCount` of 6 (sensors 1-6)
-24. `pg_stats_frequency({table: "test_measurements", column: "sensor_id"})` → verify `{distribution}` array with value, count, and percentage for each sensor
-25. `pg_stats_summary({table: "test_measurements"})` → verify multi-column summary auto-detecting numeric columns (temperature, humidity, pressure)
-26. `pg_stats_summary({table: "test_measurements", columns: ["temperature", "humidity"]})` → verify summary for exactly 2 specified columns
+**pg_jsonb_pretty:**
 
 **Domain error paths (🔴):**
 
-27. 🔴 `pg_stats_descriptive({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
-28. 🔴 `pg_stats_percentiles({})` → `{success: false, error: "..."}` (Zod validation)
-29. 🔴 `pg_stats_row_number({})` → `{success: false, error: "..."}` (Zod validation — missing required `table`, `column`, `orderBy`)
-30. 🔴 `pg_stats_outliers({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
-31. 🔴 `pg_stats_frequency({table: "test_measurements", column: "nonexistent_col_xyz"})` → `{success: false, error: "..."}` handler error mentioning column
+13. 🔴 `pg_jsonb_extract({table: "nonexistent_xyz", column: "data", path: "key"})` → `{success: false, error: "..."}` handler error
+14. 🔴 `pg_jsonb_keys({})` → `{success: false, error: "..."}` (Zod validation)
+16. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", value: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` to 100 and return valid results (wrong-type numeric param coercion)
 
-**Wrong-type numeric param coercion (🔴):**
-
-32. 🔴 `pg_stats_sampling({table: "test_measurements", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `sampleSize` (wrong-type numeric param)
-33. 🔴 `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `buckets` (wrong-type numeric param)
-34. 🔴 `pg_stats_top_n({table: "test_measurements", column: "temperature", n: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `n` (wrong-type numeric param)
-
-**Code mode parity:**
-
-35. `pg_execute_code({code: "return await pg.stats.help()"})` → verify lists all 19 stats methods including `rowNumber`, `rank`, `lagLead`, `runningTotal`, `movingAvg`, `ntile`, `outliers`, `topN`, `distinct`, `frequency`, `summary`
-36. `pg_execute_code({code: "return await pg.stats.outliers({table: 'test_measurements', column: 'temperature'})"})` → verify returns same structure as item 19
-37. `pg_execute_code({code: "return await pg.stats.distinct({table: 'test_measurements', column: 'sensor_id'})"})` → verify returns same structure as item 23
-
-38. `pg_stats_regression()` → verify happy path expected behavior
-39. 🔴 `pg_stats_regression({})` → verify structured P154 error response or valid defaults
+21. `pg_jsonb_agg()` → verify happy path expected behavior
+22. 🔴 `pg_jsonb_agg({})` → verify structured P154 error response or valid defaults
+23. `pg_jsonb_path_query()` → verify happy path expected behavior
+24. 🔴 `pg_jsonb_path_query({})` → verify structured P154 error response or valid defaults
+29. `pg_jsonb_array()` → verify happy path expected behavior
+30. 🔴 `pg_jsonb_array({})` → verify structured P154 error response or valid defaults
+33. `pg_jsonb_set()` → verify happy path expected behavior
+34. 🔴 `pg_jsonb_set({})` → verify structured P154 error response or valid defaults
+35. `pg_jsonb_insert()` → verify happy path expected behavior
+36. 🔴 `pg_jsonb_insert({})` → verify structured P154 error response or valid defaults
+37. `pg_jsonb_delete()` → verify happy path expected behavior
+38. 🔴 `pg_jsonb_delete({})` → verify structured P154 error response or valid defaults

@@ -1,20 +1,24 @@
-# postgres-mcp Tool Group Re-Testing: [performance]
+# postgres-mcp Tool Group Re-Testing: [jsonb] (Part 2)
+
+> **NOTICE**: This file has been split to optimize token footprint. This is Part 2.
 
 **ESSENTIAL INSTRUCTIONS**
 
-- Execute **EVERY** numbered stress test below using direct MCP tool calls, **NOT** codemode.
+- Conduct an exhaustive test of the tool group listed below using ONLY code mode (`pg_execute_code`).
 - Do not use scripts or terminal to replace planned tests.
 - Do not modify or skip tests.
-- Do not put temp files in root; Use C:\Users\chris\Desktop\postgres-mcp\tmp
+- Ensure your validation script returns an aggregated array of failures if any exist.
+- Group multiple tests into a single script to save context window tokens.
+- Do not run test-tools-advanced-2.md at this time.
+- All changes MUST be consistent with other postgres-mcp tools and `code-map.md`.
 
 ## Reporting Format
 
 - ❌ Fail: Tool errors or produces incorrect results (include error message)
 - ⚠️ Issue: Unexpected behavior or improvement opportunity
-- 📦 Payload: Unnecessarily large response that should be optimized — **blocking, equally important as ❌ bugs**. Oversized payloads waste LLM context window tokens and degrade downstream tool-calling quality. **You MUST monitor `_meta.tokenEstimate` for every operation**. Report the response size in tokens/KB and suggest a concrete optimization (e.g., filter system tables, add `compact` option, omit empty arrays).
+- 📦 Payload: Unnecessarily large response that should be optimized — **blocking, equally important as ❌ bugs**. Oversized payloads waste LLM context window tokens and degrade downstream tool-calling quality. **You MUST monitor `metrics.tokenEstimate` for every operation**. Report the response size in tokens/KB and suggest a concrete optimization (e.g., filter system tables, add `compact` option, omit empty arrays).
 
 > **Token estimates**: Every tool response includes `_meta.tokenEstimate` in its `content[].text` payload (approximate token count based on ~4 bytes/token). Code Mode responses include `metrics.tokenEstimate` instead. These are injected automatically by the adapter — no per-tool assertions needed, but report as ⚠️ if absent.
-> **Code Mode Token Tracking**: For at least one `pg_execute_code` test, explicitly verify that `metrics.tokenEstimate` is present in the response and is a number greater than 0, reporting as ❌ if it is missing or zero.
 
 ## Test Database Schema
 
@@ -26,9 +30,9 @@ The test database (`postgres`) contains these tables:
 | `test_orders`       | 20   | id, product_id (FK), quantity, total_price, status                                 | —                        | Core, Stats, Trans    |
 | `test_jsonb_docs`   | 3    | id                                                                                 | metadata, settings, tags | JSONB (20 tools)      |
 | `test_articles`     | 3    | id, title, body, search_vector (TSVECTOR)                                          | —                        | Text                  |
-| `test_measurements` | 640  | id, sensor_id (INT 1-6), temperature, humidity, pressure                           | —                        | Stats (19 tools)      |
-| `test_embeddings`   | 75   | id, content, category, embedding (vector 384d)                                     | —                        | Vector (16 tools)     |
-| `test_locations`    | 25   | id, name, location (GEOMETRY POINT SRID 4326)                                      | —                        | PostGIS (15 tools)    |
+| `test_measurements` | 500  | id, sensor_id (INT 1-6), temperature, humidity, pressure                           | —                        | Stats (19 tools)      |
+| `test_embeddings`   | 50   | id, content, category, embedding (vector 384d)                                     | —                        | Vector (16 tools)     |
+| `test_locations`    | 5    | id, name, location (GEOMETRY POINT SRID 4326)                                      | —                        | PostGIS (15 tools)    |
 | `test_users`        | 3    | id, username (CITEXT), email (CITEXT)                                              | —                        | Citext (6 tools)      |
 | `test_categories`   | 6    | id, name, path (LTREE)                                                             | —                        | Ltree (8 tools)       |
 | `test_secure_data`  | 0    | id, user_id, sensitive_data (BYTEA), created_at                                    | —                        | pgcrypto (9 tools)    |
@@ -41,8 +45,6 @@ The test database (`postgres`) contains these tables:
 | `test_audit_log`    | 3    | entry_id (no PK!), employee_id (FK, no index!), action, created_at                 | —                        | Introspection         |
 
 Schema objects: `test_schema`, `test_schema.order_seq` (starts at 1000), `test_order_summary` (view), `test_get_order_count()` (function).
-
-> **Note:** Row counts reflect the post-seed state after both `test-database.sql` and `test-resources.sql` run. The resource seed adds ~200 measurements (minus deletions by `id % 5 = 0 AND id > 400`), 25 embeddings (IDs 51-75), and 20 locations (IDs 6-25).
 Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_locations_geo` (GIST), `idx_categories_path` (GIST), HNSW on `test_embeddings.embedding`.
 
 ## Testing Requirements
@@ -54,13 +56,13 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 5. Report all failures, unexpected behaviors, improvement opportunities, or unnecessarily large payloads
 6. Do not mention what already works well or issues well documented in ServerInstructions and runtime hints which are already optimal
 7. **Error path testing**: For **every** tool, test at least **two** invalid inputs: (a) a domain error (nonexistent table, invalid column, bad parameter value) and (b) a **Zod validation error** (call the tool with `{}` empty params if it has required parameters, or pass the wrong type). Both must return a **structured handler error** (`{success: false, error: "..."}`) — NOT a raw MCP error frame. See the "Structured Error Response Pattern" section below for how to distinguish the two. This is the most common deficiency found across tool groups.
-8. **Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md`. For EVERY tool in the group, you must explicitly log: Direct Call (Happy Path), Domain Error (Direct Call), Zod Empty Param (Direct Call), and Alias Acceptance (if applicable). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
-9. **No Scripted Loops**: You must test each error path by writing an individual, distinct tool call.
-10. **Pacing**: Test a maximum of 3-5 tools at a time. Report the results, update your matrix, and then move on to the next chunk.
-11. **Deterministic checklist first**: Complete ALL items in the Deterministic Checklist below before moving to the Strict Coverage Matrix exploration. The checklist uses exact inputs and expected outputs to ensure reproducible coverage every run.
+8. **Code Mode Strict Coverage Matrix**: You must create a markdown table tracking your progress in your `task.md` in C:\Users\chris\Desktop\postgres-mcp\tmp. For EVERY tool in the group, you must explicitly log: Code Mode (Happy Path) and Code Mode (Domain Error). Do not proceed to the final summary until every cell in this matrix is marked with a ✅.
+9. **Scripting Efficiency**: You should bundle multiple tool checks into a single `pg_execute_code` call to save LLM context window tokens. Use conditional checks to aggregate errors and return a `failures` array.
+10. **Pacing**: Test up to an entire tool group in a single script if feasible, but limit scripts to ~10-15 steps to remain manageable. Report the aggregated results, update your matrix, and move to the next group.
+11. **Deterministic checklist first**: Complete ALL items in the Deterministic Checklist below using Code Mode before moving to the Strict Coverage Matrix exploration.
 12. **Audit backup tools**: The 3 `pg_audit_*` tools require `--audit-backup` to be enabled on the test server. When enabled, destructive operations (`pg_truncate`, `pg_drop_table`, `pg_vacuum`, etc.) create gzip-compressed `.snapshot.json.gz` files alongside the audit log. **V2 features to verify**: `pg_audit_diff_backup` now returns a `volumeDrift` field (row count + size changes); `pg_audit_restore_backup` supports `restoreAs` for side-by-side non-destructive restore; and Code Mode calls through `pg_execute_code` that trigger destructive operations are also captured by the interceptor. When disabled, all 3 tools return `{success: false, error: "Audit backup not enabled"}`.
 
-Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) now return as parseable JSON objects via direct tool calls — not as raw MCP error strings. During error path testing, verify this: if a direct tool call for a nonexistent schema/table returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
+Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) return as parseable JSON objects. During error path testing, verify this: if an invalid Code Mode call returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
 
 ## Structured Error Response Pattern
 
@@ -122,9 +124,9 @@ Calling a tool with wrong parameter types or missing required fields triggers a 
 All tools use the Split Schema pattern: a plain `z.object()` Base schema for MCP parameter visibility (used as `inputSchema`), and handler-side parsing via `z.preprocess()`, `.default({})`, or direct `.parse()` inside `try/catch`. Verify:
 
 1. **JSON Schema visibility**: Before testing tool behavior, call `tools/list` (or inspect the MCP server's tool definitions) and confirm each tool's `inputSchema` exposes its parameters. Tools with optional parameters (e.g., `schema`, `limit`, `direction`) must show non-empty `properties` in the JSON Schema. If a tool's `inputSchema` is empty or missing `properties`, report as a Split Schema violation.
-2. **Parameter visibility**: For tools with optional parameters (e.g., `schema`, `limit`), make a direct MCP call using those parameters. If the tool ignores or rejects documented parameters, report as a Split Schema violation.
-3. **Alias acceptance**: For tools with documented parameter aliases (e.g., table/tableName/name, sql/query), verify that direct MCP tool calls correctly accept the aliases—not just the primary parameter name. If a direct call using only an alias fails with a validation error like "X is required", report it as a Split Schema violation requiring a fix.
-4. **`z.preprocess()` as `inputSchema`**: If a tool uses `z.preprocess()` directly as its `inputSchema` (instead of a plain `SchemaBase`), parameter metadata is stripped from JSON Schema generation, making direct MCP calls unable to see or use those parameters. Report as a Split Schema violation.
+2. **Parameter visibility**: For tools with optional parameters (e.g., `schema`, `limit`), make a Code Mode call using those parameters. If the tool ignores or rejects documented parameters, report as a Split Schema violation.
+3. **Alias acceptance**: For tools with documented parameter aliases (e.g., table/tableName/name, sql/query), verify that Code Mode calls correctly accept the aliases—not just the primary parameter name. If a call using only an alias fails with a validation error like "X is required", report it as a Split Schema violation requiring a fix.
+4. **`z.preprocess()` as `inputSchema`**: If a tool uses `z.preprocess()` directly as its `inputSchema` (instead of a plain `SchemaBase`), parameter metadata is stripped from JSON Schema generation, making MCP tooling unable to see or use those parameters. Report as a Split Schema violation.
 
 ## P154 Object Existence Verification
 
@@ -203,131 +205,72 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 ### After Testing
 
-1. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive tool call.
-2. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed including any files created during testing.
-3. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, inaccuracies in the files listed below, and 📦 Payload problems (responses that should be truncated or offer a `limit` param).
-4. **Read `code-map.md` before making changes and make all changes consistent with other tools.**
-5. **Scope of fixes** includes corrections to any of:
+1. **Cleanup**: Confirm all `temp_*` tables and temporary testing data are removed
+2. **Fix EVERY finding** — not just ❌ Fails, but also ⚠️ Issues including behavioral improvements, missing warnings, error code consistency, 📦 Payload problems (responses that should be truncated or offer a `limit` param) and files listed below. All changes MUST be consistent with other postgres-mcp tools and `code-map.md`
+3. **Scope of fixes** includes corrections to any of:
    - Handler code
    - `server-instructions.md`
    - Test database (`test-database.sql`)
-   - This prompt
-6. **User will handle validation**
-7. Update the changelog if there were any changes made (being careful not to create duplicate headers), and commit without pushing.
-8. Create a /session-summary in memory-journal-mcp for the issues and their fixes, explicitly including the "Total Token Usage" captured.
-9. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
+   - This prompt (`test-tools-codemode.md`) and group file (`test-group-tools-codemode.md`)
+4. Update the changelog with any changes made (being careful not to create duplicate headers), and commit without pushing.
+5. **Token Audit**: Before concluding, call `read_resource` on `postgres://audit` to retrieve the `sessionTokenEstimate` (total token usage) for your testing session. Include this "Total Token Usage" in your final test report and session summary. Highlight the single most expensive Code Mode execution block.
+6. Stop and briefly summarize the testing results and fixes, ensuring the total token count is prominently displayed.
 
 ---
 
-## Group Focus: performance
+## Group Focus: jsonb
 
-### performance Group-Specific Testing
+### jsonb Group-Specific Testing
 
-performance Tool Group (24 tools +1 code mode)
+jsonb Tool Group (20 tools +1 for code mode):
 
-1. 'pg_explain'
-2. 'pg_explain_analyze'
-3. 'pg_explain_buffers'
-4. 'pg_index_stats'
-5. 'pg_table_stats'
-6. 'pg_stat_statements'
-7. 'pg_stat_activity'
-8. 'pg_locks'
-9. 'pg_bloat_check'
-10. 'pg_cache_hit_ratio'
-11. 'pg_seq_scan_tables'
-12. 'pg_index_recommendations'
-13. 'pg_query_plan_compare'
-14. 'pg_performance_baseline'
-15. 'pg_connection_pool_optimize'
-16. 'pg_partition_strategy_suggest'
-17. 'pg_unused_indexes'
-18. 'pg_duplicate_indexes'
-19. 'pg_vacuum_stats'
-20. 'pg_query_plan_stats'
-21. 'pg_diagnose_database_performance'
-22. 'pg_detect_query_anomalies'
-23. 'pg_detect_bloat_risk'
-24. 'pg_detect_connection_spike'
-25. 'pg_execute_code' (codemode, auto-added)
+11. 'pg_jsonb_strip_nulls'
+12. 'pg_jsonb_typeof'
+13. 'pg_jsonb_validate_path'
+14. 'pg_jsonb_stats'
+15. 'pg_jsonb_merge'
+16. 'pg_jsonb_normalize'
+17. 'pg_jsonb_diff'
+18. 'pg_jsonb_index_suggest'
+19. 'pg_jsonb_security_scan'
+20. 'pg_jsonb_pretty'
+21. 'pg_execute_code' (codemode, auto-added)
 
-> **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
+> **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
-**Existing performance tools:**
+**Test data:** Use `test_jsonb_docs` table which has these JSONB structures:
 
-1. `pg_explain({sql: "SELECT * FROM test_products WHERE id = 1"})` → verify plan returned
-2. `pg_explain({sql: "SELECT * FROM test_products WHERE id = $1", params: [1]})` → verify parameterized plan
-3. `pg_table_stats({limit: 3})` → verify `{tables: [...], count: 3, truncated: true, totalCount: N}`
-4. `pg_index_stats({limit: 3})` → verify `{indexes: [...], count: 3, truncated: true, totalCount: N}`
-5. `pg_cache_hit_ratio()` → verify `{heap_read, heap_hit, cache_hit_ratio}` where all are numbers or null
-6. `pg_bloat_check()` → verify returns `{tables, count}`
-7. `pg_seq_scan_tables({limit: 3, minScans: 1})` → verify `{tables, count: 3, truncated: true, totalCount: N}`
-8. `pg_unused_indexes({limit: 3})` → verify returns `{unusedIndexes, count}`
-9. `pg_duplicate_indexes()` → verify response structure
+- `metadata`: `{"type": "article", "author": "Alice", "views": 100}` / `{"type": "video", "author": "Bob", "duration": 3600}`
+- `settings`: `{"theme": "dark", "notifications": true}` / `{"quality": "hd", "autoplay": false}`
+- `tags`: `["tech", "news"]` / `["entertainment"]` / `["tech", "tutorial"]`
+- Nested access: `test_jsonb_docs` row 3 has `metadata.nested.level1.level2 = "deep"`
+- `test_events.payload` — `{"page": "home"}`
 
-**Diagnostics tool:**
+**Checklist:**
 
-10. `pg_diagnose_database_performance()` → verify `{sections, overallScore, overallStatus, totalRecommendations, allRecommendations}` where `overallStatus` is one of `healthy`, `warning`, `critical`; `overallScore` is 0-100
+4. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "tags", where: "id = 1"})` → `"array"`
+5. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → `"object"`
+7. `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata"})` → verify `topKeys` present, `typeDistribution` present
+8. `pg_jsonb_validate_path({path: "$.a.b.c"})` → valid (note: validates JSONPath syntax, not dot-notation — `"a.b.c"` is invalid JSONPath)
+9. `pg_jsonb_diff({doc1: {"a": 1, "b": 2}, doc2: {"a": 1, "c": 3}})` → verify `differences` array with `status` field (`"added"`, `"removed"`, `"modified"`), `hasDifferences: true`
 
-**Anomaly detection tools — pg_detect_query_anomalies:**
+**pg_jsonb_pretty:**
 
-11. `pg_detect_query_anomalies()` → verify `{anomalies, riskLevel, totalAnalyzed, anomalyCount, summary}` where `riskLevel` ∈ `{low, moderate, high, critical}`; `anomalyCount` matches `anomalies.length`
-12. `pg_detect_query_anomalies({threshold: 1.0})` → lower threshold may produce more anomalies; verify `anomalyCount >= 0`
-13. `pg_detect_query_anomalies({threshold: 5.0, minCalls: 100})` → higher threshold + minCalls should reduce noise; verify response structure
-
-**Anomaly detection tools — pg_detect_bloat_risk:**
-
-14. `pg_detect_bloat_risk()` → verify `{tables, highRiskCount, totalAnalyzed, summary}` where `highRiskCount >= 0` and `totalAnalyzed >= 0`
-15. `pg_detect_bloat_risk({schema: "public"})` → verify only `public` schema tables in results
-16. `pg_detect_bloat_risk({minRows: 1})` → lower threshold should include more tables; verify `totalAnalyzed` >= default result's `totalAnalyzed`
-17. `pg_detect_bloat_risk({schema: "nonexistent_schema_xyz"})` → should return valid response with `totalAnalyzed: 0` and empty `tables` (filter produces no matches, not an error)
-
-**Anomaly detection tools — pg_detect_connection_spike:**
-
-18. `pg_detect_connection_spike()` → verify `{totalConnections, maxConnections, usagePercent, byState, concentrations, warnings, riskLevel, summary}` where `totalConnections >= 1`, `maxConnections > 0`, `usagePercent` is 0-100, `riskLevel` ∈ `{low, moderate, high, critical}`
-19. `pg_detect_connection_spike({warningPercent: 10})` → lower threshold may produce more warnings; verify `warnings` is an array
-20. `pg_detect_connection_spike({warningPercent: 100})` → maximum threshold should produce fewer warnings; verify response structure
+10. `pg_jsonb_pretty({json: "{\"a\":1,\"b\":2}"})` → verify pretty-printed JSON string with indentation
+11. `pg_jsonb_pretty({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → verify formatted output contains `"author": "Alice"` with indentation
+12. 🔴 `pg_jsonb_pretty({})` → `{success: false, error: "..."}` (Zod validation — must provide either `json` or `table`+`column`)
 
 **Domain error paths (🔴):**
 
-21. 🔴 `pg_table_stats({})` → verify returns handler error (not MCP error) for empty params or returns valid results
-22. 🔴 `pg_explain({})` → `{success: false, error: "..."}` (Zod validation — missing required `sql`)
+15. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
 
-**Wrong-type numeric param coercion (🔴):**
-
-23. 🔴 `pg_table_stats({limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
-24. 🔴 `pg_detect_query_anomalies({threshold: "abc"})` → must NOT return raw MCP error; `threshold` should silently coerce to default 2.0 and return valid results
-25. 🔴 `pg_detect_query_anomalies({minCalls: "abc"})` → must NOT return raw MCP error; `minCalls` should silently coerce to default 10 and return valid results
-26. 🔴 `pg_detect_bloat_risk({minRows: "abc"})` → must NOT return raw MCP error; `minRows` should silently coerce to default 1000 and return valid results
-27. 🔴 `pg_detect_connection_spike({warningPercent: "abc"})` → must NOT return raw MCP error; `warningPercent` should silently coerce to default 70 and return valid results
-
-**Code mode parity (anomaly detection):**
-
-28. `pg_execute_code({code: "return await pg.performance.detectQueryAnomalies()"})` → verify returns same structure as item 11
-29. `pg_execute_code({code: "return await pg.performance.detectBloatRisk({schema: 'public'})"})` → verify returns same structure as item 15
-30. `pg_execute_code({code: "return await pg.performance.detectConnectionSpike()"})` → verify returns same structure as item 18
-
-31. `pg_index_recommendations()` → verify happy path expected behavior
-32. 🔴 `pg_index_recommendations({})` → verify structured P154 error response or valid defaults
-33. `pg_vacuum_stats()` → verify happy path expected behavior
-34. 🔴 `pg_vacuum_stats({})` → verify structured P154 error response or valid defaults
-35. `pg_query_plan_compare()` → verify happy path expected behavior
-36. 🔴 `pg_query_plan_compare({})` → verify structured P154 error response or valid defaults
-37. `pg_explain_analyze()` → verify happy path expected behavior
-38. 🔴 `pg_explain_analyze({})` → verify structured P154 error response or valid defaults
-39. `pg_explain_buffers()` → verify happy path expected behavior
-40. 🔴 `pg_explain_buffers({})` → verify structured P154 error response or valid defaults
-41. `pg_locks()` → verify happy path expected behavior
-42. 🔴 `pg_locks({})` → verify structured P154 error response or valid defaults
-43. `pg_performance_baseline()` → verify happy path expected behavior
-44. 🔴 `pg_performance_baseline({})` → verify structured P154 error response or valid defaults
-45. `pg_connection_pool_optimize()` → verify happy path expected behavior
-46. 🔴 `pg_connection_pool_optimize({})` → verify structured P154 error response or valid defaults
-47. `pg_partition_strategy_suggest()` → verify happy path expected behavior
-48. 🔴 `pg_partition_strategy_suggest({})` → verify structured P154 error response or valid defaults
-49. `pg_stat_statements()` → verify happy path expected behavior
-50. 🔴 `pg_stat_statements({})` → verify structured P154 error response or valid defaults
-51. `pg_stat_activity()` → verify happy path expected behavior
-52. 🔴 `pg_stat_activity({})` → verify structured P154 error response or valid defaults
-53. `pg_query_plan_stats()` → verify happy path expected behavior
-54. 🔴 `pg_query_plan_stats({})` → verify structured P154 error response or valid defaults
+17. `pg_jsonb_index_suggest()` → verify happy path expected behavior
+18. 🔴 `pg_jsonb_index_suggest({})` → verify structured P154 error response or valid defaults
+19. `pg_jsonb_security_scan()` → verify happy path expected behavior
+20. 🔴 `pg_jsonb_security_scan({})` → verify structured P154 error response or valid defaults
+25. `pg_jsonb_merge()` → verify happy path expected behavior
+26. 🔴 `pg_jsonb_merge({})` → verify structured P154 error response or valid defaults
+27. `pg_jsonb_normalize()` → verify happy path expected behavior
+28. 🔴 `pg_jsonb_normalize({})` → verify structured P154 error response or valid defaults
+31. `pg_jsonb_strip_nulls()` → verify happy path expected behavior
+32. 🔴 `pg_jsonb_strip_nulls({})` → verify structured P154 error response or valid defaults

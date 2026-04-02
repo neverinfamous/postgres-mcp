@@ -69,6 +69,7 @@
 - Mapped schema filtering validation checks in `pg_list_sequences` to throw `VALIDATION_ERROR` rather than generic `QUERY_ERROR`
 - Enforced positive integer validation via Zod in admin backend cancellation tools to natively surface `VALIDATION_ERROR` and prevent DB propagation
 - Fixed parse timing defects in admin vacuum and analyze tools that prematurely logged progress before validation failures
+- Verified advanced stress tests for the admin tool group, confirming boundary state handling, exact error routing (TABLE_NOT_FOUND), and Code Mode parity without payload bloat
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

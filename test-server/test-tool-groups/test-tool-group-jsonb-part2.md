@@ -1,4 +1,6 @@
-# postgres-mcp Tool Group Re-Testing: [postgis]
+# postgres-mcp Tool Group Re-Testing: [jsonb] (Part 2)
+
+> **NOTICE**: This file has been split to optimize token footprint. This is Part 2.
 
 **ESSENTIAL INSTRUCTIONS**
 
@@ -219,66 +221,59 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 ---
 
-## Group Focus: postgis
+## Group Focus: jsonb
 
-### postgis Group-Specific Testing
+### jsonb Group-Specific Testing
 
-postgis Tool Group (15 tools +1 for code mode)
+jsonb Tool Group (20 tools +1 for code mode):
 
-1. 'pg_postgis_create_extension'
-2. 'pg_geometry_column'
-3. 'pg_point_in_polygon'
-4. 'pg_distance'
-5. 'pg_buffer'
-6. 'pg_intersection'
-7. 'pg_bounding_box'
-8. 'pg_spatial_index'
-9. 'pg_geocode'
-10. 'pg_geo_transform'
-11. 'pg_geo_index_optimize'
-12. 'pg_geo_cluster'
-13. 'pg_geometry_buffer'
-14. 'pg_geometry_intersection'
-15. 'pg_geometry_transform'
-16. 'pg_execute_code' (codemode, auto-added)
+11. 'pg_jsonb_strip_nulls'
+12. 'pg_jsonb_typeof'
+13. 'pg_jsonb_validate_path'
+14. 'pg_jsonb_stats'
+15. 'pg_jsonb_merge'
+16. 'pg_jsonb_normalize'
+17. 'pg_jsonb_diff'
+18. 'pg_jsonb_index_suggest'
+19. 'pg_jsonb_security_scan'
+20. 'pg_jsonb_pretty'
+21. 'pg_execute_code' (codemode, auto-added)
 
 > **Instructions**: Execute every numbered checklist item with the exact inputs shown using DIRECT TOOL CALLS ONLY. Skip any items specifically testing `pg_execute_code` or Code Mode Parity. Compare responses against the expected results. Report any deviation. These are the minimum-bar tests that must pass every run — freeform testing comes after.
 
-**Test data:** Uses `test_locations.location` (POINT with SRID 4326, WGS84). GIST index on `location`.
+**Test data:** Use `test_jsonb_docs` table which has these JSONB structures:
 
-Cities: New York, Los Angeles, Chicago, London, Tokyo.
-
-Test distance calculations between cities (e.g., New York ↔ London).
+- `metadata`: `{"type": "article", "author": "Alice", "views": 100}` / `{"type": "video", "author": "Bob", "duration": 3600}`
+- `settings`: `{"theme": "dark", "notifications": true}` / `{"quality": "hd", "autoplay": false}`
+- `tags`: `["tech", "news"]` / `["entertainment"]` / `["tech", "tutorial"]`
+- Nested access: `test_jsonb_docs` row 3 has `metadata.nested.level1.level2 = "deep"`
+- `test_events.payload` — `{"page": "home"}`
 
 **Checklist:**
 
-1. `pg_geocode({lat: 40.7128, lng: -74.006})` → verify `{geojson}` present
-2. `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: 100000})` → expect: New York in results
-3. `pg_bounding_box({table: "test_locations", column: "location", minLat: 34, maxLat: 42, minLng: -119, maxLng: -73})` → expect: NY, LA, Chicago
-4. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
-5. 🔴 `pg_distance({table: "nonexistent_xyz", column: "geom", lat: 0, lng: 0, distance: 100})` → `{success: false, error: "..."}` handler error
-6. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
-7. 🔴 `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `distance` (wrong-type numeric param)
+4. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "tags", where: "id = 1"})` → `"array"`
+5. `pg_jsonb_typeof({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → `"object"`
+7. `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata"})` → verify `topKeys` present, `typeDistribution` present
+8. `pg_jsonb_validate_path({path: "$.a.b.c"})` → valid (note: validates JSONPath syntax, not dot-notation — `"a.b.c"` is invalid JSONPath)
+9. `pg_jsonb_diff({doc1: {"a": 1, "b": 2}, doc2: {"a": 1, "c": 3}})` → verify `differences` array with `status` field (`"added"`, `"removed"`, `"modified"`), `hasDifferences: true`
 
-13. `pg_geo_transform()` → verify happy path expected behavior
-14. 🔴 `pg_geo_transform({})` → verify structured P154 error response or valid defaults
-15. `pg_point_in_polygon()` → verify happy path expected behavior
-16. 🔴 `pg_point_in_polygon({})` → verify structured P154 error response or valid defaults
-17. `pg_buffer()` → verify happy path expected behavior
-18. 🔴 `pg_buffer({})` → verify structured P154 error response or valid defaults
-19. `pg_intersection()` → verify happy path expected behavior
-20. 🔴 `pg_intersection({})` → verify structured P154 error response or valid defaults
-21. `pg_postgis_create_extension()` → verify happy path expected behavior
-22. 🔴 `pg_postgis_create_extension({})` → verify structured P154 error response or valid defaults
-23. `pg_geometry_column()` → verify happy path expected behavior
-24. 🔴 `pg_geometry_column({})` → verify structured P154 error response or valid defaults
-25. `pg_spatial_index()` → verify happy path expected behavior
-26. 🔴 `pg_spatial_index({})` → verify structured P154 error response or valid defaults
-27. `pg_geo_cluster()` → verify happy path expected behavior
-28. 🔴 `pg_geo_cluster({})` → verify structured P154 error response or valid defaults
-29. `pg_geometry_buffer()` → verify happy path expected behavior
-30. 🔴 `pg_geometry_buffer({})` → verify structured P154 error response or valid defaults
-31. `pg_geometry_intersection()` → verify happy path expected behavior
-32. 🔴 `pg_geometry_intersection({})` → verify structured P154 error response or valid defaults
-33. `pg_geometry_transform()` → verify happy path expected behavior
-34. 🔴 `pg_geometry_transform({})` → verify structured P154 error response or valid defaults
+**pg_jsonb_pretty:**
+
+10. `pg_jsonb_pretty({json: "{\"a\":1,\"b\":2}"})` → verify pretty-printed JSON string with indentation
+11. `pg_jsonb_pretty({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → verify formatted output contains `"author": "Alice"` with indentation
+12. 🔴 `pg_jsonb_pretty({})` → `{success: false, error: "..."}` (Zod validation — must provide either `json` or `table`+`column`)
+
+**Domain error paths (🔴):**
+
+15. 🔴 `pg_jsonb_stats({table: "test_jsonb_docs", column: "metadata", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `sampleSize` to 1000 and return valid stats (wrong-type numeric param coercion)
+
+17. `pg_jsonb_index_suggest()` → verify happy path expected behavior
+18. 🔴 `pg_jsonb_index_suggest({})` → verify structured P154 error response or valid defaults
+19. `pg_jsonb_security_scan()` → verify happy path expected behavior
+20. 🔴 `pg_jsonb_security_scan({})` → verify structured P154 error response or valid defaults
+25. `pg_jsonb_merge()` → verify happy path expected behavior
+26. 🔴 `pg_jsonb_merge({})` → verify structured P154 error response or valid defaults
+27. `pg_jsonb_normalize()` → verify happy path expected behavior
+28. 🔴 `pg_jsonb_normalize({})` → verify structured P154 error response or valid defaults
+31. `pg_jsonb_strip_nulls()` → verify happy path expected behavior
+32. 🔴 `pg_jsonb_strip_nulls({})` → verify structured P154 error response or valid defaults
