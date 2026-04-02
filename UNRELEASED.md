@@ -70,7 +70,9 @@
 - Enforced positive integer validation via Zod in admin backend cancellation tools to natively surface `VALIDATION_ERROR` and prevent DB propagation
 - Fixed parse timing defects in admin vacuum and analyze tools that prematurely logged progress before validation failures
 - Verified advanced stress tests for the admin tool group, confirming boundary state handling, exact error routing (TABLE_NOT_FOUND), and Code Mode parity without payload bloat
-
+- Corrected schema documentation for `pg_audit_list_backups` to reflect the implemented default limit of 20 instead of 50
+- Enforced explicitly structured `ValidationError` instances for `limit <= 0` in window statistics tools, preventing silent defaults to 100
+- Verified advanced stress tests for the stats tool group, confirming edge cases with empty tables, missing numeric exceptions, Code Mode window function pipelines, and regression boundaries without payload bloat
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
 - Replaced inline error returns across JSONB tools with structured `ValidationError` instances, preserving standard error output

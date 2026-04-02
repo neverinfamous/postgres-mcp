@@ -13,6 +13,7 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   StatsRowNumberSchemaBase,
@@ -73,7 +74,10 @@ function whereClause(where?: string): string {
 /** Coerce limit with default */
 function resolveLimit(limit?: number): number {
   if (limit === undefined || limit === null || Number.isNaN(limit)) return 100;
-  return limit > 0 ? limit : 100;
+  if (limit <= 0) {
+    throw new ValidationError("Parameter 'limit' must be greater than 0.");
+  }
+  return limit;
 }
 
 // =============================================================================

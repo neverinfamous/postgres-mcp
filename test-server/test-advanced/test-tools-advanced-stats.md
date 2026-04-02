@@ -150,7 +150,7 @@ Insert 5 rows into `stress_empty_table` all with `value: 42.00`, then:
 
 **3.4 Summary Edge Cases**
 
-19. `pg_stats_summary({table: "test_articles"})` → table with no numeric columns: verify graceful error or empty summary
+19. `pg_stats_summary({table: "stress_no_num"})` → table with no numeric columns (create it first: `CREATE TABLE stress_no_num (id UUID PRIMARY KEY, name TEXT);`): verify graceful error or empty summary
 20. `pg_stats_summary({table: "test_measurements", columns: ["sensor_id"]})` → integer column: verify it's included in summary
 
 ### Category 4: Code Mode Chaining (Multi-Tool Analysis)
