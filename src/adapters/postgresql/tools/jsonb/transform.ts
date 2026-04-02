@@ -19,6 +19,7 @@ import {
   sanitizeIdentifier,
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
+import { coerceLimit, DEFAULT_QUERY_LIMIT } from "../../../../utils/query-helpers.js";
 import {
   JsonbValidatePathOutputSchema,
   JsonbMergeOutputSchema,
@@ -307,6 +308,7 @@ export function createJsonbNormalizeTool(
           mode?: string;
           schema?: string;
           idColumn?: string;
+          limit?: number | string;
         };
         const mode = parsed.mode ?? "keys";
 
@@ -315,6 +317,10 @@ export function createJsonbNormalizeTool(
         if (!validModes.includes(mode)) {
           throw new ValidationError(`pg_jsonb_normalize: Invalid mode '${mode}'. Valid modes: ${validModes.join(", ")}`);
         }
+
+        const resolvedLimit = coerceLimit(parsed.limit, DEFAULT_QUERY_LIMIT);
+        const effectiveLimit = resolvedLimit ?? 0;
+        const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
 
         if (parsed.json) {
            let sql: string;
@@ -354,19 +360,37 @@ export function createJsonbNormalizeTool(
              sql = `SELECT 'raw_json' as source_id, key, value FROM jsonb_each_text($1::jsonb)`;
            }
 
-           const result = await adapter.executeQuery(sql, [parsed.json]);
-           if (mode === "flatten" && (result.rows?.length ?? 0) === 0) {
+           const finalSql = fetchLimit > 0 ? `${sql} LIMIT ${String(fetchLimit)}` : sql;
+           const result = await adapter.executeQuery(finalSql, [parsed.json]);
+           
+           let rows = result.rows ?? [];
+           let isTruncated = false;
+           let exactTotalCount: number | undefined;
+           
+           if (effectiveLimit > 0 && rows.length > effectiveLimit) {
+               isTruncated = true;
+               rows = rows.slice(0, effectiveLimit);
+               const countSql = `SELECT COUNT(*) as total FROM (${sql}) sub`;
+               const countResult = await adapter.executeQuery(countSql, [parsed.json]);
+               exactTotalCount = Number(countResult.rows?.[0]?.["total"] ?? rows.length);
+           }
+
+           if (mode === "flatten" && rows.length === 0) {
               const typeCheck = await adapter.executeQuery(`SELECT jsonb_typeof($1::jsonb) as type`, [parsed.json]);
               if (typeCheck.rows?.[0]?.["type"] === "array") {
                 throw new ValidationError("pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.");
               }
            }
-           const response: { success: boolean; rows?: unknown[]; count: number; mode: string } = {
+           const response: { success: boolean; rows?: unknown[]; count: number; mode: string; truncated?: boolean; totalCount?: number } = {
              success: true,
-             count: result.rows?.length ?? 0,
+             count: rows.length,
              mode,
            };
-           if (result.rows && result.rows.length > 0) response.rows = result.rows;
+           if (rows.length > 0) response.rows = rows;
+           if (isTruncated) {
+             response.truncated = true;
+             if (exactTotalCount !== undefined) response.totalCount = exactTotalCount;
+           }
            return response;
         }
 
@@ -457,21 +481,39 @@ export function createJsonbNormalizeTool(
           sql = `SELECT ${rowIdExpr} as ${rowIdAlias}, key, value FROM ${tableName}, jsonb_each_text(${columnName}) ${whereClause}`;
         }
 
-        const result = await adapter.executeQuery(sql);
+        const finalSql = fetchLimit > 0 ? `${sql} LIMIT ${String(fetchLimit)}` : sql;
+        const result = await adapter.executeQuery(finalSql);
+        
+        let rows = result.rows ?? [];
+        let isTruncated = false;
+        let exactTotalCount: number | undefined;
+        
+        if (effectiveLimit > 0 && rows.length > effectiveLimit) {
+            isTruncated = true;
+            rows = rows.slice(0, effectiveLimit);
+            const countSql = `SELECT COUNT(*) as total FROM (${sql}) sub`;
+            const countResult = await adapter.executeQuery(countSql);
+            exactTotalCount = Number(countResult.rows?.[0]?.["total"] ?? rows.length);
+        }
+
         // Check for empty flatten results on array columns
-        if (mode === "flatten" && (result.rows?.length ?? 0) === 0) {
+        if (mode === "flatten" && rows.length === 0) {
           const typeCheckSql = `SELECT jsonb_typeof(${columnName}) as type FROM ${tableName}${whereClause} LIMIT 1`;
           const typeResult = await adapter.executeQuery(typeCheckSql);
           if (typeResult.rows?.[0]?.["type"] === "array") {
             throw new ValidationError(`pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.`);
           }
         }
-        const response: { success: boolean; rows?: unknown[]; count: number; mode: string } = {
+        const response: { success: boolean; rows?: unknown[]; count: number; mode: string; truncated?: boolean; totalCount?: number } = {
           success: true,
-          count: result.rows?.length ?? 0,
+          count: rows.length,
           mode,
         };
-        if (result.rows && result.rows.length > 0) response.rows = result.rows;
+        if (rows.length > 0) response.rows = rows;
+        if (isTruncated) {
+          response.truncated = true;
+          if (exactTotalCount !== undefined) response.totalCount = exactTotalCount;
+        }
         return response;
       } catch (error: unknown) {
         // Improve error for array columns with object-only modes

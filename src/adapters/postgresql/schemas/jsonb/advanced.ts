@@ -33,11 +33,16 @@ export const JsonbNormalizeSchemaBase = z.object({
     .describe(
       'Column to use for row identification (e.g., "id"). If omitted, defaults to "id" if it exists, else uses ctid.',
     ),
+  limit: z.union([z.number(), z.string()]).optional().describe(
+    "Maximum number of rows to return (default: 100). Use 0 for all rows.",
+  ),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Internal schema with refine (for handler validation)
-const JsonbNormalizeSchemaRefined = JsonbNormalizeSchemaBase.refine(
+const JsonbNormalizeSchemaRefined = JsonbNormalizeSchemaBase.extend({
+  limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+}).refine(
   (data) => data.json !== undefined || (data.table !== undefined || data.tableName !== undefined),
   { message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required" },
 ).refine((data) => data.json !== undefined || (data.column !== undefined || data.col !== undefined), {
@@ -338,6 +343,14 @@ export const JsonbNormalizeOutputSchema = z.object({
     .optional()
     .describe("Normalized rows"),
   count: z.number().optional().describe("Number of rows"),
+  truncated: z
+    .boolean()
+    .optional()
+    .describe("Whether results were truncated by the limit"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total results before limit (present when truncated)"),
   mode: z.string().optional().describe("Normalization mode used"),
   hint: z.string().optional().describe("Additional information"),
   success: z.boolean().optional().describe("False on error"),
