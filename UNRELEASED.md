@@ -20,6 +20,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - `toType` parameter in `pg_citext_convert_column` for pure `text` type conversions
 - Parallel array parameters (`keys`, `values`) in `pg_jsonb_object`
 - `indexName` and `name` alias parameters in `pg_vector_create_index`
+- `pattern`, `table`, and `name` alias parameters for wildcard matching in `pg_table_sizes`
 
 ### Changed
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`
@@ -64,7 +65,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Clamped unbound limits in `pg_show_settings` and `pg_table_sizes` to a maximum of 100 rows to prevent unmanageable token bloat
 - Fixed `pg_connection_stats` input schema to use filtering and enforce P154 existence checks
 - Enforced strict coercion (`coerceStrictNumber`) across monitoring endpoints to reject improper numeric string types
-- Patched missing empty string constraint validations in `pg_alert_threshold_set`
+- Patched missing empty string and NaN evasion constraint validations in `pg_alert_threshold_set`
 - Mapped Postgres authorization bounds error (`42501`) gracefully to structured error payloads
 - Added `like` alias parameter support and deduplicated wildcard logic in `pg_show_settings`
 - Added missing `success: true` fields to responses across `pg_capacity_planning`, `pg_alert_threshold_set`, and other monitoring group tools

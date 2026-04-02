@@ -34,7 +34,10 @@ export const DatabaseSizeSchema = z.preprocess(
 );
 
 export const TableSizesSchemaBase = z.object({
-  schema: z.string().optional().describe("Schema name"),
+  schema: z.string().optional().describe("Schema name exact match"),
+  pattern: z.string().optional().describe("Table name pattern (LIKE syntax or exact)"),
+  table: z.string().optional().describe("Alias for pattern - table name"),
+  name: z.string().optional().describe("Alias for pattern - table name"),
   limit: z.number().optional().describe("Max tables to return"),
 });
 
@@ -42,7 +45,11 @@ export const TableSizesSchema = z.preprocess(
   defaultToEmpty,
   TableSizesSchemaBase.extend({
     limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
-  })
+  }).transform((data) => ({
+    schema: data.schema,
+    pattern: data.pattern ?? data.table ?? data.name,
+    limit: data.limit,
+  }))
 );
 
 export const ShowSettingsSchemaBase = z.object({

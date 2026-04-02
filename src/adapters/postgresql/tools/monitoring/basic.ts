@@ -97,13 +97,16 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("monitoring", readOnly("Table Sizes")),
     handler: async (params: unknown, _context: RequestContext) => {
       let schema: string | undefined;
+      let pattern: string | undefined;
       let limit: number | undefined;
       try {
         const parsed = TableSizesSchema.parse(params) as {
           schema?: string;
+          pattern?: string;
           limit?: number;
         };
         schema = parsed.schema;
+        pattern = parsed.pattern;
         limit = parsed.limit;
       } catch (err) {
         return formatHandlerErrorResponse(err, { tool: "pg_table_sizes" });
@@ -123,8 +126,27 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
         }
       }
 
-      const schemaClause = schema ? `AND n.nspname = $1` : "";
-      const queryParams: string[] = schema ? [schema] : [];
+      const whereClauses: string[] = ["c.relkind IN ('r', 'p')", "n.nspname NOT IN ('pg_catalog', 'information_schema')"];
+      const queryParams: string[] = [];
+
+      if (schema) {
+        queryParams.push(schema);
+        whereClauses.push(`n.nspname = $${String(queryParams.length)}`);
+      }
+
+      if (pattern !== undefined && pattern !== '*') {
+        if (pattern.includes("%") || pattern.includes("_")) {
+             queryParams.push(pattern);
+             whereClauses.push(`c.relname LIKE $${String(queryParams.length)}`);
+        } else {
+             queryParams.push(pattern);
+             queryParams.push(`%${pattern}%`);
+             whereClauses.push(`(c.relname = $${String(queryParams.length - 1)} OR c.relname LIKE $${String(queryParams.length)})`);
+        }
+      }
+
+      const whereClauseString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : "";
+
       // Apply limit (default 10, max 100 to prevent payload explosion)
       let effectiveLimit = limit !== undefined && limit > 0 ? limit : 10;
       if (effectiveLimit > 100) effectiveLimit = 100;
@@ -137,9 +159,7 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
                         pg_total_relation_size(c.oid) as total_bytes
                         FROM pg_class c
                         LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
-                        WHERE c.relkind IN ('r', 'p')
-                        AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                        ${schemaClause}
+                        ${whereClauseString}
                         ORDER BY pg_total_relation_size(c.oid) DESC${limitClause}`;
 
       const result = await adapter.executeQuery(sql, queryParams);
@@ -162,9 +182,7 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
         const countSql = `SELECT count(*) as total
                           FROM pg_class c
                           LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
-                          WHERE c.relkind IN ('r', 'p')
-                          AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                          ${schemaClause}`;
+                          ${whereClauseString}`;
         const countResult = await adapter.executeQuery(countSql, queryParams);
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 

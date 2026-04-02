@@ -81,7 +81,7 @@ export function createAlertThresholdSetTool(
           }
           if (val?.includes('%')) {
             const num = parseFloat(val.replace(/[^\d.-]/g, ''));
-            if (num < 0 || num > 100) {
+            if (Number.isNaN(num) || num < 0 || num > 100) {
               throw new ValidationError(`Threshold percentage must be between 0% and 100%, got ${val}`);
             }
           }
