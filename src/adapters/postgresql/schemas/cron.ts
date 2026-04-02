@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { coerceNumber } from "../../../utils/query-helpers.js";
+import { coerceStrictNumber } from "../../../utils/query-helpers.js";
 
 /**
  * Helper type for raw cron input with common aliases
@@ -305,7 +305,7 @@ export const CronListJobsSchemaBase = z.object({
 
 export const CronListJobsSchema = z.object({
   active: z.boolean().optional().describe("Filter by active status"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
+  limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
   compact: z.boolean().optional().default(true).describe("Whether to truncate long text fields"),
 }).default({ compact: true });
 
@@ -328,7 +328,7 @@ export const CronJobRunDetailsSchema = z
       .string()
       .optional()
       .describe("Filter by status (running, succeeded, failed)"),
-    limit: z.preprocess(coerceNumber, z.number().optional()).optional()
+    limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional()
       .describe("Maximum records to return (default: 10)"),
     compact: z.boolean().optional().default(true).describe("Whether to truncate long text fields"),
   })
@@ -347,8 +347,8 @@ export const CronCleanupHistorySchemaBase = z.object({
 export const CronCleanupHistorySchema = z.preprocess(
   (input) => preprocessCronParams(input ?? {}),
   z.object({
-    olderThanDays: z.preprocess(coerceNumber, z.number().optional()).optional(),
-    days: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    olderThanDays: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
+    days: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
     jobId: z.unknown().optional(),
   }).transform((data) => {
     const rawDays = data.olderThanDays as unknown;

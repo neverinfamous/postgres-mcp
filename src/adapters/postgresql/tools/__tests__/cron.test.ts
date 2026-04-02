@@ -916,28 +916,18 @@ describe("cron.ts uncovered branches", () => {
     expect(result.jobId).toBe(5); // Falls back to provided jobId
   });
 
-  // cron.ts L419-424: list_jobs limit coercion with NaN value
-  // coerceNumber returns undefined for non-numeric strings → falls back to default
-  it("should use default limit when limit is non-numeric string", async () => {
-    // Mock COUNT query
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ total: 1 }] });
-    // Mock main query
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ jobid: 1, jobname: "test", schedule: "* * * * *", active: true }],
-    });
-
+  // cron.ts list_jobs limit coercion with NaN value
+  // coerceStrictNumber returns string for non-numeric strings → Zod throws validation error
+  it("should return validation error when limit is non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
     const result = (await tool.handler(
       { limit: "not_a_number" },
       mockContext,
-    )) as { error?: string; jobs: unknown[] };
+    )) as { success: boolean; error: string; code: string };
 
-    // coerceNumber returns undefined for "not_a_number" → default limit used (50)
-    expect(result.error).toBeUndefined();
-    expect(result.jobs.length).toBe(1);
-    
-    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
-    expect(sql).toContain("LIMIT 50");
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.error).toContain("expected number");
   });
 
   // cron.ts L437: list_jobs active filter in COUNT query
@@ -991,18 +981,25 @@ describe("cron.ts uncovered branches", () => {
     expect(result.hint).toContain("jobId");
   });
 
-  // cron.ts L419-424: list_jobs with limit=0 (unlimited now disabled)
-  it("should return validation error when limit is 0", async () => {
+  // cron.ts list_jobs with limit=0 (now explicitly allows unlimited records)
+  it("should accept limit of 0 correctly disabling limits", async () => {
+    // Mock main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ jobid: 1, jobname: "test", schedule: "* * * * *", active: true }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
     const result = (await tool.handler({ limit: 0 }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      jobs: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
-    expect(result.error).toContain("limit: 0 is not allowed");
+    expect(result.success).toBe(true);
+    expect(result.jobs.length).toBe(1);
+    
+    // There shouldn't be a LIMIT clause when 0 is used
+    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    expect(sql).not.toContain("LIMIT");
   });
 
   // cron.ts L681: cleanup_history negative days validation
@@ -1053,18 +1050,25 @@ describe("cron.ts uncovered branches", () => {
     expect(result.error).toContain("does not exist");
   });
 
-  // cron.ts job_run_details with limit=0 (unlimited now disabled)
-  it("should return validation error when limit is 0", async () => {
+  // cron.ts job_run_details with limit=0 (now explicitly allows unlimited records)
+  it("should accept limit of 0 correctly disabling limits in job_run_details", async () => {
+    // Mock main query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ runid: 101, jobid: 5, status: "succeeded" }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_cron_job_run_details")!;
     const result = (await tool.handler({ limit: 0 }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      runs: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
-    expect(result.error).toContain("limit: 0 is not allowed");
+    expect(result.success).toBe(true);
+    expect(result.runs.length).toBe(1);
+
+    // There shouldn't be a LIMIT clause when 0 is used
+    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    expect(sql).not.toContain("LIMIT");
   });
 
   // cron.ts job_run_details DB error path
