@@ -117,9 +117,9 @@ export class CodeModeSecurityManager {
         const sample = result.slice(0, 500);
         const serialized = JSON.stringify(sample);
         return {
-          _truncated: true,
-          _originalSize: result.length,
-          _maxSize: this.config.maxResultSize,
+          truncated: true,
+          originalSize: result.length,
+          maxSize: 500,
           preview:
             serialized.substring(0, this.config.resultPreviewLength) +
             `... (and ${String(result.length - 500)} more rows)`,
@@ -129,9 +129,9 @@ export class CodeModeSecurityManager {
       const serialized = JSON.stringify(result);
       if (serialized.length > this.config.maxResultSize) {
         return {
-          _truncated: true,
-          _originalSize: serialized.length,
-          _maxSize: this.config.maxResultSize,
+          truncated: true,
+          originalSize: serialized.length,
+          maxSize: this.config.maxResultSize,
           preview:
             serialized.substring(0, this.config.resultPreviewLength) + "...",
         };

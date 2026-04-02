@@ -48,8 +48,9 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 ### Fixed
 
 - Standardized `success: true` properties and P154 error structures across all 230+ tools, replacing inline `{success: false}` fallbacks with explicit `ValidationError` instances
-- Prevented token payload bloat by enforcing explicit validations, `.max()` caps, and strict truncation bounds on high-volume inputs/outputs (`limit`, `n`, `pg_vector_search`, `pg_jsonb_normalize`)
+- Prevented token payload bloat by enforcing explicit validations, `.max()` caps, and strict truncation bounds on high-volume inputs/outputs (`limit`, `n`, `pg_vector_search`, `pg_jsonb_normalize`, Code Mode `sanitizeResult`)
 - Fixed Split Schema Pattern violations across `pg_hybrid_search`, `pg_jsonb_merge`, `pg_jsonb_normalize`, `pg_vector_create_index`, and `pg_citext_create_extension` by adding correct schema definitions and alias support
+- Established serialization parity for standard arrays to Postgres vector conversions via Code Mode `pg_upsert` by bridging array parameters through JSON encoder
 - Resolved Zod validation handling and eliminated framework refine leaks in vector tools (e.g., `pg_vector_batch_insert`, `pg_vector_create_extension`, `pg_vector_dimension_reduce`)
 - Restructured malformed error strings across Vector tools to ensure proper object fields and zero-suppression
 - Repaired migration rollback transaction isolation to prevent unmanaged auto-commits

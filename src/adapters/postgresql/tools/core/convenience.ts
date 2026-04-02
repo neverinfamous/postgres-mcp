@@ -77,7 +77,12 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
         const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
         const columns = Object.keys(parsed.data);
-        const values = Object.values(parsed.data);
+        const values = Object.values(parsed.data).map(value => {
+          if (value !== null && typeof value === "object") {
+            return JSON.stringify(value);
+          }
+          return value;
+        });
 
         // Build INSERT clause
         const columnList = columns.map((c) => `"${c}"`).join(", ");

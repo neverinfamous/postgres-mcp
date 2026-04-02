@@ -113,7 +113,7 @@ export const DEFAULT_SECURITY_CONFIG: SecurityConfig = {
   maxCodeLength: 50 * 1024, // 50KB
   maxExecutionsPerMinute: 60,
   rateLimitWindowMs: 60000, // 1 minute
-  maxResultSize: 10 * 1024 * 1024, // 10MB
+  maxResultSize: 100 * 1024, // 100KB (approx 25k tokens)
   resultPreviewLength: 1000,
   blockedPatterns: [
     /\brequire\s*\(/, // No require()
