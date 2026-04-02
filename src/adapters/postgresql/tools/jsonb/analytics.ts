@@ -246,7 +246,7 @@ export function createJsonbSecurityScanTool(
                 SELECT key, COUNT(*) as count
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,
                      jsonb_each_text(${columnName})
-                WHERE value ~* '(\\bSELECT\\s+.+\\bFROM\\b|\\bINSERT\\s+INTO\\b|\\bUPDATE\\s+.+\\bSET\\b|\\bDELETE\\s+FROM\\b|\\bDROP\\s+(TABLE|DATABASE|INDEX)\\b|\\bUNION\\s+(ALL\\s+)?SELECT\\b|--\\s*$|;\\s*(SELECT|INSERT|UPDATE|DELETE))'
+                WHERE value ~* '(\\ySELECT\\s+.+\\yFROM\\y|\\yINSERT\\s+INTO\\y|\\yUPDATE\\s+.+\\ySET\\y|\\yDELETE\\s+FROM\\y|\\yDROP\\s+(TABLE|DATABASE|INDEX)\\y|\\yUNION\\s+(ALL\\s+)?SELECT\\y|--\\s*$|;\\s*(SELECT|INSERT|UPDATE|DELETE))'
                 GROUP BY key
             `;
 

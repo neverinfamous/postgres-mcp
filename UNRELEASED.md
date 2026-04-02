@@ -91,6 +91,9 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Enforced strict Zod schema parsing in `pg_vector_create_extension` to close parameter validation leaks
 - Fixed `JsonbIndexSuggestOutputSchema` mismatch in `pg_jsonb_index_suggest` where `keyDistribution` and `existingIndexes` fields were incorrectly nested under `analyzed` rather than matching the root-level emission of the handler
 - Certified Code Mode parity across all 20 Core tools, confirming correct schema propagation for boundary testing, nonexistent variables, alias mapping, and `limit: 0` query resolution
+- Fixed Split Schema Violations in `pg_jsonb_merge` and `pg_jsonb_normalize` by correctly evaluating stringified JSON schemas and nested base parameters
+- Replaced Postgres `\b` word boundary regex with native `\y` matching in `pg_jsonb_security_scan` to prevent SQL Injection payload regressions
+- Certified Code Mode parity across JSONB tools (Part 1), confirming deep nesting resolution, unbounded array deletion scoping, and cross-tool consistency tests
 ### Security
 
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks
