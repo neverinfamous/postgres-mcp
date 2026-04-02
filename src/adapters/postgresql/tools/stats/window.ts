@@ -74,6 +74,7 @@ function whereClause(where?: string): string {
 /** Coerce limit with default */
 function resolveLimit(limit?: number): number {
   if (limit === undefined || limit === null || Number.isNaN(limit)) return 100;
+  if (limit > 1000) return 1000;
   if (limit <= 0) {
     throw new ValidationError("Parameter 'limit' must be greater than 0.");
   }

@@ -70,18 +70,21 @@ export function createStatsTimeSeriesTool(
         const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
         const agg = aggregation ?? "avg";
 
-        // Handle limit: undefined uses default (100), 0 means no limit (which we safely cap at MAX_LIMIT)
+        // Handle limit: undefined uses default (100)
         // Track whether user explicitly provided a limit
         const userProvidedLimit = limit !== undefined;
         const DEFAULT_LIMIT = 100;
         const MAX_LIMIT = 10000;
         
-        if (limit !== undefined && limit > MAX_LIMIT) {
-          throw new ValidationError(`Parameter 'limit' cannot exceed ${String(MAX_LIMIT)}.`);
+        if (limit !== undefined && limit <= 0) {
+          throw new ValidationError("Parameter 'limit' must be greater than 0.");
         }
         
-        // limit === 0 originally meant "no limit", but we safely cap it at 10000 to prevent context explosions
-        const effectiveLimit = limit === 0 ? MAX_LIMIT : (limit ?? DEFAULT_LIMIT);
+        let effectiveLimit = limit ?? DEFAULT_LIMIT;
+        if (effectiveLimit > MAX_LIMIT) {
+          effectiveLimit = MAX_LIMIT;
+        }
+
         const usingDefaultLimit = !userProvidedLimit && effectiveLimit < MAX_LIMIT;
 
         // First check if table exists
@@ -195,16 +198,18 @@ export function createStatsTimeSeriesTool(
         };
 
         if (groupBy !== undefined) {
-          // Handle groupLimit: undefined uses default (20), 0 means MAX to prevent payload explosion
+          // Handle groupLimit: undefined uses default (20), 0 raises validation error
           const DEFAULT_GROUP_LIMIT = 20;
           const MAX_GROUP_LIMIT = 1000;
           
-          if (groupLimit !== undefined && groupLimit > MAX_GROUP_LIMIT) {
-            throw new ValidationError(`Parameter 'groupLimit' cannot exceed ${String(MAX_GROUP_LIMIT)}.`);
+          if (groupLimit !== undefined && groupLimit <= 0) {
+            throw new ValidationError("Parameter 'groupLimit' must be greater than 0.");
           }
-          
+          let effectiveGroupLimit = groupLimit ?? DEFAULT_GROUP_LIMIT;
+          if (effectiveGroupLimit > MAX_GROUP_LIMIT) {
+            effectiveGroupLimit = MAX_GROUP_LIMIT;
+          }
           const userProvidedGroupLimit = groupLimit !== undefined;
-          const effectiveGroupLimit = groupLimit === 0 ? MAX_GROUP_LIMIT : (groupLimit ?? DEFAULT_GROUP_LIMIT);
 
           // First get total count of distinct groups for truncation indicator
           // COUNT(DISTINCT) excludes NULLs per SQL standard, so add 1 if any NULLs exist
