@@ -75,6 +75,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Replaced silent clamping in `pg_detect_query_anomalies` (threshold, minCalls) and `pg_detect_bloat_risk` (minRows) with explicit structured validation errors
 - Added schema existence pre-checks (P154) to `pg_detect_bloat_risk` and `pg_diagnose_database_performance`
 - Capped `pg_stat_statements` and `pg_query_plan_stats` maximum return limit at 500 rows to prevent unbounded payload blowout on large `pg_stat_statements` tables
+- Fixed Split Schema violation in `pg_performance_baseline`: extracted plain `PerformanceBaselineSchemaBase` for `inputSchema` (MCP parameter visibility), keeping `z.preprocess()` wrapper only for handler-side parsing
 
 ### Security
 - Replaced raw Postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks

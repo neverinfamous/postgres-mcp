@@ -38,11 +38,15 @@ function preprocessPartitionStrategyParams(input: unknown): unknown {
 export function createPerformanceBaselineTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  // Base schema for MCP visibility (no preprocess)
+  const PerformanceBaselineSchemaBase = z.object({
+    name: z.string().optional().describe("Baseline name for reference"),
+  });
+
+  // Full schema with defaultToEmpty preprocessing for handler-side parsing
   const PerformanceBaselineSchema = z.preprocess(
     defaultToEmpty,
-    z.object({
-      name: z.string().optional().describe("Baseline name for reference"),
-    }),
+    PerformanceBaselineSchemaBase,
   );
 
   return {
@@ -50,7 +54,7 @@ export function createPerformanceBaselineTool(
     description:
       "Capture current database performance metrics as a baseline for comparison.",
     group: "performance",
-    inputSchema: PerformanceBaselineSchema,
+    inputSchema: PerformanceBaselineSchemaBase, // Base schema for MCP visibility
     outputSchema: PerformanceBaselineOutputSchema,
     annotations: readOnly("Performance Baseline"),
     icons: getToolIcons("performance", readOnly("Performance Baseline")),
