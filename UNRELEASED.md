@@ -25,6 +25,7 @@
 - Applied `openWorldHint: false` to all tools
 - Optimized payload efficiency in `pg_jsonb_agg` by structurally omitting the empty array result field to conserve tokens
 - Standardized `count` response property unconditionally in table mode for `pg_jsonb_pretty` to maintain response schema integrity
+- Optimized payload efficiency in `ltree` tools by structurally omitting empty arrays (`results`, `columns`) and enforcing a default `limit` of 50 for pattern matching and queries
 - Reduced npm package size by excluding source maps and tests
 - Refactored Vitest test suite to use SWC compilation
 - Updated npm dependencies (`@modelcontextprotocol/sdk`, `typescript`, `typescript-eslint`)
@@ -63,6 +64,7 @@
 - 'pg_jsonb_normalize' incorrectly requiring 'table' and 'column' parameters for standalone 'json' instances
 - Handled native Error conversions to explicit `ValidationError` mappings preventing generic `QUERY_ERROR` fallbacks in JSONB operations
 - Kcache tools (`queryStats`, `topCpu`, `topIo`, `resourceAnalysis`) silently clamping `limit: 0` to 10 instead of rejecting with `VALIDATION_ERROR`
+- Replaced generic `{success: false}` error responses in `ltree` tools with structured `ValidationError` instances for table, column, and extension validation checks
 
 ### Security
 - Replaced raw postgres exceptions with explicit `PostgresMcpError` classes preventing SQL syntax leaks

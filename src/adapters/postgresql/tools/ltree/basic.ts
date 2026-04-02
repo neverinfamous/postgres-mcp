@@ -102,15 +102,15 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
             [schemaName, table],
           );
           if (!tableCheck.rows || tableCheck.rows.length === 0) {
-            return {
-              success: false,
-              error: `Table ${qualifiedTable} does not exist.`,
-            };
+            throw new ValidationError(
+              `Table ${qualifiedTable} does not exist.`,
+              { table: qualifiedTable }
+            );
           }
-          return {
-            success: false,
-            error: `Column "${column}" not found in table ${qualifiedTable}.`,
-          };
+          throw new ValidationError(
+            `Column "${column}" not found in table ${qualifiedTable}.`,
+            { column, table: qualifiedTable }
+          );
         }
         const udtName = colCheck.rows[0]?.["udt_name"] as string;
         if (udtName !== "ltree") {
@@ -168,12 +168,16 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, [path]);
         const resultCount = result.rows?.length ?? 0;
         const response: Record<string, unknown> = {
+          success: true,
           path,
           mode: isLqueryPattern ? "pattern" : queryMode,
           isPattern: isLqueryPattern,
-          results: result.rows ?? [],
           count: resultCount,
         };
+
+        if (resultCount > 0) {
+          response["results"] = result.rows;
+        }
 
         // Add truncation indicators when limit is applied
         if (limit !== undefined && totalCount !== undefined) {
@@ -229,6 +233,7 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, queryParams);
         const row = result.rows?.[0];
         return {
+          success: true,
           originalPath: path,
           offset,
           length: length ?? "to end",
@@ -268,6 +273,7 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
         const allIdentical = paths.every(p => p === paths[0]);
         if (allIdentical) {
           return {
+            success: true,
             paths,
             longestCommonAncestor: paths[0],
             hasCommonAncestor: true,
@@ -281,6 +287,7 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql);
         const lca = result.rows?.[0]?.["lca"] as string | null;
         return {
+          success: true,
           paths,
           longestCommonAncestor: lca ?? "",
           hasCommonAncestor: lca !== null && lca !== "",
@@ -317,7 +324,12 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
         }
         const sql = `SELECT table_schema, table_name, column_name, is_nullable, column_default FROM information_schema.columns WHERE ${conditions.join(" AND ")} ORDER BY table_schema, table_name, ordinal_position`;
         const result = await adapter.executeQuery(sql, queryParams);
-        return { columns: result.rows ?? [], count: result.rows?.length ?? 0 };
+        const count = result.rows?.length ?? 0;
+        const response: Record<string, unknown> = { success: true, count };
+        if (count > 0) {
+          response["columns"] = result.rows;
+        }
+        return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_ltree_list_columns",

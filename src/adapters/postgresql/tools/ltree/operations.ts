@@ -6,7 +6,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -61,22 +61,22 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
             [schemaName, table],
           );
           if (!tableCheck.rows || tableCheck.rows.length === 0) {
-            return {
-              success: false,
-              error: `Table ${qualifiedTable} does not exist.`,
-            };
+            throw new ValidationError(
+              `Table ${qualifiedTable} does not exist.`,
+              { table: qualifiedTable }
+            );
           }
-          return {
-            success: false,
-            error: `Column "${column}" not found in table ${qualifiedTable}.`,
-          };
+          throw new ValidationError(
+            `Column "${column}" not found in table ${qualifiedTable}.`,
+            { column, table: qualifiedTable }
+          );
         }
         const udtName = colCheck.rows[0]?.["udt_name"] as string;
         if (udtName !== "ltree") {
-          return {
-            success: false,
-            error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
-          };
+          throw new ValidationError(
+            `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+            { foundType: udtName, column }
+          );
         }
 
         // Get total count when limit is applied for truncation indicators
@@ -91,10 +91,14 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, [pattern]);
         const resultCount = result.rows?.length ?? 0;
         const response: Record<string, unknown> = {
+          success: true,
           pattern,
-          results: result.rows ?? [],
           count: resultCount,
         };
+
+        if (resultCount > 0) {
+          response["results"] = result.rows;
+        }
 
         // Add truncation indicators when limit is applied
         if (limit !== undefined && totalCount !== undefined) {
@@ -139,11 +143,10 @@ function createLtreeConvertColumnTool(
         `);
         const hasExt = (extCheck.rows?.[0]?.["installed"] as boolean) ?? false;
         if (!hasExt) {
-          return {
-            success: false,
-            error:
-              "ltree extension is not installed. Run pg_ltree_create_extension first.",
-          };
+          throw new ValidationError(
+            "ltree extension is not installed. Run pg_ltree_create_extension first.",
+            { extension: "ltree" }
+          );
         }
 
         const colCheck = await adapter.executeQuery(
@@ -157,15 +160,15 @@ function createLtreeConvertColumnTool(
             [schemaName, table],
           );
           if (!tableCheck.rows || tableCheck.rows.length === 0) {
-            return {
-              success: false,
-              error: `Table ${qualifiedTable} does not exist. Verify the table name.`,
-            };
+            throw new ValidationError(
+              `Table ${qualifiedTable} does not exist. Verify the table name.`,
+              { table: qualifiedTable }
+            );
           }
-          return {
-            success: false,
-            error: `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
-          };
+          throw new ValidationError(
+            `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
+            { column, table: qualifiedTable }
+          );
         }
 
         const dataType = colCheck.rows[0]?.["data_type"] as string;
@@ -186,14 +189,15 @@ function createLtreeConvertColumnTool(
         const allowedTypes = ["text", "varchar", "character varying", "bpchar"];
         const normalizedType = dataType.toLowerCase();
         if (!allowedTypes.includes(normalizedType)) {
-          return {
-            success: false,
-            error: `Cannot convert column "${column}" of type "${currentType}" to ltree. Only text-based columns can be converted.`,
-            currentType,
-            allowedTypes: ["text", "varchar", "character varying"],
-            suggestion:
-              "Create a new TEXT column with ltree-formatted paths, then convert that column.",
-          };
+          throw new ValidationError(
+            `Cannot convert column "${column}" of type "${currentType}" to ltree. Only text-based columns can be converted.`,
+            {
+              currentType,
+              allowedTypes: ["text", "varchar", "character varying"],
+              suggestion:
+                "Create a new TEXT column with ltree-formatted paths, then convert that column.",
+            }
+          );
         }
 
         // Check for dependent views before attempting the conversion
@@ -220,16 +224,16 @@ function createLtreeConvertColumnTool(
         const dependentViews = depCheck.rows ?? [];
 
         if (dependentViews.length > 0) {
-          return {
-            success: false,
-            error:
-              "Column has dependent views that must be dropped before conversion",
-            dependentViews: dependentViews.map(
-              (v) =>
-                `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
-            ),
-            hint: "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
-          };
+          throw new ValidationError(
+            "Column has dependent views that must be dropped before conversion",
+            {
+              dependentViews: dependentViews.map(
+                (v) =>
+                  `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
+              ),
+              hint: "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
+            }
+          );
         }
 
         await adapter.executeQuery(
@@ -279,22 +283,22 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
             [schemaName, table],
           );
           if (!tableCheck.rows || tableCheck.rows.length === 0) {
-            return {
-              success: false,
-              error: `Table ${qualifiedTable} does not exist.`,
-            };
+            throw new ValidationError(
+              `Table ${qualifiedTable} does not exist.`,
+              { table: qualifiedTable }
+            );
           }
-          return {
-            success: false,
-            error: `Column "${column}" not found in table ${qualifiedTable}.`,
-          };
+          throw new ValidationError(
+            `Column "${column}" not found in table ${qualifiedTable}.`,
+            { column, table: qualifiedTable }
+          );
         }
         const udtName = colCheck.rows[0]?.["udt_name"] as string;
         if (udtName !== "ltree") {
-          return {
-            success: false,
-            error: `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
-          };
+          throw new ValidationError(
+            `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
+            { foundType: udtName, column }
+          );
         }
 
         // Check for existing index by name

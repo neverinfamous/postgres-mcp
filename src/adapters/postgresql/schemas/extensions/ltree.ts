@@ -184,7 +184,11 @@ export const LtreeQuerySchema = z.preprocess(
         "Query mode: ancestors (@>), descendants (<@), or exact (default: descendants)",
       ),
     schema: z.string().optional().describe("Schema name (default: public)"),
-    limit: z.number().optional().describe("Maximum results"),
+    limit: z
+      .number()
+      .min(1)
+      .default(50)
+      .describe("Maximum results (default: 50)"),
   }),
 );
 
@@ -284,7 +288,11 @@ export const LtreeMatchSchema = z.preprocess(
       .string()
       .describe('lquery pattern (e.g., "*.Science.*" or "Top.*{1,3}.Stars")'),
     schema: z.string().optional().describe("Schema name (default: public)"),
-    limit: z.number().optional().describe("Maximum results"),
+    limit: z
+      .number()
+      .min(1)
+      .default(50)
+      .describe("Maximum results (default: 50)"),
   }),
 );
 
