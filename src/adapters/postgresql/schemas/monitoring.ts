@@ -67,12 +67,14 @@ export const ShowSettingsSchema = z.preprocess(
 );
 
 export const AlertThresholdSetSchemaBase = z.object({
-  metric: z.string().describe("Specific metric to set thresholds for"),
+  metric: z.string().optional().describe("Specific metric to set thresholds for"),
   warningThreshold: z
     .string()
+    .optional()
     .describe("Warning threshold (e.g. '70%')"),
   criticalThreshold: z
     .string()
+    .optional()
     .describe("Critical threshold (e.g. '90%')"),
 });
 
