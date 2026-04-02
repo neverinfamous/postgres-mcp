@@ -113,6 +113,7 @@ export function createStatStatementsTool(
         );
 
         const response: Record<string, unknown> = {
+          success: true as const,
           statements,
           count: statements.length,
         };
@@ -208,6 +209,7 @@ export function createStatActivityTool(
         const bgCount = (bgResult.rows?.[0]?.["count"] as number) ?? 0;
 
         return {
+          success: true as const,
           connections,
           count: connections.length,
           backgroundWorkers: bgCount,
@@ -326,6 +328,7 @@ export function createQueryPlanStatsTool(
           },
         );
         const response: Record<string, unknown> = {
+          success: true as const,
           queryPlanStats,
           count: queryPlanStats.length,
           hint: "High plan_pct indicates queries spending significant time in planning. Consider prepared statements.",

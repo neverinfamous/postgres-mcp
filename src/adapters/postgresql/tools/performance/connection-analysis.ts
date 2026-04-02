@@ -227,6 +227,7 @@ export function createDetectConnectionSpikeTool(
             : `${String(warnings.length)} warning(s) detected: ${String(totalConnections)}/${String(maxConnections)} connections (${String(usagePercent)}% usage)`;
 
         return {
+          success: true as const,
           totalConnections,
           maxConnections,
           usagePercent,

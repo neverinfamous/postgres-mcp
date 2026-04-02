@@ -96,7 +96,7 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
         }
 
         const result = await adapter.executeQuery(sql);
-        return { locks: result.rows };
+        return { success: true as const, locks: result.rows };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_locks" });
       }
@@ -182,6 +182,7 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         );
         return {
+          success: true as const,
           tables,
           count: tables.length,
         };
@@ -217,6 +218,7 @@ export function createCacheHitRatioTool(
         const row = result.rows?.[0];
         // Always return an object with nullable fields (never return null)
         return {
+          success: true as const,
           heap_read: row ? toNum(row["heap_read"]) : null,
           heap_hit: row ? toNum(row["heap_hit"]) : null,
           cache_hit_ratio: row ? toNum(row["cache_hit_ratio"]) : null,

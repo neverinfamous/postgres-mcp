@@ -150,6 +150,7 @@ export function createSeqScanTablesTool(
         );
 
         const response: Record<string, unknown> = {
+          success: true as const,
           tables,
           count: tables.length,
           minScans,
@@ -308,6 +309,7 @@ export function createIndexRecommendationsTool(
           // If no candidates or no baseline cost, return basic analysis
           if (candidates.length === 0 || baselineCost === null) {
             return {
+              success: true as const,
               queryAnalysis: true,
               hypopgAvailable,
               baselineCost,
@@ -391,6 +393,7 @@ export function createIndexRecommendationsTool(
             });
 
             return {
+              success: true as const,
               queryAnalysis: true,
               hypopgAvailable: true,
               baselineCost,
@@ -412,6 +415,7 @@ export function createIndexRecommendationsTool(
           }));
 
           return {
+            success: true as const,
             queryAnalysis: true,
             hypopgAvailable: false,
             baselineCost,
@@ -464,6 +468,7 @@ export function createIndexRecommendationsTool(
           }),
         );
         return {
+          success: true as const,
           queryAnalysis: false,
           recommendations,
           hint: "Based on table statistics. Provide a SQL query for query-specific recommendations.",

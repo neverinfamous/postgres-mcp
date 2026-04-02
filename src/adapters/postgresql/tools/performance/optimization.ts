@@ -116,6 +116,7 @@ export function createPerformanceBaselineTool(
       };
 
       return {
+        success: true as const,
         name: baselineName,
         timestamp: new Date().toISOString(),
         metrics: {
@@ -240,6 +241,7 @@ export function createConnectionPoolOptimizeTool(
       );
 
       return {
+        success: true as const,
         current,
         config,
         waitEvents: coercedWaitEvents,
@@ -423,6 +425,7 @@ export function createPartitionStrategySuggestTool(
           : null;
 
         return {
+          success: true as const,
           table: `${schemaName}.${tableName}`,
           tableStats: coercedTableStats,
           tableSize: coercedTableSize,

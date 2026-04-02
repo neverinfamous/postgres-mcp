@@ -201,7 +201,7 @@ export function createQueryPlanCompareTool(
           }
         }
 
-        return comparison;
+        return { success: true as const, ...comparison };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
             tool: "pg_query_plan_compare",

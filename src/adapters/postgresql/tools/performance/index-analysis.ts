@@ -124,6 +124,7 @@ export function createUnusedIndexesTool(
             0,
           );
           return {
+            success: true as const,
             summary: true,
             bySchema,
             totalCount,
@@ -154,6 +155,7 @@ export function createUnusedIndexesTool(
         );
 
         const response: Record<string, unknown> = {
+          success: true as const,
           unusedIndexes,
           count: unusedIndexes.length,
           hint: "These indexes have never been used. Consider removing them to save disk space and improve write performance.",
@@ -276,6 +278,7 @@ export function createDuplicateIndexesTool(
         const duplicates = result.rows ?? [];
 
         const response: Record<string, unknown> = {
+          success: true as const,
           duplicateIndexes: duplicates,
           count: duplicates.length,
           hint: "EXACT_DUPLICATE: Remove one. OVERLAPPING/SUBSET: Smaller index may be redundant.",

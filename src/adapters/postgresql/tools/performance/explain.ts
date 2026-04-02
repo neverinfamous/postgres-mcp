@@ -48,9 +48,10 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
         );
 
         if (fmt === "json") {
-          return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+          return { success: true as const, plan: result.rows?.[0]?.["QUERY PLAN"] };
         }
         return {
+          success: true as const,
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
       } catch (error: unknown) {
@@ -89,9 +90,10 @@ export function createExplainAnalyzeTool(
         );
 
         if (fmt === "json") {
-          return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+          return { success: true as const, plan: result.rows?.[0]?.["QUERY PLAN"] };
         }
         return {
+          success: true as const,
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
       } catch (error: unknown) {
@@ -130,9 +132,10 @@ export function createExplainBuffersTool(
         );
 
         if (fmt === "json") {
-          return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+          return { success: true as const, plan: result.rows?.[0]?.["QUERY PLAN"] };
         }
         return {
+          success: true as const,
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
       } catch (error: unknown) {

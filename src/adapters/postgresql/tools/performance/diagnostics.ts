@@ -456,6 +456,7 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
         const allRecommendations = sections.flatMap((s) => s.recommendations);
 
         return {
+          success: true as const,
           sections: {
             slowQueries,
             blockingLocks,

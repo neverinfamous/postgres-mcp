@@ -191,6 +191,7 @@ export function createDetectQueryAnomaliesTool(
             : `${String(anomalyCount)} anomalous queries detected out of ${String(totalAnalyzed)} analyzed (threshold: ${String(threshold)}σ, max z-score: ${String(maxZScore)})`;
 
         return {
+          success: true as const,
           anomalies,
           riskLevel,
           totalAnalyzed,
@@ -428,6 +429,7 @@ export function createDetectBloatRiskTool(
         const filteredTables = tables.filter((t: { riskScore: number }, index: number) => t.riskScore >= 40 || index < 5);
 
         return {
+          success: true as const,
           tables: filteredTables,
           highRiskCount,
           totalAnalyzed: tables.length,

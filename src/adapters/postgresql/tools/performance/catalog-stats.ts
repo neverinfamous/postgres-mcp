@@ -110,6 +110,7 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
         );
 
         const response: Record<string, unknown> = {
+          success: true as const,
           indexes,
           count: indexes.length,
         };
@@ -226,6 +227,7 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Get total count if limited
         const response: Record<string, unknown> = {
+          success: true as const,
           tables,
           count: tables.length,
         };
@@ -348,6 +350,7 @@ export function createVacuumStatsTool(
         );
 
         const response: Record<string, unknown> = {
+          success: true as const,
           tables,
           count: tables.length,
         };

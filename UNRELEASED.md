@@ -78,6 +78,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Fixed Split Schema violation in `pg_performance_baseline`: extracted plain `PerformanceBaselineSchemaBase` for `inputSchema` (MCP parameter visibility), keeping `z.preprocess()` wrapper only for handler-side parsing
 - Updated `performance.md` server instructions: documented `baseline({ name? })` param (now MCP-visible), `detectConnectionSpike({ warningPercent? })` correct param name and clamp range, and `seqScanTables` payload limits in the AI-Optimized Payloads section
 - Fixed Split Schema violations in `pg_detect_query_anomalies`, `pg_detect_bloat_risk`, `pg_detect_connection_spike`, and `pg_diagnose_database_performance`: all four used `InputBase.shape` (a plain object dict) instead of the full `z.object()` ZodObject as `inputSchema`, making parameters invisible to MCP client tool introspection
+- Added missing `success: true` to all 24 performance group tool success responses across `explain.ts`, `monitoring.ts`, `catalog-stats.ts`, `optimization.ts`, `compare.ts`, `analysis.ts`, `diagnostics.ts`, `anomaly-detection.ts`, `connection-analysis.ts`, `query-stats.ts`, and `index-analysis.ts`
 
 
 ### Security
