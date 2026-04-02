@@ -164,7 +164,5 @@ export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
       efConstruction: data.efConstruction ?? data.ef_construction,
       schema: data.schema,
     };
-  },
-).refine((d) => d.type !== undefined, {
-  message: "type (or method alias) is required",
-});
+  }
+);

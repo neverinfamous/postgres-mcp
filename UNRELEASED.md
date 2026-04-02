@@ -97,6 +97,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Enforced strict truncation bounds and `truncated` limit flags across `pg_jsonb_normalize` to safely process massive multi-row JSON arrays and objects without excessive payload bloat
 - Certified Code Mode parity across Vector tools (Part 1), confirming strict Zod validation against mismatched array dimensions, zero-suppression for P154 object existence errors, and comprehensive structural parity against boundary conditions
 - Fixed unstructured Error leak in `pg_vector_dimension_reduce` by wrapping domain errors with proper `VALIDATION_ERROR` codes
+- Eliminated Zod framework refine leak in `VectorCreateIndexSchema` by extracting inline validation to handler-side
 - Added missing `column` and `col` aliases for vector-column mappings in `pg_hybrid_search` complying with standard Vector group API patterns
 ### Security
 
