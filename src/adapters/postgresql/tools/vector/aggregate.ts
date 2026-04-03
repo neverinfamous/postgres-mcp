@@ -338,9 +338,9 @@ export function createVectorValidateTool(
             if ((tableCheckResult.rows?.length ?? 0) === 0) {
               return {
                 success: false,
-                error: `Table '${parsed.table}' does not exist in schema '${schemaName}'`,
+                error: `Table "${parsed.table}" does not exist in schema "${schemaName}". Use pg_list_tables to see available tables.`,
                 code: "TABLE_NOT_FOUND",
-                category: "validation",
+                category: "resource",
                 suggestion: "Use pg_list_tables to find available tables",
               };
             }

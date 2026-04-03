@@ -334,9 +334,9 @@ export function createHybridSearchTool(
               const missingRelation = relationMatch[1] ?? "";
               return {
                 success: false,
-                error: `Table '${missingRelation}' does not exist in schema '${schemaName}'`,
+                error: `Table "${missingRelation}" does not exist in schema "${schemaName}". Use pg_list_tables to see available tables.`,
                 code: "TABLE_NOT_FOUND",
-                category: "validation",
+                category: "resource",
                 suggestion: "Use pg_list_tables to find available tables",
               };
             }

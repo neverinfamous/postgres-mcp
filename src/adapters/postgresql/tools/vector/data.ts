@@ -96,9 +96,9 @@ export async function checkTableAndColumn(
     : await adapter.executeQuery(tblSql, [schema, table]);
   if ((tblResult.rows?.length ?? 0) === 0) {
     return {
-      error: `Table '${table}' does not exist in schema '${schema}'`,
+      error: `Table "${table}" does not exist in schema "${schema}". Use pg_list_tables to see available tables.`,
       code: "TABLE_NOT_FOUND",
-      category: "validation",
+      category: "resource",
       suggestion: "Use pg_list_tables to find available tables",
     };
   }
@@ -223,9 +223,9 @@ export function createVectorAddColumnTool(
         if ((tblCheckResult.rows?.length ?? 0) === 0) {
           return {
             success: false,
-            error: `Table '${parsed.table}' does not exist in schema '${schemaName}'`,
+            error: `Table "${parsed.table}" does not exist in schema "${schemaName}". Use pg_list_tables to see available tables.`,
             code: "TABLE_NOT_FOUND",
-            category: "validation",
+            category: "resource",
             suggestion: "Use pg_list_tables to find available tables",
           };
         }
