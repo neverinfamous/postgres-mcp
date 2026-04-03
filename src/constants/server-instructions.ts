@@ -458,11 +458,15 @@ Aliases: \`cacheStats\`→\`cacheHitRatio\`, \`queryStats\`→\`statStatements\`
 - \`unusedIndexes({ limit?, summary? })\`: Default 20 rows. Use \`summary: true\` for aggregated stats by schema
 - \`queryPlanStats({ limit?, truncateQuery? })\`: Default 20 rows, **max 500**, queries truncated to 100 chars. Use \`truncateQuery: 0\` for full text
 - \`seqScanTables({ minScans?, schema?, limit? })\`: Default \`minScans: 10\`, \`limit: 50\`. Use \`minScans: 0\` for all tables; \`limit: 0\` for unlimited. Returns \`truncated: true\` + \`totalCount\` when limited
+- \`locks({ showBlocked?, limit? })\`: Default 100 rows. Returns \`count\` + \`truncated\`. Use \`limit: 0\` for all. \`showBlocked: true\` returns blocking/blocked query pairs instead of the full lock list
+- \`statActivity({ includeIdle?, limit?, truncateQuery? })\`: Default 100 connections (excludes idle), queries truncated to 100 chars. Returns \`count\`, \`truncated\`, and \`backgroundWorkers\`. Use \`limit: 0\` for all; \`includeIdle: true\` to include idle connections
 - \`detectQueryAnomalies({ threshold?, minCalls? })\`: \`threshold\` must be 0.5–10 (default 2.0); \`minCalls\` must be 1–10000 (default 10). Out-of-range values return a structured validation error
 - \`detectBloatRisk({ minRows?, schema? })\`: \`minRows\` must be 0–1,000,000 (default 1000). Nonexistent \`schema\` returns a P154 existence error
 - \`detectConnectionSpike({ warningPercent? })\`: Default 70. Flags users/apps holding ≥ \`warningPercent\`% of connections. Value is clamped to 10–100 (not \`threshold\` — that key is ignored)
 
 📍 **Code Mode Note**: \`pg_performance_baseline\` → \`pg.performance.baseline({ name? })\` (not \`performanceBaseline\`). Optional \`name\` param labels the snapshot; defaults to an ISO timestamp. \`indexRecommendations\` accepts \`query\` alias for \`sql\`
+
+⚠️ **Extension Dependency**: \`diagnoseDatabasePerformance\` uses \`pg_stat_activity\` (not \`pg_stat_statements\`) for slow query detection — it runs correctly even when \`pg_stat_statements\` is unavailable. \`statStatements\` and \`queryPlanStats\` require the \`pg_stat_statements\` extension and return a structured \`QUERY_ERROR\` if it is not installed.
 
 **Top-Level Aliases**: \`pg.explain()\`, \`pg.explainAnalyze()\`, \`pg.cacheHitRatio()\`, \`pg.indexStats()\`, \`pg.tableStats()\`, \`pg.indexRecommendations()\`, \`pg.bloatCheck()\`, \`pg.vacuumStats()\`, \`pg.unusedIndexes()\`, \`pg.duplicateIndexes()\`, \`pg.seqScanTables()\`, \`pg.diagnoseDatabasePerformance()\`, \`pg.detectQueryAnomalies()\`, \`pg.detectBloatRisk()\`, \`pg.detectConnectionSpike()\``],
   ["pgcrypto", `# pgcrypto Tools
@@ -497,12 +501,12 @@ Core: \`createExtension()\`, \`hash()\`, \`hmac()\`, \`encrypt()\`, \`decrypt()\
 - \`pg_distance\`: Find geometries within distance from point. Returns \`{results, count}\` with \`distance_meters\`. ⚠️ Validates point bounds
 - \`pg_bounding_box\`: Find geometries within lat/lng bounding box. Use \`select\` array for specific columns
 - \`pg_intersection\`: Find geometries intersecting a WKT/GeoJSON geometry. Auto-detects SRID from column
-- \`pg_point_in_polygon\`: Check if point is within table polygons. Returns \`{containingPolygons, count}\`. ⚠️ Validates point bounds
+- \`pg_point_in_polygon\`: Check if point is within table polygons. Returns \`{containingPolygons, count}\`. ⚠️ Validates point bounds. Returns \`warning\` field if column contains non-POLYGON geometry (e.g., POINT)
 
 **Geometry Operations (Table-based):**
 
-- \`pg_buffer\`: Create buffer zone around table geometries. Default limit: 50 rows. Default simplify: 10m (set \`simplify: 0\` to disable). Returns \`truncated: true\` + \`totalCount\` when results are truncated. Use \`limit: 0\` for all rows
-- \`pg_geo_transform\`: Transform table geometries between SRIDs. Default limit: 50 rows. Returns \`truncated: true\` + \`totalCount\` when results are truncated. Use \`limit: 0\` for all rows. Auto-detects \`fromSrid\` from column metadata if not provided (returns \`autoDetectedSrid: true\`). \`fromSrid\`/\`sourceSrid\` and \`toSrid\`/\`targetSrid\` aliases
+- \`pg_buffer\`: Create buffer zone around table geometries. Default limit: 10 rows. Default simplify: 10m (set \`simplify: 0\` to disable). Returns \`truncated: true\` + \`totalCount\` when results are truncated. Use \`limit: 0\` for all rows
+- \`pg_geo_transform\`: Transform table geometries between SRIDs. Default limit: 10 rows. Returns \`truncated: true\` + \`totalCount\` when results are truncated. Use \`limit: 0\` for all rows. Auto-detects \`fromSrid\` from column metadata if not provided (returns \`autoDetectedSrid: true\`). \`fromSrid\`/\`sourceSrid\` and \`toSrid\`/\`targetSrid\` aliases
 - \`pg_geo_cluster\`: Spatial clustering (DBSCAN/K-Means). K-Means: If \`numClusters\` exceeds row count, automatically clamps to available rows with \`warning\` field. DBSCAN: Returns contextual \`hints\` array explaining parameter effects (e.g., "All points formed single cluster—decrease eps") and \`parameterGuide\` explaining eps/minPoints trade-offs
 
 **Geometry Operations (Standalone WKT/GeoJSON):**
@@ -513,8 +517,8 @@ Core: \`createExtension()\`, \`hash()\`, \`hmac()\`, \`encrypt()\`, \`decrypt()\
 
 **Administration:**
 
-- \`pg_postgis_create_extension\`: Enable PostGIS extension (idempotent)
-- \`pg_geo_index_optimize\`: Analyze spatial indexes. Without \`table\` param, analyzes all spatial indexes
+- \`pg_postgis_create_extension\`: Enable PostGIS extension (idempotent). Returns \`{alreadyExists: true}\` when already installed
+- \`pg_geo_index_optimize\`: Analyze spatial indexes. Without \`table\` param, analyzes all spatial indexes. Returns structured error (\`TABLE_NOT_FOUND\`) if specified table has no spatial columns or indexes
 
 **Code Mode Aliases:** \`pg.postgis.addColumn()\` → \`geometryColumn\`, \`pg.postgis.indexOptimize()\` → \`geoIndexOptimize\`, \`pg.postgis.geoCluster()\` → \`pg_geo_cluster\`, \`pg.postgis.geoTransform()\` → \`pg_geo_transform\`. Note: \`pg.{group}.help()\` returns \`{methods, methodAliases, examples}\``],
   ["schema", `# Schema Tools
