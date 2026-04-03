@@ -997,7 +997,7 @@ describe("PostGIS Tools", () => {
           mockContext,
         )) as any;
         expect(result.success).toBe(false);
-        expect(result.error).toContain("Table or view 't' not found");
+        expect(result.error).toContain("does not exist in schema");
       });
     });
 

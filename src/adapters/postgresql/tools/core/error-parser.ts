@@ -76,14 +76,17 @@ export function parsePostgresError(
 
     const match = /(?:relation|view|sequence|materialized view) "([^"]+)"/i.exec(msg);
     const objectName = match?.[1] ?? context.table ?? "unknown";
-    
-    let entityTypeStr = "Table or view";
+    const schemaName = context.schema ?? "public";
+
     if (context.objectType === "sequence" || /sequence/i.test(msg)) {
-      entityTypeStr = "Sequence";
+      throw new Error(
+        `Sequence "${objectName}" does not exist in schema "${schemaName}". Use pg_list_tables to see available sequences.`,
+        { cause: error },
+      );
     }
 
     throw new Error(
-      `${entityTypeStr} '${objectName}' not found. Use pg_list_tables to see available tables.`,
+      `Table "${objectName}" does not exist in schema "${schemaName}". Use pg_list_tables to see available tables.`,
       { cause: error },
     );
   }

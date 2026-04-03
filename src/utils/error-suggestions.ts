@@ -116,14 +116,14 @@ const ERROR_SUGGESTIONS: {
   {
     pattern: /(?<!of )relation ".*" does not exist/i,
     suggestion:
-      "Table or view not found. Run pg_list_tables to see available tables.",
+      "Table or view does not exist. Run pg_list_tables to see available tables.",
     category: ErrorCategory.RESOURCE,
     code: "TABLE_NOT_FOUND",
   },
   {
     pattern: /table (?:or view )?['"].*['"] not found/i,
     suggestion:
-      "Table or view not found. Run pg_list_tables to see available tables.",
+      "Table or view does not exist. Run pg_list_tables to see available tables.",
     category: ErrorCategory.RESOURCE,
     code: "TABLE_NOT_FOUND",
   },

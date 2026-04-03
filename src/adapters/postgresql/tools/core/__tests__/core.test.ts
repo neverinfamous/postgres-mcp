@@ -3360,7 +3360,7 @@ describe("pg_write_query - structured error handling", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Table or view/i);
+    expect(result.error).toMatch(/does not exist in schema/i);
   });
 
   it("should return structured error for undefined column (42703)", async () => {

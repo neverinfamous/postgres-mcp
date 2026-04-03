@@ -485,7 +485,7 @@ export function createBoundingBoxTool(
           // If no columns found, table likely doesn't exist
           if (selectCols.length === 0) {
             throw new QueryError(
-              `Table or view '${parsed.table}' not found in schema '${schemaName}'. Use pg_list_tables to see available tables.`,
+              `Table "${parsed.table}" does not exist in schema "${schemaName}". Use pg_list_tables to see available tables.`,
             );
           }
         }
