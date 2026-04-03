@@ -11,12 +11,12 @@
 - `pg_distance`: Find geometries within distance from point. Returns `{results, count}` with `distance_meters`. ⚠️ Validates point bounds
 - `pg_bounding_box`: Find geometries within lat/lng bounding box. Use `select` array for specific columns
 - `pg_intersection`: Find geometries intersecting a WKT/GeoJSON geometry. Auto-detects SRID from column
-- `pg_point_in_polygon`: Check if point is within table polygons. Returns `{containingPolygons, count}`. ⚠️ Validates point bounds
+- `pg_point_in_polygon`: Check if point is within table polygons. Returns `{containingPolygons, count}`. ⚠️ Validates point bounds. Returns `warning` field if column contains non-POLYGON geometry (e.g., POINT)
 
 **Geometry Operations (Table-based):**
 
-- `pg_buffer`: Create buffer zone around table geometries. Default limit: 50 rows. Default simplify: 10m (set `simplify: 0` to disable). Returns `truncated: true` + `totalCount` when results are truncated. Use `limit: 0` for all rows
-- `pg_geo_transform`: Transform table geometries between SRIDs. Default limit: 50 rows. Returns `truncated: true` + `totalCount` when results are truncated. Use `limit: 0` for all rows. Auto-detects `fromSrid` from column metadata if not provided (returns `autoDetectedSrid: true`). `fromSrid`/`sourceSrid` and `toSrid`/`targetSrid` aliases
+- `pg_buffer`: Create buffer zone around table geometries. Default limit: 10 rows. Default simplify: 10m (set `simplify: 0` to disable). Returns `truncated: true` + `totalCount` when results are truncated. Use `limit: 0` for all rows
+- `pg_geo_transform`: Transform table geometries between SRIDs. Default limit: 10 rows. Returns `truncated: true` + `totalCount` when results are truncated. Use `limit: 0` for all rows. Auto-detects `fromSrid` from column metadata if not provided (returns `autoDetectedSrid: true`). `fromSrid`/`sourceSrid` and `toSrid`/`targetSrid` aliases
 - `pg_geo_cluster`: Spatial clustering (DBSCAN/K-Means). K-Means: If `numClusters` exceeds row count, automatically clamps to available rows with `warning` field. DBSCAN: Returns contextual `hints` array explaining parameter effects (e.g., "All points formed single cluster—decrease eps") and `parameterGuide` explaining eps/minPoints trade-offs
 
 **Geometry Operations (Standalone WKT/GeoJSON):**
@@ -27,7 +27,7 @@
 
 **Administration:**
 
-- `pg_postgis_create_extension`: Enable PostGIS extension (idempotent)
-- `pg_geo_index_optimize`: Analyze spatial indexes. Without `table` param, analyzes all spatial indexes
+- `pg_postgis_create_extension`: Enable PostGIS extension (idempotent). Returns `{alreadyExists: true}` when already installed
+- `pg_geo_index_optimize`: Analyze spatial indexes. Without `table` param, analyzes all spatial indexes. Returns structured error (`TABLE_NOT_FOUND`) if specified table has no spatial columns or indexes
 
 **Code Mode Aliases:** `pg.postgis.addColumn()` → `geometryColumn`, `pg.postgis.indexOptimize()` → `geoIndexOptimize`, `pg.postgis.geoCluster()` → `pg_geo_cluster`, `pg.postgis.geoTransform()` → `pg_geo_transform`. Note: `pg.{group}.help()` returns `{methods, methodAliases, examples}`
