@@ -42,10 +42,22 @@ export function createPostgisExtensionTool(
     icons: getToolIcons("postgis", write("Create PostGIS Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
       try {
-        // Strict input schema means this should only accept {}, but we also ensure
-        // any execution errors (e.g. permission issues) return structured P154 JSON.
+        // Check if PostGIS is already installed before attempting CREATE EXTENSION
+        const checkResult = await adapter.executeQuery(
+          "SELECT 1 FROM pg_extension WHERE extname = 'postgis'",
+        );
+        const alreadyExists = (checkResult.rows?.length ?? 0) > 0;
+
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS postgis");
-        return { success: true, message: "PostGIS extension enabled" };
+
+        if (alreadyExists) {
+          return {
+            success: true,
+            message: "PostGIS extension already enabled",
+            alreadyExists: true,
+          };
+        }
+        return { success: true, message: "PostGIS extension enabled", alreadyExists: false };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_postgis_create_extension",

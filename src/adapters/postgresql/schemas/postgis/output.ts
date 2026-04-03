@@ -13,6 +13,11 @@ export const PostgisCreateExtensionOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether extension was enabled"),
     message: z.string().optional().describe("Status message"),
+    alreadyExists: z
+      .boolean()
+      .optional()
+      .describe("Whether PostGIS was already installed (true on idempotent calls)"),
+    error: z.string().optional().describe("Error message"),
   })
   .describe("PostGIS extension creation result");
 
@@ -178,6 +183,9 @@ export const GeoIndexOptimizeOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether operation succeeded"),
     error: z.string().optional().describe("Error message"),
+    code: z.string().optional().describe("Error code (e.g. TABLE_NOT_FOUND)"),
+    category: z.string().optional().describe("Error category"),
+    recoverable: z.boolean().optional().describe("Whether error is recoverable"),
     suggestion: z.string().optional().describe("Helpful suggestion"),
     spatialIndexes: z
       .array(z.record(z.string(), z.unknown()))

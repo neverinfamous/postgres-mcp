@@ -133,15 +133,19 @@ export function createGeoIndexOptimizeTool(
         }
       }
 
-      // Warn if table filter specified but no results found
       if (
         parsed.table !== undefined &&
         (indexes.rows?.length ?? 0) === 0 &&
         (tableStats.rows?.length ?? 0) === 0
       ) {
-        throw new QueryError(
-          `Table "${parsed.table}" not found in schema "${schemaName}" or has no spatial columns/indexes.`,
-        );
+        return {
+          success: false,
+          error: `Table "${parsed.table}" not found in schema "${schemaName}" or has no spatial columns/indexes.`,
+          code: "TABLE_NOT_FOUND",
+          category: "query",
+          recoverable: false,
+          suggestion: `Use pg_geo_index_optimize without a table filter to see all spatial tables in schema "${schemaName}".`,
+        };
       }
 
       return {
