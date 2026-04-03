@@ -829,7 +829,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -853,7 +853,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -877,7 +877,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -918,7 +918,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return structured error for duplicate column without ifNotExists", async () => {
@@ -987,7 +987,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -1027,7 +1027,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -1054,7 +1054,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -1082,7 +1082,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -1114,7 +1114,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error in table mode when table exists", async () => {
@@ -1148,7 +1148,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
