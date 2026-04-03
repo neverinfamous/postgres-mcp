@@ -142,6 +142,10 @@ export function createStatActivityTool(
       .any()
       .optional()
       .describe("Max query length in chars (default: 100, use 0 for full text)"),
+    limit: z
+      .any()
+      .optional()
+      .describe("Max connections to return (default: 100, use 0 for all)"),
   });
 
   const StatActivitySchema = z.preprocess(
@@ -173,6 +177,16 @@ export function createStatActivityTool(
                 ? null
                 : rawTruncate;
 
+        const rawLimit = Number(parsed.limit);
+        const limit =
+          parsed.limit === undefined
+            ? 100
+            : isNaN(rawLimit)
+              ? 100
+              : rawLimit === 0
+                ? null
+                : rawLimit;
+
         const sql = `SELECT pid, usename, datname, client_addr, state,
                         query_start, state_change,
                         now() - query_start as duration,
@@ -181,7 +195,8 @@ export function createStatActivityTool(
                         WHERE pid != pg_backend_pid()
                           AND backend_type = 'client backend'
                           ${idleClause}
-                        ORDER BY query_start`;
+                        ORDER BY query_start
+                        ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
         const result = await adapter.executeQuery(sql);
         
@@ -213,6 +228,7 @@ export function createStatActivityTool(
           connections,
           count: connections.length,
           backgroundWorkers: bgCount,
+          truncated: limit !== null && connections.length === limit,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_stat_activity" });

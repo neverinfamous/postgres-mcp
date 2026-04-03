@@ -79,6 +79,12 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Updated `performance.md` server instructions: documented `baseline({ name? })` param (now MCP-visible), `detectConnectionSpike({ warningPercent? })` correct param name and clamp range, and `seqScanTables` payload limits in the AI-Optimized Payloads section
 - Fixed Split Schema violations in `pg_detect_query_anomalies`, `pg_detect_bloat_risk`, `pg_detect_connection_spike`, and `pg_diagnose_database_performance`: all four used `InputBase.shape` (a plain object dict) instead of the full `z.object()` ZodObject as `inputSchema`, making parameters invisible to MCP client tool introspection
 - Added missing `success: true` to all 24 performance group tool success responses across `explain.ts`, `monitoring.ts`, `catalog-stats.ts`, `optimization.ts`, `compare.ts`, `analysis.ts`, `diagnostics.ts`, `anomaly-detection.ts`, `connection-analysis.ts`, `query-stats.ts`, and `index-analysis.ts`
+- Converted `validatePerformanceTableExists` in `helpers.ts` to throw `ValidationError` (instead of returning a nullable string) so P154 pre-check errors propagate through `formatHandlerErrorResponse()` with `code`, `category`, and `recoverable` fields — applied across `pg_index_stats`, `pg_table_stats`, `pg_vacuum_stats`, and `pg_bloat_check`
+- Added `limit` parameter (default 100, use 0 for all) to `pg_locks` to prevent unbounded payload on busy servers; added `count` and `truncated` fields to response
+- Added `limit` parameter (default 100, use 0 for all) to `pg_stat_activity` to prevent unbounded payload on servers with many connections; added `truncated` field to response
+- Replaced inline `outputSchema: z.object({...})` in `pg_diagnose_database_performance` with imported `DiagnoseOutputSchema` from `schemas/performance.ts`; wired `DiagnoseOutputSchema` export through `core-exports.ts` barrel
+- Fixed `pg_diagnose_database_performance` schema validation guard to throw `ValidationError` (routing through `formatHandlerErrorResponse`) instead of returning a bare `{success: false, error}` object without enrichment fields
+- Removed duplicate local `validatePerformanceTableExists` implementation from `monitoring.ts`; consolidated to import from `helpers.ts`
 
 
 ### Security

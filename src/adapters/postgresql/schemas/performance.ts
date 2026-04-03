@@ -153,6 +153,7 @@ export const StatActivityOutputSchema = z.object({
     .optional()
     .describe("Active connections"),
   count: z.number().optional().describe("Number of connections"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
   backgroundWorkers: z
     .number()
     .optional()
@@ -161,15 +162,19 @@ export const StatActivityOutputSchema = z.object({
   error: z.string().optional().describe("Error message if failed"),
 }).extend(ErrorResponseFields.shape);
 
+
 // pg_locks
 export const LocksOutputSchema = z.object({
   locks: z
     .array(z.record(z.string(), z.unknown()))
     .optional()
     .describe("Lock information"),
+  count: z.number().optional().describe("Number of locks returned"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
 }).extend(ErrorResponseFields.shape);
+
 
 // pg_bloat_check
 export const BloatCheckOutputSchema = z.object({
@@ -424,3 +429,31 @@ export const QueryPlanStatsOutputSchema = z.object({
   success: z.boolean().optional().describe("Whether operation succeeded"),
   error: z.string().optional().describe("Error message if failed"),
 }).extend(ErrorResponseFields.shape);
+
+// pg_diagnose_database_performance
+export const DiagnoseOutputSchema = z.object({
+  sections: z
+    .object({
+      slowQueries: z.record(z.string(), z.unknown()),
+      blockingLocks: z.record(z.string(), z.unknown()),
+      connectionPressure: z.record(z.string(), z.unknown()),
+      cacheHitRatio: z.record(z.string(), z.unknown()),
+      diskUsage: z.record(z.string(), z.unknown()),
+      topTables: z.record(z.string(), z.unknown()),
+    })
+    .optional()
+    .describe("Per-section diagnostic results"),
+  overallScore: z.number().optional().describe("Aggregate health score (0-100)"),
+  overallStatus: z
+    .enum(["healthy", "warning", "critical"])
+    .optional()
+    .describe("Overall health status"),
+  totalRecommendations: z.number().optional().describe("Total recommendation count"),
+  allRecommendations: z
+    .array(z.string())
+    .optional()
+    .describe("All recommendations across sections"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
+}).extend(ErrorResponseFields.shape);
+

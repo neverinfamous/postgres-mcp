@@ -16,65 +16,48 @@ import {
   BloatCheckOutputSchema,
   CacheHitRatioOutputSchema,
 } from "../../schemas/index.js";
+import {
+  defaultToEmpty,
+  toNum,
+  validatePerformanceTableExists,
+} from "./helpers.js";
 
-// Helper to coerce string numbers to JavaScript numbers (PostgreSQL returns BIGINT as strings)
-const toNum = (val: unknown): number | null =>
-  val === null || val === undefined ? null : Number(val);
+// ─── pg_locks ────────────────────────────────────────────────────────────────
 
-/**
- * P154: Validate that a table exists before executing performance queries.
- * When a specific table/schema is provided, checks existence first to return
- * a structured error instead of silently returning empty results.
- */
-async function validatePerformanceTableExists(
-  adapter: PostgresAdapter,
-  table?: string,
-  schema?: string,
-): Promise<string | null> {
-  if (!table && !schema) return null;
-
-  if (schema) {
-    const schemaResult = await adapter.executeQuery(
-      `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-      [schema],
-    );
-    if (!schemaResult.rows || schemaResult.rows.length === 0) {
-      return `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`;
-    }
-  }
-
-  if (table) {
-    const targetSchema = schema ?? "public";
-    const tableResult = await adapter.executeQuery(
-      `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-      [targetSchema, table],
-    );
-    if (!tableResult.rows || tableResult.rows.length === 0) {
-      return `Table '${targetSchema}.${table}' not found. Use pg_list_tables to see available tables.`;
-    }
-  }
-
-  return null;
-}
-
-const LocksSchema = z.object({
-  showBlocked: z.unknown().optional(),
+const LocksSchemaBase = z.object({
+  showBlocked: z.unknown().optional().describe("Show only blocked queries (default: false)"),
+  limit: z
+    .any()
+    .optional()
+    .describe("Max locks to return (default: 100, use 0 for all)"),
 });
+
+const LocksSchema = z.preprocess(defaultToEmpty, LocksSchemaBase);
 
 export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_locks",
     description: "View current lock information.",
     group: "performance",
-    inputSchema: LocksSchema,
+    inputSchema: LocksSchemaBase,
     outputSchema: LocksOutputSchema,
     annotations: readOnly("Lock Information"),
     icons: getToolIcons("performance", readOnly("Lock Information")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = LocksSchema.parse(params ?? {});
+        const parsed = LocksSchema.parse(params);
 
         const showBlocked = parsed.showBlocked === true || parsed.showBlocked === "true";
+        const rawLimit = Number(parsed.limit);
+        const limit =
+          parsed.limit === undefined
+            ? 100
+            : isNaN(rawLimit)
+              ? 100
+              : rawLimit === 0
+                ? null
+                : rawLimit;
+
         let sql: string;
         if (showBlocked) {
           sql = `SELECT blocked.pid as blocked_pid, blocked.query as blocked_query,
@@ -85,24 +68,33 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
                             AND bl.relation = lk.relation
                             AND bl.pid != lk.pid
                         JOIN pg_stat_activity blocking ON lk.pid = blocking.pid
-                        WHERE NOT bl.granted`;
+                        WHERE NOT bl.granted
+                        ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
         } else {
           sql = `SELECT l.locktype, l.relation::regclass, l.mode, l.granted,
                         a.pid, a.usename, a.query, a.state
                         FROM pg_locks l
                         JOIN pg_stat_activity a ON l.pid = a.pid
                         WHERE l.pid != pg_backend_pid()
-                        ORDER BY l.granted, l.pid`;
+                        ORDER BY l.granted, l.pid
+                        ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
         }
 
         const result = await adapter.executeQuery(sql);
-        return { success: true as const, locks: result.rows };
+        return {
+          success: true as const,
+          locks: result.rows,
+          count: result.rows?.length ?? 0,
+          truncated: limit !== null && (result.rows?.length ?? 0) === limit,
+        };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_locks" });
       }
     },
   };
 }
+
+// ─── pg_bloat_check ──────────────────────────────────────────────────────────
 
 export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
   const BloatCheckSchemaBase = z.object({
@@ -152,15 +144,8 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
           whereClause += ` AND relname = $${String(queryParams.length)}`;
         }
 
-        // P154: Validate table/schema existence before querying
-        const validationError = await validatePerformanceTableExists(
-          adapter,
-          tableName,
-          schemaName,
-        );
-        if (validationError !== null) {
-          return { success: false, error: validationError };
-        }
+        // P154: Validate table/schema existence before querying (throws ValidationError on failure)
+        await validatePerformanceTableExists(adapter, tableName, schemaName);
 
         const sql = `SELECT schemaname, relname as table_name,
                         n_live_tup as live_tuples, n_dead_tup as dead_tuples,
@@ -192,6 +177,8 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
     },
   };
 }
+
+// ─── pg_cache_hit_ratio ──────────────────────────────────────────────────────
 
 export function createCacheHitRatioTool(
   adapter: PostgresAdapter,

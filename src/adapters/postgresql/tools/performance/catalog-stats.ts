@@ -68,15 +68,8 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
                 ? null
                 : rawLimit;
 
-        // P154: Validate table/schema existence before querying
-        const validationError = await validatePerformanceTableExists(
-          adapter,
-          table,
-          schema,
-        );
-        if (validationError !== null) {
-          return { success: false, error: validationError };
-        }
+        // P154: Validate table/schema existence before querying (throws ValidationError on failure)
+        await validatePerformanceTableExists(adapter, table, schema);
 
         let whereClause =
           "schemaname NOT IN ('pg_catalog', 'information_schema')";
@@ -176,15 +169,8 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
                 ? null
                 : rawLimit;
 
-        // P154: Validate table/schema existence before querying
-        const validationError = await validatePerformanceTableExists(
-          adapter,
-          table,
-          schema,
-        );
-        if (validationError !== null) {
-          return { success: false, error: validationError };
-        }
+        // P154: Validate table/schema existence before querying (throws ValidationError on failure)
+        await validatePerformanceTableExists(adapter, table, schema);
 
         let whereClause =
           "schemaname NOT IN ('pg_catalog', 'information_schema')";
@@ -303,15 +289,8 @@ export function createVacuumStatsTool(
           whereClause += ` AND relname = $${String(queryParams.length)}`;
         }
 
-        // P154: Validate table/schema existence before querying
-        const validationError = await validatePerformanceTableExists(
-          adapter,
-          table,
-          schema,
-        );
-        if (validationError !== null) {
-          return { success: false, error: validationError };
-        }
+        // P154: Validate table/schema existence before querying (throws ValidationError on failure)
+        await validatePerformanceTableExists(adapter, table, schema);
 
         const sql = `SELECT
                 s.schemaname, s.relname as table_name,

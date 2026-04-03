@@ -67,7 +67,9 @@ export {
   DuplicateIndexesOutputSchema,
   VacuumStatsOutputSchema,
   QueryPlanStatsOutputSchema,
+  DiagnoseOutputSchema,
 } from "./performance.js";
+
 
 // Admin operation schemas
 export {

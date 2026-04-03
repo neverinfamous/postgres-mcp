@@ -16,6 +16,8 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
+import { ValidationError } from "../../../../types/errors.js";
+import { DiagnoseOutputSchema } from "../../schemas/index.js";
 
 // =============================================================================
 // Schemas
@@ -374,20 +376,7 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
       "disk usage, and top tables by size and activity. Returns per-section " +
       "health ratings and recommendations with an overall health score.",
     inputSchema: DiagnoseInputSchemaBase, // Split Schema: full ZodObject for MCP parameter visibility
-    outputSchema: z.object({
-      sections: z.object({
-        slowQueries: z.record(z.string(), z.unknown()),
-        blockingLocks: z.record(z.string(), z.unknown()),
-        connectionPressure: z.record(z.string(), z.unknown()),
-        cacheHitRatio: z.record(z.string(), z.unknown()),
-        diskUsage: z.record(z.string(), z.unknown()),
-        topTables: z.record(z.string(), z.unknown()),
-      }).optional(),
-      overallScore: z.number().optional(),
-      overallStatus: z.enum(["healthy", "warning", "critical"]).optional(),
-      totalRecommendations: z.number().optional(),
-      allRecommendations: z.array(z.string()).optional(),
-    }),
+    outputSchema: DiagnoseOutputSchema,
     group: "performance",
     annotations: readOnly("Diagnose database performance"),
     icons: getToolIcons(
@@ -409,10 +398,7 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
         if (schema) {
           const check = await adapter.executeQuery("SELECT 1 FROM information_schema.schemata WHERE schema_name = $1", [schema]);
           if (!check.rows || check.rows.length === 0) {
-            return {
-              success: false,
-              error: `Schema '${schema}' does not exist.`,
-            };
+            throw new ValidationError(`Schema '${schema}' does not exist.`);
           }
         }
 

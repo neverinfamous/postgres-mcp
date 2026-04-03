@@ -5,6 +5,7 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
+import { ValidationError } from "../../../../types/errors.js";
 
 /** Helper to handle undefined params (allows tools to be called without {}) */
 export const defaultToEmpty = (val: unknown): unknown => val ?? {};
@@ -14,17 +15,20 @@ export const toNum = (val: unknown): number | null =>
   val === null || val === undefined ? null : Number(val);
 
 /**
- * P154: Validate that a table exists before executing performance queries.
- * When a specific table/schema is provided, checks existence first to return
- * a structured error instead of silently returning empty results.
+ * P154: Validate that a table/schema exists before executing performance queries.
+ * Throws a ValidationError so the handler's catch block routes through
+ * formatHandlerErrorResponse(), ensuring code/category/recoverable fields
+ * are included in the structured error response.
+ *
+ * Call inside the handler's try/catch BEFORE executing the main query.
  */
 export async function validatePerformanceTableExists(
   adapter: PostgresAdapter,
   table?: string,
   schema?: string,
-): Promise<string | null> {
+): Promise<void> {
   // Only validate when a specific table or schema is requested
-  if (!table && !schema) return null;
+  if (!table && !schema) return;
 
   // Check schema existence first for granular error messages
   if (schema) {
@@ -33,7 +37,9 @@ export async function validatePerformanceTableExists(
       [schema],
     );
     if (!schemaResult.rows || schemaResult.rows.length === 0) {
-      return `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`;
+      throw new ValidationError(
+        `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+      );
     }
   }
 
@@ -45,9 +51,9 @@ export async function validatePerformanceTableExists(
       [targetSchema, table],
     );
     if (!tableResult.rows || tableResult.rows.length === 0) {
-      return `Table '${targetSchema}.${table}' not found. Use pg_list_tables to see available tables.`;
+      throw new ValidationError(
+        `Table '${targetSchema}.${table}' not found. Use pg_list_tables to see available tables.`,
+      );
     }
   }
-
-  return null;
 }
