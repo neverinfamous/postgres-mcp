@@ -223,6 +223,8 @@ Ensure tools predictably return typed `VALIDATION_ERROR`, etc.
 8. `pg_geo_index_optimize` → Point cleanly to a table completely missing any geometric spatial indexes (`table: "test_users"`). Verify it throws typed `INDEX_NOT_FOUND` / `COLUMN_NOT_FOUND`.
 9. Environment Mock -> Explicitly drop the native `postgis` schema extension directly via raw SQL injected cleanly into Code Mode. Then execute `pg_distance`. Observe strict validation mapping for the required generic `EXTENSION_MISSING` format. Then flawlessly restore natively.
 
+   > **⚠️ CASCADE Side Effect**: `DROP EXTENSION postgis CASCADE` also drops all geometry-typed columns on existing tables (e.g., `test_locations.location`). After restoring PostGIS via `CREATE EXTENSION IF NOT EXISTS postgis`, you must also restore the column: `ALTER TABLE test_locations ADD COLUMN location GEOMETRY(POINT, 4326)` and re-seed data. `pg_distance` returns `COLUMN_NOT_FOUND` (not `EXTENSION_MISSING`) since geometry auto-detection fails at the column level — this is correct P154-compliant behavior.
+
 ### Category 5: Complex Flow Architectures
 
 Verify that complex native functions execute spatial IPC logic correctly dynamically.
