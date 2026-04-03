@@ -72,16 +72,9 @@ export function createUnusedIndexesTool(
                 ? null
                 : rawLimit;
 
-        // P154: Validate schema existence before querying
+        // P154: Validate schema existence before querying (throws ValidationError on failure)
         if (parsed.schema !== undefined) {
-          const validationError = await validatePerformanceTableExists(
-            adapter,
-            undefined,
-            parsed.schema,
-          );
-          if (validationError !== null) {
-            return { success: false, error: validationError };
-          }
+          await validatePerformanceTableExists(adapter, undefined, parsed.schema);
         }
 
         let whereClause =
@@ -218,16 +211,9 @@ export function createDuplicateIndexesTool(
                 ? null
                 : rawLimit;
 
-        // P154: Validate schema existence before querying
+        // P154: Validate schema existence before querying (throws ValidationError on failure)
         if (parsed.schema !== undefined) {
-          const validationError = await validatePerformanceTableExists(
-            adapter,
-            undefined,
-            parsed.schema,
-          );
-          if (validationError !== null) {
-            return { success: false, error: validationError };
-          }
+          await validatePerformanceTableExists(adapter, undefined, parsed.schema);
         }
 
         const queryParams: string[] = [];

@@ -16,53 +16,7 @@ import {
   SeqScanTablesOutputSchema,
   IndexRecommendationsOutputSchema,
 } from "../../schemas/index.js";
-
-/**
- * P154: Validate that a schema exists before executing performance queries.
- */
-async function validatePerformanceSchemaExists(
-  adapter: PostgresAdapter,
-  schema?: string,
-): Promise<string | null> {
-  if (!schema) return null;
-  const schemaResult = await adapter.executeQuery(
-    `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-    [schema],
-  );
-  if (!schemaResult.rows || schemaResult.rows.length === 0) {
-    return `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`;
-  }
-  return null;
-}
-
-/**
- * P154: Validate that a table exists before executing performance queries.
- */
-async function validatePerformanceTableExists(
-  adapter: PostgresAdapter,
-  table?: string,
-  schema?: string,
-): Promise<string | null> {
-  if (!table && !schema) return null;
-
-  if (schema) {
-    const schemaError = await validatePerformanceSchemaExists(adapter, schema);
-    if (schemaError !== null) return schemaError;
-  }
-
-  if (table) {
-    const targetSchema = schema ?? "public";
-    const tableResult = await adapter.executeQuery(
-      `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-      [targetSchema, table],
-    );
-    if (!tableResult.rows || tableResult.rows.length === 0) {
-      return `Table '${targetSchema}.${table}' not found. Use pg_list_tables to see available tables.`;
-    }
-  }
-
-  return null;
-}
+import { validatePerformanceTableExists } from "./helpers.js";
 
 export function createSeqScanTablesTool(
   adapter: PostgresAdapter,
@@ -118,13 +72,9 @@ export function createSeqScanTablesTool(
           whereClause += ` AND schemaname = $${String(queryParams.length)}`;
         }
 
-        // P154: Validate schema existence when filtering by schema
-        const schemaError = await validatePerformanceSchemaExists(
-          adapter,
-          parsed.schema,
-        );
-        if (schemaError !== null) {
-          return { success: false, error: schemaError };
+        // P154: Validate schema existence when filtering by schema (throws ValidationError on failure)
+        if (parsed.schema !== undefined) {
+          await validatePerformanceTableExists(adapter, undefined, parsed.schema);
         }
 
         const sql = `SELECT schemaname, relname as table_name,
@@ -433,15 +383,12 @@ export function createIndexRecommendationsTool(
           tableClause = `AND relname = $${String(statsParams.length)}`;
         }
 
-        // P154: Validate table/schema existence in table-stats path
-        const validationError = await validatePerformanceTableExists(
+        // P154: Validate table/schema existence in table-stats path (throws ValidationError on failure)
+        await validatePerformanceTableExists(
           adapter,
           parsed.table,
           parsed.schema ?? "public",
         );
-        if (validationError !== null) {
-          return { success: false, error: validationError };
-        }
 
         const sql = `SELECT schemaname, relname as table_name,
                         seq_scan, idx_scan,
