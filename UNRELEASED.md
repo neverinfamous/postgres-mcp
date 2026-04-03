@@ -89,6 +89,8 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 - Removed duplicate local `validatePerformanceTableExists` implementation from `analysis.ts`; consolidated to import from `helpers.ts` (eliminating dead copy of `validatePerformanceSchemaExists` as well)
 - Removed stale `const validationError = …; if (validationError !== null)` null-check guards from `index-analysis.ts` (`pg_unused_indexes`, `pg_duplicate_indexes`) and `analysis.ts` (`pg_seq_scan_tables`, `pg_index_recommendations`) that caused `@typescript-eslint/no-confusing-void-expression` lint errors after `validatePerformanceTableExists` was changed to throw instead of return
+- Fixed `pg_distance` P154: added table existence pre-check before geometry column auto-detection so nonexistent tables return `TABLE_NOT_FOUND` (`Table "schema.table" does not exist`) instead of the misleading `No geometry/geography column found in table '...'` error
+- Fixed `pg_geo_cluster` negative DBSCAN parameters: added handler-side validation for `eps` and `minPoints` before passing values to PostGIS, preventing the raw PostgreSQL `Tolerance must be a positive number` error from leaking as an unstructured message
 
 ### Security
 - Replaced raw Postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks

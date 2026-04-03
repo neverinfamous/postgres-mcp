@@ -247,6 +247,19 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
         } else {
           const eps = parsed.eps ?? 100;
           const minPoints = parsed.minPoints ?? 3;
+
+          // Validate DBSCAN parameters before passing to PostGIS to prevent raw PG error leakage
+          if (eps <= 0) {
+            throw new ValidationError(
+              `eps must be a positive number (received: ${String(eps)}). Use a value in meters, e.g., eps: 100 for 100m clustering radius.`,
+            );
+          }
+          if (minPoints <= 0) {
+            throw new ValidationError(
+              `minPoints must be a positive integer (received: ${String(minPoints)}). Minimum is 1.`,
+            );
+          }
+
           clusterFunction = `ST_ClusterDBSCAN("${parsed.column}", ${String(eps)}, ${String(minPoints)}) OVER ()`;
         }
 

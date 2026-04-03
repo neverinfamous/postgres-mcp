@@ -146,6 +146,20 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
         let columnName = column ? sanitizeIdentifier(column) : "";
 
         if (!columnName) {
+          // P154: Check table existence first to give a clear error before attempting column detection
+          const tableCheckSql = `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`;
+          const tableCheckResult = await adapter.executeQuery(tableCheckSql, [schemaName, table]);
+          if ((tableCheckResult.rows?.length ?? 0) === 0) {
+            return {
+              success: false as const,
+              error: `Table "${schemaName}.${table}" does not exist.`,
+              code: "TABLE_NOT_FOUND",
+              category: "query",
+              suggestion: "Use pg_list_tables to see available tables.",
+              recoverable: false,
+            };
+          }
+
           const geoColQuery = `
             SELECT column_name FROM information_schema.columns
             WHERE table_schema = $1 AND table_name = $2
@@ -153,9 +167,9 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
           `;
           const geoColResult = await adapter.executeQuery(geoColQuery, [schemaName, table]);
           const geoRows = geoColResult.rows ?? [];
-          
+
           if (geoRows.length === 0) {
-            throw new ValidationError(`No geometry/geography column found in table '${table}'.`);
+            throw new ValidationError(`No geometry/geography column found in table '${table}'. Add a geometry column or specify 'column' explicitly.`);
           }
           if (geoRows.length > 1) {
             throw new ValidationError(`Multiple geometry columns found in table '${table}'. Please specify 'column' explicitly.`);
