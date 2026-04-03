@@ -1152,7 +1152,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_trigram_similarity", async () => {
@@ -1169,7 +1169,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_create_fts_index", async () => {
@@ -1186,7 +1186,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_fuzzy_match", async () => {
@@ -1203,7 +1203,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_like_search", async () => {
@@ -1220,7 +1220,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_text_headline", async () => {
@@ -1237,7 +1237,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_regexp_match", async () => {
@@ -1254,7 +1254,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_text_rank", async () => {
@@ -1271,7 +1271,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured validation error for pg_fuzzy_match with invalid method", async () => {

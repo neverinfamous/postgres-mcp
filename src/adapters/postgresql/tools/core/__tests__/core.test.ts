@@ -923,7 +923,7 @@ describe("Error Handling", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("pg_create_table should wrap duplicate table error", async () => {
@@ -966,7 +966,7 @@ describe("Error Handling", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("pg_drop_index should wrap nonexistent index error", async () => {
@@ -1281,7 +1281,7 @@ describe("Health Analysis Tools", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
   });
 

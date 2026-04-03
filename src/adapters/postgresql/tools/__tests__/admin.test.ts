@@ -899,7 +899,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found on pg_vacuum_analyze", async () => {
@@ -920,7 +920,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found on pg_analyze", async () => {
@@ -941,7 +941,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found on pg_reindex", async () => {
@@ -962,7 +962,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for pg_set_config with invalid parameter", async () => {
@@ -1006,7 +1006,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 index-not-found on pg_reindex target=index", async () => {

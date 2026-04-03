@@ -1062,7 +1062,7 @@ describe("pg_detach_partition", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 });
 

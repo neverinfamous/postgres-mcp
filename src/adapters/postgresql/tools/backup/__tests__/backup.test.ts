@@ -1919,7 +1919,7 @@ describe("pg_dump_table - structured error handling", () => {
     );
     expect(result).toMatchObject({
       success: false,
-      error: expect.stringMatching(/not found.*pg_list_tables/i),
+      error: expect.stringMatching(/does not exist.*pg_list_tables/i),
     });
   });
 });

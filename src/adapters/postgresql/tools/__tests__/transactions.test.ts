@@ -980,7 +980,7 @@ describe("pg_transaction_execute - structured error handling", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
     expect(result.error).not.toContain("automatically rolled back");
     expect(result.autoRolledBack).toBeUndefined();
     expect(result.transactionId).toBe("existing-txn");

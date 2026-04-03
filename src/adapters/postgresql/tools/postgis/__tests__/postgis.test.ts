@@ -541,7 +541,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
         unknown
       >;
       expect(result["success"]).toBe(false);
-      expect(result["error"]).toMatch(/not found/i);
+      expect(result["error"]).toMatch(/does not exist/i);
     },
   );
 
@@ -595,7 +595,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
       mockContext,
     )) as Record<string, unknown>;
     expect(result["success"]).toBe(false);
-    expect(result["error"]).toMatch(/not found/i);
+    expect(result["error"]).toMatch(/does not exist/i);
   });
 
   it("pg_geo_transform should return structured error for nonexistent table", async () => {
@@ -607,7 +607,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
       mockContext,
     )) as Record<string, unknown>;
     expect(result["success"]).toBe(false);
-    expect(result["error"]).toMatch(/not found/i);
+    expect(result["error"]).toMatch(/does not exist/i);
   });
   it("pg_geocode should return structured error for out-of-bounds latitude", async () => {
     const tool = tools.find((t) => t.name === "pg_geocode")!;

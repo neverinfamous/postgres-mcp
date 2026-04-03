@@ -968,7 +968,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should map 42P01 table-not-found for pg_jsonb_set", async () => {
@@ -992,7 +992,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should map 42P01 table-not-found for pg_jsonb_path_query", async () => {
@@ -1010,7 +1010,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should provide JSONPath-specific error for invalid syntax", async () => {
@@ -1046,7 +1046,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should route non-jsonb errors through parsePostgresError for pg_jsonb_normalize", async () => {
@@ -1064,7 +1064,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should route table-not-found errors through parsePostgresError for pg_jsonb_strip_nulls", async () => {
@@ -1082,7 +1082,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should route table-not-found errors through parsePostgresError for pg_jsonb_insert preliminary checks", async () => {
@@ -1106,7 +1106,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should return structured error for pg_jsonb_strip_nulls when WHERE is omitted", async () => {
