@@ -23,8 +23,8 @@ Aliases: `cacheStats`→`cacheHitRatio`, `queryStats`→`statStatements`, `activ
 - `unusedIndexes({ limit?, summary? })`: Default 20 rows. Use `summary: true` for aggregated stats by schema
 - `queryPlanStats({ limit?, truncateQuery? })`: Default 10 rows, **max 100**, queries truncated to 100 chars. Use `truncateQuery: 0` for full text
 - `seqScanTables({ minScans?, schema?, limit? })`: Default `minScans: 10`, `limit: 20`, **max 100**. Use `minScans: 0` for all tables. `limit: 0` returns up to the 100-row cap. Returns `truncated: true` + `totalCount` when limited
-- `locks({ showBlocked?, limit? })`: Default 100 rows. Returns `count` + `truncated`. Use `limit: 0` for all. `showBlocked: true` returns blocking/blocked query pairs instead of the full lock list
-- `statActivity({ includeIdle?, limit?, truncateQuery? })`: Default 100 connections (excludes idle), queries truncated to 100 chars. Returns `count`, `truncated`, and `backgroundWorkers`. Use `limit: 0` for all; `includeIdle: true` to include idle connections
+- `locks({ showBlocked?, limit? })`: Default 100 rows, **max 100**. Returns `count` + `truncated`. `limit: 0` returns up to the 100-row cap. `showBlocked: true` returns blocking/blocked query pairs instead of the full lock list
+- `statActivity({ includeIdle?, limit?, truncateQuery? })`: Default 100 connections (excludes idle), **max 100**, queries truncated to 100 chars. Returns `count`, `truncated`, and `backgroundWorkers`. `limit: 0` returns up to the 100-row cap; `includeIdle: true` to include idle connections
 - `detectQueryAnomalies({ threshold?, minCalls? })`: `threshold` must be 0.5–10 (default 2.0); `minCalls` must be 1–10000 (default 10). Out-of-range values return a structured validation error
 - `detectBloatRisk({ minRows?, schema? })`: `minRows` must be 0–1,000,000 (default 1000). Nonexistent `schema` returns an empty result set (0 tables analyzed) rather than an error
 - `detectConnectionSpike({ warningPercent? })`: Default 70. Flags users/apps holding ≥ `warningPercent`% of connections. Value is clamped to 10–100 (not `threshold` — that key is ignored)
