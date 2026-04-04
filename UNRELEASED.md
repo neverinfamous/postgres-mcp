@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved Split Schema Pattern violations across Search, JSONB, Vector (specifically `pg_vector_add_column`), Stats, and Performance groups.
 - Improved `pg_stat_statements` and `pg_cache_hit_ratio` reliability: fixed output schema validation, aligned error reporting with P154 standards, and ensured consistent pagination metadata.
 - Partitioning tools: Fixed membership checks, added `ifNotExists` parameters, and implemented pagination limits.
+- Fixed type coercion fallback leaks in Performance tools (`pg_seq_scan_tables`, `pg_detect_query_anomalies`, `pg_detect_bloat_risk`) to prevent native type mismatches by ensuring strict parameter checking.
 - Transaction tools: Fixed `isolation_level` alias mapping and improved transaction error hints.
 - Fixed numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).
 - Improved resilience in Admin and Monitoring tools when handling missing tables or extensions.

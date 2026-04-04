@@ -68,10 +68,22 @@ const QueryAnomaliesInputBase = z.object({
     .describe("Minimum call count to filter noise (default: 10)"),
 });
 
-const QueryAnomaliesInput = QueryAnomaliesInputBase.transform((data) => ({
-  threshold: safeNum(data.threshold, 2.0),
-  minCalls: safeNum(data.minCalls, 10),
-}));
+const QueryAnomaliesInput = QueryAnomaliesInputBase.transform((data, ctx) => {
+  const thresholdNum = Number(data.threshold);
+  if (data.threshold !== undefined && isNaN(thresholdNum)) {
+    ctx.addIssue({ code: "custom", message: "threshold must be a valid number" });
+    return z.NEVER;
+  }
+  const minCallsNum = Number(data.minCalls);
+  if (data.minCalls !== undefined && isNaN(minCallsNum)) {
+    ctx.addIssue({ code: "custom", message: "minCalls must be a valid number" });
+    return z.NEVER;
+  }
+  return {
+    threshold: data.threshold === undefined ? 2.0 : thresholdNum,
+    minCalls: data.minCalls === undefined ? 10 : minCallsNum,
+  };
+});
 
 export function createDetectQueryAnomaliesTool(
   adapter: PostgresAdapter,
@@ -103,6 +115,7 @@ export function createDetectQueryAnomaliesTool(
           return {
             success: false,
             error: "Validation error: threshold must be between 0.5 and 10",
+            code: "VALIDATION_ERROR",
           };
         }
         
@@ -110,6 +123,7 @@ export function createDetectQueryAnomaliesTool(
           return {
             success: false,
             error: "Validation error: minCalls must be between 1 and 10000",
+            code: "VALIDATION_ERROR",
           };
         }
 
@@ -217,10 +231,17 @@ const BloatRiskInputBase = z.object({
     .describe("Minimum live rows to include (default: 1000)"),
 });
 
-const BloatRiskInput = BloatRiskInputBase.transform((data) => ({
-  schema: data.schema,
-  minRows: safeNum(data.minRows, 1000),
-}));
+const BloatRiskInput = BloatRiskInputBase.transform((data, ctx) => {
+  const minRowsNum = Number(data.minRows);
+  if (data.minRows !== undefined && isNaN(minRowsNum)) {
+    ctx.addIssue({ code: "custom", message: "minRows must be a valid number" });
+    return z.NEVER;
+  }
+  return {
+    schema: data.schema,
+    minRows: data.minRows === undefined ? 1000 : minRowsNum,
+  };
+});
 
 export function createDetectBloatRiskTool(
   adapter: PostgresAdapter,
@@ -252,6 +273,7 @@ export function createDetectBloatRiskTool(
           return {
             success: false,
             error: "Validation error: minRows must be between 0 and 1000000",
+            code: "VALIDATION_ERROR",
           };
         }
 

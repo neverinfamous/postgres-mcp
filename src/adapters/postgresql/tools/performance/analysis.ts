@@ -50,22 +50,16 @@ export function createSeqScanTablesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = SeqScanTablesSchema.parse(params);
-        const rawMinScans = Number(parsed.minScans);
-        const minScans =
-          parsed.minScans === undefined
-            ? 10
-            : isNaN(rawMinScans)
-              ? 10
-              : rawMinScans;
-        const rawLimit = Number(parsed.limit);
-        const limit =
-          parsed.limit === undefined
-            ? 20
-            : isNaN(rawLimit)
-              ? 20
-              : rawLimit <= 0
-                ? 100
-                : Math.min(rawLimit, 100);
+        if (parsed.minScans !== undefined && isNaN(Number(parsed.minScans))) {
+          return { success: false, error: "Validation error: minScans must be a valid number", code: "VALIDATION_ERROR" };
+        }
+        const minScans = parsed.minScans === undefined ? 10 : Number(parsed.minScans);
+
+        if (parsed.limit !== undefined && isNaN(Number(parsed.limit))) {
+          return { success: false, error: "Validation error: limit must be a valid number", code: "VALIDATION_ERROR" };
+        }
+        const rawLimit = parsed.limit === undefined ? 20 : Number(parsed.limit);
+        const limit = rawLimit <= 0 ? 100 : Math.min(rawLimit, 100);
 
         let whereClause = `seq_scan > ${String(minScans)}`;
         const queryParams: string[] = [];
