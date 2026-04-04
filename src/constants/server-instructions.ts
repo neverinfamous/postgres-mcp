@@ -641,6 +641,10 @@ Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, 
 
 ⚠️ **Large Vectors**: Direct MCP tool calls may truncate vectors >256 dimensions due to JSON-RPC message size limits. For vectors ≥256 dimensions (e.g., OpenAI 1536-dim, local 384-dim), use Code Mode: \`await pg.vector.search({table, column, vector, limit})\`
 
+📦 **Token Starvation Warning**: Reading full 384+ dimension vectors back out of the DB directly into the agent context (e.g. \`await pg.core.readQuery({ ... })\`) consumes upwards of **1,000+ tokens per vector payload**. Keep embeddings isolated inside Code Mode variables, only returning scalar results (e.g. identifiers and distances) or strictly limiting the number of vectors fetched.
+
+- \`pg_vector_create_extension\`: Quickly enable the \`vector\` extension in the public schema with \`CASCADE\` (no required parameters).
+- \`pg_vector_add_column\`: Add a vector column with a specified number of dimensions. Returns \`{success, ifNotExists, alreadyExists}\`.
 - \`pg_vector_search\`: Supports \`schema.table\` format (auto-parsed). Returns \`{success, results: [...], count, metric}\`. Use \`select: ["id", "name"]\` to include identifying columns. Without select, only returns distance. \`filter\` = \`where\`. ⚠️ Vectors read from DB are strings—parse before passing: \`vec.replace(/^\\[|\\]$/g, '').split(',').map(Number)\`
 - \`pg_vector_insert\`: Supports \`schema.table\` format (auto-parsed). Use \`updateExisting\` + \`conflictColumn\` + \`conflictValue\` for UPDATE mode. \`additionalColumns\` is applied in both INSERT and UPDATE modes
 - \`pg_vector_batch_insert\`: \`vectors\` expects \`[{vector: [...], data?: {...}}]\` objects, not raw arrays
