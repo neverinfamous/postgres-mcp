@@ -42,6 +42,7 @@ function preprocessBeginParams(input: unknown): unknown {
 export const BeginTransactionSchemaBase = z.object({
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
   read_only: z.boolean().optional().describe("Set to true for read-only transaction"),
+  readOnly: z.boolean().optional().describe("Alias for read_only"),
 });
 
 // Internal schema with strict enum validation (used inside handler try/catch)
@@ -58,10 +59,14 @@ const BeginTransactionValidationSchema = z.object({
   read_only: z.boolean().optional().describe("Set to true for read-only transaction"),
 });
 
-export const BeginTransactionSchema = z.preprocess(
-  preprocessBeginParams,
-  BeginTransactionValidationSchema,
-);
+export const BeginTransactionSchema = z
+  .preprocess((val) => {
+    const obj = preprocessBeginParams(val) as Record<string, unknown>;
+    if (obj["readOnly"] !== undefined && obj["read_only"] === undefined) {
+      obj["read_only"] = obj["readOnly"];
+    }
+    return obj;
+  }, BeginTransactionValidationSchema);
 
 // Base schema for MCP visibility (shows transactionId and aliases)
 export const TransactionIdSchemaBase = z.object({
@@ -150,6 +155,7 @@ export const TransactionExecuteSchemaBase = z.object({
   tx: z.string().optional().describe("Alias for transactionId"),
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
   read_only: z.boolean().optional().describe("Set to true for read-only transaction"),
+  readOnly: z.boolean().optional().describe("Alias for read_only"),
 });
 
 // Internal schema with strict validation (used inside handler try/catch)
@@ -189,7 +195,13 @@ const TransactionExecuteValidationSchema = z.object({
 // Schema with undefined handling for pg_transaction_execute
 export const TransactionExecuteSchema = z
   .preprocess(
-    (val: unknown) => preprocessBeginParams(defaultToEmpty(val)),
+    (val: unknown) => {
+      const obj = preprocessBeginParams(defaultToEmpty(val)) as Record<string, unknown>;
+      if (obj["readOnly"] !== undefined && obj["read_only"] === undefined) {
+        obj["read_only"] = obj["readOnly"];
+      }
+      return obj;
+    },
     TransactionExecuteValidationSchema,
   )
   .transform((data) => ({

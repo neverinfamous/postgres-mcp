@@ -62,6 +62,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Updated `pg_citext_compare` and `pg_alert_threshold_set` input validation to accept explicit empty strings or strict coercions appropriately
 - Resolved idempotency gaps in `pg_vector_create_index` (`ifNotExists`) and `pg_postgis_create_extension`
 - Corrected JSONB operations that failed to execute raw literal bindings or improperly escaped Code Mode inputs
+- Ensured Zod alias mapping for `readOnly` to `read_only` in transactions schemas to prevent undefined stripping causing silent mutating vulnerabilities
 - Restricted parameters such as EPS and MinPoints in PostGIS clustering to prevent raw geometry failures
 - Replaced silent return clamping in connection analysis and anomaly detection with explicit validation errors
 - Mapped Postgres authorization bounds error (`42501`) gracefully to structured error payloads
