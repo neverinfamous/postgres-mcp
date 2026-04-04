@@ -456,3 +456,37 @@ export const DiagnoseOutputSchema = z.object({
   error: z.string().optional().describe("Error message if failed"),
 }).extend(ErrorResponseFields.shape);
 
+// pg_detect_query_anomalies
+export const DetectQueryAnomaliesOutputSchema = z.object({
+  anomalies: z.array(z.record(z.string(), z.unknown())).optional(),
+  riskLevel: z.enum(["low", "moderate", "high", "critical"]).optional(),
+  totalAnalyzed: z.number().optional(),
+  anomalyCount: z.number().optional(),
+  summary: z.string().optional(),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
+}).extend(ErrorResponseFields.shape);
+
+// pg_detect_bloat_risk
+export const DetectBloatRiskOutputSchema = z.object({
+  tables: z.array(z.record(z.string(), z.unknown())).optional(),
+  highRiskCount: z.number().optional(),
+  totalAnalyzed: z.number().optional(),
+  summary: z.string().optional(),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
+}).extend(ErrorResponseFields.shape);
+
+// pg_detect_connection_spike
+export const DetectConnectionSpikeOutputSchema = z.object({
+  totalConnections: z.number().optional(),
+  maxConnections: z.number().optional(),
+  usagePercent: z.number().optional(),
+  byState: z.array(z.record(z.string(), z.unknown())).optional(),
+  concentrations: z.array(z.record(z.string(), z.unknown())).optional(),
+  warnings: z.array(z.string()).optional(),
+  riskLevel: z.enum(["low", "moderate", "high", "critical"]).optional(),
+  summary: z.string().optional(),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
+}).extend(ErrorResponseFields.shape);

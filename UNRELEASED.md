@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: Core write tools require `write` scope; destructive tools require `admin`.
 - Modularized source files applying strict kebab-case convention.
 - Optimized token payload sizes (~30–41% reduction) via compact toggles and array collapsing.
-- Reduced max-cap parameter limits from 500 to 100 and lowered default limits to 10-20 across heavy `performance` statistics tools (`pg_table_stats`, `pg_stat_statements`, `pg_vacuum_stats`, `pg_query_plan_stats`) to strictly enforce LLM context-window protection.
+- Reduced max-cap parameter limits from 500 to 100 and lowered default limits to 10-20 across heavy `performance` statistics tools (`pg_table_stats`, `pg_stat_statements`, `pg_vacuum_stats`, `pg_query_plan_stats`, `pg_seq_scan_tables`) to strictly enforce LLM context-window protection.
 - Applied `openWorldHint: false` to all tools.
 - Centralized default connection pool timeout to 30,000ms.
 - Reduced npm package size by excluding test and source map artifacts.
@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected behavioral inconsistencies in Performance tools:
   - Fixed `pg_detect_bloat_risk` filter behavior to return empty results instead of an error when a nonexistent schema is passed, accurately presenting a zero-match filter.
   - Added strict parameter value parsing for enum constraints in `pg_stat_statements` to reject invalid `orderBy` inputs instead of defaulting silently.
-- Resolved Split Schema Pattern violations in Search, JSONB, Vector, Stats, and Performance groups (e.g. `pg_seq_scan_tables`).
+- Resolved Split Schema Pattern violations in Search, JSONB, Vector, Stats, and Performance groups (e.g., `pg_seq_scan_tables`, `pg_detect_query_anomalies`, `pg_detect_bloat_risk`, `pg_detect_connection_spike`).
 - Corrected Split Schema mapping for `isolation_level` alias in Transaction tools to properly enforce `isolationLevel` values instead of silently falling back to `READ COMMITTED`.
 - Corrected misleading suggestions in `TransactionError` for missing transaction IDs.
 - Corrected JSDoc and JSON Schema literal text descriptions in `performance` schemas to accurately reflect runtime defaults and boundary caps (e.g., limits accurately stated as 10-20 default, max 100).

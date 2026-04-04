@@ -23,6 +23,7 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
+import { DetectQueryAnomaliesOutputSchema, DetectBloatRiskOutputSchema } from "../../schemas/performance.js";
 
 // =============================================================================
 // Shared Helpers (exported for connection-analysis.ts)
@@ -82,13 +83,7 @@ export function createDetectQueryAnomaliesTool(
       "using z-score analysis. Requires pg_stat_statements extension. " +
       "Returns anomalous queries ranked by deviation severity with risk level.",
     inputSchema: QueryAnomaliesInputBase, // Split Schema: full ZodObject for MCP parameter visibility
-    outputSchema: z.object({
-      anomalies: z.array(z.record(z.string(), z.unknown())).optional(),
-      riskLevel: z.enum(["low", "moderate", "high", "critical"]).optional(),
-      totalAnalyzed: z.number().optional(),
-      anomalyCount: z.number().optional(),
-      summary: z.string().optional(),
-    }),
+    outputSchema: DetectQueryAnomaliesOutputSchema,
     group: "performance",
     annotations: readOnly("Detect query anomalies"),
     icons: getToolIcons("performance", readOnly("Detect query anomalies")),
@@ -237,12 +232,7 @@ export function createDetectBloatRiskTool(
       "vacuum staleness, table size, and autovacuum effectiveness. " +
       "Returns per-table risk scores (0-100) with actionable recommendations.",
     inputSchema: BloatRiskInputBase, // Split Schema: full ZodObject for MCP parameter visibility
-    outputSchema: z.object({
-      tables: z.array(z.record(z.string(), z.unknown())).optional(),
-      highRiskCount: z.number().optional(),
-      totalAnalyzed: z.number().optional(),
-      summary: z.string().optional(),
-    }),
+    outputSchema: DetectBloatRiskOutputSchema,
     group: "performance",
     annotations: readOnly("Detect bloat risk"),
     icons: getToolIcons("performance", readOnly("Detect bloat risk")),

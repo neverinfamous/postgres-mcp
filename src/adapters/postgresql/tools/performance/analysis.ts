@@ -60,12 +60,12 @@ export function createSeqScanTablesTool(
         const rawLimit = Number(parsed.limit);
         const limit =
           parsed.limit === undefined
-            ? 50
+            ? 20
             : isNaN(rawLimit)
-              ? 50
-              : rawLimit === 0
-                ? null
-                : rawLimit;
+              ? 20
+              : rawLimit <= 0
+                ? 100
+                : Math.min(rawLimit, 100);
 
         let whereClause = `seq_scan > ${String(minScans)}`;
         const queryParams: string[] = [];

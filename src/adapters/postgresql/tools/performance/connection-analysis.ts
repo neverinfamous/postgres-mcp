@@ -17,6 +17,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { DetectConnectionSpikeOutputSchema } from "../../schemas/performance.js";
 import { toNum, toStr, safeNum, riskFromScore } from "./anomaly-detection.js";
 
 // =============================================================================
@@ -52,16 +53,7 @@ export function createDetectConnectionSpikeTool(
       "user or application monopolizes the connection pool, or when " +
       "idle-in-transaction connections accumulate.",
     inputSchema: ConnectionSpikeInputBase, // Split Schema: full ZodObject for MCP parameter visibility
-    outputSchema: z.object({
-      totalConnections: z.number().optional(),
-      maxConnections: z.number().optional(),
-      usagePercent: z.number().optional(),
-      byState: z.array(z.record(z.string(), z.unknown())).optional(),
-      concentrations: z.array(z.record(z.string(), z.unknown())).optional(),
-      warnings: z.array(z.string()).optional(),
-      riskLevel: z.enum(["low", "moderate", "high", "critical"]).optional(),
-      summary: z.string().optional(),
-    }),
+    outputSchema: DetectConnectionSpikeOutputSchema,
     group: "performance",
     annotations: readOnly("Detect connection spike"),
     icons: getToolIcons("performance", readOnly("Detect connection spike")),
