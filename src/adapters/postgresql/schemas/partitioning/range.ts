@@ -364,6 +364,7 @@ export const CreatePartitionedTableOutputSchema = z.object({
   partitionBy: z.string().optional().describe("Partition strategy used"),
   partitionKey: z.string().optional().describe("Partition key column(s)"),
   primaryKey: z.array(z.string()).optional().describe("Primary key columns if set"),
+  alreadyExists: z.boolean().optional().describe("True if ifNotExists was used and table already existed"),
 }).extend(ErrorResponseFields.shape);
 
 /**
@@ -375,6 +376,7 @@ export const CreatePartitionOutputSchema = z.object({
   bounds: z.string().optional().describe("Partition bounds description"),
   subpartitionBy: z.string().optional().describe("Sub-partition strategy"),
   subpartitionKey: z.string().optional().describe("Sub-partition key"),
+  alreadyExists: z.boolean().optional().describe("True if ifNotExists was used and partition already existed"),
 }).extend(ErrorResponseFields.shape);
 
 /**

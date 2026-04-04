@@ -67,13 +67,13 @@ export function createAttachPartitionTool(
       if (parentStatus === "not_found") {
         return {
           success: false,
-          error: `Parent table '${parsedParentCheck.schema}.${parsedParentCheck.table}' does not exist.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" does not exist`,
         };
       }
       if (parentStatus === "not_partitioned") {
         return {
           success: false,
-          error: `Parent table '${parsedParentCheck.schema}.${parsedParentCheck.table}' exists but is not partitioned.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" exists but is not partitioned`,
         };
       }
 
@@ -87,7 +87,7 @@ export function createAttachPartitionTool(
       if ((partCheckResult.rows ?? []).length === 0) {
         return {
           success: false,
-          error: `Partition table '${parsedPartCheck.schema}.${parsedPartCheck.table}' does not exist.`,
+          error: `Partition table "${parsedPartCheck.schema}.${parsedPartCheck.table}" does not exist`,
         };
       }
 
@@ -184,13 +184,13 @@ export function createDetachPartitionTool(
       if (parentStatus === "not_found") {
         return {
           success: false,
-          error: `Parent table '${parsedParentCheck.schema}.${parsedParentCheck.table}' does not exist.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" does not exist`,
         };
       }
       if (parentStatus === "not_partitioned") {
         return {
           success: false,
-          error: `Parent table '${parsedParentCheck.schema}.${parsedParentCheck.table}' exists but is not partitioned.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" exists but is not partitioned`,
         };
       }
 
@@ -204,7 +204,7 @@ export function createDetachPartitionTool(
       if ((partCheckResult.rows ?? []).length === 0) {
         return {
           success: false,
-          error: `Partition '${parsedPartCheck.schema}.${parsedPartCheck.table}' does not exist.`,
+          error: `Partition "${parsedPartCheck.schema}.${parsedPartCheck.table}" does not exist`,
         };
       }
 

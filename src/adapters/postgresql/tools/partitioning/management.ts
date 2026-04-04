@@ -346,6 +346,18 @@ export function createPartitionedTableTool(
 
       const sql = `CREATE TABLE ${ifNotExists ? "IF NOT EXISTS " : ""}${tableName} (\n  ${columnDefs}${tableConstraints}\n) PARTITION BY ${partitionBy.toUpperCase()} (${partitionKey})`;
 
+      // When ifNotExists is true, check if table already exists so we can surface alreadyExists:true
+      let alreadyExisted = false;
+      if (ifNotExists) {
+        const parsedName = parseSchemaTable(name, schema);
+        const existStatus = await checkTablePartitionStatus(
+          adapter,
+          parsedName.table,
+          parsedName.schema,
+        );
+        alreadyExisted = existStatus !== "not_found";
+      }
+
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
@@ -361,6 +373,7 @@ export function createPartitionedTableTool(
         partitionBy,
         partitionKey,
         ...(useTableLevelPK && { primaryKey }),
+        ...(ifNotExists && { alreadyExists: alreadyExisted }),
       };
     },
   };
@@ -422,13 +435,13 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
       if (parentStatus === "not_found") {
         return {
           success: false,
-          error: `Table '${parsedParentCheck.schema}.${parsedParentCheck.table}' does not exist.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" does not exist`,
         };
       }
       if (parentStatus === "not_partitioned") {
         return {
           success: false,
-          error: `Table '${parsedParentCheck.schema}.${parsedParentCheck.table}' exists but is not partitioned. Use pg_create_partitioned_table to create a partitioned table first.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" exists but is not partitioned. Use pg_create_partitioned_table to create a partitioned table first.`,
         };
       }
 
@@ -466,6 +479,17 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         sql += ` PARTITION BY ${subpartitionBy.toUpperCase()} (${subpartitionKey})`;
       }
 
+      // When ifNotExists is true, check if partition already exists so we can surface alreadyExists:true
+      let partAlreadyExisted = false;
+      if (ifNotExists === true) {
+        const partExistStatus = await checkTablePartitionStatus(
+          adapter,
+          name,
+          resolvedSchema,
+        );
+        partAlreadyExisted = partExistStatus !== "not_found";
+      }
+
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
@@ -480,6 +504,7 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         partition: `${resolvedSchema}.${name}`,
         parent: parsedParent.table,
         bounds: boundsDescription,
+        ...(ifNotExists === true && { alreadyExists: partAlreadyExisted }),
       };
 
       // Include sub-partitioning info in response if applicable

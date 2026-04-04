@@ -401,6 +401,21 @@ export function parsePostgresError(
     );
   }
 
+  // "X is not a partition of relation Y" — returned by DETACH PARTITION or ATTACH PARTITION
+  // when the target table exists but is not actually a partition of the named parent.
+  // Must be checked BEFORE the 42P01 handler, because PG may return 42P01 for this.
+  if (/is not a partition of relation/i.test(msg)) {
+    // PG message: "childtable" is not a partition of relation "parenttable"
+    const childMatch = /^"([^"]+)"/i.exec(msg);
+    const parentMatch = /of relation "([^"]+)"/i.exec(msg);
+    const childName = childMatch?.[1] ?? context.table ?? "unknown";
+    const parentName = parentMatch?.[1] ?? "unknown";
+    throw new Error(
+      `Table '${childName}' is not a partition of '${parentName}'. Use pg_list_partitions to see the current partitions of this table.`,
+      { cause: error },
+    );
+  }
+
   // Overlapping partition bounds (RANGE overlap or conflicting LIST values)
   if (
     /conflicting values for partition/i.test(msg) ||
