@@ -1,6 +1,6 @@
 # Token Consumption during Advanced Stress Testing of postgres-mcp
 
-Last tested: 4/3/2026
+Last tested: April 4th, 2026
 
 | Test Document | Approximate Token Usage | Notes |
 | :--- | :--- | :--- |
@@ -19,7 +19,7 @@ Last tested: 4/3/2026
 | `test-tools-advanced-ltree.md` | ~4,658 | |
 | `test-tools-advanced-migration.md` | ~4,062 | |
 | `test-tools-advanced-migration.md` | ~3,091 | |
-| `test-tool-advanced-monitoring.md` | ~17,135 | |
+| `test-tool-advanced-monitoring.md` | ~13,440 | |
 | `test-tools-advanced-partitioning.md` | ~5,398 | |
 | `test-tools-advanced-partman.md` | ~6,166 | |
 | `test-tools-advanced-performance-part1.md` | ~17,025 | |

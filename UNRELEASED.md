@@ -57,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed timing defects in admin tools that logged progress before failing validation.
 - Handled Partman routines executing gracefully on missing child tables or lacking extensions.
 - Remediated cascade simulators incorrectly truncating self-referencing foreign keys.
+- Fixed Code Mode alias bindings allowing `activeConnections` and `systemHealth` native translation.
+- Fixed `pg_alert_threshold_set` to correctly ingest `warning_threshold` and `critical_threshold` snake_case alias parameters.
 - Bypassed Docker Hub rate-limit blocks by enforcing explicit authenticated pulls in CI.
 - Handled missing try/catch blocks within monitoring data tools to conform with P154 error patterns.
 - Certified Code Mode execution compliance for deep cross-group functional pipelines (Core → Vector → JSONB → Stats).

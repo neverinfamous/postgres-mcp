@@ -1,6 +1,6 @@
 # Token Consumption during codemode Testing of postgres-mcp
 
-Last tested: 4/3/2026
+Last tested: April 4th, 2026
 
 | Test Document | Approximate Token Usage | Notes |
 | :--- | :--- | :--- |

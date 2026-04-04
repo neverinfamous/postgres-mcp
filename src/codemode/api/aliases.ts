@@ -365,8 +365,18 @@ export const TOP_LEVEL_ALIASES: readonly {
   },
   {
     group: "monitoring",
+    bindingName: "systemHealth",
+    methodName: "resourceUsageAnalyze",
+  },
+  {
+    group: "monitoring",
     bindingName: "alertThresholdSet",
     methodName: "alertThresholdSet",
+  },
+  {
+    group: "monitoring",
+    bindingName: "activeConnections",
+    methodName: "connectionStats",
   },
   // backup
   { group: "backup", bindingName: "dumpTable", methodName: "dumpTable" },

@@ -88,10 +88,12 @@ export const ShowSettingsSchema = z.preprocess(
 
 export const AlertThresholdSetSchemaBase = z.object({
   metric: z.string().optional().describe("Specific metric to set thresholds for"),
+  warning_threshold: z.string().optional().describe("Alias for warningThreshold"),
   warningThreshold: z
     .string()
     .optional()
     .describe("Warning threshold (e.g. '70%')"),
+  critical_threshold: z.string().optional().describe("Alias for criticalThreshold"),
   criticalThreshold: z
     .string()
     .optional()
@@ -100,7 +102,11 @@ export const AlertThresholdSetSchemaBase = z.object({
 
 export const AlertThresholdSetSchema = z.preprocess(
   defaultToEmpty,
-  AlertThresholdSetSchemaBase
+  AlertThresholdSetSchemaBase.transform((data) => ({
+    metric: data.metric,
+    warningThreshold: data.warningThreshold ?? data.warning_threshold,
+    criticalThreshold: data.criticalThreshold ?? data.critical_threshold,
+  }))
 );
 
 export const CapacityPlanningSchemaBase = z.object({
