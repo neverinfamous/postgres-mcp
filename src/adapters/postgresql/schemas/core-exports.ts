@@ -48,6 +48,8 @@ export {
   IndexStatsSchema,
   TableStatsSchemaBase,
   TableStatsSchema,
+  VacuumStatsSchemaBase,
+  VacuumStatsSchema,
   // Output schemas
   ExplainOutputSchema,
   IndexStatsOutputSchema,

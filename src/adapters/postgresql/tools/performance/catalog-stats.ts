@@ -9,65 +9,56 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  IndexStatsSchema,
+  IndexStatsSchemaBase,
+  TableStatsSchema,
+  TableStatsSchemaBase,
+  VacuumStatsSchema,
+  VacuumStatsSchemaBase,
   IndexStatsOutputSchema,
   TableStatsOutputSchema,
   VacuumStatsOutputSchema,
 } from "../../schemas/index.js";
 import {
-  defaultToEmpty,
   toNum,
   validatePerformanceTableExists,
 } from "./helpers.js";
 
 export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
-  // Define schema locally with limit parameter
-  const IndexStatsSchemaLocalBase = z.object({
-    table: z.string().optional().describe("Table name to filter indexes"),
-    schema: z.string().optional().describe("Schema name to filter indexes"),
-    limit: z
-      .any()
-      .optional()
-      .describe("Max rows to return (default: 20, max: 100, use 0 for max 100)"),
-  });
-
-  const IndexStatsSchemaLocal = z.preprocess(
-    defaultToEmpty,
-    IndexStatsSchemaLocalBase,
-  );
 
   return {
     name: "pg_index_stats",
     description: "Get index usage statistics.",
     group: "performance",
-    inputSchema: IndexStatsSchemaLocalBase,
+    inputSchema: IndexStatsSchemaBase,
     outputSchema: IndexStatsOutputSchema,
     annotations: readOnly("Index Stats"),
     icons: getToolIcons("performance", readOnly("Index Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = IndexStatsSchemaLocal.parse(params);
-        let { table, schema } = parsed;
+        const parsed = IndexStatsSchema.parse(params) as Record<string, unknown>;
+        let table = parsed["table"] as string | undefined;
+        let schema = parsed["schema"] as string | undefined;
         // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
         if (table?.includes(".")) {
           const parts = table.split(".");
           schema = schema ?? parts[0];
           table = parts[1] ?? table;
         }
-        const rawLimit = Number(parsed.limit);
+        const rawLimit = Number(parsed["limit"]);
         const userLimit =
-          parsed.limit === undefined
+          parsed["limit"] === undefined
             ? 20
             : isNaN(rawLimit)
               ? 20
               : rawLimit === 0
                 ? null
                 : rawLimit;
-        
+
         // Cap at 100 to prevent payload blowout on large schemas
         const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
 
@@ -130,48 +121,36 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
 }
 
 export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
-  const TableStatsSchemaLocalBase = z.object({
-    table: z.string().optional().describe("Table name (all tables if omitted)"),
-    schema: z.string().optional().describe("Schema name"),
-    limit: z
-      .any()
-      .optional()
-      .describe("Max rows to return (default: 20, max: 100, use 0 for max 100)"),
-  });
-
-  const TableStatsSchemaLocal = z.preprocess(
-    defaultToEmpty,
-    TableStatsSchemaLocalBase,
-  );
 
   return {
     name: "pg_table_stats",
     description: "Get table access statistics.",
     group: "performance",
-    inputSchema: TableStatsSchemaLocalBase,
+    inputSchema: TableStatsSchemaBase,
     outputSchema: TableStatsOutputSchema,
     annotations: readOnly("Table Stats"),
     icons: getToolIcons("performance", readOnly("Table Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = TableStatsSchemaLocal.parse(params);
-        let { table, schema } = parsed;
+        const parsed = TableStatsSchema.parse(params) as Record<string, unknown>;
+        let table = parsed["table"] as string | undefined;
+        let schema = parsed["schema"] as string | undefined;
         // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
         if (table?.includes(".")) {
           const parts = table.split(".");
           schema = schema ?? parts[0];
           table = parts[1] ?? table;
         }
-        const rawLimit = Number(parsed.limit);
+        const rawLimit = Number(parsed["limit"]);
         const userLimit =
-          parsed.limit === undefined
+          parsed["limit"] === undefined
             ? 20
             : isNaN(rawLimit)
               ? 20
               : rawLimit === 0
                 ? null
                 : rawLimit;
-                
+
         // Cap at 100 to prevent payload blowout on large schemas
         const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
 
@@ -243,16 +222,6 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
 export function createVacuumStatsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const VacuumStatsSchemaBase = z.object({
-    schema: z.string().optional().describe("Schema to filter"),
-    table: z.string().optional().describe("Table name to filter"),
-    limit: z
-      .any()
-      .optional()
-      .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
-  });
-
-  const VacuumStatsSchema = z.preprocess(defaultToEmpty, VacuumStatsSchemaBase);
 
   return {
     name: "pg_vacuum_stats",
@@ -265,25 +234,25 @@ export function createVacuumStatsTool(
     icons: getToolIcons("performance", readOnly("Vacuum Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = VacuumStatsSchema.parse(params);
-        let table = parsed.table;
-        let schema = parsed.schema;
+        const parsed = VacuumStatsSchema.parse(params) as Record<string, unknown>;
+        let table = parsed["table"] as string | undefined;
+        let schema = parsed["schema"] as string | undefined;
         // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
         if (table?.includes(".")) {
           const parts = table.split(".");
           schema = schema ?? parts[0];
           table = parts[1] ?? table;
         }
-        const rawLimit = Number(parsed.limit);
+        const rawLimit = Number(parsed["limit"]);
         const userLimit =
-          parsed.limit === undefined
+          parsed["limit"] === undefined
             ? 10
             : isNaN(rawLimit)
               ? 10
               : rawLimit === 0
                 ? null
                 : rawLimit;
-                
+
         // Cap at 100 to prevent payload blowout on large schemas
         const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
         let whereClause =
