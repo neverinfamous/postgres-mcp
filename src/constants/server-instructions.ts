@@ -513,8 +513,8 @@ Core: \`createExtension()\`, \`hash()\`, \`hmac()\`, \`encrypt()\`, \`decrypt()\
 
 **Geometry Operations (Standalone WKT/GeoJSON):**
 
-- \`pg_geometry_buffer\`: Create buffer around WKT/GeoJSON. Returns \`{buffer_geojson, buffer_wkt, distance_meters}\`. Optional \`simplify\` param (meters) reduces polygon complexity—returns \`simplified\`, \`simplifyTolerance\` when applied. ⚠️ Returns \`warning\` if simplify tolerance is too high and geometry collapses to null
-- \`pg_geometry_transform\`: Transform WKT/GeoJSON between SRIDs. Returns \`{transformed_geojson, transformed_wkt, fromSrid, toSrid}\`
+- \`pg_geometry_buffer\`: Create buffer around WKT/GeoJSON. Returns \`{buffer_geojson, distance_meters, srid}\`. Optional \`simplify\` param (meters) reduces polygon complexity—returns \`simplified\`, \`simplifyTolerance\` when applied. ⚠️ Returns \`warning\` if simplify tolerance is too high and geometry collapses to null
+- \`pg_geometry_transform\`: Transform WKT/GeoJSON between SRIDs. Returns \`{transformed_geojson, fromSrid, toSrid}\`
 - \`pg_geometry_intersection\`: Compute intersection of two geometries. Returns \`{intersects, intersection_geojson, intersection_area_sqm}\`. Normalizes SRID (4326) automatically—safe to mix GeoJSON and WKT
 
 **Administration:**
