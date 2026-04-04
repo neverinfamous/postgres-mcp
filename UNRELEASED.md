@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Completed production-readiness certification for the `partman` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `citext` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `performance` tool group via rigorous Code Mode advanced stress testing
+- Completed production-readiness certification for the `pgcrypto` tool group via rigorous Code Mode advanced stress testing
 - Validated P154-compliant structured error isolation handling across all `citext` operations
 - Confirmed Split Schema compliance and parameter alias mapping in `pg_citext_*` tools
 - Certified 100% Code Mode parity for citext comparison, candidate analysis, and column conversions
