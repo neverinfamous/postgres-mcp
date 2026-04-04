@@ -13,12 +13,12 @@
 
 **Window Functions (6 tools):**
 
-- `pg_stats_row_number({ table, orderBy, partitionBy?, selectColumns?, where?, limit? })`: Sequential numbering within ordered result. `partitionBy` restarts numbering per group. Default `limit: 100`. Returns `{success, rowCount, rows}`
-- `pg_stats_rank({ table, orderBy, rankType?, partitionBy?, selectColumns?, where?, limit? })`: Rank within ordered set. `rankType`: 'rank' (default, with gaps), 'dense_rank' (no gaps), 'percent_rank' (0-1). Default `limit: 100`. Returns `{success, rankType, rowCount, rows}`
-- `pg_stats_lag_lead({ table, column, orderBy, direction, offset?, defaultValue?, partitionBy?, selectColumns?, where?, limit? })`: Access previous (`lag`) or next (`lead`) row values. `direction`: 'lag' or 'lead'. `offset` (default: 1) = number of rows to look back/ahead. `defaultValue` fills when no row exists. Default `limit: 100`. Returns `{success, direction, offset, rowCount, rows}`
-- `pg_stats_running_total({ table, column, orderBy, partitionBy?, selectColumns?, where?, limit? })`: Cumulative running total using `SUM OVER`. `partitionBy` resets total per group. Default `limit: 100`. Returns `{success, valueColumn, rowCount, rows}`
-- `pg_stats_moving_avg({ table, column, orderBy, windowSize, partitionBy?, selectColumns?, where?, limit? })`: Moving average over sliding window. `windowSize` = number of rows in window (default: 3). Default `limit: 100`. Returns `{success, valueColumn, windowSize, rowCount, rows}`
-- `pg_stats_ntile({ table, orderBy, buckets, partitionBy?, selectColumns?, where?, limit? })`: Divide rows into N equal buckets. `buckets` = number of groups (e.g., 4 for quartiles). Default `limit: 100`. Returns `{success, buckets, rowCount, rows}`
+- `pg_stats_row_number({ table, orderBy, partitionBy?, selectColumns?, where?, limit? })`: Sequential numbering within ordered result. `partitionBy` restarts numbering per group. Default `limit: 20` (max: 100). Returns `{success, rowCount, rows}`
+- `pg_stats_rank({ table, orderBy, rankType?, partitionBy?, selectColumns?, where?, limit? })`: Rank within ordered set. `rankType`: 'rank' (default, with gaps), 'dense_rank' (no gaps), 'percent_rank' (0-1). Default `limit: 20` (max: 100). Returns `{success, rankType, rowCount, rows}`
+- `pg_stats_lag_lead({ table, column, orderBy, direction, offset?, defaultValue?, partitionBy?, selectColumns?, where?, limit? })`: Access previous (`lag`) or next (`lead`) row values. `direction`: 'lag' or 'lead'. `offset` (default: 1) = number of rows to look back/ahead. `defaultValue` fills when no row exists. Default `limit: 20` (max: 100). Returns `{success, direction, offset, rowCount, rows}`
+- `pg_stats_running_total({ table, column, orderBy, partitionBy?, selectColumns?, where?, limit? })`: Cumulative running total using `SUM OVER`. `partitionBy` resets total per group. Default `limit: 20` (max: 100). Returns `{success, valueColumn, rowCount, rows}`
+- `pg_stats_moving_avg({ table, column, orderBy, windowSize, partitionBy?, selectColumns?, where?, limit? })`: Moving average over sliding window. `windowSize` = number of rows in window (default: 3). Default `limit: 20` (max: 100). Returns `{success, valueColumn, windowSize, rowCount, rows}`
+- `pg_stats_ntile({ table, orderBy, buckets, partitionBy?, selectColumns?, where?, limit? })`: Divide rows into N equal buckets. `buckets` = number of groups (e.g., 4 for quartiles). Default `limit: 20` (max: 100). Returns `{success, buckets, rowCount, rows}`
 
 **Outlier Detection:**
 

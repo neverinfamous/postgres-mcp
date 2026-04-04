@@ -26,7 +26,7 @@ export const StatsRowNumberSchemaBase = z.object({
   where: z.string().optional().describe("Filter condition"),
   limit: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Maximum rows to return (default: 100)"),
+    .describe("Maximum rows to return (default: 20)"),
 });
 
 export const StatsRankSchemaBase = z.object({
@@ -46,7 +46,7 @@ export const StatsRankSchemaBase = z.object({
   where: z.string().optional().describe("Filter condition"),
   limit: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Maximum rows to return (default: 100)"),
+    .describe("Maximum rows to return (default: 20)"),
 });
 
 export const StatsLagLeadSchemaBase = z.object({
@@ -73,7 +73,7 @@ export const StatsLagLeadSchemaBase = z.object({
   where: z.string().optional().describe("Filter condition"),
   limit: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Maximum rows to return (default: 100)"),
+    .describe("Maximum rows to return (default: 20)"),
 });
 
 export const StatsRunningTotalSchemaBase = z.object({
@@ -93,7 +93,7 @@ export const StatsRunningTotalSchemaBase = z.object({
   where: z.string().optional().describe("Filter condition"),
   limit: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Maximum rows to return (default: 100)"),
+    .describe("Maximum rows to return (default: 20)"),
 });
 
 export const StatsMovingAvgSchemaBase = z.object({
@@ -113,7 +113,7 @@ export const StatsMovingAvgSchemaBase = z.object({
   where: z.string().optional().describe("Filter condition"),
   limit: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Maximum rows to return (default: 100)"),
+    .describe("Maximum rows to return (default: 20)"),
 });
 
 export const StatsNtileSchemaBase = z.object({
@@ -132,7 +132,7 @@ export const StatsNtileSchemaBase = z.object({
   where: z.string().optional().describe("Filter condition"),
   limit: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Maximum rows to return (default: 100)"),
+    .describe("Maximum rows to return (default: 20)"),
 });
 
 // =============================================================================
