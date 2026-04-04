@@ -32,7 +32,7 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
     limit: z
       .any()
       .optional()
-      .describe("Max rows to return (default: 50, use 0 for all)"),
+      .describe("Max rows to return (default: 20, max: 100, use 0 for max 100)"),
   });
 
   const IndexStatsSchemaLocal = z.preprocess(
@@ -136,7 +136,7 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
     limit: z
       .any()
       .optional()
-      .describe("Max rows to return (default: 50, use 0 for all)"),
+      .describe("Max rows to return (default: 20, max: 100, use 0 for max 100)"),
   });
 
   const TableStatsSchemaLocal = z.preprocess(
@@ -249,7 +249,7 @@ export function createVacuumStatsTool(
     limit: z
       .any()
       .optional()
-      .describe("Max rows to return (default: 50, use 0 for all)"),
+      .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
   });
 
   const VacuumStatsSchema = z.preprocess(defaultToEmpty, VacuumStatsSchemaBase);

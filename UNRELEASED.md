@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved Split Schema Pattern violations in Search, JSONB, Vector, Stats, and Performance groups (e.g. `pg_seq_scan_tables`).
 - Corrected Split Schema mapping for `isolation_level` alias in Transaction tools to properly enforce `isolationLevel` values instead of silently falling back to `READ COMMITTED`.
 - Corrected misleading suggestions in `TransactionError` for missing transaction IDs.
+- Corrected JSDoc and JSON Schema literal text descriptions in `performance` schemas to accurately reflect runtime defaults and boundary caps (e.g., limits accurately stated as 10-20 default, max 100).
 - Fixed numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).
 - Improved resilience in Admin and Monitoring tools (e.g., handling missing target tables or extensions gracefully).
 - Fixed timing defects in progress logging and corrected migration rollback behavior.
