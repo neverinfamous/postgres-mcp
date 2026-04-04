@@ -68,8 +68,15 @@ export function createStatStatementsTool(
         const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
         const rawOrderBy: unknown = parsed.orderBy;
         let orderBy = "total_time";
-        if (typeof rawOrderBy === "string" && ["total_time", "calls", "mean_time", "rows"].includes(rawOrderBy)) {
-          orderBy = rawOrderBy;
+        if (typeof rawOrderBy === "string" && rawOrderBy !== "") {
+          if (["total_time", "calls", "mean_time", "rows"].includes(rawOrderBy)) {
+            orderBy = rawOrderBy;
+          } else {
+            return {
+              success: false,
+              error: "Validation error: orderBy must be one of: total_time, calls, mean_time, rows"
+            };
+          }
         }
 
         const rawTruncate = Number(parsed.truncateQuery);

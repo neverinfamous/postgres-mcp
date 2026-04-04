@@ -270,11 +270,10 @@ export function createDetectBloatRiskTool(
           const check = await adapter.executeQuery("SELECT 1 FROM information_schema.schemata WHERE schema_name = $1", [schema]);
           if (!check.rows || check.rows.length === 0) {
             return {
-              success: true as const,
-              tables: [],
-              highRiskCount: 0,
-              totalAnalyzed: 0,
-              summary: `No high-risk bloat detected across 0 tables`,
+              success: false,
+              error: `Schema '${schema}' does not exist.`,
+              code: "SCHEMA_NOT_FOUND",
+              category: "resource",
             };
           }
           validateIdentifier(schema);

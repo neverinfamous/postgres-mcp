@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed Zod validation leaks and structural input type validation for aliases.
   - Normalized error messages to use P154-consistent double-quote formatting.
   - Implemented pagination/limits to prevent extreme payloads on heavily partitioned tables.
+- Corrected behavioral inconsistencies in Performance tools:
+  - Fixed `SCHEMA_NOT_FOUND` validation in `pg_detect_bloat_risk` to return proper structural errors instead of empty tables.
+  - Added strict parameter value parsing for enum constraints in `pg_stat_statements` to reject invalid `orderBy` inputs instead of defaulting silently.
 - Resolved Split Schema Pattern violations in Search, JSONB, Vector, Stats, and Performance groups (e.g. `pg_seq_scan_tables`).
 - Corrected Split Schema mapping for `isolation_level` alias in Transaction tools to properly enforce `isolationLevel` values instead of silently falling back to `READ COMMITTED`.
 - Corrected misleading suggestions in `TransactionError` for missing transaction IDs.
