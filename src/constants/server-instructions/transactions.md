@@ -13,7 +13,7 @@ Core: `begin()`, `status()`, `commit()`, `rollback()`, `savepoint()`, `rollbackT
 
 - `pg_transaction_savepoint`: Create savepoint within transaction. `name`/`savepoint` + `transactionId`/`tx`/`txId`
 - `pg_transaction_rollback_to`: Rollback to savepoint, restoring database state to when the savepoint was created. ⚠️ Undoes ALL work (data changes AND savepoints) created after the target savepoint
-- `pg_transaction_release`: Release savepoint, keeping all changes since it was created. `name`/`savepoint` aliases
+- `pg_transaction_release`: Release savepoint, keeping all changes since it was created. ⚠️ Once released, you can no longer rollback to this savepoint. `name`/`savepoint` aliases
 
 **Atomic Execution:**
 
