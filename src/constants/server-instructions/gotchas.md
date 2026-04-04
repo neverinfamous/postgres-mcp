@@ -18,6 +18,10 @@
 14. **Small tables**: Optimizer correctly uses Seq Scan for <1000 rows—this is expected behavior
 15. **Token Payload Bounds**: Global limit constraints (`n`, `limit`, `sanitizeResult`) are strictly clamped to prevent token bloat, generating typically ~30-41% token reductions.
 16. **Structured Errors**: P154 validation replaces legacy `{success: false}` failures with explicit `ValidationError` exceptions, to strictly prevent underlying Postgres SQL syntax leakage.
+17. **Code Mode Cross-Group (Limit Drops)**: `pg.jsonb.extract` and similar tools default to `limit: 100`. If bridging full datasets natively in a pipeline script, explicitly override `limit` to prevent silent truncation.
+18. **Code Mode Cross-Group (JS Arrays → pg.stats)**: `pg.stats.*` calculates directly in-DB. You cannot pass them raw extracted JS arrays. You must bridge them via `pg.core.batchInsert` into a `temp_` table first.
+19. **pg_vector_search Parameter Strictness**: The parameter for nearest-neighbor is strictly named `vector: [...]` (a JS array of numbers), not `query_vector`.
+
 ## 🔄 Response Structures
 
 | Tool                          | Returns                                                                                                                                     | Notes                                                                                                                                                                                                                                                  |
