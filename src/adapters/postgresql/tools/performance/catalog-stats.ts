@@ -59,7 +59,7 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
           table = parts[1] ?? table;
         }
         const rawLimit = Number(parsed.limit);
-        const limit =
+        const userLimit =
           parsed.limit === undefined
             ? 50
             : isNaN(rawLimit)
@@ -67,6 +67,9 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
               : rawLimit === 0
                 ? null
                 : rawLimit;
+        
+        // Cap at 500 to prevent payload blowout on large schemas
+        const limit = userLimit === null ? 500 : Math.min(userLimit, 500);
 
         // P154: Validate table/schema existence before querying (throws ValidationError on failure)
         await validatePerformanceTableExists(adapter, table, schema);
@@ -160,7 +163,7 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
           table = parts[1] ?? table;
         }
         const rawLimit = Number(parsed.limit);
-        const limit =
+        const userLimit =
           parsed.limit === undefined
             ? 50
             : isNaN(rawLimit)
@@ -168,6 +171,9 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
               : rawLimit === 0
                 ? null
                 : rawLimit;
+                
+        // Cap at 500 to prevent payload blowout on large schemas
+        const limit = userLimit === null ? 500 : Math.min(userLimit, 500);
 
         // P154: Validate table/schema existence before querying (throws ValidationError on failure)
         await validatePerformanceTableExists(adapter, table, schema);
@@ -269,7 +275,7 @@ export function createVacuumStatsTool(
           table = parts[1] ?? table;
         }
         const rawLimit = Number(parsed.limit);
-        const limit =
+        const userLimit =
           parsed.limit === undefined
             ? 50
             : isNaN(rawLimit)
@@ -277,6 +283,9 @@ export function createVacuumStatsTool(
               : rawLimit === 0
                 ? null
                 : rawLimit;
+                
+        // Cap at 500 to prevent payload blowout on large schemas
+        const limit = userLimit === null ? 500 : Math.min(userLimit, 500);
         let whereClause =
           "schemaname NOT IN ('pg_catalog', 'information_schema')";
         const queryParams: string[] = [];

@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`.
+- Implemented a 500-item hardcap payload threshold to `pg_table_stats`, `pg_index_stats`, and `pg_vacuum_stats`.
 - Optimized token payload sizes (~30–41% reduction) via compact toggles, array collapsing, and bounds limits on high-chatter tools.
 - Modularized source files to strict kebab-case convention.
 - Centralized default connection pool timeout to 30,000ms.
