@@ -222,7 +222,7 @@ export function createVectorDimensionReduceTool(
       .string()
       .optional()
       .describe("ID column to include in results (default: id)"),
-    limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max rows to process (default: 100)"),
+    limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max rows to process (default: 20, max: 100)"),
     // Common parameters - targetDimensions is required
     targetDimensions: z
       .preprocess(coerceNumber, z.number().optional())
@@ -352,7 +352,8 @@ export function createVectorDimensionReduceTool(
           }
 
           const idCol = parsed.idColumn ?? "id";
-          const limitVal = parsed.limit ?? 100;
+          let limitVal = parsed.limit ?? 20;
+          if (limitVal > 100) limitVal = 100;
 
           // Fetch vectors from table
           const sql = `
