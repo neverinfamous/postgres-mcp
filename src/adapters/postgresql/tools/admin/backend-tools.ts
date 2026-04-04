@@ -100,6 +100,9 @@ export function createTerminateBackendTool(adapter: PostgresAdapter): ToolDefini
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { pid } = TerminateBackendSchema.parse(params);
+        if (pid <= 0) {
+          return new ValidationError("pid must be a positive integer").toResponse();
+        }
         const sql = `SELECT pg_terminate_backend($1)`;
         const result = await adapter.executeQuery(sql, [pid]);
         const terminated = result.rows?.[0]?.["pg_terminate_backend"] === true;
@@ -141,6 +144,9 @@ export function createCancelBackendTool(adapter: PostgresAdapter): ToolDefinitio
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { pid } = CancelBackendSchema.parse(params);
+        if (pid <= 0) {
+          return new ValidationError("pid must be a positive integer").toResponse();
+        }
         const sql = `SELECT pg_cancel_backend($1)`;
         const result = await adapter.executeQuery(sql, [pid]);
         const cancelled = result.rows?.[0]?.["pg_cancel_backend"] === true;

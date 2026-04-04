@@ -232,7 +232,7 @@ export const TerminateBackendSchemaBase = z.object({
 export const TerminateBackendSchema = z.preprocess(
   preprocessPidParams,
   z.object({
-    pid: z.number().int().positive().describe("Process ID to terminate"),
+    pid: z.number().int().describe("Process ID to terminate"),
   }),
 );
 
@@ -246,7 +246,7 @@ export const CancelBackendSchemaBase = z.object({
 export const CancelBackendSchema = z.preprocess(
   preprocessPidParams,
   z.object({
-    pid: z.number().int().positive().describe("Process ID to cancel"),
+    pid: z.number().int().describe("Process ID to cancel"),
   }),
 );
 
@@ -453,7 +453,7 @@ export const AppendInsightSchema = z.preprocess(
     return result;
   },
   z.object({
-    insight: z.string().max(1000, "Insight text must be 1000 characters or less").describe("Business insight to record"),
+    insight: z.string().describe("Business insight to record"),
   })
 );
 
