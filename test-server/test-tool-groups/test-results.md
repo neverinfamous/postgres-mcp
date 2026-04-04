@@ -18,7 +18,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-ltree.md` | ~4,441 | |
 | `test-tool-group-migration.md` | ~4,609 |
 | `test-tool-group-monitoring.md` | ~5,380 | |
-| `test-tool-group-partitioning.md` | ~4,165 | |
+| `test-tool-group-partitioning.md` | ~3,365 | |
 | `test-tool-group-partman.md` | ~4,174 | |
 | `test-tool-group-performance-part1.md` | ~ | |
 | `test-tool-group-performance-part2.md` | ~ | |

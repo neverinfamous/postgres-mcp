@@ -7,6 +7,8 @@
 
 import { z } from "zod";
 
+import { ErrorResponseFields } from "../error-response-fields.js";
+
 /**
  * Preprocess list/info parameters:
  * - Resolve table from aliases (table, parent, parentTable, name)
@@ -27,7 +29,7 @@ function preprocessListInfoParams(input: unknown): unknown {
   }
 
   const raw = input as Record<string, unknown>;
-  const result: ListInfoInput = { ...(raw as ListInfoInput) };
+  const result: ListInfoInput = { ...raw };
 
   // Resolve table from aliases
   const resolvedTable =
@@ -114,54 +116,21 @@ export const PartitionInfoSchema = z.preprocess(
 /**
  * pg_list_partitions output
  */
-export const ListPartitionsOutputSchema = z
-  .object({
-    partitions: z
-      .array(z.record(z.string(), z.unknown()))
-      .optional()
-      .describe("Partition list with name, bounds, size"),
-    count: z.number().optional().describe("Number of partitions returned"),
-    truncated: z
-      .boolean()
-      .optional()
-      .describe("Whether results were truncated"),
-    totalCount: z.number().optional().describe("Total count when truncated"),
-    warning: z
-      .string()
-      .optional()
-      .describe("Warning message if table not partitioned"),
-    success: z.boolean().optional().describe("Whether operation succeeded"),
-    error: z.string().optional().describe("Error message if failed"),
-  })
-  .loose();
+export const ListPartitionsOutputSchema = z.object({
+  partitions: z.array(z.record(z.string(), z.unknown())).optional().describe("Partition list with name, bounds, size"),
+  count: z.number().optional().describe("Number of partitions returned"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
+  totalCount: z.number().optional().describe("Total count when truncated"),
+  warning: z.string().optional().describe("Warning message if table not partitioned"),
+}).extend(ErrorResponseFields.shape);
 
 /**
  * pg_partition_info output
  */
-export const PartitionInfoOutputSchema = z
-  .object({
-    tableInfo: z
-      .record(z.string(), z.unknown())
-      .nullable()
-      .optional()
-      .describe("Table partitioning info"),
-    partitions: z
-      .array(z.record(z.string(), z.unknown()))
-      .optional()
-      .describe("Partition details with size and row counts"),
-    totalSizeBytes: z
-      .number()
-      .optional()
-      .describe("Total size of all partitions"),
-    truncated: z
-      .boolean()
-      .optional()
-      .describe("Whether partitions list was truncated"),
-    warning: z
-      .string()
-      .optional()
-      .describe("Warning message if table not partitioned"),
-    success: z.boolean().optional().describe("Whether operation succeeded"),
-    error: z.string().optional().describe("Error message if failed"),
-  })
-  .loose();
+export const PartitionInfoOutputSchema = z.object({
+  tableInfo: z.record(z.string(), z.unknown()).nullable().optional().describe("Table partitioning info"),
+  partitions: z.array(z.record(z.string(), z.unknown())).optional().describe("Partition details with size and row counts"),
+  totalSizeBytes: z.number().optional().describe("Total size of all partitions"),
+  truncated: z.boolean().optional().describe("Whether partitions list was truncated"),
+  warning: z.string().optional().describe("Warning message if table not partitioned"),
+}).extend(ErrorResponseFields.shape);

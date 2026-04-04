@@ -42,9 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added truncation (`limit`) handling to `pg_partition_info` to prevent extreme payloads on heavily partitioned tables.
 - Fixed Zod validation leak for `subpartitionBy` enum and `partitionBy` schema bypass in partitioning tools.
 - Fixed missing `success: true` flag in `pg_list_partitions` and `pg_partition_info` responses to ensure P154 compliance.
+- Added `ifNotExists: true` parameter support to `pg_create_partitioned_table` and `pg_create_partition` tools, resolving error parser inconsistency.
+- Fixed missing `ErrorResponseFields` extensions across partitioning tool output schemas to accurately advertise P154 parameters.
 - Standardized P154 error structures (`success: false` with explicit `ValidationError`s) across all 230+ tools.
 - Normalized systemic anomalies into standard payloads (e.g., `42P01` "relation does not exist", `42501` auth bounds errors) preventing unformatted ad-hoc messages.
-- Corrected `admin.md`, `backup.md`, `citext.md`, `jsonb.md`, and `schema.md` output schemas to properly reflect P154 handler fields, correct array wrappers (`snapshots`), default pagination limits, and split schema alias mappings.
+- Corrected `admin.md`, `backup.md`, `citext.md`, `jsonb.md`, `schema.md`, and `partitioning.md` output schemas and technical instructions to properly reflect P154 handler fields, correct array wrappers (`snapshots`), default pagination limits, split schema alias mappings, and conditional parameter support (`ifNotExists`).
 - Resolved Split Schema Pattern violations across `pg_hybrid_search`, JSONB, Vector, Citext, Performance, and Stats groups by exposing base types.
 - Fixed SQL window functions (`row_number`, `rank`, `ntile`) properly casting index results as numeric values to prevent string leakage.
 - Handled missing schema validation dynamically (e.g., `pg_detect_bloat_risk` returning empty datasets instead of throwing).

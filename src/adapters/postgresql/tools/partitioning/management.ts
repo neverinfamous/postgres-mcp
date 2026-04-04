@@ -231,13 +231,14 @@ export function createPartitionedTableTool(
           partitionBy: "range" | "list" | "hash";
           partitionKey: string;
           primaryKey?: string[];
+          ifNotExists?: boolean;
         };
       } catch (zodError: unknown) {
         return formatHandlerErrorResponse(zodError, {
             tool: "pg_create_partitioned_table",
           });
       }
-      const { name, schema, columns, partitionBy, partitionKey, primaryKey } =
+      const { name, schema, columns, partitionBy, partitionKey, primaryKey, ifNotExists } =
         parsed;
 
       const tableName = sanitizeTableName(name, schema);
@@ -343,9 +344,7 @@ export function createPartitionedTableTool(
         tableConstraints = `,\n  PRIMARY KEY (${pkColumnList})`;
       }
 
-      const sql = `CREATE TABLE ${tableName} (
-  ${columnDefs}${tableConstraints}
-) PARTITION BY ${partitionBy.toUpperCase()} (${partitionKey})`;
+      const sql = `CREATE TABLE ${ifNotExists ? "IF NOT EXISTS " : ""}${tableName} (\n  ${columnDefs}${tableConstraints}\n) PARTITION BY ${partitionBy.toUpperCase()} (${partitionKey})`;
 
       try {
         await adapter.executeQuery(sql);
@@ -388,6 +387,7 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
           forValues: string;
           subpartitionBy?: "range" | "list" | "hash";
           subpartitionKey?: string;
+          ifNotExists?: boolean;
         };
       } catch (zodError: unknown) {
         return formatHandlerErrorResponse(zodError, {
@@ -401,6 +401,7 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         forValues,
         subpartitionBy,
         subpartitionKey,
+        ifNotExists,
       } = parsed;
 
       // Validate sub-partitioning parameters
@@ -441,8 +442,7 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         parsedParent.schema,
       );
 
-      // Build the SQL
-      let sql = `CREATE TABLE ${partitionName} PARTITION OF ${parentName}`;
+      let sql = `CREATE TABLE ${ifNotExists === true ? "IF NOT EXISTS " : ""}${partitionName} PARTITION OF ${parentName}`;
 
       // Add partition bounds
       // Handle DEFAULT partition: accept both "__DEFAULT__" (from preprocessor when isDefault: true)
