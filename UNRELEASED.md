@@ -8,27 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Worker-thread Code Mode sandbox with resource limits, RPC bridge, and configurable timeouts (`MCP_REQUEST_TIMEOUT`, `MCP_HEADERS_TIMEOUT`).
+- Worker-thread Code Mode sandbox with resource limits, RPC bridge, and configurable timeouts.
 - Transport-agnostic Auth module supporting `SCOPE_PATTERNS`, `BASE_SCOPES`, and RFC 6750.
 - Audit subsystem with session token estimates, JSONL logging, redaction, and `pg_audit_*` tools.
 - 13 new statistics and admin tools including `pg_stats_outliers` and `pg_append_insight`.
 - `pg_jsonb_pretty` tool for JSON formatting.
 - 22 group-specific help resources accessible via `postgres://help`.
 - Playwright E2E test coverage for Code Mode, authentication, and backups.
-- Parameter extensions and aliases across core tools (e.g., `toType`, `indexName`, `read_only`).
+- Parameter extensions and aliases across core tools (e.g., `toType`, `indexName`).
 - Agent-optimized documentation and Code Mode integration guides.
 
 ### Changed
 - **BREAKING**: Core write tools require `write` scope; destructive tools require `admin`.
-- Modularized source files applying strict kebab-case convention.
-- Optimized token payload sizes (~30–41% reduction) via compact toggles and array collapsing.
-- Reduced max-cap parameter limits from 500 to 100 and lowered default limits to 10-20 across heavy `performance` statistics tools (`pg_table_stats`, `pg_stat_statements`, `pg_vacuum_stats`, `pg_query_plan_stats`, `pg_seq_scan_tables`) to strictly enforce LLM context-window protection.
+- Modularized source files using strict `kebab-case` convention.
+- Optimized payload sizes (~30–41% reduction) via compact toggles and array collapsing.
+- Reduced parameter limits to 10-20 (default) and 100 (max) for all performance/statistics tools to protect LLM context windows.
 - Applied `openWorldHint: false` to all tools.
 - Centralized default connection pool timeout to 30,000ms.
 - Reduced npm package size by excluding test and source map artifacts.
-- Refactored cross-tool validation helpers to throw standardized `ValidationError`s.
-- Switched to SWC compilation for Vitest test suite.
-- Updated dependencies and patched `hono` vulnerabilities.
+- Switched to SWC compilation for Vitest.
+- Updated dependencies including `hono` and security patches.
 
 ### Removed
 - Obsolete `META_GROUPS` shortcut bundles.
@@ -36,30 +35,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate validation logic across performance handlers.
 
 ### Fixed
-- Standardized P154 error structures (`success: false` + explicit `ValidationError`) across all 230+ tools.
-- Corrected behavioral inconsistencies in Partitioning tools:
-  - Added `pg_inherits` membership checks to `pg_detach_partition` to prevent misleading `TABLE_NOT_FOUND` errors.
-  - Added `ifNotExists` parameter and `alreadyExists` response field to partition creation tools.
-  - Fixed Zod validation leaks and structural input type validation for aliases.
-  - Normalized error messages to use P154-consistent double-quote formatting.
-  - Implemented pagination/limits to prevent extreme payloads on heavily partitioned tables.
-- Corrected behavioral inconsistencies in Performance tools:
-  - Fixed `pg_detect_bloat_risk` filter behavior to return empty results instead of an error when a nonexistent schema is passed, accurately presenting a zero-match filter.
-  - Added strict parameter value parsing for enum constraints in `pg_stat_statements` to reject invalid `orderBy` inputs instead of defaulting silently.
-- Resolved Split Schema Pattern violations in Search, JSONB, Vector, Stats, and Performance groups (e.g., `pg_seq_scan_tables`, `pg_detect_query_anomalies`, `pg_detect_bloat_risk`, `pg_detect_connection_spike`).
-- Corrected Split Schema mapping for `isolation_level` alias in Transaction tools to properly enforce `isolationLevel` values instead of silently falling back to `READ COMMITTED`.
-- Corrected misleading suggestions in `TransactionError` for missing transaction IDs.
-- Corrected JSDoc and JSON Schema literal text descriptions in `performance` schemas to accurately reflect runtime defaults and boundary caps (e.g., limits accurately stated as 10-20 default, max 100).
-- Fixed numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).
-- Improved resilience in Admin and Monitoring tools (e.g., handling missing target tables or extensions gracefully).
-- Fixed timing defects in progress logging and corrected migration rollback behavior.
-- Remediated cascade simulators incorrectly truncating self-referencing foreign keys.
-- Standardized snake_case alias parsing for alert threshold settings.
-- Updated technical instructions and output schemas across all groups to reflect pagination boundaries and alias mappings.
-- Bypassed Docker Hub rate-limit blocks by enforcing authenticated pulls in CI.
+- Standardized P154 error structures and double-quote formatting across all 230+ tools.
+- Resolved Split Schema Pattern violations in Search, JSONB, Vector, Stats, and Performance groups.
+- Partitioning tools: Fixed `pg_detach_partition` membership checks, added `ifNotExists` parameters, and implemented pagination/limits.
+- Performance tools: Fixed `pg_detect_bloat_risk` filter behavior and added strict constraint parsing to `pg_stat_statements`.
+- Transaction tools: Fixed `isolation_level` alias mapping and improved `TransactionError` hints.
+- Numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).
+- Improved resilience in Admin and Monitoring tools when handling missing tables or extensions.
+- Corrected progress logging timing and migration rollback behavior.
+- Fixed cascade simulators for self-referencing foreign keys.
+- Standardized snake_case alias parsing for alert thresholds.
+- Bypassed Docker Hub rate-limit blocks in CI using authenticated pulls.
 
 ### Security
-- Resolved prototype pollution vulnerabilities via `hono` and exact-version overrides.
+- Patched prototype pollution vulnerabilities in `hono`.
 - Replaced raw exceptions with `PostgresMcpError` to prevent SQL syntax leaks.
 - Enforced SLSA Build L3 compliance via `--provenance` in publishing workflows.
 - Patched npm-bundled vulnerabilities in Docker builds.
