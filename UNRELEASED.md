@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remediated cascade simulators incorrectly truncating self-referencing foreign keys.
 - Bypassed Docker Hub rate-limit blocks by enforcing explicit authenticated pulls in CI.
 - Certified Admin tools group Code Mode execution and error framework compliance.
+- Certified Backup tools group for full Code Mode audit interceptor compliance, structure integrity, and payload limiting.
 - Certified deep cross-group functional pipelines (Core → Vector → JSONB → Stats).
 
 ### Security
