@@ -11,8 +11,8 @@ Last tested: April 4th, 2026
 | `test-tool-group-core-part2.md` | ~4,322 | |
 | `test-tool-group-cron.md` | ~3,309 | |
 | `test-tool-group-cross-group.md` | ~ | |
-| `test-tool-group-introspection.md` | ~ | |
-| `test-tool-group-jsonb-part1.md` | ~ | |
+| `test-tool-group-introspection.md` | ~20,513 | |
+| `test-tool-group-jsonb-part1.md` | ~8,482 | |
 | `test-tool-group-jsonb-part2.md` | ~ | |
 | `test-tool-group-kcache.md` | ~ | |
 | `test-tool-group-ltree.md` | ~ | |
