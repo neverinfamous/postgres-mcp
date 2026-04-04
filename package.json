@@ -61,10 +61,10 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.58.2",
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.5.2",
     "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "^4.1.2",
-    "eslint": "^10.1.0",
+    "eslint": "^10.2.0",
     "globals": "^17.4.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.57.2",
@@ -75,7 +75,7 @@
     "@isaacs/brace-expansion": "5.0.1",
     "diff": "8.0.4",
     "flatted": "3.4.2",
-    "hono": "4.12.9",
+    "hono": "4.12.10",
     "minimatch": "10.2.5",
     "picomatch": "4.0.4",
     "tar": "7.5.13"

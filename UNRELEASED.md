@@ -22,6 +22,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - `read_only` parameter explicitly supported in `pg_transaction_begin` and `pg_transaction_execute` to securely initialize isolated non-mutating blocks natively
 
 ### Changed
+- **Dependency Updates**: Updated `eslint` to 10.2.0, `@types/node` to 25.5.2, and patched `hono` to 4.12.10.
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`
 - Centralized default connection pool timeout to 30,000ms
 - Expanded `PostgresMcpError` to track categories, suggestions, and serialization context
@@ -69,6 +70,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Re-seeded missing `test_locations.location` column setups in database teardown tests to fix cascade side-effects
 
 ### Security
+- Resolved Dependabot prototype pollution alerts via `hono` exact-version override bump
 - Replaced raw Postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks
 - Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows
 - Patched npm-bundled vulnerabilities in Dockerfile via manual `npm pack` replacements and exact-version `overrides`
