@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`pg_cache_hit_ratio` strict schema** — Changed `inputSchema: z.object({}).strict()` to `z.object({})` to prevent raw MCP `-32602` rejection when clients pass extra unknown params to a no-param tool.
 - **`pg_stat_statements` limit description** — Fixed tool parameter `describe()` string advertising "max: 500" when the actual enforcement cap is 100 (aligned with payload safety standards).
 - **`pg_stat_statements` invalid `orderBy` error** — Replaced ad-hoc `return {success:false, error:"..."}` with `throw new ValidationError(...)` so the outer `catch` routes through `formatHandlerErrorResponse`, ensuring the error response includes `code`, `category`, and `recoverable` fields, consistent with all other performance handlers.
+- **`StatStatementsOutputSchema` field spread bug** — Replaced `...PaginatedBase` spread (a plain JS object) inside `z.object({...})` with explicit field definitions. The spread caused Zod v4 + MCP SDK outputSchema validation to strip `code`, `category`, and `recoverable` from error responses, leaving only `success` and `error`. All other output schemas already used explicit fields.
+- **`pg_stat_statements` missing `truncated`/`totalCount`** — Handler now always sets `truncated: false` and `totalCount: statements.length` when results are not truncated. Previously these fields were omitted when fewer results than the limit were returned, creating an inconsistent response shape vs `pg_table_stats` and `pg_index_stats`.
 
 ### Security
 - Patched prototype pollution vulnerabilities in `hono`.

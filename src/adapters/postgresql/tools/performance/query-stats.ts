@@ -123,12 +123,15 @@ export function createStatStatementsTool(
           count: statements.length,
         };
 
-        // Add totalCount if results were limited
+        // Add totalCount and truncated — always set for consistency
         if (limit !== null && statements.length === limit) {
           const countSql = `SELECT COUNT(*) as total FROM pg_stat_statements`;
           const countResult = await adapter.executeQuery(countSql);
           response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
           response["truncated"] = true;
+        } else {
+          response["truncated"] = false;
+          response["totalCount"] = statements.length;
         }
         return response;
       } catch (error: unknown) {

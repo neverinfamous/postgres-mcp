@@ -93,18 +93,6 @@ export const ExplainOutputSchema = z.object({
   error: z.string().optional().describe("Error message if failed"),
 }).extend(ErrorResponseFields.shape);
 
-// Common paginated output with array + count
-const PaginatedBase = {
-  count: z.number().optional().describe("Number of items returned"),
-  totalCount: z
-    .number()
-    .optional()
-    .describe("Total count if results truncated"),
-  truncated: z.boolean().optional().describe("Whether results were truncated"),
-  success: z.boolean().optional().describe("Whether operation succeeded"),
-  error: z.string().optional().describe("Error message if failed"),
-};
-
 // pg_index_stats
 export const IndexStatsOutputSchema = z.object({
   indexes: z
@@ -143,7 +131,14 @@ export const StatStatementsOutputSchema = z.object({
     .array(z.record(z.string(), z.unknown()))
     .optional()
     .describe("Query statistics"),
-  ...PaginatedBase,
+  count: z.number().optional().describe("Number of items returned"),
+  totalCount: z
+    .number()
+    .optional()
+    .describe("Total count if results truncated"),
+  truncated: z.boolean().optional().describe("Whether results were truncated"),
+  success: z.boolean().optional().describe("Whether operation succeeded"),
+  error: z.string().optional().describe("Error message if failed"),
 }).extend(ErrorResponseFields.shape);
 
 // pg_stat_activity
