@@ -216,10 +216,8 @@ describe("pg_table_sizes", () => {
       { schema: "nonexistent" },
       mockContext,
     )) as { success: boolean; error: string };
-    expect(result).toEqual({
-      success: false,
-      error: expect.stringContaining("nonexistent"),
-    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent");
   });
 });
 
