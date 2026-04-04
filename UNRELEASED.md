@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added agent-optimized local `README.md` to `src/constants/server-instructions` as a guardrail for autonomous editors
+- Configured instruction generation script to actively ignore `README.md` to prevent help-route and bundle bloat
 - Completed production-readiness certification for the `monitoring` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `migration` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `ltree` tool group via rigorous Code Mode advanced stress testing
