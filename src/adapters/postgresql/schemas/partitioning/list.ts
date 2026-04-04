@@ -42,7 +42,7 @@ function preprocessListInfoParams(input: unknown): unknown {
   }
 
   // Parse schema.table format
-  if (result.table?.includes(".")) {
+  if (typeof result.table === "string" && result.table.includes(".")) {
     const parts = result.table.split(".");
     result.schema ??= parts[0];
     result.table = parts[1] ?? result.table;

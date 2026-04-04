@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected misleading `suggestion` returned in `TransactionError` when a provided transaction ID is not found.
 - Added truncation (`limit`) handling to `pg_partition_info` to prevent extreme payloads on heavily partitioned tables.
 - Fixed Zod validation leak for `subpartitionBy` enum and `partitionBy` schema bypass in partitioning tools.
+- Fixed string prototype crash (`includes is not a function`) in partitioning alias preprocessing by ensuring strict `typeof` validation on structural inputs.
 - Fixed missing `success: true` flag in `pg_list_partitions` and `pg_partition_info` responses to ensure P154 compliance.
 - Added `ifNotExists: true` parameter support to `pg_create_partitioned_table` and `pg_create_partition` tools, resolving error parser inconsistency.
 - Fixed missing `ErrorResponseFields` extensions across partitioning tool output schemas to accurately advertise P154 parameters.

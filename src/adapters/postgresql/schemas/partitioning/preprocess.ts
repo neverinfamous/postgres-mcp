@@ -12,10 +12,10 @@
  * Returns { name, schema? } or undefined if input is undefined
  */
 export function parseSchemaFromIdentifier(
-  value: string | undefined,
-): { name: string; schema: string | undefined } | undefined {
+  value: unknown,
+): { name: string; schema: string | undefined } | { name: unknown; schema: undefined } | undefined {
   if (!value) return undefined;
-  if (value.includes(".")) {
+  if (typeof value === "string" && value.includes(".")) {
     const parts = value.split(".");
     return { name: parts[1] ?? value, schema: parts[0] };
   }
@@ -76,9 +76,9 @@ export function preprocessPartitionParams(input: unknown): unknown {
   if (parsedParent?.schema && result.schema === undefined) {
     result.schema = parsedParent.schema;
     // Update the resolved parent to just the table name
-    if (raw.parent?.includes(".")) result.parent = parsedParent.name;
-    if (raw.parentTable?.includes(".")) result.parentTable = parsedParent.name;
-    if (raw.table?.includes(".")) result.table = parsedParent.name;
+    if (typeof raw.parent === "string" && raw.parent.includes(".") && typeof parsedParent.name === "string") result.parent = parsedParent.name;
+    if (typeof raw.parentTable === "string" && raw.parentTable.includes(".") && typeof parsedParent.name === "string") result.parentTable = parsedParent.name;
+    if (typeof raw.table === "string" && raw.table.includes(".") && typeof parsedParent.name === "string") result.table = parsedParent.name;
   }
 
   // Parse schema.table format from partition parameter
@@ -89,13 +89,13 @@ export function preprocessPartitionParams(input: unknown): unknown {
     result.schema = parsedPartition.schema;
   }
   // Update resolved partition to just the table name
-  if (raw.partition?.includes(".") && parsedPartition) {
+  if (typeof raw.partition === "string" && raw.partition.includes(".") && parsedPartition && typeof parsedPartition.name === "string") {
     result.partition = parsedPartition.name;
   }
-  if (raw.partitionTable?.includes(".") && parsedPartition) {
+  if (typeof raw.partitionTable === "string" && raw.partitionTable.includes(".") && parsedPartition && typeof parsedPartition.name === "string") {
     result.partitionTable = parsedPartition.name;
   }
-  if (raw.partitionName?.includes(".") && parsedPartition) {
+  if (typeof raw.partitionName === "string" && raw.partitionName.includes(".") && parsedPartition && typeof parsedPartition.name === "string") {
     result.partitionName = parsedPartition.name;
   }
 
