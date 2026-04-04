@@ -671,7 +671,7 @@ Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, 
 - \`status\`: \`{success, status: 'active'|'aborted'|'not_found', transactionId, active, message}\`
 - \`commit/rollback\`: \`{success, transactionId, message}\`
 - \`savepoint/release/rollbackTo\`: \`{success, transactionId, savepoint, message}\`
-- \`execute\`: \`{success, statementsExecuted, results: [{sql, rowsAffected, rowCount, rows?}], transactionId?, autoRolledBack?}\`
+- \`execute\`: \`{success, statementsExecuted, results: [{sql, rowsAffected, rowCount, rows?}], transactionId?, autoRolledBack?, statementsTotal?, failedStatement?}\`
 
 **Discovery**: \`pg.transactions.help()\` returns \`{methods, methodAliases, examples}\``],
   ["vector", `# Vector Tools
