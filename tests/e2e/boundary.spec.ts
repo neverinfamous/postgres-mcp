@@ -164,7 +164,7 @@ test.describe("Boundary: Single Row", () => {
       });
       // Single row: min == max == mean == 42.0
       if (stats.success) {
-        const s = stats.stats as Record<string, unknown>;
+        const s = stats.statistics as Record<string, unknown>;
         expect(s.count).toBe(1);
         if (typeof s.min === "number") {
           expect(s.min).toBe(42.0);
