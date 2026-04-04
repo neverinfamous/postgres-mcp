@@ -23,7 +23,7 @@ import {
   VectorAddColumnOutputSchema,
   VectorCreateExtensionSchemaBase,
 } from "../../schemas/index.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
+
 
 /**
  * Parse a PostgreSQL vector string to a number array.
@@ -145,9 +145,7 @@ export function createVectorAddColumnTool(
     tableName: z.string().optional().describe("Alias for table"),
     column: z.string().optional().describe("Column name"),
     col: z.string().optional().describe("Alias for column"),
-    dimensions: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Vector dimensions (e.g., 1536 for OpenAI)"),
+    dimensions: z.number().optional().describe("Vector dimensions (e.g., 1536 for OpenAI)"),
     schema: z.string().optional().describe("Database schema (default: public)"),
     ifNotExists: z
       .boolean()
