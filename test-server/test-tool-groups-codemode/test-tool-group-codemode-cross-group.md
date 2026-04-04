@@ -234,9 +234,9 @@ DROP TABLE IF EXISTS temp_my_test_table;
     b) Capture `pg.vector.search` locally to find the nearest neighbor.
     c) Execute `pg.text.search` purely using the extracted ID from the vector search to confirm string metadata alignment safely.
 
-### Category 3: Transactions → Admin → Migration (Exception IPC Parity)
+### Category 3: Transactions → Backup → Migration (Exception IPC Parity)
 
-3. Deep Handler Validation: Call `pg.transactions.begin` then `pg.migration.apply`. Force a synthetic parser failure seamlessly (e.g. invalid migration path). Ensure `pg.transactions.rollback` smartly cleans up the migration partial state cleanly, and retrieve the audit log inside the same script using `pg.admin` to verify the rollback was recorded gracefully.
+3. Deep Handler Validation: Call `pg.transactions.begin` then `pg.migration.apply`. Force a synthetic parser failure seamlessly (e.g. invalid migration path). Ensure `pg.transactions.rollback` smartly cleans up the migration partial state cleanly, and retrieve the audit log inside the same script using `pg.backup` tools (e.g., `auditListBackups`) or `pg.migration.history` to verify the rollback was recorded gracefully.
 
 ### Category 4: Vector → JSONB → Code Mode Context Limits
 
