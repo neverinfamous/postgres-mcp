@@ -44,6 +44,10 @@ The original monolithic advanced stress testing suite was split into 28 granular
 | `test-tools-advanced-schema.md` | Schema | Cascaded object dropping bounds, deep dependency checking, and extreme generation boundaries. |
 | `test-tools-advanced-partitioning.md` | Partitioning | Deep partition structures, edge limits for range/list boundaries, massive attach routines. |
 
+### Test Results
+
+Token consumption metrics and final summaries from executing the above stress tests are persisted in [`test-results.md`](./test-results.md).
+
 > **Note:** The exact tool group breakdown may shift over time. Always defer to the headings within the specific `.md` files to see what groups are covered in that pass.
 
 ## Agent Execution Protocol
