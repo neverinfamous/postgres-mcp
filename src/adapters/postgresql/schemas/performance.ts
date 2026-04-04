@@ -78,43 +78,96 @@ export const ExplainSchema = z.preprocess(
 export const IndexStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
+  limit: z.number().optional().describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const IndexStatsSchema = z.preprocess(
   defaultToEmpty,
-  IndexStatsSchemaBase,
+  z.object({
+    table: z.string().optional(),
+    schema: z.string().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional())
+  }),
 );
 
 export const TableStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
+  limit: z.number().optional().describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const TableStatsSchema = z.preprocess(
   defaultToEmpty,
-  TableStatsSchemaBase,
+  z.object({
+    table: z.string().optional(),
+    schema: z.string().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional())
+  }),
 );
 
 export const VacuumStatsSchemaBase = z.object({
   schema: z.string().optional().describe("Schema to filter"),
   table: z.string().optional().describe("Table name to filter"),
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
+  limit: z.number().optional().describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const VacuumStatsSchema = z.preprocess(
   defaultToEmpty,
-  VacuumStatsSchemaBase,
+  z.object({
+    schema: z.string().optional(),
+    table: z.string().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional())
+  }),
+);
+
+export const StatStatementsSchemaBase = z.object({
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Max statements to return (default: 10, max: 50, use 0 for max 50)"),
+  orderBy: z.string().optional().describe("Sort order (default: total_time)"),
+  truncateQuery: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Max query length in chars (default: 100, use 0 for full text)"),
+});
+
+export const StatStatementsSchema = z.preprocess(
+  defaultToEmpty,
+  StatStatementsSchemaBase,
+);
+
+export const StatActivitySchemaBase = z.object({
+  includeIdle: z.boolean().optional().describe("Include idle connections (default: false)"),
+  truncateQuery: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Max query length in chars (default: 100, use 0 for full text)"),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Max connections to return (default: 100, use 0 for all)"),
+});
+
+export const StatActivitySchema = z.preprocess(
+  defaultToEmpty,
+  StatActivitySchemaBase,
+);
+
+export const QueryPlanStatsSchemaBase = z.object({
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Number of queries to return (default: 10, max: 50, use 0 for max 50)"),
+  truncateQuery: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Max query length in chars (default: 100, use 0 for full text)"),
+});
+
+export const QueryPlanStatsSchema = z.preprocess(
+  defaultToEmpty,
+  QueryPlanStatsSchemaBase,
 );
 
 // =============================================================================

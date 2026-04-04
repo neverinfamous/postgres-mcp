@@ -9,41 +9,26 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  StatStatementsSchemaBase,
+  StatStatementsSchema,
   StatStatementsOutputSchema,
+  StatActivitySchemaBase,
+  StatActivitySchema,
   StatActivityOutputSchema,
+  QueryPlanStatsSchemaBase,
+  QueryPlanStatsSchema,
   QueryPlanStatsOutputSchema,
 } from "../../schemas/index.js";
-import { defaultToEmpty, toNum, coerceNumber } from "./helpers.js";
+import { toNum } from "./helpers.js";
 import { ValidationError } from "../../../../types/errors.js";
 
 export function createStatStatementsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const StatStatementsSchemaBase = z.object({
-    limit: z.preprocess(
-      coerceNumber,
-      z.number().optional(),
-    ).describe("Max statements to return (default: 10, max: 50, use 0 for max 50)"),
-    orderBy: z
-      .string()
-      .optional()
-      .describe("Sort order (default: total_time)"),
-    truncateQuery: z.preprocess(
-      coerceNumber,
-      z.number().optional(),
-    ).describe("Max query length in chars (default: 100, use 0 for full text)"),
-  });
-
-  const StatStatementsSchema = z.preprocess(
-    defaultToEmpty,
-    StatStatementsSchemaBase,
-  );
-
   return {
     name: "pg_stat_statements",
     description:
@@ -130,23 +115,6 @@ export function createStatStatementsTool(
 export function createStatActivityTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const StatActivitySchemaBase = z.object({
-    includeIdle: z.boolean().optional().describe("Include idle connections (default: false)"),
-    truncateQuery: z.preprocess(
-      coerceNumber,
-      z.number().optional(),
-    ).describe("Max query length in chars (default: 100, use 0 for full text)"),
-    limit: z.preprocess(
-      coerceNumber,
-      z.number().optional(),
-    ).describe("Max connections to return (default: 100, use 0 for all)"),
-  });
-
-  const StatActivitySchema = z.preprocess(
-    defaultToEmpty,
-    StatActivitySchemaBase,
-  );
-
   return {
     name: "pg_stat_activity",
     description: "Get currently running queries and connections.",
@@ -221,24 +189,6 @@ export function createStatActivityTool(
 export function createQueryPlanStatsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const QueryPlanStatsSchemaBase = z.object({
-    limit: z.preprocess(
-      coerceNumber,
-      z.number().optional(),
-    ).describe("Number of queries to return (default: 10, max: 50, use 0 for max 50)"),
-    truncateQuery: z.preprocess(
-      coerceNumber,
-      z.number().optional(),
-    ).describe(
-      "Max query length in chars (default: 100, use 0 for full text)",
-    ),
-  });
-
-  const QueryPlanStatsSchema = z.preprocess(
-    defaultToEmpty,
-    QueryPlanStatsSchemaBase,
-  );
-
   return {
     name: "pg_query_plan_stats",
     description:

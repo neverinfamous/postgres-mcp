@@ -50,6 +50,12 @@ export {
   TableStatsSchema,
   VacuumStatsSchemaBase,
   VacuumStatsSchema,
+  StatStatementsSchemaBase,
+  StatStatementsSchema,
+  StatActivitySchemaBase,
+  StatActivitySchema,
+  QueryPlanStatsSchemaBase,
+  QueryPlanStatsSchema,
   // Output schemas
   ExplainOutputSchema,
   IndexStatsOutputSchema,
