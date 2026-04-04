@@ -25,9 +25,9 @@ import {
 // ─── pg_locks ────────────────────────────────────────────────────────────────
 
 const LocksSchemaBase = z.object({
-  showBlocked: z.unknown().optional().describe("Show only blocked queries (default: false)"),
+  showBlocked: z.union([z.boolean(), z.string()]).optional().describe("Show only blocked queries (default: false)"),
   limit: z
-    .any()
+    .union([z.number(), z.string()])
     .optional()
     .describe("Max locks to return (default: 100, use 0 for all)"),
 });

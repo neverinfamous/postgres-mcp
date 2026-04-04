@@ -25,15 +25,15 @@ export function createStatStatementsTool(
 ): ToolDefinition {
   const StatStatementsSchemaBase = z.object({
     limit: z
-      .any()
+      .union([z.number(), z.string()])
       .optional()
       .describe("Max statements to return (default: 20, max: 500, use 0 for max 500)"),
     orderBy: z
-      .unknown()
+      .string()
       .optional()
       .describe("Sort order (default: total_time)"),
     truncateQuery: z
-      .any()
+      .union([z.number(), z.string()])
       .optional()
       .describe("Max query length in chars (default: 100, use 0 for full text)"),
   });
@@ -137,13 +137,13 @@ export function createStatActivityTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const StatActivitySchemaBase = z.object({
-    includeIdle: z.unknown().optional(),
+    includeIdle: z.union([z.boolean(), z.string()]).optional().describe("Include idle connections (default: false)"),
     truncateQuery: z
-      .any()
+      .union([z.number(), z.string()])
       .optional()
       .describe("Max query length in chars (default: 100, use 0 for full text)"),
     limit: z
-      .any()
+      .union([z.number(), z.string()])
       .optional()
       .describe("Max connections to return (default: 100, use 0 for all)"),
   });
@@ -242,11 +242,11 @@ export function createQueryPlanStatsTool(
 ): ToolDefinition {
   const QueryPlanStatsSchemaBase = z.object({
     limit: z
-      .any()
+      .union([z.number(), z.string()])
       .optional()
       .describe("Number of queries to return (default: 20, use 0 for all)"),
     truncateQuery: z
-      .any()
+      .union([z.number(), z.string()])
       .optional()
       .describe(
         "Max query length in chars (default: 100, use 0 for full text)",
