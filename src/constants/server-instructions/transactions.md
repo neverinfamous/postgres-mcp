@@ -34,8 +34,8 @@ Core: `begin()`, `status()`, `commit()`, `rollback()`, `savepoint()`, `rollbackT
 
 **Response Structures:**
 
-- `begin`: `{transactionId, isolationLevel: 'READ COMMITTED', read_only, message}`
-- `status`: `{status: 'active'|'aborted'|'not_found', transactionId, active, message}`
+- `begin`: `{success, transactionId, isolationLevel: 'READ COMMITTED', read_only, message}`
+- `status`: `{success, status: 'active'|'aborted'|'not_found', transactionId, active, message}`
 - `commit/rollback`: `{success, transactionId, message}`
 - `savepoint/release/rollbackTo`: `{success, transactionId, savepoint, message}`
 - `execute`: `{success, statementsExecuted, results: [{sql, rowsAffected, rowCount, rows?}], transactionId?, autoRolledBack?}`
