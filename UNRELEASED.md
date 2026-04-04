@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected `pg_alert_threshold_set` parameter parsing to correctly ingest snake_case aliases.
 - Handled missing try/catch blocks within monitoring tools.
 - Bypassed Docker Hub rate-limit blocks by enforcing authenticated pulls in CI.
-- Added "is not a partition of relation" error pattern to `error-parser.ts` so `pg_detach_partition` or `pg_attach_partition` on a table that exists but is not a partition of the named parent returns a clear `VALIDATION_ERROR` instead of the confusing `TABLE_NOT_FOUND` "does not exist in schema" message.
+- Added `pg_inherits` membership check to `pg_detach_partition` handler: if a partition table exists in `pg_class` but is not a child of the named parent in `pg_inherits`, the handler now returns a clear `VALIDATION_ERROR` ("is not a partition of") instead of the misleading `TABLE_NOT_FOUND` previously caused by PG raising `42P01` during `ALTER TABLE DETACH PARTITION` catalog lookup. Also added supplementary `"is not a partition of relation"` pattern to `error-parser.ts` for any future paths that surface the raw PG message text.
 - Standardized all partitioning tool pre-check error messages to use P154-consistent double-quote formatting (e.g., `Table "schema.name" does not exist`) for consistency with `pg_list_partitions` and `pg_partition_info` — previously used single-quotes with inconsistent trailing periods.
 - Added `alreadyExists: boolean` field to `pg_create_partitioned_table` and `pg_create_partition` responses when `ifNotExists: true` is used, allowing callers to distinguish between a newly created table/partition and one that silently pre-existed.
 
