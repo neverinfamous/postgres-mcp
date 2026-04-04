@@ -35,7 +35,7 @@ if (!process.env.POSTGRES_CONNECTION_STRING && !process.env.DATABASE_URL) {
 // Section markers — substrings we check for presence/absence in instructions
 const SECTIONS = {
     CORE: '## Quick Access', // Always present
-    CODE_MODE: '## Code Mode', // codemode group only
+    CODE_MODE: 'API: `pg_group_action`', // codemode group only
     HELP_GROUPS: 'postgres://help/{group}', // standard+ level, with group list
     ACTIVE_TOOLS: '## Active Tools', // full level only
 }
