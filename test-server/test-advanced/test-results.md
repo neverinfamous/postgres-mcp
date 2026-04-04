@@ -36,3 +36,11 @@ Last tested: 4/3/2026
 | `test-tools-advanced-vector-part1.md` | ~3,930 | |
 | `test-tools-advanced-vector-part2.md` | ~1,039,366 | bloat from testing filters/limits/truncation |
 | **Total Estimated Tokens** | **~1,342,482** | |
+
+**Safe to test in pairs**
+jsonb + vector
+postgis + ltree
+pgcrypto + citext
+text + cron
+partman + partitioning
+stats + backup

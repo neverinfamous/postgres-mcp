@@ -33,3 +33,11 @@ Last tested: 4/3/2026
 | `test-tool-group-codemode-vector-part1.md` | ~3,630 | |
 | `test-tool-group-codemode-vector-part2.md` | ~8,473 | |
 | **Total Estimated Tokens** | **~1,645,679** | |
+
+**Safe to test in pairs**
+jsonb + vector
+postgis + ltree
+pgcrypto + citext
+text + cron
+partman + partitioning
+stats + backup
