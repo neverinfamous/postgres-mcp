@@ -8,31 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Added agent-optimized local `README.md` to `src/constants/server-instructions` as a guardrail for autonomous editors
-- Configured instruction generation script to actively ignore `README.md` to prevent help-route and bundle bloat
-- Added Code Mode cross-group integration gotchas to server instructions detailing limit overrides, native calculation mapping, and strict vector parameters.
-- Expanded server overview documentation to surface Code Mode JavaScript sandbox capabilities and uniformly map the 200+ specialized PostgreSQL tools.
-- Updated the critical `gotchas.md` with explicit tool limitations (e.g. tsvector bounds, jsonb type strictness, abandoned transactions parsing overrides) and documented generalized result array truncation defaults.
-- Completed production-readiness certification for the `monitoring` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `migration` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `ltree` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `introspection` tool group via rigorous Code Mode advanced stress testing
-- Certified 100% Code Mode parity for topological sorting, cascade simulation, schema snapshots, and migration risk analysis
-- Completed production-readiness certification for the `kcache` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `jsonb` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `partitioning` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `partman` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `citext` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `performance` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `pgcrypto` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `postgis` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `stats` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `schema` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `transactions` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `vector` tool group (Part 1 and Part 2) via rigorous Code Mode advanced stress testing
-- Validated P154-compliant structured error isolation handling across all `citext` operations
-- Confirmed Split Schema compliance and parameter alias mapping in `pg_citext_*` tools
-- Certified 100% Code Mode parity for citext comparison, candidate analysis, and column conversions
+- Agent-optimized local `README.md` to `src/constants/server-instructions` as a guardrail for autonomous editors.
+- Code Mode cross-group integration gotchas to server instructions detailing limit overrides, native calculation mapping, and strict vector parameters.
+- Server overview documentation covering Code Mode JavaScript sandbox capabilities and mapping of the 200+ specialized PostgreSQL tools.
+- Explicit tool limitations (e.g. tsvector bounds, jsonb type strictness, abandoned transactions parsing overrides) and generalized result array truncation defaults to `gotchas.md`.
 - Transport-agnostic Auth module supporting `SCOPE_PATTERNS`, `BASE_SCOPES`, and RFC 6750.
 - Audit subsystem with session token estimates, JSONL logging, redaction, and `pg_audit_*` tools.
 - Worker-thread Code Mode sandbox with resource limits and an RPC bridge.
@@ -53,7 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced npm package size by excluding test and source map artifacts.
 - Refactored Vitest test suite to use SWC compilation.
 - Refactored cross-tool validation helpers to throw standardized `ValidationError`s.
-- Updated `POSTGRES_MCP_INSTRUCTIONS` (`performance.md`, `postgis.md`, `jsonb.md`, `vector.md`) to reflect bounded limits, payload optimization, correct standalone geometry return schemas, precise in-memory tool boundaries, and explicitly missing tool documentation (e.g. `pg_vector_add_column`).
+- Updated `POSTGRES_MCP_INSTRUCTIONS` (`performance.md`, `postgis.md`, `jsonb.md`, `vector.md`) to reflect bounded limits, payload optimization, correct standalone geometry return schemas, precise in-memory tool boundaries, and explicitly missing tool documentation (e.g., `pg_vector_add_column`).
+- Configured instruction generation script to actively ignore `README.md` to prevent help-route and bundle bloat.
 - **Dependency Updates**: Updated `eslint`, `@types/node`, `@modelcontextprotocol/sdk`, `@playwright/test`, `typescript`, `typescript-eslint`, and patched `hono`.
 
 ### Removed
@@ -62,12 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate and stale validation logic across performance handlers.
 
 ### Fixed
-- Standardized P154 error structures (`success: false` paired with explicit `ValidationError`s) and pre-checks across 230+ tools.
+- Standardized P154 error structures (`success: false` with explicit `ValidationError`s) and pre-checks across all 230+ tools.
 - Normalized systemic anomalies into standard payloads (e.g., `42P01` "relation does not exist", `42501` auth bounds errors).
 - Validated standardized `success: true` responses across Performance, Transactions, and Stats groups.
-- Corrected `pg_hybrid_search` text parameter instructions in `vector.md` to accurately indicate the availability of the `query` field alias.
 - Resolved Split Schema Pattern violations in `pg_hybrid_search`, JSONB, Vector, Citext, and Performance by exposing base types.
 - Corrected missing schema/table existence validation warnings in `listFunctions`, `listTriggers`, and `listConstraints` instruction documentation.
+- Corrected `pg_hybrid_search` text parameter instructions in `vector.md` to accurately indicate the availability of the `query` field alias.
 - Fixed SQL `row_number`, `rank`, and `ntile` window functions to properly cast index results as integer/real values to prevent string leakage.
 - Fixed Split Schema Zod compliance in `stats` group base schemas (`coerceNumber` removal).
 - Fixed `pg_detect_bloat_risk` to return valid empty datasets instead of throwing when evaluating nonexistent schemas.
@@ -78,10 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handled Partman routines executing gracefully on missing child tables or lacking extensions.
 - Remediated cascade simulators incorrectly truncating self-referencing foreign keys.
 - Bypassed Docker Hub rate-limit blocks by enforcing explicit authenticated pulls in CI.
-- Certified Admin tools group Code Mode execution and error framework compliance.
-- Certified Backup tools group for full Code Mode audit interceptor compliance, structure integrity, and payload limiting.
-- Certified deep cross-group functional pipelines (Core → Vector → JSONB → Stats).
 - Handled missing try/catch blocks within monitoring data tools to conform with P154 error patterns.
+- Certified Code Mode execution compliance for deep cross-group functional pipelines (Core → Vector → JSONB → Stats).
 
 ### Security
 - Resolved prototype pollution vulnerabilities via `hono` and exact-version overrides.
