@@ -4,7 +4,7 @@ Last tested: April 4th, 2026
 
 | Test Document | Approximate Token Usage | Notes |
 | :--- | :--- | :--- |
-| `test-tool-group-codemode-admin.md` | ~1,098,369 | |
+| `test-tool-group-codemode-admin.md` | ~3,298 | |
 | `test-tool-group-codemode-backup.md` | ~7,665 | |
 | `test-tool-group-codemode-citext.md` | ~7,370 | |
 | `test-tool-group-codemode-core-part1.md` | ~3,489 | |
@@ -26,13 +26,13 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-postgis-part1.md` | ~5,974 | |
 | `test-tool-group-codemode-postgis-part2.md` | ~9,606 | |
 | `test-tool-group-codemode-schema.md` | ~12,790 | |
-| `test-tool-group-codemode-stats-part1.md` | ~57,469 | |
+| `test-tool-group-codemode-stats-part1.md` | ~13,706 | |
 | `test-tool-group-codemode-stats-part2.md` | ~9,082 | |
 | `test-tool-group-codemode-text.md` | ~6,042 | |
 | `test-tool-group-codemode-transactions.md` | ~2,893 | |
 | `test-tool-group-codemode-vector-part1.md` | ~3,630 | |
-| `test-tool-group-codemode-vector-part2.md` | ~8,473 | |
-| **Total Estimated Tokens** | **~1,645,679** | |
+| `test-tool-group-codemode-vector-part2.md` | ~6,931 | |
+| **Total Estimated Tokens** | **~429,805** | |
 
 **Safe to test in pairs**
 jsonb + vector

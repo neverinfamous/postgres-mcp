@@ -30,12 +30,12 @@ Last tested: April 4th, 2026
 | `test-tools-advanced-schema.md` | ~2,375 | |
 | `test-tools-advanced-stats.md` | ~1,985 | |
 | `test-tools-advanced-stats-part1.md` | ~6,549 | |
-| `test-tools-advanced-stats-part2.md` | ~26,248 | |
+| `test-tools-advanced-stats-part2.md` | ~14,558 | |
 | `test-tools-advanced-text.md` | ~2,256 | |
 | `test-tools-advanced-transactions.md` | ~5,328 | |
 | `test-tools-advanced-vector-part1.md` | ~3,930 | |
-| `test-tools-advanced-vector-part2.md` | ~1,039,366 | bloat from testing filters/limits/truncation |
-| **Total Estimated Tokens** | **~1,342,482** | |
+| `test-tools-advanced-vector-part2.md` | ~60,158 | |
+| **Total Estimated Tokens** | **~343,914** | |
 
 **Safe to test in pairs**
 jsonb + vector
