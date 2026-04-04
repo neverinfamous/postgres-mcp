@@ -33,7 +33,6 @@ Last tested: April 4th, 2026
 | `test-tools-advanced-stats-part2.md` | ~26,248 | |
 | `test-tools-advanced-text.md` | ~2,256 | |
 | `test-tools-advanced-transactions.md` | ~5,328 | |
-| `test-tools-advanced-transactions2.md` | ~23,944 | |
 | `test-tools-advanced-vector-part1.md` | ~3,930 | |
 | `test-tools-advanced-vector-part2.md` | ~1,039,366 | bloat from testing filters/limits/truncation |
 | **Total Estimated Tokens** | **~1,342,482** | |

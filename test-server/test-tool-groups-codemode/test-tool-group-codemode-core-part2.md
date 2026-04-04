@@ -1,4 +1,4 @@
-# postgres-mcp Tool Group Re-Testing: [core] (Part 2)
+# postgres-mcp codemode Re-Testing: [core] (Part 2)
 
 > **NOTICE**: This file has been split to optimize token footprint. This is Part 2.
 

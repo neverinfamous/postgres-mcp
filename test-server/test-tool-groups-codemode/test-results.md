@@ -29,7 +29,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-stats-part1.md` | ~57,469 | |
 | `test-tool-group-codemode-stats-part2.md` | ~9,082 | |
 | `test-tool-group-codemode-text.md` | ~6,042 | |
-| `test-tool-group-codemode-transactions.md` | ~2,922 | |
+| `test-tool-group-codemode-transactions.md` | ~2,893 | |
 | `test-tool-group-codemode-vector-part1.md` | ~3,630 | |
 | `test-tool-group-codemode-vector-part2.md` | ~8,473 | |
 | **Total Estimated Tokens** | **~1,645,679** | |
