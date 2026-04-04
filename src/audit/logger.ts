@@ -37,7 +37,7 @@ export class AuditLogger {
 
   private buffer: string[] = [];
   private flushTimer: ReturnType<typeof setInterval> | null = null;
-  private flushing = false;
+  private activeFlush: Promise<void> | null = null;
   private closed = false;
   private dirEnsured = false;
   private readonly stderrMode: boolean;
@@ -74,36 +74,49 @@ export class AuditLogger {
 
   /**
    * Flush the buffer to disk.
-   * Safe to call concurrently — serialises via `this.flushing` flag.
+   * Safe to call concurrently — serialises via `this.activeFlush` Promise.
    */
   async flush(): Promise<void> {
-    if (this.flushing || this.buffer.length === 0) return;
-    this.flushing = true;
+    // If a flush is currently running, wait for it to finish
+    if (this.activeFlush) {
+      await this.activeFlush;
+      // If the buffer is empty after waiting, return
+      if (this.buffer.length === 0) return;
+    }
+    
+    if (this.buffer.length === 0) return;
 
-    // Rotate before writing if the log exceeds the configured size
-    await this.rotateIfNeeded();
+    const doFlush = async (): Promise<void> => {
+      // Rotate before writing if the log exceeds the configured size
+      await this.rotateIfNeeded();
 
-    // Swap the buffer so new entries can accumulate while we write
-    const lines = this.buffer;
-    this.buffer = [];
+      // Swap the buffer so new entries can accumulate while we write
+      const lines = this.buffer;
+      this.buffer = [];
 
-    try {
-      if (this.stderrMode) {
-        // Stderr mode: write directly, no buffering to disk
-        process.stderr.write(lines.join("\n") + "\n");
-      } else {
-        await this.ensureDirectory();
-        // One appendFile call with all buffered lines — each terminated by \n
-        await appendFile(this.config.logPath, lines.join("\n") + "\n", "utf-8");
+      try {
+        if (this.stderrMode) {
+          // Stderr mode: write directly, no buffering to disk
+          process.stderr.write(lines.join("\n") + "\n");
+        } else {
+          await this.ensureDirectory();
+          // One appendFile call with all buffered lines — each terminated by \n
+          await appendFile(this.config.logPath, lines.join("\n") + "\n", "utf-8");
+        }
+      } catch (err) {
+        // Never throw — audit must not break tool execution
+        const message = err instanceof Error ? err.message : String(err);
+        process.stderr.write(`[AUDIT] Write failed: ${message}\n`);
+        // Re-queue the failed lines so they aren't lost
+        this.buffer.unshift(...lines);
       }
-    } catch (err) {
-      // Never throw — audit must not break tool execution
-      const message = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`[AUDIT] Write failed: ${message}\n`);
-      // Re-queue the failed lines so they aren't lost
-      this.buffer.unshift(...lines);
+    };
+
+    this.activeFlush = doFlush();
+    try {
+      await this.activeFlush;
     } finally {
-      this.flushing = false;
+      this.activeFlush = null;
     }
   }
 
