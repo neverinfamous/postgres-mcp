@@ -90,7 +90,7 @@ const toNum = (val: unknown): number =>
 async function diagnoseSlowQueries(
   adapter: PostgresAdapter,
 ): Promise<
-  SectionResult<{ slowQueries: Record<string, unknown>[]; count: number }>
+  SectionResult<{ slowQueries?: Record<string, unknown>[]; count: number }>
 > {
   const result = await adapter.executeQuery(`
     SELECT pid, usename, datname, state,
@@ -122,13 +122,13 @@ async function diagnoseSlowQueries(
 
   const status = rateValue(count, 2, 5, false);
 
-  return { status, data: { slowQueries: queries, count }, recommendations };
+  return { status, data: count > 0 ? { slowQueries: queries, count } : { count }, recommendations };
 }
 
 async function diagnoseBlockingLocks(
   adapter: PostgresAdapter,
 ): Promise<
-  SectionResult<{ blockedQueries: Record<string, unknown>[]; count: number }>
+  SectionResult<{ blockedQueries?: Record<string, unknown>[]; count: number }>
 > {
   const result = await adapter.executeQuery(`
     SELECT
@@ -164,7 +164,7 @@ async function diagnoseBlockingLocks(
 
   const status = rateValue(count, 0, 2, false);
 
-  return { status, data: { blockedQueries: blocked, count }, recommendations };
+  return { status, data: count > 0 ? { blockedQueries: blocked, count } : { count }, recommendations };
 }
 
 async function diagnoseConnectionPressure(adapter: PostgresAdapter): Promise<

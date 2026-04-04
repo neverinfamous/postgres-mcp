@@ -28,7 +28,7 @@ export function createStatStatementsTool(
     limit: z
       .number()
       .optional()
-      .describe("Max statements to return (default: 10, max: 100, use 0 for max 100)"),
+      .describe("Max statements to return (default: 10, max: 50, use 0 for max 50)"),
     orderBy: z
       .string()
       .optional()
@@ -58,8 +58,8 @@ export function createStatStatementsTool(
         const parsed = StatStatementsSchema.parse(params);
         const rawLimit = parsed.limit;
         const userLimit = rawLimit === undefined ? 10 : rawLimit === 0 ? null : rawLimit;
-        // Cap at 100 to prevent payload blowout from large pg_stat_statements tables
-        const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
+        // Cap at 50 to prevent payload blowout from large pg_stat_statements tables
+        const limit = userLimit === null ? 50 : Math.min(userLimit, 50);
         const rawOrderBy: unknown = parsed.orderBy;
         let orderBy = "total_time";
         if (typeof rawOrderBy === "string" && rawOrderBy !== "") {
@@ -225,7 +225,7 @@ export function createQueryPlanStatsTool(
     limit: z
       .number()
       .optional()
-      .describe("Number of queries to return (default: 10, max: 100, use 0 for max 100)"),
+      .describe("Number of queries to return (default: 10, max: 50, use 0 for max 50)"),
     truncateQuery: z
       .number()
       .optional()
@@ -253,8 +253,8 @@ export function createQueryPlanStatsTool(
         const parsed = QueryPlanStatsSchema.parse(params);
         const rawLimit = parsed.limit;
         const userLimit = rawLimit === undefined ? 10 : rawLimit === 0 ? null : rawLimit;
-        // Cap at 100 to match pg_stat_statements payload safety
-        const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
+        // Cap at 50 to match pg_stat_statements payload safety
+        const limit = userLimit === null ? 50 : Math.min(userLimit, 50);
         const rawTruncate = parsed.truncateQuery;
         const truncateLen = rawTruncate === undefined ? 100 : rawTruncate === 0 ? null : rawTruncate;
 

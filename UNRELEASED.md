@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bounded limit definitions natively for `pg_locks` and `pg_stat_activity` to firmly cap max output rows at 100, preventing token extraction payloads from scaling unbounded.
 - Fixed Zod schema strictness for `limit` and `undefined` payload parameters across Performance tools (`pg_unused_indexes`, `pg_duplicate_indexes`, `pg_explain_buffers`) to strictly adhere to P154 validation standards.
 - Updated `pg_diagnose_database_performance` to surface Zod validation errors cleanly using `ValidationError` instead of incomplete error payload objects.
+- Fixed massive payload blowout in `pg_stat_statements` and `pg_query_plan_stats` by capping maximum limits at 50 instead of 100, and optimized `pg_diagnose_database_performance` to omit empty structural array sections (e.g. slowQueries) to significantly reduce output token count.
 - Fixed factual inaccuracies in `performance.md` concerning `detectBloatRisk` schema error handling and expanded parameter signature documentation for `indexRecommendations` and `unusedIndexes`.
 - Transaction tools: Fixed `isolation_level` alias mapping and improved transaction error hints.
 - Fixed numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).

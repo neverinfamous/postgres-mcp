@@ -19,9 +19,9 @@ Aliases: `cacheStats`→`cacheHitRatio`, `queryStats`→`statStatements`, `activ
 - `indexStats({ table?, schema?, limit? })`: Default 20 rows, **max 100**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 100-row cap
 - `tableStats({ table?, schema?, limit? })`: Default 20 rows, **max 100**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 100-row cap
 - `vacuumStats({ limit? })`: Default 10 rows, **max 100**. Same truncation indicators. `limit: 0` returns up to the 100-row cap
-- `statStatements({ limit?, orderBy? })`: Default 20 rows, **max 100**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 100-row cap. Invalid `orderBy` values return a structured validation error
+- `statStatements({ limit?, orderBy? })`: Default 20 rows, **max 50**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 50-row cap. Invalid `orderBy` values return a structured validation error
 - `unusedIndexes({ schema?, minSize?, limit?, summary? })`: Default 20 rows. Use `summary: true` for aggregated stats by schema
-- `queryPlanStats({ limit?, truncateQuery? })`: Default 10 rows, **max 100**, queries truncated to 100 chars. Use `truncateQuery: 0` for full text
+- `queryPlanStats({ limit?, truncateQuery? })`: Default 10 rows, **max 50**, queries truncated to 100 chars. Use `truncateQuery: 0` for full text
 - `seqScanTables({ minScans?, schema?, limit? })`: Default `minScans: 10`, `limit: 20`, **max 100**. Use `minScans: 0` for all tables. `limit: 0` returns up to the 100-row cap. Returns `truncated: true` + `totalCount` when limited
 - `locks({ showBlocked?, limit? })`: Default 100 rows, **max 100**. Returns `count` + `truncated`. `limit: 0` returns up to the 100-row cap. `showBlocked: true` returns blocking/blocked query pairs instead of the full lock list
 - `statActivity({ includeIdle?, limit?, truncateQuery? })`: Default 100 connections (excludes idle), **max 100**, queries truncated to 100 chars. Returns `count`, `truncated`, and `backgroundWorkers`. `limit: 0` returns up to the 100-row cap; `includeIdle: true` to include idle connections
