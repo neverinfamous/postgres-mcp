@@ -30,8 +30,8 @@ Last tested: April 4th, 2026
 | `test-tool-group-stats-part2.md` | ~9,835 | |
 | `test-tool-group-text.md` | ~5,377 | |
 | `test-tool-group-transactions.md` | ~3,240 | |
-| `test-tool-group-vector-part1.md` | ~4,613 | |
-| `test-tool-group-vector-part2.md` | ~ | |
+| `test-tool-group-vector-part1.md` | ~2,678 | |
+| `test-tool-group-vector-part2.md` | ~6,552| |
 | **Total Estimated Tokens** | **~** | |
 
 **Safe to test in pairs**

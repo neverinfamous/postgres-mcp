@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing — postgres-mcp — cross-group Integration
+# postgres-mcp codemode Re-Testing — postgres-mcp — cross-group Integration
 
 **ESSENTIAL INSTRUCTIONS**
 

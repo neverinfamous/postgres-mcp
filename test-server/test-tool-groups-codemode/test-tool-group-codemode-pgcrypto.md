@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing: [pgcrypto]
+# postgres-mcp codemode Re-Testing: [pgcrypto]
 
 **ESSENTIAL INSTRUCTIONS**
 

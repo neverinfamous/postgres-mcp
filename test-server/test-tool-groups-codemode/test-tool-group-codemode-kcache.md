@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing: [kcache]
+# postgres-mcp codemode Re-Testing: [kcache]
 
 **ESSENTIAL INSTRUCTIONS**
 

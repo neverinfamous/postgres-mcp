@@ -1,4 +1,4 @@
-# postgres-mcp Tool Group Re-Testing: [stats] (Part 1)
+# postgres-mcp codemode Re-Testing: [stats] (Part 1)
 
 **ESSENTIAL INSTRUCTIONS**
 

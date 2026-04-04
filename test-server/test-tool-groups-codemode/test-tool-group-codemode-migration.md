@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing: [migration]
+# postgres-mcp codemode Re-Testing: [migration]
 
 **ESSENTIAL INSTRUCTIONS**
 

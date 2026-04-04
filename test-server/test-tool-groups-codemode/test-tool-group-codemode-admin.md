@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing: [admin]
+# postgres-mcp codemode Re-Testing: [admin]
 
 **ESSENTIAL INSTRUCTIONS**
 

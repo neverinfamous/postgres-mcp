@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing: [ltree]
+# postgres-mcp codemode Re-Testing: [ltree]
 
 **ESSENTIAL INSTRUCTIONS**
 

@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing: [transactions]
+# postgres-mcp codemode Re-Testing: [transactions]
 
 **ESSENTIAL INSTRUCTIONS**
 

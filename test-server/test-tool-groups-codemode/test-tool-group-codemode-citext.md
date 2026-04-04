@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing: [citext]
+# postgres-mcp codemode Re-Testing: [citext]
 
 **ESSENTIAL INSTRUCTIONS**
 

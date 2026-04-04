@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing: [cron]
+# postgres-mcp codemode Re-Testing: [cron]
 
 **ESSENTIAL INSTRUCTIONS**
 

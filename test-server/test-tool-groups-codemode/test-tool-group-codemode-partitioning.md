@@ -1,4 +1,4 @@
-# postgres-mcp Codemode Re-Testing: [partitioning]
+# postgres-mcp codemode Re-Testing: [partitioning]
 
 **ESSENTIAL INSTRUCTIONS**
 

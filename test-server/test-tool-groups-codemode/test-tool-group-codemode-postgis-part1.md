@@ -1,4 +1,4 @@
-# postgres-mcp Tool Group Re-Testing: [postgis] (Part 1)
+# postgres-mcp codemode Re-Testing: [postgis] (Part 1)
 
 **ESSENTIAL INSTRUCTIONS**
 
