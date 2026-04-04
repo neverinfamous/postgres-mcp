@@ -221,8 +221,8 @@ Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unsched
 - \`pg_cron_schedule_in_database\`: Schedule job in specific database. \`database\`/\`db\` aliases. Optional \`username\`, \`active\` params
 - \`pg_cron_unschedule\`: Remove job by \`jobId\` or \`jobName\`. Inactive job failures are handled via \`jobId\` fallback lookups. If both provided, \`jobName\` takes precedence (with warning)
 - \`pg_cron_alter_job\`: Modify existing job. Can change \`schedule\`, \`command\`, \`database\`, \`username\`, \`active\`. ⛔ Non-existent jobId returns error
-- \`pg_cron_list_jobs\`: List all jobs. Default \`limit: 50\` (use \`0\` for all). Optional \`active\` boolean filter. Returns \`truncated\` + \`totalCount\` when limited. Returns \`hint\` when jobs have no name. Supports \`compact\` mode (default: \`true\`) to structurally omit empty arrays
-- \`pg_cron_job_run_details\`: View execution history. Default \`limit: 50\`. Optional \`jobId\`, \`status\` ('running'|'succeeded'|'failed') filters. Returns \`truncated\` + \`totalCount\` when limited. Returns \`summary\` with counts. Supports \`compact\` mode (default: \`true\`) to structurally omit empty arrays
+- \`pg_cron_list_jobs\`: List all jobs. Default \`limit: 50\` (use \`0\` for all). Optional \`active\` boolean filter. Returns \`truncated\` + \`totalCount\` when limited. Returns \`hint\` when jobs have no name. Supports \`compact\` mode (default: \`true\`) to truncate long text fields like command
+- \`pg_cron_job_run_details\`: View execution history. Default \`limit: 10\`. Optional \`jobId\`, \`status\` ('running'|'succeeded'|'failed') filters. Returns \`truncated\` + \`totalCount\` when limited. Returns \`summary\` with counts. Supports \`compact\` mode (default: \`true\`) to truncate long text fields like command and return_message
 - \`pg_cron_cleanup_history\`: Delete old run records. \`olderThanDays\`/\`days\` param (default: 7). Optional \`jobId\` to target specific job
 - \`pg_cron_create_extension\`: Enable pg_cron extension (idempotent). Requires superuser
 
