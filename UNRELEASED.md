@@ -69,7 +69,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Replaced silent return clamping in connection analysis and anomaly detection with explicit validation errors
 - Mapped Postgres authorization bounds error (`42501`) gracefully to structured error payloads
 - Re-seeded missing `test_locations.location` column setups in database teardown tests to fix cascade side-effects
-
+- Certified deep cross-group pipelines (Core → Vector → JSONB → Stats) functionally and validated bounded context limits dynamically via Code Mode sandboxes
 ### Security
 - Resolved Dependabot prototype pollution alerts via `hono` exact-version override bump
 - Replaced raw Postgres exceptions with explicit `PostgresMcpError` classes to prevent SQL syntax leaks
