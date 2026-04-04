@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Centralized default connection pool timeout to 30,000ms.
 - Reduced npm package size by excluding test and source map artifacts.
 - Switched to SWC compilation for Vitest.
-- Updated dependencies including `hono` and security patches.
+- Updated dependencies including security patches for `hono`.
 
 ### Removed
 - Obsolete `META_GROUPS` shortcut bundles.
@@ -36,21 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Standardized P154 error structures and double-quote formatting across all 230+ tools.
-- Resolved Split Schema Pattern violations in Search, JSONB, Vector, Stats, and Performance groups.
-- Partitioning tools: Fixed `pg_detach_partition` membership checks, added `ifNotExists` parameters, and implemented pagination/limits.
-- Performance tools: Fixed `pg_detect_bloat_risk` filter behavior and added strict constraint parsing to `pg_stat_statements`.
-- Transaction tools: Fixed `isolation_level` alias mapping and improved `TransactionError` hints.
-- Numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).
+- Resolved Split Schema Pattern violations across Search, JSONB, Vector, Stats, and Performance groups.
+- Improved `pg_stat_statements` and `pg_cache_hit_ratio` reliability: fixed output schema validation, aligned error reporting with P154 standards, and ensured consistent pagination metadata.
+- Partitioning tools: Fixed membership checks, added `ifNotExists` parameters, and implemented pagination limits.
+- Transaction tools: Fixed `isolation_level` alias mapping and improved transaction error hints.
+- Fixed numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).
 - Improved resilience in Admin and Monitoring tools when handling missing tables or extensions.
 - Corrected progress logging timing and migration rollback behavior.
 - Fixed cascade simulators for self-referencing foreign keys.
 - Standardized snake_case alias parsing for alert thresholds.
 - Bypassed Docker Hub rate-limit blocks in CI using authenticated pulls.
-- **`pg_cache_hit_ratio` strict schema** — Changed `inputSchema: z.object({}).strict()` to `z.object({})` to prevent raw MCP `-32602` rejection when clients pass extra unknown params to a no-param tool.
-- **`pg_stat_statements` limit description** — Fixed tool parameter `describe()` string advertising "max: 500" when the actual enforcement cap is 100 (aligned with payload safety standards).
-- **`pg_stat_statements` invalid `orderBy` error** — Replaced ad-hoc `return {success:false, error:"..."}` with `throw new ValidationError(...)` so the outer `catch` routes through `formatHandlerErrorResponse`, ensuring the error response includes `code`, `category`, and `recoverable` fields, consistent with all other performance handlers.
-- **`StatStatementsOutputSchema` field spread bug** — Replaced `...PaginatedBase` spread (a plain JS object) inside `z.object({...})` with explicit field definitions. The spread caused Zod v4 + MCP SDK outputSchema validation to strip `code`, `category`, and `recoverable` from error responses, leaving only `success` and `error`. All other output schemas already used explicit fields.
-- **`pg_stat_statements` missing `truncated`/`totalCount`** — Handler now always sets `truncated: false` and `totalCount: statements.length` when results are not truncated. Previously these fields were omitted when fewer results than the limit were returned, creating an inconsistent response shape vs `pg_table_stats` and `pg_index_stats`.
 
 ### Security
 - Patched prototype pollution vulnerabilities in `hono`.
