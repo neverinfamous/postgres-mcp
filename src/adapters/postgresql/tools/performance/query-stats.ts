@@ -165,7 +165,8 @@ export function createStatActivityTool(
         const truncateLen = rawTruncate === undefined ? 100 : rawTruncate === 0 ? null : rawTruncate;
 
         const rawLimit = parsed.limit;
-        const limit = rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
+        const userLimit = rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
+        const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
 
         const sql = `SELECT pid, usename, datname, client_addr, state,
                         query_start, state_change,

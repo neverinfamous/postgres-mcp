@@ -49,7 +49,8 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
 
         const showBlocked = parsed.showBlocked === true;
         const rawLimit = parsed.limit;
-        const limit = rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
+        const userLimit = rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
+        const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
 
         let sql: string;
         if (showBlocked) {
