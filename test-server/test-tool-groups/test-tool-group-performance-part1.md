@@ -1,7 +1,5 @@
 # postgres-mcp Tool Group Re-Testing: [performance] (Part 1)
 
-> **NOTICE**: This file has been split to optimize token footprint. This is Part 1.
-
 **ESSENTIAL INSTRUCTIONS**
 
 - Execute **EVERY** numbered stress test below using direct MCP tool calls, **NOT** codemode.
@@ -279,16 +277,3 @@ performance Tool Group (24 tools +1 code mode)
 50. 🔴 `pg_stat_statements({})` → verify structured P154 error response or valid defaults
 51. `pg_stat_activity()` → verify happy path expected behavior
 52. 🔴 `pg_stat_activity({})` → verify structured P154 error response or valid defaults
-
-## Strict Coverage Matrix
-
-| Tool | Happy Path (Direct) | Domain Error (Direct) | Zod Empty Param (Direct) | Alias/Type Error (Direct) |
-|------|----------------------|-----------------------|--------------------------|---------------------------|
-| `pg_explain` | ✅ | ✅ | ✅ | ✅ |
-| `pg_explain_analyze` | ✅ | ✅ | ✅ | ✅ |
-| `pg_explain_buffers` | ✅ | ✅ | ✅ | ✅ |
-| `pg_index_stats` | ✅ | ✅ | ✅ | N/A |
-| `pg_table_stats` | ✅ | ✅ | ✅ | ✅ |
-| `pg_stat_statements` | ✅ | ✅ | ✅ | ✅ |
-| `pg_stat_activity` | ✅ | N/A | ✅ | ✅ |
-| `pg_locks` | ✅ | N/A | ✅ | ✅ |

@@ -1,7 +1,5 @@
 # postgres-mcp Tool Group Re-Testing: [core] (Part 2)
 
-> **NOTICE**: This file has been split to optimize token footprint. This is Part 2.
-
 **ESSENTIAL INSTRUCTIONS**
 
 - Execute **EVERY** numbered stress test below using direct MCP tool calls, **NOT** codemode.
