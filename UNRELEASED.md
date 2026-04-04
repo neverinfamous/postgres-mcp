@@ -8,12 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Completed production-readiness certification for the `introspection` tool group via rigorous Code Mode advanced stress testing
+- Certified 100% Code Mode parity for topological sorting, cascade simulation, schema snapshots, and migration risk analysis
 - Completed production-readiness certification for the `citext` tool group via rigorous Code Mode advanced stress testing
 - Validated P154-compliant structured error isolation handling across all `citext` operations
 - Confirmed Split Schema compliance and parameter alias mapping in `pg_citext_*` tools
 - Certified 100% Code Mode parity for citext comparison, candidate analysis, and column conversions
-
-### Added
 - Transport-agnostic Auth module supporting `SCOPE_PATTERNS`, `BASE_SCOPES`, and RFC 6750.
 - Audit subsystem with session token estimates, JSONL logging, redaction, and `pg_audit_*` tools.
 - Worker-thread Code Mode sandbox with resource limits and an RPC bridge.
