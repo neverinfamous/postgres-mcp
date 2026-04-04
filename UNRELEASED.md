@@ -37,10 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate and stale validation logic across performance handlers.
 
 ### Fixed
-- Completed production-readiness certification across Core, Monitoring, Performance, Stats, Vector, Transactions, Text, and Admin tool groups (verified explicit payload boundaries, Zod compliance, and Code Mode execution).
+- Completed production-readiness certification across Core, Monitoring, Performance, Stats, Vector, Transactions, Text, Admin, and Backup tool groups (verified explicit payload boundaries, Zod compliance, and Code Mode execution).
 - Standardized P154 error structures (`success: false` with explicit `ValidationError`s) across all 230+ tools.
 - Normalized systemic anomalies into standard payloads (e.g., `42P01` "relation does not exist", `42501` auth bounds errors) preventing unformatted ad-hoc messages.
-- Corrected `admin.md` output schemas to properly reflect P154 handler fields, `reindex` metadata constraints, and split schema alias mappings.
+- Corrected `admin.md` and `backup.md` output schemas to properly reflect P154 handler fields, correct array wrappers (`snapshots`), and split schema alias mappings.
 - Resolved Split Schema Pattern violations across `pg_hybrid_search`, JSONB, Vector, Citext, Performance, and Stats groups by exposing base types.
 - Fixed SQL window functions (`row_number`, `rank`, `ntile`) properly casting index results as numeric values to prevent string leakage.
 - Handled missing schema validation dynamically (e.g., `pg_detect_bloat_risk` returning empty datasets instead of throwing).

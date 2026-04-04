@@ -5,7 +5,7 @@ Last tested: April 4th, 2026
 | Test Document | Approximate Token Usage | Notes |
 | :--- | :--- | :--- |
 | `test-tool-group-admin.md` | ~3,405 | |
-| `test-tool-group-backup.md` | ~ | |
+| `test-tool-group-backup.md` | ~6,132 | |
 | `test-tool-group-citext.md` | ~ | |
 | `test-tool-group-core-part1.md` | ~7,737 | |
 | `test-tool-group-core-part2.md` | ~4,322 | |
