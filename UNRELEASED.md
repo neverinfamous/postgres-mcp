@@ -11,60 +11,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Worker-thread Code Mode sandbox with resource limits, RPC bridge, and configurable timeouts (`MCP_REQUEST_TIMEOUT`, `MCP_HEADERS_TIMEOUT`).
 - Transport-agnostic Auth module supporting `SCOPE_PATTERNS`, `BASE_SCOPES`, and RFC 6750.
 - Audit subsystem with session token estimates, JSONL logging, redaction, and `pg_audit_*` tools.
-- 13 new statistics and admin tools including `pg_stats_row_number`, `pg_stats_outliers`, and `pg_append_insight`.
+- 13 new statistics and admin tools including `pg_stats_outliers` and `pg_append_insight`.
 - `pg_jsonb_pretty` tool for JSON formatting.
 - 22 group-specific help resources accessible via `postgres://help`.
 - Playwright E2E test coverage for Code Mode, authentication, and backups.
-- Parameter extensions and aliases across core tools to improve query flexibility (e.g., `toType`, `name`/`indexName`, `read_only`).
-- Extensive documentation including an agent-optimized `README.md`, server overview, and Code Mode cross-group integration gotchas.
+- Parameter extensions and aliases across core tools (e.g., `toType`, `indexName`, `read_only`).
+- Agent-optimized documentation and Code Mode integration guides.
 
 ### Changed
-- **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`.
+- **BREAKING**: Core write tools require `write` scope; destructive tools require `admin`.
 - Modularized source files applying strict kebab-case convention.
-- Optimized token payload sizes (~30–41% reduction) via compact toggles, array collapsing, and bounds limits on high-chatter tools.
-- Applied a 500-item hardcap payload threshold to `pg_table_stats`, `pg_index_stats`, and `pg_vacuum_stats`.
+- Optimized token payload sizes (~30–41% reduction) via compact toggles and array collapsing.
+- Applied 500-item hardcap payload thresholds to high-chatter stats and vacuum tools.
 - Applied `openWorldHint: false` to all tools.
 - Centralized default connection pool timeout to 30,000ms.
 - Reduced npm package size by excluding test and source map artifacts.
 - Refactored cross-tool validation helpers to throw standardized `ValidationError`s.
-- Updated `POSTGRES_MCP_INSTRUCTIONS` references to reflect bounded limits, payload optimization, and correct geometry return schemas.
 - Switched to SWC compilation for Vitest test suite.
-- Updated dependencies (`eslint`, `@types/node`, `@modelcontextprotocol/sdk`, `@playwright/test`, `typescript`, `typescript-eslint`) and patched `hono`.
+- Updated dependencies and patched `hono` vulnerabilities.
 
 ### Removed
-- Obsolete shortcut action bundles (`META_GROUPS`).
+- Obsolete `META_GROUPS` shortcut bundles.
 - Unused `hono` router dependency.
-- Duplicate and stale validation logic across performance handlers.
+- Duplicate validation logic across performance handlers.
 
 ### Fixed
-- Completed production-readiness certification across Core, Monitoring, Performance, Stats, Vector, Transactions, Text, Admin, Backup, Citext, Cron, Introspection, kcache, JSONB, ltree, Migration, Partitioning, Partman, pgcrypto, and Schema tool groups (verified explicit payload boundaries, Zod compliance, and Code Mode execution).
-- Corrected misleading `suggestion` returned in `TransactionError` when a provided transaction ID is not found.
-- Added truncation (`limit`) handling to `pg_partition_info` to prevent extreme payloads on heavily partitioned tables.
-- Fixed Zod validation leak for `subpartitionBy` enum and `partitionBy` schema bypass in partitioning tools.
-- Fixed string prototype crash (`includes is not a function`) in partitioning alias preprocessing by ensuring strict `typeof` validation on structural inputs.
-- Fixed missing `success: true` flag in `pg_list_partitions` and `pg_partition_info` responses to ensure P154 compliance.
-- Added `ifNotExists: true` parameter support to `pg_create_partitioned_table` and `pg_create_partition` tools, resolving error parser inconsistency.
-- Fixed missing `ErrorResponseFields` extensions across partitioning tool output schemas to accurately advertise P154 parameters.
-- Standardized P154 error structures (`success: false` with explicit `ValidationError`s) across all 230+ tools.
-- Normalized systemic anomalies into standard payloads (e.g., `42P01` "relation does not exist", `42501` auth bounds errors) preventing unformatted ad-hoc messages.
-- Corrected `admin.md`, `backup.md`, `citext.md`, `jsonb.md`, `schema.md`, and `partitioning.md` output schemas and technical instructions to properly reflect P154 handler fields, correct array wrappers (`snapshots`), default pagination limits, split schema alias mappings, and conditional parameter support (`ifNotExists`).
-- Resolved Split Schema Pattern violations across `pg_hybrid_search`, JSONB, Vector, Citext, Performance, and Stats groups by exposing base types.
-- Fixed SQL window functions (`row_number`, `rank`, `ntile`) properly casting index results as numeric values to prevent string leakage.
-- Handled missing schema validation dynamically (e.g., `pg_detect_bloat_risk` returning empty datasets instead of throwing).
-- Resolved Code Mode validation bypassing for alias/readonly parameters and native translation (`activeConnections`, `systemHealth`).
-- Corrected migration rollback behavior to prevent unmanaged auto-commits.
-- Fixed timing defects in admin tools that logged progress before failing validation.
-- Handled Partman routines executing gracefully on missing child tables or extensions.
+- Standardized P154 error structures (`success: false` + explicit `ValidationError`) across all 230+ tools.
+- Corrected behavioral inconsistencies in Partitioning tools:
+  - Added `pg_inherits` membership checks to `pg_detach_partition` to prevent misleading `TABLE_NOT_FOUND` errors.
+  - Added `ifNotExists` parameter and `alreadyExists` response field to partition creation tools.
+  - Fixed Zod validation leaks and structural input type validation for aliases.
+  - Normalized error messages to use P154-consistent double-quote formatting.
+  - Implemented pagination/limits to prevent extreme payloads on heavily partitioned tables.
+- Resolved Split Schema Pattern violations in Search, JSONB, Vector, and Stats groups.
+- Corrected misleading suggestions in `TransactionError` for missing transaction IDs.
+- Fixed numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).
+- Improved resilience in Admin and Monitoring tools (e.g., handling missing target tables or extensions gracefully).
+- Fixed timing defects in progress logging and corrected migration rollback behavior.
 - Remediated cascade simulators incorrectly truncating self-referencing foreign keys.
-- Corrected `pg_alert_threshold_set` parameter parsing to correctly ingest snake_case aliases.
-- Handled missing try/catch blocks within monitoring tools.
+- Standardized snake_case alias parsing for alert threshold settings.
+- Updated technical instructions and output schemas across all groups to reflect pagination boundaries and alias mappings.
 - Bypassed Docker Hub rate-limit blocks by enforcing authenticated pulls in CI.
-- Added `pg_inherits` membership check to `pg_detach_partition` handler: if a partition table exists in `pg_class` but is not a child of the named parent in `pg_inherits`, the handler now returns a clear `VALIDATION_ERROR` ("is not a partition of") instead of the misleading `TABLE_NOT_FOUND` previously caused by PG raising `42P01` during `ALTER TABLE DETACH PARTITION` catalog lookup. Also added supplementary `"is not a partition of relation"` pattern to `error-parser.ts` for any future paths that surface the raw PG message text.
-- Standardized all partitioning tool pre-check error messages to use P154-consistent double-quote formatting (e.g., `Table "schema.name" does not exist`) for consistency with `pg_list_partitions` and `pg_partition_info` — previously used single-quotes with inconsistent trailing periods.
-- Added `alreadyExists: boolean` field to `pg_create_partitioned_table` and `pg_create_partition` responses when `ifNotExists: true` is used, allowing callers to distinguish between a newly created table/partition and one that silently pre-existed.
 
 ### Security
 - Resolved prototype pollution vulnerabilities via `hono` and exact-version overrides.
-- Replaced raw Postgres exceptions with `PostgresMcpError` classes globally to prevent SQL syntax leaks.
-- Enforced SLSA Build L3 compliance via `--provenance` in NPM publishing workflows.
-- Patched npm-bundled vulnerabilities in Docker builds using explicit `npm pack` replacements.
+- Replaced raw exceptions with `PostgresMcpError` to prevent SQL syntax leaks.
+- Enforced SLSA Build L3 compliance via `--provenance` in publishing workflows.
+- Patched npm-bundled vulnerabilities in Docker builds.
