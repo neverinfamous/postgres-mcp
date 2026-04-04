@@ -20,7 +20,7 @@ Last tested: April 4th, 2026
 | `test-tools-advanced-migration.md` | ~4,062 | |
 | `test-tools-advanced-migration.md` | ~3,091 | |
 | `test-tools-advanced-monitoring.md` | ~13,440 | |
-| `test-tools-advanced-partitioning.md` | ~5,398 | |
+| `test-tools-advanced-partitioning.md` | ~1,478 | |
 | `test-tools-advanced-partman.md` | ~6,166 | |
 | `test-tools-advanced-performance-part1.md` | ~17,025 | |
 | `test-tools-advanced-performance-part2.md` | ~8,322 | |
