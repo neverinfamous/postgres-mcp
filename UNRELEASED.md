@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: Core write tools require `write` scope; destructive tools require `admin`.
 - Modularized source files applying strict kebab-case convention.
 - Optimized token payload sizes (~30–41% reduction) via compact toggles and array collapsing.
-- Applied 500-item hardcap payload thresholds to high-chatter stats and vacuum tools.
+- Reduced max-cap parameter limits from 500 to 100 and lowered default limits from 50 to 20 across heavy `performance` statistics tools (`pg_table_stats`, `pg_stat_statements`, etc) to strictly enforce LLM context-window protection.
 - Applied `openWorldHint: false` to all tools.
 - Centralized default connection pool timeout to 30,000ms.
 - Reduced npm package size by excluding test and source map artifacts.

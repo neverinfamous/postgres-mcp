@@ -64,8 +64,8 @@ export function createStatStatementsTool(
               : rawLimit === 0
                 ? null
                 : rawLimit;
-        // Cap at 500 to prevent payload blowout from large pg_stat_statements tables
-        const limit = userLimit === null ? 500 : Math.min(userLimit, 500);
+        // Cap at 100 to prevent payload blowout from large pg_stat_statements tables
+        const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
         const rawOrderBy: unknown = parsed.orderBy;
         let orderBy = "total_time";
         if (typeof rawOrderBy === "string" && ["total_time", "calls", "mean_time", "rows"].includes(rawOrderBy)) {
@@ -279,8 +279,8 @@ export function createQueryPlanStatsTool(
               : rawLimit === 0
                 ? null
                 : rawLimit;
-        // Cap at 500 to match pg_stat_statements payload safety
-        const limit = userLimit === null ? 500 : Math.min(userLimit, 500);
+        // Cap at 100 to match pg_stat_statements payload safety
+        const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
         const rawTruncate = Number(parsed.truncateQuery);
         const truncateLen =
           parsed.truncateQuery === undefined

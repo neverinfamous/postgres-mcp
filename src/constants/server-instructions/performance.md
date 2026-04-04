@@ -16,12 +16,12 @@ Aliases: `cacheStats`→`cacheHitRatio`, `queryStats`→`statStatements`, `activ
 
 📦 **AI-Optimized Payloads**: Tools return limited results by default to reduce context size:
 
-- `indexStats({ table?, schema?, limit? })`: Default 50 rows, **max 500**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 500-row cap
-- `tableStats({ table?, schema?, limit? })`: Default 50 rows, **max 500**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 500-row cap
-- `vacuumStats({ limit? })`: Default 50 rows, **max 500**. Same truncation indicators. `limit: 0` returns up to the 500-row cap
-- `statStatements({ limit?, orderBy? })`: Default 20 rows, **max 500**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 500-row cap
+- `indexStats({ table?, schema?, limit? })`: Default 20 rows, **max 100**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 100-row cap
+- `tableStats({ table?, schema?, limit? })`: Default 20 rows, **max 100**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 100-row cap
+- `vacuumStats({ limit? })`: Default 20 rows, **max 100**. Same truncation indicators. `limit: 0` returns up to the 100-row cap
+- `statStatements({ limit?, orderBy? })`: Default 20 rows, **max 100**. Returns `truncated: true` + `totalCount` when limited. `limit: 0` returns up to the 100-row cap
 - `unusedIndexes({ limit?, summary? })`: Default 20 rows. Use `summary: true` for aggregated stats by schema
-- `queryPlanStats({ limit?, truncateQuery? })`: Default 20 rows, **max 500**, queries truncated to 100 chars. Use `truncateQuery: 0` for full text
+- `queryPlanStats({ limit?, truncateQuery? })`: Default 20 rows, **max 100**, queries truncated to 100 chars. Use `truncateQuery: 0` for full text
 - `seqScanTables({ minScans?, schema?, limit? })`: Default `minScans: 10`, `limit: 50`. Use `minScans: 0` for all tables; `limit: 0` for unlimited. Returns `truncated: true` + `totalCount` when limited
 - `locks({ showBlocked?, limit? })`: Default 100 rows. Returns `count` + `truncated`. Use `limit: 0` for all. `showBlocked: true` returns blocking/blocked query pairs instead of the full lock list
 - `statActivity({ includeIdle?, limit?, truncateQuery? })`: Default 100 connections (excludes idle), queries truncated to 100 chars. Returns `count`, `truncated`, and `backgroundWorkers`. Use `limit: 0` for all; `includeIdle: true` to include idle connections

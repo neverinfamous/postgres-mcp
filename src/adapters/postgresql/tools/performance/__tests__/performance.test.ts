@@ -2676,7 +2676,7 @@ describe("pg_vacuum_stats comprehensive", () => {
   it("should add totalCount when results are truncated", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
-        rows: Array(50).fill({
+        rows: Array(20).fill({
           schemaname: "public",
           table_name: "test",
           live_tuples: "100",
@@ -3591,7 +3591,7 @@ describe("performance/stats.ts — uncovered branches", () => {
 
   // stats.ts L162-166: pg_index_stats truncation when results hit limit
   it("pg_index_stats should indicate truncation when results hit limit", async () => {
-    const rows = Array(50).fill({
+    const rows = Array(20).fill({
       schemaname: "public",
       relname: "users",
       indexrelname: "idx_users_id",
@@ -3632,7 +3632,7 @@ describe("performance/stats.ts — uncovered branches", () => {
 
   // stats.ts L279-283: pg_table_stats truncation
   it("pg_table_stats should indicate truncation when results hit limit", async () => {
-    const rows = Array(50).fill({
+    const rows = Array(20).fill({
       schemaname: "public",
       relname: "users",
       seq_scan: "10",

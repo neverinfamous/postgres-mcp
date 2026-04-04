@@ -7,8 +7,8 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-admin.md` | ~1,098,369 | |
 | `test-tool-group-codemode-backup.md` | ~7,665 | |
 | `test-tool-group-codemode-citext.md` | ~7,370 | |
-| `test-tool-group-codemode-core-part1.md` | ~4,087 | |
-| `test-tool-group-codemode-core-part2.md` | ~3,713 | |
+| `test-tool-group-codemode-core-part1.md` | ~3,489 | |
+| `test-tool-group-codemode-core-part2.md` | ~3,550 | |
 | `test-tool-group-codemode-cron.md` | ~4,930 | |
 | `test-tool-group-codemode-cross-group.md` | ~187,341 | |
 | `test-tool-group-codemode-introspection.md` | ~41,208 | |
