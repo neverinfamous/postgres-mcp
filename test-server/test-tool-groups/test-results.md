@@ -9,7 +9,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-citext.md` | ~5,369 | |
 | `test-tool-group-core-part1.md` | ~7,737 | |
 | `test-tool-group-core-part2.md` | ~4,322 | |
-| `test-tool-group-cron.md` | ~ | |
+| `test-tool-group-cron.md` | ~3,309 | |
 | `test-tool-group-cross-group.md` | ~ | |
 | `test-tool-group-introspection.md` | ~ | |
 | `test-tool-group-jsonb-part1.md` | ~ | |

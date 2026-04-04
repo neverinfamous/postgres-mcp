@@ -16,7 +16,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-jsonb-part2.md` | ~3,309 | |
 | `test-tool-group-codemode-kcache.md` | ~6,341 | |
 | `test-tool-group-codemode-ltree.md` | ~7,569 | |
-| `test-tool-group-codemode-migration.md` | ~55,057 | fixed typo: `5,5057` |
+| `test-tool-group-codemode-migration.md` | ~55,057 | |
 | `test-tool-group-codemode-monitoring.md` | ~6,336 | |
 | `test-tool-group-codemode-partitioning.md` | ~2,117 | |
 | `test-tool-group-codemode-partman.md` | ~3,598 | |
