@@ -479,8 +479,8 @@ Aliases: \`cacheStats\`→\`cacheHitRatio\`, \`queryStats\`→\`statStatements\`
 
 📦 **AI-Optimized Payloads**: Tools return limited results by default to reduce context size:
 
-- \`indexStats({ limit? })\`: Default 50 rows, **max 500**. Returns \`truncated: true\` + \`totalCount\` when limited. \`limit: 0\` returns up to the 500-row cap
-- \`tableStats({ limit? })\`: Default 50 rows, **max 500**. Returns \`truncated: true\` + \`totalCount\` when limited. \`limit: 0\` returns up to the 500-row cap
+- \`indexStats({ table?, schema?, limit? })\`: Default 50 rows, **max 500**. Returns \`truncated: true\` + \`totalCount\` when limited. \`limit: 0\` returns up to the 500-row cap
+- \`tableStats({ table?, schema?, limit? })\`: Default 50 rows, **max 500**. Returns \`truncated: true\` + \`totalCount\` when limited. \`limit: 0\` returns up to the 500-row cap
 - \`vacuumStats({ limit? })\`: Default 50 rows, **max 500**. Same truncation indicators. \`limit: 0\` returns up to the 500-row cap
 - \`statStatements({ limit?, orderBy? })\`: Default 20 rows, **max 500**. Returns \`truncated: true\` + \`totalCount\` when limited. \`limit: 0\` returns up to the 500-row cap
 - \`unusedIndexes({ limit?, summary? })\`: Default 20 rows. Use \`summary: true\` for aggregated stats by schema

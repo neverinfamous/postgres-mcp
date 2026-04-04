@@ -18,12 +18,12 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-ltree.md` | ~7,569 | |
 | `test-tool-group-codemode-migration.md` | ~55,057 | fixed typo: `5,5057` |
 | `test-tool-group-codemode-monitoring.md` | ~6,336 | |
-| `test-tool-codemode-partitioning.md` | ~2,117 | |
+| `test-tool-group-codemode-partitioning.md` | ~2,117 | |
 | `test-tool-group-codemode-partman.md` | ~3,598 | |
-| `test-tool-codemode-performance-part1.md` | ~17,196 | |
+| `test-tool-group-codemode-performance-part1.md` | ~17,196 | |
 | `test-tool-group-codemode-performance-part2.md` | ~27,727 | |
 | `test-tool-group-codemode-pgcrypto.md` | ~10,634 | |
-| `test-tool-codemode-postgis-part1.md` | ~5,974 | |
+| `test-tool-group-codemode-postgis-part1.md` | ~5,974 | |
 | `test-tool-group-codemode-postgis-part2.md` | ~9,606 | |
 | `test-tool-group-codemode-schema.md` | ~12,790 | |
 | `test-tool-group-codemode-stats-part1.md` | ~60,702 | |
