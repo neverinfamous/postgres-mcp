@@ -910,7 +910,7 @@ describe("pg_seq_scan_tables", () => {
   it("should add totalCount when results are truncated", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
-        rows: Array(50).fill({ relname: "test", seq_scan: "500" }),
+        rows: Array(20).fill({ relname: "test", seq_scan: "500" }),
       })
       .mockResolvedValueOnce({
         rows: [{ total: "150" }],
