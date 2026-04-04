@@ -52,3 +52,7 @@ Never proceed to the final step until every tool in a given group has both colum
 22. `cross-group`
 
 Execute these sequentially, updating the Changelog and resolving bugs systematically before moving to the next.
+
+## Test Results
+
+Token consumption metrics and final summaries from executing the above codemode tests are persisted in [`test-results.md`](./test-results.md).
