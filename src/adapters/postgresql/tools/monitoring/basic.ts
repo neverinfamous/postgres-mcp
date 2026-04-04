@@ -108,23 +108,17 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
         schema = parsed.schema;
         pattern = parsed.pattern;
         limit = parsed.limit;
-      } catch (err) {
-        return formatHandlerErrorResponse(err, { tool: "pg_table_sizes" });
-      }
 
-      // P154: Validate schema existence before querying
-      if (schema) {
-        const schemaCheck = await adapter.executeQuery(
-          `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-          [schema],
-        );
-        if (schemaCheck.rows?.length === 0) {
-          return {
-            success: false,
-            error: `Schema '${schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-          };
+        // P154: Validate schema existence before querying
+        if (schema) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schema],
+          );
+          if (schemaCheck.rows?.length === 0) {
+            throw new Error(`Schema '${schema}' does not exist. Use pg_list_schemas to see available schemas.`);
+          }
         }
-      }
 
       const whereClauses: string[] = ["c.relkind IN ('r', 'p')", "n.nspname NOT IN ('pg_catalog', 'information_schema')"];
       const queryParams: string[] = [];
@@ -196,6 +190,9 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
       }
 
       return { success: true, tables, count: tables.length };
+      } catch (err) {
+        return formatHandlerErrorResponse(err, { tool: "pg_table_sizes" });
+      }
     },
   };
 }
@@ -227,10 +224,7 @@ export function createConnectionStatsTool(
             [database]
           );
           if (dbCheck.rows?.length === 0) {
-            return {
-              success: false,
-              error: `Database '${database}' does not exist.`,
-            };
+            throw new Error(`Database '${database}' does not exist.`);
           }
         }
 
@@ -402,9 +396,6 @@ export function createShowSettingsTool(
         };
         pattern = parsed.pattern;
         limit = parsed.limit;
-      } catch (err) {
-        return formatHandlerErrorResponse(err, { tool: "pg_show_settings" });
-      }
 
       // Auto-detect if user passed exact name vs LIKE pattern
       // If no wildcards, try exact match first, fall back to LIKE with wildcards
@@ -457,6 +448,9 @@ export function createShowSettingsTool(
         settings: rows,
         count: rows.length,
       };
+      } catch (err) {
+        return formatHandlerErrorResponse(err, { tool: "pg_show_settings" });
+      }
     },
   };
 }

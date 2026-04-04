@@ -33,9 +33,6 @@ export function createCapacityPlanningTool(
       let parsed;
       try {
         parsed = CapacityPlanningSchema.parse(params ?? {});
-      } catch (err) {
-        return formatHandlerErrorResponse(err, { tool: "pg_capacity_planning" });
-      }
       const projectionDays = parsed.projectionDays;
 
       const [dbSize, tableStats, connStats, statsAge] = await Promise.all([
@@ -189,6 +186,9 @@ export function createCapacityPlanningTool(
             : null,
         ].filter(Boolean),
       };
+      } catch (err) {
+        return formatHandlerErrorResponse(err, { tool: "pg_capacity_planning" });
+      }
     },
   };
 }
