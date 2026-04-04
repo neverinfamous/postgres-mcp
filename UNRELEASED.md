@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reduced npm package size by excluding test and source map artifacts.
 - Refactored Vitest test suite to use SWC compilation.
 - Refactored cross-tool validation helpers to throw standardized `ValidationError`s.
-- Updated `POSTGRES_MCP_INSTRUCTIONS` (`performance.md`, `postgis.md`) to reflect bounded limits and payload optimization.
+- Updated `POSTGRES_MCP_INSTRUCTIONS` (`performance.md`, `postgis.md`, `jsonb.md`) to reflect bounded limits, payload optimization, and precise in-memory tool boundaries (`pg_jsonb_merge`).
 - **Dependency Updates**: Updated `eslint`, `@types/node`, `@modelcontextprotocol/sdk`, `@playwright/test`, `typescript`, `typescript-eslint`, and patched `hono`.
 
 ### Removed
