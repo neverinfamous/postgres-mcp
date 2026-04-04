@@ -41,3 +41,5 @@ pgcrypto + citext
 text + cron
 partman + partitioning
 stats + backup
+
+**Token counts don't include tokens used by the testing prompts themselves or for making fixes.**
