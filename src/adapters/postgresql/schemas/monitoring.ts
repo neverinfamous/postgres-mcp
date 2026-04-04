@@ -139,12 +139,10 @@ export const CapacityPlanningSchema = z.preprocess(
  */
 export const DatabaseSizeOutputSchema = z
   .object({
-    success: z.boolean().optional().describe("Whether the operation succeeded"),
-    error: z.string().optional().describe("Error message if operation failed"),
     bytes: z.number().optional().describe("Database size in bytes"),
     size: z.string().optional().describe("Human-readable size"),
   })
-  .loose();
+  .extend(ErrorResponseFields.shape);
 
 /**
  * pg_table_sizes output
@@ -213,10 +211,8 @@ export const ReplicationStatusOutputSchema = z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Connected replicas"),
-    success: z.boolean().optional().describe("Whether operation succeeded"),
-    error: z.string().optional().describe("Error message if failed"),
   })
-  .loose();
+  .extend(ErrorResponseFields.shape);
 
 /**
  * pg_server_version output
@@ -295,8 +291,6 @@ export const RecoveryStatusOutputSchema = z.object({
  */
 export const CapacityPlanningOutputSchema = z
   .object({
-    success: z.boolean().optional().describe("Whether the operation succeeded"),
-    error: z.string().optional().describe("Error message if operation failed"),
     current: z
       .object({
         databaseSize: z
@@ -343,7 +337,7 @@ export const CapacityPlanningOutputSchema = z
       .optional()
       .describe("Capacity recommendations"),
   })
-  .loose();
+  .extend(ErrorResponseFields.shape);
 
 /**
  * pg_resource_usage_analyze output
@@ -445,4 +439,4 @@ export const AlertThresholdOutputSchema = z
       .describe("All metric thresholds"),
     note: z.string().optional().describe("Usage guidance"),
   })
-  .loose();
+  .extend(ErrorResponseFields.shape);
