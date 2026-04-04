@@ -26,15 +26,15 @@ export function createStatStatementsTool(
 ): ToolDefinition {
   const StatStatementsSchemaBase = z.object({
     limit: z
-      .union([z.number(), z.string()])
+      .number()
       .optional()
-      .describe("Max statements to return (default: 20, max: 100, use 0 for max 100)"),
+      .describe("Max statements to return (default: 10, max: 100, use 0 for max 100)"),
     orderBy: z
       .string()
       .optional()
       .describe("Sort order (default: total_time)"),
     truncateQuery: z
-      .union([z.number(), z.string()])
+      .number()
       .optional()
       .describe("Max query length in chars (default: 100, use 0 for full text)"),
   });
@@ -56,15 +56,8 @@ export function createStatStatementsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = StatStatementsSchema.parse(params);
-        const rawLimit = Number(parsed.limit);
-        const userLimit =
-          parsed.limit === undefined
-            ? 20
-            : isNaN(rawLimit)
-              ? 20
-              : rawLimit === 0
-                ? null
-                : rawLimit;
+        const rawLimit = parsed.limit;
+        const userLimit = rawLimit === undefined ? 10 : rawLimit === 0 ? null : rawLimit;
         // Cap at 100 to prevent payload blowout from large pg_stat_statements tables
         const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
         const rawOrderBy: unknown = parsed.orderBy;
@@ -77,15 +70,8 @@ export function createStatStatementsTool(
           }
         }
 
-        const rawTruncate = Number(parsed.truncateQuery);
-        const truncateLen =
-          parsed.truncateQuery === undefined
-            ? 100
-            : isNaN(rawTruncate)
-              ? 100
-              : rawTruncate === 0
-                ? null
-                : rawTruncate;
+        const rawTruncate = parsed.truncateQuery;
+        const truncateLen = rawTruncate === undefined ? 100 : rawTruncate === 0 ? null : rawTruncate;
 
         const sql = `SELECT query, calls, total_exec_time as total_time,
                         mean_exec_time as mean_time, rows,
@@ -145,13 +131,13 @@ export function createStatActivityTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const StatActivitySchemaBase = z.object({
-    includeIdle: z.union([z.boolean(), z.string()]).optional().describe("Include idle connections (default: false)"),
+    includeIdle: z.boolean().optional().describe("Include idle connections (default: false)"),
     truncateQuery: z
-      .union([z.number(), z.string()])
+      .number()
       .optional()
       .describe("Max query length in chars (default: 100, use 0 for full text)"),
     limit: z
-      .union([z.number(), z.string()])
+      .number()
       .optional()
       .describe("Max connections to return (default: 100, use 0 for all)"),
   });
@@ -172,28 +158,14 @@ export function createStatActivityTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = StatActivitySchema.parse(params);
-        const includeIdle = parsed.includeIdle === true || parsed.includeIdle === "true";
+        const includeIdle = parsed.includeIdle === true;
         const idleClause = includeIdle ? "" : "AND state != 'idle'";
 
-        const rawTruncate = Number(parsed.truncateQuery);
-        const truncateLen =
-          parsed.truncateQuery === undefined
-            ? 100
-            : isNaN(rawTruncate)
-              ? 100
-              : rawTruncate === 0
-                ? null
-                : rawTruncate;
+        const rawTruncate = parsed.truncateQuery;
+        const truncateLen = rawTruncate === undefined ? 100 : rawTruncate === 0 ? null : rawTruncate;
 
-        const rawLimit = Number(parsed.limit);
-        const limit =
-          parsed.limit === undefined
-            ? 100
-            : isNaN(rawLimit)
-              ? 100
-              : rawLimit === 0
-                ? null
-                : rawLimit;
+        const rawLimit = parsed.limit;
+        const limit = rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
 
         const sql = `SELECT pid, usename, datname, client_addr, state,
                         query_start, state_change,
@@ -250,11 +222,11 @@ export function createQueryPlanStatsTool(
 ): ToolDefinition {
   const QueryPlanStatsSchemaBase = z.object({
     limit: z
-      .union([z.number(), z.string()])
+      .number()
       .optional()
       .describe("Number of queries to return (default: 10, max: 100, use 0 for max 100)"),
     truncateQuery: z
-      .union([z.number(), z.string()])
+      .number()
       .optional()
       .describe(
         "Max query length in chars (default: 100, use 0 for full text)",
@@ -278,26 +250,12 @@ export function createQueryPlanStatsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = QueryPlanStatsSchema.parse(params);
-        const rawLimit = Number(parsed.limit);
-        const userLimit =
-          parsed.limit === undefined
-            ? 10
-            : isNaN(rawLimit)
-              ? 10
-              : rawLimit === 0
-                ? null
-                : rawLimit;
+        const rawLimit = parsed.limit;
+        const userLimit = rawLimit === undefined ? 10 : rawLimit === 0 ? null : rawLimit;
         // Cap at 100 to match pg_stat_statements payload safety
         const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
-        const rawTruncate = Number(parsed.truncateQuery);
-        const truncateLen =
-          parsed.truncateQuery === undefined
-            ? 100
-            : isNaN(rawTruncate)
-              ? 100
-              : rawTruncate === 0
-                ? null
-                : rawTruncate;
+        const rawTruncate = parsed.truncateQuery;
+        const truncateLen = rawTruncate === undefined ? 100 : rawTruncate === 0 ? null : rawTruncate;
 
         // Check if pg_stat_statements is available with planning time columns
         const sql = `SELECT

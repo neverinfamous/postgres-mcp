@@ -3722,9 +3722,9 @@ describe("performance/stats.ts — uncovered branches", () => {
     expect(result.success).toBe(false);
   });
 
-  // stats.ts L366-370: pg_stat_statements truncation (default limit is 20)
+  // stats.ts L366-370: pg_stat_statements truncation (default limit is 10)
   it("pg_stat_statements should indicate truncation when results hit limit", async () => {
-    const rows = Array(20).fill({
+    const rows = Array(10).fill({
       queryid: "12345",
       query: "SELECT 1",
       calls: "100",

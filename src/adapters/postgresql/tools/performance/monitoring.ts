@@ -25,9 +25,9 @@ import {
 // ─── pg_locks ────────────────────────────────────────────────────────────────
 
 const LocksSchemaBase = z.object({
-  showBlocked: z.union([z.boolean(), z.string()]).optional().describe("Show only blocked queries (default: false)"),
+  showBlocked: z.boolean().optional().describe("Show only blocked queries (default: false)"),
   limit: z
-    .union([z.number(), z.string()])
+    .number()
     .optional()
     .describe("Max locks to return (default: 100, use 0 for all)"),
 });
@@ -47,16 +47,9 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = LocksSchema.parse(params);
 
-        const showBlocked = parsed.showBlocked === true || parsed.showBlocked === "true";
-        const rawLimit = Number(parsed.limit);
-        const limit =
-          parsed.limit === undefined
-            ? 100
-            : isNaN(rawLimit)
-              ? 100
-              : rawLimit === 0
-                ? null
-                : rawLimit;
+        const showBlocked = parsed.showBlocked === true;
+        const rawLimit = parsed.limit;
+        const limit = rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
 
         let sql: string;
         if (showBlocked) {

@@ -18,7 +18,7 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { DetectConnectionSpikeOutputSchema } from "../../schemas/performance.js";
-import { toNum, toStr, safeNum, riskFromScore } from "./anomaly-detection.js";
+import { toNum, toStr, riskFromScore } from "./anomaly-detection.js";
 
 // =============================================================================
 // pg_detect_connection_spike
@@ -26,14 +26,18 @@ import { toNum, toStr, safeNum, riskFromScore } from "./anomaly-detection.js";
 
 const ConnectionSpikeInputBase = z.object({
   warningPercent: z
-    .any()
+    .number()
     .optional()
     .describe("Percentage threshold for flagging concentration (default: 70)"),
 });
 
-const ConnectionSpikeInput = ConnectionSpikeInputBase.transform((data) => ({
-  warningPercent: Math.max(10, Math.min(100, safeNum(data.warningPercent, 70))),
-}));
+const ConnectionSpikeInput = z.preprocess(
+  (data: unknown) => {
+    if (typeof data !== "object" || data === null) return {};
+    return data;
+  },
+  ConnectionSpikeInputBase
+);
 
 interface ConnectionConcentration {
   dimension: string;
@@ -67,7 +71,8 @@ export function createDetectConnectionSpikeTool(
           };
         }
 
-        const { warningPercent } = parsed.data;
+        const rawPercent = parsed.data.warningPercent ?? 70;
+        const warningPercent = Math.max(10, Math.min(100, rawPercent));
 
         // Gather connection data in parallel
         const [stateResult, userResult, appResult, maxResult, idleTxResult] =

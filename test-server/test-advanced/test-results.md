@@ -22,7 +22,7 @@ Last tested: April 4th, 2026
 | `test-tools-advanced-monitoring.md` | ~13,440 | |
 | `test-tools-advanced-partitioning.md` | ~1,478 | |
 | `test-tools-advanced-partman.md` | ~6,166 | |
-| `test-tools-advanced-performance-part1.md` | ~17,025 | |
+| `test-tools-advanced-performance-part1.md` | ~14,753 | |
 | `test-tools-advanced-performance-part2.md` | ~8,322 | |
 | `test-tools-advanced-pgcrypto.md` | ~5,627 | |
 | `test-tools-advanced-postgis-part1.md` | ~6,063 | |

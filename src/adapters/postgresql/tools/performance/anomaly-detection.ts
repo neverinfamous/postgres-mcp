@@ -37,12 +37,7 @@ export const toNum = (val: unknown): number =>
 export const toStr = (val: unknown, fallback = ""): string =>
   typeof val === "string" ? val : fallback;
 
-/** Parse numeric param with NaN fallback to default */
-export const safeNum = (val: unknown, defaultVal: number): number => {
-  if (val == null) return defaultVal;
-  const n = Number(val);
-  return Number.isNaN(n) ? defaultVal : n;
-};
+
 
 export function riskFromScore(score: number): RiskLevel {
   if (score >= 80) return "critical";
@@ -57,21 +52,24 @@ export function riskFromScore(score: number): RiskLevel {
 
 const QueryAnomaliesInputBase = z.object({
   threshold: z
-    .any()
+    .number()
     .optional()
     .describe(
       "Standard deviation multiplier for anomaly detection (default: 2.0)",
     ),
   minCalls: z
-    .any()
+    .number()
     .optional()
     .describe("Minimum call count to filter noise (default: 10)"),
 });
 
-const QueryAnomaliesInput = QueryAnomaliesInputBase.transform((data) => ({
-  threshold: safeNum(data.threshold, 2.0),
-  minCalls: safeNum(data.minCalls, 10),
-}));
+const QueryAnomaliesInput = z.preprocess(
+  (data: unknown) => {
+    if (typeof data !== "object" || data === null) return {};
+    return data;
+  },
+  QueryAnomaliesInputBase
+);
 
 export function createDetectQueryAnomaliesTool(
   adapter: PostgresAdapter,
@@ -97,7 +95,8 @@ export function createDetectQueryAnomaliesTool(
           };
         }
 
-        const { threshold, minCalls } = parsed.data;
+        const threshold = parsed.data.threshold ?? 2.0;
+        const minCalls = parsed.data.minCalls ?? 10;
         
         if (threshold < 0.5 || threshold > 10) {
           return {
@@ -214,15 +213,18 @@ const BloatRiskInputBase = z.object({
     .optional()
     .describe("Filter to a specific schema (default: all user schemas)"),
   minRows: z
-    .any()
+    .number()
     .optional()
     .describe("Minimum live rows to include (default: 1000)"),
 });
 
-const BloatRiskInput = BloatRiskInputBase.transform((data) => ({
-  schema: data.schema,
-  minRows: safeNum(data.minRows, 1000),
-}));
+const BloatRiskInput = z.preprocess(
+  (data: unknown) => {
+    if (typeof data !== "object" || data === null) return {};
+    return data;
+  },
+  BloatRiskInputBase
+);
 
 export function createDetectBloatRiskTool(
   adapter: PostgresAdapter,
@@ -248,7 +250,8 @@ export function createDetectBloatRiskTool(
           };
         }
 
-        const { schema, minRows } = parsed.data;
+        const minRows = parsed.data.minRows ?? 1000;
+        const schema = parsed.data.schema;
 
         if (minRows < 0 || minRows > 1000000) {
           return {
@@ -263,11 +266,10 @@ export function createDetectBloatRiskTool(
           const check = await adapter.executeQuery("SELECT 1 FROM information_schema.schemata WHERE schema_name = $1", [schema]);
           if (!check.rows || check.rows.length === 0) {
             return {
-              success: true as const,
-              tables: [],
-              highRiskCount: 0,
-              totalAnalyzed: 0,
-              summary: `No high-risk bloat detected across 0 tables`,
+              success: false,
+              error: `Schema "${schema}" does not exist. Use pg_list_objects with type 'schema' to see available schemas.`,
+              code: "NOT_FOUND",
+              category: "introspection"
             };
           }
           validateIdentifier(schema);

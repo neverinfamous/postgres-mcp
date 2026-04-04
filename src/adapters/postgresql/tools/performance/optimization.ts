@@ -12,6 +12,7 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { toNum } from "../../../../utils/query-helpers.js";
+import { validatePerformanceTableExists } from "./helpers.js";
 
 import {
   PerformanceBaselineOutputSchema,
@@ -303,6 +304,9 @@ export function createPartitionStrategySuggestTool(
           schemaName = parts[0] ?? "public";
           tableName = parts[1] ?? tableName;
         }
+
+        // P154: Validate table existence before querying
+        await validatePerformanceTableExists(adapter, tableName, schemaName);
 
         const [tableInfo, columnInfo, tableSize] = await Promise.all([
           adapter.executeQuery(

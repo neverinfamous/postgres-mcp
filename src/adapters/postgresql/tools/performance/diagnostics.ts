@@ -29,19 +29,18 @@ const DiagnoseInputSchemaBase = z.object({
     .optional()
     .describe("Filter top tables to a specific schema"),
   topN: z
-    .any()
+    .number()
     .optional()
-    .describe("Number of top tables to return (default: 10)"),
+    .describe("Number of top tables to return (default: 5, max: 100)"),
 });
 
-const DiagnoseInputSchema = DiagnoseInputSchemaBase.transform((data) => {
-  const raw = data.topN != null ? Number(data.topN) : 10;
-  const topN = Number.isFinite(raw) ? raw : 10;
-  return {
-    schema: data.schema,
-    topN: Math.max(1, Math.min(100, topN)),
-  };
-});
+const DiagnoseInputSchema = z.preprocess(
+  (data: unknown) => {
+    if (typeof data !== "object" || data === null) return {};
+    return data;
+  },
+  DiagnoseInputSchemaBase
+);
 
 // =============================================================================
 // Health Rating Helpers
@@ -392,12 +391,19 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
           );
         }
 
-        const { schema, topN } = parsed.data;
+        const schema = parsed.data.schema;
+        const rawTopN = parsed.data.topN ?? 5;
+        const topN = Math.max(1, Math.min(100, rawTopN));
 
         if (schema) {
           const check = await adapter.executeQuery("SELECT 1 FROM information_schema.schemata WHERE schema_name = $1", [schema]);
           if (!check.rows || check.rows.length === 0) {
-            throw new ValidationError(`Schema '${schema}' does not exist.`);
+            return {
+              success: false,
+              error: `Schema "${schema}" does not exist.`,
+              code: "NOT_FOUND",
+              category: "introspection"
+            };
           }
         }
 
