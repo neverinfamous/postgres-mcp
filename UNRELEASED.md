@@ -19,6 +19,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Playwright E2E coverage for Code Mode, authentication, and backups
 - Utility parameter extensions for tool completeness: `toType` in `pg_citext_convert_column`, parallel arrays in `pg_jsonb_object`
 - Parameter aliases for query flexibility: `indexName`/`name` in `pg_vector_create_index`, `pattern`/`table`/`name` in `pg_table_sizes`, `like` in `pg_show_settings`, `value` in `pg_jsonb_pretty`, and `sqlA`/`sqlB` in `pg_query_plan_compare`
+- `read_only` parameter explicitly supported in `pg_transaction_begin` and `pg_transaction_execute` to securely initialize isolated non-mutating blocks natively
 
 ### Changed
 - **BREAKING**: Core write tools now require `write` scope; destructive tools require `admin`

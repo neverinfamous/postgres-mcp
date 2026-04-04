@@ -59,11 +59,12 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("transactions", write("Begin Transaction")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { isolationLevel } = BeginTransactionSchema.parse(params);
-        const transactionId = await adapter.beginTransaction(isolationLevel);
+        const { isolationLevel, read_only } = BeginTransactionSchema.parse(params);
+        const transactionId = await adapter.beginTransaction(isolationLevel, read_only);
         return {
           transactionId,
           isolationLevel: isolationLevel ?? "READ COMMITTED",
+          read_only: read_only,
           message:
             "Transaction started. Use this ID for subsequent operations.",
         };
@@ -309,13 +310,13 @@ function createTransactionExecuteTool(
           });
       }
 
-      const { statements, transactionId, isolationLevel } = parsed;
+      const { statements, transactionId, isolationLevel, read_only } = parsed;
 
       // Check if joining an existing transaction or creating a new one
       const isJoiningExisting = transactionId !== undefined;
       const txId = isJoiningExisting
         ? transactionId
-        : await adapter.beginTransaction(isolationLevel);
+        : await adapter.beginTransaction(isolationLevel, read_only);
 
       const results: unknown[] = [];
 

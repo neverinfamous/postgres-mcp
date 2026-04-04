@@ -22,6 +22,7 @@ export async function beginTransaction(
   pool: ConnectionPool | null,
   activeTransactions: Map<string, PoolClient>,
   isolationLevel?: string,
+  readOnly?: boolean,
 ): Promise<string> {
   if (!pool) {
     throw new ConnectionError("Not connected");
@@ -32,8 +33,15 @@ export async function beginTransaction(
 
   try {
     let beginCmd = "BEGIN";
+    const options = [];
     if (isolationLevel) {
-      beginCmd = `BEGIN ISOLATION LEVEL ${isolationLevel}`;
+      options.push(`ISOLATION LEVEL ${isolationLevel}`);
+    }
+    if (readOnly) {
+      options.push("READ ONLY");
+    }
+    if (options.length > 0) {
+      beginCmd += ` ${options.join(", ")}`;
     }
     await client.query(beginCmd);
     activeTransactions.set(transactionId, client);

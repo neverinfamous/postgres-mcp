@@ -265,8 +265,8 @@ export class PostgresAdapter extends DatabaseAdapter {
   // Transaction Support (delegated to transaction-operations.ts)
   // =========================================================================
 
-  async beginTransaction(isolationLevel?: string): Promise<string> {
-    return txBegin(this.pool, this.activeTransactions, isolationLevel);
+  async beginTransaction(isolationLevel?: string, readOnly?: boolean): Promise<string> {
+    return txBegin(this.pool, this.activeTransactions, isolationLevel, readOnly);
   }
 
   async commitTransaction(transactionId: string): Promise<void> {

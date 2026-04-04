@@ -41,6 +41,7 @@ function preprocessBeginParams(input: unknown): unknown {
 // handler's try/catch instead of being rejected as raw MCP -32602 errors.
 export const BeginTransactionSchemaBase = z.object({
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
+  read_only: z.boolean().optional().describe("Set to true for read-only transaction"),
 });
 
 // Internal schema with strict enum validation (used inside handler try/catch)
@@ -54,6 +55,7 @@ const BeginTransactionValidationSchema = z.object({
     ])
     .optional()
     .describe("Transaction isolation level"),
+  read_only: z.boolean().optional().describe("Set to true for read-only transaction"),
 });
 
 export const BeginTransactionSchema = z.preprocess(
@@ -147,6 +149,7 @@ export const TransactionExecuteSchemaBase = z.object({
   txId: z.string().optional().describe("Alias for transactionId"),
   tx: z.string().optional().describe("Alias for transactionId"),
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
+  read_only: z.boolean().optional().describe("Set to true for read-only transaction"),
 });
 
 // Internal schema with strict validation (used inside handler try/catch)
@@ -180,6 +183,7 @@ const TransactionExecuteValidationSchema = z.object({
     ])
     .optional()
     .describe("Transaction isolation level"),
+  read_only: z.boolean().optional().describe("Set to true for read-only transaction"),
 });
 
 // Schema with undefined handling for pg_transaction_execute
@@ -195,6 +199,7 @@ export const TransactionExecuteSchema = z
     })),
     transactionId: data.transactionId ?? data.txId ?? data.tx,
     isolationLevel: data.isolationLevel,
+    read_only: data.read_only,
   }))
   .refine((data) => data.statements.length > 0, {
     message:
@@ -221,6 +226,7 @@ export const TransactionBeginOutputSchema = z.object({
     .optional()
     .describe("Unique transaction ID for subsequent operations"),
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
+  read_only: z.boolean().optional().describe("Whether transaction is read-only"),
   message: z.string().optional().describe("Confirmation message"),
 }).extend(ErrorResponseFields.shape);
 
@@ -304,4 +310,5 @@ export const TransactionExecuteOutputSchema = z.object({
     .string()
     .optional()
     .describe("Transaction ID (when joining existing transaction)"),
+  read_only: z.boolean().optional().describe("Whether new transaction is read-only"),
 }).extend(ErrorResponseFields.shape);
