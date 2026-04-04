@@ -88,6 +88,7 @@ export const PartitionInfoSchemaBase = z.object({
   parentTable: z.string().optional().describe("Alias for table"),
   name: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name"),
+  limit: z.number().optional().describe("Maximum partitions to return"),
 });
 
 // Preprocessed schema for handler parsing (with alias support)
@@ -152,6 +153,10 @@ export const PartitionInfoOutputSchema = z
       .number()
       .optional()
       .describe("Total size of all partitions"),
+    truncated: z
+      .boolean()
+      .optional()
+      .describe("Whether partitions list was truncated"),
     warning: z
       .string()
       .optional()

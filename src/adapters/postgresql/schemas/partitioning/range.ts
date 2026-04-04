@@ -117,7 +117,8 @@ export const CreatePartitionedTableSchema = z.preprocess(
     })
     .refine(
       (data) =>
-        typeof data.partitionBy === "string" && data.partitionBy.length > 0,
+        typeof data.partitionBy === "string" &&
+        ["range", "list", "hash"].includes(data.partitionBy),
       {
         message: "partitionBy is required (range, list, or hash)",
         path: ["partitionBy"],
@@ -169,10 +170,10 @@ export const CreatePartitionSchemaBase = z.object({
   hashRemainder: z.number().optional().describe("HASH partition remainder"),
   // Sub-partitioning support for multi-level partitions
   subpartitionBy: z
-    .enum(["range", "list", "hash"])
+    .string()
     .optional()
     .describe(
-      "Make this partition itself partitionable. For multi-level partitioning.",
+      "Make this partition itself partitionable. For multi-level partitioning. Accepts: range, list, hash.",
     ),
   subpartitionKey: z
     .string()
@@ -205,10 +206,20 @@ export const CreatePartitionSchema = z.preprocess(
       },
     )
     .refine((data) => data.forValues !== undefined || data.isDefault === true, {
-    message:
-      "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
-    path: ["forValues"],
-  }),
+      message:
+        "Either forValues or isDefault: true is required. Use isDefault: true for DEFAULT partitions.",
+      path: ["forValues"],
+    })
+    .refine(
+      (data) =>
+        data.subpartitionBy === undefined ||
+        (typeof data.subpartitionBy === "string" &&
+          ["range", "list", "hash"].includes(data.subpartitionBy.toLowerCase())),
+      {
+        message: "subpartitionBy must be range, list, or hash",
+        path: ["subpartitionBy"],
+      },
+    ),
 );
 
 // Base schema for MCP visibility (with alias parameters for Split Schema compliance)

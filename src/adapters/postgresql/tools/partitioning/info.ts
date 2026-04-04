@@ -274,6 +274,7 @@ export function createPartitionInfoTool(
         parsed = PartitionInfoSchema.parse(params) as {
           table: string;
           schema?: string;
+          limit?: number;
         };
       } catch (zodError: unknown) {
         return formatHandlerErrorResponse(zodError, {
@@ -329,7 +330,9 @@ export function createPartitionInfoTool(
         schemaName,
       ]);
 
-      const partitionsSql = `SELECT
+      const limit = parsed.limit ?? 50;
+
+      let partitionsSql = `SELECT
                         c.relname as partition_name,
                         pg_get_expr(c.relpartbound, c.oid) as bounds,
                         pg_table_size(c.oid) as size_bytes,
@@ -339,19 +342,30 @@ export function createPartitionInfoTool(
                         WHERE i.inhparent = ($1 || '.' || $2)::regclass
                         ORDER BY c.relname`;
 
+      if (limit > 0) {
+        partitionsSql += ` LIMIT ${String(limit + 1)}`;
+      }
+
       const partitionsResult = await adapter.executeQuery(partitionsSql, [
         schemaName,
         resolvedTable,
       ]);
 
-      // Calculate total size before mapping
-      const totalSizeBytes = (partitionsResult.rows ?? []).reduce(
-        (sum, row) => sum + Number(row["size_bytes"] ?? 0),
-        0,
-      );
+      const allRows = partitionsResult.rows ?? [];
+      const truncated = limit > 0 && allRows.length > limit;
+      const rowsToReturn = truncated ? allRows.slice(0, limit) : allRows;
+
+      // Calculate total size using an aggregate query to ensure accuracy even when truncated
+      const totalSizeSql = `SELECT COALESCE(SUM(pg_table_size(inhrelid)), 0) as total_bytes
+                            FROM pg_inherits WHERE inhparent = ($1 || '.' || $2)::regclass`;
+      const sizeResult = await adapter.executeQuery(totalSizeSql, [
+        schemaName,
+        resolvedTable,
+      ]);
+      const totalSizeBytes = Number(sizeResult.rows?.[0]?.["total_bytes"] ?? 0);
 
       // Format sizes consistently and coerce numeric fields
-      const partitions = (partitionsResult.rows ?? []).map((row) => {
+      const partitions = rowsToReturn.map((row) => {
         const sizeBytes = Number(row["size_bytes"] ?? 0);
         return {
           ...row,
@@ -370,11 +384,18 @@ export function createPartitionInfoTool(
           }
         : null;
 
-      return {
+      const response: Record<string, unknown> = {
         tableInfo,
         partitions,
         totalSizeBytes,
+        truncated,
       };
+
+      if (truncated) {
+         response["totalCount"] = tableInfo?.partition_count ?? 0;
+      }
+
+      return response;
     },
   };
 }

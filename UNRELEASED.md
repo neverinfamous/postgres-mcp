@@ -36,8 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unused `hono` router dependency.
 - Duplicate and stale validation logic across performance handlers.
 
-### Fixed
-- Completed production-readiness certification across Core, Monitoring, Performance, Stats, Vector, Transactions, Text, Admin, Backup, Citext, Cron, Introspection, kcache, JSONB, ltree, and Migration tool groups (verified explicit payload boundaries, Zod compliance, and Code Mode execution).
+- Completed production-readiness certification across Core, Monitoring, Performance, Stats, Vector, Transactions, Text, Admin, Backup, Citext, Cron, Introspection, kcache, JSONB, ltree, Migration, and Partitioning tool groups (verified explicit payload boundaries, Zod compliance, and Code Mode execution).
+- Added truncation (`limit`) handling to `pg_partition_info` to prevent extreme payloads on heavily partitioned tables.
+- Fixed Zod validation leak for `subpartitionBy` enum and `partitionBy` schema bypass in partitioning tools.
 - Standardized P154 error structures (`success: false` with explicit `ValidationError`s) across all 230+ tools.
 - Normalized systemic anomalies into standard payloads (e.g., `42P01` "relation does not exist", `42501` auth bounds errors) preventing unformatted ad-hoc messages.
 - Corrected `admin.md`, `backup.md`, `citext.md`, and `jsonb.md` output schemas to properly reflect P154 handler fields, correct array wrappers (`snapshots`), and split schema alias mappings.
