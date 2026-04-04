@@ -654,7 +654,7 @@ Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, 
   - **Auto-commit**: Without \`transactionId\`—auto-commits on success, auto-rollbacks on any error
   - **Join existing**: With \`transactionId\`/\`tx\`/\`txId\`—no auto-commit, caller controls via commit/rollback
 - \`statements\`: Array of \`{sql: "...", params?: [...]}\` objects. ⚠️ Each object MUST have \`sql\` key
-- \`isolationLevel\`: Optional isolation level for new transactions ('READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE')
+- \`isolationLevel\`: Optional isolation level for new transactions ('READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE')
 - \`read_only\`/\`readOnly\`: Optional boolean. If true, protects against mutating writes natively using Postgres boundary constraints
 - Supports SELECT statements inside \`statements\`—results include \`rows\` in the response for mixed read/write workflows
 
