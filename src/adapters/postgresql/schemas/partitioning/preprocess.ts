@@ -14,7 +14,7 @@
 export function parseSchemaFromIdentifier(
   value: unknown,
 ): { name: string; schema: string | undefined } | { name: unknown; schema: undefined } | undefined {
-  if (!value) return undefined;
+  if (value === undefined || value === null || value === "") return undefined;
   if (typeof value === "string" && value.includes(".")) {
     const parts = value.split(".");
     return { name: parts[1] ?? value, schema: parts[0] };
