@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Completed production-readiness certification for the `introspection` tool group via rigorous Code Mode advanced stress testing
 - Certified 100% Code Mode parity for topological sorting, cascade simulation, schema snapshots, and migration risk analysis
+- Completed production-readiness certification for the `jsonb` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `citext` tool group via rigorous Code Mode advanced stress testing
 - Validated P154-compliant structured error isolation handling across all `citext` operations
 - Confirmed Split Schema compliance and parameter alias mapping in `pg_citext_*` tools
