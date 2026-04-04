@@ -19,6 +19,7 @@ import {
   QueryPlanStatsOutputSchema,
 } from "../../schemas/index.js";
 import { defaultToEmpty, toNum } from "./helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 
 export function createStatStatementsTool(
   adapter: PostgresAdapter,
@@ -72,10 +73,7 @@ export function createStatStatementsTool(
           if (["total_time", "calls", "mean_time", "rows"].includes(rawOrderBy)) {
             orderBy = rawOrderBy;
           } else {
-            return {
-              success: false,
-              error: "Validation error: orderBy must be one of: total_time, calls, mean_time, rows"
-            };
+            throw new ValidationError("Validation error: orderBy must be one of: total_time, calls, mean_time, rows");
           }
         }
 
