@@ -26,7 +26,7 @@ Aliases: `cacheStats`→`cacheHitRatio`, `queryStats`→`statStatements`, `activ
 - `locks({ showBlocked?, limit? })`: Default 100 rows. Returns `count` + `truncated`. Use `limit: 0` for all. `showBlocked: true` returns blocking/blocked query pairs instead of the full lock list
 - `statActivity({ includeIdle?, limit?, truncateQuery? })`: Default 100 connections (excludes idle), queries truncated to 100 chars. Returns `count`, `truncated`, and `backgroundWorkers`. Use `limit: 0` for all; `includeIdle: true` to include idle connections
 - `detectQueryAnomalies({ threshold?, minCalls? })`: `threshold` must be 0.5–10 (default 2.0); `minCalls` must be 1–10000 (default 10). Out-of-range values return a structured validation error
-- `detectBloatRisk({ minRows?, schema? })`: `minRows` must be 0–1,000,000 (default 1000). Nonexistent `schema` returns a structured `SCHEMA_NOT_FOUND` error
+- `detectBloatRisk({ minRows?, schema? })`: `minRows` must be 0–1,000,000 (default 1000). Nonexistent `schema` returns an empty result set (0 tables analyzed) rather than an error
 - `detectConnectionSpike({ warningPercent? })`: Default 70. Flags users/apps holding ≥ `warningPercent`% of connections. Value is clamped to 10–100 (not `threshold` — that key is ignored)
 
 📍 **Code Mode Note**: `pg_performance_baseline` → `pg.performance.baseline({ name? })` (not `performanceBaseline`). Optional `name` param labels the snapshot; defaults to an ISO timestamp. `indexRecommendations` accepts `query` alias for `sql`

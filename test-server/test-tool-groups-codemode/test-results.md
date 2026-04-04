@@ -21,7 +21,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-partitioning.md` | ~2,117 | |
 | `test-tool-group-codemode-partman.md` | ~3,598 | |
 | `test-tool-group-codemode-performance-part1.md` | ~17,196 | |
-| `test-tool-group-codemode-performance-part2.md` | ~27,727 | |
+| `test-tool-group-codemode-performance-part2.md` | ~19,213 | |
 | `test-tool-group-codemode-pgcrypto.md` | ~10,634 | |
 | `test-tool-group-codemode-postgis-part1.md` | ~5,974 | |
 | `test-tool-group-codemode-postgis-part2.md` | ~9,606 | |

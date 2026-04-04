@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Normalized error messages to use P154-consistent double-quote formatting.
   - Implemented pagination/limits to prevent extreme payloads on heavily partitioned tables.
 - Corrected behavioral inconsistencies in Performance tools:
-  - Fixed `SCHEMA_NOT_FOUND` validation in `pg_detect_bloat_risk` to return proper structural errors instead of empty tables.
+  - Fixed `pg_detect_bloat_risk` filter behavior to return empty results instead of an error when a nonexistent schema is passed, accurately presenting a zero-match filter.
   - Added strict parameter value parsing for enum constraints in `pg_stat_statements` to reject invalid `orderBy` inputs instead of defaulting silently.
 - Resolved Split Schema Pattern violations in Search, JSONB, Vector, Stats, and Performance groups (e.g. `pg_seq_scan_tables`).
 - Corrected Split Schema mapping for `isolation_level` alias in Transaction tools to properly enforce `isolationLevel` values instead of silently falling back to `READ COMMITTED`.

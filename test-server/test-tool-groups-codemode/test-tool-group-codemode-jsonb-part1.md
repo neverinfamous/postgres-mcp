@@ -1,7 +1,5 @@
 # postgres-mcp Tool Group Re-Testing: [jsonb] (Part 1)
 
-> **NOTICE**: This file has been split to optimize token footprint. This is Part 1.
-
 **ESSENTIAL INSTRUCTIONS**
 
 - Conduct an exhaustive test of the tool group listed below using ONLY code mode (`pg_execute_code`).
