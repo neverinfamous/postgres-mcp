@@ -36,7 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unused `hono` router dependency.
 - Duplicate and stale validation logic across performance handlers.
 
+### Fixed
 - Completed production-readiness certification across Core, Monitoring, Performance, Stats, Vector, Transactions, Text, Admin, Backup, Citext, Cron, Introspection, kcache, JSONB, ltree, Migration, Partitioning, Partman, pgcrypto, and Schema tool groups (verified explicit payload boundaries, Zod compliance, and Code Mode execution).
+- Corrected misleading `suggestion` returned in `TransactionError` when a provided transaction ID is not found.
 - Added truncation (`limit`) handling to `pg_partition_info` to prevent extreme payloads on heavily partitioned tables.
 - Fixed Zod validation leak for `subpartitionBy` enum and `partitionBy` schema bypass in partitioning tools.
 - Standardized P154 error structures (`success: false` with explicit `ValidationError`s) across all 230+ tools.

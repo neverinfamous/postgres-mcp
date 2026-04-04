@@ -198,8 +198,9 @@ export class TransactionError extends PostgresMcpError {
     options?: { cause?: Error },
   ) {
     super(message, "TRANSACTION_ERROR", ErrorCategory.QUERY, {
-      suggestion:
-        "Use pg_transaction_rollback to end the aborted transaction, or pg_transaction_rollback_to to recover to a savepoint.",
+      suggestion: message.includes("not found")
+        ? "Ensure you have started a transaction with pg_transaction_begin and are using the correct transaction ID."
+        : "Use pg_transaction_rollback to end the aborted transaction, or pg_transaction_rollback_to to recover to a savepoint.",
       details,
       recoverable: true,
       cause: options?.cause,
