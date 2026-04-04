@@ -17,7 +17,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-kcache.md` | ~4,386 | |
 | `test-tool-group-ltree.md` | ~4,441 | |
 | `test-tool-group-migration.md` | ~4,609 |
-| `test-tool-group-monitoring.md` | ~ | |
+| `test-tool-group-monitoring.md` | ~5,380 | |
 | `test-tool-group-partitioning.md` | ~ | |
 | `test-tool-group-partman.md` | ~ | |
 | `test-tool-group-performance-part1.md` | ~ | |

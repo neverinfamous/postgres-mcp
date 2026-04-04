@@ -410,29 +410,33 @@ Core: \`createExtension()\`, \`query()\`, \`match()\`, \`subpath()\`, \`lca()\`,
 Code Mode: \`pg.migration.*\` — 6 tools for schema migration tracking and management.
 Core: \`init()\`, \`record()\`, \`apply()\`, \`rollback()\`, \`history()\`, \`status()\`
 
-- \`pg_migration_init\`: Initialize/verify \`_mcp_schema_versions\` tracking table (idempotent). Params: \`schema?\`. Returns \`{success, tableCreated, tableName, existingRecords}\`
-- \`pg_migration_record\`: Record a migration with SHA-256 hash dedup. ⚠️ Records metadata only—does NOT execute the SQL (status: 'recorded'). Use \`pg_migration_apply\` instead for complete migrations (status: 'applied'). Params: \`version\`, \`description?\`, \`migrationSql\` (aliases: \`query\`, \`sql\`), \`rollbackSql?\`, \`sourceSystem?\`, \`appliedBy?\`. Returns \`{success, record}\`
-- \`pg_migration_apply\`: Execute migration SQL and record it atomically in a single transaction. On failure, rolls back and records status as 'failed'. Same params as \`pg_migration_record\`. Returns \`{success, record}\` or \`{success: false, error}\`
-- \`pg_migration_rollback\`: Execute stored rollback SQL in a transaction. \`dryRun: true\` previews without executing (default: \`false\` — executes immediately). Lookup by \`id\` or \`version\`. Returns \`{success, dryRun, rollbackSql, record}\`
-- \`pg_migration_history\`: Query migration history with \`status?\` ('applied'|'recorded'|'rolled_back'|'failed'), \`sourceSystem?\`, \`limit?\`, \`offset?\`. Returns \`{records, total, limit, offset}\`
-- \`pg_migration_status\`: Aggregate dashboard. Params: \`schema?\`. Returns \`{initialized, latestVersion, counts, sourceSystems}\`
+- \`pg_migration_init\`: Initialize/verify \`_mcp_schema_versions\` tracking table (idempotent). Params: \`schema?\`. Returns \`{success, tableCreated, tableName, existingRecords, error?}\`
+- \`pg_migration_record\`: Record a migration with SHA-256 hash dedup. ⚠️ Records metadata only—does NOT execute the SQL (status: 'recorded'). Use \`pg_migration_apply\` instead for complete migrations (status: 'applied'). Params: \`version\`, \`description?\`, \`migrationSql\` (aliases: \`query\`, \`sql\`), \`rollbackSql?\`, \`sourceSystem?\`, \`appliedBy?\`. Returns \`{success, record, error?}\`
+- \`pg_migration_apply\`: Execute migration SQL and record it atomically in a single transaction. On failure, rolls back and records status as 'failed'. Same params as \`pg_migration_record\`. Returns \`{success, record, error?}\`
+- \`pg_migration_rollback\`: Execute stored rollback SQL in a transaction. \`dryRun: true\` previews without executing (default: \`false\` — executes immediately). Lookup by \`id\` or \`version\`. Returns \`{success, dryRun, rollbackSql, record, error?}\`
+- \`pg_migration_history\`: Query migration history. Params: \`status?\` ('applied'|'recorded'|'rolled_back'|'failed'), \`sourceSystem?\`, \`limit?\`, \`offset?\`. Returns \`{success, records, total, limit, offset, error?}\`
+- \`pg_migration_status\`: Aggregate dashboard. Params: \`schema?\`. Returns \`{success, initialized, latestVersion, latestAppliedAt, counts, sourceSystems, error?}\`
+
+> **Note**: All tools support P154 Structured Errors and will return \`{success: false, error: "...", code: "...", category: "...", recoverable: boolean}\` on failure rather than throwing raw MCP exceptions.
 
 **Discovery**: \`pg.migration.help()\` returns \`{methods, methodAliases, examples}\``],
   ["monitoring", `# Monitoring Tools
 
-Core: \`databaseSize()\`, \`tableSizes()\`, \`connectionStats()\`, \`showSettings()\`, \`capacityPlanning()\`, \`uptime()\`, \`serverVersion()\`, \`recoveryStatus()\`, \`replicationStatus()\`, \`resourceUsageAnalyze()\`, \`alertThresholdSet()\`
+Code Mode: \`pg.monitoring.*\` — \`databaseSize()\`, \`tableSizes()\`, \`connectionStats()\`, \`showSettings()\`, \`capacityPlanning()\`, \`uptime()\`, \`serverVersion()\`, \`recoveryStatus()\`, \`replicationStatus()\`, \`resourceUsageAnalyze()\`, \`alertThresholdSet()\`
 
-- \`databaseSize()\`: Returns \`{success: true, bytes: number, size: string}\`. Optional \`database\` param for specific db
-- \`tableSizes({ limit?, schema?, pattern? })\`: Clamped to a maximum of 100 rows to prevent unmanageable token bloat. Default limit 10. Accepts \`pattern\`, \`table\`, or \`name\` for table wildcard matching (e.g., \`%orders%\` or exact). Returns \`{success: true, tables: [...], count, truncated?, totalCount?}\`. \`truncated: true\` + \`totalCount\` when limited. Use \`limit: 0\` for up to 100 rows (maximum allowed)
-- \`connectionStats({ database? })\`: Requires P154 existence checks. Returns \`{success: true, byDatabaseAndState, totalConnections: number, maxConnections: number}\`
-- \`showSettings({ setting?, limit? })\`: Clamped to a maximum of 100 rows to prevent unmanageable token bloat. Default limit 50 when no pattern. Accepts \`pattern\`, \`setting\`, \`name\`, or \`like\`. Exact names auto-match; \`%\` for LIKE patterns
-- \`capacityPlanning({days: 90})\`: \`days\` = \`projectionDays\`. Returns \`{success: true, current, growth, projection, recommendations}\` with numeric fields. ⛔ Negative days rejected
-- \`uptime()\`: Returns \`{success: true, start_time: string, uptime: {days, hours, minutes, seconds, milliseconds}}\`
-- \`serverVersion()\`: Returns \`{success: true, full_version: string, version: string, version_num: number}\`
-- \`recoveryStatus()\`: Returns \`{success: true, in_recovery: boolean, last_replay_timestamp: string|null}\`
-- \`replicationStatus()\`: Returns \`{success: true, role: 'primary'|'replica', replicas: [...]}\` for primary, or \`{success: true, role: 'replica', replay_lag, ...}\` for replica
-- \`resourceUsageAnalyze()\`: Returns \`{success: true, backgroundWriter, checkpoints, connectionDistribution, bufferUsage, activity, analysis}\` with all counts as numbers
-- \`alertThresholdSet({metric?, warningThreshold?, criticalThreshold?})\`: Enforces strict threshold percentage bounds. Omit \`metric\` (e.g. \`{}\`) to return a comprehensive list of all threshold recommendations. Accepts snake_case parameter aliases (\`warning_threshold\`, \`critical_threshold\`). Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
+- \`databaseSize()\`: Returns \`{success: true, bytes: number, size: string, error?}\`. Optional \`database\` param for specific db
+- \`tableSizes({ limit?, schema?, pattern? })\`: Clamped to a maximum of 100 rows to prevent unmanageable token bloat. Default limit 10. Accepts \`pattern\`, \`table\`, or \`name\` for table wildcard matching (e.g., \`%orders%\` or exact). Returns \`{success: true, tables: [...], count, truncated?, totalCount?, error?}\`. \`truncated: true\` + \`totalCount\` when limited. Use \`limit: 0\` for up to 100 rows (maximum allowed). Invalid types gracefully default.
+- \`connectionStats({ database? })\`: Requires P154 existence checks. Returns \`{success: true, byDatabaseAndState, totalConnections: number, maxConnections: number, error?}\`
+- \`showSettings({ setting?, limit? })\`: Clamped to a maximum of 100 rows. Default limit 50 when no pattern. Accepts \`pattern\`, \`setting\`, \`name\`, or \`like\`. Exact names auto-match; \`%\` for LIKE patterns. Returns \`{success: true, settings: [...], count, totalCount?, truncated?, error?}\`. Invalid types gracefully default.
+- \`capacityPlanning({days: 90})\`: \`days\` = \`projectionDays\`. Returns \`{success: true, current, growth, projection, recommendations, error?}\` with numeric fields. ⛔ Negative days yield P154 validation error.
+- \`uptime()\`: Returns \`{success: true, start_time: string, uptime: {days, hours, minutes, seconds, milliseconds}, error?}\`
+- \`serverVersion()\`: Returns \`{success: true, full_version: string, version: string, version_num: number, error?}\`
+- \`recoveryStatus()\`: Returns \`{success: true, in_recovery: boolean, last_replay_timestamp: string|null, error?}\`
+- \`replicationStatus()\`: Returns \`{success: true, role: 'primary'|'replica', replicas: [...], error?}\` for primary, or \`{success: true, role: 'replica', replay_lag, receive_lsn, replay_lsn, error?}\` for replica
+- \`resourceUsageAnalyze()\`: Returns \`{success: true, backgroundWriter, checkpoints, connectionDistribution, bufferUsage, activity, analysis, error?}\`
+- \`alertThresholdSet({metric?, warningThreshold?, criticalThreshold?})\`: Enforces strict threshold percentage bounds. Omit \`metric\` (e.g. \`{}\`) to return a comprehensive list of all threshold recommendations. Accepts snake_case parameter aliases (\`warning_threshold\`, \`critical_threshold\`). Returns \`{success: true, metric?, threshold?, thresholds?, note?, error?}\`. Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
+
+> **Note**: All tools support P154 Structured Errors and will return \`{success: false, error: "..."}\` with standard \`code\` and \`category\` fields upon failure rather than throwing raw MCP exceptions. Wrong-type parameters for \`limit\` and \`days\` are silently coerced to defaults to prevent SDK ingestion rejection.
 
 📦 **AI-Optimized Payloads**: Tools return limited results by default to reduce context size:
 
