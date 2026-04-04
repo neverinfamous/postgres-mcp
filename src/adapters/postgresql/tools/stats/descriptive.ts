@@ -172,6 +172,7 @@ export function createStatsDescriptiveTool(
           }));
 
           return {
+            success: true,
             table: `${schema ?? "public"}.${table}`,
             column,
             groupBy,
@@ -206,6 +207,7 @@ export function createStatsDescriptiveTool(
         if (!stats) throw new ValidationError("No stats found");
 
         return {
+          success: true,
           table: `${schema ?? "public"}.${table}`,
           column,
           statistics: mapStats(stats),
@@ -313,6 +315,7 @@ export function createStatsPercentilesTool(
           }));
 
           const response: Record<string, unknown> = {
+            success: true,
             table: `${schema ?? "public"}.${table}`,
             column,
             groupBy,
@@ -345,6 +348,7 @@ export function createStatsPercentilesTool(
         const row = result.rows?.[0] ?? {};
 
         const response: Record<string, unknown> = {
+          success: true,
           table: `${schema ?? "public"}.${table}`,
           column,
           percentiles: mapPercentiles(row),

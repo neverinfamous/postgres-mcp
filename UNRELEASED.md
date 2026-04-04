@@ -48,6 +48,7 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - Enforced strict payload bounds (`limit`, `n`, `sanitizeResult`) on unbounded system tools (`pg_locks`, `pg_stat_activity`, `pg_stat_statements`, `pg_show_settings`) to prevent token depletion
 - Resolved Split Schema Pattern violations across `pg_hybrid_search`, JSONB, Vector, Citext, and Performance tools by refactoring `inputSchema` to expose base parameter types securely
 - Standardized success responses by prepending `success: true` to outputs across `pg_capacity_planning` and all 24 Performance Group utility tools
+- Appended missing `success: true` properties to Transaction and Stats group utility tools (`pg_transaction_begin`, `pg_transaction_status`, `pg_stats_descriptive`, `pg_stats_percentiles`)
 - Repaired serialization parity for array-to-vector conversions via Code Mode `pg_upsert`
 - Fixed Zod validation handling and eliminated framework refine leaks in vector tools
 - Corrected migration rollback transaction isolation to prevent unmanaged auto-commits

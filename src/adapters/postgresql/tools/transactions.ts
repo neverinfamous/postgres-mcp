@@ -62,6 +62,7 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
         const { isolationLevel, read_only } = BeginTransactionSchema.parse(params);
         const transactionId = await adapter.beginTransaction(isolationLevel, read_only);
         return {
+          success: true,
           transactionId,
           isolationLevel: isolationLevel ?? "READ COMMITTED",
           read_only: read_only,
@@ -95,6 +96,7 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
 
         if (!client) {
           return {
+            success: true,
             status: "not_found",
             transactionId,
             active: false,
@@ -108,6 +110,7 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeOnConnection(client, "SELECT 1");
           return {
+            success: true,
             status: "active",
             transactionId,
             active: true,
@@ -123,6 +126,7 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
               /current transaction is aborted/i.test(probeError.message))
           ) {
             return {
+              success: true,
               status: "aborted",
               transactionId,
               active: true,
