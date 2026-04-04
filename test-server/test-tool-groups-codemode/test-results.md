@@ -26,7 +26,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-postgis-part1.md` | ~5,974 | |
 | `test-tool-group-codemode-postgis-part2.md` | ~9,606 | |
 | `test-tool-group-codemode-schema.md` | ~12,790 | |
-| `test-tool-group-codemode-stats-part1.md` | ~60,702 | |
+| `test-tool-group-codemode-stats-part1.md` | ~57,469 | |
 | `test-tool-group-codemode-stats-part2.md` | ~9,082 | |
 | `test-tool-group-codemode-text.md` | ~6,042 | |
 | `test-tool-group-codemode-transactions.md` | ~2,922 | |
