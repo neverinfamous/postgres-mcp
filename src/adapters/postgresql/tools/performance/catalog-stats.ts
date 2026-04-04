@@ -52,9 +52,9 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
         const rawLimit = Number(parsed["limit"]);
         const userLimit =
           parsed["limit"] === undefined
-            ? 20
+            ? 10
             : isNaN(rawLimit)
-              ? 20
+              ? 10
               : rawLimit === 0
                 ? null
                 : rawLimit;
@@ -144,9 +144,9 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
         const rawLimit = Number(parsed["limit"]);
         const userLimit =
           parsed["limit"] === undefined
-            ? 20
+            ? 10
             : isNaN(rawLimit)
-              ? 20
+              ? 10
               : rawLimit === 0
                 ? null
                 : rawLimit;
@@ -180,20 +180,28 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
                         ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
         const result = await adapter.executeQuery(sql, queryParams);
-        // Coerce numeric fields to JavaScript numbers
+        // Coerce numeric fields to JavaScript numbers and omit null timestamps to save payload size
         const tables = (result.rows ?? []).map(
-          (row: Record<string, unknown>) => ({
-            ...row,
-            seq_scan: toNum(row["seq_scan"]),
-            seq_tup_read: toNum(row["seq_tup_read"]),
-            idx_scan: toNum(row["idx_scan"]),
-            idx_tup_fetch: toNum(row["idx_tup_fetch"]),
-            inserts: toNum(row["inserts"]),
-            updates: toNum(row["updates"]),
-            deletes: toNum(row["deletes"]),
-            live_tuples: toNum(row["live_tuples"]),
-            dead_tuples: toNum(row["dead_tuples"]),
-          }),
+          (row: Record<string, unknown>) => {
+            const mapped: Record<string, unknown> = {
+              ...row,
+              seq_scan: toNum(row["seq_scan"]),
+              seq_tup_read: toNum(row["seq_tup_read"]),
+              idx_scan: toNum(row["idx_scan"]),
+              idx_tup_fetch: toNum(row["idx_tup_fetch"]),
+              inserts: toNum(row["inserts"]),
+              updates: toNum(row["updates"]),
+              deletes: toNum(row["deletes"]),
+              live_tuples: toNum(row["live_tuples"]),
+              dead_tuples: toNum(row["dead_tuples"]),
+            };
+            // Omit null timestamp fields to save tokens
+            if (mapped["last_vacuum"] === null) delete mapped["last_vacuum"];
+            if (mapped["last_autovacuum"] === null) delete mapped["last_autovacuum"];
+            if (mapped["last_analyze"] === null) delete mapped["last_analyze"];
+            if (mapped["last_autoanalyze"] === null) delete mapped["last_autoanalyze"];
+            return mapped;
+          }
         );
 
         // Get total count if limited

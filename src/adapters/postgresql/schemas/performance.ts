@@ -68,7 +68,7 @@ export const IndexStatsSchemaBase = z.object({
   limit: z
     .any()
     .optional()
-    .describe("Max rows to return (default: 20, max: 100, use 0 for max 100)"),
+    .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const IndexStatsSchema = z.preprocess(
@@ -82,7 +82,7 @@ export const TableStatsSchemaBase = z.object({
   limit: z
     .any()
     .optional()
-    .describe("Max rows to return (default: 20, max: 100, use 0 for max 100)"),
+    .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const TableStatsSchema = z.preprocess(
