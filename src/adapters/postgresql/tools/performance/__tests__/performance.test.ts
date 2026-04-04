@@ -1578,6 +1578,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should suggest partition strategy", async () => {
+    // Phase 1: validatePerformanceTableExists (2 queries since schema='public')
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     // Mock the 3 parallel queries
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
@@ -1609,6 +1614,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should recommend partitioning for tables over 1GB", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     // 2GB table with low row count
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
@@ -1637,6 +1647,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should recommend partitioning for tables over 10 million rows", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [
@@ -1674,6 +1689,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should suggest RANGE partitioning for timestamp columns", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "events", n_live_tup: 1000000 }],
@@ -1704,6 +1724,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should suggest LIST partitioning for low cardinality columns", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "orders", n_live_tup: 1000000 }],
@@ -1739,6 +1764,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should suggest HASH partitioning for high cardinality integer columns", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "users", n_live_tup: 1000000 }],
@@ -1774,6 +1804,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should not recommend partitioning for small tables", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "small_table", n_live_tup: 10000 }],
@@ -2067,6 +2102,11 @@ describe("Parameter Aliases", () => {
   });
 
   it("pg_partition_strategy_suggest should accept tableName alias", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "orders", n_live_tup: 1000 }],
@@ -2088,6 +2128,11 @@ describe("Parameter Aliases", () => {
   });
 
   it("pg_partition_strategy_suggest should accept name alias", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ relname: "events", n_live_tup: 500 }] })
       .mockResolvedValueOnce({
@@ -3372,95 +3417,100 @@ describe("wrong-type limit param fallback", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("pg_table_stats should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("pg_table_stats should return validation error for non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_table_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      tables: unknown[];
+      success: boolean;
+      error: string;
+      code: string;
     };
 
-    expect(result).toBeDefined();
-    expect(result.tables).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
-  it("pg_index_stats should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("pg_index_stats should return validation error for non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_index_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      indexes: unknown[];
+      success: boolean;
+      error: string;
+      code: string;
     };
 
-    expect(result).toBeDefined();
-    expect(result.indexes).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
-  it("pg_stat_statements should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("pg_stat_statements should return validation error for non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_stat_statements")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      statements: unknown[];
+      success: boolean;
+      error: string;
+      code: string;
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
-  it("pg_unused_indexes should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("pg_unused_indexes should return validation error for non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_unused_indexes")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      indexes: unknown[];
+      success: boolean;
+      error: string;
+      code: string;
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
-  it("pg_duplicate_indexes should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("pg_duplicate_indexes should return validation error for non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_duplicate_indexes")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      duplicates: unknown[];
+      success: boolean;
+      error: string;
+      code: string;
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
-  it("pg_vacuum_stats should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("pg_vacuum_stats should return validation error for non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      tables: unknown[];
+      success: boolean;
+      error: string;
+      code: string;
     };
 
-    expect(result).toBeDefined();
-    expect(result.tables).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
-  it("pg_seq_scan_tables should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("pg_seq_scan_tables should return validation error for non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_seq_scan_tables")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      tables: unknown[];
+      success: boolean;
+      error: string;
+      code: string;
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
-  it("pg_query_plan_stats should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("pg_query_plan_stats should return validation error for non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_query_plan_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      queryPlanStats: unknown[];
+      success: boolean;
+      error: string;
+      code: string;
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 });
 

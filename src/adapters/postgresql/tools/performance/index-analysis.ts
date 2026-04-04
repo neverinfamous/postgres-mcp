@@ -36,7 +36,7 @@ export function createUnusedIndexesTool(
       .optional()
       .describe('Minimum index size to include (e.g., "1 MB")'),
     limit: z
-      .any()
+      .number()
       .optional()
       .describe("Max indexes to return (default: 20, use 0 for all)"),
     summary: z
@@ -62,15 +62,8 @@ export function createUnusedIndexesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = UnusedIndexesSchema.parse(params);
-        const rawLimit = Number(parsed.limit);
-        const limit =
-          parsed.limit === undefined
-            ? 20
-            : isNaN(rawLimit)
-              ? 20
-              : rawLimit === 0
-                ? null
-                : rawLimit;
+        const rawLimit = parsed.limit;
+        const limit = rawLimit === undefined ? 20 : rawLimit === 0 ? null : rawLimit;
 
         // P154: Validate schema existence before querying (throws ValidationError on failure)
         if (parsed.schema !== undefined) {
@@ -179,7 +172,7 @@ export function createDuplicateIndexesTool(
       .optional()
       .describe("Schema to filter (default: all user schemas)"),
     limit: z
-      .any()
+      .number()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
   });
@@ -201,15 +194,8 @@ export function createDuplicateIndexesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = DuplicateIndexesSchema.parse(params);
-        const rawLimit = Number(parsed.limit);
-        const limit =
-          parsed.limit === undefined
-            ? 50
-            : isNaN(rawLimit)
-              ? 50
-              : rawLimit === 0
-                ? null
-                : rawLimit;
+        const rawLimit = parsed.limit;
+        const limit = rawLimit === undefined ? 50 : rawLimit === 0 ? null : rawLimit;
 
         // P154: Validate schema existence before querying (throws ValidationError on failure)
         if (parsed.schema !== undefined) {

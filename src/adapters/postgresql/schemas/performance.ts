@@ -15,10 +15,11 @@ const defaultToEmpty = (val: unknown): unknown => val ?? {};
  * Exported so tools can apply it in their handlers.
  */
 export function preprocessExplainParams(input: unknown): unknown {
-  if (typeof input !== "object" || input === null) {
-    return input;
+  const normalized = input ?? {};
+  if (typeof normalized !== "object" || normalized === null) {
+    return normalized;
   }
-  const result = { ...(input as Record<string, unknown>) };
+  const result = { ...(normalized as Record<string, unknown>) };
 
   // Alias: query → sql
   if (result["query"] !== undefined && result["sql"] === undefined) {
@@ -66,7 +67,7 @@ export const IndexStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
   schema: z.string().optional().describe("Schema name"),
   limit: z
-    .any()
+    .number()
     .optional()
     .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
@@ -80,7 +81,7 @@ export const TableStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
   schema: z.string().optional().describe("Schema name"),
   limit: z
-    .any()
+    .number()
     .optional()
     .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
@@ -94,7 +95,7 @@ export const VacuumStatsSchemaBase = z.object({
   schema: z.string().optional().describe("Schema to filter"),
   table: z.string().optional().describe("Table name to filter"),
   limit: z
-    .any()
+    .number()
     .optional()
     .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });

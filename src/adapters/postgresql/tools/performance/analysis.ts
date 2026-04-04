@@ -23,12 +23,12 @@ export function createSeqScanTablesTool(
 ): ToolDefinition {
   const SeqScanTablesSchemaBase = z.object({
     minScans: z
-      .union([z.number(), z.string()])
+      .number()
       .optional()
       .describe("Minimum seq scans to include (default: 10)"),
     schema: z.string().optional().describe("Schema to filter"),
     limit: z
-      .union([z.number(), z.string()])
+      .number()
       .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
   });
@@ -50,15 +50,10 @@ export function createSeqScanTablesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = SeqScanTablesSchema.parse(params);
-        if (parsed.minScans !== undefined && isNaN(Number(parsed.minScans))) {
-          return { success: false, error: "Validation error: minScans must be a valid number", code: "VALIDATION_ERROR" };
-        }
-        const minScans = parsed.minScans === undefined ? 10 : Number(parsed.minScans);
+        const rawMinScans = parsed.minScans ?? 10;
+        const minScans = Math.max(0, rawMinScans);
 
-        if (parsed.limit !== undefined && isNaN(Number(parsed.limit))) {
-          return { success: false, error: "Validation error: limit must be a valid number", code: "VALIDATION_ERROR" };
-        }
-        const rawLimit = parsed.limit === undefined ? 20 : Number(parsed.limit);
+        const rawLimit = parsed.limit ?? 20;
         const limit = rawLimit <= 0 ? 100 : Math.min(rawLimit, 100);
 
         let whereClause = `seq_scan > ${String(minScans)}`;
