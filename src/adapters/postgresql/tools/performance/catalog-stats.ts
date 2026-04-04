@@ -103,11 +103,12 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
         };
 
         // Add totalCount if results were limited
-        if (limit !== null && indexes.length === limit) {
+        if (limit !== null && indexes.length >= limit) {
           const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_indexes WHERE ${whereClause}`;
           const countResult = await adapter.executeQuery(countSql, queryParams);
-          response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
-          response["truncated"] = true;
+          const totalCount = toNum(countResult.rows?.[0]?.["total"]) ?? 0;
+          response["totalCount"] = totalCount;
+          response["truncated"] = totalCount > limit;
         } else {
           response["truncated"] = false;
           response["totalCount"] = indexes.length;
@@ -210,11 +211,12 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
           tables,
           count: tables.length,
         };
-        if (limit !== null && tables.length === limit) {
+        if (limit !== null && tables.length >= limit) {
           const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_tables WHERE ${whereClause}`;
           const countResult = await adapter.executeQuery(countSql, queryParams);
-          response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
-          response["truncated"] = true;
+          const totalCount = toNum(countResult.rows?.[0]?.["total"]) ?? 0;
+          response["totalCount"] = totalCount;
+          response["truncated"] = totalCount > limit;
         } else {
           response["truncated"] = false;
           response["totalCount"] = tables.length;
@@ -321,11 +323,12 @@ export function createVacuumStatsTool(
         };
 
         // Add totalCount if results were limited
-        if (limit !== null && tables.length === limit) {
+        if (limit !== null && tables.length >= limit) {
           const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_tables WHERE ${whereClause}`;
           const countResult = await adapter.executeQuery(countSql, queryParams);
-          response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
-          response["truncated"] = true;
+          const totalCount = toNum(countResult.rows?.[0]?.["total"]) ?? 0;
+          response["totalCount"] = totalCount;
+          response["truncated"] = totalCount > limit;
         } else {
           response["truncated"] = false;
           response["totalCount"] = tables.length;
