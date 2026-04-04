@@ -572,7 +572,7 @@ Response Structures:
 
 **Advanced Analysis (4 tools):**
 
-- \`pg_stats_top_n({ table, column, n?, orderDirection?, selectColumns?, where? })\`: Top N rows ranked by column. \`n\` (default: 10). \`orderDirection\`: 'desc' (default) or 'asc'. Auto-excludes long-content columns (text, json, bytea) unless \`selectColumns\` specified—returns \`hint\` when columns excluded. Returns \`{success, column, direction, count, rows, hint?}\`
+- \`pg_stats_top_n({ table, column, n?, direction?, selectColumns?, where? })\`: Top N rows ranked by column. \`n\` (default: 10). \`direction\`: 'desc' (default) or 'asc'. Auto-excludes long-content columns (text, json, bytea) unless \`selectColumns\` specified—returns \`hint\` when columns excluded. Returns \`{success, column, direction, count, rows, hint?}\`
 - \`pg_stats_distinct({ table, column, where?, limit? })\`: Distinct values with total cardinality. Default \`limit: 100\`. Returns \`{success, column, distinctCount, values}\`
 - \`pg_stats_frequency({ table, column, where?, limit? })\`: Value frequency distribution ordered by frequency desc. Default \`limit: 20\`. Returns \`{success, column, distinctValues, distribution: [{value, frequency, percentage}]}\`
 - \`pg_stats_summary({ table, columns?, where? })\`: Summary statistics for multiple numeric columns. Defaults to all numeric columns if \`columns\` omitted. Returns \`{success, table, summaries: [{column, count, avg, min, max, stddev}]}\`
