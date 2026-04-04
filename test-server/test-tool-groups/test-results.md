@@ -4,11 +4,11 @@ Last tested: April 4th, 2026
 
 | Test Document | Approximate Token Usage | Notes |
 | :--- | :--- | :--- |
-| `test-tool-group-admin.md` | ~ | |
+| `test-tool-group-admin.md` | ~3,405 | |
 | `test-tool-group-backup.md` | ~ | |
 | `test-tool-group-citext.md` | ~ | |
-| `test-tool-group-core-part1.md` | ~7 | |
-| `test-tool-group-core-part2.md` | ~3 | |
+| `test-tool-group-core-part1.md` | ~7,737 | |
+| `test-tool-group-core-part2.md` | ~4,322 | |
 | `test-tool-group-cron.md` | ~ | |
 | `test-tool-group-cross-group.md` | ~ | |
 | `test-tool-group-introspection.md` | ~ | |

@@ -11,20 +11,20 @@ Core: `vacuum()`, `vacuumAnalyze()`, `analyze()`, `reindex()`, `cluster()`, `set
 - `terminateBackend({ pid })`: Forceful connection termination—use with caution
 - `appendInsight({ insight })`: Record a business insight to in-memory memo. Insights are accessible via `postgres://insights` resource. Use to record key findings during database analysis. Returns `{success, insightCount, message}`
 
-Aliases: `tableName`→`table`, `indexName`→`index`, `param`/`setting`→`name`, `processId`→`pid`, `text`→`insight`
+Aliases: `tableName`→`table`, `indexName`→`index`, `param`/`setting`→`name`, `processId`→`pid`, `text`→`insight`. (Note: for `reindex`, `tableName`/`table`/`indexName` all map to `name`).
 
 **Top-Level Aliases**: `pg.vacuum()`, `pg.vacuumAnalyze()`, `pg.analyze()`, `pg.reindex()`, `pg.cluster()`, `pg.setConfig()`, `pg.reloadConf()`, `pg.resetStats()`, `pg.cancelBackend()`, `pg.terminateBackend()`, `pg.appendInsight()`
 
 **Discovery**: `pg.admin.help()` returns `{methods, methodAliases, examples}` object
 
 **Response structures**:
+*(Note: All operations strictly adhere to P154 error handling, returning `{success: false, error: "...", code: "..."}` natively for domain errors and Zod validation failures).*
 
-- `vacuum()` / `vacuumAnalyze()`: `{success, message, table?, schema?, hint?}` (hint present when verbose: true)
-- `analyze()`: `{success, message, table?, schema?, columns?}`
-- `reindex()`: `{success, message}`
-- `cluster()`: `{success, message, table?, index?}` (table/index present for table-specific cluster)
-- `setConfig()`: `{success, message, parameter, value}`
-- `reloadConf()` / `resetStats()`: `{success, message}`
-- `cancelBackend()` / `terminateBackend()`: `{success, message}`
+- `vacuum()` / `vacuumAnalyze()`: `{success, message, table?, schema?, hint?}`
+- `analyze()`: `{success, message, table?, schema?, hint?}`
+- `reindex()`: `{success, message, target?, name?, concurrently?, hint?}`
+- `cluster()`: `{success, message, table?, index?, hint?}`
+- `setConfig()`: `{success, message, parameter?, value?, hint?}`
+- `reloadConf()` / `resetStats()`: `{success, message, hint?}`
+- `cancelBackend()` / `terminateBackend()`: `{success, message, pid?, hint?}`
 - `appendInsight()`: `{success, insightCount, message}`
-
