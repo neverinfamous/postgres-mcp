@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected misleading `suggestion` returned in `TransactionError` when a provided transaction ID is not found.
 - Added truncation (`limit`) handling to `pg_partition_info` to prevent extreme payloads on heavily partitioned tables.
 - Fixed Zod validation leak for `subpartitionBy` enum and `partitionBy` schema bypass in partitioning tools.
+- Fixed missing `success: true` flag in `pg_list_partitions` and `pg_partition_info` responses to ensure P154 compliance.
 - Standardized P154 error structures (`success: false` with explicit `ValidationError`s) across all 230+ tools.
 - Normalized systemic anomalies into standard payloads (e.g., `42P01` "relation does not exist", `42501` auth bounds errors) preventing unformatted ad-hoc messages.
 - Corrected `admin.md`, `backup.md`, `citext.md`, `jsonb.md`, and `schema.md` output schemas to properly reflect P154 handler fields, correct array wrappers (`snapshots`), default pagination limits, and split schema alias mappings.

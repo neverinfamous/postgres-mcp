@@ -178,6 +178,7 @@ export function createListPartitionsTool(
 
       // Build response with truncation indicators
       const response: Record<string, unknown> = {
+        success: true,
         partitions,
         count: partitions.length,
         truncated,

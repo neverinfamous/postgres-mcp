@@ -385,6 +385,7 @@ export function createPartitionInfoTool(
         : null;
 
       const response: Record<string, unknown> = {
+        success: true,
         tableInfo,
         partitions,
         totalSizeBytes,
