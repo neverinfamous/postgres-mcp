@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Completed production-readiness certification for the `kcache` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `jsonb` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `partitioning` tool group via rigorous Code Mode advanced stress testing
+- Completed production-readiness certification for the `partman` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `citext` tool group via rigorous Code Mode advanced stress testing
 - Validated P154-compliant structured error isolation handling across all `citext` operations
 - Confirmed Split Schema compliance and parameter alias mapping in `pg_citext_*` tools
