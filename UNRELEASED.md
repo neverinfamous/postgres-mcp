@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handled Partman routines executing gracefully on missing child tables or lacking extensions.
 - Remediated cascade simulators incorrectly truncating self-referencing foreign keys.
 - Bypassed Docker Hub rate-limit blocks by enforcing explicit authenticated pulls in CI.
+- Certified Admin tools group Code Mode execution and error framework compliance.
 - Certified deep cross-group functional pipelines (Core → Vector → JSONB → Stats).
 
 ### Security
