@@ -15,6 +15,18 @@ export const toNum = (val: unknown): number | null =>
   val === null || val === undefined ? null : Number(val);
 
 /**
+ * P507: Coerce string-typed numbers to actual numbers for z.preprocess().
+ * Returns undefined for non-numeric strings so .optional() defaults kick in.
+ * Prevents NaN leaking into SQL via z.coerce.number().
+ */
+export const coerceNumber = (val: unknown): unknown =>
+  typeof val === "string"
+    ? isNaN(Number(val))
+      ? undefined
+      : Number(val)
+    : val;
+
+/**
  * P154: Validate that a table/schema exists before executing performance queries.
  * Throws a ValidationError so the handler's catch block routes through
  * formatHandlerErrorResponse(), ensuring code/category/recoverable fields

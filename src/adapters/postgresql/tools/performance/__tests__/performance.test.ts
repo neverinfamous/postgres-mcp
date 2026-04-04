@@ -3402,10 +3402,11 @@ describe("P154 pre-checks", () => {
 });
 
 // =============================================================================
-// Wrong-type numeric param tests — limit: "abc" falls back to default
+// Wrong-type limit param handling — P507 coerced tools silently default,
+// strict z.number() tools return structured VALIDATION_ERROR
 // =============================================================================
 
-describe("wrong-type limit param fallback", () => {
+describe("wrong-type limit param handling", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
   let tools: ReturnType<typeof getPerformanceTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
@@ -3417,40 +3418,49 @@ describe("wrong-type limit param fallback", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("pg_table_stats should return validation error for non-numeric string", async () => {
+  it("pg_table_stats should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ schemaname: "public", relname: "t", seq_scan: "1", idx_scan: "1", n_live_tup: "1", n_dead_tup: "0", last_vacuum: null, last_autovacuum: null, last_analyze: null }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_table_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      tables: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.success).toBe(true);
+    expect(result.tables.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_index_stats should return validation error for non-numeric string", async () => {
+  it("pg_index_stats should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ schemaname: "public", relname: "t", indexrelname: "idx", idx_scan: "1", idx_tup_read: "1", idx_tup_fetch: "1" }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_index_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      indexes: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.success).toBe(true);
+    expect(result.indexes.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_stat_statements should return validation error for non-numeric string", async () => {
+  it("pg_stat_statements should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ query: "SELECT 1", calls: "1", total_time: "1", mean_time: "1", rows: "1", shared_blks_hit: "1", shared_blks_read: "0" }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_stat_statements")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      statements: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.success).toBe(true);
+    expect(result.statements.length).toBeGreaterThanOrEqual(0);
   });
 
   it("pg_unused_indexes should return validation error for non-numeric string", async () => {
@@ -3477,16 +3487,19 @@ describe("wrong-type limit param fallback", () => {
     expect(result.code).toBe("VALIDATION_ERROR");
   });
 
-  it("pg_vacuum_stats should return validation error for non-numeric string", async () => {
+  it("pg_vacuum_stats should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ schemaname: "public", table_name: "t", live_tuples: 1, dead_tuples: 0, dead_pct: 0, vacuum_count: 1, autovacuum_count: 1, analyze_count: 1, autoanalyze_count: 1, xid_age: 100, wraparound_risk: "OK" }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      tables: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.success).toBe(true);
+    expect(result.tables.length).toBeGreaterThanOrEqual(0);
   });
 
   it("pg_seq_scan_tables should return validation error for non-numeric string", async () => {
@@ -3501,16 +3514,19 @@ describe("wrong-type limit param fallback", () => {
     expect(result.code).toBe("VALIDATION_ERROR");
   });
 
-  it("pg_query_plan_stats should return validation error for non-numeric string", async () => {
+  it("pg_query_plan_stats should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ query: "SELECT 1", calls: "1", total_plan_time: 0.1, mean_plan_time: 0.1, total_exec_time: 1, mean_exec_time: 1, rows: "1", plan_pct: "9", shared_blks_hit: "1", shared_blks_read: "0", cache_hit_pct: "100" }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_query_plan_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      queryPlanStats: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.success).toBe(true);
+    expect(result.queryPlanStats.length).toBeGreaterThanOrEqual(0);
   });
 });
 

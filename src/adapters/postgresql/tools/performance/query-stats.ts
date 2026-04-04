@@ -18,25 +18,25 @@ import {
   StatActivityOutputSchema,
   QueryPlanStatsOutputSchema,
 } from "../../schemas/index.js";
-import { defaultToEmpty, toNum } from "./helpers.js";
+import { defaultToEmpty, toNum, coerceNumber } from "./helpers.js";
 import { ValidationError } from "../../../../types/errors.js";
 
 export function createStatStatementsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const StatStatementsSchemaBase = z.object({
-    limit: z
-      .number()
-      .optional()
-      .describe("Max statements to return (default: 10, max: 50, use 0 for max 50)"),
+    limit: z.preprocess(
+      coerceNumber,
+      z.number().optional(),
+    ).describe("Max statements to return (default: 10, max: 50, use 0 for max 50)"),
     orderBy: z
       .string()
       .optional()
       .describe("Sort order (default: total_time)"),
-    truncateQuery: z
-      .number()
-      .optional()
-      .describe("Max query length in chars (default: 100, use 0 for full text)"),
+    truncateQuery: z.preprocess(
+      coerceNumber,
+      z.number().optional(),
+    ).describe("Max query length in chars (default: 100, use 0 for full text)"),
   });
 
   const StatStatementsSchema = z.preprocess(
@@ -132,14 +132,14 @@ export function createStatActivityTool(
 ): ToolDefinition {
   const StatActivitySchemaBase = z.object({
     includeIdle: z.boolean().optional().describe("Include idle connections (default: false)"),
-    truncateQuery: z
-      .number()
-      .optional()
-      .describe("Max query length in chars (default: 100, use 0 for full text)"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Max connections to return (default: 100, use 0 for all)"),
+    truncateQuery: z.preprocess(
+      coerceNumber,
+      z.number().optional(),
+    ).describe("Max query length in chars (default: 100, use 0 for full text)"),
+    limit: z.preprocess(
+      coerceNumber,
+      z.number().optional(),
+    ).describe("Max connections to return (default: 100, use 0 for all)"),
   });
 
   const StatActivitySchema = z.preprocess(
@@ -222,16 +222,16 @@ export function createQueryPlanStatsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   const QueryPlanStatsSchemaBase = z.object({
-    limit: z
-      .number()
-      .optional()
-      .describe("Number of queries to return (default: 10, max: 50, use 0 for max 50)"),
-    truncateQuery: z
-      .number()
-      .optional()
-      .describe(
-        "Max query length in chars (default: 100, use 0 for full text)",
-      ),
+    limit: z.preprocess(
+      coerceNumber,
+      z.number().optional(),
+    ).describe("Number of queries to return (default: 10, max: 50, use 0 for max 50)"),
+    truncateQuery: z.preprocess(
+      coerceNumber,
+      z.number().optional(),
+    ).describe(
+      "Max query length in chars (default: 100, use 0 for full text)",
+    ),
   });
 
   const QueryPlanStatsSchema = z.preprocess(

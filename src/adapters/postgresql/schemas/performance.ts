@@ -11,6 +11,18 @@ import { ErrorResponseFields } from "./error-response-fields.js";
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
 
 /**
+ * P507: Coerce string-typed numbers to actual numbers for z.preprocess().
+ * Returns undefined for non-numeric strings so .optional() defaults kick in.
+ * Prevents NaN leaking into SQL via z.coerce.number().
+ */
+const coerceNumber = (val: unknown): unknown =>
+  typeof val === "string"
+    ? isNaN(Number(val))
+      ? undefined
+      : Number(val)
+    : val;
+
+/**
  * Preprocess explain params to normalize aliases.
  * Exported so tools can apply it in their handlers.
  */
@@ -66,10 +78,10 @@ export const ExplainSchema = z.preprocess(
 export const IndexStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z
-    .number()
-    .optional()
-    .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const IndexStatsSchema = z.preprocess(
@@ -80,10 +92,10 @@ export const IndexStatsSchema = z.preprocess(
 export const TableStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z
-    .number()
-    .optional()
-    .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const TableStatsSchema = z.preprocess(
@@ -94,10 +106,10 @@ export const TableStatsSchema = z.preprocess(
 export const VacuumStatsSchemaBase = z.object({
   schema: z.string().optional().describe("Schema to filter"),
   table: z.string().optional().describe("Table name to filter"),
-  limit: z
-    .number()
-    .optional()
-    .describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const VacuumStatsSchema = z.preprocess(
