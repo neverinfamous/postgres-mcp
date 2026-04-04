@@ -246,7 +246,7 @@ export const LtreeLcaSchemaBase = z.object({
   paths: z
     .array(z.string())
     .optional()
-    .describe("Array of ltree paths to find common ancestor (minimum 2)"),
+    .describe("Array of ltree paths to find common ancestor (minimum 1)"),
 });
 
 /**

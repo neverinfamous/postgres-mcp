@@ -37,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate and stale validation logic across performance handlers.
 
 ### Fixed
-- Completed production-readiness certification across Core, Monitoring, Performance, Stats, Vector, Transactions, Text, Admin, Backup, Citext, Cron, Introspection, kcache, and JSONB tool groups (verified explicit payload boundaries, Zod compliance, and Code Mode execution).
+- Completed production-readiness certification across Core, Monitoring, Performance, Stats, Vector, Transactions, Text, Admin, Backup, Citext, Cron, Introspection, kcache, JSONB, and ltree tool groups (verified explicit payload boundaries, Zod compliance, and Code Mode execution).
 - Standardized P154 error structures (`success: false` with explicit `ValidationError`s) across all 230+ tools.
 - Normalized systemic anomalies into standard payloads (e.g., `42P01` "relation does not exist", `42501` auth bounds errors) preventing unformatted ad-hoc messages.
 - Corrected `admin.md`, `backup.md`, `citext.md`, and `jsonb.md` output schemas to properly reflect P154 handler fields, correct array wrappers (`snapshots`), and split schema alias mappings.
