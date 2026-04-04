@@ -427,16 +427,16 @@ Core: \`databaseSize()\`, \`tableSizes()\`, \`connectionStats()\`, \`showSetting
 - \`recoveryStatus()\`: Returns \`{success: true, in_recovery: boolean, last_replay_timestamp: string|null}\`
 - \`replicationStatus()\`: Returns \`{success: true, role: 'primary'|'replica', replicas: [...]}\` for primary, or \`{success: true, role: 'replica', replay_lag, ...}\` for replica
 - \`resourceUsageAnalyze()\`: Returns \`{success: true, backgroundWriter, checkpoints, connectionDistribution, bufferUsage, activity, analysis}\` with all counts as numbers
-- \`alertThresholdSet({metric?, warningThreshold?, criticalThreshold?})\`: Enforces strict threshold percentage bounds. Omit \`metric\` (e.g. \`{}\`) to return a comprehensive list of all threshold recommendations. Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
+- \`alertThresholdSet({metric?, warningThreshold?, criticalThreshold?})\`: Enforces strict threshold percentage bounds. Omit \`metric\` (e.g. \`{}\`) to return a comprehensive list of all threshold recommendations. Accepts snake_case parameter aliases (\`warning_threshold\`, \`critical_threshold\`). Valid metrics: connection_usage, cache_hit_ratio, replication_lag, dead_tuples, long_running_queries, lock_wait_time
 
 📦 **AI-Optimized Payloads**: Tools return limited results by default to reduce context size:
 
 - \`tableSizes({ limit? })\`: Default 10 rows. Returns \`truncated: true\` + \`totalCount\` when limited. Use \`limit: 0\` for up to 100 rows (maximum allowed)
 - \`showSettings({ limit? })\`: Default 50 rows when no pattern specified. Use \`limit: 0\` for up to 100 rows (maximum allowed) or specify a pattern
 
-Aliases: \`tables\`→\`tableSizes\`, \`connections\`→\`connectionStats\`, \`settings\`/\`config\`→\`showSettings\`, \`alerts\`/\`thresholds\`→\`alertThresholdSet\`
+Aliases: \`connections\`/\`activeConnections\`→\`connectionStats\`, \`tables\`→\`tableSizes\`, \`settings\`/\`config\`→\`showSettings\`, \`alerts\`/\`thresholds\`→\`alertThresholdSet\`, \`systemHealth\`→\`resourceUsageAnalyze\`
 
-**Top-Level Aliases**: \`pg.databaseSize()\`, \`pg.tableSizes()\`, \`pg.connectionStats()\`, \`pg.serverVersion()\`, \`pg.uptime()\`, \`pg.showSettings()\`, \`pg.recoveryStatus()\`, \`pg.replicationStatus()\`, \`pg.capacityPlanning()\`, \`pg.resourceUsageAnalyze()\`, \`pg.alertThresholdSet()\``],
+**Top-Level Aliases**: \`pg.databaseSize()\`, \`pg.tableSizes()\`, \`pg.connectionStats()\`, \`pg.activeConnections()\`, \`pg.serverVersion()\`, \`pg.uptime()\`, \`pg.showSettings()\`, \`pg.recoveryStatus()\`, \`pg.replicationStatus()\`, \`pg.capacityPlanning()\`, \`pg.resourceUsageAnalyze()\`, \`pg.systemHealth()\`, \`pg.alertThresholdSet()\``],
   ["partitioning", `# Partitioning Tools
 
 - \`pg_create_partitioned_table\`: \`partitionBy\` case-insensitive. Supports \`schema.table\` format for \`name\` (auto-parsed). \`partitionKey\` is a string (e.g., \`"created_at"\` or \`"id, created_at"\`). \`primaryKey\` accepts array (e.g., \`['id', 'event_date']\`). ⛔ \`primaryKey\`/\`unique\` must include partition key—throws validation error otherwise
