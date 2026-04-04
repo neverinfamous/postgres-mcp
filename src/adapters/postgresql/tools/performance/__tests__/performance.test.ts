@@ -3502,6 +3502,21 @@ describe("wrong-type limit param handling", () => {
     expect(result.tables.length).toBeGreaterThanOrEqual(0);
   });
 
+  it("pg_locks should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ locktype: "relation", mode: "AccessShareLock", granted: true }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_locks")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      success: boolean;
+      locks: unknown[];
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.locks.length).toBeGreaterThanOrEqual(0);
+  });
+
   it("pg_seq_scan_tables should return validation error for non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_seq_scan_tables")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {

@@ -19,6 +19,7 @@ import {
 import {
   defaultToEmpty,
   toNum,
+  coerceNumber,
   validatePerformanceTableExists,
 } from "./helpers.js";
 
@@ -26,10 +27,10 @@ import {
 
 const LocksSchemaBase = z.object({
   showBlocked: z.boolean().optional().describe("Show only blocked queries (default: false)"),
-  limit: z
-    .number()
-    .optional()
-    .describe("Max locks to return (default: 100, use 0 for all)"),
+  limit: z.preprocess(
+    coerceNumber,
+    z.number().optional(),
+  ).describe("Max locks to return (default: 100, use 0 for all)"),
 });
 
 const LocksSchema = z.preprocess(defaultToEmpty, LocksSchemaBase);

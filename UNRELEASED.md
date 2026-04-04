@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Partitioning tools: Fixed membership checks, added `ifNotExists` parameters, and implemented pagination limits.
 - Fixed type coercion fallback leaks in Performance tools (`pg_seq_scan_tables`, `pg_detect_query_anomalies`, `pg_detect_bloat_risk`) to prevent native type mismatches by ensuring strict parameter checking.
 - Bounded limit definitions natively for `pg_locks` and `pg_stat_activity` to firmly cap max output rows at 100, preventing token extraction payloads from scaling unbounded.
+- Added `coerceNumber` preprocessing to `pg_locks` limit parameter to prevent raw MCP `-32602` errors when string-typed values are passed, matching the resilient pattern used by all other performance tools.
 - Fixed Zod schema strictness for `limit` and `undefined` payload parameters across Performance tools (`pg_unused_indexes`, `pg_duplicate_indexes`, `pg_explain_buffers`) to strictly adhere to P154 validation standards.
 - Updated `pg_diagnose_database_performance` to surface Zod validation errors cleanly using `ValidationError` instead of incomplete error payload objects.
 - Fixed massive payload blowout in `pg_stat_statements` and `pg_query_plan_stats` by capping maximum limits at 50 instead of 100, and optimized `pg_diagnose_database_performance` to omit empty structural array sections (e.g. slowQueries) to significantly reduce output token count.
