@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Completed production-readiness certification for the `stats` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `schema` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `transactions` tool group via rigorous Code Mode advanced stress testing
-- Completed production-readiness certification for the `vector` tool group (Part 1) via rigorous Code Mode advanced stress testing
+- Completed production-readiness certification for the `vector` tool group (Part 1 and Part 2) via rigorous Code Mode advanced stress testing
 - Validated P154-compliant structured error isolation handling across all `citext` operations
 - Confirmed Split Schema compliance and parameter alias mapping in `pg_citext_*` tools
 - Certified 100% Code Mode parity for citext comparison, candidate analysis, and column conversions
@@ -62,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standardized P154 error structures (`success: false` paired with explicit `ValidationError`s) and pre-checks across 230+ tools.
 - Normalized systemic anomalies into standard payloads (e.g., `42P01` "relation does not exist", `42501` auth bounds errors).
 - Validated standardized `success: true` responses across Performance, Transactions, and Stats groups.
+- Corrected `pg_hybrid_search` text parameter instructions in `vector.md` to accurately indicate the availability of the `query` field alias.
 - Resolved Split Schema Pattern violations in `pg_hybrid_search`, JSONB, Vector, Citext, and Performance by exposing base types.
 - Corrected missing schema/table existence validation warnings in `listFunctions`, `listTriggers`, and `listConstraints` instruction documentation.
 - Fixed SQL `row_number`, `rank`, and `ntile` window functions to properly cast index results as integer/real values to prevent string leakage.
