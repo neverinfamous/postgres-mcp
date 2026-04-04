@@ -21,12 +21,12 @@ Last tested: April 4th, 2026
 | `test-tool-group-partitioning.md` | ~3,365 | |
 | `test-tool-group-partman.md` | ~4,174 | |
 | `test-tool-group-performance-part1.md` | ~16,663 | |
-| `test-tool-group-performance-part2.md` | ~13,377 | |
+| `test-tool-group-performance-part2.md` | ~12,326 | |
 | `test-tool-group-pgcrypto.md` | ~2,876 | |
 | `test-tool-group-postgis-part1.md` | ~ | |
 | `test-tool-group-postgis-part2.md` | ~ | |
 | `test-tool-group-schema.md` | ~5,506 | |
-| `test-tool-group-stats-part1.md` | ~ | |
+| `test-tool-group-stats-part1.md` | ~20,365 | |
 | `test-tool-group-stats-part2.md` | ~ | |
 | `test-tool-group-text.md` | ~5,377 | |
 | `test-tool-group-transactions.md` | ~3,240 | |
