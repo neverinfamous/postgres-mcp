@@ -19,13 +19,13 @@ Last tested: April 4th, 2026
 | `test-tool-group-migration.md` | ~4,609 |
 | `test-tool-group-monitoring.md` | ~5,380 | |
 | `test-tool-group-partitioning.md` | ~4,165 | |
-| `test-tool-group-partman.md` | ~ | |
+| `test-tool-group-partman.md` | ~4,174 | |
 | `test-tool-group-performance-part1.md` | ~ | |
 | `test-tool-group-performance-part2.md` | ~ | |
-| `test-tool-group-pgcrypto.md` | ~ | |
+| `test-tool-group-pgcrypto.md` | ~2,876 | |
 | `test-tool-group-postgis-part1.md` | ~ | |
 | `test-tool-group-postgis-part2.md` | ~ | |
-| `test-tool-group-schema.md` | ~ | |
+| `test-tool-group-schema.md` | ~5,506 | |
 | `test-tool-group-stats-part1.md` | ~ | |
 | `test-tool-group-stats-part2.md` | ~ | |
 | `test-tool-group-text.md` | ~ | |
