@@ -433,7 +433,7 @@ Aliases: \`tables\`→\`tableSizes\`, \`connections\`→\`connectionStats\`, \`s
 - \`pg_partman_undo_partition\`: \`targetTable\` MUST exist before calling. Requires both \`parentTable\` and \`targetTable\`/\`target\`. ⚠️ Parent table and child partitions remain after undo—use \`DROP TABLE parent CASCADE\` to clean up
 - \`pg_partman_analyze_partition_health\`: Default \`limit: 50\` (use \`0\` for all). Returns \`truncated\` + \`totalCount\` when limited. \`summary.overallHealth\`: 'healthy'|'warnings'|'issues_found'
 - 📝 **Schema Resolution**: All partman tools auto-prefix \`public.\` when no schema specified in \`parentTable\`
-- 📝 **Aliases**: \`parentTable\` accepts \`table\`, \`parent\`, \`name\`. \`controlColumn\` accepts \`control\`, \`column\`. \`targetTable\` accepts \`target\`
+- 📝 **Aliases**: \`parentTable\` accepts \`table\`, \`parent\`, \`name\`. \`controlColumn\` accepts \`control\`, \`column\`, \`partitionColumn\`. \`targetTable\` accepts \`target\`. \`retentionKeepTable\` accepts \`keepTable\`.
 - 📝 **Strict Error Handling**: Attempting to query unmanaged tables (e.g. via \`pg_partman_show_config\`) throws \`TABLE_NOT_FOUND\`. Missing the extension completely throws \`EXTENSION_MISSING\` — remediate via \`pg_partman_create_extension\` before using partman tools.`],
   ["performance", `# Performance Tools
 
@@ -463,7 +463,7 @@ Aliases: \`cacheStats\`→\`cacheHitRatio\`, \`queryStats\`→\`statStatements\`
 - \`locks({ showBlocked?, limit? })\`: Default 100 rows. Returns \`count\` + \`truncated\`. Use \`limit: 0\` for all. \`showBlocked: true\` returns blocking/blocked query pairs instead of the full lock list
 - \`statActivity({ includeIdle?, limit?, truncateQuery? })\`: Default 100 connections (excludes idle), queries truncated to 100 chars. Returns \`count\`, \`truncated\`, and \`backgroundWorkers\`. Use \`limit: 0\` for all; \`includeIdle: true\` to include idle connections
 - \`detectQueryAnomalies({ threshold?, minCalls? })\`: \`threshold\` must be 0.5–10 (default 2.0); \`minCalls\` must be 1–10000 (default 10). Out-of-range values return a structured validation error
-- \`detectBloatRisk({ minRows?, schema? })\`: \`minRows\` must be 0–1,000,000 (default 1000). Nonexistent \`schema\` returns a P154 existence error
+- \`detectBloatRisk({ minRows?, schema? })\`: \`minRows\` must be 0–1,000,000 (default 1000). Nonexistent \`schema\` returns an empty result set (not an error)
 - \`detectConnectionSpike({ warningPercent? })\`: Default 70. Flags users/apps holding ≥ \`warningPercent\`% of connections. Value is clamped to 10–100 (not \`threshold\` — that key is ignored)
 
 📍 **Code Mode Note**: \`pg_performance_baseline\` → \`pg.performance.baseline({ name? })\` (not \`performanceBaseline\`). Optional \`name\` param labels the snapshot; defaults to an ISO timestamp. \`indexRecommendations\` accepts \`query\` alias for \`sql\`
