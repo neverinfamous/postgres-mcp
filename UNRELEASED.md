@@ -65,6 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Certified Code Mode execution compliance for deep cross-group functional pipelines (Core → Vector → JSONB → Stats).
 - Completed production-readiness certification for the Monitoring tool group, ensuring precise payload limits, robust Code Mode compliance, and pristine P154 structured error handling.
 - Completed production-readiness certification for the Performance tool group, verifying extended bounds protections, native payload truncation limits, and P154 structured error isolation.
+- Refactored `pg_describe_table` to throw standard errors instead of unformatted ad-hoc messages, ensuring proper integration with `formatHandlerErrorResponse` and P154 validation.
+- Completed production-readiness certification for the Core tool group, ensuring precise alias mapping, strict Zod compliance, and pristine P154 structured error handling.
 
 ### Security
 - Resolved prototype pollution vulnerabilities via `hono` and exact-version overrides.

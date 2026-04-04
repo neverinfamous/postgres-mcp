@@ -114,20 +114,14 @@ export function createDescribeTableTool(
         );
 
         if (!typeCheck.rows || typeCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Object '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
-          };
+          throw new Error(`Object '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`);
         }
 
         const relkind = typeCheck.rows[0]?.["relkind"] as string;
 
         // Sequences have relkind 'S'
         if (relkind === "S") {
-          return {
-            success: false,
-            error: `'${schemaName}.${table}' is a sequence, not a table. Use pg_read_query with "SELECT * FROM ${schemaName}.${table}" to see sequence state, or pg_list_objects to discover objects.`,
-          };
+          throw new Error(`'${schemaName}.${table}' is a sequence, not a table. Use pg_read_query with "SELECT * FROM ${schemaName}.${table}" to see sequence state, or pg_list_objects to discover objects.`);
         }
 
         // Only allow tables, views, materialized views, foreign tables, partitioned tables
@@ -141,10 +135,7 @@ export function createDescribeTableTool(
             c: "composite type",
           };
           const typeName = kindNames[relkind] ?? `unknown type (${relkind})`;
-          return {
-            success: false,
-            error: `'${schemaName}.${table}' is a ${typeName}, not a table. Use pg_list_objects to discover database objects.`,
-          };
+          throw new Error(`'${schemaName}.${table}' is a ${typeName}, not a table. Use pg_list_objects to discover database objects.`);
         }
 
         return await adapter.describeTable(table, schemaName);
