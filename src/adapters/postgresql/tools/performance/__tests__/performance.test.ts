@@ -2676,7 +2676,7 @@ describe("pg_vacuum_stats comprehensive", () => {
   it("should add totalCount when results are truncated", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
-        rows: Array(20).fill({
+        rows: Array(10).fill({
           schemaname: "public",
           table_name: "test",
           live_tuples: "100",
@@ -2907,7 +2907,7 @@ describe("pg_query_plan_stats comprehensive", () => {
   it("should add totalCount when results are truncated", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
-        rows: Array(20).fill({
+        rows: Array(10).fill({
           query: "SELECT 1",
           calls: "1",
           total_plan_time: 0.1,

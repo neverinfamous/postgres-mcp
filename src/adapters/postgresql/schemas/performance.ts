@@ -416,7 +416,6 @@ export const VacuumStatsOutputSchema = z.object({
   error: z.string().optional().describe("Error message if failed"),
 }).extend(ErrorResponseFields.shape);
 
-// pg_query_plan_stats
 export const QueryPlanStatsOutputSchema = z.object({
   queryPlanStats: z
     .array(z.record(z.string(), z.unknown()))

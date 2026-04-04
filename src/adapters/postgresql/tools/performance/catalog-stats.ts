@@ -277,9 +277,9 @@ export function createVacuumStatsTool(
         const rawLimit = Number(parsed.limit);
         const userLimit =
           parsed.limit === undefined
-            ? 20
+            ? 10
             : isNaN(rawLimit)
-              ? 20
+              ? 10
               : rawLimit === 0
                 ? null
                 : rawLimit;

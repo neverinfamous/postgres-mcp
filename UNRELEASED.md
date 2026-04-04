@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: Core write tools require `write` scope; destructive tools require `admin`.
 - Modularized source files applying strict kebab-case convention.
 - Optimized token payload sizes (~30–41% reduction) via compact toggles and array collapsing.
-- Reduced max-cap parameter limits from 500 to 100 and lowered default limits from 50 to 20 across heavy `performance` statistics tools (`pg_table_stats`, `pg_stat_statements`, etc) to strictly enforce LLM context-window protection.
+- Reduced max-cap parameter limits from 500 to 100 and lowered default limits to 10-20 across heavy `performance` statistics tools (`pg_table_stats`, `pg_stat_statements`, `pg_vacuum_stats`, `pg_query_plan_stats`) to strictly enforce LLM context-window protection.
 - Applied `openWorldHint: false` to all tools.
 - Centralized default connection pool timeout to 30,000ms.
 - Reduced npm package size by excluding test and source map artifacts.
@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed Zod validation leaks and structural input type validation for aliases.
   - Normalized error messages to use P154-consistent double-quote formatting.
   - Implemented pagination/limits to prevent extreme payloads on heavily partitioned tables.
-- Resolved Split Schema Pattern violations in Search, JSONB, Vector, and Stats groups.
+- Resolved Split Schema Pattern violations in Search, JSONB, Vector, Stats, and Performance groups (e.g. `pg_seq_scan_tables`).
 - Corrected Split Schema mapping for `isolation_level` alias in Transaction tools to properly enforce `isolationLevel` values instead of silently falling back to `READ COMMITTED`.
 - Corrected misleading suggestions in `TransactionError` for missing transaction IDs.
 - Fixed numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).

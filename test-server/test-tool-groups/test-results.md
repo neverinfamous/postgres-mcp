@@ -21,7 +21,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-partitioning.md` | ~3,365 | |
 | `test-tool-group-partman.md` | ~4,174 | |
 | `test-tool-group-performance-part1.md` | ~37,900 | |
-| `test-tool-group-performance-part2.md` | ~ | |
+| `test-tool-group-performance-part2.md` | ~13,377 | |
 | `test-tool-group-pgcrypto.md` | ~2,876 | |
 | `test-tool-group-postgis-part1.md` | ~ | |
 | `test-tool-group-postgis-part2.md` | ~ | |

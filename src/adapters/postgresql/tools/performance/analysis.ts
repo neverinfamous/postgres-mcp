@@ -11,7 +11,7 @@ import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { coerceNumber, toNum } from "../../../../utils/query-helpers.js";
+import { toNum } from "../../../../utils/query-helpers.js";
 import {
   SeqScanTablesOutputSchema,
   IndexRecommendationsOutputSchema,
@@ -23,11 +23,13 @@ export function createSeqScanTablesTool(
 ): ToolDefinition {
   const SeqScanTablesSchemaBase = z.object({
     minScans: z
-      .preprocess(coerceNumber, z.number().optional())
+      .union([z.number(), z.string()])
+      .optional()
       .describe("Minimum seq scans to include (default: 10)"),
     schema: z.string().optional().describe("Schema to filter"),
     limit: z
-      .preprocess(coerceNumber, z.number().optional())
+      .union([z.number(), z.string()])
+      .optional()
       .describe("Max rows to return (default: 50, use 0 for all)"),
   });
 

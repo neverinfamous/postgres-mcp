@@ -244,7 +244,7 @@ export function createQueryPlanStatsTool(
     limit: z
       .union([z.number(), z.string()])
       .optional()
-      .describe("Number of queries to return (default: 20, use 0 for all)"),
+      .describe("Number of queries to return (default: 10, max: 100, use 0 for max 100)"),
     truncateQuery: z
       .union([z.number(), z.string()])
       .optional()
@@ -273,9 +273,9 @@ export function createQueryPlanStatsTool(
         const rawLimit = Number(parsed.limit);
         const userLimit =
           parsed.limit === undefined
-            ? 20
+            ? 10
             : isNaN(rawLimit)
-              ? 20
+              ? 10
               : rawLimit === 0
                 ? null
                 : rawLimit;
