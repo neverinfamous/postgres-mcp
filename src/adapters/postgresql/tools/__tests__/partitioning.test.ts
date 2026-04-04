@@ -1111,6 +1111,10 @@ describe("pg_partition_info", () => {
         },
       ],
     });
+    // Fourth call: total size
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total_bytes: 52428800 + 78643200 }],
+    });
 
     const tool = tools.find((t) => t.name === "pg_partition_info")!;
     const result = (await tool.handler(
@@ -1158,6 +1162,10 @@ describe("pg_partition_info", () => {
           approx_rows: 0,
         },
       ],
+    });
+    // Fourth call: total size
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total_bytes: 8192 }],
     });
 
     const tool = tools.find((t) => t.name === "pg_partition_info")!;
