@@ -10,7 +10,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-core-part1.md` | ~3,489 | |
 | `test-tool-group-codemode-core-part2.md` | ~3,550 | |
 | `test-tool-group-codemode-cron.md` | ~4,930 | |
-| `test-tool-group-codemode-cross-group.md` | ~187,341 | |
+| `test-tool-group-codemode-cross-group.md` | ~185,662 | |
 | `test-tool-group-codemode-introspection.md` | ~41,208 | |
 | `test-tool-group-codemode-jsonb-part1.md` | ~31,891 | |
 | `test-tool-group-codemode-jsonb-part2.md` | ~3,309 | |
@@ -32,7 +32,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-transactions.md` | ~2,893 | |
 | `test-tool-group-codemode-vector-part1.md` | ~3,630 | |
 | `test-tool-group-codemode-vector-part2.md` | ~6,931 | |
-| **Total Estimated Tokens** | **~429,805** | |
+| **Total Estimated Tokens** | **~428,126** | |
 
 **Safe to test in pairs**
 jsonb + vector
