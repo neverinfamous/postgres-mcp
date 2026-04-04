@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
-import { coerceStrictNumber } from "../../../utils/query-helpers.js";
+import { coerceNumber } from "../../../utils/query-helpers.js";
 
 // Helper to handle undefined params (allows tools to be called without {})
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
@@ -38,13 +38,13 @@ export const TableSizesSchemaBase = z.object({
   pattern: z.string().optional().describe("Table name pattern (LIKE syntax or exact)"),
   table: z.string().optional().describe("Alias for pattern - table name"),
   name: z.string().optional().describe("Alias for pattern - table name"),
-  limit: z.number().optional().describe("Max tables to return"),
+  limit: z.unknown().optional().describe("Max tables to return"),
 });
 
 export const TableSizesSchema = z.preprocess(
   defaultToEmpty,
   TableSizesSchemaBase.extend({
-    limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
   }).transform((data) => ({
     schema: data.schema,
     pattern: data.pattern ?? data.table ?? data.name,
@@ -69,14 +69,14 @@ export const ShowSettingsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Alias for pattern - setting name or pattern"),
-  limit: z.number().optional()
+  limit: z.unknown().optional()
     .describe("Max settings to return (default: 50 when no pattern specified)"),
 });
 
 export const ShowSettingsSchema = z.preprocess(
   defaultToEmpty,
   ShowSettingsSchemaBase.extend({
-    limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
   }).transform((data) => {
     // Resolve alias: like, setting or name → pattern
     const pattern = data.pattern ?? data.like ?? data.setting ?? data.name;
@@ -110,15 +110,15 @@ export const AlertThresholdSetSchema = z.preprocess(
 );
 
 export const CapacityPlanningSchemaBase = z.object({
-  projectionDays: z.number().optional().describe("Days to project growth (default: 90)"),
-  days: z.number().optional().describe("Alias for projectionDays"),
+  projectionDays: z.unknown().optional().describe("Days to project growth (default: 90)"),
+  days: z.unknown().optional().describe("Alias for projectionDays"),
 });
 
 export const CapacityPlanningSchema = z.preprocess(
   defaultToEmpty,
   CapacityPlanningSchemaBase.extend({
-    projectionDays: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
-    days: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
+    projectionDays: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    days: z.preprocess(coerceNumber, z.number().optional()).optional(),
   })
     .refine(
       (data) => {
