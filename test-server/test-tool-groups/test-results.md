@@ -1,4 +1,4 @@
-# Token Consumption during codemode Testing of postgres-mcp
+# Token Consumption during Direct Tool Testing of postgres-mcp
 
 Last tested: April 4th, 2026
 
@@ -26,8 +26,8 @@ Last tested: April 4th, 2026
 | `test-tool-group-postgis-part1.md` | ~ | |
 | `test-tool-group-postgis-part2.md` | ~ | |
 | `test-tool-group-schema.md` | ~5,506 | |
-| `test-tool-group-stats-part1.md` | ~20,365 | |
-| `test-tool-group-stats-part2.md` | ~ | |
+| `test-tool-group-stats-part1.md` | ~8,824 | |
+| `test-tool-group-stats-part2.md` | ~9,835 | |
 | `test-tool-group-text.md` | ~5,377 | |
 | `test-tool-group-transactions.md` | ~3,240 | |
 | `test-tool-group-vector-part1.md` | ~ | |
