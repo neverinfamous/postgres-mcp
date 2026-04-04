@@ -346,6 +346,7 @@ Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`sc
 - ⛔ **Array-only tools**: \`insert\` requires JSONB arrays, throws errors for objects
 - 📝 \`normalize\` modes: \`pairs\`/\`keys\`/\`flatten\` for objects; \`array\` for arrays
 - 📦 **AI-Optimized Payloads**: \`contains\` and \`pathQuery\` default to 100 results. Returns \`truncated\` + \`totalCount\` when capped. Use \`limit: 0\` for all rows
+- 💡 **Response Shapes**: Several tools return custom keys instead of standard \`.rows\`: \`pg_jsonb_keys\` returns \`{keys: [...]}\`, \`pg_jsonb_path_query\` returns \`{results: [...]}\`, \`pg_jsonb_array\` returns \`{array: [...]}\`, and \`pg_jsonb_extract\` maps extraction to \`[{value: ...}]\`.
 
 **Top-Level Aliases**: \`pg.jsonbExtract()\`, \`pg.jsonbSet()\`, \`pg.jsonbInsert()\`, \`pg.jsonbDelete()\`, \`pg.jsonbContains()\`, \`pg.jsonbPathQuery()\`, \`pg.jsonbAgg()\`, \`pg.jsonbObject()\`, \`pg.jsonbArray()\`, \`pg.jsonbKeys()\`, \`pg.jsonbStripNulls()\`, \`pg.jsonbTypeof()\`, \`pg.jsonbValidatePath()\`, \`pg.jsonbMerge()\`, \`pg.jsonbNormalize()\`, \`pg.jsonbDiff()\`, \`pg.jsonbIndexSuggest()\`, \`pg.jsonbSecurityScan()\`, \`pg.jsonbStats()\`, \`pg.jsonbPretty()\``],
   ["kcache", `# pg_stat_kcache Tools
