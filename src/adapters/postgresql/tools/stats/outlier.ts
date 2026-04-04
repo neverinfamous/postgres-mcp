@@ -190,11 +190,8 @@ async function detectZScoreOutliers(
     stats: { mean, stdDev, lowerBound, upperBound },
     outlierCount: outliers.length,
     totalRows,
+    outliers,
   };
-
-  if (outliers.length > 0) {
-    response["outliers"] = outliers;
-  }
 
   if (truncated) {
     response["truncated"] = true;
@@ -274,11 +271,8 @@ async function detectIqrOutliers(
     stats: { q1, q3, iqr, lowerBound, upperBound },
     outlierCount: outliers.length,
     totalRows,
+    outliers,
   };
-
-  if (outliers.length > 0) {
-    response["outliers"] = outliers;
-  }
 
   if (truncated) {
     response["truncated"] = true;

@@ -157,7 +157,6 @@ export const StatsOutliersOutputSchema = z
           ctid: z.string().optional().describe("Row physical location"),
         }),
       )
-      .optional()
       .describe("Detected outlier values"),
     truncated: z
       .boolean()
