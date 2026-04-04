@@ -16,7 +16,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-jsonb-part2.md` | ~2,845 | |
 | `test-tool-group-kcache.md` | ~4,386 | |
 | `test-tool-group-ltree.md` | ~4,441 | |
-| `test-tool-group-migration.md` | ~ |
+| `test-tool-group-migration.md` | ~4,609 |
 | `test-tool-group-monitoring.md` | ~ | |
 | `test-tool-group-partitioning.md` | ~ | |
 | `test-tool-group-partman.md` | ~ | |
