@@ -1,7 +1,5 @@
 # postgres-mcp codemode Re-Testing: [core] (Part 2)
 
-> **NOTICE**: This file has been split to optimize token footprint. This is Part 2.
-
 **ESSENTIAL INSTRUCTIONS**
 
 - Conduct an exhaustive test of the tool group listed below using ONLY code mode (`pg_execute_code`).
