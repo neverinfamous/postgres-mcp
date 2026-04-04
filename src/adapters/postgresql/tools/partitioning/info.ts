@@ -217,6 +217,34 @@ export function createDetachPartitionTool(
         ? parsedPartition.schema
         : (schema ?? parsedParent.schema);
 
+      // Verify the partition is actually a child of the named parent (pg_inherits check).
+      // This must be done before executing the ALTER TABLE because PG's DETACH PARTITION
+      // looks up membership in pg_inherits and raises 42P01 if not found there — which
+      // error-parser.ts maps to the misleading "Table does not exist in schema" message.
+      const membershipSql = `
+        SELECT 1 FROM pg_inherits i
+        JOIN pg_class child ON child.oid = i.inhrelid
+        JOIN pg_namespace child_ns ON child_ns.oid = child.relnamespace
+        JOIN pg_class parent_rel ON parent_rel.oid = i.inhparent
+        JOIN pg_namespace parent_ns ON parent_ns.oid = parent_rel.relnamespace
+        WHERE child.relname = $1 AND child_ns.nspname = $2
+          AND parent_rel.relname = $3 AND parent_ns.nspname = $4
+      `;
+      const membershipResult = await adapter.executeQuery(membershipSql, [
+        parsedPartition.table,
+        resolvedPartitionSchema,
+        parsedParent.table,
+        parsedParent.schema,
+      ]);
+      if ((membershipResult.rows ?? []).length === 0) {
+        return {
+          success: false,
+          error: `Table "${resolvedPartitionSchema}.${parsedPartition.table}" is not a partition of "${parsedParent.schema}.${parsedParent.table}". Use pg_list_partitions to see current partitions.`,
+          code: "VALIDATION_ERROR",
+        };
+      }
+
+
       const parentName = sanitizeTableName(
         parsedParent.table,
         parsedParent.schema,
