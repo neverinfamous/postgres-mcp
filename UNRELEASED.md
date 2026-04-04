@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added agent-optimized local `README.md` to `src/constants/server-instructions` as a guardrail for autonomous editors
 - Configured instruction generation script to actively ignore `README.md` to prevent help-route and bundle bloat
 - Added Code Mode cross-group integration gotchas to server instructions detailing limit overrides, native calculation mapping, and strict vector parameters.
+- Expanded server overview documentation to surface Code Mode JavaScript sandbox capabilities and uniformly map the 200+ specialized PostgreSQL tools.
+- Updated the critical `gotchas.md` with explicit tool limitations (e.g. tsvector bounds, jsonb type strictness, abandoned transactions parsing overrides) and documented generalized result array truncation defaults.
 - Completed production-readiness certification for the `monitoring` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `migration` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `ltree` tool group via rigorous Code Mode advanced stress testing
