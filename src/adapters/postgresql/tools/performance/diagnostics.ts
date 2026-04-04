@@ -11,36 +11,23 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
 import { ValidationError } from "../../../../types/errors.js";
-import { DiagnoseOutputSchema } from "../../schemas/index.js";
+import { 
+  DiagnoseOutputSchema,
+  DiagnoseInputSchemaBase,
+  DiagnoseInputSchema
+} from "../../schemas/index.js";
 
 // =============================================================================
 // Schemas
 // =============================================================================
 
-const DiagnoseInputSchemaBase = z.object({
-  schema: z
-    .string()
-    .optional()
-    .describe("Filter top tables to a specific schema"),
-  topN: z
-    .number()
-    .optional()
-    .describe("Number of top tables to return (default: 5, max: 100)"),
-});
 
-const DiagnoseInputSchema = z.preprocess(
-  (data: unknown) => {
-    if (typeof data !== "object" || data === null) return {};
-    return data;
-  },
-  DiagnoseInputSchemaBase
-);
 
 // =============================================================================
 // Health Rating Helpers

@@ -121,53 +121,84 @@ export const VacuumStatsSchema = z.preprocess(
 );
 
 export const StatStatementsSchemaBase = z.object({
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Max statements to return (default: 10, max: 50, use 0 for max 50)"),
+  limit: z.number().optional().describe("Max statements to return (default: 10, max: 50, use 0 for max 50)"),
   orderBy: z.string().optional().describe("Sort order (default: total_time)"),
-  truncateQuery: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Max query length in chars (default: 100, use 0 for full text)"),
+  truncateQuery: z.number().optional().describe("Max query length in chars (default: 100, use 0 for full text)"),
 });
 
 export const StatStatementsSchema = z.preprocess(
   defaultToEmpty,
-  StatStatementsSchemaBase,
+  z.object({
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+    orderBy: z.string().optional(),
+    truncateQuery: z.preprocess(coerceNumber, z.number().optional()),
+  })
 );
 
 export const StatActivitySchemaBase = z.object({
   includeIdle: z.boolean().optional().describe("Include idle connections (default: false)"),
-  truncateQuery: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Max query length in chars (default: 100, use 0 for full text)"),
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Max connections to return (default: 100, use 0 for all)"),
+  truncateQuery: z.number().optional().describe("Max query length in chars (default: 100, use 0 for full text)"),
+  limit: z.number().optional().describe("Max connections to return (default: 100, use 0 for all)"),
 });
 
 export const StatActivitySchema = z.preprocess(
   defaultToEmpty,
-  StatActivitySchemaBase,
+  z.object({
+    includeIdle: z.boolean().optional(),
+    truncateQuery: z.preprocess(coerceNumber, z.number().optional()),
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+  })
 );
 
 export const QueryPlanStatsSchemaBase = z.object({
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Number of queries to return (default: 10, max: 50, use 0 for max 50)"),
-  truncateQuery: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Max query length in chars (default: 100, use 0 for full text)"),
+  limit: z.number().optional().describe("Number of queries to return (default: 10, max: 50, use 0 for max 50)"),
+  truncateQuery: z.number().optional().describe("Max query length in chars (default: 100, use 0 for full text)"),
 });
 
 export const QueryPlanStatsSchema = z.preprocess(
   defaultToEmpty,
-  QueryPlanStatsSchemaBase,
+  z.object({
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+    truncateQuery: z.preprocess(coerceNumber, z.number().optional()),
+  })
+);
+
+export const LocksSchemaBase = z.object({
+  showBlocked: z.boolean().optional().describe("Show only blocked queries (default: false)"),
+  limit: z.number().optional().describe("Max locks to return (default: 100, use 0 for all)"),
+});
+
+export const LocksSchema = z.preprocess(
+  defaultToEmpty,
+  z.object({
+    showBlocked: z.boolean().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+  })
+);
+
+export const BloatCheckSchemaBase = z.object({
+  table: z.unknown().optional().describe("Table name to check (all tables if omitted)"),
+  schema: z.unknown().optional().describe("Schema name to filter"),
+});
+
+export const BloatCheckSchema = z.preprocess(
+  defaultToEmpty,
+  BloatCheckSchemaBase
+);
+
+export const CacheHitRatioInputSchema = z.object({});
+
+export const DiagnoseInputSchemaBase = z.object({
+  schema: z.string().optional().describe("Filter top tables to a specific schema"),
+  topN: z.number().optional().describe("Number of top tables to return (default: 5, max: 100)"),
+});
+
+export const DiagnoseInputSchema = z.preprocess(
+  defaultToEmpty,
+  z.object({
+    schema: z.string().optional(),
+    topN: z.preprocess(coerceNumber, z.number().optional()),
+  })
 );
 
 // =============================================================================

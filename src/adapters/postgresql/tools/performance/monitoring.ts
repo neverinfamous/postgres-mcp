@@ -7,33 +7,28 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  LocksSchemaBase,
+  LocksSchema,
   LocksOutputSchema,
+  BloatCheckSchemaBase,
+  BloatCheckSchema,
   BloatCheckOutputSchema,
+  CacheHitRatioInputSchema,
   CacheHitRatioOutputSchema,
 } from "../../schemas/index.js";
 import {
-  defaultToEmpty,
   toNum,
-  coerceNumber,
   validatePerformanceTableExists,
 } from "./helpers.js";
 
 // ─── pg_locks ────────────────────────────────────────────────────────────────
 
-const LocksSchemaBase = z.object({
-  showBlocked: z.boolean().optional().describe("Show only blocked queries (default: false)"),
-  limit: z.preprocess(
-    coerceNumber,
-    z.number().optional(),
-  ).describe("Max locks to return (default: 100, use 0 for all)"),
-});
 
-const LocksSchema = z.preprocess(defaultToEmpty, LocksSchemaBase);
 
 export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
   return {
@@ -92,18 +87,7 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
 // ─── pg_bloat_check ──────────────────────────────────────────────────────────
 
 export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
-  const BloatCheckSchemaBase = z.object({
-    table: z
-      .unknown()
-      .optional()
-      .describe("Table name to check (all tables if omitted)"),
-    schema: z.unknown().optional().describe("Schema name to filter"),
-  });
 
-  const BloatCheckSchema = z.preprocess(
-    (val) => val ?? {},
-    BloatCheckSchemaBase,
-  );
 
   return {
     name: "pg_bloat_check",
@@ -182,7 +166,7 @@ export function createCacheHitRatioTool(
     name: "pg_cache_hit_ratio",
     description: "Get buffer cache hit ratio statistics.",
     group: "performance",
-    inputSchema: z.object({}),
+    inputSchema: CacheHitRatioInputSchema,
     outputSchema: CacheHitRatioOutputSchema,
     annotations: readOnly("Cache Hit Ratio"),
     icons: getToolIcons("performance", readOnly("Cache Hit Ratio")),

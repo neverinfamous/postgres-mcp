@@ -56,6 +56,13 @@ export {
   StatActivitySchema,
   QueryPlanStatsSchemaBase,
   QueryPlanStatsSchema,
+  LocksSchemaBase,
+  LocksSchema,
+  BloatCheckSchemaBase,
+  BloatCheckSchema,
+  DiagnoseInputSchemaBase,
+  DiagnoseInputSchema,
+  CacheHitRatioInputSchema,
   // Output schemas
   ExplainOutputSchema,
   IndexStatsOutputSchema,
