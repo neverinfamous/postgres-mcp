@@ -1,0 +1,45 @@
+# Token Consumption during codemode Testing of postgres-mcp
+
+Last tested: April 4th, 2026
+
+| Test Document | Approximate Token Usage | Notes |
+| :--- | :--- | :--- |
+| `test-tool-group-admin.md` | ~ | |
+| `test-tool-group-backup.md` | ~ | |
+| `test-tool-group-citext.md` | ~ | |
+| `test-tool-group-core-part1.md` | ~7 | |
+| `test-tool-group-core-part2.md` | ~3 | |
+| `test-tool-group-cron.md` | ~ | |
+| `test-tool-group-cross-group.md` | ~ | |
+| `test-tool-group-introspection.md` | ~ | |
+| `test-tool-group-jsonb-part1.md` | ~ | |
+| `test-tool-group-jsonb-part2.md` | ~ | |
+| `test-tool-group-kcache.md` | ~ | |
+| `test-tool-group-ltree.md` | ~ | |
+| `test-tool-group-migration.md` | ~ |
+| `test-tool-group-monitoring.md` | ~ | |
+| `test-tool-group-partitioning.md` | ~ | |
+| `test-tool-group-partman.md` | ~ | |
+| `test-tool-group-performance-part1.md` | ~ | |
+| `test-tool-group-performance-part2.md` | ~ | |
+| `test-tool-group-pgcrypto.md` | ~ | |
+| `test-tool-group-postgis-part1.md` | ~ | |
+| `test-tool-group-postgis-part2.md` | ~ | |
+| `test-tool-group-schema.md` | ~ | |
+| `test-tool-group-stats-part1.md` | ~ | |
+| `test-tool-group-stats-part2.md` | ~ | |
+| `test-tool-group-text.md` | ~ | |
+| `test-tool-group-transactions.md` | ~ | |
+| `test-tool-group-vector-part1.md` | ~ | |
+| `test-tool-group-vector-part2.md` | ~ | |
+| **Total Estimated Tokens** | **~** | |
+
+**Safe to test in pairs**
+jsonb + vector
+postgis + ltree
+pgcrypto + citext
+text + cron
+partman + partitioning
+stats + backup
+
+**Token counts don't include tokens used by the testing prompts themselves.**
