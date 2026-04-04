@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Completed production-readiness certification for the `migration` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `ltree` tool group via rigorous Code Mode advanced stress testing
 - Completed production-readiness certification for the `introspection` tool group via rigorous Code Mode advanced stress testing
 - Certified 100% Code Mode parity for topological sorting, cascade simulation, schema snapshots, and migration risk analysis
