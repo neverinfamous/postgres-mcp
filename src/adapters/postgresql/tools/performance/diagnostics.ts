@@ -387,10 +387,9 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = DiagnoseInputSchema.safeParse(params);
         if (!parsed.success) {
-          return {
-            success: false,
-            error: `Validation error: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
-          };
+          throw new ValidationError(
+            `Validation error: ${parsed.error.issues.map((i) => i.message).join("; ")}`,
+          );
         }
 
         const { schema, topN } = parsed.data;
