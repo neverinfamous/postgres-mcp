@@ -46,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed cascade simulators for self-referencing foreign keys.
 - Standardized snake_case alias parsing for alert thresholds.
 - Bypassed Docker Hub rate-limit blocks in CI using authenticated pulls.
+- **`pg_cache_hit_ratio` strict schema** — Changed `inputSchema: z.object({}).strict()` to `z.object({})` to prevent raw MCP `-32602` rejection when clients pass extra unknown params to a no-param tool.
+- **`pg_stat_statements` limit description** — Fixed tool parameter `describe()` string advertising "max: 500" when the actual enforcement cap is 100 (aligned with payload safety standards).
 
 ### Security
 - Patched prototype pollution vulnerabilities in `hono`.

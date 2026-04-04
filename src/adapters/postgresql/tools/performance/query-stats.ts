@@ -27,7 +27,7 @@ export function createStatStatementsTool(
     limit: z
       .union([z.number(), z.string()])
       .optional()
-      .describe("Max statements to return (default: 20, max: 500, use 0 for max 500)"),
+      .describe("Max statements to return (default: 20, max: 100, use 0 for max 100)"),
     orderBy: z
       .string()
       .optional()
