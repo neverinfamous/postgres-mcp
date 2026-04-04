@@ -5,6 +5,8 @@
  * Handles tableName→table, col→column, schema.table parsing, percentile normalization, etc.
  */
 
+import { coerceNumber } from "../../../../utils/query-helpers.js";
+
 // =============================================================================
 // Schema.Table Parsing
 // =============================================================================
@@ -333,6 +335,13 @@ export function preprocessTimeSeriesParams(input: unknown): unknown {
     result["schema"] = parsed.schema;
   }
 
+  if (result["limit"] !== undefined) {
+    result["limit"] = coerceNumber(result["limit"]);
+  }
+  if (result["groupLimit"] !== undefined) {
+    result["groupLimit"] = coerceNumber(result["groupLimit"]);
+  }
+
   return result;
 }
 
@@ -398,6 +407,22 @@ export function preprocessHypothesisParams(input: unknown): unknown {
     result["schema"] = parsed.schema;
   }
 
+  if (result["hypothesizedMean"] !== undefined) {
+    result["hypothesizedMean"] = coerceNumber(result["hypothesizedMean"]);
+  }
+  if (result["populationStdDev"] !== undefined) {
+    result["populationStdDev"] = coerceNumber(result["populationStdDev"]);
+  }
+  if (result["sigma"] !== undefined) {
+    result["sigma"] = coerceNumber(result["sigma"]);
+  }
+  if (result["mean"] !== undefined) {
+    result["mean"] = coerceNumber(result["mean"]);
+  }
+  if (result["expected"] !== undefined) {
+    result["expected"] = coerceNumber(result["expected"]);
+  }
+
   return result;
 }
 
@@ -431,6 +456,14 @@ export function preprocessDistributionParams(input: unknown): unknown {
     result["table"] = parsed.table;
     result["schema"] = parsed.schema;
   }
+
+  if (result["buckets"] !== undefined) {
+    result["buckets"] = coerceNumber(result["buckets"]);
+  }
+  if (result["groupLimit"] !== undefined) {
+    result["groupLimit"] = coerceNumber(result["groupLimit"]);
+  }
+
   return result;
 }
 
@@ -464,5 +497,13 @@ export function preprocessSamplingParams(input: unknown): unknown {
     result["table"] = parsed.table;
     result["schema"] = parsed.schema;
   }
+
+  if (result["sampleSize"] !== undefined) {
+    result["sampleSize"] = coerceNumber(result["sampleSize"]);
+  }
+  if (result["percentage"] !== undefined) {
+    result["percentage"] = coerceNumber(result["percentage"]);
+  }
+
   return result;
 }

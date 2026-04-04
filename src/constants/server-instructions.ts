@@ -552,7 +552,7 @@ Response Structures:
 - \`correlation\`: Use \`column1\`/\`column2\` or aliases \`x\`/\`y\` for column names
 - \`distribution\`: Returns \`skewness\`, \`kurtosis\` (excess). \`buckets\` must be > 0. **groupBy payloads**: Default \`groupLimit: 20\` groups (prevents large payloads with many histogram buckets per group). Returns \`truncated\` + \`totalGroupCount\` when groups are limited. Use \`groupLimit: 0\` for all groups
 - \`sampling\`: Defaults to \`random\` method with 20 rows (optimized for LLM context). \`sampleSize\` always takes precedence over \`percentage\`. ⚠️ \`percentage\` param only works with \`bernoulli\`/\`system\` methods—ignored for default \`random\` method. Default limit of 100 rows applied to \`bernoulli\`/\`system\` with \`percentage\` to prevent large payloads. Returns \`truncated\` and \`totalSampled\` when TABLESAMPLE returns more rows than limit
-- \`percentiles\`: Accepts 0-1 or 0-100 (auto-normalized). ⚠️ Use consistent scale—mixing (e.g., \`[0.1, 50]\`) produces unexpected keys and returns a \`warning\` field explaining the issue. Empty array → defaults [0.25, 0.5, 0.75]
+- \`percentiles\`: Accepts 0-1 or 0-100 (auto-normalized). ⚠️ Use consistent scale—mixing (e.g., \`[0.1, 50]\`) produces unexpected keys and returns a \`warning\` field explaining the issue. Empty array → defaults [0.25, 0.5, 0.75]. Output keys use a prefix format (e.g., \`p25\`, \`p50\`, \`p75\`).
 - \`hypothesis\`: Returns nested \`results\` object containing \`pValue\` (two-tailed), \`testStatistic\`, \`interpretation\`, \`sampleMean\`, \`sampleStdDev\`. Access via \`hyp.results.pValue\`. Use \`populationStdDev\` for z-test, otherwise defaults to t-test
 - \`regression\`: Use \`xColumn\`/\`yColumn\`, aliases \`x\`/\`y\`, or \`column1\`/\`column2\` (for consistency with correlation). Returns nested \`regression\` object containing \`slope\`, \`intercept\`, \`rSquared\`, \`equation\`, \`avgX\`, \`avgY\`, \`sampleSize\`. Access via \`reg.regression.slope\`
 - ⚠️ WARNING: \`sampling\` with \`system\` method unreliable for small tables—use \`bernoulli\` or \`random\`
@@ -577,7 +577,8 @@ Response Structures:
 - \`pg_stats_frequency({ table, column, where?, limit? })\`: Value frequency distribution ordered by frequency desc. Default \`limit: 20\`. Returns \`{success, column, distinctValues, distribution: [{value, frequency, percentage}]}\`
 - \`pg_stats_summary({ table, columns?, where? })\`: Summary statistics for multiple numeric columns. Defaults to all numeric columns if \`columns\` omitted. Returns \`{success, table, summaries: [{column, count, avg, min, max, stddev}]}\`
 
-**Top-Level Aliases**: \`pg.descriptive()\`, \`pg.percentiles()\`, \`pg.correlation()\`, \`pg.regression()\`, \`pg.timeSeries()\`, \`pg.distribution()\`, \`pg.hypothesis()\`, \`pg.sampling()\`, \`pg.statsRowNumber()\`, \`pg.statsRank()\`, \`pg.statsLagLead()\`, \`pg.statsRunningTotal()\`, \`pg.statsMovingAvg()\`, \`pg.statsNtile()\`, \`pg.statsOutliers()\`, \`pg.statsTopN()\`, \`pg.statsDistinct()\`, \`pg.statsFrequency()\`, \`pg.statsSummary()\``],
+**Top-Level Aliases**: \`pg.descriptive()\`, \`pg.percentiles()\`, \`pg.correlation()\`, \`pg.regression()\`, \`pg.timeSeries()\`, \`pg.distribution()\`, \`pg.hypothesis()\`, \`pg.sampling()\`
+**Note**: All newer tools (e.g., window functions, outlier detection, advanced analysis) must be accessed via their group namespace: \`pg.stats.rowNumber()\`, \`pg.stats.ntile()\`, \`pg.stats.outliers()\`, etc.`],
   ["text", `# Text Tools
 
 - \`pg_text_search\`/\`pg_text_rank\`: Column must be \`text\` type—pre-built \`tsvector\` columns are **not** supported (wrap with \`to_tsvector()\` fails on tsvector input). Use \`pg_read_query\` with raw FTS SQL for tsvector columns

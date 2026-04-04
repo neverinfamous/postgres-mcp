@@ -113,7 +113,7 @@ export function createStatsRowNumberTool(
 
         const limit = resolveLimit(parsed.limit);
         const partition = partitionClause(parsed.partitionBy);
-        const windowExpr = `ROW_NUMBER() OVER(${partition} ORDER BY "${parsed.orderBy}")`;
+        const windowExpr = `(ROW_NUMBER() OVER(${partition} ORDER BY "${parsed.orderBy}"))::integer`;
 
         const sql = `
           SELECT ${selectList(parsed.selectColumns, windowExpr, "row_number")}
@@ -173,7 +173,8 @@ export function createStatsRankTool(
         const limit = resolveLimit(parsed.limit);
         const partition = partitionClause(parsed.partitionBy);
         const fnName = rankType.toUpperCase();
-        const windowExpr = `${fnName}() OVER(${partition} ORDER BY "${parsed.orderBy}")`;
+        const cast = rankType === "percent_rank" ? "::real" : "::integer";
+        const windowExpr = `(${fnName}() OVER(${partition} ORDER BY "${parsed.orderBy}"))${cast}`;
 
         const sql = `
           SELECT ${selectList(parsed.selectColumns, windowExpr, rankType)}
@@ -425,7 +426,7 @@ export function createStatsNtileTool(
         const buckets = Number.isNaN(parsed.buckets) ? 4 : parsed.buckets;
         const limit = resolveLimit(parsed.limit);
         const partition = partitionClause(parsed.partitionBy);
-        const windowExpr = `NTILE(${String(buckets)}) OVER(${partition} ORDER BY "${parsed.orderBy}")`;
+        const windowExpr = `(NTILE(${String(buckets)}) OVER(${partition} ORDER BY "${parsed.orderBy}"))::integer`;
 
         const sql = `
           SELECT ${selectList(parsed.selectColumns, windowExpr, "ntile")}
