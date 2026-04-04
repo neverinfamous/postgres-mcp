@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Normalized error messages to use P154-consistent double-quote formatting.
   - Implemented pagination/limits to prevent extreme payloads on heavily partitioned tables.
 - Resolved Split Schema Pattern violations in Search, JSONB, Vector, and Stats groups.
+- Corrected Split Schema mapping for `isolation_level` alias in Transaction tools to properly enforce `isolationLevel` values instead of silently falling back to `READ COMMITTED`.
 - Corrected misleading suggestions in `TransactionError` for missing transaction IDs.
 - Fixed numeric type casting for SQL window functions (`row_number`, `rank`, `ntile`).
 - Improved resilience in Admin and Monitoring tools (e.g., handling missing target tables or extensions gracefully).

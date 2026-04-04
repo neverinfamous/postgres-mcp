@@ -20,6 +20,9 @@ import { ErrorResponseFields } from "../error-response-fields.js";
  */
 function preprocessBeginParams(input: unknown): unknown {
   const normalized = defaultToEmpty(input) as Record<string, unknown>;
+  if (normalized["isolation_level"] !== undefined && normalized["isolationLevel"] === undefined) {
+    normalized["isolationLevel"] = normalized["isolation_level"];
+  }
   if (typeof normalized["isolationLevel"] === "string") {
     const level = normalized["isolationLevel"].toUpperCase().trim();
     // Map shorthands
@@ -41,6 +44,7 @@ function preprocessBeginParams(input: unknown): unknown {
 // handler's try/catch instead of being rejected as raw MCP -32602 errors.
 export const BeginTransactionSchemaBase = z.object({
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
+  isolation_level: z.string().optional().describe("Alias for isolationLevel"),
   read_only: z.boolean().optional().describe("Set to true for read-only transaction"),
   readOnly: z.boolean().optional().describe("Alias for read_only"),
 });
@@ -154,6 +158,7 @@ export const TransactionExecuteSchemaBase = z.object({
   txId: z.string().optional().describe("Alias for transactionId"),
   tx: z.string().optional().describe("Alias for transactionId"),
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
+  isolation_level: z.string().optional().describe("Alias for isolationLevel"),
   read_only: z.boolean().optional().describe("Set to true for read-only transaction"),
   readOnly: z.boolean().optional().describe("Alias for read_only"),
 });

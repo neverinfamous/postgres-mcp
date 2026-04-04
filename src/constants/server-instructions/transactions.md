@@ -4,7 +4,7 @@ Core: `begin()`, `status()`, `commit()`, `rollback()`, `savepoint()`, `rollbackT
 
 **Transaction Lifecycle:**
 
-- `pg_transaction_begin`: Start new transaction. Supports optional `isolationLevel` and `read_only`/`readOnly` parameters. Returns `{transactionId, isolationLevel, read_only, message}`. Use `transactionId` for subsequent operations
+- `pg_transaction_begin`: Start new transaction. Supports optional `isolationLevel` (alias: `isolation_level`) and `read_only` (alias: `readOnly`) parameters. Returns `{transactionId, isolationLevel, read_only, message}`. Use `transactionId` for subsequent operations
 - `pg_transaction_status`: Check transaction state without modifying it. Returns `{status, transactionId, active, message}`. `status` is `"active"` (ready), `"aborted"` (needs rollback), or `"not_found"` (already ended). Read-only — does not alter transaction state. `transactionId`/`tx`/`txId` aliases
 - `pg_transaction_commit`: Commit transaction, making all changes permanent. `transactionId`/`tx`/`txId` aliases
 - `pg_transaction_rollback`: Rollback transaction, discarding all changes. `transactionId`/`tx`/`txId` aliases
@@ -21,7 +21,7 @@ Core: `begin()`, `status()`, `commit()`, `rollback()`, `savepoint()`, `rollbackT
   - **Auto-commit**: Without `transactionId`—auto-commits on success, auto-rollbacks on any error
   - **Join existing**: With `transactionId`/`tx`/`txId`—no auto-commit, caller controls via commit/rollback
 - `statements`: Array of `{sql: "...", params?: [...]}` objects. ⚠️ Each object MUST have `sql` key
-- `isolationLevel`: Optional isolation level for new transactions ('READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE')
+- `isolationLevel`/`isolation_level`: Optional isolation level for new transactions ('READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE')
 - `read_only`/`readOnly`: Optional boolean. If true, protects against mutating writes natively using Postgres boundary constraints
 - Supports SELECT statements inside `statements`—results include `rows` in the response for mixed read/write workflows
 
