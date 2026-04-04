@@ -6,7 +6,7 @@ Last tested: April 4th, 2026
 | :--- | :--- | :--- |
 | `test-tool-group-admin.md` | ~3,405 | |
 | `test-tool-group-backup.md` | ~6,132 | |
-| `test-tool-group-citext.md` | ~ | |
+| `test-tool-group-citext.md` | ~5,369 | |
 | `test-tool-group-core-part1.md` | ~7,737 | |
 | `test-tool-group-core-part2.md` | ~4,322 | |
 | `test-tool-group-cron.md` | ~ | |
