@@ -12,7 +12,16 @@ export const test = baseTest.extend<{}, WorkerFixtures>({
       const workerIndex = workerInfo.workerIndex;
       const dbName = `postgres_mcp_test_w${workerIndex}`;
       const port = 3000 + workerIndex;
-      const password = process.env.POSTGRES_PASSWORD || "postgres";
+
+      // Sanitize the password before interpolating into shell commands.
+      // Only allow safe characters to prevent shell injection via env variable.
+      const rawPassword = process.env["POSTGRES_PASSWORD"] ?? "postgres";
+      if (!/^[\w.-]+$/.test(rawPassword)) {
+        throw new Error(
+          "POSTGRES_PASSWORD contains unsafe characters for shell interpolation",
+        );
+      }
+      const password = rawPassword;
 
       // 1. Provision the database (via template clone)
       try {

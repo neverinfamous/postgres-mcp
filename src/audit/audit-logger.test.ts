@@ -11,17 +11,14 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { join } from "node:path";
-import { readFile, rm, mkdir } from "node:fs/promises";
+import { readFile, rm, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { AuditLogger } from "./logger.js";
 import type { AuditEntry, AuditConfig } from "./types.js";
 
-/** Helper: create a temp directory path scoped to this test run */
-function tempDir(): string {
-  return join(
-    tmpdir(),
-    `pg-audit-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  );
+/** Helper: create a temp directory scoped to this test run (atomic, no TOCTOU) */
+async function createTempDir(): Promise<string> {
+  return mkdtemp(join(tmpdir(), "pg-audit-test-"));
 }
 
 /** Helper: build a minimal valid AuditEntry */
@@ -43,8 +40,8 @@ function fakeEntry(overrides: Partial<AuditEntry> = {}): AuditEntry {
 describe("AuditLogger", () => {
   let dir: string;
 
-  beforeEach(() => {
-    dir = tempDir();
+  beforeEach(async () => {
+    dir = await createTempDir();
   });
 
   afterEach(async () => {

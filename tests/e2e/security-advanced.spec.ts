@@ -1,7 +1,6 @@
 import { test, expect } from "./fixtures.js";
-import { startServer, stopServer, createClient } from "./helpers.js";
+import { startServer, stopServer } from "./helpers.js";
 import { createConnection } from "node:net";
-import { setTimeout as delay } from "node:timers/promises";
 
 const ADV_SEC_PORT = 3132;
 const SLOWLORIS_PORT = 3133;

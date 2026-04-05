@@ -14,17 +14,14 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { join } from "node:path";
-import { rm, readdir, writeFile, mkdir } from "node:fs/promises";
+import { rm, writeFile, mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { BackupManager, type SnapshotQueryAdapter } from "./backup-manager.js";
 import type { BackupConfig } from "./types.js";
 
-/** Helper: create a unique temp directory path */
-function tempDir(): string {
-  return join(
-    tmpdir(),
-    `pg-backup-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  );
+/** Helper: create a unique temp directory using mkdtemp (atomic, no TOCTOU) */
+async function createTempDir(): Promise<string> {
+  return mkdtemp(join(tmpdir(), "pg-backup-test-"));
 }
 
 /** Helper: build a default BackupConfig */
@@ -59,8 +56,8 @@ describe("BackupManager", () => {
   let dir: string;
   let logPath: string;
 
-  beforeEach(() => {
-    dir = tempDir();
+  beforeEach(async () => {
+    dir = await createTempDir();
     logPath = join(dir, "audit.jsonl");
   });
 

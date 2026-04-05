@@ -4,7 +4,8 @@
  * Comprehensive tests for the tool filtering system.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
+
 import {
   TOOL_GROUPS,
   getAllToolNames,

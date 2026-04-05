@@ -22,7 +22,9 @@ import {
   mkdir,
   stat,
   unlink,
+  rename,
 } from "node:fs/promises";
+
 import { join, dirname, basename } from "node:path";
 import { gunzipSync, gzip as gzipCb } from "node:zlib";
 import { promisify } from "node:util";
@@ -690,14 +692,18 @@ export class BackupManager {
     const compressed = await gzipAsync(Buffer.from(finalJson, "utf-8"));
     const filePath = join(this.snapshotDir, filename);
 
-    const writePromise = writeFile(filePath, compressed).catch(
-      (err: unknown) => {
+    // §4: Async atomic write (tmp → rename) + fire-and-forget
+    const tmpPath = `${filePath}.tmp`;
+    const writePromise = writeFile(tmpPath, compressed)
+      .then(() => rename(tmpPath, filePath))
+      .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         process.stderr.write(
           `[AUDIT-BACKUP] Async write failed for ${filename}: ${msg}\n`,
         );
-      },
-    );
+        // Best-effort cleanup of the temp file on failure
+        void unlink(tmpPath).catch(() => null);
+      });
     this.pendingWrites.add(writePromise);
     void writePromise.finally(() => {
       this.pendingWrites.delete(writePromise);

@@ -15,7 +15,6 @@ import {
   startServer,
   stopServer,
   createClient,
-  callToolRaw,
   callToolAndParse,
 } from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";

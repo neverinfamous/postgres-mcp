@@ -153,18 +153,25 @@ export class AuditLogger {
     await this.flush();
 
     try {
-      const info = await stat(this.config.logPath).catch(() => null);
-      if (!info) return [];
-
-      const fileSize = info.size;
-      if (fileSize === 0) return [];
-
-      // Read only the tail of the file — avoids loading entire log into memory
-      const readSize = Math.min(fileSize, TAIL_READ_BYTES);
-      const startOffset = fileSize - readSize;
-
-      const fh = await open(this.config.logPath, "r");
+      // Open directly — avoids TOCTOU race between stat() and open()
+      let fh: Awaited<ReturnType<typeof open>>;
       try {
+        fh = await open(this.config.logPath, "r");
+      } catch {
+        // File does not exist yet
+        return [];
+      }
+
+      try {
+        // stat after open — file is guaranteed to exist since we hold the FD
+        const info = await stat(this.config.logPath);
+        const fileSize = info.size;
+        if (fileSize === 0) return [];
+
+        // Read only the tail of the file — avoids loading entire log into memory
+        const readSize = Math.min(fileSize, TAIL_READ_BYTES);
+        const startOffset = fileSize - readSize;
+
         const buf = Buffer.alloc(readSize);
         await fh.read(buf, 0, readSize, startOffset);
         const chunk = buf.toString("utf-8");
@@ -189,6 +196,7 @@ export class AuditLogger {
     } catch {
       return [];
     }
+
   }
 
   /**

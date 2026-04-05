@@ -205,17 +205,29 @@ export function setCorsHeaders(
   if (!origin) return;
 
   // Check if origin is allowed
-  const isAllowed =
-    origins.includes("*") ||
-    origins.some((allowed) => {
-      if (allowed === "*") return true;
-      if (allowed.startsWith("*.")) {
-        // Wildcard subdomain matching: "*.example.com" → ".example.com"
-        const domain = allowed.slice(1);
-        return origin.endsWith(domain) && origin.length > domain.length;
+  let isAllowed = false;
+  let matchedByWildcard = false;
+
+  for (const allowed of origins) {
+    if (allowed === "*") {
+      isAllowed = true;
+      matchedByWildcard = true;
+      break;
+    }
+    if (allowed.startsWith("*.")) {
+      // Wildcard subdomain matching: "*.example.com" → ".example.com"
+      const domain = allowed.slice(1);
+      if (origin.endsWith(domain) && origin.length > domain.length) {
+        isAllowed = true;
+        matchedByWildcard = true;
+        break;
       }
-      return origin === allowed;
-    });
+    }
+    if (origin === allowed) {
+      isAllowed = true;
+      break;
+    }
+  }
 
   if (isAllowed) {
     // Use specific origin instead of * for proper CORS handling
@@ -231,12 +243,15 @@ export function setCorsHeaders(
     // Vary header is important for correct caching behavior
     res.setHeader("Vary", "Origin");
 
-    // Allow credentials if explicitly configured (needed for browser cookies/auth)
-    if (config.corsAllowCredentials) {
+    // Allow credentials only for specifically-listed origins, never for wildcard matches.
+    // Sending credentials with a wildcard-matched origin is a CORS misconfiguration
+    // that allows credential leakage to untrusted subdomains.
+    if (config.corsAllowCredentials && !matchedByWildcard) {
       res.setHeader("Access-Control-Allow-Credentials", "true");
     }
   }
 }
+
 
 // =============================================================================
 // Body Parsing
