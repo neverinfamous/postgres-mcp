@@ -49,3 +49,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced raw exceptions with `PostgresMcpError` to prevent SQL syntax leaks.
 - Enforced SLSA Build L3 compliance via `--provenance` in publishing workflows.
 - Patched vulnerabilities in Docker builds.
+- Added `push` trigger to `secrets-scanning.yml` for early leak detection on feature branches.
+- Cleaned `.trivyignore` to contain only CVE IDs (removed inert path entries).

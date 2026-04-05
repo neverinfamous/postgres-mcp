@@ -5,9 +5,3 @@
 # 3. Not applicable to our use case
 
 # Format: CVE-YYYY-NNNNN
-tmp/
-mcp-audit.jsonl
-test-results.json
-logs/
-*.txt
-.vscode/
