@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { normalizeOptionalParams } from "./shared.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Input Schemas
@@ -17,8 +18,7 @@ import { normalizeOptionalParams } from "./shared.js";
  */
 export const KcacheQueryStatsSchemaBase = z.object({
   limit: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 10).",
     ),
@@ -28,10 +28,11 @@ export const KcacheQueryStatsSchemaBase = z.object({
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
-  minCalls: z.number().optional().describe("Minimum call count to include"),
+  minCalls: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Minimum call count to include"),
   queryPreviewLength: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
@@ -53,12 +54,10 @@ export const KcacheQueryStatsSchema = z.preprocess(
  */
 export const KcacheTopCpuSchemaBase = z.object({
   limit: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Number of top queries to return (default: 5, min: 1, max: 10)."),
   queryPreviewLength: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
@@ -77,12 +76,10 @@ export const KcacheTopIoSchemaBase = z.object({
   type: z.string().optional().describe("I/O type to rank by (default: both)"),
   ioType: z.string().optional().describe("Alias for type"),
   limit: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Number of top queries to return (default: 5, min: 1, max: 10)."),
   queryPreviewLength: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),
@@ -122,19 +119,18 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .optional()
     .describe("Specific query ID to analyze (all if omitted)"),
   threshold: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
   limit: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 10).",
     ),
-  minCalls: z.number().optional().describe("Minimum call count to include"),
+  minCalls: z
+    .preprocess(coerceNumber, z.number().optional())
+    .describe("Minimum call count to include"),
   queryPreviewLength: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
     ),

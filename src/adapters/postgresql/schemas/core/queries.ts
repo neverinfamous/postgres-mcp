@@ -214,13 +214,13 @@ export const CreateTableSchemaBase = z.object({
         primaryKey: z.boolean().optional(),
         unique: z.boolean().optional(),
         default: z
-          .unknown()
+          .union([z.string(), z.number(), z.boolean()])
           .optional()
           .describe(
             "Default value (raw SQL expression). Numbers/booleans auto-coerced to string.",
           ),
         defaultValue: z
-          .unknown()
+          .union([z.string(), z.number(), z.boolean()])
           .optional()
           .describe(
             "Alias for default. Numbers/booleans auto-coerced to string.",
@@ -347,10 +347,7 @@ export const CreateTableSchema = z
       const rawDefault = col.default ?? col.defaultValue;
       let defaultValue: string | undefined;
       if (rawDefault !== undefined && rawDefault !== null) {
-        defaultValue =
-          typeof rawDefault === "object"
-            ? JSON.stringify(rawDefault)
-            : String(rawDefault as string | number | boolean);
+        defaultValue = String(rawDefault);
 
         // Auto-convert common function shortcuts to valid SQL expressions
         // e.g., now() → CURRENT_TIMESTAMP (PostgreSQL rejects now() as column reference)

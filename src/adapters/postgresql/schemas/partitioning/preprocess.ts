@@ -53,6 +53,15 @@ interface RawPartitionInput {
 }
 
 /**
+ * Escape embedded single quotes in SQL string literals.
+ * Doubles `'` → `''` per SQL standard to prevent broken DDL or injection
+ * when interpolating user-provided values into partition bound clauses.
+ */
+function escapeSqlLiteral(value: string): string {
+  return value.replace(/'/g, "''");
+}
+
+/**
  * Preprocess partition parameters to normalize common input patterns:
  * - parentTable → parent (common alias)
  * - table → parent (common alias)
@@ -174,7 +183,7 @@ export function preprocessPartitionParams(input: unknown): unknown {
     result.to !== undefined &&
     result.forValues === undefined
   ) {
-    result.forValues = `FROM ('${result.from}') TO ('${result.to}')`;
+    result.forValues = `FROM ('${escapeSqlLiteral(result.from)}') TO ('${escapeSqlLiteral(result.to)}')`;
   }
 
   // Alias: listValues → values
@@ -188,7 +197,9 @@ export function preprocessPartitionParams(input: unknown): unknown {
     Array.isArray(result.values) &&
     result.forValues === undefined
   ) {
-    const quotedValues = result.values.map((v: string) => `'${v}'`).join(", ");
+    const quotedValues = result.values
+      .map((v: string) => `'${escapeSqlLiteral(v)}'`)
+      .join(", ");
     result.forValues = `IN (${quotedValues})`;
   }
 
