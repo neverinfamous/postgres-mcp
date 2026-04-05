@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolved raw MCP validation errors for string-coerced numeric parameters in performance anomaly tools (`pg_detect_query_anomalies`, `pg_detect_connection_spike`, `pg_detect_bloat_risk`) by applying `z.unknown().optional()` type assignments inside base schemas to enable graceful parameter interpretation.
 - Adjusted `pg_detect_bloat_risk` introspection logic to gracefully return an empty detection payload rather than throwing a `NOT_FOUND` resource error when an explicitly supplied schema contains zero tables.
 - Fixed `pg_diagnose_database_performance` resource resolution to properly throw an `Error` for missing target schemas, unlocking `formatHandlerErrorResponse` central interceptors to provide P154-compliant `SCHEMA_NOT_FOUND` responses.
+- Centralized input schemas for `pg_seq_scan_tables` and `pg_index_recommendations` to resolve remaining Split Schema Pattern violations in the performance analysis tool group.
 
 ### Security
 - Patched prototype pollution vulnerabilities in `hono`.

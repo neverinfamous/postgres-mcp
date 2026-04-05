@@ -63,6 +63,10 @@ export {
   DiagnoseInputSchemaBase,
   DiagnoseInputSchema,
   CacheHitRatioInputSchema,
+  SeqScanTablesSchemaBase,
+  SeqScanTablesSchema,
+  IndexRecommendationsInputSchemaBase,
+  IndexRecommendationsInputSchema,
   // Output schemas
   ExplainOutputSchema,
   IndexStatsOutputSchema,

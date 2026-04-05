@@ -177,13 +177,16 @@ export const LocksSchema = z.preprocess(
 );
 
 export const BloatCheckSchemaBase = z.object({
-  table: z.unknown().optional().describe("Table name to check (all tables if omitted)"),
-  schema: z.unknown().optional().describe("Schema name to filter"),
+  table: z.string().optional().describe("Table name to check (all tables if omitted)"),
+  schema: z.string().optional().describe("Schema name to filter"),
 });
 
 export const BloatCheckSchema = z.preprocess(
   defaultToEmpty,
-  BloatCheckSchemaBase
+  z.object({
+    table: z.string().optional(),
+    schema: z.string().optional()
+  })
 );
 
 export const CacheHitRatioInputSchema = z.object({});
@@ -200,6 +203,38 @@ export const DiagnoseInputSchema = z.preprocess(
     topN: z.preprocess(coerceNumber, z.number().optional()),
   })
 );
+
+export const SeqScanTablesSchemaBase = z.object({
+  minScans: z.unknown().optional().describe("Minimum seq scans to include (default: 10)"),
+  schema: z.string().optional().describe("Schema to filter"),
+  limit: z.unknown().optional().describe("Max rows to return (default: 50, use 0 for all)"),
+});
+
+export const SeqScanTablesSchema = z.preprocess(
+  defaultToEmpty,
+  z.object({
+    minScans: z.preprocess(coerceNumber, z.number().optional()),
+    schema: z.string().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()),
+  })
+);
+
+export const IndexRecommendationsInputSchemaBase = z.object({
+  table: z.string().optional().describe("Table name to analyze"),
+  sql: z.string().optional().describe("SQL query to analyze for index recommendations"),
+  query: z.string().optional().describe("Alias for sql - SQL query to analyze"),
+  params: z.array(z.unknown()).optional().describe("Query parameters for $1, $2, etc. placeholders"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
+
+export const IndexRecommendationsInputSchema = z.preprocess((input) => {
+  const normalized = (input ?? {}) as Record<string, unknown>;
+  const result = { ...normalized };
+  if (result["sql"] === undefined && result["query"] !== undefined) {
+    result["sql"] = result["query"];
+  }
+  return result;
+}, IndexRecommendationsInputSchemaBase);
 
 // =============================================================================
 // Output Schemas

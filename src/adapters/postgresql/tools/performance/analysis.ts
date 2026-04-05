@@ -7,36 +7,24 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { toNum } from "../../../../utils/query-helpers.js";
 import {
   SeqScanTablesOutputSchema,
+  SeqScanTablesSchemaBase,
+  SeqScanTablesSchema,
   IndexRecommendationsOutputSchema,
+  IndexRecommendationsInputSchemaBase,
+  IndexRecommendationsInputSchema,
 } from "../../schemas/index.js";
 import { validatePerformanceTableExists } from "./helpers.js";
 
 export function createSeqScanTablesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const SeqScanTablesSchemaBase = z.object({
-    minScans: z
-      .number()
-      .optional()
-      .describe("Minimum seq scans to include (default: 10)"),
-    schema: z.string().optional().describe("Schema to filter"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Max rows to return (default: 50, use 0 for all)"),
-  });
 
-  const SeqScanTablesSchema = z.preprocess(
-    (input) => input ?? {},
-    SeqScanTablesSchemaBase,
-  );
 
   return {
     name: "pg_seq_scan_tables",
@@ -116,34 +104,7 @@ export function createSeqScanTablesTool(
 export function createIndexRecommendationsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const IndexRecommendationsSchemaBase = z.object({
-    table: z.string().optional().describe("Table name to analyze"),
-    sql: z
-      .string()
-      .optional()
-      .describe("SQL query to analyze for index recommendations"),
-    query: z
-      .string()
-      .optional()
-      .describe("Alias for sql - SQL query to analyze"),
-    params: z
-      .array(z.unknown())
-      .optional()
-      .describe("Query parameters for $1, $2, etc. placeholders"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  });
 
-  // Preprocess for query alias and handle undefined params
-  const IndexRecommendationsSchema = z.preprocess((input) => {
-    const normalized = (input ?? {}) as Record<string, unknown>;
-    const result = { ...normalized };
-    // Alias: query → sql
-    if (result["sql"] === undefined && result["query"] !== undefined) {
-      result["sql"] = result["query"];
-    }
-    return result;
-  }, IndexRecommendationsSchemaBase);
 
   // Helper to check if HypoPG extension is available
   const checkHypoPG = async (): Promise<boolean> => {
@@ -217,13 +178,13 @@ export function createIndexRecommendationsTool(
     description:
       "Suggest missing indexes based on table statistics or query analysis. When sql is provided and HypoPG is installed, creates hypothetical indexes to measure potential performance improvement.",
     group: "performance",
-    inputSchema: IndexRecommendationsSchemaBase, // Base schema for MCP visibility
+    inputSchema: IndexRecommendationsInputSchemaBase, // Base schema for MCP visibility
     outputSchema: IndexRecommendationsOutputSchema,
     annotations: readOnly("Index Recommendations"),
     icons: getToolIcons("performance", readOnly("Index Recommendations")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = IndexRecommendationsSchema.parse(params);
+        const parsed = IndexRecommendationsInputSchema.parse(params);
         const schemaName = parsed.schema ?? "public";
         const queryParams = parsed.params ?? [];
 
