@@ -385,12 +385,7 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
         if (schema) {
           const check = await adapter.executeQuery("SELECT 1 FROM information_schema.schemata WHERE schema_name = $1", [schema]);
           if (!check.rows || check.rows.length === 0) {
-            return {
-              success: false,
-              error: `Schema "${schema}" does not exist.`,
-              code: "NOT_FOUND",
-              category: "introspection"
-            };
+            throw new Error(`Schema "${schema}" does not exist. Use pg_list_objects with type 'table' to see available schemas.`);
           }
         }
 
