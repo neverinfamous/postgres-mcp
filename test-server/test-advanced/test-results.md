@@ -33,8 +33,8 @@ Last tested: April 4th, 2026
 | `test-tools-advanced-text.md` | ~2,256 | |
 | `test-tools-advanced-transactions.md` | ~5,328 | |
 | `test-tools-advanced-vector-part1.md` | ~3,930 | |
-| `test-tools-advanced-vector-part2.md` | ~2,500 | Code Mode correctly truncated payload to 100k bound |
-| **Total Estimated Tokens** | **~190,413** | |
+| `test-tools-advanced-vector-part2.md` | ~2,500 | |
+| **Total Estimated Tokens** | **~190,395** | |
 
 **Safe to test in pairs**
 jsonb + vector
