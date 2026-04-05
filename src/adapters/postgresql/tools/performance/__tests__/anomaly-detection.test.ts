@@ -356,16 +356,12 @@ describe("pg_detect_bloat_risk", () => {
   });
 
   it("should filter by schema when specified", async () => {
-    // calls[0]: schema existence check; calls[1]: main bloat query
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ "?column?": 1 }], // schema exists
-    });
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = findTool(tools, "pg_detect_bloat_risk");
     await tool.handler({ schema: "sales" }, mockContext);
 
-    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
     expect(sql).toContain("schemaname = 'sales'");
   });
 
