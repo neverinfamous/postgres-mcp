@@ -124,7 +124,7 @@ export function createExplainBuffersTool(
         if (!sql) {
           throw new ValidationError("Missing required parameter: sql (or query alias)");
         }
-        const fmt = format ?? "json";
+        const fmt = format ?? "text";
         const explainSql = `EXPLAIN (ANALYZE, BUFFERS, FORMAT ${fmt.toUpperCase()}) ${sql}`;
         const result = await adapter.executeQuery(
           explainSql,

@@ -57,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed cascade simulators for self-referencing foreign keys.
 - Standardized snake_case alias parsing for alert thresholds.
 - Bypassed Docker Hub rate-limit blocks in CI using authenticated pulls.
+- Resolved raw MCP validation errors for string-coerced numeric parameters in performance anomaly tools (`pg_detect_query_anomalies`, `pg_detect_connection_spike`, `pg_detect_bloat_risk`) by applying `z.unknown().optional()` type assignments inside base schemas to enable graceful parameter interpretation.
+- Adjusted `pg_detect_bloat_risk` introspection logic to gracefully return an empty detection payload rather than throwing a `NOT_FOUND` resource error when an explicitly supplied schema contains zero tables.
 
 ### Security
 - Patched prototype pollution vulnerabilities in `hono`.

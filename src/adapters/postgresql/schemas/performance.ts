@@ -78,7 +78,7 @@ export const ExplainSchema = z.preprocess(
 export const IndexStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z.number().optional().describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
+  limit: z.unknown().optional().describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const IndexStatsSchema = z.preprocess(
@@ -93,7 +93,7 @@ export const IndexStatsSchema = z.preprocess(
 export const TableStatsSchemaBase = z.object({
   table: z.string().optional().describe("Table name (all tables if omitted)"),
   schema: z.string().optional().describe("Schema name"),
-  limit: z.number().optional().describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
+  limit: z.unknown().optional().describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const TableStatsSchema = z.preprocess(
@@ -108,7 +108,7 @@ export const TableStatsSchema = z.preprocess(
 export const VacuumStatsSchemaBase = z.object({
   schema: z.string().optional().describe("Schema to filter"),
   table: z.string().optional().describe("Table name to filter"),
-  limit: z.number().optional().describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
+  limit: z.unknown().optional().describe("Max rows to return (default: 10, max: 100, use 0 for max 100)"),
 });
 
 export const VacuumStatsSchema = z.preprocess(
@@ -121,9 +121,9 @@ export const VacuumStatsSchema = z.preprocess(
 );
 
 export const StatStatementsSchemaBase = z.object({
-  limit: z.number().optional().describe("Max statements to return (default: 10, max: 50, use 0 for max 50)"),
+  limit: z.unknown().optional().describe("Max statements to return (default: 10, max: 50, use 0 for max 50)"),
   orderBy: z.string().optional().describe("Sort order (default: total_time)"),
-  truncateQuery: z.number().optional().describe("Max query length in chars (default: 100, use 0 for full text)"),
+  truncateQuery: z.unknown().optional().describe("Max query length in chars (default: 100, use 0 for full text)"),
 });
 
 export const StatStatementsSchema = z.preprocess(
@@ -136,9 +136,9 @@ export const StatStatementsSchema = z.preprocess(
 );
 
 export const StatActivitySchemaBase = z.object({
-  includeIdle: z.boolean().optional().describe("Include idle connections (default: false)"),
-  truncateQuery: z.number().optional().describe("Max query length in chars (default: 100, use 0 for full text)"),
-  limit: z.number().optional().describe("Max connections to return (default: 100, use 0 for all)"),
+  includeIdle: z.unknown().optional().describe("Include idle connections (default: false)"),
+  truncateQuery: z.unknown().optional().describe("Max query length in chars (default: 100, use 0 for full text)"),
+  limit: z.unknown().optional().describe("Max connections to return (default: 100, use 0 for all)"),
 });
 
 export const StatActivitySchema = z.preprocess(
@@ -151,8 +151,8 @@ export const StatActivitySchema = z.preprocess(
 );
 
 export const QueryPlanStatsSchemaBase = z.object({
-  limit: z.number().optional().describe("Number of queries to return (default: 10, max: 50, use 0 for max 50)"),
-  truncateQuery: z.number().optional().describe("Max query length in chars (default: 100, use 0 for full text)"),
+  limit: z.unknown().optional().describe("Number of queries to return (default: 10, max: 50, use 0 for max 50)"),
+  truncateQuery: z.unknown().optional().describe("Max query length in chars (default: 100, use 0 for full text)"),
 });
 
 export const QueryPlanStatsSchema = z.preprocess(
@@ -164,8 +164,8 @@ export const QueryPlanStatsSchema = z.preprocess(
 );
 
 export const LocksSchemaBase = z.object({
-  showBlocked: z.boolean().optional().describe("Show only blocked queries (default: false)"),
-  limit: z.number().optional().describe("Max locks to return (default: 100, use 0 for all)"),
+  showBlocked: z.unknown().optional().describe("Show only blocked queries (default: false)"),
+  limit: z.unknown().optional().describe("Max locks to return (default: 100, use 0 for all)"),
 });
 
 export const LocksSchema = z.preprocess(
@@ -190,7 +190,7 @@ export const CacheHitRatioInputSchema = z.object({});
 
 export const DiagnoseInputSchemaBase = z.object({
   schema: z.string().optional().describe("Filter top tables to a specific schema"),
-  topN: z.number().optional().describe("Number of top tables to return (default: 5, max: 100)"),
+  topN: z.unknown().optional().describe("Number of top tables to return (default: 5, max: 100)"),
 });
 
 export const DiagnoseInputSchema = z.preprocess(

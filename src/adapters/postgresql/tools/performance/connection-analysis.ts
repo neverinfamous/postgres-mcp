@@ -24,9 +24,11 @@ import { toNum, toStr, riskFromScore } from "./anomaly-detection.js";
 // pg_detect_connection_spike
 // =============================================================================
 
+const coerceNumber = (val: unknown): unknown => typeof val === "string" ? (isNaN(Number(val)) ? undefined : Number(val)) : val;
+
 const ConnectionSpikeInputBase = z.object({
   warningPercent: z
-    .number()
+    .unknown()
     .optional()
     .describe("Percentage threshold for flagging concentration (default: 70)"),
 });
@@ -36,7 +38,9 @@ const ConnectionSpikeInput = z.preprocess(
     if (typeof data !== "object" || data === null) return {};
     return data;
   },
-  ConnectionSpikeInputBase
+  z.object({
+    warningPercent: z.preprocess(coerceNumber, z.number().optional())
+  })
 );
 
 interface ConnectionConcentration {

@@ -50,15 +50,17 @@ export function riskFromScore(score: number): RiskLevel {
 // 1. pg_detect_query_anomalies
 // =============================================================================
 
+const coerceNumber = (val: unknown): unknown => typeof val === "string" ? (isNaN(Number(val)) ? undefined : Number(val)) : val;
+
 const QueryAnomaliesInputBase = z.object({
   threshold: z
-    .number()
+    .unknown()
     .optional()
     .describe(
       "Standard deviation multiplier for anomaly detection (default: 2.0)",
     ),
   minCalls: z
-    .number()
+    .unknown()
     .optional()
     .describe("Minimum call count to filter noise (default: 10)"),
 });
@@ -68,7 +70,10 @@ const QueryAnomaliesInput = z.preprocess(
     if (typeof data !== "object" || data === null) return {};
     return data;
   },
-  QueryAnomaliesInputBase
+  z.object({
+    threshold: z.preprocess(coerceNumber, z.number().optional()),
+    minCalls: z.preprocess(coerceNumber, z.number().optional())
+  })
 );
 
 export function createDetectQueryAnomaliesTool(
@@ -213,7 +218,7 @@ const BloatRiskInputBase = z.object({
     .optional()
     .describe("Filter to a specific schema (default: all user schemas)"),
   minRows: z
-    .number()
+    .unknown()
     .optional()
     .describe("Minimum live rows to include (default: 1000)"),
 });
@@ -223,7 +228,10 @@ const BloatRiskInput = z.preprocess(
     if (typeof data !== "object" || data === null) return {};
     return data;
   },
-  BloatRiskInputBase
+  z.object({
+    schema: z.string().optional(),
+    minRows: z.preprocess(coerceNumber, z.number().optional())
+  })
 );
 
 export function createDetectBloatRiskTool(
@@ -263,15 +271,6 @@ export function createDetectBloatRiskTool(
 
         let schemaFilter: string;
         if (schema) {
-          const check = await adapter.executeQuery("SELECT 1 FROM information_schema.schemata WHERE schema_name = $1", [schema]);
-          if (!check.rows || check.rows.length === 0) {
-            return {
-              success: false,
-              error: `Schema "${schema}" does not exist. Use pg_list_objects with type 'schema' to see available schemas.`,
-              code: "NOT_FOUND",
-              category: "introspection"
-            };
-          }
           validateIdentifier(schema);
           schemaFilter = `AND schemaname = '${schema}'`;
         } else {
