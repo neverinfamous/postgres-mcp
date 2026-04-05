@@ -4,7 +4,7 @@
  * Partition management: list, create table, create partition, attach.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
@@ -12,7 +12,7 @@ import type {
 
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -104,12 +104,9 @@ export function createListPartitionsTool(
           limit?: number;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
-            tool: "pg_list_partitions",
-          }),
-        };
+        return formatHandlerErrorResponse(zodError, {
+          tool: "pg_list_partitions",
+        });
       }
 
       // Parse schema.table format if present
@@ -181,6 +178,7 @@ export function createListPartitionsTool(
 
       // Build response with truncation indicators
       const response: Record<string, unknown> = {
+        success: true,
         partitions,
         count: partitions.length,
         truncated,
@@ -233,17 +231,22 @@ export function createPartitionedTableTool(
           partitionBy: "range" | "list" | "hash";
           partitionKey: string;
           primaryKey?: string[];
+          ifNotExists?: boolean;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
-            tool: "pg_create_partitioned_table",
-          }),
-        };
+        return formatHandlerErrorResponse(zodError, {
+          tool: "pg_create_partitioned_table",
+        });
       }
-      const { name, schema, columns, partitionBy, partitionKey, primaryKey } =
-        parsed;
+      const {
+        name,
+        schema,
+        columns,
+        partitionBy,
+        partitionKey,
+        primaryKey,
+        ifNotExists,
+      } = parsed;
 
       const tableName = sanitizeTableName(name, schema);
 
@@ -348,21 +351,28 @@ export function createPartitionedTableTool(
         tableConstraints = `,\n  PRIMARY KEY (${pkColumnList})`;
       }
 
-      const sql = `CREATE TABLE ${tableName} (
-  ${columnDefs}${tableConstraints}
-) PARTITION BY ${partitionBy.toUpperCase()} (${partitionKey})`;
+      const sql = `CREATE TABLE ${ifNotExists ? "IF NOT EXISTS " : ""}${tableName} (\n  ${columnDefs}${tableConstraints}\n) PARTITION BY ${partitionBy.toUpperCase()} (${partitionKey})`;
+
+      // When ifNotExists is true, check if table already exists so we can surface alreadyExists:true
+      let alreadyExisted = false;
+      if (ifNotExists) {
+        const parsedName = parseSchemaTable(name, schema);
+        const existStatus = await checkTablePartitionStatus(
+          adapter,
+          parsedName.table,
+          parsedName.schema,
+        );
+        alreadyExisted = existStatus !== "not_found";
+      }
 
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_create_partitioned_table",
-            table: name,
-            ...(schema !== undefined && { schema }),
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_create_partitioned_table",
+          table: name,
+          ...(schema !== undefined && { schema }),
+        });
       }
       return {
         success: true,
@@ -370,6 +380,7 @@ export function createPartitionedTableTool(
         partitionBy,
         partitionKey,
         ...(useTableLevelPK && { primaryKey }),
+        ...(ifNotExists && { alreadyExists: alreadyExisted }),
       };
     },
   };
@@ -396,14 +407,12 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
           forValues: string;
           subpartitionBy?: "range" | "list" | "hash";
           subpartitionKey?: string;
+          ifNotExists?: boolean;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
-            tool: "pg_create_partition",
-          }),
-        };
+        return formatHandlerErrorResponse(zodError, {
+          tool: "pg_create_partition",
+        });
       }
       const {
         parent,
@@ -412,6 +421,7 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         forValues,
         subpartitionBy,
         subpartitionKey,
+        ifNotExists,
       } = parsed;
 
       // Validate sub-partitioning parameters
@@ -432,13 +442,13 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
       if (parentStatus === "not_found") {
         return {
           success: false,
-          error: `Table '${parsedParentCheck.schema}.${parsedParentCheck.table}' does not exist.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" does not exist`,
         };
       }
       if (parentStatus === "not_partitioned") {
         return {
           success: false,
-          error: `Table '${parsedParentCheck.schema}.${parsedParentCheck.table}' exists but is not partitioned. Use pg_create_partitioned_table to create a partitioned table first.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" exists but is not partitioned. Use pg_create_partitioned_table to create a partitioned table first.`,
         };
       }
 
@@ -452,8 +462,7 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         parsedParent.schema,
       );
 
-      // Build the SQL
-      let sql = `CREATE TABLE ${partitionName} PARTITION OF ${parentName}`;
+      let sql = `CREATE TABLE ${ifNotExists === true ? "IF NOT EXISTS " : ""}${partitionName} PARTITION OF ${parentName}`;
 
       // Add partition bounds
       // Handle DEFAULT partition: accept both "__DEFAULT__" (from preprocessor when isDefault: true)
@@ -477,16 +486,24 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         sql += ` PARTITION BY ${subpartitionBy.toUpperCase()} (${subpartitionKey})`;
       }
 
+      // When ifNotExists is true, check if partition already exists so we can surface alreadyExists:true
+      let partAlreadyExisted = false;
+      if (ifNotExists === true) {
+        const partExistStatus = await checkTablePartitionStatus(
+          adapter,
+          name,
+          resolvedSchema,
+        );
+        partAlreadyExisted = partExistStatus !== "not_found";
+      }
+
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_create_partition",
-            table: name,
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_create_partition",
+          table: name,
+        });
       }
 
       const result: Record<string, unknown> = {
@@ -494,6 +511,7 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         partition: `${resolvedSchema}.${name}`,
         parent: parsedParent.table,
         bounds: boundsDescription,
+        ...(ifNotExists === true && { alreadyExists: partAlreadyExisted }),
       };
 
       // Include sub-partitioning info in response if applicable

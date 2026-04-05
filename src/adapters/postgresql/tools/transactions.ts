@@ -6,11 +6,12 @@
  */
 
 import { type z } from "zod";
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type { ToolDefinition, RequestContext } from "../../../types/index.js";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
-import { formatPostgresError } from "./core/error-helpers.js";
+import { formatHandlerErrorResponse } from "./core/error-helpers.js";
+import { ValidationError } from "../../../types/errors.js";
 import {
   BeginTransactionSchemaBase,
   BeginTransactionSchema,
@@ -58,21 +59,24 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("transactions", write("Begin Transaction")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { isolationLevel } = BeginTransactionSchema.parse(params);
-        const transactionId = await adapter.beginTransaction(isolationLevel);
+        const { isolationLevel, read_only } =
+          BeginTransactionSchema.parse(params);
+        const transactionId = await adapter.beginTransaction(
+          isolationLevel,
+          read_only,
+        );
         return {
+          success: true,
           transactionId,
           isolationLevel: isolationLevel ?? "READ COMMITTED",
+          read_only: read_only,
           message:
             "Transaction started. Use this ID for subsequent operations.",
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_transaction_begin",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_transaction_begin",
+        });
       }
     },
   };
@@ -96,6 +100,7 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
 
         if (!client) {
           return {
+            success: true,
             status: "not_found",
             transactionId,
             active: false,
@@ -109,6 +114,7 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeOnConnection(client, "SELECT 1");
           return {
+            success: true,
             status: "active",
             transactionId,
             active: true,
@@ -124,6 +130,7 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
               /current transaction is aborted/i.test(probeError.message))
           ) {
             return {
+              success: true,
               status: "aborted",
               transactionId,
               active: true,
@@ -131,20 +138,14 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
                 "Transaction is in an aborted state — only ROLLBACK or ROLLBACK TO SAVEPOINT commands are accepted.",
             };
           }
-          return {
-            success: false,
-            error: formatPostgresError(probeError, {
-              tool: "pg_transaction_status",
-            }),
-          };
-        }
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
+          return formatHandlerErrorResponse(probeError, {
             tool: "pg_transaction_status",
-          }),
-        };
+          });
+        }
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_transaction_status",
+        });
       }
     },
   };
@@ -168,13 +169,10 @@ function createCommitTransactionTool(adapter: PostgresAdapter): ToolDefinition {
           transactionId,
           message: "Transaction committed successfully.",
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_transaction_commit",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_transaction_commit",
+        });
       }
     },
   };
@@ -200,13 +198,10 @@ function createRollbackTransactionTool(
           transactionId,
           message: "Transaction rolled back successfully.",
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_transaction_rollback",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_transaction_rollback",
+        });
       }
     },
   };
@@ -232,13 +227,10 @@ function createSavepointTool(adapter: PostgresAdapter): ToolDefinition {
           savepoint: name,
           message: `Savepoint '${name}' created.`,
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_transaction_savepoint",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_transaction_savepoint",
+        });
       }
     },
   };
@@ -264,13 +256,10 @@ function createReleaseSavepointTool(adapter: PostgresAdapter): ToolDefinition {
           savepoint: name,
           message: `Savepoint '${name}' released.`,
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_transaction_release",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_transaction_release",
+        });
       }
     },
   };
@@ -297,13 +286,10 @@ function createRollbackToSavepointTool(
           savepoint: name,
           message: `Rolled back to savepoint '${name}'.`,
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_transaction_rollback_to",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_transaction_rollback_to",
+        });
       }
     },
   };
@@ -326,29 +312,26 @@ function createTransactionExecuteTool(
 
       try {
         parsed = await TransactionExecuteSchema.parseAsync(params);
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_transaction_execute",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_transaction_execute",
+        });
       }
 
-      const { statements, transactionId, isolationLevel } = parsed;
+      const { statements, transactionId, isolationLevel, read_only } = parsed;
 
       // Check if joining an existing transaction or creating a new one
       const isJoiningExisting = transactionId !== undefined;
       const txId = isJoiningExisting
         ? transactionId
-        : await adapter.beginTransaction(isolationLevel);
+        : await adapter.beginTransaction(isolationLevel, read_only);
 
       const results: unknown[] = [];
 
       try {
         const client = adapter.getTransactionConnection(txId);
         if (!client) {
-          throw new Error(
+          throw new ValidationError(
             isJoiningExisting
               ? `Transaction not found: ${txId}`
               : "Transaction connection lost",
@@ -387,7 +370,7 @@ function createTransactionExecuteTool(
           // so caller knows transaction is still open
           ...(isJoiningExisting && { transactionId: txId }),
         };
-      } catch (error) {
+      } catch (error: unknown) {
         // Only auto-rollback if we created a new transaction
         // If joining an existing transaction, let the caller control cleanup
         if (!isJoiningExisting) {
@@ -399,13 +382,13 @@ function createTransactionExecuteTool(
         }
 
         // Build structured error response with partial results and rollback context
-        const errMsg = formatPostgresError(error, {
+        const errResponse = formatHandlerErrorResponse(error, {
           tool: "pg_transaction_execute",
         });
 
         return {
-          success: false,
-          error: `${errMsg}${!isJoiningExisting ? " Transaction was automatically rolled back." : ""}`,
+          ...errResponse,
+          error: `${errResponse.error}${!isJoiningExisting ? " Transaction was automatically rolled back." : ""}`,
           statementsExecuted: results.length,
           statementsTotal: statements.length,
           failedStatement: statements[results.length]?.sql,

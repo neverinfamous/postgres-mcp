@@ -4,12 +4,12 @@
  * MCP server connection pool statistics with external pooler detection.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type {
   ResourceDefinition,
   RequestContext,
 } from "../../../types/index.js";
-import { LOW_PRIORITY } from "../../../utils/resourceAnnotations.js";
+import { LOW_PRIORITY } from "../../../utils/resource-annotations.js";
 
 interface ExternalPoolerInfo {
   detected: boolean;

@@ -5,15 +5,14 @@
  * without requiring a table. These complement the table-based tools.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { ZodError } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   GeometryBufferSchemaBase,
   GeometryBufferSchema,
@@ -92,7 +91,6 @@ export function createGeometryBufferTool(
         const sql = `
                 SELECT 
                     ST_AsGeoJSON(${outputExpr}) as buffer_geojson,
-                    ST_AsText(${outputExpr}) as buffer_wkt,
                     $2 as distance_meters,
                     ${String(sridVal)} as srid
             `;
@@ -101,15 +99,13 @@ export function createGeometryBufferTool(
         try {
           result = await adapter.executeQuery(sql, [geometry, distance]);
         } catch (error: unknown) {
-          return {
-            success: false as const,
-            error: formatPostgresError(error, {
-              tool: "pg_geometry_buffer",
-            }),
-          };
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_geometry_buffer",
+          });
         }
         const row = result.rows?.[0];
         const response: Record<string, unknown> = {
+          success: true,
           ...row,
           inputFormat: isGeoJson ? "GeoJSON" : "WKT",
         };
@@ -120,10 +116,7 @@ export function createGeometryBufferTool(
           response["simplifyTolerance"] = simplify;
 
           // Check if simplification caused geometry to collapse to null
-          if (
-            row?.["buffer_geojson"] === null ||
-            row?.["buffer_wkt"] === null
-          ) {
+          if (row?.["buffer_geojson"] === null) {
             response["warning"] =
               `Simplification tolerance (${String(simplify)}m) is too high relative to buffer distance (${String(distance)}m). The geometry collapsed to null. Reduce simplify value or set simplify: 0 to disable.`;
           }
@@ -131,18 +124,9 @@ export function createGeometryBufferTool(
 
         return response;
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_geometry_buffer",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_geometry_buffer",
+        });
       }
     },
   };
@@ -181,7 +165,6 @@ export function createGeometryIntersectionTool(
                 SELECT 
                     ST_Intersects(${geom1Expr}, ${geom2Expr}) as intersects,
                     ST_AsGeoJSON(ST_Intersection(${geom1Expr}, ${geom2Expr})) as intersection_geojson,
-                    ST_AsText(ST_Intersection(${geom1Expr}, ${geom2Expr})) as intersection_wkt,
                     ST_Area(ST_Intersection(${geom1Expr}, ${geom2Expr})::geography) as intersection_area_sqm
             `;
 
@@ -189,32 +172,21 @@ export function createGeometryIntersectionTool(
         try {
           result = await adapter.executeQuery(sql, [geometry1, geometry2]);
         } catch (error: unknown) {
-          return {
-            success: false as const,
-            error: formatPostgresError(error, {
-              tool: "pg_geometry_intersection",
-            }),
-          };
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_geometry_intersection",
+          });
         }
         return {
+          success: true,
           ...result.rows?.[0],
           geometry1Format: geom1.isGeoJson ? "GeoJSON" : "WKT",
           geometry2Format: geom2.isGeoJson ? "GeoJSON" : "WKT",
           sridUsed: 4326,
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_geometry_intersection",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_geometry_intersection",
+        });
       }
     },
   };
@@ -244,40 +216,28 @@ export function createGeometryTransformTool(
 
         const sql = `
                 SELECT 
-                    ST_AsGeoJSON(ST_Transform(ST_SetSRID(${geomExpr}, ${String(fromSrid)}), ${String(toSrid)})) as transformed_geojson,
-                    ST_AsText(ST_Transform(ST_SetSRID(${geomExpr}, ${String(fromSrid)}), ${String(toSrid)})) as transformed_wkt
+                    ST_AsGeoJSON(ST_Transform(ST_SetSRID(${geomExpr}, ${String(fromSrid)}), ${String(toSrid)})) as transformed_geojson
             `;
 
         let result;
         try {
           result = await adapter.executeQuery(sql, [geometry]);
         } catch (error: unknown) {
-          return {
-            success: false as const,
-            error: formatPostgresError(error, {
-              tool: "pg_geometry_transform",
-            }),
-          };
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_geometry_transform",
+          });
         }
         return {
+          success: true,
           ...result.rows?.[0],
           fromSrid,
           toSrid,
           inputFormat: isGeoJson ? "GeoJSON" : "WKT",
         };
       } catch (error: unknown) {
-        if (error instanceof ZodError) {
-          return {
-            success: false as const,
-            error: error.issues.map((i) => i.message).join("; "),
-          };
-        }
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_geometry_transform",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_geometry_transform",
+        });
       }
     },
   };

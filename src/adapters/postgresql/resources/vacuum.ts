@@ -4,12 +4,17 @@
  * Vacuum statistics, dead tuples, and transaction ID wraparound warnings.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type {
   ResourceDefinition,
   RequestContext,
 } from "../../../types/index.js";
-import { MEDIUM_PRIORITY } from "../../../utils/resourceAnnotations.js";
+import { MEDIUM_PRIORITY } from "../../../utils/resource-annotations.js";
+import {
+  generateVacuumSuggestions,
+  type VacuumStatsRow,
+  type WraparoundStats,
+} from "../../../utils/resource-suggestions.js";
 
 interface VacuumWarning {
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "INFO";
@@ -155,6 +160,12 @@ export function createVacuumResource(
         });
       }
 
+      // §7: Generate actionable suggestions based on vacuum data
+      const suggestions = generateVacuumSuggestions(
+        vacuumStats as unknown as VacuumStatsRow[],
+        wraparoundRow as WraparoundStats | null,
+      );
+
       return {
         vacuumStatistics: vacuumStats,
         transactionIdWraparound: {
@@ -171,6 +182,7 @@ export function createVacuumResource(
           },
         },
         warnings,
+        suggestions,
       };
     },
   };

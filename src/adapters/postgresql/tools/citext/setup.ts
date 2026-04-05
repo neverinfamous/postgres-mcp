@@ -4,16 +4,19 @@
  * Tools for enabling and configuring citext: create extension, convert columns.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import type { PostgresAdapter } from "../../postgres-adapter.js";
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ExtensionNotAvailableError,
+  ValidationError,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  CitextCreateExtensionSchemaBase,
+  CitextCreateExtensionSchema,
   CitextConvertColumnSchema,
   CitextConvertColumnSchemaBase,
   CitextCreateExtensionOutputSchema,
@@ -31,26 +34,33 @@ export function createCitextExtensionTool(
     description: `Enable the citext extension for case-insensitive text columns.
 citext is ideal for emails, usernames, and other identifiers where case shouldn't matter.`,
     group: "citext",
-    inputSchema: z.object({}),
+    inputSchema: CitextCreateExtensionSchemaBase,
     outputSchema: CitextCreateExtensionOutputSchema,
     annotations: write("Create Citext Extension"),
     icons: getToolIcons("citext", write("Create Citext Extension")),
-    handler: async (_params: unknown, _context: RequestContext) => {
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
-        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS citext");
+        const parsed = CitextCreateExtensionSchema.parse(params ?? {});
+        const schema = (parsed as { schema?: string }).schema;
+
+        let query = "CREATE EXTENSION IF NOT EXISTS citext";
+        if (typeof schema === "string" && schema.length > 0) {
+          query += ` SCHEMA "${schema}"`;
+        }
+
+        await adapter.executeQuery(query);
         return {
           success: true,
-          message: "citext extension enabled",
+          message:
+            "citext extension enabled" +
+            (typeof schema === "string" ? ` in schema ${schema}` : ""),
           usage:
             "Create columns with type CITEXT instead of TEXT for case-insensitive comparisons",
         };
-      } catch (error) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_citext_create_extension",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_citext_create_extension",
+        });
       }
     },
   };
@@ -75,7 +85,9 @@ Note: If views depend on this column, you must drop and recreate them manually b
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = CitextConvertColumnSchema.parse(params ?? {});
+        // Since we didn't type it fully, we'll cast parts manually
         const { table, column, schema: schemaOpt } = parsed;
+        const toType = (parsed as unknown as { toType: string }).toType;
         const schemaName = schemaOpt ?? "public";
         const qualifiedTable = `"${schemaName}"."${table}"`;
 
@@ -87,11 +99,7 @@ Note: If views depend on this column, you must drop and recreate them manually b
 
         const hasExt = (extCheck.rows?.[0]?.["installed"] as boolean) ?? false;
         if (!hasExt) {
-          return {
-            success: false,
-            error:
-              "citext extension is not installed. Run pg_citext_create_extension first.",
-          };
+          throw new ExtensionNotAvailableError("citext");
         }
 
         // Check if table exists before checking column
@@ -104,10 +112,10 @@ Note: If views depend on this column, you must drop and recreate them manually b
         );
 
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Table ${qualifiedTable} does not exist. Verify the table name and schema.`,
-          };
+          throw new ValidationError(
+            `Table ${qualifiedTable} does not exist. Verify the table name and schema.`,
+            { code: "TABLE_NOT_FOUND" },
+          );
         }
 
         const colCheck = await adapter.executeQuery(
@@ -122,41 +130,60 @@ Note: If views depend on this column, you must drop and recreate them manually b
         );
 
         if (!colCheck.rows || colCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
-          };
+          throw new ValidationError(
+            `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
+            { code: "COLUMN_NOT_FOUND" },
+          );
         }
 
         const dataType = colCheck.rows[0]?.["data_type"] as string;
         const udtName = colCheck.rows[0]?.["udt_name"] as string;
         // Normalize type: use udt_name for user-defined types (like citext)
         const currentType = dataType === "USER-DEFINED" ? udtName : dataType;
-        if (udtName === "citext") {
+        if (
+          currentType === toType ||
+          (currentType === "citext" && toType === "citext")
+        ) {
           return {
             success: true,
-            message: `Column ${column} is already citext`,
-            wasAlreadyCitext: true,
+            message: `Column ${column} is already ${toType}`,
+            wasAlreadyCitext: currentType === "citext",
           };
         }
 
-        // Validate that the column is a text-based type
-        const allowedTypes = [
-          "text",
-          "character varying",
-          "character",
-          "char",
-          "varchar",
-        ];
         const normalizedType = dataType.toLowerCase();
-        if (!allowedTypes.includes(normalizedType)) {
-          return {
-            success: false,
-            error: `Column "${column}" is type "${currentType}", not a text-based type`,
-            currentType,
-            allowedTypes: ["text", "varchar", "character varying"],
-            suggestion: `citext conversion only works for text-based columns. Column "${column}" is "${currentType}" which cannot be converted.`,
-          };
+
+        // When converting TO citext, the source must be text-based
+        if (toType === "citext") {
+          const allowedTypes = [
+            "text",
+            "character varying",
+            "character",
+            "char",
+            "varchar",
+          ];
+
+          if (!allowedTypes.includes(normalizedType)) {
+            throw new ValidationError(
+              `Column "${column}" is type "${currentType}", not a text-based type. citext conversion only works for text-based columns.`,
+              {
+                currentType,
+                allowedTypes: ["text", "varchar", "character varying"],
+                code: "COLUMN_TYPE_MISMATCH",
+              },
+            );
+          }
+        } else {
+          // When converting FROM citext to pure TEXT
+          if (currentType !== "citext") {
+            // Technically we could allow general conversions, but this tool is citext specific
+            if (currentType !== "citext" && normalizedType !== "citext") {
+              throw new ValidationError(
+                `Column "${column}" is type "${currentType}". This tool is designed to convert text columns to citext, or citext columns back to text.`,
+                { currentType, code: "COLUMN_TYPE_MISMATCH" },
+              );
+            }
+          }
         }
 
         // Check for dependent views before attempting the conversion
@@ -183,27 +210,27 @@ Note: If views depend on this column, you must drop and recreate them manually b
         const dependentViews = depCheck.rows ?? [];
 
         if (dependentViews.length > 0) {
-          return {
-            success: false,
-            error:
-              "Column has dependent views that must be dropped before conversion",
-            dependentViews: dependentViews.map(
-              (v) =>
-                `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
-            ),
-            hint: "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
-          };
+          throw new ValidationError(
+            "Column has dependent views that must be dropped before conversion. " +
+              "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
+            {
+              dependentViews: dependentViews.map(
+                (v) =>
+                  `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
+              ),
+            },
+          );
         }
 
         try {
           await adapter.executeQuery(`
                     ALTER TABLE ${qualifiedTable}
-                    ALTER COLUMN "${column}" TYPE citext USING "${column}"::citext
+                    ALTER COLUMN "${column}" TYPE ${toType} USING "${column}"::${toType}
                 `);
 
           return {
             success: true,
-            message: `Column ${column} converted from ${currentType} to citext`,
+            message: `Column ${column} converted from ${currentType} to ${toType}`,
             table: qualifiedTable,
             previousType: currentType,
             affectedViews:
@@ -214,29 +241,28 @@ Note: If views depend on this column, you must drop and recreate them manually b
                   )
                 : undefined,
           };
-        } catch (error) {
+        } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          return {
-            success: false,
-            error: `Failed to convert column: ${errorMessage}`,
-            hint: "If views depend on this column, they may need to be dropped and recreated",
-            dependentViews:
-              dependentViews.length > 0
-                ? dependentViews.map(
-                    (v) =>
-                      `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
-                  )
-                : undefined,
-          };
+          throw new ValidationError(
+            `Failed to convert column: ${errorMessage}`,
+            {
+              hint: "If views depend on this column, they may need to be dropped and recreated",
+              dependentViews:
+                dependentViews.length > 0
+                  ? dependentViews.map(
+                      (v) =>
+                        `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
+                    )
+                  : undefined,
+              code: "CONVERT_ERROR",
+            },
+          );
         }
-      } catch (error) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_citext_convert_column",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_citext_convert_column",
+        });
       }
     },
   };

@@ -5,15 +5,19 @@
  * 13 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
-// Full-text search tools
+// Core FTS tools
 import {
   createTextSearchTool,
   createTextRankTool,
   createTextHeadlineTool,
   createFtsIndexTool,
+} from "./fts.js";
+
+// Utility tools
+import {
   createTextNormalizeTool,
   createTextToVectorTool,
   createTextToQueryTool,
@@ -25,9 +29,13 @@ import {
   createTrigramSimilarityTool,
   createFuzzyMatchTool,
   createRegexpMatchTool,
+} from "./matching.js";
+
+// LIKE search & sentiment tools
+import {
   createLikeSearchTool,
   createTextSentimentTool,
-} from "./matching.js";
+} from "./search-tools.js";
 
 /**
  * Get all text processing tools

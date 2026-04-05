@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 
 test.describe("MCP HTTP Server API", () => {
   test("should return 200 OK from /health endpoint", async ({ request }) => {

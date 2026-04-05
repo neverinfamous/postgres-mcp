@@ -4,20 +4,20 @@
  * Lightweight table utilities: count, exists, truncate.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerErrorResponse } from "./error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   CountOutputSchema,
   ExistsOutputSchema,
   TruncateOutputSchema,
-} from "./schemas.js";
+} from "./schemas/index.js";
 import {
   validateTableExists,
   CountSchema,
@@ -79,23 +79,17 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           result = await adapter.executeQuery(sql, parsed.params);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
-              tool: "pg_count",
-              table: parsed.table,
-              schema: schemaName,
-            }),
-          };
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_count",
+            table: parsed.table,
+            schema: schemaName,
+          });
         }
 
         const count = Number(result.rows?.[0]?.["count"]) || 0;
         return { count };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_count" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_count" });
       }
     },
   };
@@ -150,10 +144,7 @@ export function createExistsTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_exists" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_exists" });
       }
     },
   };
@@ -196,18 +187,26 @@ export function createTruncateTool(adapter: PostgresAdapter): ToolDefinition {
           sql += " CASCADE";
         }
 
+        let rowCount = -1;
+        try {
+          const countResult = await adapter.executeQuery(
+            `SELECT count(*) as c FROM ${qualifiedTable}`,
+          );
+          rowCount = Number(countResult.rows?.[0]?.["c"] ?? -1);
+        } catch {
+          // Ignore failures
+        }
+
         await adapter.executeQuery(sql);
         return {
           success: true,
           table: `${schemaName}.${parsed.table}`,
           cascade: parsed.cascade ?? false,
           restartIdentity: parsed.restartIdentity ?? false,
+          rowCount,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_truncate" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_truncate" });
       }
     },
   };

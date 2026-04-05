@@ -22,7 +22,7 @@ import {
   MigrationRollbackSchema,
   MigrationHistorySchema,
   MigrationStatusSchema,
-} from "../../adapters/postgresql/schemas/introspection.js";
+} from "../../adapters/postgresql/schemas/introspection/index.js";
 
 // Suppress logger output
 vi.mock("../../utils/logger.js", () => ({

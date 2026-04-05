@@ -6,40 +6,26 @@
  * disk usage, and top tables by size/activity.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
+import { ValidationError } from "../../../../types/errors.js";
+import {
+  DiagnoseOutputSchema,
+  DiagnoseInputSchemaBase,
+  DiagnoseInputSchema,
+} from "../../schemas/index.js";
 
 // =============================================================================
 // Schemas
 // =============================================================================
-
-const DiagnoseInputSchemaBase = z.object({
-  schema: z
-    .string()
-    .optional()
-    .describe("Filter top tables to a specific schema"),
-  topN: z
-    .any()
-    .optional()
-    .describe("Number of top tables to return (default: 10)"),
-});
-
-const DiagnoseInputSchema = DiagnoseInputSchemaBase.transform((data) => {
-  const raw = data.topN != null ? Number(data.topN) : 10;
-  const topN = Number.isFinite(raw) ? raw : 10;
-  return {
-    schema: data.schema,
-    topN: Math.max(1, Math.min(100, topN)),
-  };
-});
 
 // =============================================================================
 // Health Rating Helpers
@@ -89,7 +75,7 @@ const toNum = (val: unknown): number =>
 async function diagnoseSlowQueries(
   adapter: PostgresAdapter,
 ): Promise<
-  SectionResult<{ slowQueries: Record<string, unknown>[]; count: number }>
+  SectionResult<{ slowQueries?: Record<string, unknown>[]; count: number }>
 > {
   const result = await adapter.executeQuery(`
     SELECT pid, usename, datname, state,
@@ -121,13 +107,17 @@ async function diagnoseSlowQueries(
 
   const status = rateValue(count, 2, 5, false);
 
-  return { status, data: { slowQueries: queries, count }, recommendations };
+  return {
+    status,
+    data: count > 0 ? { slowQueries: queries, count } : { count },
+    recommendations,
+  };
 }
 
 async function diagnoseBlockingLocks(
   adapter: PostgresAdapter,
 ): Promise<
-  SectionResult<{ blockedQueries: Record<string, unknown>[]; count: number }>
+  SectionResult<{ blockedQueries?: Record<string, unknown>[]; count: number }>
 > {
   const result = await adapter.executeQuery(`
     SELECT
@@ -163,7 +153,11 @@ async function diagnoseBlockingLocks(
 
   const status = rateValue(count, 0, 2, false);
 
-  return { status, data: { blockedQueries: blocked, count }, recommendations };
+  return {
+    status,
+    data: count > 0 ? { blockedQueries: blocked, count } : { count },
+    recommendations,
+  };
 }
 
 async function diagnoseConnectionPressure(adapter: PostgresAdapter): Promise<
@@ -373,21 +367,8 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
       "slow queries, blocking locks, connection pressure, cache hit ratio, " +
       "disk usage, and top tables by size and activity. Returns per-section " +
       "health ratings and recommendations with an overall health score.",
-    inputSchema: DiagnoseInputSchemaBase.shape,
-    outputSchema: z.object({
-      sections: z.object({
-        slowQueries: z.any(),
-        blockingLocks: z.any(),
-        connectionPressure: z.any(),
-        cacheHitRatio: z.any(),
-        diskUsage: z.any(),
-        topTables: z.any(),
-      }),
-      overallScore: z.number(),
-      overallStatus: z.enum(["healthy", "warning", "critical"]),
-      totalRecommendations: z.number(),
-      allRecommendations: z.array(z.string()),
-    }),
+    inputSchema: DiagnoseInputSchemaBase, // Split Schema: full ZodObject for MCP parameter visibility
+    outputSchema: DiagnoseOutputSchema,
     group: "performance",
     annotations: readOnly("Diagnose database performance"),
     icons: getToolIcons(
@@ -398,13 +379,26 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = DiagnoseInputSchema.safeParse(params);
         if (!parsed.success) {
-          return {
-            success: false,
-            error: `Validation error: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
-          };
+          throw new ValidationError(
+            `Validation error: ${parsed.error.issues.map((i) => i.message).join("; ")}`,
+          );
         }
 
-        const { schema, topN } = parsed.data;
+        const schema = parsed.data.schema;
+        const rawTopN = parsed.data.topN ?? 5;
+        const topN = Math.max(1, Math.min(100, rawTopN));
+
+        if (schema) {
+          const check = await adapter.executeQuery(
+            "SELECT 1 FROM information_schema.schemata WHERE schema_name = $1",
+            [schema],
+          );
+          if (!check.rows || check.rows.length === 0) {
+            throw new Error(
+              `Schema "${schema}" does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            );
+          }
+        }
 
         // Run all diagnostics in parallel
         const [
@@ -446,6 +440,7 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
         const allRecommendations = sections.flatMap((s) => s.recommendations);
 
         return {
+          success: true as const,
           sections: {
             slowQueries,
             blockingLocks,
@@ -460,12 +455,9 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
           allRecommendations,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_diagnose_database_performance",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_diagnose_database_performance",
+        });
       }
     },
   };

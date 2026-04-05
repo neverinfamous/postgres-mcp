@@ -46,6 +46,7 @@ export const TOP_LEVEL_ALIASES: readonly {
     methodName: "securityScan",
   },
   { group: "jsonb", bindingName: "jsonbStats", methodName: "stats" },
+  { group: "jsonb", bindingName: "jsonbPretty", methodName: "pretty" },
   // text
   { group: "text", bindingName: "textSearch", methodName: "search" },
   { group: "text", bindingName: "textRank", methodName: "rank" },
@@ -364,8 +365,18 @@ export const TOP_LEVEL_ALIASES: readonly {
   },
   {
     group: "monitoring",
+    bindingName: "systemHealth",
+    methodName: "resourceUsageAnalyze",
+  },
+  {
+    group: "monitoring",
     bindingName: "alertThresholdSet",
     methodName: "alertThresholdSet",
+  },
+  {
+    group: "monitoring",
+    bindingName: "activeConnections",
+    methodName: "connectionStats",
   },
   // backup
   { group: "backup", bindingName: "dumpTable", methodName: "dumpTable" },

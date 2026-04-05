@@ -2,10 +2,13 @@
  * postgres-mcp - OAuth Middleware
  *
  * Authentication and authorization middleware for HTTP transport.
+ * Transport-agnostic utilities (AuthenticatedContext, formatOAuthError,
+ * createAuthenticatedContext, validateAuth) live in transport-agnostic.ts.
+ * This file re-exports the shared type/formatter and provides
+ * middleware-specific wrappers with config-object signatures.
  */
 
-import type { TokenClaims } from "./types.js";
-import type { TokenValidator } from "./TokenValidator.js";
+import type { TokenValidator } from "./token-validator.js";
 import {
   TokenMissingError,
   InvalidTokenError,
@@ -13,19 +16,16 @@ import {
 } from "./errors.js";
 import { hasScope, hasAnyScope, SCOPES } from "./scopes.js";
 
-/**
- * Authenticated request context
- */
-export interface AuthenticatedContext {
-  /** Whether request is authenticated */
-  authenticated: boolean;
+// Re-export shared type and formatter from transport-agnostic module
+export type { AuthenticatedContext } from "./transport-agnostic.js";
+export { formatOAuthError } from "./transport-agnostic.js";
 
-  /** Token claims (if authenticated) */
-  claims?: TokenClaims;
+// Re-export shared helper for backward compat
+export { extractBearerToken } from "./helpers.js";
 
-  /** Token scopes (convenience) */
-  scopes: string[];
-}
+// Import for local use
+import type { AuthenticatedContext } from "./transport-agnostic.js";
+import { extractBearerToken } from "./helpers.js";
 
 /**
  * Auth middleware configuration
@@ -39,24 +39,6 @@ export interface AuthMiddlewareConfig {
 
   /** Required scopes (any of these) */
   requiredScopes?: string[];
-}
-
-/**
- * Extract bearer token from Authorization header
- */
-export function extractBearerToken(
-  authHeader: string | undefined,
-): string | null {
-  if (!authHeader) {
-    return null;
-  }
-
-  const parts = authHeader.split(" ");
-  if (parts.length !== 2 || parts[0]?.toLowerCase() !== "bearer") {
-    return null;
-  }
-
-  return parts[1] ?? null;
 }
 
 /**
@@ -86,7 +68,9 @@ export async function createAuthContext(
 }
 
 /**
- * Validate authentication and authorization
+ * Validate authentication and authorization (middleware variant).
+ * Uses config object for Express middleware chaining.
+ * For transport-agnostic usage, see validateAuth in transport-agnostic.ts.
  */
 export async function validateAuth(
   authHeader: string | undefined,
@@ -185,52 +169,4 @@ export function requireToolScope(
   if (!hasAnyScope(context.scopes, mappedScopes)) {
     throw new InsufficientScopeError(mappedScopes);
   }
-}
-
-/**
- * Format OAuth error for HTTP response
- */
-export function formatOAuthError(error: unknown): {
-  status: number;
-  body: object;
-} {
-  if (error instanceof TokenMissingError) {
-    return {
-      status: 401,
-      body: {
-        error: "invalid_token",
-        error_description: error.message,
-      },
-    };
-  }
-
-  if (error instanceof InvalidTokenError) {
-    return {
-      status: 401,
-      body: {
-        error: "invalid_token",
-        error_description: error.message,
-      },
-    };
-  }
-
-  if (error instanceof InsufficientScopeError) {
-    return {
-      status: 403,
-      body: {
-        error: "insufficient_scope",
-        error_description: error.message,
-        scope: error.requiredScopes.join(" "),
-      },
-    };
-  }
-
-  // Generic error
-  return {
-    status: 500,
-    body: {
-      error: "server_error",
-      error_description: "Internal server error",
-    },
-  };
 }

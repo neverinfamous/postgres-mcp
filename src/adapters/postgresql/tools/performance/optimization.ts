@@ -2,7 +2,7 @@
  * PostgreSQL Performance Tools - Optimization
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
@@ -10,7 +10,10 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { toNum } from "../../../../utils/query-helpers.js";
+import { validatePerformanceTableExists } from "./helpers.js";
+
 import {
   PerformanceBaselineOutputSchema,
   ConnectionPoolOptimizeOutputSchema,
@@ -19,10 +22,6 @@ import {
 
 // Helper to handle undefined params (allows tools to be called without {})
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
-
-// Helper to coerce string numbers to JavaScript numbers (PostgreSQL returns BIGINT as strings)
-const toNum = (val: unknown): number | null =>
-  val === null || val === undefined ? null : Number(val);
 
 // Preprocess partition strategy params with tableName/name aliases
 function preprocessPartitionStrategyParams(input: unknown): unknown {
@@ -40,11 +39,15 @@ function preprocessPartitionStrategyParams(input: unknown): unknown {
 export function createPerformanceBaselineTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  // Base schema for MCP visibility (no preprocess)
+  const PerformanceBaselineSchemaBase = z.object({
+    name: z.string().optional().describe("Baseline name for reference"),
+  });
+
+  // Full schema with defaultToEmpty preprocessing for handler-side parsing
   const PerformanceBaselineSchema = z.preprocess(
     defaultToEmpty,
-    z.object({
-      name: z.string().optional().describe("Baseline name for reference"),
-    }),
+    PerformanceBaselineSchemaBase,
   );
 
   return {
@@ -52,25 +55,26 @@ export function createPerformanceBaselineTool(
     description:
       "Capture current database performance metrics as a baseline for comparison.",
     group: "performance",
-    inputSchema: PerformanceBaselineSchema,
+    inputSchema: PerformanceBaselineSchemaBase, // Base schema for MCP visibility
     outputSchema: PerformanceBaselineOutputSchema,
     annotations: readOnly("Performance Baseline"),
     icons: getToolIcons("performance", readOnly("Performance Baseline")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = PerformanceBaselineSchema.parse(params);
-      const baselineName =
-        parsed.name ?? `baseline_${new Date().toISOString()}`;
+      try {
+        const parsed = PerformanceBaselineSchema.parse(params);
+        const baselineName =
+          parsed.name ?? `baseline_${new Date().toISOString()}`;
 
-      const [cacheHit, tableStats, indexStats, connections, dbSize] =
-        await Promise.all([
-          adapter.executeQuery(`
+        const [cacheHit, tableStats, indexStats, connections, dbSize] =
+          await Promise.all([
+            adapter.executeQuery(`
                     SELECT
                         sum(heap_blks_hit) as heap_hits,
                         sum(heap_blks_read) as heap_reads,
                         round(100.0 * sum(heap_blks_hit) / NULLIF(sum(heap_blks_hit) + sum(heap_blks_read), 0), 2) as cache_hit_ratio
                     FROM pg_statio_user_tables
                 `),
-          adapter.executeQuery(`
+            adapter.executeQuery(`
                     SELECT
                         sum(seq_scan) as total_seq_scans,
                         sum(idx_scan) as total_idx_scans,
@@ -81,13 +85,13 @@ export function createPerformanceBaselineTool(
                         sum(n_dead_tup) as total_dead_tuples
                     FROM pg_stat_user_tables
                 `),
-          adapter.executeQuery(`
+            adapter.executeQuery(`
                     SELECT
                         count(*) as total_indexes,
                         sum(idx_scan) as total_index_scans
                     FROM pg_stat_user_indexes
                 `),
-          adapter.executeQuery(`
+            adapter.executeQuery(`
                     SELECT
                         count(*) as total_connections,
                         count(*) FILTER (WHERE state = 'active') as active_connections,
@@ -95,34 +99,40 @@ export function createPerformanceBaselineTool(
                     FROM pg_stat_activity
                     WHERE backend_type = 'client backend'
                 `),
-          adapter.executeQuery(
-            `SELECT pg_database_size(current_database()) as size_bytes`,
-          ),
-        ]);
+            adapter.executeQuery(
+              `SELECT pg_database_size(current_database()) as size_bytes`,
+            ),
+          ]);
 
-      // Helper to coerce all numeric string values in an object to numbers
-      const coerceRow = (
-        row: Record<string, unknown> | undefined,
-      ): Record<string, unknown> | null => {
-        if (!row) return null;
-        const result: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(row)) {
-          result[key] = toNum(value) ?? value;
-        }
-        return result;
-      };
+        // Helper to coerce all numeric string values in an object to numbers
+        const coerceRow = (
+          row: Record<string, unknown> | undefined,
+        ): Record<string, unknown> | null => {
+          if (!row) return null;
+          const result: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(row)) {
+            result[key] = toNum(value) ?? value;
+          }
+          return result;
+        };
 
-      return {
-        name: baselineName,
-        timestamp: new Date().toISOString(),
-        metrics: {
-          cache: coerceRow(cacheHit.rows?.[0]),
-          tables: coerceRow(tableStats.rows?.[0]),
-          indexes: coerceRow(indexStats.rows?.[0]),
-          connections: coerceRow(connections.rows?.[0]),
-          databaseSize: coerceRow(dbSize.rows?.[0]),
-        },
-      };
+        return {
+          success: true as const,
+          name: baselineName,
+          timestamp: new Date().toISOString(),
+          metrics: {
+            cache: coerceRow(cacheHit.rows?.[0]),
+            tables: coerceRow(tableStats.rows?.[0]),
+            indexes: coerceRow(indexStats.rows?.[0]),
+            connections: coerceRow(connections.rows?.[0]),
+            databaseSize: coerceRow(dbSize.rows?.[0]),
+          },
+        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_performance_baseline",
+        });
+      }
     },
   };
 }
@@ -135,13 +145,14 @@ export function createConnectionPoolOptimizeTool(
     description:
       "Analyze connection usage and provide pool optimization recommendations.",
     group: "performance",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: ConnectionPoolOptimizeOutputSchema,
     annotations: readOnly("Connection Pool Optimize"),
     icons: getToolIcons("performance", readOnly("Connection Pool Optimize")),
     handler: async (_params: unknown, _context: RequestContext) => {
-      const [connStats, settings, waitEvents] = await Promise.all([
-        adapter.executeQuery(`
+      try {
+        const [connStats, settings, waitEvents] = await Promise.all([
+          adapter.executeQuery(`
                     SELECT
                         count(*) as total_connections,
                         count(*) FILTER (WHERE state = 'active') as active,
@@ -153,12 +164,12 @@ export function createConnectionPoolOptimizeTool(
                     FROM pg_stat_activity
                     WHERE backend_type = 'client backend'
                 `),
-        adapter.executeQuery(`
+          adapter.executeQuery(`
                     SELECT
                         current_setting('max_connections')::int as max_connections,
                         current_setting('superuser_reserved_connections')::int as reserved_connections
                 `),
-        adapter.executeQuery(`
+          adapter.executeQuery(`
                     SELECT wait_event_type, wait_event, count(*) as count
                     FROM pg_stat_activity
                     WHERE wait_event IS NOT NULL AND backend_type = 'client backend'
@@ -166,81 +177,87 @@ export function createConnectionPoolOptimizeTool(
                     ORDER BY count DESC
                     LIMIT 10
                 `),
-      ]);
+        ]);
 
-      const conn = connStats.rows?.[0];
-      const config = settings.rows?.[0];
+        const conn = connStats.rows?.[0];
+        const config = settings.rows?.[0];
 
-      const recommendations: string[] = [];
+        const recommendations: string[] = [];
 
-      if (conn && config) {
-        const totalConnections = Number(conn["total_connections"] ?? 0);
-        const maxConnections = Number(config["max_connections"] ?? 1);
-        const idleInTransaction = Number(conn["idle_in_transaction"] ?? 0);
-        const active = Number(conn["active"] ?? 0);
-        const idle = Number(conn["idle"] ?? 0);
-        const maxConnectionAge = Number(
-          conn["max_connection_age_seconds"] ?? 0,
+        if (conn && config) {
+          const totalConnections = Number(conn["total_connections"] ?? 0);
+          const maxConnections = Number(config["max_connections"] ?? 1);
+          const idleInTransaction = Number(conn["idle_in_transaction"] ?? 0);
+          const active = Number(conn["active"] ?? 0);
+          const idle = Number(conn["idle"] ?? 0);
+          const maxConnectionAge = Number(
+            conn["max_connection_age_seconds"] ?? 0,
+          );
+
+          const utilization = (totalConnections / maxConnections) * 100;
+
+          if (utilization > 80) {
+            recommendations.push(
+              "Connection utilization is high (>80%). Consider increasing max_connections or using a connection pooler like PgBouncer.",
+            );
+          }
+          if (idleInTransaction > active) {
+            recommendations.push(
+              "Many idle-in-transaction connections. Check for uncommitted transactions or application issues.",
+            );
+          }
+          if (idle > active * 3) {
+            recommendations.push(
+              "High ratio of idle to active connections. Consider reducing pool size or idle timeout.",
+            );
+          }
+          if (maxConnectionAge > 3600) {
+            recommendations.push(
+              "Long-lived connections detected. Consider connection recycling.",
+            );
+          }
+        }
+
+        // Coerce numeric fields to JavaScript numbers
+        const current = conn
+          ? {
+              total_connections: toNum(conn["total_connections"]),
+              active: toNum(conn["active"]),
+              idle: toNum(conn["idle"]),
+              idle_in_transaction: toNum(conn["idle_in_transaction"]),
+              waiting: toNum(conn["waiting"]),
+              max_connection_age_seconds: toNum(
+                conn["max_connection_age_seconds"],
+              ),
+              avg_connection_age_seconds: toNum(
+                conn["avg_connection_age_seconds"],
+              ),
+            }
+          : null;
+
+        // Coerce waitEvents count to numbers
+        const coercedWaitEvents = (waitEvents.rows ?? []).map(
+          (row: Record<string, unknown>) => ({
+            ...row,
+            count: toNum(row["count"]),
+          }),
         );
 
-        const utilization = (totalConnections / maxConnections) * 100;
-
-        if (utilization > 80) {
-          recommendations.push(
-            "Connection utilization is high (>80%). Consider increasing max_connections or using a connection pooler like PgBouncer.",
-          );
-        }
-        if (idleInTransaction > active) {
-          recommendations.push(
-            "Many idle-in-transaction connections. Check for uncommitted transactions or application issues.",
-          );
-        }
-        if (idle > active * 3) {
-          recommendations.push(
-            "High ratio of idle to active connections. Consider reducing pool size or idle timeout.",
-          );
-        }
-        if (maxConnectionAge > 3600) {
-          recommendations.push(
-            "Long-lived connections detected. Consider connection recycling.",
-          );
-        }
+        return {
+          success: true as const,
+          current,
+          config,
+          waitEvents: coercedWaitEvents,
+          recommendations:
+            recommendations.length > 0
+              ? recommendations
+              : ["Connection pool appears healthy"],
+        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_connection_pool_optimize",
+        });
       }
-
-      // Coerce numeric fields to JavaScript numbers
-      const current = conn
-        ? {
-            total_connections: toNum(conn["total_connections"]),
-            active: toNum(conn["active"]),
-            idle: toNum(conn["idle"]),
-            idle_in_transaction: toNum(conn["idle_in_transaction"]),
-            waiting: toNum(conn["waiting"]),
-            max_connection_age_seconds: toNum(
-              conn["max_connection_age_seconds"],
-            ),
-            avg_connection_age_seconds: toNum(
-              conn["avg_connection_age_seconds"],
-            ),
-          }
-        : null;
-
-      // Coerce waitEvents count to numbers
-      const coercedWaitEvents = (waitEvents.rows ?? []).map(
-        (row: Record<string, unknown>) => ({
-          ...row,
-          count: toNum(row["count"]),
-        }),
-      );
-
-      return {
-        current,
-        config,
-        waitEvents: coercedWaitEvents,
-        recommendations:
-          recommendations.length > 0
-            ? recommendations
-            : ["Connection pool appears healthy"],
-      };
     },
   };
 }
@@ -277,6 +294,9 @@ export function createPartitionStrategySuggestTool(
           return {
             success: false as const,
             error: "Missing required parameter: table is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
 
@@ -288,6 +308,9 @@ export function createPartitionStrategySuggestTool(
           schemaName = parts[0] ?? "public";
           tableName = parts[1] ?? tableName;
         }
+
+        // P154: Validate table existence before querying
+        await validatePerformanceTableExists(adapter, tableName, schemaName);
 
         const [tableInfo, columnInfo, tableSize] = await Promise.all([
           adapter.executeQuery(
@@ -410,6 +433,7 @@ export function createPartitionStrategySuggestTool(
           : null;
 
         return {
+          success: true as const,
           table: `${schemaName}.${tableName}`,
           tableStats: coercedTableStats,
           tableSize: coercedTableSize,
@@ -418,13 +442,10 @@ export function createPartitionStrategySuggestTool(
           suggestions: suggestions.slice(0, 5),
           note: "Consider your query patterns when choosing partition key. Range partitioning on date columns is most common.",
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_partition_strategy_suggest",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_partition_strategy_suggest",
+        });
       }
     },
   };

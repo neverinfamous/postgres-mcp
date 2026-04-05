@@ -5,7 +5,7 @@
  * 24 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 // Import from sub-modules
@@ -17,13 +17,17 @@ import {
 import {
   createIndexStatsTool,
   createTableStatsTool,
+  createVacuumStatsTool,
+} from "./catalog-stats.js";
+import {
   createStatStatementsTool,
   createStatActivityTool,
+  createQueryPlanStatsTool,
+} from "./query-stats.js";
+import {
   createUnusedIndexesTool,
   createDuplicateIndexesTool,
-  createVacuumStatsTool,
-  createQueryPlanStatsTool,
-} from "./stats.js";
+} from "./index-analysis.js";
 import {
   createLocksTool,
   createBloatCheckTool,
@@ -32,8 +36,8 @@ import {
 import {
   createSeqScanTablesTool,
   createIndexRecommendationsTool,
-  createQueryPlanCompareTool,
 } from "./analysis.js";
+import { createQueryPlanCompareTool } from "./compare.js";
 import {
   createPerformanceBaselineTool,
   createConnectionPoolOptimizeTool,
@@ -43,8 +47,8 @@ import { createDiagnoseTool } from "./diagnostics.js";
 import {
   createDetectQueryAnomaliesTool,
   createDetectBloatRiskTool,
-  createDetectConnectionSpikeTool,
 } from "./anomaly-detection.js";
+import { createDetectConnectionSpikeTool } from "./connection-analysis.js";
 
 /**
  * Get all performance tools

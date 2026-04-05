@@ -1,7 +1,7 @@
 /**
  * postgres-mcp - OAuth Scopes
  *
- * Scope definitions and utilities for PostgreSQL MCP OAuth 2.0.
+ * Scope definitions and utilities for PostgreSQL MCP OAuth 2.1.
  */
 
 import type { ToolGroup } from "../types/index.js";
@@ -39,6 +39,23 @@ export const ALL_SCOPES = [
   SCOPES.FULL,
   // Pattern scopes: db:{name}, schema:{name}, table:{schema}:{table}
 ] as const;
+
+/**
+ * Base scopes supported by the server (without dynamic patterns)
+ */
+export const BASE_SCOPES = ["read", "write", "admin", "full"] as const;
+
+/**
+ * Regex patterns for validating dynamic scope strings
+ */
+export const SCOPE_PATTERNS = {
+  /** Database-specific access pattern: db:{name} */
+  DATABASE: /^db:([a-zA-Z0-9_-]+)$/,
+  /** Schema-specific access pattern: schema:{name} */
+  SCHEMA: /^schema:([a-zA-Z0-9_-]+)$/,
+  /** Table-specific access pattern: table:{schema}:{table} */
+  TABLE: /^table:([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)$/,
+} as const;
 
 // =============================================================================
 // Tool Group to Scope Mapping
@@ -83,6 +100,35 @@ export const TOOL_GROUP_SCOPES: Record<ToolGroup, StandardScope> = {
 
   // Code Mode (requires admin - can execute arbitrary operations)
   codemode: SCOPES.ADMIN,
+};
+
+/**
+ * Per-tool scope overrides.
+ *
+ * The group-level mapping above is the default. These overrides raise
+ * individual tools to the correct scope when the group default is too
+ * permissive — most notably the `core` group, which contains both
+ * read-only and destructive tools.
+ *
+ * BREAKING CHANGE: OAuth users with only `read` scope will lose access
+ * to write/destructive core tools. They need `write` or `admin` scope.
+ */
+export const TOOL_SCOPE_OVERRIDES: Partial<Record<string, StandardScope>> = {
+  // Core group — write operations
+  pg_write_query: SCOPES.WRITE,
+  pg_create_table: SCOPES.WRITE,
+  pg_create_index: SCOPES.WRITE,
+  pg_upsert: SCOPES.WRITE,
+  pg_batch_insert: SCOPES.WRITE,
+
+  // Core group — destructive operations
+  pg_drop_table: SCOPES.ADMIN,
+  pg_drop_index: SCOPES.ADMIN,
+  pg_truncate: SCOPES.ADMIN,
+
+  // Backup group — read-only audit tools (group default is admin)
+  pg_audit_list_backups: SCOPES.READ,
+  pg_audit_diff_backup: SCOPES.READ,
 };
 
 // =============================================================================

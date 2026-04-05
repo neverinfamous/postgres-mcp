@@ -4,14 +4,10 @@
  * Provides PostGIS extension status, spatial columns, and index information.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type { ResourceDefinition } from "../../../types/index.js";
-import { LOW_PRIORITY } from "../../../utils/resourceAnnotations.js";
-
-/** Safely convert unknown value to string */
-function toStr(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
+import { LOW_PRIORITY } from "../../../utils/resource-annotations.js";
+import { toStr, SMALL_TABLE_THRESHOLD } from "../../../utils/query-helpers.js";
 
 interface SpatialColumn {
   schema: string;
@@ -222,7 +218,6 @@ export function createPostgisResource(
 
         // Find unindexed spatial columns and generate actionable SQL
         // Skip small tables where GiST indexes provide minimal benefit
-        const SMALL_TABLE_THRESHOLD = 1000;
         const indexedColumns = new Set(
           result.indexes.map((i) => `${i.schema}.${i.table}.${i.column}`),
         );
@@ -303,6 +298,8 @@ export function createPostgisResource(
           const isUnindexed = result.unindexedColumns.some(
             (u) => u.column === `${col.schema}.${col.table}.${col.column}`,
           );
+          // PostGIS: 10K threshold — spatial queries are expensive even on
+          // moderate tables, so GiST indexes matter sooner than for vector search.
           if (col.rowCount > 10000 && isUnindexed) {
             result.recommendations.push(
               `Large unindexed spatial column: ${col.table}.${col.column} (${String(col.rowCount)} rows). GiST index strongly recommended.`,

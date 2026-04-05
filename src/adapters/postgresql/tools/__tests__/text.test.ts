@@ -7,11 +7,15 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getTextTools } from "../text/index.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
+
+vi.mock("../vector/data.js", () => ({
+  checkTableAndColumn: vi.fn().mockResolvedValue(null),
+}));
 
 describe("getTextTools", () => {
   let adapter: PostgresAdapter;
@@ -174,11 +178,9 @@ describe("pg_text_search", () => {
     );
   });
 
-  it("should not add LIMIT clause when limit is 0 (line 55 branch)", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("should enforce limit constraints strictly to prevent payload bloat", async () => {
     const tool = tools.find((t) => t.name === "pg_text_search")!;
-    await tool.handler(
+    const result = (await tool.handler(
       {
         table: "articles",
         columns: ["title"],
@@ -186,10 +188,10 @@ describe("pg_text_search", () => {
         limit: 0,
       },
       mockContext,
-    );
+    )) as { success: boolean; error: string };
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
-    expect(sql).not.toContain("LIMIT");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("must be greater than 0");
   });
 });
 
@@ -1150,7 +1152,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_trigram_similarity", async () => {
@@ -1167,7 +1169,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_create_fts_index", async () => {
@@ -1184,7 +1186,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_fuzzy_match", async () => {
@@ -1201,7 +1203,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_like_search", async () => {
@@ -1218,7 +1220,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_text_headline", async () => {
@@ -1235,7 +1237,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_regexp_match", async () => {
@@ -1252,7 +1254,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found in pg_text_rank", async () => {
@@ -1269,7 +1271,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured validation error for pg_fuzzy_match with invalid method", async () => {
@@ -1317,15 +1319,14 @@ describe("text.ts branch coverage", () => {
     expect(sql).not.toContain("ILIKE");
   });
 
-  it("pg_like_search limit:0 should have no LIMIT", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_like_search limit:0 should throw validation error", async () => {
     const tool = tools.find((t) => t.name === "pg_like_search")!;
-    await tool.handler(
+    const result = (await tool.handler(
       { table: "t", column: "c", pattern: "%x%", limit: 0 },
       mockContext,
-    );
-    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
-    expect(sql).not.toContain("LIMIT");
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("greater than 0");
   });
 
   it("pg_like_search with where clause", async () => {
@@ -1350,19 +1351,17 @@ describe("text.ts branch coverage", () => {
       mockContext,
     )) as Record<string, unknown>;
     expect(result.truncated).toBe(true);
-    expect(result.hint).toContain("limit: 0");
+    expect(result.hint).toContain("Use a higher limit");
   });
 
-  it("pg_trigram_similarity with where clause and limit:0", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_trigram_similarity with where clause and limit:0 should validate", async () => {
     const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
-    await tool.handler(
+    const result = (await tool.handler(
       { table: "t", column: "c", value: "x", where: "active=true", limit: 0 },
       mockContext,
-    );
-    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
-    expect(sql).toContain("active=true");
-    expect(sql).not.toContain("LIMIT");
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("greater than 0");
   });
 
   it("pg_trigram_similarity truncation indicator", async () => {
@@ -1388,10 +1387,9 @@ describe("text.ts branch coverage", () => {
     expect(sql).toContain('"id", "name"');
   });
 
-  it("pg_fuzzy_match with where clause and limit:0", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_fuzzy_match with where clause and limit:0 should validate", async () => {
     const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
-    await tool.handler(
+    const result = (await tool.handler(
       {
         table: "t",
         column: "c",
@@ -1400,10 +1398,9 @@ describe("text.ts branch coverage", () => {
         limit: 0,
       },
       mockContext,
-    );
-    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
-    expect(sql).toContain("active=true");
-    expect(sql).not.toContain("LIMIT");
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("greater than 0");
   });
 
   it("pg_fuzzy_match truncation indicator", async () => {
@@ -1429,16 +1426,14 @@ describe("text.ts branch coverage", () => {
     expect(sql).toContain('"id"');
   });
 
-  it("pg_regexp_match with where clause and limit:0", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_regexp_match with where clause and limit:0 should validate", async () => {
     const tool = tools.find((t) => t.name === "pg_regexp_match")!;
-    await tool.handler(
+    const result = (await tool.handler(
       { table: "t", column: "c", pattern: "^x", where: "id>1", limit: 0 },
       mockContext,
-    );
-    const sql = mockAdapter.executeQuery.mock.calls[0][0] as string;
-    expect(sql).toContain("id>1");
-    expect(sql).not.toContain("LIMIT");
+    )) as { success: boolean; error: string };
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("greater than 0");
   });
 
   it("pg_regexp_match truncation indicator", async () => {

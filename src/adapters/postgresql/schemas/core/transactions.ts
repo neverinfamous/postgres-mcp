@@ -7,6 +7,7 @@
 import { z } from "zod";
 
 import { defaultToEmpty } from "./queries.js";
+import { ErrorResponseFields } from "../error-response-fields.js";
 
 // =============================================================================
 // Transaction Schemas
@@ -19,6 +20,12 @@ import { defaultToEmpty } from "./queries.js";
  */
 function preprocessBeginParams(input: unknown): unknown {
   const normalized = defaultToEmpty(input) as Record<string, unknown>;
+  if (
+    normalized["isolation_level"] !== undefined &&
+    normalized["isolationLevel"] === undefined
+  ) {
+    normalized["isolationLevel"] = normalized["isolation_level"];
+  }
   if (typeof normalized["isolationLevel"] === "string") {
     const level = normalized["isolationLevel"].toUpperCase().trim();
     // Map shorthands
@@ -40,6 +47,12 @@ function preprocessBeginParams(input: unknown): unknown {
 // handler's try/catch instead of being rejected as raw MCP -32602 errors.
 export const BeginTransactionSchemaBase = z.object({
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
+  isolation_level: z.string().optional().describe("Alias for isolationLevel"),
+  read_only: z
+    .boolean()
+    .optional()
+    .describe("Set to true for read-only transaction"),
+  readOnly: z.boolean().optional().describe("Alias for read_only"),
 });
 
 // Internal schema with strict enum validation (used inside handler try/catch)
@@ -53,12 +66,19 @@ const BeginTransactionValidationSchema = z.object({
     ])
     .optional()
     .describe("Transaction isolation level"),
+  read_only: z
+    .boolean()
+    .optional()
+    .describe("Set to true for read-only transaction"),
 });
 
-export const BeginTransactionSchema = z.preprocess(
-  preprocessBeginParams,
-  BeginTransactionValidationSchema,
-);
+export const BeginTransactionSchema = z.preprocess((val) => {
+  const obj = preprocessBeginParams(val) as Record<string, unknown>;
+  if (obj["readOnly"] !== undefined && obj["read_only"] === undefined) {
+    obj["read_only"] = obj["readOnly"];
+  }
+  return obj;
+}, BeginTransactionValidationSchema);
 
 // Base schema for MCP visibility (shows transactionId and aliases)
 export const TransactionIdSchemaBase = z.object({
@@ -132,7 +152,7 @@ export const ExecuteInTransactionSchema =
 // z.string() for isolationLevel so invalid values reach the handler's try/catch.
 export const TransactionExecuteSchemaBase = z.object({
   statements: z
-    .array(z.unknown())
+    .unknown()
     .optional()
     .describe(
       'Statements to execute atomically. Each must be an object with {sql: "..."} format.',
@@ -146,6 +166,12 @@ export const TransactionExecuteSchemaBase = z.object({
   txId: z.string().optional().describe("Alias for transactionId"),
   tx: z.string().optional().describe("Alias for transactionId"),
   isolationLevel: z.string().optional().describe("Transaction isolation level"),
+  isolation_level: z.string().optional().describe("Alias for isolationLevel"),
+  read_only: z
+    .boolean()
+    .optional()
+    .describe("Set to true for read-only transaction"),
+  readOnly: z.boolean().optional().describe("Alias for read_only"),
 });
 
 // Internal schema with strict validation (used inside handler try/catch)
@@ -179,14 +205,24 @@ const TransactionExecuteValidationSchema = z.object({
     ])
     .optional()
     .describe("Transaction isolation level"),
+  read_only: z
+    .boolean()
+    .optional()
+    .describe("Set to true for read-only transaction"),
 });
 
 // Schema with undefined handling for pg_transaction_execute
 export const TransactionExecuteSchema = z
-  .preprocess(
-    (val: unknown) => preprocessBeginParams(defaultToEmpty(val)),
-    TransactionExecuteValidationSchema,
-  )
+  .preprocess((val: unknown) => {
+    const obj = preprocessBeginParams(defaultToEmpty(val)) as Record<
+      string,
+      unknown
+    >;
+    if (obj["readOnly"] !== undefined && obj["read_only"] === undefined) {
+      obj["read_only"] = obj["readOnly"];
+    }
+    return obj;
+  }, TransactionExecuteValidationSchema)
   .transform((data) => ({
     statements: (data.statements ?? []).map((stmt) => ({
       sql: stmt.sql ?? stmt.query ?? "",
@@ -194,6 +230,7 @@ export const TransactionExecuteSchema = z
     })),
     transactionId: data.transactionId ?? data.txId ?? data.tx,
     isolationLevel: data.isolationLevel,
+    read_only: data.read_only,
   }))
   .refine((data) => data.statements.length > 0, {
     message:
@@ -209,60 +246,90 @@ export const TransactionExecuteSchema = z
 // =============================================================================
 
 // Output schema for pg_transaction_begin
-export const TransactionBeginOutputSchema = z.object({
-  success: z
-    .boolean()
-    .optional()
-    .describe("False when the operation failed (omitted on success)"),
-  error: z.string().optional().describe("Error message when success is false"),
-  transactionId: z
-    .string()
-    .optional()
-    .describe("Unique transaction ID for subsequent operations"),
-  isolationLevel: z.string().optional().describe("Transaction isolation level"),
-  message: z.string().optional().describe("Confirmation message"),
-});
+export const TransactionBeginOutputSchema = z
+  .object({
+    success: z
+      .boolean()
+      .optional()
+      .describe("False when the operation failed (omitted on success)"),
+    error: z
+      .string()
+      .optional()
+      .describe("Error message when success is false"),
+    transactionId: z
+      .string()
+      .optional()
+      .describe("Unique transaction ID for subsequent operations"),
+    isolationLevel: z
+      .string()
+      .optional()
+      .describe("Transaction isolation level"),
+    read_only: z
+      .boolean()
+      .optional()
+      .describe("Whether transaction is read-only"),
+    message: z.string().optional().describe("Confirmation message"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for pg_transaction_commit, pg_transaction_rollback
-export const TransactionResultOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message when success is false"),
-  transactionId: z
-    .string()
-    .optional()
-    .describe("Transaction ID that was operated on"),
-  message: z.string().optional().describe("Result message"),
-});
+export const TransactionResultOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the operation succeeded"),
+    error: z
+      .string()
+      .optional()
+      .describe("Error message when success is false"),
+    transactionId: z
+      .string()
+      .optional()
+      .describe("Transaction ID that was operated on"),
+    message: z.string().optional().describe("Result message"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for pg_transaction_status
-export const TransactionStatusOutputSchema = z.object({
-  success: z
-    .boolean()
-    .optional()
-    .describe("False when the operation failed (omitted on success)"),
-  error: z.string().optional().describe("Error message when success is false"),
-  status: z
-    .enum(["active", "aborted", "not_found"])
-    .optional()
-    .describe(
-      "Transaction state: active (ready for ops), aborted (needs rollback), or not_found (already ended)",
-    ),
-  transactionId: z.string().optional().describe("Transaction ID queried"),
-  active: z
-    .boolean()
-    .optional()
-    .describe("Whether the transaction connection still exists"),
-  message: z.string().optional().describe("Human-readable status description"),
-});
+export const TransactionStatusOutputSchema = z
+  .object({
+    success: z
+      .boolean()
+      .optional()
+      .describe("False when the operation failed (omitted on success)"),
+    error: z
+      .string()
+      .optional()
+      .describe("Error message when success is false"),
+    status: z
+      .enum(["active", "aborted", "not_found"])
+      .optional()
+      .describe(
+        "Transaction state: active (ready for ops), aborted (needs rollback), or not_found (already ended)",
+      ),
+    transactionId: z.string().optional().describe("Transaction ID queried"),
+    active: z
+      .boolean()
+      .optional()
+      .describe("Whether the transaction connection still exists"),
+    message: z
+      .string()
+      .optional()
+      .describe("Human-readable status description"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for pg_transaction_savepoint, pg_transaction_release, pg_transaction_rollback_to
-export const SavepointResultOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message when success is false"),
-  transactionId: z.string().optional().describe("Transaction ID"),
-  savepoint: z.string().optional().describe("Savepoint name"),
-  message: z.string().optional().describe("Result message"),
-});
+export const SavepointResultOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the operation succeeded"),
+    error: z
+      .string()
+      .optional()
+      .describe("Error message when success is false"),
+    transactionId: z.string().optional().describe("Transaction ID"),
+    savepoint: z.string().optional().describe("Savepoint name"),
+    message: z.string().optional().describe("Result message"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Statement result schema for transaction execute
 const StatementResultSchema = z.object({
@@ -276,31 +343,42 @@ const StatementResultSchema = z.object({
 });
 
 // Output schema for pg_transaction_execute
-export const TransactionExecuteOutputSchema = z.object({
-  success: z.boolean().describe("Whether all statements executed successfully"),
-  error: z.string().optional().describe("Error message when success is false"),
-  statementsExecuted: z
-    .number()
-    .optional()
-    .describe("Number of statements executed"),
-  statementsTotal: z
-    .number()
-    .optional()
-    .describe("Total number of statements attempted"),
-  failedStatement: z
-    .string()
-    .optional()
-    .describe("SQL of the statement that failed"),
-  autoRolledBack: z
-    .boolean()
-    .optional()
-    .describe("Whether the transaction was automatically rolled back"),
-  results: z
-    .array(StatementResultSchema)
-    .optional()
-    .describe("Results from each statement"),
-  transactionId: z
-    .string()
-    .optional()
-    .describe("Transaction ID (when joining existing transaction)"),
-});
+export const TransactionExecuteOutputSchema = z
+  .object({
+    success: z
+      .boolean()
+      .describe("Whether all statements executed successfully"),
+    error: z
+      .string()
+      .optional()
+      .describe("Error message when success is false"),
+    statementsExecuted: z
+      .number()
+      .optional()
+      .describe("Number of statements executed"),
+    statementsTotal: z
+      .number()
+      .optional()
+      .describe("Total number of statements attempted"),
+    failedStatement: z
+      .string()
+      .optional()
+      .describe("SQL of the statement that failed"),
+    autoRolledBack: z
+      .boolean()
+      .optional()
+      .describe("Whether the transaction was automatically rolled back"),
+    results: z
+      .array(StatementResultSchema)
+      .optional()
+      .describe("Results from each statement"),
+    transactionId: z
+      .string()
+      .optional()
+      .describe("Transaction ID (when joining existing transaction)"),
+    read_only: z
+      .boolean()
+      .optional()
+      .describe("Whether new transaction is read-only"),
+  })
+  .extend(ErrorResponseFields.shape);

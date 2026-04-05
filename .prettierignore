@@ -1,9 +1,15 @@
 # Build artifacts
+# Build artifacts
 dist/
 node_modules/
+.vscode/
 
 # Generated files (edit the .md source instead)
-src/constants/ServerInstructions.ts
+src/constants/server-instructions.ts
 
 # Test output
 test-results.json
+tmp/
+mcp-audit.jsonl
+logs/
+*.txt

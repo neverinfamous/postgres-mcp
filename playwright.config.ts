@@ -1,14 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
+  timeout: 60000, // Mitigation for erratic CI pipeline and environment startup lags
   testDir: "./tests/e2e",
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 4 : undefined,
+  globalSetup: "./tests/e2e/global-setup.ts",
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
   projects: [
@@ -17,13 +18,4 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command:
-      "node dist/cli.js --transport http --port 3000 --postgres postgres://postgres:postgres@localhost:5432/postgres --tool-filter starter",
-    url: "http://localhost:3000/health",
-    reuseExistingServer: !process.env.CI,
-    timeout: 10000,
-    stdout: "pipe",
-    stderr: "pipe",
-  },
 });

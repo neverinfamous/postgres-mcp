@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getAdminTools } from "../admin.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import { getAdminTools } from "../admin/index.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -23,8 +23,8 @@ describe("getAdminTools", () => {
     tools = getAdminTools(adapter);
   });
 
-  it("should return 10 admin tools", () => {
-    expect(tools).toHaveLength(10);
+  it("should return 11 admin tools", () => {
+    expect(tools).toHaveLength(11);
   });
 
   it("should have all expected tool names", () => {
@@ -39,6 +39,7 @@ describe("getAdminTools", () => {
     expect(toolNames).toContain("pg_set_config");
     expect(toolNames).toContain("pg_reset_stats");
     expect(toolNames).toContain("pg_cluster");
+    expect(toolNames).toContain("pg_append_insight");
   });
 
   it("should have group set to admin for all tools", () => {
@@ -112,7 +113,7 @@ describe("pg_vacuum", () => {
       message: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM FULL ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (FULL) ");
     expect(result.message).toContain("FULL");
   });
 
@@ -122,7 +123,7 @@ describe("pg_vacuum", () => {
     const tool = tools.find((t) => t.name === "pg_vacuum")!;
     await tool.handler({ verbose: true }, mockContext);
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM VERBOSE ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (VERBOSE) ");
   });
 
   it("should accept undefined (no args) and vacuum all tables", async () => {
@@ -147,7 +148,7 @@ describe("pg_vacuum", () => {
       message: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM ANALYZE ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (ANALYZE) ");
     expect(result.message).toBe("VACUUM ANALYZE completed");
   });
 
@@ -164,7 +165,7 @@ describe("pg_vacuum", () => {
     };
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      "VACUUM FULL ANALYZE ",
+      "VACUUM (FULL, ANALYZE) ",
     );
     expect(result.message).toBe("VACUUM FULL ANALYZE completed");
   });
@@ -233,7 +234,7 @@ describe("pg_vacuum_analyze", () => {
       message: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM ANALYZE ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (ANALYZE) ");
     expect(result.success).toBe(true);
     expect(result.message).toBe("VACUUM ANALYZE completed");
   });
@@ -245,7 +246,7 @@ describe("pg_vacuum_analyze", () => {
     await tool.handler({ table: "orders" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      'VACUUM ANALYZE "orders"',
+      'VACUUM (ANALYZE) "orders"',
     );
   });
 
@@ -256,7 +257,7 @@ describe("pg_vacuum_analyze", () => {
     await tool.handler({ verbose: true, table: "users" }, mockContext);
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      'VACUUM VERBOSE ANALYZE "users"',
+      'VACUUM (VERBOSE, ANALYZE) "users"',
     );
   });
 
@@ -269,7 +270,7 @@ describe("pg_vacuum_analyze", () => {
       message: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM ANALYZE ");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("VACUUM (ANALYZE) ");
     expect(result.success).toBe(true);
   });
 
@@ -283,7 +284,7 @@ describe("pg_vacuum_analyze", () => {
     };
 
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-      "VACUUM FULL ANALYZE ",
+      "VACUUM (FULL, ANALYZE) ",
     );
     expect(result.message).toBe("VACUUM FULL ANALYZE completed");
   });
@@ -515,11 +516,13 @@ describe("pg_terminate_backend", () => {
     const tool = tools.find((t) => t.name === "pg_terminate_backend")!;
     const result = (await tool.handler({ pid: 99999 }, mockContext)) as {
       success: boolean;
-      message: string;
+      error: string;
+      code: string;
     };
 
     expect(result.success).toBe(false);
-    expect(result.message).toBe("Failed to terminate");
+    expect(result.error).toContain("Failed to terminate");
+    expect(result.code).toBe("PROCESS_NOT_FOUND");
   });
 
   it("should expose parameters in schema for MCP visibility", () => {
@@ -571,11 +574,13 @@ describe("pg_cancel_backend", () => {
     const tool = tools.find((t) => t.name === "pg_cancel_backend")!;
     const result = (await tool.handler({ pid: 99999 }, mockContext)) as {
       success: boolean;
-      message: string;
+      error: string;
+      code: string;
     };
 
     expect(result.success).toBe(false);
-    expect(result.message).toBe("Failed to cancel");
+    expect(result.error).toContain("Failed to cancel");
+    expect(result.code).toBe("PROCESS_NOT_FOUND");
   });
 
   it("should expose parameters in schema for MCP visibility", () => {
@@ -824,18 +829,22 @@ describe("pg_cluster", () => {
     expect(schema.shape?.["schema"]).toBeDefined();
   });
 
-  it("should return structured error when table specified without index", async () => {
-    const tool = tools.find((t) => t.name === "pg_cluster")!;
+  it("should cluster table without index (postgres uses previously clustered index)", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
+    const tool = tools.find((t) => t.name === "pg_cluster")!;
     const result = (await tool.handler({ table: "users" }, mockContext)) as {
       success: boolean;
-      error: string;
+      message: string;
+      table: string;
     };
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain(
-      "table and index must both be specified together",
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith('CLUSTER "users"');
+    expect(result.success).toBe(true);
+    expect(result.message).toBe(
+      "Re-clustered users using its existing clustered index",
     );
+    expect(result.table).toBe("users");
   });
 
   it("should return structured error when index specified without table", async () => {
@@ -851,7 +860,7 @@ describe("pg_cluster", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain(
-      "table and index must both be specified together",
+      "table is required when specifying an index",
     );
   });
 });
@@ -890,7 +899,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found on pg_vacuum_analyze", async () => {
@@ -911,7 +920,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found on pg_analyze", async () => {
@@ -932,7 +941,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 table-not-found on pg_reindex", async () => {
@@ -953,7 +962,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for pg_set_config with invalid parameter", async () => {
@@ -997,7 +1006,7 @@ describe("Structured Error Handling (formatPostgresError)", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/not found.*pg_list_tables/i);
+    expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
   });
 
   it("should return structured error for 42P01 index-not-found on pg_reindex target=index", async () => {

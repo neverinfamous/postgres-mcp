@@ -9,6 +9,7 @@
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ModuleLogger } from "./module-logger.js";
 
 /**
  * RFC 5424 syslog severity levels
@@ -80,7 +81,7 @@ interface LogEntry {
  * - Severity: RFC 5424 levels
  * - Format: [timestamp] [LEVEL] [MODULE] [CODE] message {context}
  */
-class Logger {
+export class Logger {
   private minLevel: LogLevel = "info";
   private mcpServer: McpServer | null = null;
   private loggerName = "postgres-mcp";
@@ -142,10 +143,12 @@ class Logger {
   }
 
   /**
-   * List of keys that contain sensitive data and should be redacted
-   * Includes OAuth 2.1 configuration fields that may contain sensitive data
+   * Canonical list of keys that contain sensitive data and should be redacted.
+   * Includes authentication credentials and OAuth 2.1 configuration fields.
+   * Both sensitiveKeys (Set) and sensitiveKeyPattern (RegExp) are derived
+   * from this single source of truth.
    */
-  private readonly sensitiveKeys: ReadonlySet<string> = new Set([
+  private static readonly SENSITIVE_KEY_LIST: readonly string[] = [
     // Authentication credentials
     "password",
     "secret",
@@ -176,7 +179,20 @@ class Logger {
     "oauth",
     "scopes_supported",
     "scopessupported",
-  ]);
+  ];
+
+  /** Fast-path exact match for sensitive keys */
+  private readonly sensitiveKeys: ReadonlySet<string> = new Set(
+    Logger.SENSITIVE_KEY_LIST,
+  );
+
+  /**
+   * Pre-compiled regex for substring-based sensitive key detection.
+   * Replaces O(n) Set iteration with a single regex test on the slow path.
+   */
+  private readonly sensitiveKeyPattern: RegExp = new RegExp(
+    Logger.SENSITIVE_KEY_LIST.join("|"),
+  );
 
   /**
    * Sanitize log message to prevent log injection attacks
@@ -215,14 +231,9 @@ class Logger {
       // Check if this key matches any sensitive pattern
       // Fast path: exact Set membership
       let isSensitive = this.sensitiveKeys.has(lowerKey);
-      // Slow path: substring check — iterate Set directly (avoids spread allocation)
+      // Slow path: single regex test for substring containment
       if (!isSensitive) {
-        for (const sk of this.sensitiveKeys) {
-          if (lowerKey.includes(sk)) {
-            isSensitive = true;
-            break;
-          }
-        }
+        isSensitive = this.sensitiveKeyPattern.test(lowerKey);
       }
 
       if (isSensitive && value !== undefined && value !== null) {
@@ -268,9 +279,7 @@ class Logger {
     // Add context if present (excluding module and code which are already in the format)
     if (entry.context) {
       // Destructure out fields that are already in the log line format
-      const { module, code, ...restContext } = entry.context;
-      void module;
-      void code; // Intentionally unused - already in format
+      const { module: _module, code: _code, ...restContext } = entry.context;
       if (Object.keys(restContext).length > 0) {
         const sanitizedContext = this.sanitizeContext(restContext);
         parts.push(JSON.stringify(sanitizedContext));
@@ -427,54 +436,6 @@ class Logger {
   }
 }
 
-/**
- * Module-scoped logger for cleaner code in specific modules
- */
-class ModuleLogger {
-  constructor(
-    private parent: Logger,
-    private module: LogModule,
-  ) {}
-
-  private withModule(context?: LogContext): LogContext {
-    return { ...context, module: this.module };
-  }
-
-  debug(message: string, context?: LogContext): void {
-    this.parent.debug(message, this.withModule(context));
-  }
-
-  info(message: string, context?: LogContext): void {
-    this.parent.info(message, this.withModule(context));
-  }
-
-  notice(message: string, context?: LogContext): void {
-    this.parent.notice(message, this.withModule(context));
-  }
-
-  warn(message: string, context?: LogContext): void {
-    this.parent.warn(message, this.withModule(context));
-  }
-
-  warning(message: string, context?: LogContext): void {
-    this.parent.warning(message, this.withModule(context));
-  }
-
-  error(message: string, context?: LogContext): void {
-    this.parent.error(message, this.withModule(context));
-  }
-
-  critical(message: string, context?: LogContext): void {
-    this.parent.critical(message, this.withModule(context));
-  }
-
-  alert(message: string, context?: LogContext): void {
-    this.parent.alert(message, this.withModule(context));
-  }
-
-  emergency(message: string, context?: LogContext): void {
-    this.parent.emergency(message, this.withModule(context));
-  }
-}
+// ModuleLogger is defined in module-logger.ts and imported above
 
 export const logger = new Logger();

@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getTransactionTools } from "../transactions.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockPostgresAdapterWithTransaction,
@@ -114,7 +114,10 @@ describe("pg_transaction_begin", () => {
       isolationLevel: string;
     };
 
-    expect(mockAdapter.beginTransaction).toHaveBeenCalledWith("SERIALIZABLE");
+    expect(mockAdapter.beginTransaction).toHaveBeenCalledWith(
+      "SERIALIZABLE",
+      undefined,
+    );
     expect(result.isolationLevel).toBe("SERIALIZABLE");
   });
 });
@@ -980,7 +983,7 @@ describe("pg_transaction_execute - structured error handling", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
     expect(result.error).not.toContain("automatically rolled back");
     expect(result.autoRolledBack).toBeUndefined();
     expect(result.transactionId).toBe("existing-txn");

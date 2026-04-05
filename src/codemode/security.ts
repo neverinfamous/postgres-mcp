@@ -23,8 +23,16 @@ export class CodeModeSecurityManager {
     { count: number; resetTime: number }
   >();
 
+  private readonly cleanupTimer: ReturnType<typeof setInterval>;
+
   constructor(config?: Partial<SecurityConfig>) {
     this.config = { ...DEFAULT_SECURITY_CONFIG, ...config };
+    // Periodically purge expired rate-limit entries to prevent unbounded map growth
+    // in long-running deployments with many unique client IDs.
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupRateLimits();
+    }, 60_000);
+    this.cleanupTimer.unref();
   }
 
   /**
@@ -65,7 +73,7 @@ export class CodeModeSecurityManager {
    */
   checkRateLimit(clientId: string): boolean {
     const now = Date.now();
-    const windowMs = 60000; // 1 minute window
+    const windowMs = this.config.rateLimitWindowMs;
 
     const existing = this.rateLimitMap.get(clientId);
 
@@ -101,14 +109,33 @@ export class CodeModeSecurityManager {
    * Sanitize and truncate result if too large
    */
   sanitizeResult(result: unknown): unknown {
+    if (result === null || typeof result !== "object") {
+      return result;
+    }
+
     try {
+      // Fast path heuristic for large arrays: slice before stringify to save CPU
+      if (Array.isArray(result) && result.length > 500) {
+        const sample = result.slice(0, 500);
+        const serialized = JSON.stringify(sample);
+        return {
+          truncated: true,
+          originalSize: result.length,
+          maxSize: 500,
+          preview:
+            serialized.substring(0, this.config.resultPreviewLength) +
+            `... (and ${String(result.length - 500)} more rows)`,
+        };
+      }
+
       const serialized = JSON.stringify(result);
       if (serialized.length > this.config.maxResultSize) {
         return {
-          _truncated: true,
-          _originalSize: serialized.length,
-          _maxSize: this.config.maxResultSize,
-          preview: serialized.substring(0, 1000) + "...",
+          truncated: true,
+          originalSize: serialized.length,
+          maxSize: this.config.maxResultSize,
+          preview:
+            serialized.substring(0, this.config.resultPreviewLength) + "...",
         };
       }
       return result;

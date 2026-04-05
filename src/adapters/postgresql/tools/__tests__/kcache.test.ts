@@ -5,12 +5,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
-import { getKcacheTools } from "../kcache.js";
+import { getKcacheTools } from "../kcache/index.js";
 
 describe("Kcache Tools", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
@@ -222,7 +222,10 @@ describe("Kcache Tools", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_kcache_top_cpu");
-      await tool!.handler({ queryPreviewLength: 200 }, mockContext);
+      await tool!.handler(
+        { queryPreviewLength: 200, compact: false },
+        mockContext,
+      );
 
       expect(mockAdapter.executeQuery).toHaveBeenLastCalledWith(
         expect.stringContaining("LEFT(s.query, 200)"),
@@ -316,7 +319,10 @@ describe("Kcache Tools", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_kcache_top_io");
-      await tool!.handler({ queryPreviewLength: 300 }, mockContext);
+      await tool!.handler(
+        { queryPreviewLength: 300, compact: false },
+        mockContext,
+      );
 
       expect(mockAdapter.executeQuery).toHaveBeenLastCalledWith(
         expect.stringContaining("LEFT(s.query, 300)"),
@@ -515,17 +521,17 @@ describe("Kcache Tools", () => {
   describe("Error Handling", () => {
     it("pg_kcache_query_stats should return structured error on query failure", async () => {
       mockAdapter.executeQuery.mockRejectedValueOnce(
-        new Error("LIMIT must not be negative"),
+        new Error("database timeout"),
       );
 
       const tool = findTool("pg_kcache_query_stats");
-      const result = (await tool!.handler({ limit: -1 }, mockContext)) as {
+      const result = (await tool!.handler({ limit: 5 }, mockContext)) as {
         success: boolean;
         error: string;
       };
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("LIMIT must not be negative");
+      expect(result.error).toContain("database timeout");
     });
 
     it("pg_kcache_top_cpu should return structured error on query failure", async () => {
@@ -585,17 +591,17 @@ describe("Kcache Tools", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
       // Second call: COUNT query fails
       mockAdapter.executeQuery.mockRejectedValueOnce(
-        new Error("LIMIT must not be negative"),
+        new Error("database timeout"),
       );
 
       const tool = findTool("pg_kcache_resource_analysis");
-      const result = (await tool!.handler({ limit: -1 }, mockContext)) as {
+      const result = (await tool!.handler({ limit: 5 }, mockContext)) as {
         success: boolean;
         error: string;
       };
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("LIMIT must not be negative");
+      expect(result.error).toContain("database timeout");
     });
   });
 
@@ -701,6 +707,49 @@ describe("Kcache Tools", () => {
       };
 
       expect(result.queries).toHaveLength(1);
+    });
+  });
+
+  describe("Numeric Validation", () => {
+    it("should throw ValidationError when numeric parameters are NaN in query_stats", async () => {
+      const tool = findTool("pg_kcache_query_stats");
+      // Mocks are normally cleared in beforeEach, but just to be sure
+      const result = (await tool!.handler({ limit: "abc" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("received string");
+    });
+
+    it("should throw ValidationError when numeric parameters are NaN in top_cpu", async () => {
+      const tool = findTool("pg_kcache_top_cpu");
+      const result = (await tool!.handler({ limit: "abc" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("received string");
+    });
+
+    it("should throw ValidationError when numeric parameters are NaN in top_io", async () => {
+      const tool = findTool("pg_kcache_top_io");
+      const result = (await tool!.handler({ limit: "abc" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("received string");
+    });
+
+    it("should throw ValidationError when numeric parameters are NaN in resource_analysis", async () => {
+      const tool = findTool("pg_kcache_resource_analysis");
+      const result = (await tool!.handler({ limit: "abc" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("received string");
     });
   });
 });

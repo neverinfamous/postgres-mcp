@@ -4,7 +4,7 @@
  * Case-insensitive text operations. 6 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 import {
@@ -14,10 +14,13 @@ import {
 
 import {
   createCitextListColumnsTool,
-  createCitextAnalyzeCandidatesTool,
   createCitextCompareTool,
+} from "./list-compare.js";
+
+import {
+  createCitextAnalyzeCandidatesTool,
   createCitextSchemaAdvisorTool,
-} from "./analysis.js";
+} from "./candidates-advisor.js";
 
 /**
  * Get all citext tools

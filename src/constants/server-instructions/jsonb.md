@@ -1,0 +1,23 @@
+# JSONB Tools
+
+- `pg_jsonb_extract`: Returns null if path doesn't exist
+- `pg_jsonb_insert`: Index -1 inserts BEFORE last element; use `insertAfter: true` to append. ⚠️ Use array format `[-1]` not string `"[-1]"` for negative indices
+- `pg_jsonb_set`: `createMissing=true` creates full nested paths; initializes NULL columns to `{}`. Empty path (`''` or `[]`) replaces entire column value
+- `pg_jsonb_strip_nulls`: ⚠️ Requires `where`/`filter` clause—write operations must be targeted. Use `preview: true` to see changes first
+- `pg_jsonb_agg`: Supports AS aliases in select: `["id", "metadata->>'name' AS name"]`. ⚠️ `->>` returns text—use `->` to preserve JSON types
+- `pg_jsonb_object`: Use `data`, `object`, or `pairs` parameter: `{data: {name: "John", age: 30}}`. Also accepts parallel arrays (`{keys: ["n"], values: [1]}`). ⚠️ Must provide at least one entry; empty configurations throw structured validation errors. Array escaping is handled safely in Code Mode without parallel array leakage. Returns `{object: {...}}`
+- `pg_jsonb_array`: Use `values` or `elements` parameter: `{values: [1, 2, 3]}`. ⚠️ Empty configurations explicitly throw structured validation errors instead of raw protocol errors. Returns `{array: [...]}`
+- `pg_jsonb_contains`: Accepts `value` or `contains` aliases for the search parameter. Safely handles `limit` parameter type issues (e.g. non-numeric inputs silently default to 100).
+- `pg_jsonb_normalize`: `flatten` doesn't descend into arrays; `keys` returns text (use `pairs` for JSON types). Standardizes validation requiring either (`table` + `column`) OR `json` payload.
+- `pg_jsonb_stats`: Returns column-level statistics. `topKeysLimit` controls key count (default: 20). ⚠️ `typeDistribution` null type = SQL NULL columns. Use `sqlNullCount` for explicit count
+- `pg_jsonb_pretty`: Two modes: (1) Pass raw JSON via `json` or `value` param—formats locally. (2) Pass `table` + `column`—uses native `jsonb_pretty()`. Table mode returns standardized `count` and defaults to `limit: 10`. Returns `{formatted}` or `{rows, count}`
+- `pg_jsonb_validate_path`: Returns `{success: true, valid: true}` for valid paths starting with `$`. Throws explicit `ValidationError` with `$`-prefix hints for invalid paths — use `$.key` not `key`.
+- `pg_jsonb_merge`: ⚠️ Operates purely in-memory (does not target table columns). Pass source JSON objects to `base` and `overlay`. Returns `{merged: {...}}`.
+- 🛡️ **Validation Consistency**: All `jsonb` table-related tools support standard `col`/`column` and `table`/`tableName` aliases. Operations on missing tables or empty parameters emit P154-compliant structured handler errors (no raw MCP exceptions). String literal validations natively enforce explicit JSON parsing to prevent text injection.
+- ⛔ **Object-only tools**: `diff`, `merge`, `keys`, `indexSuggest`, `securityScan`, `stats` require JSONB objects, throw descriptive errors for arrays
+- ⛔ **Array-only tools**: `insert` requires JSONB arrays, throws errors for objects
+- 📝 `normalize` modes: `pairs`/`keys`/`flatten` for objects; `array` for arrays
+- 📦 **AI-Optimized Payloads**: `contains` and `pathQuery` default to 100 results. Returns `truncated` + `totalCount` when capped. Use `limit: 0` for all rows
+- 💡 **Response Shapes**: Several tools return custom keys instead of standard `.rows`: `pg_jsonb_keys` returns `{keys: [...]}`, `pg_jsonb_typeof` returns `{types: [...]}`, `pg_jsonb_path_query` returns `{results: [...]}`, `pg_jsonb_array` returns `{array: [...]}`, `pg_jsonb_index_suggest` returns `{recommendations: [...]}`, `pg_jsonb_security_scan` returns `{riskLevel, scanResults: [...]}`, `pg_jsonb_diff` returns `{differences: [...]}`, and `pg_jsonb_extract` maps extraction to `[{value: ...}]`.
+
+**Top-Level Aliases**: `pg.jsonbExtract()`, `pg.jsonbSet()`, `pg.jsonbInsert()`, `pg.jsonbDelete()`, `pg.jsonbContains()`, `pg.jsonbPathQuery()`, `pg.jsonbAgg()`, `pg.jsonbObject()`, `pg.jsonbArray()`, `pg.jsonbKeys()`, `pg.jsonbStripNulls()`, `pg.jsonbTypeof()`, `pg.jsonbValidatePath()`, `pg.jsonbMerge()`, `pg.jsonbNormalize()`, `pg.jsonbDiff()`, `pg.jsonbIndexSuggest()`, `pg.jsonbSecurityScan()`, `pg.jsonbStats()`, `pg.jsonbPretty()`

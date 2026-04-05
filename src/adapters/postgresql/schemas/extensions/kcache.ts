@@ -17,21 +17,29 @@ import { normalizeOptionalParams } from "./shared.js";
  */
 export const KcacheQueryStatsSchemaBase = z.object({
   limit: z
-    .any()
+    .number()
     .optional()
-    .describe("Maximum number of queries to return (default: 20)"),
+    .describe(
+      "Maximum number of queries to return (default: 5, min: 1, max: 10).",
+    ),
   orderBy: z
     .string()
     .optional()
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
-  minCalls: z.any().optional().describe("Minimum call count to include"),
+  minCalls: z.number().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
-    .any()
+    .number()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, omits the query_preview text and 0/empty fields to save output tokens",
     ),
 });
 
@@ -41,31 +49,24 @@ export const KcacheQueryStatsSchema = z.preprocess(
 );
 
 /**
- * Schema for top resource consumers query.
- */
-export const KcacheTopConsumersSchema = z.object({
-  resource: z
-    .enum(["cpu", "reads", "writes", "page_faults"])
-    .describe("Resource type to rank by"),
-  limit: z
-    .number()
-    .optional()
-    .describe("Number of top queries to return (default: 10)"),
-});
-
-/**
  * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
  */
 export const KcacheTopCpuSchemaBase = z.object({
   limit: z
-    .any()
+    .number()
     .optional()
-    .describe("Number of top queries to return (default: 10)"),
+    .describe("Number of top queries to return (default: 5, min: 1, max: 10)."),
   queryPreviewLength: z
-    .any()
+    .number()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, omits the query_preview text and 0/empty fields to save output tokens",
     ),
 });
 
@@ -76,14 +77,20 @@ export const KcacheTopIoSchemaBase = z.object({
   type: z.string().optional().describe("I/O type to rank by (default: both)"),
   ioType: z.string().optional().describe("Alias for type"),
   limit: z
-    .any()
+    .number()
     .optional()
-    .describe("Number of top queries to return (default: 10)"),
+    .describe("Number of top queries to return (default: 5, min: 1, max: 10)."),
   queryPreviewLength: z
-    .any()
+    .number()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, omits the query_preview text and 0/empty fields to save output tokens",
     ),
 });
 
@@ -95,6 +102,10 @@ export const KcacheDatabaseStatsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Database name (current database if omitted)"),
+  compact: z
+    .boolean()
+    .optional()
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
 export const KcacheDatabaseStatsSchema = z.preprocess(
@@ -111,19 +122,27 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .optional()
     .describe("Specific query ID to analyze (all if omitted)"),
   threshold: z
-    .any()
+    .number()
     .optional()
     .describe("CPU/IO ratio threshold for classification (default: 0.5)"),
   limit: z
-    .any()
+    .number()
     .optional()
-    .describe("Maximum number of queries to return (default: 20)"),
-  minCalls: z.any().optional().describe("Minimum call count to include"),
+    .describe(
+      "Maximum number of queries to return (default: 5, min: 1, max: 10).",
+    ),
+  minCalls: z.number().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
-    .any()
+    .number()
     .optional()
     .describe(
       "Characters for query preview (default: 100, max: 500, 0 for full)",
+    ),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, omits the query_preview text and 0/empty fields to save output tokens",
     ),
 });
 

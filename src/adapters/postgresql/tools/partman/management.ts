@@ -1,324 +1,36 @@
 /**
- * PostgreSQL pg_partman Extension Tools - Management
+ * PostgreSQL pg_partman Extension Tools - Management & Inspection
  *
- * Core partition management tools: extension, create_parent, run_maintenance, show_partitions, show_config.
+ * Runtime management and partition inspection tools.
+ * 3 tools: run_maintenance, show_partitions, show_config.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import type { PostgresAdapter } from "../../postgres-adapter.js";
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
-  PartmanCreateParentSchema,
-  PartmanCreateParentSchemaBase,
   PartmanRunMaintenanceSchema,
   PartmanRunMaintenanceSchemaBase,
   PartmanShowPartitionsSchema,
   PartmanShowPartitionsSchemaBase,
   PartmanShowConfigSchema,
   PartmanShowConfigSchemaBase,
-  DEPRECATED_INTERVALS,
   // Output schemas
-  PartmanCreateExtensionOutputSchema,
-  PartmanCreateParentOutputSchema,
   PartmanRunMaintenanceOutputSchema,
   PartmanShowPartitionsOutputSchema,
   PartmanShowConfigOutputSchema,
 } from "../../schemas/index.js";
-
-/**
- * Detect the schema where pg_partman is installed.
- * Newer versions install to 'public' by default, older versions use 'partman'.
- */
-async function getPartmanSchema(adapter: PostgresAdapter): Promise<string> {
-  const result = await adapter.executeQuery(`
-        SELECT table_schema FROM information_schema.tables
-        WHERE table_name = 'part_config'
-        AND table_schema IN ('partman', 'public')
-        LIMIT 1
-    `);
-  return (result.rows?.[0]?.["table_schema"] as string) ?? "partman";
-}
-
-/**
- * Enable the pg_partman extension
- */
-export function createPartmanExtensionTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
-  return {
-    name: "pg_partman_create_extension",
-    description:
-      "Enable the pg_partman extension for automated partition management. Requires superuser privileges.",
-    group: "partman",
-    inputSchema: z.object({}),
-    outputSchema: PartmanCreateExtensionOutputSchema,
-    annotations: write("Create Partman Extension"),
-    icons: getToolIcons("partman", write("Create Partman Extension")),
-    handler: async (_params: unknown, _context: RequestContext) => {
-      try {
-        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS pg_partman");
-        return { success: true, message: "pg_partman extension enabled" };
-      } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_partman_create_extension",
-          }),
-        };
-      }
-    },
-  };
-}
-
-/**
- * Create a partition set with pg_partman
- */
-export function createPartmanCreateParentTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
-  return {
-    name: "pg_partman_create_parent",
-    description: `Create a new partition set using pg_partman's create_parent() function.
-Supports time-based and integer-based partitioning with automatic child partition creation.
-The parent table must already exist before calling this function.
-
-Partition type (time vs integer) is automatically detected from the control column's data type.
-For non-timestamp/integer columns (text, uuid), use raw pg_partman SQL with timeEncoder/timeDecoder parameters.
-
-IMPORTANT: For empty tables with no data, you MUST provide startPartition (e.g., 'now' for current date, or a specific date like '2024-01-01').
-Without startPartition and data, pg_partman cannot determine where to start creating partitions.
-
-TIP: startPartition accepts 'now' as a shorthand for the current date/time.
-
-WARNING: startPartition creates ALL partitions from that date to current date + premake.
-A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creates many partitions.`,
-    group: "partman",
-    inputSchema: PartmanCreateParentSchemaBase,
-    outputSchema: PartmanCreateParentOutputSchema,
-    annotations: write("Create Partition Parent"),
-    icons: getToolIcons("partman", write("Create Partition Parent")),
-    handler: async (params: unknown, _context: RequestContext) => {
-      try {
-        const {
-          parentTable,
-          controlColumn,
-          interval,
-          premake,
-          startPartition,
-          templateTable,
-          epochType,
-          defaultPartition,
-        } = PartmanCreateParentSchema.parse(params) as {
-          parentTable?: string;
-          controlColumn?: string;
-          interval?: string;
-          premake?: number;
-          startPartition?: string;
-          templateTable?: string;
-          epochType?: string;
-          defaultPartition?: boolean;
-        };
-
-        // Validate required parameters with clear error messages
-        if (!parentTable || !controlColumn || !interval) {
-          const missing: string[] = [];
-          if (!parentTable) missing.push("parentTable");
-          if (!controlColumn) missing.push("controlColumn (or control)");
-          if (!interval) missing.push("interval");
-          return {
-            success: false,
-            error: `Missing required parameters: ${missing.join(", ")}.`,
-            hint: 'Example: pg_partman_create_parent({ parentTable: "public.events", controlColumn: "created_at", interval: "1 month" })',
-            aliases: { control: "controlColumn" },
-          };
-        }
-
-        // Check for deprecated interval keywords and return structured error
-        const deprecatedReplacement =
-          DEPRECATED_INTERVALS[interval.toLowerCase()];
-        if (deprecatedReplacement) {
-          return {
-            success: false,
-            error: `Deprecated interval '${interval}'. Use PostgreSQL interval syntax instead: '${deprecatedReplacement}'.`,
-            hint: "Valid examples: '1 day', '1 week', '1 month', '3 months', '1 year'. Do NOT use keywords like 'daily' or 'monthly'.",
-          };
-        }
-
-        // At this point, all required params are guaranteed to be defined
-        const validatedParentTable = parentTable;
-        const validatedControlColumn = controlColumn;
-        const validatedInterval = interval;
-
-        // Note: pg_partman defaults to 'range' type, which is correct for most uses
-        const args: string[] = [
-          `p_parent_table := '${validatedParentTable}'`,
-          `p_control := '${validatedControlColumn}'`,
-          `p_interval := '${validatedInterval}'`,
-        ];
-
-        // premake is passed directly to pg_partman create_parent
-        // Guard against NaN from z.coerce.number("abc")
-        if (premake !== undefined && !isNaN(premake)) {
-          args.push(`p_premake := ${String(premake)}`);
-        }
-        if (startPartition !== undefined) {
-          // pg_partman 5.x doesn't interpret 'now' as a timestamp literal.
-          // Resolve 'now' to NOW()::text so pg_partman receives an actual timestamp string.
-          if (startPartition.toLowerCase() === "now") {
-            args.push(`p_start_partition := NOW()::text`);
-          } else {
-            args.push(`p_start_partition := '${startPartition}'`);
-          }
-        }
-        if (templateTable !== undefined) {
-          args.push(`p_template_table := '${templateTable}'`);
-        }
-        if (epochType !== undefined) {
-          args.push(`p_epoch := '${epochType}'`);
-        }
-        if (defaultPartition !== undefined) {
-          args.push(`p_default_table := ${String(defaultPartition)}`);
-        }
-
-        const partmanSchema = await getPartmanSchema(adapter);
-        const sql = `SELECT ${partmanSchema}.create_parent(${args.join(", ")})`;
-
-        try {
-          await adapter.executeQuery(sql);
-        } catch (e) {
-          const errorMsg = e instanceof Error ? e.message : String(e);
-
-          // Wrap common PostgreSQL/pg_partman errors with clearer messages
-          if (
-            errorMsg.includes("duplicate key") ||
-            errorMsg.includes("already exists in part_config")
-          ) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' is already managed by pg_partman.`,
-              hint:
-                "Use pg_partman_show_config to view existing configuration. " +
-                "To recreate: use pg_partman_undo_partition first, or if the table was dropped, clean up with: " +
-                `DELETE FROM ${partmanSchema}.part_config WHERE parent_table = '${validatedParentTable}';`,
-            };
-          }
-          if (
-            errorMsg.includes("does not exist") &&
-            errorMsg.includes("relation")
-          ) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' does not exist.`,
-              hint: "Create the parent table first with appropriate columns, then call pg_partman_create_parent.",
-            };
-          }
-          if (errorMsg.includes("Unable to find given parent table")) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' does not exist.`,
-              hint: "Create the parent table first with PARTITION BY clause, then call pg_partman_create_parent.",
-            };
-          }
-          // Check 'is not partitioned' BEFORE 'NOT NULL' - if table isn't partitioned, that's the primary issue
-          if (errorMsg.includes("is not partitioned")) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' is not a partitioned table.`,
-              hint: "Create the table with PARTITION BY clause. Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);",
-            };
-          }
-          if (
-            errorMsg.includes("cannot be null") ||
-            errorMsg.includes("NOT NULL")
-          ) {
-            return {
-              success: false,
-              error: `Control column '${validatedControlColumn}' must have a NOT NULL constraint.`,
-              hint: "Add NOT NULL constraint to the control column. Example: ALTER TABLE events ALTER COLUMN ts SET NOT NULL;",
-            };
-          }
-          // Catch pg_partman's partition type requirement error
-          if (
-            errorMsg.includes("ranged or list partitioned") ||
-            errorMsg.includes("must have created the given parent table")
-          ) {
-            return {
-              success: false,
-              error: `Table '${validatedParentTable}' must be created as RANGE or LIST partitioned before calling createParent.`,
-              hint:
-                "Create the table with PARTITION BY RANGE or PARTITION BY LIST clause first. " +
-                "Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);",
-            };
-          }
-          // Catch invalid interval format error with user-friendly message
-          if (errorMsg.includes("invalid input syntax for type interval")) {
-            return {
-              success: false,
-              error: `Invalid interval format: '${validatedInterval}'.`,
-              hint:
-                "Use PostgreSQL interval syntax. Valid examples: '1 day', '1 week', '1 month', '3 months', '1 year'. " +
-                "Do NOT use keywords like 'daily' or 'monthly'.",
-              examples: [
-                "1 day",
-                "1 week",
-                "2 weeks",
-                "1 month",
-                "3 months",
-                "1 year",
-              ],
-            };
-          }
-
-          // Re-throw other errors — outer catch will format them
-          throw e;
-        }
-
-        // pg_partman's create_parent only registers the partition set - it doesn't always create child partitions
-        // We call run_maintenance to attempt to create initial partitions, but this may fail in some cases
-        // (e.g., when no startPartition is specified and the control column has no existing data to determine ranges)
-        let maintenanceRan = false;
-        try {
-          const maintenanceSql = `SELECT ${partmanSchema}.run_maintenance(p_parent_table := '${validatedParentTable}')`;
-          await adapter.executeQuery(maintenanceSql);
-          maintenanceRan = true;
-        } catch {
-          // Maintenance may fail for new partition sets without data - this is expected
-        }
-
-        return {
-          success: true,
-          parentTable: validatedParentTable,
-          controlColumn: validatedControlColumn,
-          interval: validatedInterval,
-          premake: premake !== undefined && !isNaN(premake) ? premake : 4,
-          maintenanceRan,
-          // Suppress raw maintenanceError - the message/hint explains the situation clearly
-          message: maintenanceRan
-            ? `Partition set created for ${validatedParentTable} on column ${validatedControlColumn}. Initial partitions created.`
-            : `Partition set registered for ${validatedParentTable} on column ${validatedControlColumn}. ` +
-              `No child partitions created yet - pg_partman needs data or a startPartition that matches the control column type.`,
-          hint: !maintenanceRan
-            ? 'For DATE columns, use a date like "2024-01-01". For TIMESTAMP columns, "now" works. ' +
-              "Otherwise, insert data first and run pg_partman_run_maintenance."
-            : undefined,
-        };
-      } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_partman_create_parent",
-          }),
-        };
-      }
-    },
-  };
-}
+import {
+  getPartmanSchema,
+  DEFAULT_PARTMAN_LIMIT,
+  checkTableExists,
+} from "./helpers.js";
 
 /**
  * Run partition maintenance
@@ -345,6 +57,16 @@ Maintains all partition sets if no specific parent table is specified.`,
 
         // If specific table provided, validate and run maintenance directly
         if (parentTable !== undefined) {
+          // Check if table exists (P154)
+          if (!(await checkTableExists(adapter, parentTable))) {
+            throw new ValidationError(
+              `Table '${parentTable}' does not exist.`,
+              {
+                hint: "Check that you specified the correct schema and table name.",
+              },
+            );
+          }
+
           // Check if table has a pg_partman configuration
           const configCheck = await adapter.executeQuery(
             `SELECT 1 FROM ${partmanSchema}.part_config WHERE parent_table = $1`,
@@ -352,12 +74,13 @@ Maintains all partition sets if no specific parent table is specified.`,
           );
 
           if ((configCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              parentTable,
-              error: `Table '${parentTable}' is not managed by pg_partman.`,
-              hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables.",
-            };
+            throw new ValidationError(
+              `Table '${parentTable}' is not managed by pg_partman.`,
+              {
+                parentTable,
+                hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables.",
+              },
+            );
           }
 
           const args: string[] = [`p_parent_table := '${parentTable}'`];
@@ -375,7 +98,7 @@ Maintains all partition sets if no specific parent table is specified.`,
               analyze: analyze ?? true,
               message: `Maintenance completed for ${parentTable}`,
             };
-          } catch (e) {
+          } catch (e: unknown) {
             // Extract clean error message (first line only, remove PL/pgSQL context)
             let errorMsg = e instanceof Error ? e.message : String(e);
             const fullError = errorMsg;
@@ -385,27 +108,26 @@ Maintains all partition sets if no specific parent table is specified.`,
             // Catch pg_partman internal errors about NULL child tables
             if (
               fullError.includes("Child table given does not exist") ||
-              fullError.includes("<NULL>")
+              fullError.includes("<NULL>") ||
+              fullError.includes("Partition set has no child") ||
+              fullError.includes("No child tables exist")
             ) {
               return {
-                success: false,
+                success: true,
                 parentTable,
-                error: "Partition set has no child partitions yet.",
-                hint:
-                  "For new partition sets, ensure startPartition is valid for your data. " +
-                  "Insert data first, then run maintenance, or specify a valid startPartition when creating the parent.",
+                analyze: analyze ?? true,
+                message:
+                  "Partition set has no child partitions yet. Insert data to create partitions.",
               };
             }
 
             // Return clean error response instead of throwing with stack trace
-            return {
-              success: false,
+            throw new ValidationError(errorMsg, {
               parentTable,
-              error: errorMsg,
               hint:
                 "Check that the parent table exists, is properly partitioned, and has valid pg_partman configuration. " +
                 "Use pg_partman_show_config to verify configuration.",
-            };
+            });
           }
         }
 
@@ -426,19 +148,9 @@ Maintains all partition sets if no specific parent table is specified.`,
           const table = config["parent_table"] as string;
 
           // Check if table still exists
-          const [schema, tableName] = table.includes(".")
-            ? [table.split(".")[0], table.split(".")[1]]
-            : ["public", table];
+          const tableExists = await checkTableExists(adapter, table);
 
-          const tableExistsResult = await adapter.executeQuery(
-            `
-                    SELECT 1 FROM information_schema.tables
-                    WHERE table_schema = $1 AND table_name = $2
-                `,
-            [schema, tableName],
-          );
-
-          if ((tableExistsResult.rows?.length ?? 0) === 0) {
+          if (!tableExists) {
             orphanedTables.push(table);
             continue;
           }
@@ -452,7 +164,7 @@ Maintains all partition sets if no specific parent table is specified.`,
             const sql = `SELECT ${partmanSchema}.run_maintenance(${args.join(", ")})`;
             await adapter.executeQuery(sql);
             maintained.push(table);
-          } catch (error) {
+          } catch (error: unknown) {
             // Extract clean error message (first line only, remove PL/pgSQL context)
             let reason =
               error instanceof Error ? error.message : "Unknown error";
@@ -460,10 +172,14 @@ Maintains all partition sets if no specific parent table is specified.`,
             reason = reason.replace(/\s+CONTEXT:.*$/i, "").trim();
 
             // Improve NULL child error with actionable guidance
-            if (reason.includes("Child table") && reason.includes("NULL")) {
-              reason =
-                "No child partitions exist yet. For empty tables, ensure startPartition was set when creating the partition set. " +
-                'TIP: Use pg_partman_create_parent with startPartition (e.g., "now" or a specific date) to bootstrap partitions.';
+            if (
+              reason.includes("Child table given does not exist") ||
+              reason.includes("<NULL>") ||
+              reason.includes("Partition set has no child") ||
+              reason.includes("No child tables exist")
+            ) {
+              maintained.push(table);
+              continue; // Treat as successful
             }
 
             errors.push({
@@ -500,12 +216,9 @@ Maintains all partition sets if no specific parent table is specified.`,
               : `Maintenance completed for all ${String(maintained.length)} partition sets`,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_partman_run_maintenance",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_partman_run_maintenance",
+        });
       }
     },
   };
@@ -518,7 +231,7 @@ export function createPartmanShowPartitionsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
   // Default limit for partitions (consistent with other partman tools)
-  const DEFAULT_PARTITION_LIMIT = 50;
+  const DEFAULT_PARTITION_LIMIT = DEFAULT_PARTMAN_LIMIT;
 
   return {
     name: "pg_partman_show_partitions",
@@ -543,12 +256,12 @@ export function createPartmanShowPartitionsTool(
 
         // parentTable is required - provide clear error if missing
         if (!parentTable) {
-          return {
-            success: false,
-            error:
-              'parentTable parameter is required. Specify the parent table (e.g., "public.events") to list its partitions.',
-            hint: "Use pg_partman_show_config to list all partition sets first.",
-          };
+          throw new ValidationError(
+            'parentTable parameter is required. Specify the parent table (e.g., "public.events") to list its partitions.',
+            {
+              hint: "Use pg_partman_show_config to list all partition sets first.",
+            },
+          );
         }
 
         const orderDir = order === "desc" ? "DESC" : "ASC";
@@ -556,18 +269,26 @@ export function createPartmanShowPartitionsTool(
 
         const partmanSchema = await getPartmanSchema(adapter);
 
-        // First check if table is managed by pg_partman
+        // Check if table exists (P154)
+        if (!(await checkTableExists(adapter, parentTable))) {
+          throw new ValidationError(`Table '${parentTable}' does not exist.`, {
+            hint: "Check that you specified the correct schema and table name.",
+          });
+        }
+
+        // Check if table is managed by pg_partman
         const configCheck = await adapter.executeQuery(
           `SELECT 1 FROM ${partmanSchema}.part_config WHERE parent_table = $1`,
           [parentTable],
         );
 
         if ((configCheck.rows?.length ?? 0) === 0) {
-          return {
-            success: false,
-            error: `Table '${parentTable}' is not managed by pg_partman.`,
-            hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables.",
-          };
+          throw new ValidationError(
+            `Table '${parentTable}' is not managed by pg_partman.`,
+            {
+              hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables.",
+            },
+          );
         }
 
         // First get total count for pagination
@@ -607,12 +328,9 @@ export function createPartmanShowPartitionsTool(
           totalCount,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_partman_show_partitions",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_partman_show_partitions",
+        });
       }
     },
   };
@@ -637,6 +355,18 @@ export function createPartmanShowConfigTool(
       try {
         const parsed = PartmanShowConfigSchema.parse(params);
         const partmanSchema = await getPartmanSchema(adapter);
+
+        if (parsed.parentTable !== undefined) {
+          // Check if table exists (P154)
+          if (!(await checkTableExists(adapter, parsed.parentTable))) {
+            throw new ValidationError(
+              `Table '${parsed.parentTable}' does not exist.`,
+              {
+                hint: "Check that you specified the correct schema and table name.",
+              },
+            );
+          }
+        }
 
         // Dynamically detect available columns to handle different pg_partman versions
         const columnsResult = await adapter.executeQuery(
@@ -684,8 +414,8 @@ export function createPartmanShowConfigTool(
         const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
         // Apply limit (default 50, 0 means no limit)
-        const rawLimit = (parsed.limit as number | undefined) ?? 50;
-        const limit = isNaN(rawLimit) ? 50 : rawLimit;
+        const rawLimit = parsed.limit ?? DEFAULT_PARTMAN_LIMIT;
+        const limit = isNaN(rawLimit) ? DEFAULT_PARTMAN_LIMIT : rawLimit;
         const applyLimit = limit > 0;
 
         let sql = `SELECT ${columns.join(", ")} FROM ${partmanSchema}.part_config`;
@@ -709,19 +439,7 @@ export function createPartmanShowConfigTool(
         const configsWithStatus = await Promise.all(
           configs.map(async (config) => {
             const parentTable = config["parent_table"] as string;
-            const [schema, tableName] = parentTable.includes(".")
-              ? [parentTable.split(".")[0], parentTable.split(".")[1]]
-              : ["public", parentTable];
-
-            const tableExistsResult = await adapter.executeQuery(
-              `
-                        SELECT 1 FROM information_schema.tables
-                        WHERE table_schema = $1 AND table_name = $2
-                    `,
-              [schema, tableName],
-            );
-
-            const orphaned = (tableExistsResult.rows?.length ?? 0) === 0;
+            const orphaned = !(await checkTableExists(adapter, parentTable));
             return { ...config, orphaned };
           }),
         );
@@ -731,13 +449,18 @@ export function createPartmanShowConfigTool(
         ).length;
         const truncated = applyLimit && totalCount > limit;
 
-        // Provide hint if a specific table was requested but not found
-        let notFoundHint: string | undefined;
         if (
           parsed.parentTable !== undefined &&
           configsWithStatus.length === 0
         ) {
-          notFoundHint = `Table '${parsed.parentTable}' is not managed by pg_partman. Use pg_partman_create_parent to set up partitioning.`;
+          return {
+            success: false,
+            error: `Table '${parsed.parentTable}' is not managed by pg_partman.`,
+            code: "TABLE_NOT_FOUND",
+            category: "resource",
+            suggestion: "Use pg_partman_create_parent to set up partitioning.",
+            recoverable: false,
+          };
         }
 
         return {
@@ -747,17 +470,15 @@ export function createPartmanShowConfigTool(
           totalCount,
           orphanedCount: orphanedCount > 0 ? orphanedCount : undefined,
           hint:
-            notFoundHint ??
-            (orphanedCount > 0
+            orphanedCount > 0
               ? `${String(orphanedCount)} orphaned config(s) found - parent table no longer exists. ` +
                 `To clean up, use raw SQL: DELETE FROM ${partmanSchema}.part_config WHERE parent_table = '<table_name>';`
-              : undefined),
+              : undefined,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_partman_show_config" }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_partman_show_config",
+        });
       }
     },
   };

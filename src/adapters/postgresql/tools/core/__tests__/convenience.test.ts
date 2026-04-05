@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getConvenienceTools } from "../utility.js";
-import type { PostgresAdapter } from "../../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -345,10 +345,10 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
           rows: [{ name: "Alice" }, { name: "Bob" }],
         },
         mockContext,
-      )) as { success: boolean; rowsAffected: number };
+      )) as { success: boolean; insertedCount: number };
 
       expect(result.success).toBe(true);
-      expect(result.rowsAffected).toBe(2);
+      expect(result.insertedCount).toBe(2);
     });
   });
 
@@ -401,7 +401,11 @@ describe("Convenience Tools - Table Existence Pre-checks", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
       });
-      // Mock 3: actual TRUNCATE query
+      // Mock 3: COUNT query
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ c: 0 }],
+      });
+      // Mock 4: actual TRUNCATE query
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [],
         rowsAffected: 0,

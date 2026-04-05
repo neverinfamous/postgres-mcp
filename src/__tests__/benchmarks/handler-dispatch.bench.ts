@@ -183,8 +183,8 @@ describe("Error Response Construction", () => {
     () => {
       try {
         throw new Error("Test error for benchmarking");
-      } catch (e) {
-        const err = e as Error;
+      } catch (error: unknown) {
+        const err = error as Error;
         const flat = (err.stack ?? "").replace(/\n/g, " → ");
         void flat;
       }

@@ -4,14 +4,10 @@
  * Provides pgvector extension status, vector columns, and index information.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type { ResourceDefinition } from "../../../types/index.js";
-import { LOW_PRIORITY } from "../../../utils/resourceAnnotations.js";
-
-/** Safely convert unknown value to string */
-function toStr(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
+import { LOW_PRIORITY } from "../../../utils/resource-annotations.js";
+import { toStr, SMALL_TABLE_THRESHOLD } from "../../../utils/query-helpers.js";
 
 interface VectorColumn {
   schema: string;
@@ -177,7 +173,6 @@ export function createVectorResource(
 
         // Find unindexed vector columns and generate actionable SQL
         // Skip small tables where indexes provide minimal benefit
-        const SMALL_TABLE_THRESHOLD = 1000;
         const indexedColumns = new Set(
           result.indexes.map((i) => `${i.schema}.${i.table}.${i.column}`),
         );
@@ -256,6 +251,8 @@ export function createVectorResource(
           const isUnindexed = result.unindexedColumns.some(
             (u) => u.column === `${col.schema}.${col.table}.${col.column}`,
           );
+          // pgvector: 100K threshold — sequential vector scans are tolerable
+          // on moderate tables unlike spatial queries, so HNSW urging starts later.
           if (col.rowCount > 100000 && isUnindexed) {
             result.recommendations.push(
               `Large unindexed vector column: ${col.table}.${col.column} (${String(col.rowCount)} rows). HNSW index strongly recommended.`,

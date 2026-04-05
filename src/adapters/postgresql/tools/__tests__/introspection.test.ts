@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getIntrospectionTools } from "../introspection/index.js";
 import { getMigrationTools } from "../migration/index.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -119,7 +119,7 @@ describe("pg_dependency_graph", () => {
 
     expect(result.nodes).toHaveLength(2);
     expect(result.edges).toHaveLength(1);
-    expect(result.circularDependencies).toHaveLength(0);
+    expect(result.circularDependencies).toBeUndefined();
     expect(result.stats.totalTables).toBe(2);
     expect(result.stats.totalRelationships).toBe(1);
   });
@@ -648,7 +648,7 @@ describe("pg_cascade_simulator", () => {
       stats: { blockingActions: number };
     };
 
-    expect(result.severity).toBe("critical");
+    expect(result.severity).toBe("high");
     expect(result.stats.blockingActions).toBe(1);
   });
 
@@ -723,7 +723,7 @@ describe("pg_cascade_simulator", () => {
     )) as { success: false; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should preserve NO ACTION label (not conflate with RESTRICT)", async () => {
@@ -956,8 +956,8 @@ describe("pg_schema_snapshot", () => {
       stats: Record<string, number>;
     };
 
-    // Extensions should be 0 with no extensions query fired
-    expect(result.stats["extensions"]).toBe(0);
+    // Extensions should be omitted with no extensions query fired
+    expect(result.stats["extensions"]).toBeUndefined();
     // Verify no call contained the extensions query (skip first call which is schema check)
     const allSqlCalls = mockAdapter.executeQuery.mock.calls.map(
       (call) => call[0] as string,
@@ -970,30 +970,7 @@ describe("pg_schema_snapshot", () => {
     expect(mockAdapter.executeQuery).toHaveBeenCalledTimes(9);
   });
 
-  it("should omit columns from tables when compact is true", async () => {
-    // Mock 9 section queries
-    for (let i = 0; i < 9; i++) {
-      mockAdapter.executeQuery.mockResolvedValueOnce({
-        rows: [{ name: `item_${String(i)}`, schema: "public" }],
-      });
-    }
-
-    const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
-    const result = (await tool.handler({ compact: true }, mockContext)) as {
-      snapshot: Record<string, unknown>;
-      stats: Record<string, number>;
-      compact?: boolean;
-    };
-
-    expect(result.compact).toBe(true);
-    // First call (tables query) should NOT contain the columns subquery
-    const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
-    expect(tablesSql).not.toContain("json_agg");
-    expect(tablesSql).not.toContain("pg_attribute");
-    expect(tablesSql).not.toContain("attname");
-  });
-
-  it("should include columns by default when compact is not set", async () => {
+  it("should omit columns from tables by default (compact: true)", async () => {
     // Mock 9 section queries
     for (let i = 0; i < 9; i++) {
       mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -1003,10 +980,33 @@ describe("pg_schema_snapshot", () => {
 
     const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
     const result = (await tool.handler({}, mockContext)) as {
+      snapshot: Record<string, unknown>;
+      stats: Record<string, number>;
       compact?: boolean;
     };
 
-    // compact should not be in response when not set
+    expect(result.compact).toBeUndefined();
+    // First call (tables query) should NOT contain the columns subquery
+    const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
+    expect(tablesSql).not.toContain("json_agg");
+    expect(tablesSql).not.toContain("pg_attribute");
+    expect(tablesSql).not.toContain("attname");
+  });
+
+  it("should include columns when compact is explicitly false", async () => {
+    // Mock 9 section queries
+    for (let i = 0; i < 9; i++) {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ name: `item_${String(i)}`, schema: "public" }],
+      });
+    }
+
+    const tool = tools.find((t) => t.name === "pg_schema_snapshot")!;
+    const result = (await tool.handler({ compact: false }, mockContext)) as {
+      compact?: boolean;
+    };
+
+    // compact should not be in response when false
     expect(result.compact).toBeUndefined();
     // First call (tables query) should contain the columns subquery
     const tablesSql = mockAdapter.executeQuery.mock.calls[0]![0] as string;
@@ -1154,21 +1154,21 @@ describe("pg_migration_risks", () => {
       mockContext,
     )) as {
       risks: Array<{
-        riskLevel: string;
+        severity: string;
         category: string;
         statement: string;
       }>;
       summary: {
         totalStatements: number;
         totalRisks: number;
-        highestRisk: string;
+        highestSeverity: string;
       };
     };
 
     expect(result.risks.length).toBeGreaterThan(0);
-    expect(result.risks[0]!.riskLevel).toBe("critical");
+    expect(result.risks[0]!.severity).toBe("critical");
     expect(result.risks[0]!.category).toBe("data_loss");
-    expect(result.summary.highestRisk).toBe("critical");
+    expect(result.summary.highestSeverity).toBe("critical");
     expect(result.summary.totalStatements).toBe(1);
   });
 
@@ -1178,12 +1178,12 @@ describe("pg_migration_risks", () => {
       { statements: ["CREATE INDEX idx_email ON users(email)"] },
       mockContext,
     )) as {
-      risks: Array<{ riskLevel: string; category: string }>;
+      risks: Array<{ severity: string; category: string }>;
     };
 
     const lockingRisk = result.risks.find((r) => r.category === "locking");
     expect(lockingRisk).toBeDefined();
-    expect(lockingRisk!.riskLevel).toBe("high");
+    expect(lockingRisk!.severity).toBe("high");
   });
 
   it("should detect CREATE INDEX CONCURRENTLY as low risk", async () => {
@@ -1194,12 +1194,12 @@ describe("pg_migration_risks", () => {
       },
       mockContext,
     )) as {
-      risks: Array<{ riskLevel: string }>;
-      summary: { highestRisk: string };
+      risks: Array<{ severity: string }>;
+      summary: { highestSeverity: string };
     };
 
     expect(result.risks.length).toBeGreaterThan(0);
-    expect(result.summary.highestRisk).toBe("low");
+    expect(result.summary.highestSeverity).toBe("low");
   });
 
   it("should report no risks for safe DDL", async () => {
@@ -1209,12 +1209,12 @@ describe("pg_migration_risks", () => {
       mockContext,
     )) as {
       risks: unknown[];
-      summary: { totalRisks: number; highestRisk: string };
+      summary: { totalRisks: number; highestSeverity: string };
     };
 
-    expect(result.risks).toHaveLength(0);
+    expect(result.risks).toBeUndefined();
     expect(result.summary.totalRisks).toBe(0);
-    expect(result.summary.highestRisk).toBe("low");
+    expect(result.summary.highestSeverity).toBe("low");
   });
 
   it("should analyze multiple statements", async () => {
@@ -1230,11 +1230,11 @@ describe("pg_migration_risks", () => {
       mockContext,
     )) as {
       risks: Array<{ statementIndex: number }>;
-      summary: { totalStatements: number; highestRisk: string };
+      summary: { totalStatements: number; highestSeverity: string };
     };
 
     expect(result.summary.totalStatements).toBe(3);
-    expect(result.summary.highestRisk).toBe("critical");
+    expect(result.summary.highestSeverity).toBe("critical");
   });
 
   it("should detect column type change as requiring downtime", async () => {
@@ -1481,8 +1481,6 @@ describe("pg_migration_apply", () => {
     });
     // Duplicate check: no duplicates
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute migration SQL
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // INSERT RETURNING *
@@ -1500,8 +1498,6 @@ describe("pg_migration_apply", () => {
         },
       ],
     });
-    // COMMIT
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_apply")!;
     const result = (await tool.handler(
@@ -1513,20 +1509,23 @@ describe("pg_migration_apply", () => {
         sourceSystem: "agent",
       },
       mockContext,
-    )) as { success: boolean; record?: { version: string } };
+    )) as { success: boolean; record?: { version: string }; error?: string };
+
+    if (!result.success) console.error("XYZ-ERROR", result.error);
 
     expect(result.success).toBe(true);
     expect(result.record).toBeDefined();
     expect(result.record!.version).toBe("1.0.0");
 
     // Verify BEGIN was called
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("BEGIN");
+    expect(mockAdapter.beginTransaction).toHaveBeenCalled();
     // Verify migration SQL was executed
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+    expect(mockAdapter.executeOnConnection).toHaveBeenCalledWith(
+      expect.anything(),
       "CREATE TABLE users (id SERIAL PRIMARY KEY)",
     );
     // Verify COMMIT was called
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("COMMIT");
+    expect(mockAdapter.commitTransaction).toHaveBeenCalled();
   });
 
   it("should rollback and record failed entry on SQL error", async () => {
@@ -1536,14 +1535,10 @@ describe("pg_migration_apply", () => {
     });
     // Duplicate check: no duplicates
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute migration SQL — FAILS
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error('relation "users" already exists'),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // INSERT failed record (best-effort)
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -1557,11 +1552,11 @@ describe("pg_migration_apply", () => {
     )) as { success: boolean; error?: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('relation "users" already exists');
+    expect(result.error).toContain("already exists");
     expect(result.error).toContain("rolled back");
 
     // Verify ROLLBACK was called
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("ROLLBACK");
+    expect(mockAdapter.rollbackTransaction).toHaveBeenCalled();
     // Verify failed record was inserted
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
       expect.stringContaining("'failed'"),
@@ -1591,7 +1586,7 @@ describe("pg_migration_apply", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("Duplicate migration");
     // Should NOT have called BEGIN (rejected before execution)
-    expect(mockAdapter.executeQuery).not.toHaveBeenCalledWith("BEGIN");
+    expect(mockAdapter.beginTransaction).not.toHaveBeenCalled();
   });
 
   it("should return structured error for missing version", async () => {
@@ -1629,14 +1624,10 @@ describe("pg_migration_apply", () => {
     });
     // Duplicate check: no duplicates
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute migration SQL — FAILS
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error('syntax error at or near "CRATE"'),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // INSERT failed record — ALSO FAILS (best-effort path)
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("connection lost"),
@@ -1791,9 +1782,12 @@ describe("pg_migration_rollback", () => {
     expect(result.record.status).toBe("rolled_back");
 
     // Verify transaction sequence
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("BEGIN");
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("DROP TABLE users");
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("COMMIT");
+    expect(mockAdapter.beginTransaction).toHaveBeenCalled();
+    expect(mockAdapter.executeOnConnection).toHaveBeenCalledWith(
+      expect.anything(),
+      "DROP TABLE users",
+    );
+    expect(mockAdapter.commitTransaction).toHaveBeenCalled();
   });
 
   it("should reject already-rolled-back migration", async () => {
@@ -1881,14 +1875,10 @@ describe("pg_migration_rollback", () => {
         },
       ],
     });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute rollback SQL — FAILS
-    mockAdapter.executeQuery.mockRejectedValueOnce(
+    mockAdapter.executeOnConnection.mockRejectedValueOnce(
       new Error('table "users" does not exist'),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
     const result = (await tool.handler({ version: "1.0.0" }, mockContext)) as {
@@ -1899,7 +1889,7 @@ describe("pg_migration_rollback", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("Rollback failed");
     expect(result.error).toContain('table "users" does not exist');
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("ROLLBACK");
+    expect(mockAdapter.rollbackTransaction).toHaveBeenCalled();
   });
 });
 
@@ -2206,13 +2196,9 @@ describe("pg_migration_apply — uncovered branches", () => {
     });
     // checkDuplicateHash: no duplicate
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Execute migration SQL
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // INSERT RETURNING: empty
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // COMMIT
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_apply")!;
@@ -2235,14 +2221,10 @@ describe("pg_migration_apply — uncovered branches", () => {
     });
     // checkDuplicateHash: no duplicate
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Migration SQL fails
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("syntax error at position 42"),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Record failed entry
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -2259,7 +2241,7 @@ describe("pg_migration_apply — uncovered branches", () => {
     expect(result.error).toContain("syntax error");
     expect(result.error).toContain("rolled back");
     // Verify ROLLBACK was called
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith("ROLLBACK");
+    expect(mockAdapter.rollbackTransaction).toHaveBeenCalled();
   });
 });
 
@@ -2275,7 +2257,7 @@ describe("pg_migration_rollback — uncovered branches", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should return error when id is NaN (caught by Zod validation)", async () => {
+  it("should return error when id is NaN (coerceNumber returns undefined)", async () => {
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
     const result = (await tool.handler({ id: NaN }, mockContext)) as {
       success: boolean;
@@ -2283,8 +2265,8 @@ describe("pg_migration_rollback — uncovered branches", () => {
     };
 
     expect(result.success).toBe(false);
-    // NaN is caught by Zod validation before reaching the handler's isNaN check
-    expect(result.error).toContain("Invalid input");
+    // coerceNumber converts NaN → undefined, so handler sees no id/version
+    expect(result.error).toContain("Either");
   });
 
   it("should return error when migration is already rolled back", async () => {
@@ -2363,14 +2345,10 @@ describe("pg_migration_rollback — uncovered branches", () => {
         },
       ],
     });
-    // BEGIN
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     // Rollback SQL fails
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("table does not exist"),
     );
-    // ROLLBACK
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_migration_rollback")!;
     const result = (await tool.handler({ id: 3 }, mockContext)) as {

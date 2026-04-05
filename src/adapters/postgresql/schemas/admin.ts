@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { ErrorResponseFields } from "./error-response-fields.js";
 
 /**
  * Preprocess vacuum/analyze parameters:
@@ -54,6 +55,11 @@ export const VacuumSchemaBase = z.object({
   full: z.boolean().optional().describe("Full vacuum (rewrites table)"),
   analyze: z.boolean().optional().describe("Update statistics"),
   verbose: z.boolean().optional().describe("Print progress"),
+  skipLocked: z.boolean().optional().describe("Skip locked relations"),
+  truncate: z
+    .boolean()
+    .optional()
+    .describe("Truncate empty pages at the end of the table"),
 });
 
 // Preprocess schema for handlers (resolves aliases and parses schema.table)
@@ -65,18 +71,25 @@ export const VacuumSchema = z.preprocess(
     full: z.boolean().optional().describe("Full vacuum (rewrites table)"),
     analyze: z.boolean().optional().describe("Update statistics"),
     verbose: z.boolean().optional().describe("Print progress"),
+    skipLocked: z.boolean().optional().describe("Skip locked relations"),
+    truncate: z
+      .boolean()
+      .optional()
+      .describe("Truncate empty pages at the end of the table"),
   }),
 );
 
 // Output schema for MCP 2025-11-25 structuredContent
-export const VacuumOutputSchema = z.object({
-  success: z.boolean().describe("Whether the vacuum operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  table: z.string().optional().describe("Table that was vacuumed"),
-  schema: z.string().optional().describe("Schema of the table"),
-  hint: z.string().optional().describe("Additional information"),
-});
+export const VacuumOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the vacuum operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    table: z.string().optional().describe("Table that was vacuumed"),
+    schema: z.string().optional().describe("Schema of the table"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // ============== ANALYZE SCHEMA ==============
 // Base schema for MCP visibility
@@ -88,6 +101,8 @@ export const AnalyzeSchemaBase = z.object({
     .array(z.string())
     .optional()
     .describe("Specific columns to analyze"),
+  verbose: z.boolean().optional().describe("Print progress"),
+  skipLocked: z.boolean().optional().describe("Skip locked relations"),
 });
 
 // Preprocess schema for handlers (resolves aliases and parses schema.table)
@@ -100,6 +115,8 @@ export const AnalyzeSchema = z.preprocess(
       .array(z.string())
       .optional()
       .describe("Specific columns to analyze"),
+    verbose: z.boolean().optional().describe("Print progress"),
+    skipLocked: z.boolean().optional().describe("Skip locked relations"),
   }),
 );
 
@@ -131,8 +148,9 @@ function preprocessReindexParams(input: unknown): unknown {
 // Base schema for MCP visibility (shows all parameters including aliases)
 export const ReindexSchemaBase = z.object({
   target: z
-    .enum(["table", "index", "schema", "database"])
-    .describe("What to reindex"),
+    .string()
+    .optional()
+    .describe("What to reindex (table, index, schema, database, system)"),
   name: z
     .string()
     .optional()
@@ -157,8 +175,8 @@ export const ReindexSchema = z
     preprocessReindexParams,
     z.object({
       target: z
-        .enum(["table", "index", "schema", "database"])
-        .describe("What to reindex"),
+        .string()
+        .describe("What to reindex (table, index, schema, database, system)"),
       name: z
         .string()
         .optional()
@@ -167,6 +185,20 @@ export const ReindexSchema = z
         ),
       concurrently: z.boolean().optional().describe("Reindex concurrently"),
     }),
+  )
+  .refine(
+    (data) => {
+      const validTargets = ["table", "index", "schema", "database", "system"];
+      const parsed = data as { target: string; name?: string };
+      if (!validTargets.includes(parsed.target)) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message:
+        "target must be one of 'table', 'index', 'schema', 'database', or 'system'",
+    },
   )
   .refine(
     (data) => {
@@ -201,91 +233,260 @@ function preprocessPidParams(input: unknown): unknown {
 
 // Base schema for MCP visibility (shows pid and alias)
 export const TerminateBackendSchemaBase = z.object({
-  pid: z.coerce.number().optional().describe("Process ID to terminate"),
-  processId: z.coerce.number().optional().describe("Alias for pid"),
+  pid: z.number().optional().describe("Process ID to terminate"),
+  processId: z.number().optional().describe("Alias for pid"),
 });
 
 // Preprocess schema for handlers
 export const TerminateBackendSchema = z.preprocess(
   preprocessPidParams,
   z.object({
-    pid: z.number().describe("Process ID to terminate"),
+    pid: z.number().int().describe("Process ID to terminate"),
   }),
 );
 
 // Base schema for MCP visibility (shows pid and alias)
 export const CancelBackendSchemaBase = z.object({
-  pid: z.coerce.number().optional().describe("Process ID to cancel"),
-  processId: z.coerce.number().optional().describe("Alias for pid"),
+  pid: z.number().optional().describe("Process ID to cancel"),
+  processId: z.number().optional().describe("Alias for pid"),
 });
 
 // Preprocess schema for handlers
 export const CancelBackendSchema = z.preprocess(
   preprocessPidParams,
   z.object({
-    pid: z.number().describe("Process ID to cancel"),
+    pid: z.number().int().describe("Process ID to cancel"),
   }),
 );
+
+// ============== CONFIG SCHEMAS ==============
+export const ReloadConfSchemaBase = z.object({});
+export const ResetStatsSchemaBase = z.object({});
+
+/**
+ * Preprocess set_config parameters:
+ * - Alias: param/setting → name
+ */
+function preprocessSetConfigParams(input: unknown): unknown {
+  if (typeof input !== "object" || input === null) {
+    return input;
+  }
+  const result = { ...(input as Record<string, unknown>) };
+  if (result["param"] !== undefined && result["name"] === undefined) {
+    result["name"] = result["param"];
+  }
+  if (result["setting"] !== undefined && result["name"] === undefined) {
+    result["name"] = result["setting"];
+  }
+  return result;
+}
+
+// Base schema for MCP visibility (shows all parameters and aliases)
+export const SetConfigSchemaBase = z.object({
+  name: z.string().optional().describe("Configuration parameter name"),
+  param: z.string().optional().describe("Alias for name"),
+  setting: z.string().optional().describe("Alias for name"),
+  value: z.string().optional().describe("New value"),
+  isLocal: z.boolean().optional().describe("Apply only to current transaction"),
+});
+
+// Preprocess schema for handlers
+export const SetConfigSchema = z.preprocess(
+  preprocessSetConfigParams,
+  z.object({
+    name: z.string().describe("Configuration parameter name"),
+    value: z.string().describe("New value"),
+    isLocal: z
+      .boolean()
+      .optional()
+      .describe("Apply only to current transaction"),
+  }),
+);
+
+// ============== CLUSTER SCHEMA ==============
+/**
+ * Preprocess cluster parameters:
+ * - Alias: tableName → table
+ * - Alias: indexName → index
+ * - Handle undefined input for database-wide CLUSTER
+ */
+function preprocessClusterParams(input: unknown): unknown {
+  if (typeof input !== "object" || input === null) {
+    return {};
+  }
+  const result = { ...(input as Record<string, unknown>) };
+  if (result["tableName"] !== undefined && result["table"] === undefined) {
+    result["table"] = result["tableName"];
+  }
+  if (result["indexName"] !== undefined && result["index"] === undefined) {
+    result["index"] = result["indexName"];
+  }
+
+  const tableVal = result["table"];
+  if (typeof tableVal === "string" && tableVal.includes(".")) {
+    const parts = tableVal.split(".");
+    if (parts.length === 2 && parts[0] !== "" && parts[1] !== "") {
+      if (result["schema"] === undefined) {
+        result["schema"] = parts[0];
+      }
+      result["table"] = parts[1];
+    }
+  }
+
+  return result;
+}
+
+// Base schema for MCP visibility (shows all parameters and aliases)
+export const ClusterSchemaBase = z.object({
+  table: z
+    .string()
+    .optional()
+    .describe("Table name (all previously-clustered tables if omitted)"),
+  tableName: z.string().optional().describe("Alias for table"),
+  index: z
+    .string()
+    .optional()
+    .describe("Index to cluster on (optional if table previously clustered)"),
+  indexName: z.string().optional().describe("Alias for index"),
+  schema: z.string().optional().describe("Schema name"),
+});
+
+// Preprocess schema for handlers (table/index are optional for database-wide CLUSTER)
+export const ClusterSchema = z
+  .preprocess(
+    preprocessClusterParams,
+    z.object({
+      table: z
+        .string()
+        .optional()
+        .describe("Table name (all previously-clustered tables if omitted)"),
+      index: z
+        .string()
+        .optional()
+        .describe(
+          "Index to cluster on (optional if table previously clustered)",
+        ),
+      schema: z.string().optional(),
+    }),
+  )
+  .refine(
+    (data) => {
+      // If index is specified, table MUST be specified
+      const parsed = data as { table?: string; index?: string };
+      if (parsed.index !== undefined && parsed.table === undefined) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "table is required when specifying an index",
+    },
+  );
 
 // ============== OUTPUT SCHEMAS (MCP 2025-11-25 structuredContent) ==============
 
 // Output schema for ANALYZE operations
-export const AnalyzeOutputSchema = z.object({
-  success: z.boolean().describe("Whether the analyze operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  table: z.string().optional().describe("Table that was analyzed"),
-  schema: z.string().optional().describe("Schema of the table"),
-  hint: z.string().optional().describe("Additional information"),
-});
+export const AnalyzeOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the analyze operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    table: z.string().optional().describe("Table that was analyzed"),
+    schema: z.string().optional().describe("Schema of the table"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for REINDEX operations
-export const ReindexOutputSchema = z.object({
-  success: z.boolean().describe("Whether the reindex operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  target: z
-    .string()
-    .optional()
-    .describe("What was reindexed (table/index/schema/database)"),
-  name: z.string().optional().describe("Name of the reindexed object"),
-  concurrently: z
-    .boolean()
-    .optional()
-    .describe("Whether concurrent reindex was used"),
-  hint: z.string().optional().describe("Additional information"),
-});
+export const ReindexOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the reindex operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    target: z
+      .string()
+      .optional()
+      .describe("What was reindexed (table/index/schema/database)"),
+    name: z.string().optional().describe("Name of the reindexed object"),
+    concurrently: z
+      .boolean()
+      .optional()
+      .describe("Whether concurrent reindex was used"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for CLUSTER operations
-export const ClusterOutputSchema = z.object({
-  success: z.boolean().describe("Whether the cluster operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  table: z.string().optional().describe("Table that was clustered"),
-  index: z.string().optional().describe("Index used for clustering"),
-  hint: z.string().optional().describe("Additional information"),
-});
+export const ClusterOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the cluster operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    table: z.string().optional().describe("Table that was clustered"),
+    index: z.string().optional().describe("Index used for clustering"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for backend operations (terminate/cancel)
-export const BackendOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
-  message: z.string().describe("Human-readable result message"),
-  pid: z.number().optional().describe("Process ID that was affected"),
-  hint: z.string().optional().describe("Additional information"),
-});
+export const BackendOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    pid: z.number().optional().describe("Process ID that was affected"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for configuration operations (reload_conf, set_config, reset_stats)
-export const ConfigOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  parameter: z
-    .string()
-    .optional()
-    .describe("Configuration parameter name (set_config)"),
-  value: z
-    .string()
-    .optional()
-    .describe("Configuration parameter value (set_config)"),
-  hint: z.string().optional().describe("Additional information"),
+export const ConfigOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    parameter: z
+      .string()
+      .optional()
+      .describe("Configuration parameter name (set_config)"),
+    value: z
+      .string()
+      .optional()
+      .describe("Configuration parameter value (set_config)"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
+
+// ============== INSIGHT SCHEMAS ==============
+// Base schema for MCP visibility
+export const AppendInsightSchemaBase = z.object({
+  insight: z.string().optional().describe("Business insight to record"),
+  text: z.string().optional().describe("Alias for insight"),
 });
+
+// Preprocess schema for handlers
+export const AppendInsightSchema = z.preprocess(
+  (input: unknown) => {
+    if (typeof input !== "object" || input === null) return input;
+    const result = { ...(input as Record<string, unknown>) };
+    if (result["text"] !== undefined && result["insight"] === undefined) {
+      result["insight"] = result["text"];
+    }
+    return result;
+  },
+  z.object({
+    insight: z.string().describe("Business insight to record"),
+  }),
+);
+
+export const AppendInsightOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    insightCount: z
+      .number()
+      .optional()
+      .describe("Total number of insights recorded"),
+    message: z.string().optional().describe("Confirmation message"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape)
+  .describe("Append insight output");

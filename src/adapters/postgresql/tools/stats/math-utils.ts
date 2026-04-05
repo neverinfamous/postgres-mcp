@@ -5,7 +5,8 @@
  * used by the advanced statistics tools.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
+import { ValidationError } from "../../../../types/errors.js";
 
 // =============================================================================
 // P-Value Calculation Utilities
@@ -225,15 +226,13 @@ export async function validateNumericColumn(
       table,
     ]);
     if (tableResult.rows?.length === 0) {
-      throw new Error(`Table "${schema}.${table}" not found`);
+      throw new ValidationError(`Table "${schema}.${table}" does not exist`);
     }
-    throw new Error(
-      `Column "${column}" not found in table "${schema}.${table}"`,
-    );
+    throw new ValidationError(`Column "${column}" does not exist`);
   }
 
   if (!numericTypes.includes(typeRow.data_type)) {
-    throw new Error(
+    throw new ValidationError(
       `Column "${column}" is type "${typeRow.data_type}" but must be a numeric type for statistical analysis`,
     );
   }
@@ -257,6 +256,6 @@ export async function validateTableExists(
     table,
   ]);
   if (tableResult.rows?.length === 0) {
-    throw new Error(`Table "${schema}.${table}" not found`);
+    throw new ValidationError(`Table "${schema}.${table}" does not exist`);
   }
 }

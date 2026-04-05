@@ -21,7 +21,7 @@ import {
   InvalidTokenError,
   InsufficientScopeError,
 } from "../errors.js";
-import type { TokenValidator } from "../TokenValidator.js";
+import type { TokenValidator } from "../token-validator.js";
 import type { TokenValidationResult } from "../types.js";
 
 // Mock token validator
@@ -58,10 +58,9 @@ describe("OAuth Middleware", () => {
       expect(token).toBe("abc123xyz");
     });
 
-    it("should return empty string for malformed header (missing token)", () => {
-      // 'Bearer ' splits into ["Bearer", ""] which has 2 parts
-      // Implementation returns empty string which is falsy
-      expect(extractBearerToken("Bearer ")).toBe("");
+    it("should return null for malformed header (missing token)", () => {
+      // 'Bearer ' splits into ["Bearer", ""] — empty after trim → null
+      expect(extractBearerToken("Bearer ")).toBeNull();
     });
 
     it("should return null for malformed header (extra parts)", () => {

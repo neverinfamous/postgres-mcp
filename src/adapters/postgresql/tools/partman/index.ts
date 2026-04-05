@@ -8,13 +8,17 @@
  * of partitioned tables. Supports time-based and integer-based partitioning.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
-// Management tools
+// Setup & creation tools
 import {
   createPartmanExtensionTool,
   createPartmanCreateParentTool,
+} from "./create.js";
+
+// Management & inspection tools
+import {
   createPartmanRunMaintenanceTool,
   createPartmanShowPartitionsTool,
   createPartmanShowConfigTool,
@@ -26,12 +30,14 @@ import {
   createPartmanPartitionDataTool,
 } from "./operations.js";
 
-// Maintenance tools (retention, undo, analyze health)
+// Retention & undo tools
 import {
   createPartmanSetRetentionTool,
   createPartmanUndoPartitionTool,
-  createPartmanAnalyzeHealthTool,
-} from "./maintenance.js";
+} from "./retention.js";
+
+// Health analysis tools
+import { createPartmanAnalyzeHealthTool } from "./health-analysis.js";
 
 /**
  * Get all pg_partman tools

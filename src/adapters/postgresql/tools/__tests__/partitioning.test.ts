@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPartitioningTools } from "../partitioning/index.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -936,7 +936,11 @@ describe("pg_detach_partition", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ "?column?": 1 }],
     });
-    // Third call: SQL execution
+    // Third call: pg_inherits membership check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // Fourth call: SQL execution
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_detach_partition")!;
@@ -952,7 +956,7 @@ describe("pg_detach_partition", () => {
       partition: string;
     };
 
-    const call = mockAdapter.executeQuery.mock.calls[2][0] as string;
+    const call = mockAdapter.executeQuery.mock.calls[3][0] as string;
     expect(call).toContain("DETACH PARTITION");
     expect(result.success).toBe(true);
     expect(result.partition).toBe("events_2020");
@@ -967,7 +971,11 @@ describe("pg_detach_partition", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ "?column?": 1 }],
     });
-    // Third call: SQL execution
+    // Third call: pg_inherits membership check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // Fourth call: SQL execution
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = tools.find((t) => t.name === "pg_detach_partition")!;
@@ -980,7 +988,7 @@ describe("pg_detach_partition", () => {
       mockContext,
     );
 
-    const call = mockAdapter.executeQuery.mock.calls[2][0] as string;
+    const call = mockAdapter.executeQuery.mock.calls[3][0] as string;
     expect(call).toContain("CONCURRENTLY");
   });
 
@@ -1041,7 +1049,11 @@ describe("pg_detach_partition", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ "?column?": 1 }],
     });
-    // Third call: SQL execution fails
+    // Third call: pg_inherits membership check - is a partition
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
+    // Fourth call: SQL execution fails
     mockAdapter.executeQuery.mockRejectedValueOnce(
       Object.assign(new Error('relation "nonexistent" does not exist'), {
         code: "42P01",
@@ -1062,7 +1074,7 @@ describe("pg_detach_partition", () => {
     };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 });
 
@@ -1111,6 +1123,10 @@ describe("pg_partition_info", () => {
         },
       ],
     });
+    // Fourth call: total size
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total_bytes: 52428800 + 78643200 }],
+    });
 
     const tool = tools.find((t) => t.name === "pg_partition_info")!;
     const result = (await tool.handler(
@@ -1158,6 +1174,10 @@ describe("pg_partition_info", () => {
           approx_rows: 0,
         },
       ],
+    });
+    // Fourth call: total size
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total_bytes: 8192 }],
     });
 
     const tool = tools.find((t) => t.name === "pg_partition_info")!;
@@ -1547,6 +1567,11 @@ describe("Parameter Smoothing", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
       });
+      // pg_inherits membership check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // SQL execution
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_detach_partition")!;
@@ -1571,6 +1596,11 @@ describe("Parameter Smoothing", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
       });
+      // pg_inherits membership check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // SQL execution
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_detach_partition")!;
@@ -1595,6 +1625,11 @@ describe("Parameter Smoothing", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ "?column?": 1 }],
       });
+      // pg_inherits membership check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      });
+      // SQL execution
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_detach_partition")!;
@@ -2162,6 +2197,10 @@ describe("pg_detach_partition — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ "?column?": 1 }],
     });
+    // pg_inherits membership check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ "?column?": 1 }],
+    });
     // SQL execution
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
@@ -2176,7 +2215,7 @@ describe("pg_detach_partition — uncovered branches", () => {
     )) as { success: boolean };
 
     expect(result.success).toBe(true);
-    const call = mockAdapter.executeQuery.mock.calls[2][0] as string;
+    const call = mockAdapter.executeQuery.mock.calls[3][0] as string;
     expect(call).toContain("FINALIZE");
     expect(call).not.toContain("CONCURRENTLY");
   });

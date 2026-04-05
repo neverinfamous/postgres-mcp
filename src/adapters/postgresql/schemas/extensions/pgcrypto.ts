@@ -5,10 +5,31 @@
  */
 
 import { z } from "zod";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Input Schemas
 // =============================================================================
+
+/**
+ * Base schema for MCP visibility — shows all parameters with relaxed validation.
+ */
+export const PgcryptoCreateExtensionSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema to install extension in (default: public)"),
+});
+
+/**
+ * Schema for creating the pgcrypto extension.
+ */
+export const PgcryptoCreateExtensionSchema = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema to install extension in (default: public)"),
+});
 
 /**
  * Base schema for MCP visibility — shows all parameters with relaxed validation.
@@ -94,44 +115,70 @@ export const PgcryptoEncryptSchema = PgcryptoEncryptSchemaBase.transform(
 
 /**
  * Schema for PGP symmetric decryption.
- * Accepts 'data' as alias for 'encryptedData', 'key' as alias for 'password'.
+ * Accepts 'encryptedData' as alias for 'data', 'key' as alias for 'password'.
  *
  * Uses base schema for MCP exposure and transform schema for validation.
  */
 export const PgcryptoDecryptSchemaBase = z.object({
-  encryptedData: z
-    .string()
-    .optional()
-    .describe("Encrypted data (base64 from encrypt)"),
-  data: z.string().optional().describe("Alias for encryptedData"),
+  data: z.string().optional().describe("Encrypted data (base64 from encrypt)"),
+  encryptedData: z.string().optional().describe("Alias for data"),
   password: z.string().optional().describe("Decryption password"),
   key: z.string().optional().describe("Alias for password"),
 });
 
 export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
-  (data) => {
+  (payload) => {
     // Handle aliases
-    const resolvedEncryptedData = data.encryptedData ?? data.data;
-    const resolvedPassword = data.password ?? data.key;
+    const resolvedData = payload.data ?? payload.encryptedData;
+    const resolvedPassword = payload.password ?? payload.key;
     return {
-      encryptedData: resolvedEncryptedData,
+      data: resolvedData,
       password: resolvedPassword,
     };
   },
 )
-  .refine((data) => data.encryptedData !== undefined, {
-    message: "encryptedData (or data alias) is required",
+  .refine((payload) => payload.data !== undefined, {
+    message: "data (or encryptedData alias) is required",
   })
-  .refine((data) => data.password !== undefined, {
+  .refine((payload) => payload.password !== undefined, {
     message: "password (or key alias) is required",
   });
+
+/**
+ * Base schema for MCP visibility (count parameter exposed to clients, relaxed)
+ */
+export const PgcryptoGenRandomUuidSchemaBase = z.object({
+  count: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Number of UUIDs to generate (default: 1, max: 100)"),
+});
+
+/**
+ * Schema for UUID generation with count parameter.
+ */
+export const PgcryptoGenRandomUuidSchema = z
+  .object({
+    count: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Number of UUIDs to generate (default: 1, max: 100)"),
+  })
+  .default({})
+  .refine(
+    (data) =>
+      data.count === undefined || (data.count >= 1 && data.count <= 100),
+    {
+      message: "Number of UUIDs must be between 1 and 100",
+      path: ["count"],
+    },
+  );
 
 /**
  * Base schema for MCP visibility — shows all parameters with relaxed validation.
  */
 export const PgcryptoRandomBytesSchemaBase = z.object({
-  length: z.coerce
-    .number()
+  length: z
+    .preprocess(coerceNumber, z.number().optional())
     .optional()
     .describe("Number of random bytes to generate (1-1024)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
@@ -140,17 +187,28 @@ export const PgcryptoRandomBytesSchemaBase = z.object({
 /**
  * Schema for generating random bytes.
  */
-export const PgcryptoRandomBytesSchema = z.object({
-  length: z
-    .number()
-    .min(1)
-    .max(1024)
-    .describe("Number of random bytes to generate (1-1024)"),
-  encoding: z
-    .enum(["hex", "base64"])
-    .optional()
-    .describe("Output encoding (default: hex)"),
-});
+export const PgcryptoRandomBytesSchema = z
+  .object({
+    length: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Number of random bytes to generate (1-1024)"),
+    encoding: z
+      .enum(["hex", "base64"])
+      .optional()
+      .describe("Output encoding (default: hex)"),
+  })
+  .refine((data) => data.length !== undefined, {
+    message: "length is required",
+    path: ["length"],
+  })
+  .refine(
+    (data) =>
+      data.length === undefined || (data.length >= 1 && data.length <= 1024),
+    {
+      message: "Number of random bytes must be between 1 and 1024",
+      path: ["length"],
+    },
+  );
 
 /**
  * Base schema for MCP visibility — shows all parameters with relaxed validation.
@@ -160,8 +218,8 @@ export const PgcryptoGenSaltSchemaBase = z.object({
     .string()
     .optional()
     .describe("Salt type: bf (bcrypt, recommended), md5, xdes, or des"),
-  iterations: z.coerce
-    .number()
+  iterations: z
+    .preprocess(coerceNumber, z.number().optional())
     .optional()
     .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
 });
@@ -174,8 +232,7 @@ export const PgcryptoGenSaltSchema = z.object({
     .enum(["bf", "md5", "xdes", "des"])
     .describe("Salt type: bf (bcrypt, recommended), md5, xdes, or des"),
   iterations: z
-    .number()
-    .optional()
+    .preprocess(coerceNumber, z.number().optional())
     .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
 });
 
@@ -248,7 +305,7 @@ export const PgcryptoHmacOutputSchema = z
 export const PgcryptoEncryptOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether encryption succeeded"),
-    encrypted: z.string().optional().describe("Encrypted data"),
+    encryptedData: z.string().optional().describe("Encrypted data"),
     encoding: z.string().optional().describe("Output encoding"),
     error: z.string().optional().describe("Error message"),
   })

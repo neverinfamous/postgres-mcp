@@ -1,0 +1,123 @@
+name: Security Update Check
+
+on:
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: "0 2 * * 0"
+  workflow_call:
+  pull_request:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  security-events: write
+  issues: write
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+
+      - name: Build image for scanning
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        with:
+          context: .
+          file: Dockerfile
+          tags: security-test:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Run SARIF scan first (non-blocking) to always generate the file
+      - name: Run Trivy scanner for SARIF output
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: security-test:latest
+          format: "sarif"
+          output: "trivy-results.sarif"
+          exit-code: "0"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: ".trivyignore"
+          skip-dirs: "/usr/local/lib/node_modules/npm"
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@b1bff81932f5cdfc8695c7752dcee935dcd061c8 # v4.34.1
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      # Run table scan (blocking) after SARIF is uploaded
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: security-test:latest
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: ".trivyignore"
+          skip-dirs: "/usr/local/lib/node_modules/npm"
+
+      - name: Create security issue if vulnerabilities found
+        if: failure()
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const title = '🚨 Security vulnerabilities detected in Docker images'
+
+            // Check for existing open issue with same title to avoid duplicates
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security,vulnerability,docker',
+              per_page: 10,
+            })
+            if (existing.some(issue => issue.title === title)) {
+              console.log('Open security issue already exists — skipping creation')
+              return
+            }
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body: `
+              ## Security Alert
+
+              Trivy has detected security vulnerabilities in our Docker images.
+
+              **Action Required:**
+              1. Review the security scan results in the Actions tab
+              2. Update base images and dependencies
+              3. Test the fixes
+              4. Deploy updated images
+
+              **Scan Details:**
+              - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+              - Triggered by: Weekly security scan
+              - Scan Date: ${{ github.event.schedule || 'Manual trigger' }}
+
+              **Next Steps:**
+              - [ ] Review vulnerability details
+              - [ ] Update Dockerfiles
+              - [ ] Test changes
+              - [ ] Deploy fixes
+              `,
+              labels: ['security', 'vulnerability', 'docker']
+            })

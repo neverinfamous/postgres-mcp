@@ -5,28 +5,33 @@
  * 15 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
-// Basic spatial operations
+// Setup & DDL tools
 import {
   createPostgisExtensionTool,
   createGeometryColumnTool,
+  createSpatialIndexTool,
+} from "./setup.js";
+
+// Spatial query tools
+import {
   createPointInPolygonTool,
   createDistanceTool,
   createBufferTool,
   createIntersectionTool,
   createBoundingBoxTool,
-  createSpatialIndexTool,
-} from "./basic.js";
+} from "./query.js";
 
-// Advanced spatial operations
+// Advanced coordinate operations
+import { createGeocodeTool, createGeoTransformTool } from "./advanced.js";
+
+// Spatial analysis operations
 import {
-  createGeocodeTool,
-  createGeoTransformTool,
   createGeoIndexOptimizeTool,
   createGeoClusterTool,
-} from "./advanced.js";
+} from "./spatial-analysis.js";
 
 // Standalone geometry operations (WKT/GeoJSON input)
 import {

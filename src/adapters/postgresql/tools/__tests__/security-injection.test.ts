@@ -8,11 +8,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getTextTools } from "../text/index.js";
 import { getVectorTools } from "../vector/index.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import { getAdminTools } from "../admin/index.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
+
+vi.mock("../vector/data.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../vector/data.js")>();
+  return {
+    ...actual,
+    checkTableAndColumn: vi.fn().mockResolvedValue(null),
+  };
+});
 import {
   sanitizeIdentifier,
   validateIdentifier,
@@ -429,9 +438,9 @@ describe("Vector Tools WHERE Clause Injection", () => {
   describe("pg_vector_search WHERE injection", () => {
     it("should reject WHERE clause with injection", async () => {
       // Mock existence check and type check to pass so WHERE validation triggers
-      mockAdapter.executeQuery
-        .mockResolvedValueOnce({ rows: [{ "1": 1 }] }) // existence check (checkTableAndColumn)
-        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] }); // type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "vector" }],
+      }); // type check
 
       const tool = vectorTools.find((t) => t.name === "pg_vector_search")!;
       const result = (await tool.handler(
@@ -512,7 +521,6 @@ describe("Admin Tool Identifier Injection", () => {
   });
 
   it("should reject pg_vacuum table names with injection", async () => {
-    const { getAdminTools } = await import("../admin.js");
     const tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
     const tool = tools.find((t) => t.name === "pg_vacuum")!;
 
@@ -526,7 +534,6 @@ describe("Admin Tool Identifier Injection", () => {
   });
 
   it("should reject pg_analyze column names with injection", async () => {
-    const { getAdminTools } = await import("../admin.js");
     const tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
     const tool = tools.find((t) => t.name === "pg_analyze")!;
 
@@ -540,7 +547,6 @@ describe("Admin Tool Identifier Injection", () => {
   });
 
   it("should reject pg_reindex names with injection", async () => {
-    const { getAdminTools } = await import("../admin.js");
     const tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
     const tool = tools.find((t) => t.name === "pg_reindex")!;
 
@@ -554,7 +560,6 @@ describe("Admin Tool Identifier Injection", () => {
   });
 
   it("should reject pg_cluster index names with injection", async () => {
-    const { getAdminTools } = await import("../admin.js");
     const tools = getAdminTools(mockAdapter as unknown as PostgresAdapter);
     const tool = tools.find((t) => t.name === "pg_cluster")!;
 

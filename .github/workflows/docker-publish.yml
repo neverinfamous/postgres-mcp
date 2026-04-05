@@ -1,11 +1,14 @@
 name: Build and Push Docker Images
 
 on:
-  # Only run after lint-and-test completes successfully
-  workflow_run:
-    workflows: ["Lint and Test"]
-    types: [completed]
-    branches: [main]
+  workflow_call:
+    secrets:
+      DOCKER_USERNAME:
+        required: true
+      DOCKER_PASSWORD:
+        required: true
+      NPM_TOKEN:
+        required: true
 
 env:
   REGISTRY: docker.io
@@ -23,7 +26,7 @@ jobs:
   # Security scan BEFORE any images are pushed
   # This ensures no vulnerable images reach Docker Hub
   security-scan:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -32,11 +35,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build image for scanning (local only)
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
@@ -120,7 +128,7 @@ jobs:
 
       - name: Upload Trivy results to GitHub Security
         if: always()
-        uses: github/codeql-action/upload-sarif@dd677812177e0c29f9c970a6c58d8607ae1bfefd # v4
+        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4
         with:
           sarif_file: trivy-results.sarif
           category: trivy-docker-scan
@@ -151,8 +159,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
@@ -176,7 +182,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
@@ -233,8 +239,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Download digests
         uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
@@ -264,14 +268,14 @@ jobs:
 
       - name: Extract metadata for manifest
         id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
             latest=false
           tags: |
-            type=raw,value=v${{ steps.version.outputs.version }},enable=${{ github.event.workflow_run.head_branch == 'main' }}
-            type=raw,value=latest,enable=${{ github.event.workflow_run.head_branch == 'main' }}
+            type=raw,value=v${{ steps.version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
             type=sha,prefix=sha-,format=short
 
       - name: Create and push manifest
@@ -288,14 +292,13 @@ jobs:
       - name: Update Docker Hub Description
         if: github.ref == 'refs/heads/main'
         uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5
-        continue-on-error: true
         timeout-minutes: 5
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: ${{ env.IMAGE_NAME }}
           readme-filepath: ./DOCKER_README.md
-          short-description: "PostgreSQL MCP: 231 Tools Via One Code Mode Tool with Tool Filtering, Pooling, HTTP/SSE & OAuth 2.1."
+          short-description: "PostgreSQL MCP: 248 Tools Via One Code Mode Tool with Tool Filtering, Pooling, HTTP/SSE & OAuth 2.1."
 
       - name: Deployment Summary
         if: github.ref == 'refs/heads/main'
@@ -305,3 +308,14 @@ jobs:
           echo "🏷️ Tags: ${{ steps.meta.outputs.tags }}"
           echo "📝 Commit: ${{ github.sha }}"
           echo "👤 Published by: ${{ github.actor }}"
+
+  # Publish to npm AFTER Docker images are successfully pushed
+  # This ensures npm and Docker releases are always in sync:
+  # - If Docker Scout blocks → npm doesn't publish → no burned version
+  # - If Lint/Test fails → nothing publishes
+  npm-publish:
+    needs: [merge-and-push]
+    if: always() && needs.merge-and-push.result == 'success' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    uses: ./.github/workflows/publish-npm.yml
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

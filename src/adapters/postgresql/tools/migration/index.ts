@@ -5,17 +5,20 @@
  * 6 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 import {
   createMigrationInitTool,
   createMigrationRecordTool,
   createMigrationApplyTool,
+} from "../introspection/migration.js";
+
+import {
   createMigrationRollbackTool,
   createMigrationHistoryTool,
   createMigrationStatusTool,
-} from "../introspection/migration.js";
+} from "../introspection/migration-query.js";
 
 /**
  * Get all migration tools

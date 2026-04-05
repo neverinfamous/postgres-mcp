@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -98,11 +98,7 @@ describe("JSONB Tools", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ null_count: 0 }],
       });
-      // Second call: array type check
-      mockAdapter.executeQuery.mockResolvedValueOnce({
-        rows: [{ type: "array" }],
-      });
-      // Third call: actual insert
+      // Second call: actual insert
       mockAdapter.executeQuery.mockResolvedValueOnce({ rowsAffected: 1 });
 
       const tool = findTool("pg_jsonb_insert");
@@ -297,7 +293,7 @@ describe("JSONB Tools", () => {
   });
 
   describe("pg_jsonb_object", () => {
-    it("should build JSONB object from key-value pairs", async () => {
+    it("should build JSONB object from key-value pairs (data mode)", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ result: { name: "John", age: 30 } }],
       });
@@ -311,11 +307,54 @@ describe("JSONB Tools", () => {
         mockContext,
       )) as { object: Record<string, unknown> };
 
-      expect(result).toEqual({ object: { name: "John", age: 30 } });
+      expect(result).toEqual({
+        success: true,
+        object: { name: "John", age: 30 },
+      });
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
         expect.stringContaining("jsonb_build_object"),
         expect.anything(),
       );
+    });
+
+    it("should build JSONB object from parallel keys/values arrays", async () => {
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ result: { a: "1", b: "2" } }],
+      });
+
+      const tool = findTool("pg_jsonb_object");
+      const result = (await tool!.handler(
+        { keys: ["a", "b"], values: ["1", "2"] },
+        mockContext,
+      )) as { success: boolean; object: Record<string, unknown> };
+
+      expect(result.success).toBe(true);
+      expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+        expect.stringContaining("jsonb_build_object"),
+        expect.anything(),
+      );
+    });
+
+    it("should return validation error when keys/values lengths differ", async () => {
+      const tool = findTool("pg_jsonb_object");
+      const result = (await tool!.handler(
+        { keys: ["a", "b"], values: ["only_one"] },
+        mockContext,
+      )) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("same length");
+    });
+
+    it("should return validation error for empty params", async () => {
+      const tool = findTool("pg_jsonb_object");
+      const result = (await tool!.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("at least one key-value pair");
     });
   });
 
@@ -465,8 +504,10 @@ describe("JSONB Tools", () => {
       expect(result.results).toHaveLength(2);
     });
 
-    it("should return invalid for bad path", async () => {
-      mockAdapter.executeQuery.mockRejectedValueOnce(new Error("Invalid path"));
+    it("should return structured error for bad path", async () => {
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("syntax error at end of jsonpath input"),
+      );
 
       const tool = findTool("pg_jsonb_validate_path");
       const result = (await tool!.handler(
@@ -474,10 +515,14 @@ describe("JSONB Tools", () => {
           path: "$.invalid[[[",
         },
         mockContext,
-      )) as { valid: boolean; error: string };
+      )) as { success: boolean; error: string; valid?: boolean };
 
-      expect(result.valid).toBe(false);
+      // Invalid paths now return success: false (structured error) — not success: true with valid: false
+      expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
+      expect(result.error).toContain("Invalid JSONPath expression");
+      // valid field is not present in error responses (success: false path)
+      expect(result.valid).toBeUndefined();
     });
   });
 
@@ -738,8 +783,8 @@ describe("JSONB Tools", () => {
     });
   });
 
-  it("should export all 19 JSONB tools", () => {
-    expect(tools).toHaveLength(19);
+  it("should export all 20 JSONB tools", () => {
+    expect(tools).toHaveLength(20);
     const toolNames = tools.map((t) => t.name);
     // Basic tools
     expect(toolNames).toContain("pg_jsonb_extract");
@@ -762,6 +807,7 @@ describe("JSONB Tools", () => {
     expect(toolNames).toContain("pg_jsonb_index_suggest");
     expect(toolNames).toContain("pg_jsonb_security_scan");
     expect(toolNames).toContain("pg_jsonb_stats");
+    expect(toolNames).toContain("pg_jsonb_pretty");
   });
 });
 
@@ -822,7 +868,7 @@ describe("jsonb analytics uncovered branches", () => {
       { table: "users", column: "data" },
       mockContext,
     )) as { hint: string; recommendations: string[] };
-    expect(result.recommendations).toHaveLength(0);
+    expect(result.recommendations).toBeUndefined();
     expect(result.hint).toContain("existing indexes");
   });
 
@@ -967,7 +1013,7 @@ describe("jsonb analytics uncovered branches", () => {
       { table: "users", column: "tags" },
       mockContext,
     )) as { topKeys: unknown[]; hint: string };
-    expect(result.topKeys).toHaveLength(0);
+    expect(result.topKeys).toBeUndefined();
     expect(result.hint).toContain("array");
   });
 
@@ -1254,7 +1300,8 @@ describe("jsonb/read.ts — uncovered branches", () => {
 
   const findTool = (name: string) => tools.find((t) => t.name === name);
 
-  it("pg_jsonb_extract should handle NaN limit gracefully", async () => {
+  // coerceNumber converts non-numeric strings to undefined → default limit is used
+  it("pg_jsonb_extract should silently default non-numeric limit", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ extracted_value: "test" }],
     });
@@ -1265,7 +1312,8 @@ describe("jsonb/read.ts — uncovered branches", () => {
       mockContext,
     )) as { rows: unknown[]; count: number };
 
-    // NaN limit → treated as undefined (no LIMIT clause)
+    // coerceNumber converts "abc" → undefined → default limit is used
+    expect(result.rows).toBeDefined();
     expect(result.count).toBe(1);
   });
 
@@ -1704,10 +1752,6 @@ describe("jsonb/write.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ null_count: 0 }],
     });
-    // Type check
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ type: "array" }],
-    });
     // Insert fails
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("cannot replace existing key"),
@@ -1724,7 +1768,7 @@ describe("jsonb/write.ts — uncovered branches", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain("arrays only");
+    expect(result.error).toContain("Cannot substitute an existing key");
   });
 
   // write.ts: pg_jsonb_insert wraps 'path element is not an integer' (L262)
@@ -1732,9 +1776,7 @@ describe("jsonb/write.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ null_count: 0 }],
     });
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ type: "array" }],
-    });
+    // Insert fails
     mockAdapter.executeQuery.mockRejectedValueOnce(
       new Error("path element is not an integer"),
     );
@@ -1902,7 +1944,7 @@ describe("jsonb/transform.ts — uncovered branches", () => {
     expect(result.error).toContain("table");
   });
 
-  // transform.ts L310: normalize with invalid mode
+  // transform.ts L310: normalize with invalid mode (now handler-validated, not z.enum)
   it("pg_jsonb_normalize should error for invalid mode", async () => {
     const tool = findTool("pg_jsonb_normalize")!;
     const result = (await tool.handler(
@@ -1910,7 +1952,7 @@ describe("jsonb/transform.ts — uncovered branches", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain("Invalid option");
+    expect(result.error).toContain("Invalid mode");
   });
 
   // transform.ts L155: deepMerge recursive on nested objects

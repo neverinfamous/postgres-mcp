@@ -2,10 +2,10 @@
  * PostgreSQL JSONB Tools
  *
  * JSONB operations including path queries, containment, and aggregation.
- * 19 tools total.
+ * 20 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 // Read JSONB operations
@@ -13,20 +13,26 @@ import {
   createJsonbExtractTool,
   createJsonbContainsTool,
   createJsonbPathQueryTool,
+} from "./read.js";
+import {
   createJsonbAggTool,
   createJsonbKeysTool,
   createJsonbTypeofTool,
-} from "./read.js";
+} from "./query.js";
 
 // Write JSONB operations
 import {
   createJsonbSetTool,
   createJsonbInsertTool,
   createJsonbDeleteTool,
+} from "./write.js";
+
+// Builder JSONB operations
+import {
   createJsonbObjectTool,
   createJsonbArrayTool,
   createJsonbStripNullsTool,
-} from "./write.js";
+} from "./write-builders.js";
 
 // JSONB transform operations (validate path, merge, normalize, diff)
 import {
@@ -42,6 +48,9 @@ import {
   createJsonbSecurityScanTool,
   createJsonbStatsTool,
 } from "./analytics.js";
+
+// Pretty print
+import { createJsonbPrettyTool } from "./pretty.js";
 
 /**
  * Get all JSONB tools
@@ -67,6 +76,7 @@ export function getJsonbTools(adapter: PostgresAdapter): ToolDefinition[] {
     createJsonbIndexSuggestTool(adapter),
     createJsonbSecurityScanTool(adapter),
     createJsonbStatsTool(adapter),
+    createJsonbPrettyTool(adapter),
   ];
 }
 
@@ -91,4 +101,5 @@ export {
   createJsonbIndexSuggestTool,
   createJsonbSecurityScanTool,
   createJsonbStatsTool,
+  createJsonbPrettyTool,
 };

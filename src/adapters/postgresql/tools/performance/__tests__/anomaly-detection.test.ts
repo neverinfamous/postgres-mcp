@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPerformanceTools } from "../index.js";
-import type { PostgresAdapter } from "../../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../../types/index.js";
 import {
   createMockPostgresAdapter,
@@ -140,22 +140,24 @@ describe("pg_detect_query_anomalies", () => {
     expect(mainQuery).toContain("3");
   });
 
-  it("should clamp threshold and minCalls to valid ranges", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ 1: 1 }],
-    });
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ total: 5 }],
-    });
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("should reject out-of-range threshold and minCalls with validation errors", async () => {
     const tool = findTool(tools, "pg_detect_query_anomalies");
-    // Extreme values that should be clamped
-    await tool.handler({ threshold: 0.1, minCalls: -5 }, mockContext);
 
-    // threshold clamped to 0.5, minCalls clamped to 1
-    const countQuery = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
-    expect(countQuery).toContain("1");
+    // threshold below minimum (0.5) should return a structured error
+    const resultLowThreshold = (await tool.handler(
+      { threshold: 0.1, minCalls: 10 },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(resultLowThreshold.success).toBe(false);
+    expect(resultLowThreshold.error).toContain("threshold");
+
+    // minCalls below minimum (1) should return a structured error
+    const resultLowMinCalls = (await tool.handler(
+      { threshold: 2.0, minCalls: -5 },
+      mockContext,
+    )) as { success: boolean; error: string };
+    expect(resultLowMinCalls.success).toBe(false);
+    expect(resultLowMinCalls.error).toContain("minCalls");
   });
 
   it("should calculate critical risk for many anomalies with high z-scores", async () => {
@@ -354,12 +356,15 @@ describe("pg_detect_bloat_risk", () => {
   });
 
   it("should filter by schema when specified", async () => {
+    // 1. Schema validation check
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ 1: 1 }] });
+    // 2. Main query
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
     const tool = findTool(tools, "pg_detect_bloat_risk");
     await tool.handler({ schema: "sales" }, mockContext);
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain("schemaname = 'sales'");
   });
 
@@ -374,14 +379,16 @@ describe("pg_detect_bloat_risk", () => {
     expect(sql).toContain("information_schema");
   });
 
-  it("should clamp minRows to valid range", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-
+  it("should reject negative minRows with a validation error", async () => {
     const tool = findTool(tools, "pg_detect_bloat_risk");
-    await tool.handler({ minRows: -100 }, mockContext);
+    const result = (await tool.handler({ minRows: -100 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
-    expect(sql).toContain("0"); // clamped to 0
+    // Negative minRows is invalid; expect a structured validation error instead of silent clamping
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("between");
   });
 
   it("should use minRows: 0 when explicitly passed (not coerce to default)", async () => {

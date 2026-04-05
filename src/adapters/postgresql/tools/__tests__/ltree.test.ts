@@ -5,12 +5,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
-import { getLtreeTools } from "../ltree.js";
+import { getLtreeTools } from "../ltree/index.js";
 
 describe("Ltree Tools", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
@@ -49,6 +49,10 @@ describe("Ltree Tools", () => {
       // Mock column type check
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ udt_name: "ltree" }],
+      });
+      // Mock COUNT query for limit truncation
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ total: 2 }],
       });
       // Mock actual query
       mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -338,6 +342,11 @@ describe("Ltree Tools", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ udt_name: "ltree" }],
       });
+      // Mock COUNT query
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ total: 2 }],
+      });
+      // Mock actual query
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [
           { id: 1, path: "root.products.electronics", depth: 3 },
@@ -595,17 +604,19 @@ describe("Ltree Tools", () => {
         mockContext,
       )) as {
         success: boolean;
-        error?: string;
-        currentType?: string;
-        allowedTypes?: string[];
-        suggestion?: string;
+        error: string;
+        details?: {
+          currentType?: string;
+          allowedTypes?: string[];
+          suggestion?: string;
+        };
       };
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Only text-based columns");
-      expect(result.currentType).toBe("integer");
-      expect(result.allowedTypes).toContain("text");
-      expect(result.suggestion).toBeDefined();
+      expect(result.details?.currentType).toBe("integer");
+      expect(result.details?.allowedTypes).toContain("text");
+      expect(result.details?.suggestion).toBeDefined();
     });
   });
 
@@ -893,7 +904,7 @@ describe("Ltree Tools", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("dependent views");
-      expect(result.dependentViews).toContain("public.v_categories");
+      expect(result.details?.dependentViews).toContain("public.v_categories");
     });
 
     it("pg_ltree_create_index: should handle column not found but table exists", async () => {
@@ -1033,11 +1044,11 @@ describe("Ltree Tools", () => {
           offset: 5,
         },
         mockContext,
-      )) as { success: boolean; error: string; pathDepth: number };
+      )) as { success: boolean; error: string; code: string };
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Invalid offset");
-      expect(result.pathDepth).toBe(3);
+      expect(result.code).toBe("VALIDATION_ERROR");
     });
   });
 
@@ -1166,14 +1177,16 @@ describe("Ltree Tools", () => {
       )) as {
         success: boolean;
         error: string;
-        dependentViews: string[];
-        hint: string;
+        details?: {
+          dependentViews: string[];
+          hint: string;
+        };
       };
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("dependent views");
-      expect(result.dependentViews).toContain("public.my_view");
-      expect(result.hint).toContain("Drop the listed views");
+      expect(result.details?.dependentViews).toContain("public.my_view");
+      expect(result.details?.hint).toContain("Drop the listed views");
     });
 
     it("should format adapter errors during ALTER", async () => {

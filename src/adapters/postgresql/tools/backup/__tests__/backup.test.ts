@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getBackupTools } from "../index.js";
-import type { PostgresAdapter } from "../../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -23,8 +23,8 @@ describe("getBackupTools", () => {
     tools = getBackupTools(adapter);
   });
 
-  it("should return 9 backup tools", () => {
-    expect(tools).toHaveLength(9);
+  it("should return 12 backup tools", () => {
+    expect(tools).toHaveLength(12);
   });
 
   it("should have all expected tool names", () => {
@@ -38,6 +38,9 @@ describe("getBackupTools", () => {
     expect(toolNames).toContain("pg_backup_physical");
     expect(toolNames).toContain("pg_restore_validate");
     expect(toolNames).toContain("pg_backup_schedule_optimize");
+    expect(toolNames).toContain("pg_audit_list_backups");
+    expect(toolNames).toContain("pg_audit_restore_backup");
+    expect(toolNames).toContain("pg_audit_diff_backup");
   });
 
   it("should have group set to backup for all tools", () => {
@@ -128,6 +131,7 @@ describe("pg_dump_table", () => {
       type: "table",
       columns: [{ name: "id", type: "integer", nullable: false }],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1 }, { id: 2 }],
     });
@@ -312,6 +316,7 @@ describe("pg_dump_table", () => {
       type: "table",
       columns: [{ name: "id", type: "integer", nullable: false }],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [],
     });
@@ -342,6 +347,7 @@ describe("pg_dump_table", () => {
       type: "table",
       columns: [{ name: "id", type: "integer", nullable: false }],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     // Mock query result with undefined in rows array
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [undefined],
@@ -637,7 +643,7 @@ describe("pg_copy_export — text format edge cases", () => {
     )) as { data: string; rowCount: number };
 
     expect(result.data).toBe("");
-    expect(result.rowCount).toBe(0);
+    expect(result.rowCount).toBe(1);
   });
 
   it("should mark text format results as truncated when limit matches", async () => {
@@ -1150,6 +1156,7 @@ describe("pg_dump_table timestamp serialization", () => {
         { name: "created_at", type: "timestamp", nullable: true },
       ],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1, created_at: "2025-12-22T05:06:15.242Z" }],
     });
@@ -1182,6 +1189,7 @@ describe("pg_dump_table timestamp serialization", () => {
         { name: "created_at", type: "timestamp", nullable: true },
       ],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     const testDate = new Date("2025-12-22T10:30:00.000Z");
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1, created_at: testDate }],
@@ -1213,6 +1221,7 @@ describe("pg_dump_table timestamp serialization", () => {
         { name: "data", type: "jsonb", nullable: true },
       ],
     });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // ownedSeqsResult
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [{ id: 1, data: { key: "value" } }],
     });
@@ -1910,7 +1919,7 @@ describe("pg_dump_table - structured error handling", () => {
     );
     expect(result).toMatchObject({
       success: false,
-      error: expect.stringMatching(/not found.*pg_list_tables/i),
+      error: expect.stringMatching(/does not exist.*pg_list_tables/i),
     });
   });
 });

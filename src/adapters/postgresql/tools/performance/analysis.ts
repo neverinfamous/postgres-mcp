@@ -2,92 +2,28 @@
  * PostgreSQL Performance Tools - Analysis
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { toNum } from "../../../../utils/query-helpers.js";
 import {
   SeqScanTablesOutputSchema,
+  SeqScanTablesSchemaBase,
+  SeqScanTablesSchema,
   IndexRecommendationsOutputSchema,
-  QueryPlanCompareOutputSchema,
+  IndexRecommendationsInputSchemaBase,
+  IndexRecommendationsInputSchema,
 } from "../../schemas/index.js";
-
-// Helper to coerce string numbers to JavaScript numbers (PostgreSQL returns BIGINT as strings)
-const toNum = (val: unknown): number | null =>
-  val === null || val === undefined ? null : Number(val);
-
-/**
- * P154: Validate that a schema exists before executing performance queries.
- */
-async function validatePerformanceSchemaExists(
-  adapter: PostgresAdapter,
-  schema?: string,
-): Promise<string | null> {
-  if (!schema) return null;
-  const schemaResult = await adapter.executeQuery(
-    `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
-    [schema],
-  );
-  if (!schemaResult.rows || schemaResult.rows.length === 0) {
-    return `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`;
-  }
-  return null;
-}
-
-/**
- * P154: Validate that a table exists before executing performance queries.
- */
-async function validatePerformanceTableExists(
-  adapter: PostgresAdapter,
-  table?: string,
-  schema?: string,
-): Promise<string | null> {
-  if (!table && !schema) return null;
-
-  if (schema) {
-    const schemaError = await validatePerformanceSchemaExists(adapter, schema);
-    if (schemaError !== null) return schemaError;
-  }
-
-  if (table) {
-    const targetSchema = schema ?? "public";
-    const tableResult = await adapter.executeQuery(
-      `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
-      [targetSchema, table],
-    );
-    if (!tableResult.rows || tableResult.rows.length === 0) {
-      return `Table '${targetSchema}.${table}' not found. Use pg_list_tables to see available tables.`;
-    }
-  }
-
-  return null;
-}
+import { validatePerformanceTableExists } from "./helpers.js";
 
 export function createSeqScanTablesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const SeqScanTablesSchemaBase = z.object({
-    minScans: z
-      .any()
-      .optional()
-      .describe("Minimum seq scans to include (default: 10)"),
-    schema: z.string().optional().describe("Schema to filter"),
-    limit: z
-      .any()
-      .optional()
-      .describe("Max rows to return (default: 50, use 0 for all)"),
-  });
-
-  const SeqScanTablesSchema = z.preprocess(
-    (input) => input ?? {},
-    SeqScanTablesSchemaBase,
-  );
-
   return {
     name: "pg_seq_scan_tables",
     description:
@@ -100,22 +36,11 @@ export function createSeqScanTablesTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = SeqScanTablesSchema.parse(params);
-        const rawMinScans = Number(parsed.minScans);
-        const minScans =
-          parsed.minScans === undefined
-            ? 10
-            : isNaN(rawMinScans)
-              ? 10
-              : rawMinScans;
-        const rawLimit = Number(parsed.limit);
-        const limit =
-          parsed.limit === undefined
-            ? 50
-            : isNaN(rawLimit)
-              ? 50
-              : rawLimit === 0
-                ? null
-                : rawLimit;
+        const rawMinScans = parsed.minScans ?? 10;
+        const minScans = Math.max(0, rawMinScans);
+
+        const rawLimit = parsed.limit ?? 20;
+        const limit = rawLimit <= 0 ? 100 : Math.min(rawLimit, 100);
 
         let whereClause = `seq_scan > ${String(minScans)}`;
         const queryParams: string[] = [];
@@ -124,13 +49,13 @@ export function createSeqScanTablesTool(
           whereClause += ` AND schemaname = $${String(queryParams.length)}`;
         }
 
-        // P154: Validate schema existence when filtering by schema
-        const schemaError = await validatePerformanceSchemaExists(
-          adapter,
-          parsed.schema,
-        );
-        if (schemaError !== null) {
-          return { success: false, error: schemaError };
+        // P154: Validate schema existence when filtering by schema (throws ValidationError on failure)
+        if (parsed.schema !== undefined) {
+          await validatePerformanceTableExists(
+            adapter,
+            undefined,
+            parsed.schema,
+          );
         }
 
         const sql = `SELECT schemaname, relname as table_name,
@@ -156,6 +81,7 @@ export function createSeqScanTablesTool(
         );
 
         const response: Record<string, unknown> = {
+          success: true as const,
           tables,
           count: tables.length,
           minScans,
@@ -171,10 +97,9 @@ export function createSeqScanTablesTool(
         }
         return response;
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_seq_scan_tables" }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_seq_scan_tables",
+        });
       }
     },
   };
@@ -183,35 +108,6 @@ export function createSeqScanTablesTool(
 export function createIndexRecommendationsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const IndexRecommendationsSchemaBase = z.object({
-    table: z.string().optional().describe("Table name to analyze"),
-    sql: z
-      .string()
-      .optional()
-      .describe("SQL query to analyze for index recommendations"),
-    query: z
-      .string()
-      .optional()
-      .describe("Alias for sql - SQL query to analyze"),
-    params: z
-      .array(z.unknown())
-      .optional()
-      .describe("Query parameters for $1, $2, etc. placeholders"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  });
-
-  // Preprocess for query alias and handle undefined params
-  const IndexRecommendationsSchema = z.preprocess((input) => {
-    const normalized = (input ?? {}) as Record<string, unknown>;
-    const result = { ...normalized };
-    // Alias: query → sql
-    if (result["sql"] === undefined && result["query"] !== undefined) {
-      result["sql"] = result["query"];
-    }
-    return result;
-  }, IndexRecommendationsSchemaBase);
-
   // Helper to check if HypoPG extension is available
   const checkHypoPG = async (): Promise<boolean> => {
     try {
@@ -284,13 +180,13 @@ export function createIndexRecommendationsTool(
     description:
       "Suggest missing indexes based on table statistics or query analysis. When sql is provided and HypoPG is installed, creates hypothetical indexes to measure potential performance improvement.",
     group: "performance",
-    inputSchema: IndexRecommendationsSchemaBase, // Base schema for MCP visibility
+    inputSchema: IndexRecommendationsInputSchemaBase, // Base schema for MCP visibility
     outputSchema: IndexRecommendationsOutputSchema,
     annotations: readOnly("Index Recommendations"),
     icons: getToolIcons("performance", readOnly("Index Recommendations")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = IndexRecommendationsSchema.parse(params);
+        const parsed = IndexRecommendationsInputSchema.parse(params);
         const schemaName = parsed.schema ?? "public";
         const queryParams = parsed.params ?? [];
 
@@ -317,6 +213,7 @@ export function createIndexRecommendationsTool(
           // If no candidates or no baseline cost, return basic analysis
           if (candidates.length === 0 || baselineCost === null) {
             return {
+              success: true as const,
               queryAnalysis: true,
               hypopgAvailable,
               baselineCost,
@@ -400,6 +297,7 @@ export function createIndexRecommendationsTool(
             });
 
             return {
+              success: true as const,
               queryAnalysis: true,
               hypopgAvailable: true,
               baselineCost,
@@ -421,6 +319,7 @@ export function createIndexRecommendationsTool(
           }));
 
           return {
+            success: true as const,
             queryAnalysis: true,
             hypopgAvailable: false,
             baselineCost,
@@ -438,15 +337,12 @@ export function createIndexRecommendationsTool(
           tableClause = `AND relname = $${String(statsParams.length)}`;
         }
 
-        // P154: Validate table/schema existence in table-stats path
-        const validationError = await validatePerformanceTableExists(
+        // P154: Validate table/schema existence in table-stats path (throws ValidationError on failure)
+        await validatePerformanceTableExists(
           adapter,
           parsed.table,
           parsed.schema ?? "public",
         );
-        if (validationError !== null) {
-          return { success: false, error: validationError };
-        }
 
         const sql = `SELECT schemaname, relname as table_name,
                         seq_scan, idx_scan,
@@ -473,200 +369,15 @@ export function createIndexRecommendationsTool(
           }),
         );
         return {
+          success: true as const,
           queryAnalysis: false,
           recommendations,
           hint: "Based on table statistics. Provide a SQL query for query-specific recommendations.",
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_index_recommendations",
-          }),
-        };
-      }
-    },
-  };
-}
-
-/**
- * Recursively strip zero-value block stats, empty Triggers arrays,
- * and empty Planning objects from EXPLAIN plan output to reduce payload noise.
- */
-function stripZeroValuePlanFields(obj: unknown): unknown {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) {
-    const filtered = obj
-      .map(stripZeroValuePlanFields)
-      .filter((v) => v !== undefined);
-    return filtered.length > 0 ? filtered : undefined;
-  }
-  if (typeof obj === "object") {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-      // Strip zero-value block stats
-      if (typeof value === "number" && value === 0 && key.includes("Blocks"))
-        continue;
-      // Strip empty Triggers arrays
-      if (key === "Triggers" && Array.isArray(value) && value.length === 0)
-        continue;
-      // Strip empty Planning objects
-      if (
-        key === "Planning" &&
-        typeof value === "object" &&
-        value !== null &&
-        Object.keys(value).length === 0
-      )
-        continue;
-      const cleaned = stripZeroValuePlanFields(value);
-      if (cleaned !== undefined) {
-        result[key] = cleaned;
-      }
-    }
-    return Object.keys(result).length > 0 ? result : undefined;
-  }
-  return obj;
-}
-
-export function createQueryPlanCompareTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const QueryPlanCompareSchemaBase = z.object({
-    query1: z.string().optional().describe("First SQL query"),
-    query2: z.string().optional().describe("Second SQL query"),
-    params1: z
-      .array(z.unknown())
-      .optional()
-      .describe("Parameters for first query ($1, $2, etc.)"),
-    params2: z
-      .array(z.unknown())
-      .optional()
-      .describe("Parameters for second query ($1, $2, etc.)"),
-    analyze: z
-      .boolean()
-      .optional()
-      .describe("Run EXPLAIN ANALYZE (executes queries)"),
-  });
-
-  // Preprocess for sql1/sql2 → query1/query2 aliases
-  const QueryPlanCompareSchema = z.preprocess((input) => {
-    if (typeof input !== "object" || input === null) return input;
-    const obj = input as Record<string, unknown>;
-    const result = { ...obj };
-    // Alias: sql1 → query1, sql2 → query2
-    if (result["query1"] === undefined && result["sql1"] !== undefined) {
-      result["query1"] = result["sql1"];
-    }
-    if (result["query2"] === undefined && result["sql2"] !== undefined) {
-      result["query2"] = result["sql2"];
-    }
-    return result;
-  }, QueryPlanCompareSchemaBase);
-
-  return {
-    name: "pg_query_plan_compare",
-    description:
-      "Compare execution plans of two SQL queries to identify performance differences.",
-    group: "performance",
-    inputSchema: QueryPlanCompareSchemaBase, // Base schema for MCP visibility
-    outputSchema: QueryPlanCompareOutputSchema,
-    annotations: readOnly("Query Plan Compare"),
-    icons: getToolIcons("performance", readOnly("Query Plan Compare")),
-    handler: async (params: unknown, _context: RequestContext) => {
-      try {
-        const parsed = QueryPlanCompareSchema.parse(params);
-
-        // Validate required parameters
-        if (!parsed.query1 || !parsed.query2) {
-          return {
-            success: false as const,
-            error:
-              "Missing required parameters: both query1 and query2 are required",
-          };
-        }
-
-        const explainType =
-          parsed.analyze === true
-            ? "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)"
-            : "EXPLAIN (FORMAT JSON)";
-
-        const [result1, result2] = await Promise.all([
-          adapter.executeQuery(
-            `${explainType} ${parsed.query1}`,
-            parsed.params1 ?? [],
-          ),
-          adapter.executeQuery(
-            `${explainType} ${parsed.query2}`,
-            parsed.params2 ?? [],
-          ),
-        ]);
-
-        const row1 = result1.rows?.[0];
-        const row2 = result2.rows?.[0];
-        const queryPlan1 = row1?.["QUERY PLAN"] as unknown[] | undefined;
-        const queryPlan2 = row2?.["QUERY PLAN"] as unknown[] | undefined;
-        const plan1 = queryPlan1?.[0] as Record<string, unknown> | undefined;
-        const plan2 = queryPlan2?.[0] as Record<string, unknown> | undefined;
-
-        const comparison = {
-          query1: {
-            planningTime: plan1?.["Planning Time"],
-            executionTime: plan1?.["Execution Time"],
-            totalCost: (
-              plan1?.["Plan"] as Record<string, unknown> | undefined
-            )?.["Total Cost"],
-            sharedBuffersHit: plan1?.["Shared Hit Blocks"],
-            sharedBuffersRead: plan1?.["Shared Read Blocks"],
-          },
-          query2: {
-            planningTime: plan2?.["Planning Time"],
-            executionTime: plan2?.["Execution Time"],
-            totalCost: (
-              plan2?.["Plan"] as Record<string, unknown> | undefined
-            )?.["Total Cost"],
-            sharedBuffersHit: plan2?.["Shared Hit Blocks"],
-            sharedBuffersRead: plan2?.["Shared Read Blocks"],
-          },
-          analysis: {
-            costDifference:
-              plan1 && plan2
-                ? Number(
-                    (plan1["Plan"] as Record<string, unknown>)?.["Total Cost"],
-                  ) -
-                  Number(
-                    (plan2["Plan"] as Record<string, unknown>)?.["Total Cost"],
-                  )
-                : null,
-            recommendation: "",
-          },
-          fullPlans: {
-            plan1: stripZeroValuePlanFields(plan1),
-            plan2: stripZeroValuePlanFields(plan2),
-          },
-        };
-
-        if (comparison.analysis.costDifference !== null) {
-          if (comparison.analysis.costDifference > 0) {
-            comparison.analysis.recommendation =
-              "Query 2 has lower estimated cost";
-          } else if (comparison.analysis.costDifference < 0) {
-            comparison.analysis.recommendation =
-              "Query 1 has lower estimated cost";
-          } else {
-            comparison.analysis.recommendation =
-              "Both queries have similar estimated cost";
-          }
-        }
-
-        return comparison;
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_query_plan_compare",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_index_recommendations",
+        });
       }
     },
   };

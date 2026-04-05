@@ -5,7 +5,7 @@
  * 6 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
@@ -14,7 +14,8 @@ import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   CreateSchemaSchemaBase,
   CreateSchemaSchema,
@@ -24,6 +25,8 @@ import {
   CreateSequenceSchema,
   DropSequenceSchemaBase,
   DropSequenceSchema,
+  ListSequencesSchemaBase,
+  ListSequencesSchema,
   // Output schemas
   ListSchemasOutputSchema,
   CreateSchemaOutputSchema,
@@ -40,17 +43,23 @@ import {
 export function createListSchemasTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
+  const schema = z.object({}).strict();
   return {
     name: "pg_list_schemas",
     description: "List all schemas in the database.",
     group: "schema",
-    inputSchema: z.object({}),
+    inputSchema: schema,
     outputSchema: ListSchemasOutputSchema,
     annotations: readOnly("List Schemas"),
     icons: getToolIcons("schema", readOnly("List Schemas")),
-    handler: async (_params: unknown, _context: RequestContext) => {
-      const schemas = await adapter.listSchemas();
-      return { schemas, count: schemas.length };
+    handler: async (params: unknown, _context: RequestContext) => {
+      try {
+        schema.parse(params ?? {});
+        const schemas = await adapter.listSchemas();
+        return { schemas, count: schemas.length };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, { tool: "pg_list_schemas" });
+      }
     },
   };
 }
@@ -80,13 +89,13 @@ export function createCreateSchemaTool(
         const name = rawName ?? "";
 
         // Check if schema already exists when ifNotExists is true
-        let alreadyExisted: boolean | undefined;
+        let alreadyExists: boolean | undefined;
         if (ifNotExists === true) {
           const existsResult = await adapter.executeQuery(
             `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
             [name],
           );
-          alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
+          alreadyExists = (existsResult.rows?.length ?? 0) > 0;
         }
 
         const ifNotExistsClause = ifNotExists ? "IF NOT EXISTS " : "";
@@ -99,29 +108,20 @@ export function createCreateSchemaTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
-              tool: "pg_create_schema",
-              schema: name,
-              objectType: "schema",
-            }),
-          };
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_create_schema",
+            schema: name,
+            objectType: "schema",
+          });
         }
 
         const result: Record<string, unknown> = { success: true, schema: name };
-        if (alreadyExisted !== undefined) {
-          result["alreadyExisted"] = alreadyExisted;
+        if (alreadyExists !== undefined) {
+          result["alreadyExists"] = alreadyExists;
         }
         return result;
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_create_schema" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_create_schema" });
       }
     },
   };
@@ -164,13 +164,17 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
-              tool: "pg_drop_schema",
-              schema: name,
-            }),
-          };
+          const msg = error instanceof Error ? error.message : String(error);
+          if (msg.includes("because other objects depend on it")) {
+            throw new ValidationError(
+              `Cannot drop schema '${name}' because other objects depend on it. Use cascade: true to drop it and all its objects.`,
+              { schema: name },
+            );
+          }
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_drop_schema",
+            schema: name,
+          });
         }
         return {
           success: true,
@@ -181,13 +185,7 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
             : `Schema '${name}' did not exist (ifExists: true)`,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_drop_schema" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_drop_schema" });
       }
     },
   };
@@ -204,109 +202,103 @@ export function createListSequencesTool(
     name: "pg_list_sequences",
     description: "List all sequences in the database.",
     group: "schema",
-    inputSchema: z
-      .object({
-        schema: z.string().optional(),
-        limit: z
-          .any()
-          .optional()
-          .describe(
-            "Maximum number of sequences to return (default: 50). Use 0 for all.",
-          ),
-      })
-      .default({}),
+    inputSchema: ListSequencesSchemaBase,
     outputSchema: ListSequencesOutputSchema,
     annotations: readOnly("List Sequences"),
     icons: getToolIcons("schema", readOnly("List Sequences")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const parsed = (params ?? {}) as {
-        schema?: string;
-        limit?: unknown;
-      };
-      const queryParams: unknown[] = [];
+      try {
+        const parsed = ListSequencesSchema.parse(params ?? {});
+        const queryParams: unknown[] = [];
 
-      // Validate schema existence when filtering by schema
-      if (parsed.schema) {
-        const schemaCheck = await adapter.executeQuery(
-          `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
-          [parsed.schema],
-        );
-        if ((schemaCheck.rows?.length ?? 0) === 0) {
-          return {
-            success: false,
-            error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-          };
+        // Validate schema existence when filtering by schema
+        if (parsed.schema) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
+            [parsed.schema],
+          );
+          if ((schemaCheck.rows?.length ?? 0) === 0) {
+            return {
+              success: false,
+              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+              code: "VALIDATION_ERROR",
+              category: "validation",
+              recoverable: false,
+            };
+          }
         }
-      }
 
-      const schemaClause = parsed.schema
-        ? (queryParams.push(parsed.schema),
-          `AND n.nspname = $${String(queryParams.length)}`)
-        : "";
-
-      // Default limit: 50, 0 = no limit (safe coercion)
-      const rawLimit = Number(parsed.limit);
-      const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
-      const limitClause = limitVal > 0 ? `LIMIT ${String(limitVal + 1)}` : "";
-
-      // Use subquery for owned_by to avoid duplicate rows from JOINs
-      const sql = `SELECT n.nspname as schema, c.relname as name,
-                        (SELECT tc.relname || '.' || a.attname
-                         FROM pg_depend d
-                         JOIN pg_class tc ON tc.oid = d.refobjid
-                         JOIN pg_attribute a ON a.attrelid = tc.oid AND a.attnum = d.refobjsubid
-                         WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'a'
-                         LIMIT 1) as owned_by
-                        FROM pg_class c
-                        JOIN pg_namespace n ON n.oid = c.relnamespace
-                        WHERE c.relkind = 'S'
-                        AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                        ${schemaClause}
-                        ORDER BY n.nspname, c.relname
-                        ${limitClause}`;
-
-      const result =
-        queryParams.length > 0
-          ? await adapter.executeQuery(sql, queryParams)
-          : await adapter.executeQuery(sql);
-      let sequences = result.rows ?? [];
-
-      // Check if there are more results than the limit
-      const hasMore = limitVal > 0 && sequences.length > limitVal;
-      if (hasMore) {
-        sequences = sequences.slice(0, limitVal);
-      }
-
-      const response: Record<string, unknown> = {
-        sequences,
-        count: sequences.length,
-      };
-
-      // Always include truncated field for consistent response structure
-      response["truncated"] = hasMore;
-      if (hasMore) {
-        // Get total count
-        const countParams: unknown[] = [];
-        const countSchemaClause = parsed.schema
-          ? (countParams.push(parsed.schema),
-            `AND n.nspname = $${String(countParams.length)}`)
+        const schemaClause = parsed.schema
+          ? (queryParams.push(parsed.schema),
+            `AND n.nspname = $${String(queryParams.length)}`)
           : "";
-        const countSql = `SELECT COUNT(*)::int as total FROM pg_class c
+
+        // Default limit: 50, 0 = no limit (safe coercion)
+        const rawLimit = Number(parsed.limit);
+        const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
+        const limitClause = limitVal > 0 ? `LIMIT ${String(limitVal + 1)}` : "";
+
+        // Use subquery for owned_by to avoid duplicate rows from JOINs
+        const sql = `SELECT n.nspname as schema, c.relname as name,
+                          (SELECT tc.relname || '.' || a.attname
+                           FROM pg_depend d
+                           JOIN pg_class tc ON tc.oid = d.refobjid
+                           JOIN pg_attribute a ON a.attrelid = tc.oid AND a.attnum = d.refobjsubid
+                           WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'a'
+                           LIMIT 1) as owned_by
+                          FROM pg_class c
                           JOIN pg_namespace n ON n.oid = c.relnamespace
                           WHERE c.relkind = 'S'
                           AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                          ${countSchemaClause}`;
-        const countResult =
-          countParams.length > 0
-            ? await adapter.executeQuery(countSql, countParams)
-            : await adapter.executeQuery(countSql);
-        response["totalCount"] =
-          countResult.rows?.[0]?.["total"] ?? sequences.length;
-        response["note"] =
-          `Results limited to ${String(limitVal)}. Use 'limit: 0' for all sequences.`;
-      }
+                          ${schemaClause}
+                          ORDER BY n.nspname, c.relname
+                          ${limitClause}`;
 
-      return response;
+        const result =
+          queryParams.length > 0
+            ? await adapter.executeQuery(sql, queryParams)
+            : await adapter.executeQuery(sql);
+        let sequences = result.rows ?? [];
+
+        // Check if there are more results than the limit
+        const hasMore = limitVal > 0 && sequences.length > limitVal;
+        if (hasMore) {
+          sequences = sequences.slice(0, limitVal);
+        }
+
+        const response: Record<string, unknown> = {
+          sequences,
+          count: sequences.length,
+        };
+
+        // Always include truncated field for consistent response structure
+        response["truncated"] = hasMore;
+        if (hasMore) {
+          // Get total count
+          const countParams: unknown[] = [];
+          const countSchemaClause = parsed.schema
+            ? (countParams.push(parsed.schema),
+              `AND n.nspname = $${String(countParams.length)}`)
+            : "";
+          const countSql = `SELECT COUNT(*)::int as total FROM pg_class c
+                            JOIN pg_namespace n ON n.oid = c.relnamespace
+                            WHERE c.relkind = 'S'
+                            AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                            ${countSchemaClause}`;
+          const countResult =
+            countParams.length > 0
+              ? await adapter.executeQuery(countSql, countParams)
+              : await adapter.executeQuery(countSql);
+          response["totalCount"] =
+            countResult.rows?.[0]?.["total"] ?? sequences.length;
+          response["note"] =
+            `Results limited to ${String(limitVal)}. Use 'limit: 0' for all sequences.`;
+        }
+
+        return response;
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, { tool: "pg_list_sequences" });
+      }
     },
   };
 }
@@ -345,13 +337,13 @@ export function createCreateSequenceTool(
         const schemaName = schema ?? "public";
 
         // Check if sequence already exists when ifNotExists is true
-        let alreadyExisted: boolean | undefined;
+        let alreadyExists: boolean | undefined;
         if (ifNotExists === true) {
           const existsResult = await adapter.executeQuery(
             `SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'S' AND n.nspname = $1 AND c.relname = $2`,
             [schemaName, name],
           );
-          alreadyExisted = (existsResult.rows?.length ?? 0) > 0;
+          alreadyExists = (existsResult.rows?.length ?? 0) > 0;
         }
 
         const schemaPrefix = schema ? `${sanitizeIdentifier(schema)}.` : "";
@@ -386,14 +378,11 @@ export function createCreateSequenceTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
-              tool: "pg_create_sequence",
-              objectType: "sequence",
-              ...(schema !== undefined && { schema }),
-            }),
-          };
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_create_sequence",
+            objectType: "sequence",
+            ...(schema !== undefined && { schema }),
+          });
         }
 
         const result: Record<string, unknown> = {
@@ -401,18 +390,14 @@ export function createCreateSequenceTool(
           sequence: `${schemaName}.${name}`,
           ifNotExists: ifNotExists ?? false,
         };
-        if (alreadyExisted !== undefined) {
-          result["alreadyExisted"] = alreadyExisted;
+        if (alreadyExists !== undefined) {
+          result["alreadyExists"] = alreadyExists;
         }
         return result;
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_create_sequence" }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_create_sequence",
+        });
       }
     },
   };
@@ -461,23 +446,14 @@ export function createDropSequenceTool(
         try {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
-              tool: "pg_drop_sequence",
-              ...(schema !== undefined && { schema }),
-            }),
-          };
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_drop_sequence",
+            ...(schema !== undefined && { schema }),
+          });
         }
         return { success: true, sequence: `${schemaName}.${name}`, existed };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error:
-            error instanceof z.ZodError
-              ? error.issues.map((i) => i.message).join("; ")
-              : formatPostgresError(error, { tool: "pg_drop_sequence" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_drop_sequence" });
       }
     },
   };

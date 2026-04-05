@@ -12,13 +12,13 @@ RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/m
 # Upgrade npm globally to get fixed versions of bundled packages
 RUN npm install -g npm@latest --force && npm cache clean --force
 
-# Fix GHSA-73rr-hh4g-fpgx: Manually update npm's bundled diff@8.0.2 to 8.0.3
+# Fix GHSA-73rr-hh4g-fpgx: Manually update npm's bundled diff to 8.0.4
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack diff@8.0.3 && \
+    npm pack diff@8.0.4 && \
     rm -rf node_modules/diff && \
-    tar -xzf diff-8.0.3.tgz && \
+    tar -xzf diff-8.0.4.tgz && \
     mv package node_modules/diff && \
-    rm diff-8.0.3.tgz
+    rm diff-8.0.4.tgz
 
 # Fix CVE-2026-25547: Manually update npm's bundled @isaacs/brace-expansion@5.0.0 to 5.0.1
 RUN cd /usr/local/lib/node_modules/npm && \
@@ -29,13 +29,21 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.11
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.13
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.11 && \
+    npm pack tar@7.5.13 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.11.tgz && \
+    tar -xzf tar-7.5.13.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.11.tgz
+    rm tar-7.5.13.tgz
+
+# Fix CVE-2026-27904, CVE-2026-27903: Manually update npm's bundled minimatch to 10.2.5
+RUN cd /usr/local/lib/node_modules/npm && \
+    npm pack minimatch@10.2.5 && \
+    rm -rf node_modules/minimatch && \
+    tar -xzf minimatch-10.2.5.tgz && \
+    mv package node_modules/minimatch && \
+    rm minimatch-10.2.5.tgz
 
 # Copy package files first for better layer caching
 COPY package*.json ./
@@ -64,13 +72,13 @@ RUN apk add --no-cache ca-certificates && \
     apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main 'zlib>=1.3.2-r0' && \
     npm install -g npm@latest --force && npm cache clean --force
 
-# Fix GHSA-73rr-hh4g-fpgx: Manually update npm's bundled diff@8.0.2 to 8.0.3
+# Fix GHSA-73rr-hh4g-fpgx: Manually update npm's bundled diff to 8.0.4
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack diff@8.0.3 && \
+    npm pack diff@8.0.4 && \
     rm -rf node_modules/diff && \
-    tar -xzf diff-8.0.3.tgz && \
+    tar -xzf diff-8.0.4.tgz && \
     mv package node_modules/diff && \
-    rm diff-8.0.3.tgz
+    rm diff-8.0.4.tgz
 
 # Fix CVE-2026-25547: Manually update npm's bundled @isaacs/brace-expansion@5.0.0 to 5.0.1
 RUN cd /usr/local/lib/node_modules/npm && \
@@ -81,21 +89,21 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package/* node_modules/@isaacs/brace-expansion/ && \
     rm -rf package isaacs-brace-expansion-5.0.1.tgz
 
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.11
+# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.13
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.11 && \
+    npm pack tar@7.5.13 && \
     rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.11.tgz && \
+    tar -xzf tar-7.5.13.tgz && \
     mv package node_modules/tar && \
-    rm tar-7.5.11.tgz
+    rm tar-7.5.13.tgz
 
-# Fix CVE-2026-27904, CVE-2026-27903: Manually update npm's bundled minimatch to 10.2.4
+# Fix CVE-2026-27904, CVE-2026-27903: Manually update npm's bundled minimatch to 10.2.5
 RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack minimatch@10.2.4 && \
+    npm pack minimatch@10.2.5 && \
     rm -rf node_modules/minimatch && \
-    tar -xzf minimatch-10.2.4.tgz && \
+    tar -xzf minimatch-10.2.5.tgz && \
     mv package node_modules/minimatch && \
-    rm minimatch-10.2.4.tgz
+    rm minimatch-10.2.5.tgz
 
 # Copy built artifacts and production dependencies
 COPY --from=builder /app/dist ./dist
@@ -133,7 +141,7 @@ ENTRYPOINT ["node", "dist/cli.js"]
 
 # Labels for Docker Hub
 LABEL maintainer="Adamic.tech"
-LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 232 tools, 20 resources, 19 prompts"
-LABEL version="2.3.0"
+LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 248 tools, 23 resources, 20 prompts"
+LABEL version="3.0.0"
 LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgres-mcp"
 LABEL io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp"

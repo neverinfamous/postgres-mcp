@@ -4,14 +4,10 @@
  * Provides pg_partman partition set status, configuration, and health.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type { ResourceDefinition } from "../../../types/index.js";
-import { LOW_PRIORITY } from "../../../utils/resourceAnnotations.js";
-
-/** Safely convert unknown value to string */
-function toStr(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
+import { LOW_PRIORITY } from "../../../utils/resource-annotations.js";
+import { toStr } from "../../../utils/query-helpers.js";
 
 interface PartitionConfig {
   parent_table: string;

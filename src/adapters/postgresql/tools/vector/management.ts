@@ -4,15 +4,16 @@
  * Management tools: indexOptimize, dimensionReduce, embed.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import type { PostgresAdapter } from "../../postgres-adapter.js";
+import {
+  ValidationError,
+  type ToolDefinition,
+  type RequestContext,
 } from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   sanitizeIdentifier,
   sanitizeTableName,
@@ -23,6 +24,7 @@ import {
   VectorDimensionReduceOutputSchema,
   VectorEmbedOutputSchema,
 } from "../../schemas/index.js";
+import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export function createVectorIndexOptimizeTool(
   adapter: PostgresAdapter,
@@ -54,6 +56,26 @@ export function createVectorIndexOptimizeTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = IndexOptimizeSchema.parse(params ?? {});
+
+        if (parsed.table === "") {
+          return {
+            success: false,
+            error: "table (or tableName) parameter is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            requiredParams: ["table", "column"],
+          };
+        }
+        if (parsed.column === "") {
+          return {
+            success: false,
+            error: "column (or col) parameter is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            requiredParams: ["table", "column"],
+          };
+        }
+
         const tableName = sanitizeTableName(parsed.table, parsed.schema);
         const columnName = sanitizeIdentifier(parsed.column);
         const schemaName = parsed.schema ?? "public";
@@ -160,6 +182,7 @@ export function createVectorIndexOptimizeTool(
         }
 
         return {
+          success: true,
           table: parsed.table,
           column: parsed.column,
           dimensions,
@@ -169,12 +192,9 @@ export function createVectorIndexOptimizeTool(
           recommendations,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_vector_index_optimize",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_vector_index_optimize",
+        });
       }
     },
   };
@@ -202,14 +222,19 @@ export function createVectorDimensionReduceTool(
       .string()
       .optional()
       .describe("ID column to include in results (default: id)"),
-    limit: z.any().optional().describe("Max rows to process (default: 100)"),
+    limit: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Max rows to process (default: 20, max: 100)"),
     // Common parameters - targetDimensions is required
     targetDimensions: z
-      .any()
-      .optional()
+      .preprocess(coerceNumber, z.number().optional())
       .describe("Target number of dimensions"),
-    dimensions: z.any().optional().describe("Alias for targetDimensions"),
-    seed: z.any().optional().describe("Random seed for reproducibility"),
+    dimensions: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Alias for targetDimensions"),
+    seed: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Random seed for reproducibility"),
     summarize: z
       .boolean()
       .optional()
@@ -281,14 +306,18 @@ export function createVectorDimensionReduceTool(
         // Refine guarantees targetDimensions is defined, but add explicit check for type narrowing
         const targetDim = parsed.targetDimensions;
         if (targetDim === undefined) {
-          throw new Error("targetDimensions (or dimensions alias) is required");
+          throw new ValidationError(
+            "targetDimensions (or dimensions alias) is required",
+          );
         }
-        if (isNaN(targetDim)) {
+        if (isNaN(targetDim) || targetDim <= 0) {
           return {
             success: false,
-            error: `Validation error: targetDimensions must be a valid number, received "${String(parsed.targetDimensions)}"`,
+            error: `Validation error: targetDimensions must be a positive number, received "${String(parsed.targetDimensions)}"`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion:
-              "Provide a numeric value for targetDimensions (e.g., 128, 256)",
+              "Provide a positive numeric value for targetDimensions (e.g., 128, 256)",
           };
         }
         const seed = parsed.seed ?? 42;
@@ -308,6 +337,7 @@ export function createVectorDimensionReduceTool(
           }
 
           return {
+            success: true,
             originalDimensions: originalDim,
             targetDimensions: targetDim,
             reduced: reduceVector(parsed.vector, targetDim, seed),
@@ -330,7 +360,8 @@ export function createVectorDimensionReduceTool(
           }
 
           const idCol = parsed.idColumn ?? "id";
-          const limitVal = parsed.limit ?? 100;
+          let limitVal = parsed.limit ?? 20;
+          if (limitVal > 100) limitVal = 100;
 
           // Fetch vectors from table
           const sql = `
@@ -343,9 +374,9 @@ export function createVectorDimensionReduceTool(
 
           if ((result.rows?.length ?? 0) === 0) {
             return {
+              success: false,
               error: "No vectors found in table",
-              table: parsed.table,
-              column: parsed.column,
+              suggestion: "Ensure the table is populated",
             };
           }
 
@@ -392,6 +423,7 @@ export function createVectorDimensionReduceTool(
           }
 
           const response: Record<string, unknown> = {
+            success: true,
             mode: "table",
             table: parsed.table,
             column: parsed.column,
@@ -414,21 +446,17 @@ export function createVectorDimensionReduceTool(
         }
 
         return {
+          success: false,
           error:
             "Either vector (for direct mode) or table+column (for table mode) must be provided",
-          usage: {
-            directMode: "{ vector: [0.1, 0.2, ...], targetDimensions: 50 }",
-            tableMode:
-              '{ table: "embeddings", column: "vector", targetDimensions: 50, limit: 100 }',
-          },
+          code: "VALIDATION_ERROR",
+          category: "validation",
+          suggestion: "Provide vector: [...] OR table: '...' and column: '...'",
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_vector_dimension_reduce",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_vector_dimension_reduce",
+        });
       }
     },
   };
@@ -438,7 +466,9 @@ export function createVectorEmbedTool(): ToolDefinition {
   // Base schema for MCP visibility — text optional to prevent MCP -32602 rejection
   const EmbedSchemaBase = z.object({
     text: z.string().optional().describe("Text to embed"),
-    dimensions: z.any().optional().describe("Vector dimensions (default: 384)"),
+    dimensions: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Vector dimensions (default: 384)"),
     summarize: z
       .boolean()
       .optional()
@@ -464,19 +494,22 @@ export function createVectorEmbedTool(): ToolDefinition {
             success: false,
             error:
               "Validation error: text parameter is required and must be non-empty",
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion: "Provide text content to generate an embedding",
           });
         }
 
-        const dims =
-          parsed.dimensions != null ? Number(parsed.dimensions) : 384;
+        const dims = parsed.dimensions ?? 384;
 
-        if (isNaN(dims)) {
+        if (isNaN(dims) || dims <= 0) {
           return Promise.resolve({
             success: false,
-            error: `Validation error: dimensions must be a valid number, received "${String(parsed.dimensions)}"`,
+            error: `Validation error: dimensions must be a positive number, received "${String(parsed.dimensions)}"`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion:
-              "Provide a numeric value for dimensions (e.g., 384, 768, 1536)",
+              "Provide a positive numeric value for dimensions (e.g., 384, 768, 1536)",
           });
         }
         const shouldSummarize = parsed.summarize ?? true;
@@ -506,6 +539,7 @@ export function createVectorEmbedTool(): ToolDefinition {
             };
 
         return Promise.resolve({
+          success: true,
           embedding: embeddingOutput,
           dimensions: dims,
           textLength: parsed.text.length,
@@ -513,10 +547,9 @@ export function createVectorEmbedTool(): ToolDefinition {
             "This is a demo embedding using hash functions. For production, use OpenAI, Cohere, or other embedding APIs.",
         });
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_vector_embed" }),
-        });
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_vector_embed" }),
+        );
       }
     },
   };

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 
 test.describe("HTTP Transport Security & Limits", () => {
   test("should return 404 Not Found for unknown endpoints", async ({
@@ -106,5 +106,26 @@ test.describe("HTTP Transport Security & Limits", () => {
 
     const headers = response.headers();
     expect(headers["referrer-policy"]).toBe("no-referrer");
+  });
+
+  test("should not set HSTS header by default (opt-in)", async ({
+    request,
+  }) => {
+    const response = await request.get("/health");
+    expect(response.status()).toBe(200);
+
+    const headers = response.headers();
+    expect(headers["strict-transport-security"]).toBeUndefined();
+  });
+
+  test("should always serve /health even under rate limiting", async ({
+    request,
+  }) => {
+    // Health check bypasses rate limiting — it should always return 200
+    // regardless of how many requests have been made
+    for (let i = 0; i < 5; i++) {
+      const response = await request.get("/health");
+      expect(response.status()).toBe(200);
+    }
   });
 });

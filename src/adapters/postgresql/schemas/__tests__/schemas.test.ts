@@ -12,7 +12,7 @@ import {
   FiniteNumberArray,
   VectorSearchSchema,
   VectorCreateIndexSchema,
-} from "../vector.js";
+} from "../vector/index.js";
 
 // PostGIS schemas
 import {
@@ -167,13 +167,12 @@ describe("VectorCreateIndexSchema", () => {
     expect(result.type).toBe("hnsw");
   });
 
-  it("should throw when type is missing", () => {
-    expect(() =>
-      VectorCreateIndexSchema.parse({
-        table: "embeddings",
-        column: "vector",
-      }),
-    ).toThrow("type (or method alias) is required");
+  it("should allow missing type (validation moved to handler)", () => {
+    const result = VectorCreateIndexSchema.parse({
+      table: "embeddings",
+      column: "vector",
+    });
+    expect(result.type).toBeUndefined();
   });
 
   it("should accept all HNSW parameters", () => {
@@ -954,7 +953,7 @@ describe("normalizePathToString", () => {
 import {
   CreatePartitionSchema,
   CreatePartitionedTableSchema,
-} from "../partitioning.js";
+} from "../partitioning/index.js";
 
 describe("CreatePartitionSchema", () => {
   it("should resolve parentTable alias to parent", () => {
@@ -1653,10 +1652,6 @@ describe("RegexpMatchSchema", () => {
 
 import {
   preprocessJsonbParams,
-  normalizePathToArray,
-  normalizePathToString,
-  normalizePathForInsert,
-  parseJsonbValue,
   JsonbExtractSchema,
   JsonbSetSchema,
   JsonbContainsSchema,
@@ -2102,32 +2097,32 @@ describe("PgcryptoEncryptSchema", () => {
 });
 
 describe("PgcryptoDecryptSchema", () => {
-  it("should resolve data alias to encryptedData", () => {
+  it("should resolve encryptedData alias to data", () => {
     const result = PgcryptoDecryptSchema.parse({
-      data: "encrypted-data",
+      encryptedData: "encrypted-data",
       password: "my-pass",
     });
-    expect(result.encryptedData).toBe("encrypted-data");
+    expect(result.data).toBe("encrypted-data");
   });
 
   it("should resolve key alias to password", () => {
     const result = PgcryptoDecryptSchema.parse({
-      encryptedData: "encrypted-data",
+      data: "encrypted-data",
       key: "my-pass",
     });
     expect(result.password).toBe("my-pass");
   });
 
-  it("should reject when no encryptedData/data provided", () => {
+  it("should reject when no data/encryptedData provided", () => {
     expect(() => PgcryptoDecryptSchema.parse({ password: "my-pass" })).toThrow(
-      "encryptedData (or data alias) is required",
+      "data (or encryptedData alias) is required",
     );
   });
 
   it("should reject when no password/key provided", () => {
-    expect(() =>
-      PgcryptoDecryptSchema.parse({ encryptedData: "data" }),
-    ).toThrow("password (or key alias) is required");
+    expect(() => PgcryptoDecryptSchema.parse({ data: "data" })).toThrow(
+      "password (or key alias) is required",
+    );
   });
 });
 
@@ -2213,13 +2208,11 @@ describe("CopyExportSchema", () => {
 // =============================================================================
 
 import {
-  CreatePartitionSchema,
   AttachPartitionSchema,
   DetachPartitionSchema,
   ListPartitionsSchema,
   PartitionInfoSchema,
-  CreatePartitionedTableSchema,
-} from "../partitioning.js";
+} from "../partitioning/index.js";
 
 describe("CreatePartitionSchema (preprocessPartitionParams)", () => {
   it("should resolve parentTable alias to parent", () => {
@@ -2526,7 +2519,7 @@ import {
   PartmanRunMaintenanceSchema,
   PartmanUndoPartitionSchema,
   PartmanRetentionSchema,
-} from "../partman.js";
+} from "../partman/index.js";
 
 describe("PartmanCreateParentSchema (preprocessPartmanParams)", () => {
   it("should resolve table alias to parentTable with auto-prefix", () => {
@@ -2659,11 +2652,7 @@ describe("PartmanRunMaintenanceSchema", () => {
 // Vector Schema Tests
 // =============================================================================
 
-import {
-  VectorSearchSchema,
-  VectorCreateIndexSchema,
-  FiniteNumberArray,
-} from "../vector.js";
+// removed duplicate import block from ../vector/index.js
 
 describe("VectorSearchSchema", () => {
   it("should resolve tableName alias to table", () => {
@@ -2725,13 +2714,12 @@ describe("VectorCreateIndexSchema", () => {
     expect(result.column).toBe("vector");
   });
 
-  it("should throw when neither type nor method provided", () => {
-    expect(() =>
-      VectorCreateIndexSchema.parse({
-        table: "embeddings",
-        column: "vector",
-      }),
-    ).toThrow("type (or method alias) is required");
+  it("should allow neither type nor method provided (validation moved to handler)", () => {
+    const result = VectorCreateIndexSchema.parse({
+      table: "embeddings",
+      column: "vector",
+    });
+    expect(result.type).toBeUndefined();
   });
 });
 
@@ -2759,13 +2747,6 @@ describe("FiniteNumberArray", () => {
 // =============================================================================
 
 import {
-  preprocessPostgisParams,
-  preprocessPoint,
-  convertToMeters,
-  GeocodeSchema,
-  GeometryColumnSchema,
-  BufferSchema,
-  GeoTransformSchema,
   GeometryTransformSchema,
   GeometryBufferSchema,
 } from "../postgis/index.js";
@@ -3215,7 +3196,7 @@ describe("CronUnscheduleSchema", () => {
 
   it("should reject when neither jobId nor jobName provided", () => {
     expect(() => CronUnscheduleSchema.parse({})).toThrow(
-      "Either jobId or jobName must be provided",
+      "Either jobId or jobName (or name alias) must be provided",
     );
   });
 
@@ -3238,12 +3219,7 @@ describe("CronCleanupHistorySchema", () => {
 
 import {
   StatsDescriptiveSchema,
-  StatsPercentilesSchema,
-  StatsCorrelationSchema,
-  StatsRegressionSchema,
-  StatsTimeSeriesSchema,
   StatsDistributionSchema,
-  StatsHypothesisSchema,
   StatsSamplingSchema,
 } from "../stats/index.js";
 
@@ -3746,12 +3722,7 @@ describe("StatsSamplingSchema (preprocessSamplingParams)", () => {
 // Schema Management Tests
 // =============================================================================
 
-import {
-  CreateSequenceSchema,
-  CreateViewSchema,
-  DropSequenceSchema,
-  DropViewSchema,
-} from "../schema-mgmt.js";
+// removed duplicate import block from ../schema-mgmt.js
 
 describe("CreateSequenceSchema", () => {
   it("should resolve sequenceName alias to name", () => {
@@ -3872,15 +3843,7 @@ describe("DropViewSchema", () => {
 // Stats Schema Tests
 // =============================================================================
 
-import {
-  StatsRegressionSchema,
-  StatsTimeSeriesSchema,
-  StatsHypothesisSchema,
-  StatsDistributionSchema,
-  StatsSamplingSchema,
-  StatsPercentilesSchema,
-  StatsCorrelationSchema,
-} from "../stats/index.js";
+// removed duplicate import block from ../stats/index.js
 
 describe("StatsRegressionSchema", () => {
   it("should resolve tableName alias", () => {
@@ -4200,7 +4163,7 @@ describe("StatsCorrelationSchema", () => {
 import {
   ListObjectsSchema,
   ObjectDetailsSchema,
-} from "../../tools/core/schemas.js";
+} from "../../tools/core/schemas/index.js";
 
 describe("ListObjectsSchema preprocess", () => {
   it("should convert type array alias to types", () => {

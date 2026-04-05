@@ -19,6 +19,7 @@ import {
   type SandboxResult,
   type ExecutionMetrics,
 } from "./types.js";
+import { transformAutoReturn } from "./auto-return.js";
 
 /**
  * Maximum number of compiled vm.Script instances to cache per sandbox.
@@ -149,7 +150,7 @@ export class CodeModeSandbox {
       this.context["pg"] = apiBindings;
 
       // Wrap code in async IIFE to support await
-      const wrappedCode = IIFE_PREFIX + code + IIFE_SUFFIX;
+      const wrappedCode = IIFE_PREFIX + transformAutoReturn(code) + IIFE_SUFFIX;
 
       // Compile (or retrieve from cache) and run with timeout
       const script = this.getOrCompileScript(wrappedCode);
@@ -167,7 +168,7 @@ export class CodeModeSandbox {
         result,
         metrics: this.calculateMetrics(startTime, endTime, startRss, endRss),
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const endTime = performance.now();
       const endRss = process.memoryUsage.rss();
 

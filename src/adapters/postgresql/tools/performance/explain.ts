@@ -6,14 +6,15 @@
  * (with preprocess) is used in the handler for alias support.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   ExplainSchema,
   ExplainSchemaBase,
@@ -37,7 +38,9 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
           params: queryParams,
         } = ExplainSchema.parse(params);
         if (!sql) {
-          throw new Error("Missing required parameter: sql (or query alias)");
+          throw new ValidationError(
+            "Missing required parameter: sql (or query alias)",
+          );
         }
         const fmt = format ?? "text";
         const explainSql = `EXPLAIN (FORMAT ${fmt.toUpperCase()}) ${sql}`;
@@ -47,16 +50,17 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
         );
 
         if (fmt === "json") {
-          return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+          return {
+            success: true as const,
+            plan: result.rows?.[0]?.["QUERY PLAN"],
+          };
         }
         return {
+          success: true as const,
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_explain" }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, { tool: "pg_explain" });
       }
     },
   };
@@ -81,7 +85,9 @@ export function createExplainAnalyzeTool(
           params: queryParams,
         } = ExplainSchema.parse(params);
         if (!sql) {
-          throw new Error("Missing required parameter: sql (or query alias)");
+          throw new ValidationError(
+            "Missing required parameter: sql (or query alias)",
+          );
         }
         const fmt = format ?? "text";
         const explainSql = `EXPLAIN (ANALYZE, FORMAT ${fmt.toUpperCase()}) ${sql}`;
@@ -91,16 +97,19 @@ export function createExplainAnalyzeTool(
         );
 
         if (fmt === "json") {
-          return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+          return {
+            success: true as const,
+            plan: result.rows?.[0]?.["QUERY PLAN"],
+          };
         }
         return {
+          success: true as const,
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_explain_analyze" }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_explain_analyze",
+        });
       }
     },
   };
@@ -125,9 +134,11 @@ export function createExplainBuffersTool(
           params: queryParams,
         } = ExplainSchema.parse(params);
         if (!sql) {
-          throw new Error("Missing required parameter: sql (or query alias)");
+          throw new ValidationError(
+            "Missing required parameter: sql (or query alias)",
+          );
         }
-        const fmt = format ?? "json";
+        const fmt = format ?? "text";
         const explainSql = `EXPLAIN (ANALYZE, BUFFERS, FORMAT ${fmt.toUpperCase()}) ${sql}`;
         const result = await adapter.executeQuery(
           explainSql,
@@ -135,16 +146,19 @@ export function createExplainBuffersTool(
         );
 
         if (fmt === "json") {
-          return { plan: result.rows?.[0]?.["QUERY PLAN"] };
+          return {
+            success: true as const,
+            plan: result.rows?.[0]?.["QUERY PLAN"],
+          };
         }
         return {
+          success: true as const,
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_explain_buffers" }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_explain_buffers",
+        });
       }
     },
   };

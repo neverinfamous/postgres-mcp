@@ -5,7 +5,7 @@
  * 20 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 // Import from sub-modules
@@ -28,9 +28,9 @@ import {
 } from "./objects.js";
 import {
   createAnalyzeDbHealthTool,
-  createAnalyzeWorkloadIndexesTool,
   createAnalyzeQueryIndexesTool,
 } from "./health.js";
+import { createAnalyzeWorkloadIndexesTool } from "./workload-indexes.js";
 import { getConvenienceTools } from "./utility.js";
 
 // Re-export schemas from core tools (moved to schemas dir)
@@ -42,7 +42,7 @@ export {
   AnalyzeWorkloadIndexesSchema,
   AnalyzeQueryIndexesSchema,
   AnalyzeQueryIndexesSchemaBase,
-} from "./schemas.js";
+} from "./schemas/index.js";
 export { UpsertSchema, BatchInsertSchema } from "./convenience.js";
 export { CountSchema, ExistsSchema, TruncateSchema } from "./utility.js";
 

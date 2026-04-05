@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getCoreTools } from "../index.js";
-import type { PostgresAdapter } from "../../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockQueryResult,
@@ -341,7 +341,6 @@ describe("Handler Execution", () => {
       )) as { rowsAffected: number; affectedRows: number; command: string };
 
       expect(result.rowsAffected).toBe(0);
-      expect(result.affectedRows).toBe(0);
       expect(result.command).toBe("CREATE");
     });
   });
@@ -924,7 +923,7 @@ describe("Error Handling", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("pg_create_table should wrap duplicate table error", async () => {
@@ -967,7 +966,7 @@ describe("Error Handling", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("pg_drop_index should wrap nonexistent index error", async () => {
@@ -1078,12 +1077,18 @@ describe("Health Analysis Tools", () => {
   });
 
   describe("pg_analyze_workload_indexes", () => {
-    it("should throw error when pg_stat_statements not installed", async () => {
+    it("should return structured error when pg_stat_statements not installed", async () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = tools.find((t) => t.name === "pg_analyze_workload_indexes")!;
 
-      await expect(tool.handler({}, mockContext)).rejects.toThrow(
+      const result = (await tool.handler({}, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(
         /pg_stat_statements extension is not installed/,
       );
     });
@@ -1276,7 +1281,7 @@ describe("Health Analysis Tools", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
   });
 
@@ -1873,7 +1878,7 @@ describe("Create Table with Advanced Column Options", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
     expect(sql).toContain("IF NOT EXISTS");
   });
 
@@ -2013,7 +2018,7 @@ describe("pg_write_query response fields", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should include affectedRows alias in response", async () => {
+  it("should include rowsAffected in response", async () => {
     mockAdapter.executeWriteQuery.mockResolvedValue({
       rows: [],
       rowsAffected: 10,
@@ -2027,14 +2032,12 @@ describe("pg_write_query response fields", () => {
         sql: "UPDATE users SET active = true WHERE created_at < NOW()",
       },
       mockContext,
-    )) as { rowsAffected: number; affectedRows: number; rowCount: number };
+    )) as { rowsAffected: number };
 
     expect(result.rowsAffected).toBe(10);
-    expect(result.affectedRows).toBe(10); // New alias
-    expect(result.rowCount).toBe(10);
   });
 
-  it("should include affectedRows for INSERT operations", async () => {
+  it("should include rowsAffected for INSERT operations", async () => {
     mockAdapter.executeWriteQuery.mockResolvedValue({
       rows: [],
       rowsAffected: 3,
@@ -2049,12 +2052,12 @@ describe("pg_write_query response fields", () => {
         params: ["msg1", "msg2", "msg3"],
       },
       mockContext,
-    )) as { affectedRows: number };
+    )) as { rowsAffected: number };
 
-    expect(result.affectedRows).toBe(3);
+    expect(result.rowsAffected).toBe(3);
   });
 
-  it("should include affectedRows for DELETE operations", async () => {
+  it("should include rowsAffected for DELETE operations", async () => {
     mockAdapter.executeWriteQuery.mockResolvedValue({
       rows: [],
       rowsAffected: 5,
@@ -2068,9 +2071,9 @@ describe("pg_write_query response fields", () => {
         sql: "DELETE FROM expired_sessions WHERE created_at < NOW()",
       },
       mockContext,
-    )) as { affectedRows: number };
+    )) as { rowsAffected: number };
 
-    expect(result.affectedRows).toBe(5);
+    expect(result.rowsAffected).toBe(5);
   });
 });
 
@@ -2470,10 +2473,9 @@ describe("pg_batch_insert", () => {
         ],
       },
       mockContext,
-    )) as { success: boolean; rowsAffected: number; insertedCount: number };
+    )) as { success: boolean; insertedCount: number };
 
     expect(result.success).toBe(true);
-    expect(result.rowsAffected).toBe(3);
     expect(result.insertedCount).toBe(3);
 
     const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
@@ -2562,11 +2564,11 @@ describe("pg_batch_insert", () => {
         returning: ["id"],
       },
       mockContext,
-    )) as { success: boolean; hint: string; rowsAffected: number };
+    )) as { success: boolean; hint: string; insertedCount: number };
 
     expect(result.success).toBe(true);
     expect(result.hint).toContain("DEFAULT VALUES");
-    expect(result.rowsAffected).toBe(2);
+    expect(result.insertedCount).toBe(2);
   });
 
   it("should reject empty rows array", async () => {
@@ -2777,6 +2779,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2788,7 +2791,7 @@ describe("pg_truncate", () => {
     expect(result.success).toBe(true);
     expect(result.table).toBe("public.logs");
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain("TRUNCATE TABLE");
     expect(sql).not.toContain("CASCADE");
     expect(sql).not.toContain("RESTART IDENTITY");
@@ -2798,6 +2801,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2811,7 +2815,7 @@ describe("pg_truncate", () => {
 
     expect(result.cascade).toBe(true);
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain("CASCADE");
   });
 
@@ -2819,6 +2823,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2832,7 +2837,7 @@ describe("pg_truncate", () => {
 
     expect(result.restartIdentity).toBe(true);
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain("RESTART IDENTITY");
   });
 
@@ -2840,6 +2845,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2852,7 +2858,7 @@ describe("pg_truncate", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain("RESTART IDENTITY");
     expect(sql).toContain("CASCADE");
   });
@@ -2861,12 +2867,13 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
     await tool.handler({ tableName: "sessions" }, mockContext);
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain('"sessions"');
   });
 
@@ -2874,6 +2881,7 @@ describe("pg_truncate", () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // schema check
       .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table check
+      .mockResolvedValueOnce({ rows: [{ c: 0 }] }) // COUNT check
       .mockResolvedValueOnce({ rows: [] }); // TRUNCATE
 
     const tool = tools.find((t) => t.name === "pg_truncate")!;
@@ -2884,7 +2892,7 @@ describe("pg_truncate", () => {
       mockContext,
     );
 
-    const sql = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    const sql = mockAdapter.executeQuery.mock.calls[3]?.[0] as string;
     expect(sql).toContain('"archive"."old_events"');
   });
 });
@@ -3352,7 +3360,7 @@ describe("pg_write_query - structured error handling", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Table or view/i);
+    expect(result.error).toMatch(/does not exist in schema/i);
   });
 
   it("should return structured error for undefined column (42703)", async () => {

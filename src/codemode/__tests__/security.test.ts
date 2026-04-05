@@ -189,12 +189,13 @@ describe("CodeModeSecurityManager", () => {
       });
       const largeObj = { data: "x".repeat(200) };
       const result = smallSecurity.sanitizeResult(largeObj) as {
-        _truncated: boolean;
-        _originalSize: number;
+        truncated: boolean;
+        originalSize: number;
+        maxSize?: number;
         preview: string;
       };
-      expect(result._truncated).toBe(true);
-      expect(result._originalSize).toBeGreaterThan(50);
+      expect(result.truncated).toBe(true);
+      expect(result.originalSize).toBeGreaterThan(50);
       expect(result.preview).toContain("...");
     });
 

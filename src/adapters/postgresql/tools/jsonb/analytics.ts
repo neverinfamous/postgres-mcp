@@ -4,14 +4,15 @@
  * JSONB analytics tools: index suggestions, security scanning, and statistics.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   sanitizeIdentifier,
@@ -51,7 +52,7 @@ export function createJsonbIndexSuggestTool(
         const table = parsed.table;
         const column = parsed.column;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
         const rawSample = Number(parsed.sampleSize);
         const sample = isNaN(rawSample) ? 1000 : rawSample;
@@ -67,10 +68,9 @@ export function createJsonbIndexSuggestTool(
             [schemaName],
           );
           if (!schemaResult.rows || schemaResult.rows.length === 0) {
-            return {
-              success: false,
-              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
-            };
+            throw new ValidationError(
+              `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            );
           }
         }
 
@@ -125,15 +125,19 @@ export function createJsonbIndexSuggestTool(
         }
 
         const response: {
-          keyDistribution: typeof keys;
-          existingIndexes: unknown;
-          recommendations: string[];
+          success: boolean;
+          keyDistribution?: typeof keys;
+          existingIndexes?: unknown;
+          recommendations?: string[];
           hint?: string;
-        } = {
-          keyDistribution: keys,
-          existingIndexes: indexResult.rows,
-          recommendations,
-        };
+        } = { success: true };
+        if (keys.length > 0) response.keyDistribution = keys;
+        if ((indexResult.rows?.length ?? 0) > 0) {
+          response.existingIndexes = indexResult.rows;
+        }
+        if (recommendations.length > 0) {
+          response.recommendations = recommendations;
+        }
 
         if (recommendations.length === 0) {
           if ((indexResult.rows?.length ?? 0) > 0) {
@@ -149,23 +153,22 @@ export function createJsonbIndexSuggestTool(
         }
 
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         if (
           error instanceof Error &&
           (error.message.includes("function jsonb_each") ||
             error.message.includes("cannot call jsonb_each"))
         ) {
-          return {
-            success: false,
-            error: `pg_jsonb_index_suggest requires JSONB objects (not arrays). Column may not be JSONB type or contains arrays.`,
-          };
+          return formatHandlerErrorResponse(
+            new ValidationError(
+              `pg_jsonb_index_suggest requires JSONB objects (not arrays). Column may not be JSONB type or contains arrays.`,
+            ),
+            { tool: "pg_jsonb_index_suggest" },
+          );
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_jsonb_index_suggest",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_jsonb_index_suggest",
+        });
       }
     },
   };
@@ -193,7 +196,7 @@ export function createJsonbSecurityScanTool(
         const table = parsed.table;
         const column = parsed.column;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
         const rawSample = Number(parsed.sampleSize);
         const sample = isNaN(rawSample) ? 100 : rawSample;
@@ -211,10 +214,9 @@ export function createJsonbSecurityScanTool(
             [schemaName],
           );
           if (!schemaResult.rows || schemaResult.rows.length === 0) {
-            return {
-              success: false,
-              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
-            };
+            throw new ValidationError(
+              `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            );
           }
         }
 
@@ -250,7 +252,7 @@ export function createJsonbSecurityScanTool(
                 SELECT key, COUNT(*) as count
                 FROM (SELECT * FROM ${tableName}${whereClause} LIMIT ${String(sample)}) t,
                      jsonb_each_text(${columnName})
-                WHERE value ~* '(\\bSELECT\\s+.+\\bFROM\\b|\\bINSERT\\s+INTO\\b|\\bUPDATE\\s+.+\\bSET\\b|\\bDELETE\\s+FROM\\b|\\bDROP\\s+(TABLE|DATABASE|INDEX)\\b|\\bUNION\\s+(ALL\\s+)?SELECT\\b|--\\s*$|;\\s*(SELECT|INSERT|UPDATE|DELETE))'
+                WHERE value ~* '(\\ySELECT\\s+.+\\yFROM\\y|\\yINSERT\\s+INTO\\y|\\yUPDATE\\s+.+\\ySET\\y|\\yDELETE\\s+FROM\\y|\\yDROP\\s+(TABLE|DATABASE|INDEX)\\y|\\yUNION\\s+(ALL\\s+)?SELECT\\y|--\\s*$|;\\s*(SELECT|INSERT|UPDATE|DELETE))'
                 GROUP BY key
             `;
 
@@ -287,29 +289,35 @@ export function createJsonbSecurityScanTool(
           });
         }
 
-        return {
+        const response: {
+          success: boolean;
+          scannedRows: number;
+          issues?: { type: string; key: string; count: number }[];
+          riskLevel: string;
+        } = {
+          success: true,
           scannedRows: actualRowsScanned,
-          issues,
           riskLevel:
             issues.length === 0 ? "low" : issues.length < 3 ? "medium" : "high",
         };
-      } catch (error) {
+        if (issues.length > 0) response.issues = issues;
+        return response;
+      } catch (error: unknown) {
         if (
           error instanceof Error &&
           (error.message.includes("function jsonb_each") ||
             error.message.includes("cannot call jsonb_each"))
         ) {
-          return {
-            success: false,
-            error: `pg_jsonb_security_scan requires JSONB objects. Column may contain arrays or non-JSONB data.`,
-          };
+          return formatHandlerErrorResponse(
+            new ValidationError(
+              `pg_jsonb_security_scan requires JSONB objects. Column may contain arrays or non-JSONB data.`,
+            ),
+            { tool: "pg_jsonb_security_scan" },
+          );
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_jsonb_security_scan",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_jsonb_security_scan",
+        });
       }
     },
   };
@@ -335,7 +343,7 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
         const table = parsed.table;
         const column = parsed.column;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
         const rawSample = Number(parsed.sampleSize);
         const sample = isNaN(rawSample) ? 1000 : rawSample;
@@ -351,10 +359,9 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
             [schemaName],
           );
           if (!schemaResult.rows || schemaResult.rows.length === 0) {
-            return {
-              success: false,
-              error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
-            };
+            throw new ValidationError(
+              `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            );
           }
         }
 
@@ -401,7 +408,7 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
               frequency: Number(row["frequency"]),
             }),
           );
-        } catch (error) {
+        } catch (error: unknown) {
           // Gracefully handle array columns (jsonb_object_keys fails on arrays)
           if (
             error instanceof Error &&
@@ -441,20 +448,28 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
             'topKeys empty for array columns - use pg_jsonb_normalize mode: "array" to analyze elements';
         }
 
-        return {
-          basics: basicsNormalized,
-          topKeys,
-          typeDistribution,
+        const response: {
+          success: boolean;
+          basics?: typeof basicsNormalized;
+          topKeys?: typeof topKeys;
+          typeDistribution?: typeof typeDistribution;
+          sqlNullCount: number;
+          hint?: string;
+        } = {
+          success: true,
           sqlNullCount,
-          hint,
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_jsonb_stats",
-          }),
-        };
+        if (basicsNormalized) response.basics = basicsNormalized;
+        if (topKeys.length > 0) response.topKeys = topKeys;
+        if (typeDistribution.length > 0)
+          response.typeDistribution = typeDistribution;
+        if (hint) response.hint = hint;
+
+        return response;
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_jsonb_stats",
+        });
       }
     },
   };

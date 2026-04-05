@@ -8,10 +8,12 @@
  * Tools:
  *   - pg_detect_query_anomalies: z-score analysis via pg_stat_statements
  *   - pg_detect_bloat_risk: multi-factor bloat risk scoring
- *   - pg_detect_connection_spike: connection concentration detection
+ *
+ * Shared helpers (exported for connection-analysis.ts):
+ *   - toNum, toStr, safeNum, riskFromScore, RiskLevel
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
@@ -19,29 +21,27 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
+import {
+  DetectQueryAnomaliesOutputSchema,
+  DetectBloatRiskOutputSchema,
+} from "../../schemas/performance.js";
+import { validatePerformanceTableExists } from "./helpers.js";
 
 // =============================================================================
-// Shared Helpers
+// Shared Helpers (exported for connection-analysis.ts)
 // =============================================================================
 
-type RiskLevel = "low" | "moderate" | "high" | "critical";
+export type RiskLevel = "low" | "moderate" | "high" | "critical";
 
-const toNum = (val: unknown): number =>
+export const toNum = (val: unknown): number =>
   val === null || val === undefined ? 0 : Number(val);
 
-const toStr = (val: unknown, fallback = ""): string =>
+export const toStr = (val: unknown, fallback = ""): string =>
   typeof val === "string" ? val : fallback;
 
-/** Parse numeric param with NaN fallback to default */
-const safeNum = (val: unknown, defaultVal: number): number => {
-  if (val == null) return defaultVal;
-  const n = Number(val);
-  return Number.isNaN(n) ? defaultVal : n;
-};
-
-function riskFromScore(score: number): RiskLevel {
+export function riskFromScore(score: number): RiskLevel {
   if (score >= 80) return "critical";
   if (score >= 60) return "high";
   if (score >= 40) return "moderate";
@@ -52,23 +52,36 @@ function riskFromScore(score: number): RiskLevel {
 // 1. pg_detect_query_anomalies
 // =============================================================================
 
+const coerceNumber = (val: unknown): unknown =>
+  typeof val === "string"
+    ? isNaN(Number(val))
+      ? undefined
+      : Number(val)
+    : val;
+
 const QueryAnomaliesInputBase = z.object({
   threshold: z
-    .any()
+    .unknown()
     .optional()
     .describe(
       "Standard deviation multiplier for anomaly detection (default: 2.0)",
     ),
   minCalls: z
-    .any()
+    .unknown()
     .optional()
     .describe("Minimum call count to filter noise (default: 10)"),
 });
 
-const QueryAnomaliesInput = QueryAnomaliesInputBase.transform((data) => ({
-  threshold: Math.max(0.5, Math.min(10, safeNum(data.threshold, 2.0))),
-  minCalls: Math.max(1, Math.min(10000, safeNum(data.minCalls, 10))),
-}));
+const QueryAnomaliesInput = z.preprocess(
+  (data: unknown) => {
+    if (typeof data !== "object" || data === null) return {};
+    return data;
+  },
+  z.object({
+    threshold: z.preprocess(coerceNumber, z.number().optional()),
+    minCalls: z.preprocess(coerceNumber, z.number().optional()),
+  }),
+);
 
 export function createDetectQueryAnomaliesTool(
   adapter: PostgresAdapter,
@@ -79,14 +92,8 @@ export function createDetectQueryAnomaliesTool(
       "Detects queries deviating from their historical execution time norms " +
       "using z-score analysis. Requires pg_stat_statements extension. " +
       "Returns anomalous queries ranked by deviation severity with risk level.",
-    inputSchema: QueryAnomaliesInputBase.shape,
-    outputSchema: z.object({
-      anomalies: z.array(z.any()),
-      riskLevel: z.enum(["low", "moderate", "high", "critical"]),
-      totalAnalyzed: z.number(),
-      anomalyCount: z.number(),
-      summary: z.string(),
-    }),
+    inputSchema: QueryAnomaliesInputBase, // Split Schema: full ZodObject for MCP parameter visibility
+    outputSchema: DetectQueryAnomaliesOutputSchema,
     group: "performance",
     annotations: readOnly("Detect query anomalies"),
     icons: getToolIcons("performance", readOnly("Detect query anomalies")),
@@ -100,7 +107,24 @@ export function createDetectQueryAnomaliesTool(
           };
         }
 
-        const { threshold, minCalls } = parsed.data;
+        const threshold = parsed.data.threshold ?? 2.0;
+        const minCalls = parsed.data.minCalls ?? 10;
+
+        if (threshold < 0.5 || threshold > 10) {
+          return {
+            success: false,
+            error: "Validation error: threshold must be between 0.5 and 10",
+            code: "VALIDATION_ERROR",
+          };
+        }
+
+        if (minCalls < 1 || minCalls > 10000) {
+          return {
+            success: false,
+            error: "Validation error: minCalls must be between 1 and 10000",
+            code: "VALIDATION_ERROR",
+          };
+        }
 
         // Check if pg_stat_statements is available
         const extCheck = await adapter.executeQuery(
@@ -176,6 +200,7 @@ export function createDetectQueryAnomaliesTool(
             : `${String(anomalyCount)} anomalous queries detected out of ${String(totalAnalyzed)} analyzed (threshold: ${String(threshold)}σ, max z-score: ${String(maxZScore)})`;
 
         return {
+          success: true as const,
           anomalies,
           riskLevel,
           totalAnalyzed,
@@ -183,12 +208,9 @@ export function createDetectQueryAnomaliesTool(
           summary,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_detect_query_anomalies",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_detect_query_anomalies",
+        });
       }
     },
   };
@@ -204,15 +226,21 @@ const BloatRiskInputBase = z.object({
     .optional()
     .describe("Filter to a specific schema (default: all user schemas)"),
   minRows: z
-    .any()
+    .unknown()
     .optional()
     .describe("Minimum live rows to include (default: 1000)"),
 });
 
-const BloatRiskInput = BloatRiskInputBase.transform((data) => ({
-  schema: data.schema,
-  minRows: Math.max(0, Math.min(1000000, safeNum(data.minRows, 1000))),
-}));
+const BloatRiskInput = z.preprocess(
+  (data: unknown) => {
+    if (typeof data !== "object" || data === null) return {};
+    return data;
+  },
+  z.object({
+    schema: z.string().optional(),
+    minRows: z.preprocess(coerceNumber, z.number().optional()),
+  }),
+);
 
 export function createDetectBloatRiskTool(
   adapter: PostgresAdapter,
@@ -223,13 +251,8 @@ export function createDetectBloatRiskTool(
       "Scores tables by bloat risk using multiple factors: dead tuple ratio, " +
       "vacuum staleness, table size, and autovacuum effectiveness. " +
       "Returns per-table risk scores (0-100) with actionable recommendations.",
-    inputSchema: BloatRiskInputBase.shape,
-    outputSchema: z.object({
-      tables: z.array(z.any()),
-      highRiskCount: z.number(),
-      totalAnalyzed: z.number(),
-      summary: z.string(),
-    }),
+    inputSchema: BloatRiskInputBase, // Split Schema: full ZodObject for MCP parameter visibility
+    outputSchema: DetectBloatRiskOutputSchema,
     group: "performance",
     annotations: readOnly("Detect bloat risk"),
     icons: getToolIcons("performance", readOnly("Detect bloat risk")),
@@ -243,7 +266,20 @@ export function createDetectBloatRiskTool(
           };
         }
 
-        const { schema, minRows } = parsed.data;
+        const minRows = parsed.data.minRows ?? 1000;
+        const schema = parsed.data.schema;
+
+        if (schema !== undefined) {
+          await validatePerformanceTableExists(adapter, undefined, schema);
+        }
+
+        if (minRows < 0 || minRows > 1000000) {
+          return {
+            success: false,
+            error: "Validation error: minRows must be between 0 and 1000000",
+            code: "VALIDATION_ERROR",
+          };
+        }
 
         let schemaFilter: string;
         if (schema) {
@@ -398,251 +434,23 @@ export function createDetectBloatRiskTool(
             ? `No high-risk bloat detected across ${String(tables.length)} tables`
             : `${String(highRiskCount)} table(s) at high bloat risk out of ${String(tables.length)} analyzed`;
 
+        // Optmization: To reduce payload size, omit fully detailed low-risk tables if we have many
+        const filteredTables = tables.filter(
+          (t: { riskScore: number }, index: number) =>
+            t.riskScore >= 40 || index < 5,
+        );
+
         return {
-          tables,
+          success: true as const,
+          tables: filteredTables,
           highRiskCount,
           totalAnalyzed: tables.length,
           summary,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_detect_bloat_risk",
-          }),
-        };
-      }
-    },
-  };
-}
-
-// =============================================================================
-// 3. pg_detect_connection_spike
-// =============================================================================
-
-const ConnectionSpikeInputBase = z.object({
-  warningPercent: z
-    .any()
-    .optional()
-    .describe("Percentage threshold for flagging concentration (default: 70)"),
-});
-
-const ConnectionSpikeInput = ConnectionSpikeInputBase.transform((data) => ({
-  warningPercent: Math.max(10, Math.min(100, safeNum(data.warningPercent, 70))),
-}));
-
-interface ConnectionConcentration {
-  dimension: string;
-  value: string;
-  count: number;
-  percent: number;
-}
-
-export function createDetectConnectionSpikeTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
-  return {
-    name: "pg_detect_connection_spike",
-    description:
-      "Detects unusual connection patterns by analyzing concentration " +
-      "by user, application, state, and wait events. Flags when a single " +
-      "user or application monopolizes the connection pool, or when " +
-      "idle-in-transaction connections accumulate.",
-    inputSchema: ConnectionSpikeInputBase.shape,
-    outputSchema: z.object({
-      totalConnections: z.number(),
-      maxConnections: z.number(),
-      usagePercent: z.number(),
-      byState: z.array(z.any()),
-      concentrations: z.array(z.any()),
-      warnings: z.array(z.string()),
-      riskLevel: z.enum(["low", "moderate", "high", "critical"]),
-      summary: z.string(),
-    }),
-    group: "performance",
-    annotations: readOnly("Detect connection spike"),
-    icons: getToolIcons("performance", readOnly("Detect connection spike")),
-    handler: async (params: unknown, _context: RequestContext) => {
-      try {
-        const parsed = ConnectionSpikeInput.safeParse(params);
-        if (!parsed.success) {
-          return {
-            success: false,
-            error: `Validation error: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
-
-        const { warningPercent } = parsed.data;
-
-        // Gather connection data in parallel
-        const [stateResult, userResult, appResult, maxResult, idleTxResult] =
-          await Promise.all([
-            // By state
-            adapter.executeQuery(`
-            SELECT state, count(*) AS count
-            FROM pg_stat_activity
-            WHERE pid != pg_backend_pid()
-            GROUP BY state
-            ORDER BY count DESC
-          `),
-            // By user
-            adapter.executeQuery(`
-            SELECT usename, count(*) AS count
-            FROM pg_stat_activity
-            WHERE pid != pg_backend_pid()
-            GROUP BY usename
-            ORDER BY count DESC
-          `),
-            // By application
-            adapter.executeQuery(`
-            SELECT COALESCE(application_name, '') AS app_name, count(*) AS count
-            FROM pg_stat_activity
-            WHERE pid != pg_backend_pid()
-            GROUP BY application_name
-            ORDER BY count DESC
-          `),
-            // Max connections
-            adapter.executeQuery(`SHOW max_connections`),
-            // Idle-in-transaction details
-            adapter.executeQuery(`
-            SELECT pid, usename,
-                   COALESCE(application_name, '') AS app_name,
-                   now() - state_change AS idle_duration,
-                   EXTRACT(EPOCH FROM (now() - state_change))::int AS idle_seconds
-            FROM pg_stat_activity
-            WHERE state = 'idle in transaction'
-              AND pid != pg_backend_pid()
-            ORDER BY state_change ASC
-            LIMIT 20
-          `),
-          ]);
-
-        const byState = stateResult.rows ?? [];
-        const totalConnections = byState.reduce(
-          (sum: number, r: Record<string, unknown>) => sum + toNum(r["count"]),
-          0,
-        );
-        const maxConnections = toNum(maxResult.rows?.[0]?.["max_connections"]);
-        const usagePercent =
-          maxConnections > 0
-            ? Math.round((totalConnections / maxConnections) * 100 * 10) / 10
-            : 0;
-
-        const concentrations: ConnectionConcentration[] = [];
-        const warnings: string[] = [];
-
-        // Check user concentration
-        for (const row of userResult.rows ?? []) {
-          const count = toNum(row["count"]);
-          const percent =
-            totalConnections > 0
-              ? Math.round((count / totalConnections) * 100 * 10) / 10
-              : 0;
-          if (percent >= warningPercent) {
-            const user = toStr(row["usename"], "unknown");
-            concentrations.push({
-              dimension: "user",
-              value: user,
-              count,
-              percent,
-            });
-            warnings.push(
-              `User '${user}' holds ${String(percent)}% of connections (${String(count)}/${String(totalConnections)})`,
-            );
-          }
-        }
-
-        // Check application concentration
-        for (const row of appResult.rows ?? []) {
-          const count = toNum(row["count"]);
-          const percent =
-            totalConnections > 0
-              ? Math.round((count / totalConnections) * 100 * 10) / 10
-              : 0;
-          if (percent >= warningPercent) {
-            const app = toStr(row["app_name"]);
-            if (app) {
-              concentrations.push({
-                dimension: "application",
-                value: app,
-                count,
-                percent,
-              });
-              warnings.push(
-                `Application '${app}' holds ${String(percent)}% of connections (${String(count)}/${String(totalConnections)})`,
-              );
-            }
-          }
-        }
-
-        // Check idle-in-transaction buildup
-        const idleTxRows = idleTxResult.rows ?? [];
-        if (idleTxRows.length > 0) {
-          const longIdleTx = idleTxRows.filter(
-            (r: Record<string, unknown>) => toNum(r["idle_seconds"]) > 300,
-          );
-          if (longIdleTx.length > 0) {
-            warnings.push(
-              `${String(longIdleTx.length)} connection(s) idle in transaction for >5 minutes — these hold locks and block autovacuum`,
-            );
-          }
-          if (idleTxRows.length >= 5) {
-            warnings.push(
-              `${String(idleTxRows.length)} total idle-in-transaction connections — check for uncommitted transactions`,
-            );
-          }
-        }
-
-        // Check overall pressure
-        if (usagePercent >= 90) {
-          warnings.push(
-            `Critical connection pressure: ${String(usagePercent)}% of max_connections in use`,
-          );
-        } else if (usagePercent >= 80) {
-          warnings.push(
-            `High connection pressure: ${String(usagePercent)}% of max_connections in use`,
-          );
-        }
-
-        // Calculate risk level
-        let riskScore = 0;
-        if (usagePercent >= 90) riskScore += 40;
-        else if (usagePercent >= 80) riskScore += 25;
-        else if (usagePercent >= 70) riskScore += 10;
-
-        if (concentrations.length >= 2) riskScore += 30;
-        else if (concentrations.length >= 1) riskScore += 15;
-
-        if (idleTxRows.length >= 5) riskScore += 25;
-        else if (idleTxRows.length >= 1) riskScore += 10;
-
-        const riskLevel = riskFromScore(riskScore);
-
-        const summary =
-          warnings.length === 0
-            ? `No connection anomalies detected (${String(totalConnections)}/${String(maxConnections)} connections, ${String(usagePercent)}% usage)`
-            : `${String(warnings.length)} warning(s) detected: ${String(totalConnections)}/${String(maxConnections)} connections (${String(usagePercent)}% usage)`;
-
-        return {
-          totalConnections,
-          maxConnections,
-          usagePercent,
-          byState: byState.map((r: Record<string, unknown>) => ({
-            state: toStr(r["state"], "null"),
-            count: toNum(r["count"]),
-          })),
-          concentrations,
-          warnings,
-          riskLevel,
-          summary,
-        };
-      } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_detect_connection_spike",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_detect_bloat_risk",
+        });
       }
     },
   };

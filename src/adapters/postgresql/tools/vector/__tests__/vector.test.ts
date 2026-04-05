@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getVectorTools } from "../index.js";
-import type { PostgresAdapter } from "../../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -829,7 +829,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -853,7 +853,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -877,7 +877,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -918,7 +918,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return structured error for duplicate column without ifNotExists", async () => {
@@ -971,7 +971,7 @@ describe("Object Existence Checks (P154)", () => {
       )) as Record<string, unknown>;
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe("Vector dimension mismatch");
+      expect(result.error as string).toMatch(/Vector dimension mismatch/);
       expect(result.expectedDimensions).toBe(384);
       expect(result.providedDimensions).toBe(3);
       expect(result.suggestion).toContain("384");
@@ -987,7 +987,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -1027,7 +1027,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -1054,7 +1054,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -1082,7 +1082,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -1114,7 +1114,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error in table mode when table exists", async () => {
@@ -1148,7 +1148,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Table 'nonexistent' does not exist");
+      expect(result.error).toContain("does not exist in schema");
     });
 
     it("should return column-not-found error when table exists", async () => {
@@ -1182,7 +1182,7 @@ describe("Object Existence Checks (P154)", () => {
         mockContext,
       )) as Record<string, unknown>;
 
-      expect(result.valid).toBe(false);
+      expect(result.success).toBe(false);
       expect(result.error).toContain("not a vector column");
       expect(result.error).toContain("text");
       expect(result.suggestion).toContain("pg_vector_add_column");
@@ -1805,7 +1805,7 @@ describe("Coverage: Missing Param Validation", () => {
         { table: "nonexistent", column: "vec" },
         mockContext,
       )) as Record<string, unknown>;
-      expect(result.valid).toBe(false);
+      expect(result.success).toBe(false);
       expect(result.error).toContain("Table");
     });
 
@@ -1818,7 +1818,7 @@ describe("Coverage: Missing Param Validation", () => {
         { table: "t", column: "bad" },
         mockContext,
       )) as Record<string, unknown>;
-      expect(result.valid).toBe(false);
+      expect(result.success).toBe(false);
       expect(result.error).toContain("Column");
     });
 
@@ -1889,7 +1889,7 @@ describe("Coverage: Missing Param Validation", () => {
         { vector: "not-an-array" },
         mockContext,
       )) as Record<string, unknown>;
-      expect(result.valid).toBe(false);
+      expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
   });

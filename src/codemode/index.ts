@@ -16,6 +16,8 @@ export type {
   ExecuteCodeOptions,
   ExecuteCodeResult,
   GroupApi,
+  RpcRequest,
+  RpcResponse,
 } from "./types.js";
 
 export {
@@ -26,6 +28,25 @@ export {
 
 // Sandbox (VM-based)
 export { CodeModeSandbox, SandboxPool } from "./sandbox.js";
+
+// Sandbox (Worker-thread-based)
+export { WorkerSandbox, WorkerSandboxPool } from "./worker-sandbox.js";
+
+// Sandbox Factory
+export {
+  createSandbox,
+  createSandboxPool,
+  setDefaultSandboxMode,
+  getDefaultSandboxMode,
+  getAvailableSandboxModes,
+  getSandboxModeInfo,
+} from "./sandbox-factory.js";
+export type {
+  SandboxMode,
+  ISandbox,
+  ISandboxPool,
+  SandboxModeInfo,
+} from "./sandbox-factory.js";
 
 // Security
 export { CodeModeSecurityManager } from "./security.js";

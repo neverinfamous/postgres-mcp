@@ -5,29 +5,37 @@
  * 16 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 // Import from sub-modules
 import {
   createVectorExtensionTool,
   createVectorAddColumnTool,
+} from "./data.js";
+
+import {
   createVectorInsertTool,
   createVectorBatchInsertTool,
-} from "./data.js";
+} from "./data-insert.js";
 
 import {
   createVectorSearchTool,
   createVectorCreateIndexTool,
-  createVectorDistanceTool,
-  createVectorNormalizeTool,
+} from "./search.js";
+
+import { createVectorDistanceTool, createVectorNormalizeTool } from "./math.js";
+
+import {
   createVectorAggregateTool,
   createVectorValidateTool,
-} from "./query.js";
+} from "./aggregate.js";
+
+// Cluster analysis
+import { createVectorClusterTool } from "./cluster.js";
 
 // Search & analysis operations
 import {
-  createVectorClusterTool,
   createHybridSearchTool,
   createVectorPerformanceTool,
 } from "./search-advanced.js";

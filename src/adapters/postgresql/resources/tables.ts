@@ -4,12 +4,12 @@
  * List of all tables with metadata (sizes, row counts, etc.).
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type {
   ResourceDefinition,
   RequestContext,
 } from "../../../types/index.js";
-import { MEDIUM_PRIORITY } from "../../../utils/resourceAnnotations.js";
+import { MEDIUM_PRIORITY } from "../../../utils/resource-annotations.js";
 
 export function createTablesResource(
   adapter: PostgresAdapter,

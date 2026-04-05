@@ -2,7 +2,7 @@
  * postgres-mcp - PostgreSQL MCP Server
  *
  * Core type definitions for the MCP server, database adapters,
- * OAuth 2.0 authentication, and tool filtering.
+ * OAuth 2.1 authentication, and tool filtering.
  *
  * Re-exports all types from modular files.
  */
@@ -38,7 +38,6 @@ export type {
 // Tool filtering types
 export type {
   ToolGroup,
-  MetaGroup,
   ToolFilterRule,
   ToolFilterConfig,
 } from "./filtering.js";
@@ -53,6 +52,10 @@ export type {
   ResourceAnnotations,
   PromptDefinition,
 } from "./adapters.js";
+
+// Error types (categories, response structure, context)
+export { ErrorCategory } from "./error-types.js";
+export type { ErrorResponse, ErrorContext } from "./error-types.js";
 
 // Error classes
 export {

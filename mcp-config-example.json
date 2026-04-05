@@ -1,0 +1,49 @@
+{
+  "mcpServers": {
+    "postgres-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "POSTGRES_HOST",
+        "-e",
+        "POSTGRES_PORT",
+        "-e",
+        "POSTGRES_USER",
+        "-e",
+        "POSTGRES_PASSWORD",
+        "-e",
+        "POSTGRES_DATABASE",
+        "-e",
+        "POSTGRES_URL",
+        "-e",
+        "MCP_AUTH_TOKEN",
+        "-e",
+        "OAUTH_ENABLED",
+        "-e",
+        "OAUTH_ISSUER",
+        "-e",
+        "OAUTH_AUDIENCE",
+        "writenotenow/postgres-mcp:latest",
+        "--tool-filter",
+        "codemode",
+        "--audit-log",
+        "/tmp/postgres-logs/audit.jsonl"
+      ],
+      "env": {
+        "POSTGRES_HOST": "host.docker.internal",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_USER": "your_username",
+        "POSTGRES_PASSWORD": "your_password",
+        "POSTGRES_DATABASE": "your_database",
+        "POSTGRES_URL": "postgres://user:pass@host.docker.internal:5432/db",
+        "MCP_AUTH_TOKEN": "",
+        "OAUTH_ENABLED": "false",
+        "OAUTH_ISSUER": "",
+        "OAUTH_AUDIENCE": ""
+      }
+    }
+  }
+}

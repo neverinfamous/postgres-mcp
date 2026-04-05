@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPerformanceTools } from "../index.js";
-import type { PostgresAdapter } from "../../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -910,7 +910,7 @@ describe("pg_seq_scan_tables", () => {
   it("should add totalCount when results are truncated", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
-        rows: Array(50).fill({ relname: "test", seq_scan: "500" }),
+        rows: Array(20).fill({ relname: "test", seq_scan: "500" }),
       })
       .mockResolvedValueOnce({
         rows: [{ total: "150" }],
@@ -1578,6 +1578,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should suggest partition strategy", async () => {
+    // Phase 1: validatePerformanceTableExists (2 queries since schema='public')
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     // Mock the 3 parallel queries
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
@@ -1609,6 +1614,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should recommend partitioning for tables over 1GB", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     // 2GB table with low row count
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
@@ -1637,6 +1647,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should recommend partitioning for tables over 10 million rows", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [
@@ -1674,6 +1689,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should suggest RANGE partitioning for timestamp columns", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "events", n_live_tup: 1000000 }],
@@ -1704,6 +1724,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should suggest LIST partitioning for low cardinality columns", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "orders", n_live_tup: 1000000 }],
@@ -1739,6 +1764,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should suggest HASH partitioning for high cardinality integer columns", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "users", n_live_tup: 1000000 }],
@@ -1774,6 +1804,11 @@ describe("pg_partition_strategy_suggest", () => {
   });
 
   it("should not recommend partitioning for small tables", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "small_table", n_live_tup: 10000 }],
@@ -2067,6 +2102,11 @@ describe("Parameter Aliases", () => {
   });
 
   it("pg_partition_strategy_suggest should accept tableName alias", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
         rows: [{ relname: "orders", n_live_tup: 1000 }],
@@ -2088,6 +2128,11 @@ describe("Parameter Aliases", () => {
   });
 
   it("pg_partition_strategy_suggest should accept name alias", async () => {
+    // Phase 1: validatePerformanceTableExists
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] })
+      .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] });
+
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ relname: "events", n_live_tup: 500 }] })
       .mockResolvedValueOnce({
@@ -2676,7 +2721,7 @@ describe("pg_vacuum_stats comprehensive", () => {
   it("should add totalCount when results are truncated", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
-        rows: Array(50).fill({
+        rows: Array(10).fill({
           schemaname: "public",
           table_name: "test",
           live_tuples: "100",
@@ -2907,7 +2952,7 @@ describe("pg_query_plan_stats comprehensive", () => {
   it("should add totalCount when results are truncated", async () => {
     mockAdapter.executeQuery
       .mockResolvedValueOnce({
-        rows: Array(20).fill({
+        rows: Array(10).fill({
           query: "SELECT 1",
           calls: "1",
           total_plan_time: 0.1,
@@ -3357,10 +3402,11 @@ describe("P154 pre-checks", () => {
 });
 
 // =============================================================================
-// Wrong-type numeric param tests — limit: "abc" falls back to default
+// Wrong-type limit param handling — P507 coerced tools silently default,
+// strict z.number() tools return structured VALIDATION_ERROR
 // =============================================================================
 
-describe("wrong-type limit param fallback", () => {
+describe("wrong-type limit param handling", () => {
   let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
   let tools: ReturnType<typeof getPerformanceTools>;
   let mockContext: ReturnType<typeof createMockRequestContext>;
@@ -3372,95 +3418,230 @@ describe("wrong-type limit param fallback", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("pg_table_stats should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_table_stats should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schemaname: "public",
+          relname: "t",
+          seq_scan: "1",
+          idx_scan: "1",
+          n_live_tup: "1",
+          n_dead_tup: "0",
+          last_vacuum: null,
+          last_autovacuum: null,
+          last_analyze: null,
+        },
+      ],
+    });
 
     const tool = tools.find((t) => t.name === "pg_table_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      success: boolean;
       tables: unknown[];
     };
 
-    expect(result).toBeDefined();
-    expect(result.tables).toBeDefined();
+    expect(result.success).toBe(true);
+    expect(result.tables.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_index_stats should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_index_stats should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schemaname: "public",
+          relname: "t",
+          indexrelname: "idx",
+          idx_scan: "1",
+          idx_tup_read: "1",
+          idx_tup_fetch: "1",
+        },
+      ],
+    });
 
     const tool = tools.find((t) => t.name === "pg_index_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      success: boolean;
       indexes: unknown[];
     };
 
-    expect(result).toBeDefined();
-    expect(result.indexes).toBeDefined();
+    expect(result.success).toBe(true);
+    expect(result.indexes.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_stat_statements should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_stat_statements should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          query: "SELECT 1",
+          calls: "1",
+          total_time: "1",
+          mean_time: "1",
+          rows: "1",
+          shared_blks_hit: "1",
+          shared_blks_read: "0",
+        },
+      ],
+    });
 
     const tool = tools.find((t) => t.name === "pg_stat_statements")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      success: boolean;
       statements: unknown[];
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(true);
+    expect(result.statements.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_unused_indexes should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_unused_indexes should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schemaname: "public",
+          relname: "t",
+          indexrelname: "idx",
+          scans: "1",
+          tuples_read: "1",
+          size: "1 MB",
+          size_bytes: "1000000",
+        },
+      ],
+    });
 
     const tool = tools.find((t) => t.name === "pg_unused_indexes")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      indexes: unknown[];
+      success: boolean;
+      unusedIndexes: unknown[];
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(true);
+    expect(result.unusedIndexes.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_duplicate_indexes should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_duplicate_indexes should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schemaname: "public",
+          tablename: "t",
+          index1: "idx1",
+          index1_columns: ["a"],
+          index1_size: "1 MB",
+          index2: "idx2",
+          index2_columns: ["a"],
+          index2_size: "1 MB",
+          duplicate_type: "EXACT_DUPLICATE",
+        },
+      ],
+    });
 
     const tool = tools.find((t) => t.name === "pg_duplicate_indexes")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
-      duplicates: unknown[];
+      success: boolean;
+      duplicateIndexes: unknown[];
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(true);
+    expect(result.duplicateIndexes.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_vacuum_stats should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_vacuum_stats should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schemaname: "public",
+          table_name: "t",
+          live_tuples: 1,
+          dead_tuples: 0,
+          dead_pct: 0,
+          vacuum_count: 1,
+          autovacuum_count: 1,
+          analyze_count: 1,
+          autoanalyze_count: 1,
+          xid_age: 100,
+          wraparound_risk: "OK",
+        },
+      ],
+    });
 
     const tool = tools.find((t) => t.name === "pg_vacuum_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      success: boolean;
       tables: unknown[];
     };
 
-    expect(result).toBeDefined();
-    expect(result.tables).toBeDefined();
+    expect(result.success).toBe(true);
+    expect(result.tables.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_seq_scan_tables should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_locks should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ locktype: "relation", mode: "AccessShareLock", granted: true }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_locks")!;
+    const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      success: boolean;
+      locks: unknown[];
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.locks.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it("pg_seq_scan_tables should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          schemaname: "public",
+          table_name: "t",
+          seq_scan: "1",
+          seq_tup_read: "1",
+          idx_scan: "1",
+          idx_tup_fetch: "1",
+          seq_scan_pct: "50",
+        },
+      ],
+    });
 
     const tool = tools.find((t) => t.name === "pg_seq_scan_tables")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      success: boolean;
       tables: unknown[];
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(true);
+    expect(result.tables.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_query_plan_stats should fall back to default limit for non-numeric string", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+  it("pg_query_plan_stats should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          query: "SELECT 1",
+          calls: "1",
+          total_plan_time: 0.1,
+          mean_plan_time: 0.1,
+          total_exec_time: 1,
+          mean_exec_time: 1,
+          rows: "1",
+          plan_pct: "9",
+          shared_blks_hit: "1",
+          shared_blks_read: "0",
+          cache_hit_pct: "100",
+        },
+      ],
+    });
 
     const tool = tools.find((t) => t.name === "pg_query_plan_stats")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
+      success: boolean;
       queryPlanStats: unknown[];
     };
 
-    expect(result).toBeDefined();
+    expect(result.success).toBe(true);
+    expect(result.queryPlanStats.length).toBeGreaterThanOrEqual(0);
   });
 });
 
@@ -3591,7 +3772,7 @@ describe("performance/stats.ts — uncovered branches", () => {
 
   // stats.ts L162-166: pg_index_stats truncation when results hit limit
   it("pg_index_stats should indicate truncation when results hit limit", async () => {
-    const rows = Array(50).fill({
+    const rows = Array(20).fill({
       schemaname: "public",
       relname: "users",
       indexrelname: "idx_users_id",
@@ -3632,7 +3813,7 @@ describe("performance/stats.ts — uncovered branches", () => {
 
   // stats.ts L279-283: pg_table_stats truncation
   it("pg_table_stats should indicate truncation when results hit limit", async () => {
-    const rows = Array(50).fill({
+    const rows = Array(20).fill({
       schemaname: "public",
       relname: "users",
       seq_scan: "10",
@@ -3672,9 +3853,9 @@ describe("performance/stats.ts — uncovered branches", () => {
     expect(result.success).toBe(false);
   });
 
-  // stats.ts L366-370: pg_stat_statements truncation (default limit is 20)
+  // stats.ts L366-370: pg_stat_statements truncation (default limit is 10)
   it("pg_stat_statements should indicate truncation when results hit limit", async () => {
-    const rows = Array(20).fill({
+    const rows = Array(10).fill({
       queryid: "12345",
       query: "SELECT 1",
       calls: "100",

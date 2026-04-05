@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -1915,7 +1915,8 @@ describe("Kcache Resource", () => {
   });
 
   it("should handle non-string values in toStr helper (line 12 branch)", async () => {
-    // When row values are numbers/null instead of strings, toStr should return empty string
+    // When row values are numbers/null instead of strings, toStr now coerces
+    // numbers to strings and returns "" for null/undefined (shared helper).
     mockAdapter.executeQuery
       .mockResolvedValueOnce({ rows: [{ extversion: "1.10" }] })
       .mockResolvedValueOnce({ rows: [{ extversion: "2.2" }] })
@@ -1933,7 +1934,7 @@ describe("Kcache Resource", () => {
       .mockResolvedValueOnce({
         rows: [
           {
-            query: 12345, // number instead of string - tests toStr returning ''
+            query: 12345, // number — toStr coerces to "12345"
             calls: 50,
             cpu_time: 10.5,
             cpu_per_call: 0.21,
@@ -1943,7 +1944,7 @@ describe("Kcache Resource", () => {
       .mockResolvedValueOnce({
         rows: [
           {
-            query: null, // null instead of string - tests toStr returning ''
+            query: null, // null — toStr returns ""
             calls: 20,
             reads: 500000,
             writes: 100000,
@@ -1952,7 +1953,7 @@ describe("Kcache Resource", () => {
       })
       .mockResolvedValueOnce({
         rows: [
-          { classification: 123, count: 10 }, // number classification - tests toStr
+          { classification: 123, count: 10 }, // number classification — toStr coerces to "123"
         ],
       });
 
@@ -1970,8 +1971,8 @@ describe("Kcache Resource", () => {
       };
     };
 
-    // toStr should return empty string for non-string values
-    expect(result.topCpuQueries[0]?.queryPreview).toBe("");
+    // toStr coerces numbers to strings; null/undefined → ""
+    expect(result.topCpuQueries[0]?.queryPreview).toBe("12345");
     expect(result.topIoQueries[0]?.queryPreview).toBe("");
     // Non-matching classification goes to balanced (else branch at line 200)
     expect(result.resourceClassification.balanced).toBe(10);

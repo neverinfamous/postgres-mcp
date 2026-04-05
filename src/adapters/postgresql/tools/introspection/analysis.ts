@@ -1,352 +1,33 @@
 /**
  * PostgreSQL Introspection Tools - Schema Analysis
  *
- * Schema snapshot, constraint analysis, and migration risk assessment tools.
- * 3 tools total.
+ * Constraint analysis and migration risk assessment tools.
+ * 2 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   parseArrayColumn,
   qualifiedName,
   checkSchemaExists,
   checkTableExists,
-} from "./graph.js";
+} from "./helpers.js";
 import {
-  SchemaSnapshotSchemaBase,
-  SchemaSnapshotSchema,
   ConstraintAnalysisSchemaBase,
   ConstraintAnalysisSchema,
   MigrationRisksSchemaBase,
   MigrationRisksSchema,
   // Output schemas
-  SchemaSnapshotOutputSchema,
   ConstraintAnalysisOutputSchema,
   MigrationRisksOutputSchema,
 } from "../../schemas/index.js";
-
-// =============================================================================
-// pg_schema_snapshot
-// =============================================================================
-
-export function createSchemaSnapshotTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
-  return {
-    name: "pg_schema_snapshot",
-    description:
-      "Get a complete schema snapshot in a single agent-optimized JSON structure. Includes tables, columns, types, constraints, indexes, triggers, sequences, and extensions.",
-    group: "introspection",
-    inputSchema: SchemaSnapshotSchemaBase,
-    outputSchema: SchemaSnapshotOutputSchema,
-    annotations: readOnly("Schema Snapshot"),
-    icons: getToolIcons("introspection", readOnly("Schema Snapshot")),
-    handler: async (params: unknown, _context: RequestContext) => {
-      try {
-        const parsed = SchemaSnapshotSchema.parse(params);
-
-        // Validate schema existence when filtering by schema
-        const schemaError = await checkSchemaExists(adapter, parsed.schema);
-        if (schemaError) return schemaError;
-
-        const includeAll = !parsed.sections || parsed.sections.length === 0;
-        const sections = new Set(parsed.sections ?? []);
-
-        const snapshot: Record<string, unknown> = {};
-        const stats = {
-          tables: 0,
-          views: 0,
-          indexes: 0,
-          constraints: 0,
-          functions: 0,
-          triggers: 0,
-          sequences: 0,
-          customTypes: 0,
-          extensions: 0,
-        };
-
-        const schemaExclude = parsed.includeSystem
-          ? ""
-          : "AND n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'";
-        const extensionSchemaExclude =
-          !parsed.schema &&
-          !parsed.includeSystem &&
-          parsed.excludeExtensionSchemas !== false
-            ? "AND n.nspname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')"
-            : "";
-        // Exclude extension-owned objects (e.g. spatial_ref_sys, part_config) from public schema
-        const extOwnedActive =
-          !parsed.includeSystem && parsed.excludeExtensionSchemas !== false;
-        const extOwnedClause = (oidExpr: string): string =>
-          extOwnedActive
-            ? `AND NOT EXISTS (SELECT 1 FROM pg_depend dep WHERE dep.objid = ${oidExpr} AND dep.deptype = 'e')`
-            : "";
-        const schemaParams: unknown[] = [];
-        let schemaWhere = "";
-        if (parsed.schema) {
-          schemaParams.push(parsed.schema);
-          schemaWhere = `AND n.nspname = $${String(schemaParams.length)}`;
-        }
-
-        // Build columns subquery for tables section
-        const columnsSubquery = parsed.compact
-          ? ""
-          : `,
-            (SELECT json_agg(json_build_object(
-              'name', a.attname,
-              'type', pg_catalog.format_type(a.atttypid, a.atttypmod),
-              'nullable', NOT a.attnotnull,
-              'default', pg_get_expr(d.adbin, d.adrelid),
-              'primaryKey', COALESCE((SELECT true FROM pg_constraint pk
-                WHERE pk.conrelid = a.attrelid AND a.attnum = ANY(pk.conkey)
-                AND pk.contype = 'p'), false)
-            ) ORDER BY a.attnum)
-            FROM pg_attribute a
-            LEFT JOIN pg_attrdef d ON (a.attrelid, a.attnum) = (d.adrelid, d.adnum)
-            WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
-            ) AS columns`;
-        const qp = schemaParams.length > 0 ? schemaParams : undefined;
-
-        // Execute all independent section queries in parallel (PERF-P2)
-        const [
-          tablesResult,
-          viewsResult,
-          indexesResult,
-          constraintsResult,
-          functionsResult,
-          triggersResult,
-          seqResult,
-          typesResult,
-          extResult,
-        ] = await Promise.all([
-          // Tables + columns (or compact mode without columns)
-          includeAll || sections.has("tables")
-            ? adapter.executeQuery(
-                `SELECT
-                n.nspname AS schema, c.relname AS name,
-                CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table' END AS type,
-                CASE WHEN c.reltuples = -1 THEN COALESCE(s.n_live_tup, 0) ELSE c.reltuples END::bigint AS row_count,
-                pg_table_size(c.oid) AS size_bytes,
-                obj_description(c.oid, 'pg_class') AS comment${columnsSubquery}
-              FROM pg_class c
-              JOIN pg_namespace n ON n.oid = c.relnamespace
-              LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
-              WHERE c.relkind IN ('r', 'p')
-                ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-              ORDER BY n.nspname, c.relname`,
-                qp,
-              )
-            : null,
-
-          // Views
-          includeAll || sections.has("views")
-            ? adapter.executeQuery(
-                `SELECT
-                n.nspname AS schema, c.relname AS name,
-                CASE c.relkind WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END AS type,
-                pg_get_viewdef(c.oid, true) AS definition
-              FROM pg_class c
-              JOIN pg_namespace n ON n.oid = c.relnamespace
-              WHERE c.relkind IN ('v', 'm')
-                ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-              ORDER BY n.nspname, c.relname`,
-                qp,
-              )
-            : null,
-
-          // Indexes
-          includeAll || sections.has("indexes")
-            ? adapter.executeQuery(
-                `SELECT
-                i.relname AS name, t.relname AS table_name, n.nspname AS schema,
-                am.amname AS type, ix.indisunique AS is_unique,
-                pg_get_indexdef(ix.indexrelid) AS definition,
-                pg_relation_size(i.oid) AS size_bytes
-              FROM pg_index ix
-              JOIN pg_class t ON t.oid = ix.indrelid
-              JOIN pg_class i ON i.oid = ix.indexrelid
-              JOIN pg_namespace n ON n.oid = t.relnamespace
-              JOIN pg_am am ON am.oid = i.relam
-              WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'"}
-                ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
-              ORDER BY n.nspname, t.relname, i.relname`,
-                qp,
-              )
-            : null,
-
-          // Constraints
-          includeAll || sections.has("constraints")
-            ? adapter.executeQuery(
-                `SELECT
-                c.conname AS name, t.relname AS table_name, n.nspname AS schema,
-                CASE c.contype WHEN 'p' THEN 'primary_key' WHEN 'f' THEN 'foreign_key'
-                  WHEN 'u' THEN 'unique' WHEN 'c' THEN 'check' WHEN 'x' THEN 'exclusion' END AS type,
-                pg_get_constraintdef(c.oid) AS definition
-              FROM pg_constraint c
-              JOIN pg_class t ON t.oid = c.conrelid
-              JOIN pg_namespace n ON n.oid = t.relnamespace
-              WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
-                ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
-              ORDER BY n.nspname, t.relname, c.conname`,
-                qp,
-              )
-            : null,
-
-          // Functions
-          includeAll || sections.has("functions")
-            ? adapter.executeQuery(
-                `SELECT
-                n.nspname AS schema, p.proname AS name,
-                pg_get_function_arguments(p.oid) AS arguments,
-                pg_get_function_result(p.oid) AS return_type,
-                l.lanname AS language, p.provolatile AS volatility
-              FROM pg_proc p
-              JOIN pg_namespace n ON n.oid = p.pronamespace
-              JOIN pg_language l ON l.oid = p.prolang
-              WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
-                ${extensionSchemaExclude} ${extOwnedClause("p.oid")} ${schemaWhere}
-              ORDER BY n.nspname, p.proname`,
-                qp,
-              )
-            : null,
-
-          // Triggers
-          includeAll || sections.has("triggers")
-            ? adapter.executeQuery(
-                `SELECT
-                t.tgname AS name, c.relname AS table_name, n.nspname AS schema,
-                CASE WHEN t.tgtype & 2 = 2 THEN 'BEFORE' WHEN t.tgtype & 64 = 64 THEN 'INSTEAD OF' ELSE 'AFTER' END AS timing,
-                array_remove(ARRAY[
-                  CASE WHEN t.tgtype & 4 = 4 THEN 'INSERT' END,
-                  CASE WHEN t.tgtype & 8 = 8 THEN 'DELETE' END,
-                  CASE WHEN t.tgtype & 16 = 16 THEN 'UPDATE' END,
-                  CASE WHEN t.tgtype & 32 = 32 THEN 'TRUNCATE' END
-                ], NULL) AS events,
-                p.proname AS function_name
-              FROM pg_trigger t
-              JOIN pg_class c ON c.oid = t.tgrelid
-              JOIN pg_namespace n ON n.oid = c.relnamespace
-              JOIN pg_proc p ON p.oid = t.tgfoid
-              WHERE NOT t.tgisinternal
-                ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-              ORDER BY n.nspname, c.relname, t.tgname`,
-                qp,
-              )
-            : null,
-
-          // Sequences
-          includeAll || sections.has("sequences")
-            ? adapter.executeQuery(
-                `SELECT
-                n.nspname AS schema, c.relname AS name,
-                (SELECT tc.relname || '.' || a.attname
-                 FROM pg_depend d
-                 JOIN pg_class tc ON tc.oid = d.refobjid
-                 JOIN pg_attribute a ON a.attrelid = tc.oid AND a.attnum = d.refobjsubid
-                 WHERE d.objid = c.oid AND d.classid = 'pg_class'::regclass AND d.deptype = 'a'
-                 LIMIT 1) AS owned_by
-              FROM pg_class c
-              JOIN pg_namespace n ON n.oid = c.relnamespace
-              WHERE c.relkind = 'S'
-                ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-              ORDER BY n.nspname, c.relname`,
-                qp,
-              )
-            : null,
-
-          // Custom types
-          includeAll || sections.has("types")
-            ? adapter.executeQuery(
-                `SELECT
-                n.nspname AS schema, t.typname AS name,
-                CASE t.typtype WHEN 'e' THEN 'enum' WHEN 'c' THEN 'composite' WHEN 'd' THEN 'domain' WHEN 'r' THEN 'range' END AS type,
-                CASE WHEN t.typtype = 'e' THEN
-                  (SELECT json_agg(e.enumlabel ORDER BY e.enumsortorder) FROM pg_enum e WHERE e.enumtypid = t.oid)
-                END AS values
-              FROM pg_type t
-              JOIN pg_namespace n ON n.oid = t.typnamespace
-              WHERE t.typtype IN ('e', 'c', 'd', 'r')
-                AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-                ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
-              ORDER BY n.nspname, t.typname`,
-                qp,
-              )
-            : null,
-
-          // Extensions (skip when schema filter is active — extensions are global objects)
-          (includeAll || sections.has("extensions")) && !parsed.schema
-            ? adapter.executeQuery(
-                `SELECT extname AS name, extversion AS version,
-                      n.nspname AS schema
-               FROM pg_extension e
-               JOIN pg_namespace n ON n.oid = e.extnamespace
-               ORDER BY e.extname`,
-              )
-            : null,
-        ]);
-
-        // Assign results to snapshot and stats
-        if (tablesResult !== null) {
-          snapshot["tables"] = tablesResult.rows ?? [];
-          stats.tables = tablesResult.rows?.length ?? 0;
-        }
-        if (viewsResult !== null) {
-          snapshot["views"] = viewsResult.rows ?? [];
-          stats.views = viewsResult.rows?.length ?? 0;
-        }
-        if (indexesResult !== null) {
-          snapshot["indexes"] = indexesResult.rows ?? [];
-          stats.indexes = indexesResult.rows?.length ?? 0;
-        }
-        if (constraintsResult !== null) {
-          snapshot["constraints"] = constraintsResult.rows ?? [];
-          stats.constraints = constraintsResult.rows?.length ?? 0;
-        }
-        if (functionsResult !== null) {
-          snapshot["functions"] = functionsResult.rows ?? [];
-          stats.functions = functionsResult.rows?.length ?? 0;
-        }
-        if (triggersResult !== null) {
-          snapshot["triggers"] = triggersResult.rows ?? [];
-          stats.triggers = triggersResult.rows?.length ?? 0;
-        }
-        if (seqResult !== null) {
-          snapshot["sequences"] = seqResult.rows ?? [];
-          stats.sequences = seqResult.rows?.length ?? 0;
-        }
-        if (typesResult !== null) {
-          snapshot["types"] = typesResult.rows ?? [];
-          stats.customTypes = typesResult.rows?.length ?? 0;
-        }
-        if (extResult !== null) {
-          snapshot["extensions"] = extResult.rows ?? [];
-          stats.extensions = extResult.rows?.length ?? 0;
-        }
-
-        return {
-          snapshot,
-          stats,
-          generatedAt: new Date().toISOString(),
-          ...(parsed.compact && { compact: true }),
-        };
-      } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_schema_snapshot",
-          }),
-        };
-      }
-    },
-  };
-}
 
 // =============================================================================
 // pg_constraint_analysis
@@ -369,16 +50,10 @@ export function createConstraintAnalysisTool(
         const parsed = ConstraintAnalysisSchema.parse(params);
 
         // Validate schema existence when filtering by schema
-        const schemaError = await checkSchemaExists(adapter, parsed.schema);
-        if (schemaError) return schemaError;
+        await checkSchemaExists(adapter, parsed.schema);
 
         // Validate table existence when filtering by table
-        const tableError = await checkTableExists(
-          adapter,
-          parsed.table,
-          parsed.schema,
-        );
-        if (tableError) return tableError;
+        await checkTableExists(adapter, parsed.table, parsed.schema);
 
         const runAll = !parsed.checks || parsed.checks.length === 0;
         const checks = new Set(parsed.checks ?? []);
@@ -418,7 +93,7 @@ export function createConstraintAnalysisTool(
             `SELECT n.nspname AS schema, c.relname AS table_name
            FROM pg_class c
            JOIN pg_namespace n ON n.oid = c.relnamespace
-           WHERE c.relkind IN ('r', 'p')
+           WHERE (c.relkind = 'p' OR (c.relkind = 'r' AND c.relispartition = false))
              AND n.nspname NOT IN ('pg_catalog', 'information_schema')
              AND n.nspname !~ '^pg_toast'
              AND NOT EXISTS (
@@ -458,6 +133,7 @@ export function createConstraintAnalysisTool(
           CROSS JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS x(attnum, ordinality)
           JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = x.attnum
           WHERE c.contype = 'f'
+            AND t.relispartition = false
             AND n.nspname NOT IN ('pg_catalog', 'information_schema')
             ${extensionSchemaExclude}
             AND NOT EXISTS (
@@ -495,7 +171,7 @@ export function createConstraintAnalysisTool(
           FROM pg_attribute a
           JOIN pg_class c ON c.oid = a.attrelid
           JOIN pg_namespace n ON n.oid = c.relnamespace
-          WHERE c.relkind IN ('r', 'p')
+          WHERE (c.relkind = 'p' OR (c.relkind = 'r' AND c.relispartition = false))
             AND a.attnum > 0 AND NOT a.attisdropped AND a.attnotnull = false
             AND n.nspname NOT IN ('pg_catalog', 'information_schema')
             AND n.nspname !~ '^pg_toast'
@@ -530,20 +206,18 @@ export function createConstraintAnalysisTool(
         }
 
         return {
-          findings,
+          success: true,
+          ...(findings.length > 0 ? { findings } : {}),
           summary: {
             totalFindings: findings.length,
-            byType,
-            bySeverity,
+            ...(Object.keys(byType).length > 0 ? { byType } : {}),
+            ...(Object.keys(bySeverity).length > 0 ? { bySeverity } : {}),
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_constraint_analysis",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_constraint_analysis",
+        });
       }
     },
   };
@@ -612,6 +286,17 @@ const DDL_RISK_PATTERNS: {
       "Use NOT VALID to skip validation, then VALIDATE CONSTRAINT separately",
     requiresDowntime: false,
     lockImpact: "SHARE ROW EXCLUSIVE on both tables",
+  },
+  {
+    pattern: /\bCREATE\s+TABLE\b(?!\s+IF\s+NOT\s+EXISTS)/i,
+    category: "schema_change",
+    riskLevel: "low",
+    description:
+      "CREATE TABLE without IF NOT EXISTS will fail if the table already exists. Unsafe for idempotency.",
+    mitigation:
+      "Consider using CREATE TABLE IF NOT EXISTS to make the migration idempotent.",
+    requiresDowntime: false,
+    lockImpact: "ACCESS EXCLUSIVE (brief)",
   },
   {
     pattern: /\bALTER\s+TABLE\b.*\bADD\s+COLUMN\b/i,
@@ -709,74 +394,73 @@ export function createMigrationRisksTool(
     outputSchema: MigrationRisksOutputSchema,
     annotations: readOnly("Migration Risks"),
     icons: getToolIcons("introspection", readOnly("Migration Risks")),
-    handler: (params: unknown, _context: RequestContext) =>
-      Promise.resolve()
-        .then(() => {
-          // Suppress unused-var — adapter captured by closure per tool factory pattern
-          void adapter;
-          const parsed = MigrationRisksSchema.parse(params);
+    handler: async (params: unknown, _context: RequestContext) => {
+      try {
+        const parsed = MigrationRisksSchema.parse(params);
 
-          interface Risk {
-            statement: string;
-            statementIndex: number;
-            riskLevel: "low" | "medium" | "high" | "critical";
-            category: string;
-            description: string;
-            mitigation?: string | undefined;
-          }
+        if (parsed.schema) {
+          await checkSchemaExists(adapter, parsed.schema);
+        }
 
-          const risks: Risk[] = [];
-          let requiresDowntime = false;
-          let highestRiskLevel: "low" | "medium" | "high" | "critical" = "low";
-          const lockImpacts = new Set<string>();
+        interface Risk {
+          statement: string;
+          statementIndex: number;
+          severity: "low" | "medium" | "high" | "critical";
+          category: string;
+          description: string;
+          mitigation?: string | undefined;
+        }
 
-          const riskOrder = { low: 0, medium: 1, high: 2, critical: 3 };
+        const risks: Risk[] = [];
+        let requiresDowntime = false;
+        let highestRiskLevel: "low" | "medium" | "high" | "critical" = "low";
+        const lockImpacts = new Set<string>();
 
-          for (let i = 0; i < parsed.statements.length; i++) {
-            const stmt = parsed.statements[i] ?? "";
+        const riskOrder = { low: 0, medium: 1, high: 2, critical: 3 };
 
-            for (const pattern of DDL_RISK_PATTERNS) {
-              if (pattern.pattern.test(stmt)) {
-                risks.push({
-                  statement:
-                    stmt.length > 200 ? stmt.slice(0, 200) + "..." : stmt,
-                  statementIndex: i,
-                  riskLevel: pattern.riskLevel,
-                  category: pattern.category,
-                  description: pattern.description,
-                  mitigation: pattern.mitigation,
-                });
+        for (let i = 0; i < parsed.statements.length; i++) {
+          const stmt = parsed.statements[i] ?? "";
 
-                if (pattern.requiresDowntime) {
-                  requiresDowntime = true;
-                }
-                if (
-                  riskOrder[pattern.riskLevel] > riskOrder[highestRiskLevel]
-                ) {
-                  highestRiskLevel = pattern.riskLevel;
-                }
-                lockImpacts.add(pattern.lockImpact);
+          for (const pattern of DDL_RISK_PATTERNS) {
+            if (pattern.pattern.test(stmt)) {
+              risks.push({
+                statement:
+                  stmt.length > 200 ? stmt.slice(0, 200) + "..." : stmt,
+                statementIndex: i,
+                severity: pattern.riskLevel,
+                category: pattern.category,
+                description: pattern.description,
+                mitigation: pattern.mitigation,
+              });
+
+              if (pattern.requiresDowntime) {
+                requiresDowntime = true;
               }
+              if (riskOrder[pattern.riskLevel] > riskOrder[highestRiskLevel]) {
+                highestRiskLevel = pattern.riskLevel;
+              }
+              lockImpacts.add(pattern.lockImpact);
             }
           }
+        }
 
-          return {
-            risks,
-            summary: {
-              totalStatements: parsed.statements.length,
-              totalRisks: risks.length,
-              highestRisk: highestRiskLevel,
-              requiresDowntime,
-              estimatedLockImpact:
-                lockImpacts.size > 0 ? [...lockImpacts].join("; ") : "None",
-            },
-          };
-        })
-        .catch((error: unknown) => ({
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_migration_risks",
-          }),
-        })),
+        return {
+          success: true,
+          ...(risks.length > 0 ? { risks } : {}),
+          summary: {
+            totalStatements: parsed.statements.length,
+            totalRisks: risks.length,
+            highestSeverity: highestRiskLevel,
+            requiresDowntime,
+            estimatedLockImpact:
+              lockImpacts.size > 0 ? [...lockImpacts].join("; ") : "None",
+          },
+        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_migration_risks",
+        });
+      }
+    },
   };
 }

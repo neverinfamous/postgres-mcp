@@ -4,14 +4,14 @@
  * Index listing and creation tools.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerErrorResponse } from "./error-helpers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import {
   GetIndexesSchemaBase,
@@ -22,7 +22,7 @@ import {
 import {
   IndexListOutputSchema,
   IndexOperationOutputSchema,
-} from "./schemas.js";
+} from "./schemas/index.js";
 
 /**
  * Get indexes for a table
@@ -75,10 +75,9 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
           [schemaName],
         );
         if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
-          };
+          throw new Error(
+            `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+          );
         }
 
         const tableCheck = await adapter.executeQuery(
@@ -86,23 +85,30 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
           [schemaName, table],
         );
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Table '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
-          };
+          throw new Error(
+            `Table '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
+          );
         }
 
         const indexes = await adapter.getTableIndexes(table, schema);
+
+        // Apply limit if specified
+        const totalCount = indexes.length;
+        const effectiveLimit = limit ?? 1000;
+        const limited = indexes.slice(0, effectiveLimit);
+
         return {
-          indexes,
-          count: indexes.length,
+          indexes: limited,
+          count: limited.length,
+          totalCount,
           table: `${schemaName}.${table}`,
+          ...(totalCount > effectiveLimit && {
+            truncated: true,
+            hint: `Showing ${String(effectiveLimit)} of ${String(totalCount)} indexes.`,
+          }),
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_get_indexes" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_get_indexes" });
       }
     },
   };
@@ -219,21 +225,15 @@ export function createCreateIndexTool(
             }
           }
           // Return structured error
-          return {
-            success: false,
-            error: formatPostgresError(error, {
-              tool: "pg_create_index",
-              index: name,
-              table,
-              schema: schemaName,
-            }),
-          };
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_create_index",
+            index: name,
+            table,
+            schema: schemaName,
+          });
         }
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_create_index" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_create_index" });
       }
     },
   };
@@ -337,18 +337,7 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
 
         const sql = `DROP INDEX ${concurrentlyClause}${ifExistsClause}"${schemaName}"."${name}"${cascadeClause}`;
 
-        try {
-          await adapter.executeQuery(sql);
-        } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
-              tool: "pg_drop_index",
-              index: name,
-              schema: schemaName,
-            }),
-          };
-        }
+        await adapter.executeQuery(sql);
         return {
           success: true,
           index: `${schemaName}.${name}`,
@@ -356,10 +345,14 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
           sql,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_drop_index" }),
-        };
+        const parsed = DropIndexSchema.safeParse(params);
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_drop_index",
+          ...(parsed.success &&
+            parsed.data.name !== "" && { index: parsed.data.name }),
+          ...(parsed.success &&
+            parsed.data.schema && { schema: parsed.data.schema }),
+        });
       }
     },
   };

@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPostgisTools } from "../index.js";
-import type { PostgresAdapter } from "../../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -164,9 +164,7 @@ describe("Handler Execution", () => {
   describe("pg_geometry_buffer", () => {
     it("should create buffer from WKT geometry", async () => {
       mockAdapter.executeQuery.mockResolvedValue({
-        rows: [
-          { buffer_geojson: '{"type":"Polygon"}', buffer_wkt: "POLYGON(...)" },
-        ],
+        rows: [{ buffer_geojson: '{"type":"Polygon"}' }],
       });
 
       const tool = tools.find((t) => t.name === "pg_geometry_buffer")!;
@@ -184,9 +182,7 @@ describe("Handler Execution", () => {
 
     it("should detect GeoJSON input format", async () => {
       mockAdapter.executeQuery.mockResolvedValue({
-        rows: [
-          { buffer_geojson: "{}", buffer_wkt: "", inputFormat: "GeoJSON" },
-        ],
+        rows: [{ buffer_geojson: "{}", inputFormat: "GeoJSON" }],
       });
 
       const tool = tools.find((t) => t.name === "pg_geometry_buffer")!;
@@ -325,7 +321,6 @@ describe("Handler Execution", () => {
             {
               id: 1,
               transformed_geojson: "{}",
-              transformed_wkt: "POINT(0 0)",
               output_srid: 3857,
             },
           ],
@@ -365,7 +360,6 @@ describe("Handler Execution", () => {
             {
               id: 1,
               transformed_geojson: "{}",
-              transformed_wkt: "POINT(0 0)",
               output_srid: 3857,
             },
           ],
@@ -417,7 +411,6 @@ describe("Handler Execution", () => {
             {
               id: 1,
               transformed_geojson: "{}",
-              transformed_wkt: "POINT(0 0)",
               output_srid: 3857,
             },
           ],
@@ -450,17 +443,20 @@ describe("Error Handling", () => {
     mockContext = createMockRequestContext();
   });
 
-  it("should propagate database errors from extension check", async () => {
+  it("should return structured error for database errors from extension check", async () => {
     const dbError = new Error('extension "postgis" is not available');
     mockAdapter.executeQuery.mockRejectedValue(dbError);
 
     const tool = tools.find((t) => t.name === "pg_postgis_create_extension")!;
 
-    // pg_postgis_create_extension does not have structured error handling (no try/catch)
-    // so it still throws raw errors
-    await expect(tool.handler({}, mockContext)).rejects.toThrow(
-      'extension "postgis" is not available',
-    );
+    // pg_postgis_create_extension now has structured error handling
+    const result = await tool.handler({}, mockContext);
+    expect(result).toMatchObject({
+      success: false,
+      error: 'extension "postgis" is not available',
+      code: "EXTENSION_MISSING",
+      category: "config",
+    });
   });
 });
 
@@ -541,7 +537,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
         unknown
       >;
       expect(result["success"]).toBe(false);
-      expect(result["error"]).toMatch(/not found/i);
+      expect(result["error"]).toMatch(/does not exist/i);
     },
   );
 
@@ -595,7 +591,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
       mockContext,
     )) as Record<string, unknown>;
     expect(result["success"]).toBe(false);
-    expect(result["error"]).toMatch(/not found/i);
+    expect(result["error"]).toMatch(/does not exist/i);
   });
 
   it("pg_geo_transform should return structured error for nonexistent table", async () => {
@@ -607,7 +603,7 @@ describe("Structured Error Handling (parsePostgresError)", () => {
       mockContext,
     )) as Record<string, unknown>;
     expect(result["success"]).toBe(false);
-    expect(result["error"]).toMatch(/not found/i);
+    expect(result["error"]).toMatch(/does not exist/i);
   });
   it("pg_geocode should return structured error for out-of-bounds latitude", async () => {
     const tool = tools.find((t) => t.name === "pg_geocode")!;
@@ -693,7 +689,6 @@ describe("PostGIS Standalone Geometry Edge Cases", () => {
       rows: [
         {
           buffer_geojson: '{"type":"Polygon"}',
-          buffer_wkt: "POLYGON(...)",
           distance_meters: 1000,
           srid: 4326,
         },
@@ -719,7 +714,6 @@ describe("PostGIS Standalone Geometry Edge Cases", () => {
       rows: [
         {
           buffer_geojson: null,
-          buffer_wkt: null,
           distance_meters: 10,
           srid: 4326,
         },
@@ -745,7 +739,6 @@ describe("PostGIS Standalone Geometry Edge Cases", () => {
         {
           intersects: true,
           intersection_geojson: "{}",
-          intersection_wkt: "GEOMETRYCOLLECTION EMPTY",
           intersection_area_sqm: 0,
         },
       ],
@@ -874,8 +867,8 @@ describe("PostGIS Advanced Tool Edge Cases", () => {
       mockContext,
     )) as Record<string, unknown>;
 
-    // Should return empty object for undefined row
-    expect(result).toEqual({});
+    // Should return success: true for undefined row
+    expect(result).toEqual({ success: true });
   });
 
   it("pg_geo_index_optimize should warn when table filter matches nothing", async () => {
@@ -890,8 +883,8 @@ describe("PostGIS Advanced Tool Edge Cases", () => {
       mockContext,
     )) as Record<string, unknown>;
 
-    expect(result["warning"]).toContain("not found");
-    expect(result["spatialIndexes"]).toEqual([]);
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toContain("not found");
   });
 
   it("pg_geo_index_optimize should recommend GiST for large tables without spatial indexes", async () => {
@@ -991,7 +984,8 @@ describe("PostGIS Advanced Tool Edge Cases", () => {
       mockContext,
     )) as Record<string, unknown>;
 
-    expect(result["error"]).toContain("must be greater than 0");
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/must be greater than 0/i);
   });
 
   it("pg_geo_cluster with kmeans should error for empty table", async () => {
@@ -1010,8 +1004,8 @@ describe("PostGIS Advanced Tool Edge Cases", () => {
       mockContext,
     )) as Record<string, unknown>;
 
-    expect(result["error"]).toContain("No rows found");
-    expect(result["rowCount"]).toBe(0);
+    expect(result["success"]).toBe(false);
+    expect(result["error"]).toMatch(/No rows found/i);
   });
 
   it("pg_geo_cluster with dbscan should return noise hints when noise > 50%", async () => {

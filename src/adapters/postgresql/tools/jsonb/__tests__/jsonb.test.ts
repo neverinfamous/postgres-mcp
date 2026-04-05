@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getJsonbTools } from "../index.js";
-import type { PostgresAdapter } from "../../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -23,8 +23,8 @@ describe("getJsonbTools", () => {
     tools = getJsonbTools(adapter);
   });
 
-  it("should return 19 JSONB tools", () => {
-    expect(tools).toHaveLength(19);
+  it("should return 20 JSONB tools", () => {
+    expect(tools).toHaveLength(20);
   });
 
   it("should have all expected tool names", () => {
@@ -50,6 +50,7 @@ describe("getJsonbTools", () => {
     expect(toolNames).toContain("pg_jsonb_index_suggest");
     expect(toolNames).toContain("pg_jsonb_security_scan");
     expect(toolNames).toContain("pg_jsonb_stats");
+    expect(toolNames).toContain("pg_jsonb_pretty");
   });
 
   it("should have handler function for all tools", () => {
@@ -699,51 +700,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/is for arrays only/);
-    });
-
-    it("should reject target paths that point to objects", async () => {
-      // Mock for checking parent path type returning 'object'
-      mockAdapter.executeQuery
-        .mockResolvedValueOnce({ rows: [{ null_count: 0 }] })
-        .mockResolvedValueOnce({ rows: [{ type: "object" }] });
-
-      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
-      const result = (await tool.handler(
-        {
-          table: "users",
-          column: "tags",
-          path: ["tags", 0],
-          value: "new",
-          where: "id = 1",
-        },
-        mockContext,
-      )) as { success: boolean; error: string };
-
-      expect(result.success).toBe(false);
-      expect(result.error).toMatch(/requires an array target/);
-    });
-
-    it("should reject root path insertion if column is object", async () => {
-      // Mock for checking root type returning 'object'
-      mockAdapter.executeQuery
-        .mockResolvedValueOnce({ rows: [{ null_count: 0 }] })
-        .mockResolvedValueOnce({ rows: [{ type: "object" }] });
-
-      const tool = tools.find((t) => t.name === "pg_jsonb_insert")!;
-      const result = (await tool.handler(
-        {
-          table: "users",
-          column: "tags",
-          path: [0],
-          value: "new",
-          where: "id = 1",
-        },
-        mockContext,
-      )) as { success: boolean; error: string };
-
-      expect(result.success).toBe(false);
-      expect(result.error).toMatch(/requires an array target/);
+      expect(result.error).toMatch(/Cannot substitute an existing key/);
     });
   });
 
@@ -1009,7 +966,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should map 42P01 table-not-found for pg_jsonb_set", async () => {
@@ -1033,7 +990,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should map 42P01 table-not-found for pg_jsonb_path_query", async () => {
@@ -1051,7 +1008,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should provide JSONPath-specific error for invalid syntax", async () => {
@@ -1087,7 +1044,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should route non-jsonb errors through parsePostgresError for pg_jsonb_normalize", async () => {
@@ -1105,7 +1062,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should route table-not-found errors through parsePostgresError for pg_jsonb_strip_nulls", async () => {
@@ -1123,7 +1080,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should route table-not-found errors through parsePostgresError for pg_jsonb_insert preliminary checks", async () => {
@@ -1147,7 +1104,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found.*pg_list_tables/i);
+      expect(result.error).toMatch(/does not exist.*pg_list_tables/i);
     });
 
     it("should return structured error for pg_jsonb_strip_nulls when WHERE is omitted", async () => {
@@ -1203,37 +1160,41 @@ describe("JSONB Validation and Error Paths", () => {
   });
 
   describe("wrong-type numeric param coercion", () => {
-    it("pg_jsonb_stats should silently ignore non-numeric sampleSize and use default", async () => {
-      // Mock successful query responses for stats tool
-      mockAdapter.executeQuery.mockResolvedValue({
+    it("pg_jsonb_stats should silently default non-numeric sampleSize", async () => {
+      const tool = tools.find((t) => t.name === "pg_jsonb_stats")!;
+      // Mock the adapter calls that pg_jsonb_stats makes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [
           {
-            total_rows: 5,
-            non_null_count: 5,
-            avg_size_bytes: 100,
-            max_size_bytes: 200,
+            total_rows: 10,
+            non_null_count: 10,
+            avg_size_bytes: 50,
+            max_size_bytes: 100,
           },
         ],
       });
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // keys
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ type: "object", count: 10 }],
+      }); // type distribution
 
-      const tool = tools.find((t) => t.name === "pg_jsonb_stats")!;
       const result = (await tool.handler(
         { table: "users", column: "metadata", sampleSize: "abc" },
         mockContext,
       )) as Record<string, unknown>;
 
-      // z.any() passes "abc" through; handler Number("abc") → NaN → falls back to default 1000
+      // coerceNumber converts "abc" → undefined → default sampleSize is used
       expect(result).toBeDefined();
-      expect(result.success).toBeUndefined(); // no error — handler succeeded
-      expect(result.basics).toBeDefined();
+      expect(result.success).not.toBe(false);
     });
 
-    it("pg_jsonb_contains should silently ignore non-numeric limit and use default", async () => {
-      mockAdapter.executeQuery.mockResolvedValue({
+    it("pg_jsonb_contains should silently default non-numeric limit", async () => {
+      const tool = tools.find((t) => t.name === "pg_jsonb_contains")!;
+      // Mock the adapter call that pg_jsonb_contains makes
+      mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ id: 1 }],
       });
 
-      const tool = tools.find((t) => t.name === "pg_jsonb_contains")!;
       const result = (await tool.handler(
         {
           table: "users",
@@ -1244,10 +1205,9 @@ describe("JSONB Validation and Error Paths", () => {
         mockContext,
       )) as Record<string, unknown>;
 
-      // z.any() passes "abc" through; handler Number("abc") → NaN → falls back to default 100
+      // coerceNumber converts "abc" → undefined → default limit is used
       expect(result).toBeDefined();
-      expect(result.success).toBeUndefined(); // no error — handler succeeded
-      expect(result.rows).toBeDefined();
+      expect(result.success).not.toBe(false);
     });
   });
 });

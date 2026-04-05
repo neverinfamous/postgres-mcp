@@ -1,7 +1,7 @@
 /**
  * postgres-mcp - Auth Module
  *
- * OAuth 2.0 authentication and authorization for PostgreSQL MCP Server.
+ * OAuth 2.1 authentication and authorization for PostgreSQL MCP Server.
  */
 
 // Types
@@ -30,12 +30,15 @@ export {
   AuthServerDiscoveryError,
   JwksFetchError,
   ClientRegistrationError,
+  isOAuthError,
 } from "./errors.js";
 
 // Scopes
 export {
   SCOPES,
   ALL_SCOPES,
+  BASE_SCOPES,
+  SCOPE_PATTERNS,
   TOOL_GROUP_SCOPES,
   parseScopes,
   hasScope,
@@ -50,19 +53,21 @@ export {
 export type { StandardScope } from "./scopes.js";
 
 // Components
-export { TokenValidator, createTokenValidator } from "./TokenValidator.js";
+export { TokenValidator, createTokenValidator } from "./token-validator.js";
 export {
   AuthorizationServerDiscovery,
   createAuthServerDiscovery,
-} from "./AuthorizationServerDiscovery.js";
+} from "./authorization-server-discovery.js";
 export {
   OAuthResourceServer,
   createOAuthResourceServer,
-} from "./OAuthResourceServer.js";
+} from "./oauth-resource-server.js";
+
+// Shared helpers
+export { extractBearerToken } from "./helpers.js";
 
 // Middleware
 export {
-  extractBearerToken,
   createAuthContext,
   validateAuth,
   requireScope,
@@ -74,3 +79,10 @@ export type {
   AuthenticatedContext,
   AuthMiddlewareConfig,
 } from "./middleware.js";
+
+// Transport-agnostic utilities
+export {
+  createAuthenticatedContext,
+  validateAuth as validateAuthTransportAgnostic,
+  formatOAuthError as formatOAuthErrorTransportAgnostic,
+} from "./transport-agnostic.js";

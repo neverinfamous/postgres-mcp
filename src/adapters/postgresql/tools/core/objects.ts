@@ -4,7 +4,7 @@
  * List and describe database objects (tables, views, functions, etc.).
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
@@ -12,16 +12,18 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerErrorResponse } from "./error-helpers.js";
 import {
   ListObjectsSchemaBase,
   ListObjectsSchema,
+  VALID_OBJECT_TYPES,
   ObjectDetailsSchema,
   ObjectDetailsSchemaBase,
+  VALID_OBJECT_DETAIL_TYPES,
   ObjectListOutputSchema,
   ObjectDetailsOutputSchema,
   ExtensionListOutputSchema,
-} from "./schemas.js";
+} from "./schemas/index.js";
 
 /**
  * List database objects
@@ -41,6 +43,24 @@ export function createListObjectsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { schema, types, limit } = ListObjectsSchema.parse(params);
+
+        // Validate types against allowed values (handler-side since Base schema uses z.string())
+        if (types) {
+          const invalidTypes = types.filter(
+            (t) => !(VALID_OBJECT_TYPES as readonly string[]).includes(t),
+          );
+          if (invalidTypes.length > 0) {
+            return {
+              success: false,
+              error: `Validation error: Invalid type(s): ${invalidTypes.map((t) => `"${t}"`).join(", ")}. Valid types: ${VALID_OBJECT_TYPES.join(", ")}`,
+              code: "VALIDATION_ERROR",
+              category: "validation",
+              suggestion:
+                "Check the input parameters match the expected schema.",
+              recoverable: false,
+            };
+          }
+        }
 
         const schemaFilter = schema
           ? `AND n.nspname = '${schema}'`
@@ -188,12 +208,9 @@ export function createListObjectsTool(
           }),
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_list_objects",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_list_objects",
+        });
       }
     },
   };
@@ -217,6 +234,21 @@ export function createObjectDetailsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { name, schema, type } = ObjectDetailsSchema.parse(params);
+
+        // Validate type against allowed values (handler-side since Base schema uses z.string())
+        if (
+          type &&
+          !(VALID_OBJECT_DETAIL_TYPES as readonly string[]).includes(type)
+        ) {
+          return {
+            success: false,
+            error: `Validation error: Invalid type "${type}". Valid types: ${VALID_OBJECT_DETAIL_TYPES.join(", ")}`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion: "Check the input parameters match the expected schema.",
+            recoverable: false,
+          };
+        }
         const schemaName = schema ?? "public";
 
         // Determine the actual object type
@@ -245,33 +277,28 @@ export function createObjectDetailsTool(
         ]);
         const detectedType = (
           detectResult.rows?.[0] as { object_type: string } | undefined
-        )?.object_type as typeof type;
+        )?.object_type;
 
         // Validate type if specified
         if (type && detectedType && type !== detectedType) {
-          return {
-            success: false,
-            error:
-              `Object '${schemaName}.${name}' is a ${detectedType}, not a ${type}. ` +
-              `Use type: '${detectedType}' or omit type to auto-detect.`,
-          };
+          throw new Error(
+            `Object '${schemaName}.${name}' is a ${detectedType}, not a ${type}. Use type: '${detectedType}' or omit type to auto-detect.`,
+          );
         }
 
         // If type was provided but object not found, return clear error
         if (type && !detectedType) {
-          return {
-            success: false,
-            error: `Object '${schemaName}.${name}' not found (searched as ${type}). Use pg_list_objects to discover available objects.`,
-          };
+          throw new Error(
+            `Object '${schemaName}.${name}' not found (searched as ${type}). Use pg_list_objects to discover available objects.`,
+          );
         }
 
         const objectType = type ?? detectedType;
 
         if (!objectType) {
-          return {
-            success: false,
-            error: `Object '${schemaName}.${name}' not found. Use pg_list_objects to discover available objects.`,
-          };
+          throw new Error(
+            `Object '${schemaName}.${name}' not found. Use pg_list_objects to discover available objects.`,
+          );
         }
 
         let details: Record<string, unknown> = {
@@ -402,12 +429,9 @@ export function createObjectDetailsTool(
 
         return details;
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_object_details",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_object_details",
+        });
       }
     },
   };
@@ -423,7 +447,7 @@ export function createListExtensionsTool(
     name: "pg_list_extensions",
     description: "List installed PostgreSQL extensions with versions.",
     group: "core",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: ExtensionListOutputSchema,
     annotations: readOnly("List Extensions"),
     icons: getToolIcons("core", readOnly("List Extensions")),
@@ -445,12 +469,9 @@ export function createListExtensionsTool(
           count: result.rows?.length ?? 0,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_list_extensions",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_list_extensions",
+        });
       }
     },
   };

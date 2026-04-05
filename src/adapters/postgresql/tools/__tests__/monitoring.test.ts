@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getMonitoringTools } from "../monitoring/index.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -216,10 +216,8 @@ describe("pg_table_sizes", () => {
       { schema: "nonexistent" },
       mockContext,
     )) as { success: boolean; error: string };
-    expect(result).toEqual({
-      success: false,
-      error: expect.stringContaining("nonexistent"),
-    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("nonexistent");
   });
 });
 
@@ -990,9 +988,9 @@ describe("monitoring.ts branch coverage", () => {
   });
 
   it("pg_table_sizes truncation indicator when results equal limit (lines 152-161)", async () => {
-    // 50 tables (default limit) to trigger truncation path
+    // 10 tables (default limit) to trigger truncation path
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: Array(50).fill({
+      rows: Array(10).fill({
         schema: "public",
         table_name: "t",
         table_size: "1 MB",
@@ -1014,7 +1012,7 @@ describe("monitoring.ts branch coverage", () => {
 
     expect(result.truncated).toBe(true);
     expect(result.totalCount).toBe(100);
-    expect(result.count).toBe(50);
+    expect(result.count).toBe(10);
   });
 
   it("pg_table_sizes total_bytes string coercion", async () => {
@@ -1210,21 +1208,21 @@ describe("monitoring.ts branch coverage", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = tools.find((t) => t.name === "pg_database_size")!;
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   it("pg_server_version returns undefined row", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = tools.find((t) => t.name === "pg_server_version")!;
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   it("pg_uptime returns undefined row", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = tools.find((t) => t.name === "pg_uptime")!;
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   it("pg_resource_usage_analyze PG17+ code path", async () => {
@@ -1711,7 +1709,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
 
   // basic.ts L162-178: pg_table_sizes truncation path
   it("pg_table_sizes should indicate truncation when results hit limit", async () => {
-    const rows = Array(50).fill({
+    const rows = Array(10).fill({
       schema: "public",
       table_name: "t",
       table_size: "8 kB",
@@ -1719,7 +1717,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
       total_size: "8 kB",
       total_bytes: "8192",
     });
-    // Main query returns exactly 50 rows (default limit)
+    // Main query returns exactly 10 rows (default limit)
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows });
     // Count query
     mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -1733,7 +1731,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
       totalCount: number;
       truncated: boolean;
     };
-    expect(result.count).toBe(50);
+    expect(result.count).toBe(10);
     expect(result.totalCount).toBe(100);
     expect(result.truncated).toBe(true);
   });
@@ -1796,7 +1794,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = findTool("pg_database_size");
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   // basic.ts L68-72: pg_database_size DB error
@@ -1818,7 +1816,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = findTool("pg_server_version");
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   // basic.ts L336-340: pg_server_version DB error
@@ -1839,7 +1837,7 @@ describe("monitoring/basic.ts — uncovered branches", () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
     const tool = findTool("pg_uptime");
     const result = await tool.handler({}, mockContext);
-    expect(result).toBeUndefined();
+    expect(result).toEqual({ success: true });
   });
 
   // basic.ts L478-482: pg_uptime DB error

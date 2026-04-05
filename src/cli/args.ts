@@ -46,6 +46,18 @@ export interface ParsedArgs {
 
   /** Whether to exit after printing help/version */
   shouldExit: boolean;
+
+  /** Audit log file path (enables audit logging when set) */
+  auditLogPath?: string;
+
+  /** Whether to redact tool arguments from audit entries */
+  auditRedact?: boolean;
+
+  /** Whether to log read-scoped tools */
+  auditReads?: boolean;
+
+  /** Maximum audit log file size in bytes before rotation */
+  auditLogMaxSize?: number;
 }
 
 import { VERSION } from "../utils/version.js";
@@ -233,6 +245,29 @@ export function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
         return result;
 
       default:
+        // Audit options (placed before default fallthrough)
+        if (arg === "--audit-log") {
+          if (nextArg && !nextArg.startsWith("-")) {
+            result.auditLogPath = nextArg;
+            i++;
+          }
+          break;
+        }
+        if (arg === "--audit-redact") {
+          result.auditRedact = true;
+          break;
+        }
+        if (arg === "--audit-reads") {
+          result.auditReads = true;
+          break;
+        }
+        if (arg === "--audit-log-max-size") {
+          if (nextArg && !nextArg.startsWith("-")) {
+            result.auditLogMaxSize = parseInt(nextArg, 10);
+            i++;
+          }
+          break;
+        }
         if (arg?.startsWith("-")) {
           console.error(`Unknown option: ${arg}`);
           printHelp();
@@ -402,7 +437,7 @@ Server Options:
   --log-level <level>       Log level: debug, info, notice, warning, error, critical, alert, emergency
 
 OAuth Options:
-  --oauth-enabled, -o       Enable OAuth 2.0 authentication
+  --oauth-enabled, -o       Enable OAuth 2.1 authentication
   --oauth-issuer <url>      Authorization server URL (issuer)
   --oauth-audience <aud>    Expected token audience
   --oauth-jwks-uri <url>    JWKS URI (auto-discovered from issuer if not set)
@@ -426,5 +461,16 @@ Environment Variables:
   OAUTH_AUDIENCE            Expected token audience
   OAUTH_JWKS_URI            JWKS endpoint URL
   OAUTH_CLOCK_TOLERANCE     Clock tolerance in seconds
+
+Audit Options:
+  --audit-log <path>        Enable JSONL audit trail for write/admin tool calls
+  --audit-redact            Omit tool arguments from audit entries
+  --audit-reads             Enable audit logging for read-scoped tool calls (default: off)
+  --audit-log-max-size <bytes>  Maximum log file size before rotation (default: 10485760)
+
+  AUDIT_LOG_PATH            Audit log file path
+  AUDIT_REDACT              Redact audit args (true/false)
+  AUDIT_READS               Enable read-scope audit logging (true/false)
+  AUDIT_LOG_MAX_SIZE        Max log file size in bytes
 `);
 }

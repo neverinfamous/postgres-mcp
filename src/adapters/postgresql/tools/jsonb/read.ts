@@ -1,19 +1,24 @@
 /**
  * PostgreSQL JSONB Tools - Read Operations
  *
- * Read-only JSONB tools: extract, contains, pathQuery, agg, keys, typeof.
+ * Read-only JSONB tools: extract, contains, pathQuery.
  * Also exports shared utilities: toJsonString, resolveJsonbTable, parseSelectAlias.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
+import {
+  coerceLimit,
+  DEFAULT_QUERY_LIMIT,
+} from "../../../../utils/query-helpers.js";
 import {
   sanitizeTableName,
   sanitizeIdentifier,
@@ -22,30 +27,33 @@ import {
   JsonbExtractSchemaBase,
   JsonbContainsSchemaBase,
   JsonbPathQuerySchemaBase,
-  JsonbTypeofSchemaBase,
-  JsonbKeysSchemaBase,
-  JsonbAggSchemaBase,
   JsonbExtractSchema,
   JsonbContainsSchema,
   JsonbPathQuerySchema,
-  JsonbTypeofSchema,
-  JsonbKeysSchema,
-  JsonbAggSchema,
   normalizePathToArray,
   parseJsonbValue,
   JsonbExtractOutputSchema,
   JsonbContainsOutputSchema,
   JsonbPathQueryOutputSchema,
-  JsonbAggOutputSchema,
-  JsonbKeysOutputSchema,
-  JsonbTypeofOutputSchema,
 } from "../../schemas/index.js";
 
 /**
  * Convert value to a valid JSON string for PostgreSQL's ::jsonb cast
- * Always uses JSON.stringify to ensure proper encoding
+ * If the value is a string that looks like a JSON object or array, it is parsed and
+ * validated to support raw JSON literals, throwing a ValidationError if malformed.
  */
 export function toJsonString(value: unknown): string {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        JSON.parse(trimmed);
+        return trimmed;
+      } catch {
+        throw new ValidationError("Invalid JSON string literal provided");
+      }
+    }
+  }
   return JSON.stringify(value);
 }
 
@@ -94,27 +102,23 @@ export function createJsonbExtractTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = JsonbExtractSchema.parse(params);
-        const rawLimit = Number(parsed.limit);
-        const limit =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
+        const limit = coerceLimit(parsed.limit, undefined);
         const whereClause = parsed.where
           ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
         const limitClause =
-          limit !== undefined ? ` LIMIT ${String(limit)}` : "";
+          limit !== null && limit !== undefined
+            ? ` LIMIT ${String(limit)}`
+            : "";
 
         // After preprocess and refine, table, column, and path are guaranteed set
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
         if (parsed.path === undefined) {
-          return { success: false, error: "path is required" };
+          throw new ValidationError("path is required");
         }
         // Use normalizePathToArray for PostgreSQL #> operator
         const pathArray = normalizePathToArray(parsed.path);
@@ -125,7 +129,7 @@ export function createJsonbExtractTool(
           table,
           parsed.schema,
         );
-        if (tableError) return tableError;
+        if (tableError) throw new ValidationError(tableError.error);
 
         // Build select expression with optional additional columns
         let selectExpr = `${sanitizeIdentifier(column)} #> $1 as extracted_value`;
@@ -162,10 +166,16 @@ export function createJsonbExtractTool(
             return row;
           });
           const allNulls = rows?.every((r) => r["value"] === null) ?? false;
-          const response: { rows: unknown; count: number; hint?: string } = {
-            rows,
+          const response: {
+            success: boolean;
+            rows?: unknown;
+            count: number;
+            hint?: string;
+          } = {
+            success: true,
             count: rows?.length ?? 0,
           };
+          if (rows && rows.length > 0) response.rows = rows;
           if (allNulls && (rows?.length ?? 0) > 0) {
             response.hint =
               "All values are null - path may not exist in data. Use pg_jsonb_typeof to check.";
@@ -179,25 +189,24 @@ export function createJsonbExtractTool(
         // Check if all results are null (path may not exist)
         const allNulls = rows?.every((r) => r.value === null) ?? false;
         const response: {
-          rows: { value: unknown }[] | undefined;
+          success: boolean;
+          rows?: { value: unknown }[];
           count: number;
           hint?: string;
         } = {
-          rows,
+          success: true,
           count: rows?.length ?? 0,
         };
+        if (rows && rows.length > 0) response.rows = rows;
         if (allNulls && (rows?.length ?? 0) > 0) {
           response.hint =
             "All values are null - path may not exist in data. Use pg_jsonb_typeof to check.";
         }
         return response;
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_jsonb_extract",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_jsonb_extract",
+        });
       }
     },
   };
@@ -222,7 +231,7 @@ export function createJsonbContainsTool(
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
         if (!table || !column) {
-          return { success: false, error: "table and column are required" };
+          throw new ValidationError("table and column are required");
         }
 
         // Validate schema and build qualified table name
@@ -231,23 +240,15 @@ export function createJsonbContainsTool(
           table,
           parsed.schema,
         );
-        if (tableError) return tableError;
+        if (tableError) throw new ValidationError(tableError.error);
 
         const { select, where } = parsed;
         // Parse JSON string values from MCP clients
         const value = parseJsonbValue(parsed.value);
 
-        // Apply default limit (100) to prevent large payloads
-        const DEFAULT_LIMIT = 100;
-        const rawLimit = Number(parsed.limit);
-        const requestedLimit =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
-        const effectiveLimit =
-          requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
+        // Coerce limit (default 100, 0 = unlimited)
+        const resolvedLimit = coerceLimit(parsed.limit, DEFAULT_QUERY_LIMIT);
+        const effectiveLimit = resolvedLimit ?? 0;
 
         const selectCols =
           select !== undefined && select.length > 0
@@ -295,15 +296,17 @@ export function createJsonbContainsTool(
           !Array.isArray(value) &&
           Object.keys(value).length === 0;
         const response: {
-          rows: unknown;
+          success: boolean;
+          rows?: unknown;
           count: number;
           truncated?: boolean;
           totalCount?: number;
           warning?: string;
         } = {
-          rows,
+          success: true,
           count: rows.length,
         };
+        if (rows.length > 0) response.rows = rows;
         if (isTruncated) {
           response.truncated = true;
           // Get exact total count
@@ -320,13 +323,10 @@ export function createJsonbContainsTool(
             "Empty {} matches ALL rows - this is PostgreSQL containment semantics";
         }
         return response;
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_jsonb_contains",
-          }),
-        };
+      } catch (error: unknown) {
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_jsonb_contains",
+        });
       }
     },
   };
@@ -347,88 +347,120 @@ export function createJsonbPathQueryTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = JsonbPathQuerySchema.parse(params);
-        // Resolve table/column from optional aliases
         const table = parsed.table ?? parsed.tableName;
         const column = parsed.column ?? parsed.col;
-        if (!table || !column) {
-          return { success: false, error: "table and column are required" };
-        }
-
-        // Validate schema and build qualified table name
-        const [qualifiedTable, tableError] = await resolveJsonbTable(
-          adapter,
-          table,
-          parsed.schema,
-        );
-        if (tableError) return tableError;
-
+        const json = parsed.json;
         const { path, vars, where } = parsed;
-        const whereClause = where ? ` WHERE ${sanitizeWhereClause(where)}` : "";
         const varsJson = vars ? JSON.stringify(vars) : "{}";
 
-        // Apply default limit (100) to prevent large payloads
-        const DEFAULT_LIMIT = 100;
-        const rawLimit = Number(parsed.limit);
-        const requestedLimit =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
-        const effectiveLimit =
-          requestedLimit === 0 ? 0 : (requestedLimit ?? DEFAULT_LIMIT);
+        // Coerce limit (default 100, 0 = unlimited)
+        const resolvedLimit = coerceLimit(parsed.limit, DEFAULT_QUERY_LIMIT);
+        const effectiveLimit = resolvedLimit ?? 0;
 
-        const baseSql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
+        let allResults: unknown[] = [];
+        let isTruncated = false;
+        let exactTotalCount: number | undefined;
 
-        // Fetch limit+1 rows to detect truncation without a separate count query
-        const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
-        const sql =
-          fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
-        const result = await adapter.executeQuery(sql, [path, varsJson]);
-        const allResults = result.rows?.map((r) => r["result"]) ?? [];
-        const isTruncated =
-          effectiveLimit > 0 && allResults.length > effectiveLimit;
+        if (json !== undefined) {
+          // Query directly against literal JSON
+          const baseSql = `SELECT jsonb_path_query($1::jsonb, $2::jsonpath, $3::jsonb) as result`;
+          const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
+          const sql =
+            fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
+          const result = await adapter.executeQuery(sql, [
+            json,
+            path,
+            varsJson,
+          ]);
+          allResults = result.rows?.map((r) => r["result"]) ?? [];
+          isTruncated =
+            effectiveLimit > 0 && allResults.length > effectiveLimit;
+          if (isTruncated) {
+            const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query($1::jsonb, $2::jsonpath, $3::jsonb)) sub`;
+            const countResult = await adapter.executeQuery(countSql, [
+              json,
+              path,
+              varsJson,
+            ]);
+            exactTotalCount = Number(
+              countResult.rows?.[0]?.["total"] ?? allResults.length,
+            );
+          }
+        } else {
+          if (!table || !column) {
+            throw new ValidationError("table and column are required");
+          }
+
+          // Validate schema and build qualified table name
+          const [qualifiedTable, tableError] = await resolveJsonbTable(
+            adapter,
+            table,
+            parsed.schema,
+          );
+          if (tableError) throw new ValidationError(tableError.error);
+
+          const whereClause = where
+            ? ` WHERE ${sanitizeWhereClause(where)}`
+            : "";
+          const baseSql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
+
+          // Fetch limit+1 rows to detect truncation without a separate count query
+          const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
+          const sql =
+            fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
+          const result = await adapter.executeQuery(sql, [path, varsJson]);
+          allResults = result.rows?.map((r) => r["result"]) ?? [];
+          isTruncated =
+            effectiveLimit > 0 && allResults.length > effectiveLimit;
+
+          if (isTruncated) {
+            const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) FROM ${qualifiedTable}${whereClause}) sub`;
+            const countResult = await adapter.executeQuery(countSql, [
+              path,
+              varsJson,
+            ]);
+            exactTotalCount = Number(
+              countResult.rows?.[0]?.["total"] ?? allResults.length,
+            );
+          }
+        }
+
         const results = isTruncated
           ? allResults.slice(0, effectiveLimit)
           : allResults;
 
         const response: {
-          results: unknown[];
+          success: boolean;
+          results?: unknown[];
           count: number;
           truncated?: boolean;
           totalCount?: number;
-        } = { results, count: results.length };
+        } = { success: true, count: results.length };
+        if (results.length > 0) response.results = results;
         if (isTruncated) {
           response.truncated = true;
-          // Get exact total count
-          const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) FROM ${qualifiedTable}${whereClause}) sub`;
-          const countResult = await adapter.executeQuery(countSql, [
-            path,
-            varsJson,
-          ]);
-          response.totalCount = Number(
-            countResult.rows?.[0]?.["total"] ?? results.length,
-          );
+          if (exactTotalCount !== undefined) {
+            response.totalCount = exactTotalCount;
+          }
         }
         return response;
-      } catch (error) {
+      } catch (error: unknown) {
         // JSONPath-specific: invalid syntax
         if (
           error instanceof Error &&
           /syntax error/i.test(error.message) &&
           /jsonpath/i.test(error.message)
         ) {
-          return {
-            success: false,
-            error: `Invalid JSONPath syntax. Use $.key, $.array[*], or $.* ? (@.field > 10) syntax.`,
-          };
+          return formatHandlerErrorResponse(
+            new ValidationError(
+              "Invalid JSONPath syntax. Use $.key, $.array[*], or $.* ? (@.field > 10) syntax.",
+            ),
+            { tool: "pg_jsonb_path_query" },
+          );
         }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_jsonb_path_query",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_jsonb_path_query",
+        });
       }
     },
   };
@@ -459,230 +491,4 @@ export function parseSelectAlias(selectItem: string): {
           .replace(/^_|_$/g, "")
       : selectItem;
   return { expr: selectItem, alias: cleanKey };
-}
-
-export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
-  return {
-    name: "pg_jsonb_agg",
-    description:
-      "Aggregate rows into a JSONB array. With groupBy, returns all groups with their aggregated items.",
-    group: "jsonb",
-    inputSchema: JsonbAggSchemaBase,
-    outputSchema: JsonbAggOutputSchema,
-    annotations: readOnly("JSONB Aggregate"),
-    icons: getToolIcons("jsonb", readOnly("JSONB Aggregate")),
-    handler: async (params: unknown, _context: RequestContext) => {
-      try {
-        // Parse with preprocess schema to resolve aliases (tableName→table, filter→where)
-        const parsed = JsonbAggSchema.parse(params);
-        const table = parsed.table;
-        if (!table) {
-          return { success: false, error: "table is required" };
-        }
-
-        // Validate schema and build qualified table name
-        const [qualifiedTable, tableError] = await resolveJsonbTable(
-          adapter,
-          table,
-          parsed.schema,
-        );
-        if (tableError) return tableError;
-
-        // Build select expression with proper alias handling
-        let selectExpr: string;
-        if (parsed.select !== undefined && parsed.select.length > 0) {
-          const selectParts = parsed.select.map((item) => {
-            const { expr, alias } = parseSelectAlias(item);
-            const needsQuote =
-              !expr.includes("->") &&
-              !expr.includes("(") &&
-              !expr.includes("::") &&
-              /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(expr);
-            const exprStr = needsQuote ? `"${expr}"` : expr;
-            return `'${alias}', ${exprStr}`;
-          });
-          selectExpr = `jsonb_build_object(${selectParts.join(", ")})`;
-        } else {
-          selectExpr = "to_jsonb(t.*)";
-        }
-
-        const whereClause = parsed.where
-          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
-          : "";
-        const orderByClause = parsed.orderBy
-          ? ` ORDER BY ${parsed.orderBy}`
-          : "";
-        const rawLimit = Number(parsed.limit);
-        const limit =
-          parsed.limit === undefined
-            ? undefined
-            : isNaN(rawLimit)
-              ? undefined
-              : rawLimit;
-        const limitClause =
-          limit !== undefined ? ` LIMIT ${String(limit)}` : "";
-        const hasJsonbOperator = parsed.groupBy?.includes("->") ?? false;
-
-        if (parsed.groupBy) {
-          const groupExpr = hasJsonbOperator
-            ? parsed.groupBy
-            : `"${parsed.groupBy}"`;
-          const groupClause = ` GROUP BY ${groupExpr}`;
-          const aggOrderBy = parsed.orderBy
-            ? ` ORDER BY ${parsed.orderBy}`
-            : "";
-          const sql = `SELECT ${groupExpr} as group_key, jsonb_agg(${selectExpr}${aggOrderBy}) as items FROM ${qualifiedTable} t${whereClause}${groupClause}${limitClause}`;
-          const result = await adapter.executeQuery(sql);
-          return {
-            result: result.rows,
-            count: result.rows?.length ?? 0,
-            grouped: true,
-          };
-        } else {
-          const innerSql = `SELECT * FROM ${qualifiedTable} t${whereClause}${orderByClause}${limitClause}`;
-          const sql = `SELECT jsonb_agg(${selectExpr.replace(/\bt\./g, "sub.")}) as result FROM (${innerSql}) sub`;
-          const result = await adapter.executeQuery(sql);
-          const arr = result.rows?.[0]?.["result"] ?? [];
-          const count = Array.isArray(arr) ? arr.length : 0;
-          const response: {
-            result: unknown;
-            count: number;
-            grouped: boolean;
-            hint?: string;
-          } = { result: arr, count, grouped: false };
-          if (count === 0) {
-            response.hint = "No rows matched - returns empty array []";
-          }
-          return response;
-        }
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_jsonb_agg",
-          }),
-        };
-      }
-    },
-  };
-}
-
-export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
-  return {
-    name: "pg_jsonb_keys",
-    description:
-      "Get all unique keys from a JSONB object column (deduplicated across rows).",
-    group: "jsonb",
-    inputSchema: JsonbKeysSchemaBase,
-    outputSchema: JsonbKeysOutputSchema,
-    annotations: readOnly("JSONB Keys"),
-    icons: getToolIcons("jsonb", readOnly("JSONB Keys")),
-    handler: async (params: unknown, _context: RequestContext) => {
-      try {
-        // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
-        const parsed = JsonbKeysSchema.parse(params);
-        const table = parsed.table;
-        const column = parsed.column;
-        if (!table || !column) {
-          return { success: false, error: "table and column are required" };
-        }
-
-        // Validate schema and build qualified table name
-        const [qualifiedTable, tableError] = await resolveJsonbTable(
-          adapter,
-          table,
-          parsed.schema,
-        );
-        if (tableError) return tableError;
-
-        const whereClause = parsed.where
-          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
-          : "";
-        const sql = `SELECT DISTINCT jsonb_object_keys("${column}") as key FROM ${qualifiedTable}${whereClause}`;
-        const result = await adapter.executeQuery(sql);
-        const keys = result.rows?.map((r) => r["key"]) as string[];
-        return {
-          keys,
-          count: keys?.length ?? 0,
-          hint: "Returns unique keys deduplicated across all matching rows",
-        };
-      } catch (error) {
-        // Improve error for array columns
-        if (
-          error instanceof Error &&
-          error.message.includes("cannot call jsonb_object_keys")
-        ) {
-          return {
-            success: false,
-            error: `pg_jsonb_keys requires object columns. For array columns, use pg_jsonb_normalize with mode: 'array'.`,
-          };
-        }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_jsonb_keys",
-          }),
-        };
-      }
-    },
-  };
-}
-
-export function createJsonbTypeofTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
-  return {
-    name: "pg_jsonb_typeof",
-    description:
-      "Get JSONB type at path. Uses dot-notation (a.b.c), not JSONPath ($). Response includes columnNull to distinguish NULL columns.",
-    group: "jsonb",
-    inputSchema: JsonbTypeofSchemaBase,
-    outputSchema: JsonbTypeofOutputSchema,
-    annotations: readOnly("JSONB Typeof"),
-    icons: getToolIcons("jsonb", readOnly("JSONB Typeof")),
-    handler: async (params: unknown, _context: RequestContext) => {
-      try {
-        // Parse with preprocess schema to resolve aliases (tableName→table, col→column, filter→where)
-        const parsed = JsonbTypeofSchema.parse(params);
-        const table = parsed.table;
-        const column = parsed.column;
-        if (!table || !column) {
-          return { success: false, error: "table and column are required" };
-        }
-
-        // Validate schema and build qualified table name
-        const [qualifiedTable, tableError] = await resolveJsonbTable(
-          adapter,
-          table,
-          parsed.schema,
-        );
-        if (tableError) return tableError;
-
-        const whereClause = parsed.where
-          ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
-          : "";
-        // Normalize path to array format (accepts both string and array)
-        const pathArray =
-          parsed.path !== undefined
-            ? normalizePathToArray(parsed.path)
-            : undefined;
-        const pathExpr = pathArray !== undefined ? ` #> $1` : "";
-        // Include column IS NULL check to disambiguate NULL column vs null path result
-        const sql = `SELECT jsonb_typeof("${column}"${pathExpr}) as type, ("${column}" IS NULL) as column_null FROM ${qualifiedTable}${whereClause}`;
-        const queryParams = pathArray ? [pathArray] : [];
-        const result = await adapter.executeQuery(sql, queryParams);
-        const types = result.rows?.map((r) => r["type"]) as (string | null)[];
-        const columnNull =
-          result.rows?.some((r) => r["column_null"] === true) ?? false;
-        return { types, count: types?.length ?? 0, columnNull };
-      } catch (error) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_jsonb_typeof",
-          }),
-        };
-      }
-    },
-  };
 }

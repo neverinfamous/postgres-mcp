@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { coerceStrictNumber } from "../../../utils/query-helpers.js";
 
 /**
  * Helper type for raw cron input with common aliases
@@ -88,7 +89,7 @@ function preprocessCronParams(input: unknown): unknown {
  * Handles PostgreSQL BIGINT values that may be returned as strings.
  */
 const CoercibleJobId = z
-  .union([z.number(), z.string().regex(/^\d+$/, "Invalid job ID format")])
+  .union([z.number(), z.string()])
   .transform((v) => Number(v))
   .describe("Job ID (accepts number or numeric string)");
 
@@ -102,9 +103,17 @@ const CoercibleJobId = z
  * Accepts 'sql' or 'query' as alias for 'command'.
  * Uses base schema for MCP exposure and transform schema for validation.
  */
+export const CronCreateExtensionSchemaBase = z.object({});
+
+export const CronCreateExtensionSchema = z.preprocess(
+  (input) => (typeof input === "object" && input !== null ? input : {}),
+  z.object({}).strict(),
+);
+
 export const CronScheduleSchemaBase = z.object({
   schedule: z
     .string()
+    .optional()
     .describe(
       'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
     ),
@@ -117,18 +126,21 @@ export const CronScheduleSchemaBase = z.object({
 
 export const CronScheduleSchema = z.preprocess(
   preprocessCronParams,
-  CronScheduleSchemaBase.refine(
-    (data) =>
-      data.command !== undefined ||
-      data.sql !== undefined ||
-      data.query !== undefined,
-    {
-      message: "Either command, sql, or query must be provided",
-    },
-  )
+  CronScheduleSchemaBase.refine((data) => data.schedule !== undefined, {
+    message: "schedule is required",
+  })
+    .refine(
+      (data) =>
+        data.command !== undefined ||
+        data.sql !== undefined ||
+        data.query !== undefined,
+      {
+        message: "Either command, sql, or query must be provided",
+      },
+    )
     .refine(
       (data) => {
-        const error = validateIntervalSchedule(data.schedule);
+        const error = validateIntervalSchedule(String(data.schedule));
         return error === undefined;
       },
       {
@@ -140,7 +152,7 @@ export const CronScheduleSchema = z.preprocess(
       // Handle alias: name -> jobName
       const resolvedJobName = data.jobName ?? data.name;
       return {
-        schedule: data.schedule,
+        schedule: String(data.schedule),
         command: data.command ?? "", // Guaranteed by refine + preprocessing
         jobName: resolvedJobName,
       };
@@ -159,6 +171,7 @@ export const CronScheduleInDatabaseSchemaBase = z.object({
   name: z.string().optional().describe("Alias for jobName"),
   schedule: z
     .string()
+    .optional()
     .describe(
       'Cron schedule expression (e.g., "0 10 * * *") or interval ("1-59 seconds")',
     ),
@@ -177,20 +190,24 @@ export const CronScheduleInDatabaseSchemaBase = z.object({
 export const CronScheduleInDatabaseSchema = z.preprocess(
   preprocessCronParams,
   CronScheduleInDatabaseSchemaBase.refine(
-    (data) =>
-      data.command !== undefined ||
-      data.sql !== undefined ||
-      data.query !== undefined,
-    {
-      message: "Either command, sql, or query must be provided",
-    },
+    (data) => data.schedule !== undefined,
+    { message: "schedule is required" },
   )
+    .refine(
+      (data) =>
+        data.command !== undefined ||
+        data.sql !== undefined ||
+        data.query !== undefined,
+      {
+        message: "Either command, sql, or query must be provided",
+      },
+    )
     .refine((data) => data.database !== undefined || data.db !== undefined, {
       message: "Either database or db must be provided",
     })
     .refine(
       (data) => {
-        const error = validateIntervalSchedule(data.schedule);
+        const error = validateIntervalSchedule(String(data.schedule));
         return error === undefined;
       },
       {
@@ -203,7 +220,7 @@ export const CronScheduleInDatabaseSchema = z.preprocess(
       const resolvedJobName = data.jobName ?? data.name;
       return {
         jobName: resolvedJobName,
-        schedule: data.schedule,
+        schedule: String(data.schedule),
         command: data.command ?? "", // Guaranteed by refine + preprocessing
         database: data.database ?? "", // Guaranteed by refine + preprocessing
         username: data.username,
@@ -216,19 +233,37 @@ export const CronScheduleInDatabaseSchema = z.preprocess(
 );
 
 export const CronUnscheduleSchemaBase = z.object({
-  jobId: CoercibleJobId.optional().describe("Job ID to remove"),
+  jobId: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Job ID to remove"),
   jobName: z.string().optional().describe("Job name to remove"),
+  name: z.string().optional().describe("Alias for jobName"),
 });
 
 export const CronUnscheduleSchema = CronUnscheduleSchemaBase.refine(
-  (data) => data.jobId !== undefined || data.jobName !== undefined,
+  (data) =>
+    data.jobId !== undefined ||
+    data.jobName !== undefined ||
+    data.name !== undefined,
   {
-    message: "Either jobId or jobName must be provided",
+    message: "Either jobId or jobName (or name alias) must be provided",
   },
-);
+).transform((data) => ({
+  jobId:
+    data.jobId !== undefined && data.jobId !== null
+      ? Number(data.jobId)
+      : undefined,
+  jobName: data.jobName ?? data.name,
+}));
 
 export const CronAlterJobSchemaBase = z.object({
-  jobId: z.union([z.number(), z.string()]).describe("Job ID to modify"),
+  jobId: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Job ID to modify"),
+  jobName: z.string().optional().describe("Job name to modify"),
+  name: z.string().optional().describe("Alias for jobName"),
   schedule: z
     .string()
     .optional()
@@ -243,7 +278,12 @@ export const CronAlterJobSchemaBase = z.object({
 
 export const CronAlterJobSchema = z
   .object({
-    jobId: CoercibleJobId.describe("Job ID to modify"),
+    jobId: z
+      .union([z.number(), z.string()])
+      .optional()
+      .describe("Job ID to modify"),
+    jobName: z.string().optional().describe("Job name to modify"),
+    name: z.string().optional().describe("Alias for jobName"),
     schedule: z
       .string()
       .optional()
@@ -265,68 +305,155 @@ export const CronAlterJobSchema = z
       message:
         "pg_cron interval syntax only supports 1-59 seconds. For 60+ seconds, use standard cron syntax.",
     },
-  );
+  )
+  .refine(
+    (data) =>
+      data.jobId !== undefined ||
+      data.jobName !== undefined ||
+      data.name !== undefined,
+    { message: "Either jobId or jobName (or name alias) must be provided" },
+  )
+  .transform((data) => ({
+    ...data,
+    jobId:
+      data.jobId !== undefined && data.jobId !== null
+        ? Number(data.jobId)
+        : undefined,
+    jobName: data.jobName ?? data.name,
+  }));
+
+export const CronListJobsSchemaBase = z.object({
+  active: z.boolean().optional().describe("Filter by active status"),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum jobs to return (default: 50, use 0 for all)"),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      "Whether to truncate long text fields like command (default: true)",
+    ),
+});
+
+export const CronListJobsSchema = z
+  .object({
+    active: z.boolean().optional().describe("Filter by active status"),
+    limit: z
+      .preprocess(coerceStrictNumber, z.number().optional())
+      .optional()
+      .describe("Maximum jobs to return (default: 50, use 0 for all)"),
+    compact: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("Whether to truncate long text fields"),
+  })
+  .default({ compact: true });
 
 export const CronJobRunDetailsSchemaBase = z.object({
-  jobId: z.any().optional().describe("Filter by job ID"),
+  jobId: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Filter by job ID"),
+  jobName: z.string().optional().describe("Filter by job name"),
   status: z
     .string()
     .optional()
     .describe("Filter by status (running, succeeded, failed)"),
-  limit: z.any().optional().describe("Maximum records to return (default: 50)"),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum records to return (default: 10)"),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      "Whether to truncate long text fields like command and return_message (default: true)",
+    ),
 });
 
 export const CronJobRunDetailsSchema = z
   .object({
-    jobId: CoercibleJobId.optional().describe("Filter by job ID"),
+    jobId: z
+      .union([z.number(), z.string()])
+      .optional()
+      .describe("Filter by job ID"),
+    jobName: z.string().optional().describe("Filter by job name"),
     status: z
       .string()
       .optional()
       .describe("Filter by status (running, succeeded, failed)"),
     limit: z
-      .any()
+      .preprocess(coerceStrictNumber, z.number().optional())
       .optional()
-      .describe("Maximum records to return (default: 50)"),
+      .describe("Maximum records to return (default: 10)"),
+    compact: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("Whether to truncate long text fields"),
   })
-  .default({});
+  .default({ compact: true })
+  .transform((data) => ({
+    ...data,
+    jobId:
+      data.jobId !== undefined && data.jobId !== null
+        ? Number(data.jobId)
+        : undefined,
+  }));
 
 export const CronCleanupHistorySchemaBase = z.object({
   olderThanDays: z
-    .any()
+    .union([z.number(), z.string()])
     .optional()
     .describe("Delete records older than N days (default: 7)"),
-  days: z.any().optional().describe("Alias for olderThanDays"),
-  jobId: z.any().optional().describe("Clean up only for specific job"),
+  days: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Alias for olderThanDays"),
+  jobId: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Clean up only for specific job"),
 });
 
 export const CronCleanupHistorySchema = z.preprocess(
   (input) => preprocessCronParams(input ?? {}),
-  CronCleanupHistorySchemaBase.transform((data) => {
-    const rawDays = data.olderThanDays as unknown;
-    const coercedDays =
-      rawDays !== undefined && rawDays !== null ? Number(rawDays) : undefined;
+  z
+    .object({
+      olderThanDays: z
+        .preprocess(coerceStrictNumber, z.number().optional())
+        .optional(),
+      days: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
+      jobId: z.unknown().optional(),
+    })
+    .transform((data) => {
+      const rawDays = data.olderThanDays as unknown;
+      const coercedDays =
+        rawDays !== undefined && rawDays !== null ? Number(rawDays) : undefined;
 
-    // Coerce jobId through CoercibleJobId for type safety (Base uses z.any())
-    const rawJobId = data.jobId as unknown;
-    let parsedJobId: number | undefined;
-    if (rawJobId !== undefined && rawJobId !== null) {
-      const coerced = CoercibleJobId.safeParse(rawJobId);
-      if (coerced.success) {
-        parsedJobId = coerced.data;
-      } else {
-        // Invalid jobId format — will surface as structured error in handler
-        throw coerced.error;
+      // Coerce jobId through CoercibleJobId for type safety
+      const rawJobId = data.jobId;
+      let parsedJobId: number | undefined;
+      if (rawJobId !== undefined && rawJobId !== null) {
+        const coerced = CoercibleJobId.safeParse(rawJobId);
+        if (coerced.success) {
+          parsedJobId = coerced.data;
+        } else {
+          // Invalid jobId format — will surface as structured error in handler
+          throw coerced.error;
+        }
       }
-    }
 
-    return {
-      olderThanDays:
-        coercedDays !== undefined && !isNaN(coercedDays)
-          ? coercedDays
-          : undefined,
-      jobId: parsedJobId,
-    };
-  }),
+      return {
+        olderThanDays:
+          coercedDays !== undefined && !isNaN(coercedDays)
+            ? coercedDays
+            : undefined,
+        jobId: parsedJobId,
+      };
+    }),
 );
 
 // ============================================================================
@@ -339,7 +466,8 @@ export const CronCleanupHistorySchema = z.preprocess(
 export const CronCreateExtensionOutputSchema = z
   .object({
     success: z.boolean().describe("Whether extension was enabled"),
-    message: z.string().describe("Status message"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("pg_cron extension creation result");
 
@@ -429,6 +557,7 @@ export const CronAlterJobOutputSchema = z
  */
 export const CronListJobsOutputSchema = z
   .object({
+    success: z.boolean().describe("Whether the request succeeded"),
     jobs: z
       .array(
         z.object({
@@ -443,11 +572,13 @@ export const CronListJobsOutputSchema = z
           active: z.boolean().describe("Whether active"),
         }),
       )
+      .optional()
       .describe("Scheduled jobs"),
-    count: z.number().describe("Number of jobs returned"),
+    count: z.number().optional().describe("Number of jobs returned"),
     truncated: z.boolean().optional().describe("Results were truncated"),
     totalCount: z.number().optional().describe("Total available count"),
     hint: z.string().optional().describe("Hint about unnamed jobs"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron job list result");
 
@@ -456,7 +587,7 @@ export const CronListJobsOutputSchema = z
  */
 export const CronJobRunDetailsOutputSchema = z
   .object({
-    success: z.boolean().optional().describe("Whether the query succeeded"),
+    success: z.boolean().describe("Whether the query succeeded"),
     runs: z
       .array(
         z.object({
@@ -496,9 +627,10 @@ export const CronJobRunDetailsOutputSchema = z
 export const CronCleanupHistoryOutputSchema = z
   .object({
     success: z.boolean().describe("Whether cleanup succeeded"),
-    deletedCount: z.number().describe("Number of records deleted"),
-    olderThanDays: z.number().describe("Age threshold in days"),
-    jobId: z.number().nullable().describe("Job ID if filtered"),
-    message: z.string().describe("Status message"),
+    deletedCount: z.number().optional().describe("Number of records deleted"),
+    olderThanDays: z.number().optional().describe("Age threshold in days"),
+    jobId: z.number().nullable().optional().describe("Job ID if filtered"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
   })
   .describe("Cron history cleanup result");

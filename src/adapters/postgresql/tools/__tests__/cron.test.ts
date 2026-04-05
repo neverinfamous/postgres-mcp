@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getCronTools } from "../cron.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import { getCronTools } from "../cron/index.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -114,9 +114,10 @@ describe("pg_cron_schedule", () => {
   });
 
   it("should schedule a named job", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ jobid: 2 }],
-    });
+    // Setup lookup mock (not found) and schedule mock (success)
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ jobid: 2 }] });
 
     const tool = tools.find((t) => t.name === "pg_cron_schedule")!;
     const result = (await tool.handler(
@@ -131,11 +132,37 @@ describe("pg_cron_schedule", () => {
       jobName: string;
     };
 
-    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      1,
+      "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1",
+      ["heartbeat"],
+    );
+    expect(mockAdapter.executeQuery).toHaveBeenNthCalledWith(
+      2,
       "SELECT cron.schedule($1, $2, $3) as jobid",
       ["heartbeat", "30 seconds", "SELECT 1"],
     );
     expect(result.jobName).toBe("heartbeat");
+  });
+
+  it("should block duplicate named jobs", async () => {
+    // Setup lookup mock to return an existing job
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ jobid: 99 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_cron_schedule")!;
+    const result = (await tool.handler(
+      {
+        schedule: "1 minute",
+        command: "SELECT 1",
+        jobName: "heartbeat",
+      },
+      mockContext,
+    )) as { success: boolean; error: string };
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/already exists/i);
   });
 });
 
@@ -152,9 +179,9 @@ describe("pg_cron_schedule_in_database", () => {
   });
 
   it("should schedule a job in another database", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ jobid: 3 }],
-    });
+    mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ jobid: 3 }] });
 
     const tool = tools.find((t) => t.name === "pg_cron_schedule_in_database")!;
     const result = (await tool.handler(
@@ -246,8 +273,8 @@ describe("pg_cron_unschedule", () => {
     )) as { jobId: number | null };
 
     expect(mockAdapter.executeQuery).toHaveBeenLastCalledWith(
-      "SELECT cron.unschedule($1::text) as removed",
-      ["heartbeat"],
+      "SELECT cron.unschedule($1::bigint) as removed",
+      [10],
     );
     // Verify jobId is returned from lookup
     expect(result.jobId).toBe(10);
@@ -398,7 +425,10 @@ describe("pg_cron_job_run_details", () => {
   it("should get job run details", async () => {
     // Mock COUNT query first (for truncation indicator)
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ total: 3 }],
+      rows: [
+        { status: "succeeded", total: 2 },
+        { status: "failed", total: 1 },
+      ],
     });
     // Mock main query
     mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -702,7 +732,7 @@ describe("pg_cron string jobId coercion", () => {
   it("should accept string jobId in pg_cron_job_run_details", async () => {
     // Mock COUNT query first (for truncation indicator)
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ total: 1 }],
+      rows: [{ status: "succeeded", total: 1 }],
     });
     // Mock main query
     mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -889,29 +919,18 @@ describe("cron.ts uncovered branches", () => {
     expect(result.jobId).toBe(5); // Falls back to provided jobId
   });
 
-  // cron.ts L419-424: list_jobs limit coercion with NaN value
-  it("should fallback to default limit when limit is NaN", async () => {
-    // Mock COUNT query
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ total: 2 }],
-    });
-    // Mock main query
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [
-        { jobid: 1, jobname: "test", schedule: "* * * * *", active: true },
-      ],
-    });
-
+  // cron.ts list_jobs limit coercion with NaN value
+  // coerceStrictNumber returns string for non-numeric strings → Zod throws validation error
+  it("should return validation error when limit is non-numeric string", async () => {
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
     const result = (await tool.handler(
       { limit: "not_a_number" },
       mockContext,
-    )) as { count: number };
+    )) as { success: boolean; error: string; code: string };
 
-    // Should fallback to default limit 50
-    const sql = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
-    expect(sql).toContain("LIMIT 50");
-    expect(result.count).toBe(1);
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.error).toContain("expected number");
   });
 
   // cron.ts L437: list_jobs active filter in COUNT query
@@ -965,26 +984,27 @@ describe("cron.ts uncovered branches", () => {
     expect(result.hint).toContain("jobId");
   });
 
-  // cron.ts L419-424: list_jobs with limit=0 (unlimited)
-  it("should return all jobs when limit is 0", async () => {
-    // No COUNT query needed when unlimited
+  // cron.ts list_jobs with limit=0 (now explicitly allows unlimited records)
+  it("should accept limit of 0 correctly disabling limits", async () => {
+    // Mock main query
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [
-        { jobid: 1, jobname: "a", schedule: "* * * * *", active: true },
-        { jobid: 2, jobname: "b", schedule: "0 * * * *", active: true },
+        { jobid: 1, jobname: "test", schedule: "* * * * *", active: true },
       ],
     });
 
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
     const result = (await tool.handler({ limit: 0 }, mockContext)) as {
-      count: number;
-      truncated?: boolean;
+      success: boolean;
+      jobs: unknown[];
     };
 
+    expect(result.success).toBe(true);
+    expect(result.jobs.length).toBe(1);
+
+    // There shouldn't be a LIMIT clause when 0 is used
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
     expect(sql).not.toContain("LIMIT");
-    expect(result.count).toBe(2);
-    expect(result.truncated).toBeUndefined();
   });
 
   // cron.ts L681: cleanup_history negative days validation
@@ -992,13 +1012,11 @@ describe("cron.ts uncovered branches", () => {
     const tool = tools.find((t) => t.name === "pg_cron_cleanup_history")!;
     const result = (await tool.handler({ olderThanDays: -1 }, mockContext)) as {
       success: boolean;
-      message: string;
-      olderThanDays: number;
+      error: string;
     };
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain("non-negative");
-    expect(result.olderThanDays).toBe(-1);
+    expect(result.error).toContain("non-negative");
   });
 
   // cron.ts L715-724: cleanup_history ZodError catch path
@@ -1012,13 +1030,11 @@ describe("cron.ts uncovered branches", () => {
     const tool = tools.find((t) => t.name === "pg_cron_cleanup_history")!;
     const result = (await tool.handler({ olderThanDays: 7 }, mockContext)) as {
       success: boolean;
-      message: string;
-      deletedCount: number;
+      error: string;
     };
 
     expect(result.success).toBe(false);
-    expect(result.deletedCount).toBe(0);
-    expect(result.message).toContain("does not exist");
+    expect(result.error).toContain("does not exist");
   });
 
   // cron.ts list_jobs DB error path
@@ -1029,38 +1045,35 @@ describe("cron.ts uncovered branches", () => {
 
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
     const result = (await tool.handler({}, mockContext)) as {
-      jobs: unknown[];
+      jobs?: unknown[];
       count: number;
       error: string;
     };
 
-    expect(result.jobs).toEqual([]);
+    expect(result.jobs).toBeUndefined();
     expect(result.count).toBe(0);
     expect(result.error).toContain("does not exist");
   });
 
-  // cron.ts job_run_details with limit=0 (unlimited)
-  it("should return all run details when limit is 0", async () => {
+  // cron.ts job_run_details with limit=0 (now explicitly allows unlimited records)
+  it("should accept limit of 0 correctly disabling limits in job_run_details", async () => {
+    // Mock main query
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [
-        { runid: 1, jobid: 1, status: "succeeded" },
-        { runid: 2, jobid: 1, status: "failed" },
-      ],
+      rows: [{ runid: 101, jobid: 5, status: "succeeded" }],
     });
 
     const tool = tools.find((t) => t.name === "pg_cron_job_run_details")!;
     const result = (await tool.handler({ limit: 0 }, mockContext)) as {
-      count: number;
-      truncated?: boolean;
-      summary: { succeeded: number; failed: number };
+      success: boolean;
+      runs: unknown[];
     };
 
+    expect(result.success).toBe(true);
+    expect(result.runs.length).toBe(1);
+
+    // There shouldn't be a LIMIT clause when 0 is used
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
     expect(sql).not.toContain("LIMIT");
-    expect(result.count).toBe(2);
-    expect(result.summary.succeeded).toBe(1);
-    expect(result.summary.failed).toBe(1);
-    expect(result.truncated).toBeUndefined();
   });
 
   // cron.ts job_run_details DB error path
@@ -1071,12 +1084,12 @@ describe("cron.ts uncovered branches", () => {
 
     const tool = tools.find((t) => t.name === "pg_cron_job_run_details")!;
     const result = (await tool.handler({}, mockContext)) as {
-      runs: unknown[];
+      runs?: unknown[];
       count: number;
       error: string;
     };
 
-    expect(result.runs).toEqual([]);
+    expect(result.runs).toBeUndefined();
     expect(result.count).toBe(0);
     expect(result.error).toContain("does not exist");
   });

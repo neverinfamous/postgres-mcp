@@ -14,8 +14,8 @@ import {
   getFilterSummary,
   TOOL_GROUPS,
   META_GROUPS,
-} from "../../filtering/ToolFilter.js";
-import { getMetaGroupTools } from "../../filtering/ToolFilter.js";
+} from "../../filtering/tool-filter.js";
+import { getMetaGroupTools } from "../../filtering/tool-filter.js";
 import type { ToolGroup, MetaGroup } from "../../types/index.js";
 
 // Suppress logger output

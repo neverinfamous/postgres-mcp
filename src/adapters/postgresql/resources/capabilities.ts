@@ -4,12 +4,12 @@
  * Server version, tool categories, extension status, and recommendations.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
+import type { PostgresAdapter } from "../postgres-adapter.js";
 import type {
   ResourceDefinition,
   RequestContext,
 } from "../../../types/index.js";
-import { ASSISTANT_FOCUSED } from "../../../utils/resourceAnnotations.js";
+import { ASSISTANT_FOCUSED } from "../../../utils/resource-annotations.js";
 
 interface ExtensionStatus {
   installed: boolean;
@@ -215,7 +215,7 @@ export function createCapabilitiesResource(
         serverVersion: "0.3.0",
         postgresqlVersion: pgVersion,
         totalTools: 146,
-        totalResources: 20,
+        totalResources: 21,
         totalPrompts: 7,
         toolCategories,
         installedExtensions: extensions,

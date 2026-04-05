@@ -4,14 +4,14 @@
  * Partition info and detach operations.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { sanitizeTableName } from "../../../../utils/identifiers.js";
 import {
   DetachPartitionSchema,
@@ -51,12 +51,9 @@ export function createAttachPartitionTool(
           schema?: string;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
-            tool: "pg_attach_partition",
-          }),
-        };
+        return formatHandlerErrorResponse(zodError, {
+          tool: "pg_attach_partition",
+        });
       }
       const { parent, partition, forValues, schema } = parsed;
 
@@ -70,13 +67,13 @@ export function createAttachPartitionTool(
       if (parentStatus === "not_found") {
         return {
           success: false,
-          error: `Parent table '${parsedParentCheck.schema}.${parsedParentCheck.table}' does not exist.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" does not exist`,
         };
       }
       if (parentStatus === "not_partitioned") {
         return {
           success: false,
-          error: `Parent table '${parsedParentCheck.schema}.${parsedParentCheck.table}' exists but is not partitioned.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" exists but is not partitioned`,
         };
       }
 
@@ -90,7 +87,7 @@ export function createAttachPartitionTool(
       if ((partCheckResult.rows ?? []).length === 0) {
         return {
           success: false,
-          error: `Partition table '${parsedPartCheck.schema}.${parsedPartCheck.table}' does not exist.`,
+          error: `Partition table "${parsedPartCheck.schema}.${parsedPartCheck.table}" does not exist`,
         };
       }
 
@@ -132,13 +129,10 @@ export function createAttachPartitionTool(
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_attach_partition",
-            table: parsedPartition.table,
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_attach_partition",
+          table: parsedPartition.table,
+        });
       }
 
       return {
@@ -174,12 +168,9 @@ export function createDetachPartitionTool(
           schema?: string;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
-            tool: "pg_detach_partition",
-          }),
-        };
+        return formatHandlerErrorResponse(zodError, {
+          tool: "pg_detach_partition",
+        });
       }
       const { parent, partition, concurrently, finalize, schema } = parsed;
 
@@ -193,13 +184,13 @@ export function createDetachPartitionTool(
       if (parentStatus === "not_found") {
         return {
           success: false,
-          error: `Parent table '${parsedParentCheck.schema}.${parsedParentCheck.table}' does not exist.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" does not exist`,
         };
       }
       if (parentStatus === "not_partitioned") {
         return {
           success: false,
-          error: `Parent table '${parsedParentCheck.schema}.${parsedParentCheck.table}' exists but is not partitioned.`,
+          error: `Table "${parsedParentCheck.schema}.${parsedParentCheck.table}" exists but is not partitioned`,
         };
       }
 
@@ -213,7 +204,7 @@ export function createDetachPartitionTool(
       if ((partCheckResult.rows ?? []).length === 0) {
         return {
           success: false,
-          error: `Partition '${parsedPartCheck.schema}.${parsedPartCheck.table}' does not exist.`,
+          error: `Partition "${parsedPartCheck.schema}.${parsedPartCheck.table}" does not exist`,
         };
       }
 
@@ -225,6 +216,33 @@ export function createDetachPartitionTool(
       const resolvedPartitionSchema = partition.includes(".")
         ? parsedPartition.schema
         : (schema ?? parsedParent.schema);
+
+      // Verify the partition is actually a child of the named parent (pg_inherits check).
+      // This must be done before executing the ALTER TABLE because PG's DETACH PARTITION
+      // looks up membership in pg_inherits and raises 42P01 if not found there — which
+      // error-parser.ts maps to the misleading "Table does not exist in schema" message.
+      const membershipSql = `
+        SELECT 1 FROM pg_inherits i
+        JOIN pg_class child ON child.oid = i.inhrelid
+        JOIN pg_namespace child_ns ON child_ns.oid = child.relnamespace
+        JOIN pg_class parent_rel ON parent_rel.oid = i.inhparent
+        JOIN pg_namespace parent_ns ON parent_ns.oid = parent_rel.relnamespace
+        WHERE child.relname = $1 AND child_ns.nspname = $2
+          AND parent_rel.relname = $3 AND parent_ns.nspname = $4
+      `;
+      const membershipResult = await adapter.executeQuery(membershipSql, [
+        parsedPartition.table,
+        resolvedPartitionSchema,
+        parsedParent.table,
+        parsedParent.schema,
+      ]);
+      if ((membershipResult.rows ?? []).length === 0) {
+        return {
+          success: false,
+          error: `Table "${resolvedPartitionSchema}.${parsedPartition.table}" is not a partition of "${parsedParent.schema}.${parsedParent.table}". Use pg_list_partitions to see current partitions.`,
+          code: "VALIDATION_ERROR",
+        };
+      }
 
       const parentName = sanitizeTableName(
         parsedParent.table,
@@ -249,13 +267,10 @@ export function createDetachPartitionTool(
       try {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_detach_partition",
-            table: parsedPartition.table,
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_detach_partition",
+          table: parsedPartition.table,
+        });
       }
 
       return {
@@ -286,14 +301,12 @@ export function createPartitionInfoTool(
         parsed = PartitionInfoSchema.parse(params) as {
           table: string;
           schema?: string;
+          limit?: number;
         };
       } catch (zodError: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(zodError, {
-            tool: "pg_partition_info",
-          }),
-        };
+        return formatHandlerErrorResponse(zodError, {
+          tool: "pg_partition_info",
+        });
       }
 
       // Parse schema.table format if present
@@ -344,7 +357,9 @@ export function createPartitionInfoTool(
         schemaName,
       ]);
 
-      const partitionsSql = `SELECT
+      const limit = parsed.limit ?? 50;
+
+      let partitionsSql = `SELECT
                         c.relname as partition_name,
                         pg_get_expr(c.relpartbound, c.oid) as bounds,
                         pg_table_size(c.oid) as size_bytes,
@@ -354,19 +369,30 @@ export function createPartitionInfoTool(
                         WHERE i.inhparent = ($1 || '.' || $2)::regclass
                         ORDER BY c.relname`;
 
+      if (limit > 0) {
+        partitionsSql += ` LIMIT ${String(limit + 1)}`;
+      }
+
       const partitionsResult = await adapter.executeQuery(partitionsSql, [
         schemaName,
         resolvedTable,
       ]);
 
-      // Calculate total size before mapping
-      const totalSizeBytes = (partitionsResult.rows ?? []).reduce(
-        (sum, row) => sum + Number(row["size_bytes"] ?? 0),
-        0,
-      );
+      const allRows = partitionsResult.rows ?? [];
+      const truncated = limit > 0 && allRows.length > limit;
+      const rowsToReturn = truncated ? allRows.slice(0, limit) : allRows;
+
+      // Calculate total size using an aggregate query to ensure accuracy even when truncated
+      const totalSizeSql = `SELECT COALESCE(SUM(pg_table_size(inhrelid)), 0) as total_bytes
+                            FROM pg_inherits WHERE inhparent = ($1 || '.' || $2)::regclass`;
+      const sizeResult = await adapter.executeQuery(totalSizeSql, [
+        schemaName,
+        resolvedTable,
+      ]);
+      const totalSizeBytes = Number(sizeResult.rows?.[0]?.["total_bytes"] ?? 0);
 
       // Format sizes consistently and coerce numeric fields
-      const partitions = (partitionsResult.rows ?? []).map((row) => {
+      const partitions = rowsToReturn.map((row) => {
         const sizeBytes = Number(row["size_bytes"] ?? 0);
         return {
           ...row,
@@ -385,11 +411,19 @@ export function createPartitionInfoTool(
           }
         : null;
 
-      return {
+      const response: Record<string, unknown> = {
+        success: true,
         tableInfo,
         partitions,
         totalSizeBytes,
+        truncated,
       };
+
+      if (truncated) {
+        response["totalCount"] = tableInfo?.partition_count ?? 0;
+      }
+
+      return response;
     },
   };
 }

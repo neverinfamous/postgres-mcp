@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createPgApi, PgApi } from "../api/index.js";
-import type { PostgresAdapter } from "../../adapters/postgresql/PostgresAdapter.js";
+import type { PostgresAdapter } from "../../adapters/postgresql/postgres-adapter.js";
 import type { ToolDefinition, ToolGroup } from "../../types/index.js";
 
 // Mock PostgresAdapter for testing
@@ -45,6 +45,7 @@ function createMockAdapter(): PostgresAdapter {
   return {
     getToolDefinitions: vi.fn(() => mockToolDefs),
     createContext: vi.fn(() => ({})),
+    getAuditInterceptor: vi.fn(() => null),
   } as unknown as PostgresAdapter;
 }
 
@@ -308,6 +309,7 @@ describe("Error handling in method proxies", () => {
     const errorAdapter = {
       getToolDefinitions: vi.fn(() => mockToolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(errorAdapter);
@@ -368,6 +370,7 @@ describe("Multiple tool groups", () => {
     const multiAdapter = {
       getToolDefinitions: vi.fn(() => multiGroupToolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(multiAdapter);
@@ -425,6 +428,7 @@ describe("Text group soundex/metaphone wrappers", () => {
     const textAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(textAdapter);
@@ -454,6 +458,7 @@ describe("Text group soundex/metaphone wrappers", () => {
     const textAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(textAdapter);
@@ -488,6 +493,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(perfAdapter);
@@ -514,6 +520,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(perfAdapter);
@@ -545,6 +552,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(perfAdapter);
@@ -587,6 +595,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(perfAdapter);
@@ -624,6 +633,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(perfAdapter);
@@ -656,6 +666,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
       executeQuery: vi.fn(async () => ({ rows: [] })),
     } as unknown as PostgresAdapter;
 
@@ -681,6 +692,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
       executeQuery: mockExecuteQuery,
     } as unknown as PostgresAdapter;
 
@@ -717,6 +729,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
       executeQuery: mockExecuteQuery,
     } as unknown as PostgresAdapter;
 
@@ -751,6 +764,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
       executeQuery: mockExecuteQuery,
     } as unknown as PostgresAdapter;
 
@@ -788,6 +802,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
       executeQuery: mockExecuteQuery,
     } as unknown as PostgresAdapter;
 
@@ -820,6 +835,7 @@ describe("Performance group wrappers", () => {
     const perfAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
       executeQuery: vi.fn(async () => ({ rows: [] })),
     } as unknown as PostgresAdapter;
 
@@ -856,6 +872,7 @@ describe("normalizeParams — OBJECT_WRAP_MAP and ARRAY_WRAP_MAP branches", () =
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -889,6 +906,7 @@ describe("normalizeParams — OBJECT_WRAP_MAP and ARRAY_WRAP_MAP branches", () =
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -922,6 +940,7 @@ describe("normalizeParams — OBJECT_WRAP_MAP and ARRAY_WRAP_MAP branches", () =
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -956,6 +975,7 @@ describe("normalizeParams — OBJECT_WRAP_MAP and ARRAY_WRAP_MAP branches", () =
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -995,6 +1015,7 @@ describe("normalizeParams — positional arg mapping", () => {
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -1028,6 +1049,7 @@ describe("normalizeParams — positional arg mapping", () => {
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -1065,6 +1087,7 @@ describe("normalizeParams — positional arg mapping", () => {
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -1102,6 +1125,7 @@ describe("normalizeParams — positional arg mapping", () => {
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -1136,6 +1160,7 @@ describe("normalizeParams — positional arg mapping", () => {
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -1171,6 +1196,7 @@ describe("normalizeParams — positional arg mapping", () => {
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -1204,6 +1230,7 @@ describe("normalizeParams — positional arg mapping", () => {
     const adapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(adapter);
@@ -1240,6 +1267,7 @@ describe("Text group metaphone wrapper execution", () => {
     const textAdapter = {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
 
     const api = createPgApi(textAdapter);
@@ -1627,6 +1655,7 @@ describe("createSandboxBindings — full group coverage", () => {
     return {
       getToolDefinitions: vi.fn(() => toolDefs),
       createContext: vi.fn(() => ({})),
+      getAuditInterceptor: vi.fn(() => null),
     } as unknown as PostgresAdapter;
   }
 

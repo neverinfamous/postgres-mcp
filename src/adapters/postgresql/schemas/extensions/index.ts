@@ -15,7 +15,6 @@ export { normalizeOptionalParams } from "./shared.js";
 export {
   KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
-  KcacheTopConsumersSchema,
   KcacheTopCpuSchemaBase,
   KcacheTopIoSchemaBase,
   KcacheDatabaseStatsSchemaBase,
@@ -34,6 +33,8 @@ export {
 // citext schemas
 export {
   preprocessCitextTableParams,
+  CitextCreateExtensionSchemaBase,
+  CitextCreateExtensionSchema,
   CitextCompareSchemaBase,
   CitextCompareSchema,
   CitextConvertColumnSchemaBase,
@@ -80,6 +81,10 @@ export {
 
 // pgcrypto schemas
 export {
+  PgcryptoCreateExtensionSchemaBase,
+  PgcryptoCreateExtensionSchema,
+  PgcryptoGenRandomUuidSchemaBase,
+  PgcryptoGenRandomUuidSchema,
   PgcryptoHashSchemaBase,
   PgcryptoHashSchema,
   PgcryptoHmacSchemaBase,

@@ -5,14 +5,15 @@
  * 3 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
+import { ValidationError } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   DependencyGraphSchemaBase,
   DependencyGraphSchema,
@@ -26,346 +27,37 @@ import {
   CascadeSimulatorOutputSchema,
 } from "../../schemas/index.js";
 
-// =============================================================================
-// Internal types
-// =============================================================================
+// Shared helpers
+import type { FkEdge } from "./helpers.js";
+import {
+  fetchForeignKeys,
+  fetchTableNodes,
+  qualifiedName,
+  checkSchemaExists,
+} from "./helpers.js";
 
-interface FkEdge {
-  constraintName: string;
-  fromSchema: string;
-  fromTable: string;
-  fromColumns: string[];
-  toSchema: string;
-  toTable: string;
-  toColumns: string[];
-  onDelete: string;
-  onUpdate: string;
-}
-
-interface TableNode {
-  schema: string;
-  table: string;
-  rowCount?: number;
-  sizeBytes?: number;
-}
-
-// =============================================================================
-// Shared queries
-// =============================================================================
-
-/**
- * Fetch all foreign key relationships across user schemas
- */
-export async function fetchForeignKeys(
-  adapter: PostgresAdapter,
-  schemaFilter?: string,
-  excludeExtensionSchemas?: boolean,
-): Promise<FkEdge[]> {
-  const params: unknown[] = [];
-  let schemaClause = "";
-  if (schemaFilter) {
-    params.push(schemaFilter);
-    schemaClause = `AND src_ns.nspname = $${String(params.length)}`;
-  }
-
-  const extensionSchemaExclude =
-    !schemaFilter && excludeExtensionSchemas !== false
-      ? "AND src_ns.nspname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')"
-      : "";
-
-  const result = await adapter.executeQuery(
-    `SELECT
-      c.conname AS constraint_name,
-      src_ns.nspname AS from_schema,
-      src_t.relname AS from_table,
-      array_agg(DISTINCT src_a.attname ORDER BY src_a.attname) AS from_columns,
-      ref_ns.nspname AS to_schema,
-      ref_t.relname AS to_table,
-      array_agg(DISTINCT ref_a.attname ORDER BY ref_a.attname) AS to_columns,
-      CASE c.confdeltype
-        WHEN 'a' THEN 'NO ACTION' WHEN 'r' THEN 'RESTRICT'
-        WHEN 'c' THEN 'CASCADE' WHEN 'n' THEN 'SET NULL'
-        WHEN 'd' THEN 'SET DEFAULT'
-      END AS on_delete,
-      CASE c.confupdtype
-        WHEN 'a' THEN 'NO ACTION' WHEN 'r' THEN 'RESTRICT'
-        WHEN 'c' THEN 'CASCADE' WHEN 'n' THEN 'SET NULL'
-        WHEN 'd' THEN 'SET DEFAULT'
-      END AS on_update
-    FROM pg_constraint c
-    JOIN pg_class src_t ON src_t.oid = c.conrelid
-    JOIN pg_namespace src_ns ON src_ns.oid = src_t.relnamespace
-    JOIN pg_class ref_t ON ref_t.oid = c.confrelid
-    JOIN pg_namespace ref_ns ON ref_ns.oid = ref_t.relnamespace
-    JOIN pg_attribute src_a ON src_a.attrelid = src_t.oid AND src_a.attnum = ANY(c.conkey)
-    JOIN pg_attribute ref_a ON ref_a.attrelid = ref_t.oid AND ref_a.attnum = ANY(c.confkey)
-    WHERE c.contype = 'f'
-      AND src_ns.nspname NOT IN ('pg_catalog', 'information_schema')
-      AND src_ns.nspname !~ '^pg_toast'
-      ${extensionSchemaExclude}
-      ${schemaClause}
-    GROUP BY c.conname, src_ns.nspname, src_t.relname,
-             ref_ns.nspname, ref_t.relname, c.confdeltype, c.confupdtype
-    ORDER BY src_ns.nspname, src_t.relname, c.conname`,
-    params.length > 0 ? params : undefined,
-  );
-
-  return (result.rows ?? []).map((row) => ({
-    constraintName: row["constraint_name"] as string,
-    fromSchema: row["from_schema"] as string,
-    fromTable: row["from_table"] as string,
-    fromColumns: parseArrayColumn(row["from_columns"]),
-    toSchema: row["to_schema"] as string,
-    toTable: row["to_table"] as string,
-    toColumns: parseArrayColumn(row["to_columns"]),
-    onDelete: row["on_delete"] as string,
-    onUpdate: row["on_update"] as string,
-  }));
-}
-
-/**
- * Fetch all user tables with row counts and sizes
- */
-export async function fetchTableNodes(
-  adapter: PostgresAdapter,
-  schemaFilter?: string,
-  excludeExtensionSchemas?: boolean,
-): Promise<TableNode[]> {
-  const params: unknown[] = [];
-  let schemaClause = "";
-  if (schemaFilter) {
-    params.push(schemaFilter);
-    schemaClause = `AND n.nspname = $${String(params.length)}`;
-  }
-
-  const extensionSchemaExclude =
-    !schemaFilter && excludeExtensionSchemas !== false
-      ? "AND n.nspname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')"
-      : "";
-
-  const result = await adapter.executeQuery(
-    `SELECT
-      n.nspname AS schema,
-      c.relname AS table_name,
-      CASE WHEN c.reltuples = -1 THEN COALESCE(s.n_live_tup, 0)
-           ELSE c.reltuples END::bigint AS row_count,
-      pg_table_size(c.oid) AS size_bytes
-    FROM pg_class c
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    LEFT JOIN pg_stat_user_tables s ON s.relid = c.oid
-    WHERE c.relkind IN ('r', 'p')
-      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-      AND n.nspname !~ '^pg_toast'
-      ${extensionSchemaExclude}
-      ${schemaClause}
-    ORDER BY n.nspname, c.relname`,
-    params.length > 0 ? params : undefined,
-  );
-
-  return (result.rows ?? []).map((row) => ({
-    schema: row["schema"] as string,
-    table: row["table_name"] as string,
-    rowCount: Number(row["row_count"]) || 0,
-    sizeBytes: Number(row["size_bytes"]) || 0,
-  }));
-}
-
-/**
- * Parse PostgreSQL array column (handles both native arrays and string format)
- */
-export function parseArrayColumn(value: unknown): string[] {
-  if (Array.isArray(value)) return value as string[];
-  if (typeof value === "string") {
-    const trimmed = value.replace(/^{|}$/g, "");
-    if (trimmed === "") return [];
-    return trimmed.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
-  }
-  return [];
-}
-
-/**
- * Create qualified table name
- */
-export function qualifiedName(schema: string, table: string): string {
-  return `${schema}.${table}`;
-}
-
-/**
- * Check if a schema exists in the database.
- * Returns null if schema exists or no filter specified, or error response if nonexistent.
- */
-export async function checkSchemaExists(
-  adapter: PostgresAdapter,
-  schemaFilter?: string,
-): Promise<{ success: false; error: string } | null> {
-  if (!schemaFilter) return null;
-  const result = await adapter.executeQuery(
-    `SELECT 1 FROM pg_namespace WHERE nspname = $1`,
-    [schemaFilter],
-  );
-  if ((result.rows?.length ?? 0) === 0) {
-    return {
-      success: false as const,
-      error: `Schema '${schemaFilter}' does not exist. Use pg_list_schemas to see available schemas.`,
-    };
-  }
-  return null;
-}
-
-/**
- * Check if a table exists in the database.
- * Returns null if table exists or no filter specified, or error response if nonexistent.
- */
-export async function checkTableExists(
-  adapter: PostgresAdapter,
-  tableFilter?: string,
-  schemaFilter?: string,
-): Promise<{ success: false; error: string } | null> {
-  if (!tableFilter) return null;
-  const schema = schemaFilter ?? "public";
-  const result = await adapter.executeQuery(
-    `SELECT 1 FROM pg_class c
-     JOIN pg_namespace n ON n.oid = c.relnamespace
-     WHERE c.relname = $1 AND n.nspname = $2 AND c.relkind IN ('r', 'p')`,
-    [tableFilter, schema],
-  );
-  if ((result.rows?.length ?? 0) === 0) {
-    return {
-      success: false as const,
-      error: `Table '${schema}.${tableFilter}' does not exist. Use pg_list_tables to verify.`,
-    };
-  }
-  return null;
-}
-
-// =============================================================================
 // Graph algorithms
-// =============================================================================
+import {
+  detectCycles,
+  topologicalSort,
+  calculateMaxDepth,
+} from "./algorithms.js";
 
-/**
- * Detect circular dependencies using DFS
- */
-export function detectCycles(adjacency: Map<string, string[]>): string[][] {
-  const cycles: string[][] = [];
-  const visited = new Set<string>();
-  const inStack = new Set<string>();
-  const stack: string[] = [];
-
-  function dfs(node: string): void {
-    if (inStack.has(node)) {
-      // Found a cycle - extract it from the stack
-      const cycleStart = stack.indexOf(node);
-      if (cycleStart !== -1) {
-        cycles.push([...stack.slice(cycleStart), node]);
-      }
-      return;
-    }
-    if (visited.has(node)) return;
-
-    visited.add(node);
-    inStack.add(node);
-    stack.push(node);
-
-    for (const neighbor of adjacency.get(node) ?? []) {
-      dfs(neighbor);
-    }
-
-    stack.pop();
-    inStack.delete(node);
-  }
-
-  for (const node of adjacency.keys()) {
-    dfs(node);
-  }
-
-  return cycles;
-}
-
-/**
- * Topological sort using Kahn's algorithm
- * Returns null if cycles exist
- */
-export function topologicalSort(
-  adjacency: Map<string, string[]>,
-  allNodes: Set<string>,
-): string[] | null {
-  // Compute in-degrees
-  const inDegree = new Map<string, number>();
-  for (const node of allNodes) {
-    inDegree.set(node, 0);
-  }
-  for (const [, neighbors] of adjacency) {
-    for (const n of neighbors) {
-      inDegree.set(n, (inDegree.get(n) ?? 0) + 1);
-    }
-  }
-
-  // Enqueue nodes with 0 in-degree
-  const queue: string[] = [];
-  for (const [node, degree] of inDegree) {
-    if (degree === 0) {
-      queue.push(node);
-    }
-  }
-  queue.sort(); // Deterministic ordering
-
-  const result: string[] = [];
-  while (queue.length > 0) {
-    const node = queue.shift();
-    if (node === undefined) break;
-    result.push(node);
-
-    for (const neighbor of adjacency.get(node) ?? []) {
-      const newDegree = (inDegree.get(neighbor) ?? 1) - 1;
-      inDegree.set(neighbor, newDegree);
-      if (newDegree === 0) {
-        // Insert in sorted position for deterministic output
-        const insertIdx = queue.findIndex((q) => q > neighbor);
-        if (insertIdx === -1) {
-          queue.push(neighbor);
-        } else {
-          queue.splice(insertIdx, 0, neighbor);
-        }
-      }
-    }
-  }
-
-  return result.length === allNodes.size ? result : null;
-}
-
-/**
- * Calculate max depth from root nodes in DAG
- */
-function calculateMaxDepth(
-  adjacency: Map<string, string[]>,
-  roots: string[],
-): number {
-  if (roots.length === 0) return 0;
-
-  let maxDepth = 0;
-  const depthMap = new Map<string, number>();
-
-  function dfs(node: string, depth: number, visited: Set<string>): void {
-    if (visited.has(node)) return;
-    visited.add(node);
-
-    const currentMax = depthMap.get(node) ?? -1;
-    if (depth > currentMax) {
-      depthMap.set(node, depth);
-      if (depth > maxDepth) maxDepth = depth;
-    }
-
-    for (const neighbor of adjacency.get(node) ?? []) {
-      dfs(neighbor, depth + 1, visited);
-    }
-  }
-
-  for (const root of roots) {
-    dfs(root, 0, new Set<string>());
-  }
-
-  return maxDepth;
-}
+// Re-export helpers and algorithms for consumers
+export {
+  parseArrayColumn,
+  qualifiedName,
+  checkSchemaExists,
+  checkTableExists,
+  fetchForeignKeys,
+  fetchTableNodes,
+} from "./helpers.js";
+export type { FkEdge, TableNode } from "./helpers.js";
+export {
+  detectCycles,
+  topologicalSort,
+  calculateMaxDepth,
+} from "./algorithms.js";
 
 // =============================================================================
 // pg_dependency_graph
@@ -388,10 +80,10 @@ export function createDependencyGraphTool(
         const parsed = DependencyGraphSchema.parse(params);
 
         // Validate schema existence when filtering by schema
-        const schemaError = await checkSchemaExists(adapter, parsed.schema);
-        if (schemaError) return schemaError;
+        await checkSchemaExists(adapter, parsed.schema);
 
-        const includeRowCounts = parsed.includeRowCounts !== false;
+        const includeRowCounts =
+          parsed.includeRowCounts !== false && !parsed.compact;
 
         const excludeExt = parsed.excludeExtensionSchemas;
 
@@ -446,8 +138,19 @@ export function createDependencyGraphTool(
         const cycles = detectCycles(adjacency);
         const maxDepth = calculateMaxDepth(adjacency, leafTables);
 
+        const limit = Math.min(Math.max(parsed.limit ?? 100, 1), 500);
+        const originalNodeCount = allNodes.size;
+
+        // Truncate nodes if needed
+        let finalNodes = [...allNodes].sort();
+        const isTruncated = finalNodes.length > limit;
+        if (isTruncated) {
+          finalNodes = finalNodes.slice(0, limit);
+        }
+        const activeNodes = new Set(finalNodes);
+
         // Build nodes
-        const nodes = [...allNodes].sort().map((name) => {
+        const nodes = finalNodes.map((name) => {
           const info = tableMap.get(name);
           const parts = name.split(".");
           return {
@@ -459,38 +162,54 @@ export function createDependencyGraphTool(
           };
         });
 
-        // Build edges
-        const edges = fks.map((fk) => ({
-          from: qualifiedName(fk.fromSchema, fk.fromTable),
-          to: qualifiedName(fk.toSchema, fk.toTable),
-          constraint: fk.constraintName,
-          columns: fk.fromColumns.map((col, i) => ({
-            from: col,
-            to: fk.toColumns[i] ?? col,
-          })),
-          onDelete: fk.onDelete,
-          onUpdate: fk.onUpdate,
-        }));
+        // Build edges (only for active nodes)
+        const finalEdges = fks.filter(
+          (fk) =>
+            activeNodes.has(qualifiedName(fk.fromSchema, fk.fromTable)) &&
+            activeNodes.has(qualifiedName(fk.toSchema, fk.toTable)),
+        );
+
+        const edges = parsed.compact
+          ? finalEdges.map((fk) => ({
+              from: qualifiedName(fk.fromSchema, fk.fromTable),
+              to: qualifiedName(fk.toSchema, fk.toTable),
+            }))
+          : finalEdges.map((fk) => ({
+              from: qualifiedName(fk.fromSchema, fk.fromTable),
+              to: qualifiedName(fk.toSchema, fk.toTable),
+              constraint: fk.constraintName,
+              columns: fk.fromColumns.map((col, i) => ({
+                from: col,
+                to: fk.toColumns[i] ?? col,
+              })),
+              onDelete: fk.onDelete,
+              onUpdate: fk.onUpdate,
+            }));
 
         return {
-          nodes,
-          edges,
-          circularDependencies: cycles,
+          success: true,
+          ...(nodes.length > 0 ? { nodes } : {}),
+          ...(edges.length > 0 ? { edges } : {}),
+          ...(cycles.length > 0 ? { circularDependencies: cycles } : {}),
           stats: {
-            totalTables: allNodes.size,
+            totalTables: originalNodeCount,
             totalRelationships: fks.length,
             maxDepth,
-            rootTables,
-            leafTables,
+            ...(parsed.compact
+              ? {}
+              : {
+                  ...(rootTables.length > 0 ? { rootTables } : {}),
+                  ...(leafTables.length > 0 ? { leafTables } : {}),
+                }),
           },
+          hint: isTruncated
+            ? `Result truncated to ${String(limit)} nodes. Use 'schema' filter to narrow the graph.`
+            : undefined,
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_dependency_graph",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_dependency_graph",
+        });
       }
     },
   };
@@ -517,8 +236,7 @@ export function createTopologicalSortTool(
         const parsed = TopologicalSortSchema.parse(params);
 
         // Validate schema existence when filtering by schema
-        const schemaError = await checkSchemaExists(adapter, parsed.schema);
-        if (schemaError) return schemaError;
+        await checkSchemaExists(adapter, parsed.schema);
 
         const direction = parsed.direction ?? "create";
 
@@ -610,23 +328,23 @@ export function createTopologicalSortTool(
             table: parts[1] ?? name,
             schema: parts[0] ?? "public",
             level: levelMap.get(name) ?? 0,
-            dependencies: [...(dependsOn.get(name) ?? [])].sort(),
+            ...((dependsOn.get(name) ?? new Set()).size > 0
+              ? { dependencies: [...(dependsOn.get(name) ?? [])].sort() }
+              : {}),
           };
         });
 
         return {
-          order,
+          success: true,
+          ...(order.length > 0 ? { order } : {}),
           direction,
           hasCycles: sorted === null,
           ...(cycles.length > 0 ? { cycles } : {}),
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_topological_sort",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_topological_sort",
+        });
       }
     },
   };
@@ -667,10 +385,9 @@ export function createCascadeSimulatorTool(
 
         // Check if source table exists
         if (!tableMap.has(sourceQName)) {
-          return {
-            success: false as const,
-            error: `Table '${sourceQName}' not found. Use pg_list_tables to verify.`,
-          };
+          throw new ValidationError(
+            `Table '${sourceQName}' does not exist. Use pg_list_tables to verify.`,
+          );
         }
 
         // Build reverse adjacency: for each table, find what references it
@@ -713,7 +430,7 @@ export function createCascadeSimulatorTool(
 
           for (const ref of refs) {
             const refQName = qualifiedName(ref.fromSchema, ref.fromTable);
-            if (visited.has(refQName)) continue;
+            const isAlreadyVisited = visited.has(refQName);
             visited.add(refQName);
 
             const action = operation === "DELETE" ? ref.onDelete : "CASCADE";
@@ -729,12 +446,14 @@ export function createCascadeSimulatorTool(
                 path: [...current.path, refQName],
                 depth: current.depth + 1,
               });
-              // Continue traversal for cascade
-              queue.push({
-                tableName: refQName,
-                path: [...current.path, refQName],
-                depth: current.depth + 1,
-              });
+              // Continue traversal for cascade only if not already visited (prevents infinite loops)
+              if (!isAlreadyVisited) {
+                queue.push({
+                  tableName: refQName,
+                  path: [...current.path, refQName],
+                  depth: current.depth + 1,
+                });
+              }
             } else if (action === "RESTRICT" || action === "NO ACTION") {
               blockingActions++;
               affected.push({
@@ -764,7 +483,7 @@ export function createCascadeSimulatorTool(
         // Severity assessment
         let severity: "low" | "medium" | "high" | "critical";
         if (blockingActions > 0) {
-          severity = "critical"; // Operation will fail
+          severity = operation === "DELETE" ? "high" : "critical"; // DELETE fail gracefully, DROP force-cascades
         } else if (operation !== "DELETE" && cascadeActions > 0) {
           severity = "critical"; // DROP/TRUNCATE force-cascades everything
         } else if (cascadeActions > 5 || maxDepth > 3) {
@@ -776,9 +495,10 @@ export function createCascadeSimulatorTool(
         }
 
         return {
+          success: true,
           sourceTable: sourceQName,
           operation,
-          affectedTables: affected,
+          ...(affected.length > 0 ? { affectedTables: affected } : {}),
           severity,
           stats: {
             totalTablesAffected: affected.length,
@@ -789,12 +509,9 @@ export function createCascadeSimulatorTool(
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_cascade_simulator",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_cascade_simulator",
+        });
       }
     },
   };

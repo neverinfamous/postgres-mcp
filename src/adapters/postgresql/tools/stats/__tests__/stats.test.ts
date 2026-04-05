@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getStatsTools } from "../index.js";
-import type { PostgresAdapter } from "../../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -23,12 +23,13 @@ describe("getStatsTools", () => {
     tools = getStatsTools(adapter);
   });
 
-  it("should return 8 stats tools", () => {
-    expect(tools).toHaveLength(8);
+  it("should return 19 stats tools", () => {
+    expect(tools).toHaveLength(19);
   });
 
   it("should have all expected tool names", () => {
     const toolNames = tools.map((t) => t.name);
+    // Original stats tools
     expect(toolNames).toContain("pg_stats_descriptive");
     expect(toolNames).toContain("pg_stats_percentiles");
     expect(toolNames).toContain("pg_stats_correlation");
@@ -37,6 +38,20 @@ describe("getStatsTools", () => {
     expect(toolNames).toContain("pg_stats_distribution");
     expect(toolNames).toContain("pg_stats_hypothesis");
     expect(toolNames).toContain("pg_stats_sampling");
+    // Window function tools
+    expect(toolNames).toContain("pg_stats_row_number");
+    expect(toolNames).toContain("pg_stats_rank");
+    expect(toolNames).toContain("pg_stats_lag_lead");
+    expect(toolNames).toContain("pg_stats_running_total");
+    expect(toolNames).toContain("pg_stats_moving_avg");
+    expect(toolNames).toContain("pg_stats_ntile");
+    // Outlier detection
+    expect(toolNames).toContain("pg_stats_outliers");
+    // Granular stats
+    expect(toolNames).toContain("pg_stats_top_n");
+    expect(toolNames).toContain("pg_stats_distinct");
+    expect(toolNames).toContain("pg_stats_frequency");
+    expect(toolNames).toContain("pg_stats_summary");
   });
 
   it("should have group set to stats for all tools", () => {
@@ -216,7 +231,7 @@ describe("pg_stats_descriptive", () => {
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain(
-      'Table "public.nonexistent_table" not found',
+      'Table "public.nonexistent_table" does not exist',
     );
   });
 
@@ -241,7 +256,7 @@ describe("pg_stats_descriptive", () => {
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain(
-      'Column "nonexistent_column" not found in table "public.orders"',
+      'Column "nonexistent_column" does not exist',
     );
   });
 
@@ -356,7 +371,9 @@ describe("pg_stats_percentiles", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Table "public.missing_table" not found');
+    expect(result.error).toContain(
+      'Table "public.missing_table" does not exist',
+    );
   });
 
   it("should throw error for non-numeric column in percentiles", async () => {
@@ -494,7 +511,7 @@ describe("pg_stats_correlation", () => {
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain(
-      'Table "public.nonexistent_table" not found',
+      'Table "public.nonexistent_table" does not exist',
     );
   });
 
@@ -519,9 +536,7 @@ describe("pg_stats_correlation", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain(
-      'Column "nonexistent_col" not found in table "public.products"',
-    );
+    expect(result.error).toContain('Column "nonexistent_col" does not exist');
   });
 });
 
@@ -1380,7 +1395,7 @@ describe("pg_stats_correlation interpretation branches", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "a" not found');
+    expect(result.error).toContain('Column "a" does not exist');
   });
 });
 
@@ -1454,7 +1469,7 @@ describe("pg_stats_regression equation branches", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "x" not found');
+    expect(result.error).toContain('Column "x" does not exist');
   });
 });
 
@@ -1562,7 +1577,7 @@ describe("pg_stats_descriptive optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "amount" not found');
+    expect(result.error).toContain('Column "amount" does not exist');
   });
 });
 
@@ -1677,7 +1692,7 @@ describe("pg_stats_correlation optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "a" not found');
+    expect(result.error).toContain('Column "a" does not exist');
   });
 });
 
@@ -1752,7 +1767,7 @@ describe("pg_stats_regression optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "x" not found');
+    expect(result.error).toContain('Column "x" does not exist');
   });
 });
 
@@ -1865,7 +1880,7 @@ describe("pg_stats_hypothesis error handling", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Column "value" not found');
+    expect(result.error).toContain('Column "value" does not exist');
   });
 
   it("should return error when insufficient data (n < 2)", async () => {
@@ -1887,10 +1902,11 @@ describe("pg_stats_hypothesis error handling", () => {
         hypothesizedMean: 100,
       },
       mockContext,
-    )) as { error?: string; sampleSize?: number };
+    )) as { success: boolean; error: string; code?: string };
 
-    expect(result.error).toBe("Insufficient data or zero variance");
-    expect(result.sampleSize).toBe(1);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Insufficient data or zero variance");
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
   it("should return error when zero variance", async () => {
@@ -1912,9 +1928,11 @@ describe("pg_stats_hypothesis error handling", () => {
         hypothesizedMean: 100,
       },
       mockContext,
-    )) as { error?: string };
+    )) as { success: boolean; error: string; code?: string };
 
-    expect(result.error).toBe("Insufficient data or zero variance");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Insufficient data or zero variance");
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 
   it("should include schema and where clause when provided", async () => {
@@ -2235,18 +2253,7 @@ describe("pg_stats_time_series optional params", () => {
     );
   });
 
-  it("should handle limit:0 for no limit", async () => {
-    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "1": 1 }] });
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ data_type: "timestamp without time zone" }],
-    });
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ data_type: "numeric" }],
-    });
-    mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ time_bucket: "2024-01-01", value: 100, count: 10 }],
-    });
-
+  it("should return error for limit:0", async () => {
     const tool = tools.find((t) => t.name === "pg_stats_time_series")!;
     const result = (await tool.handler(
       {
@@ -2257,9 +2264,11 @@ describe("pg_stats_time_series optional params", () => {
         limit: 0,
       },
       mockContext,
-    )) as Record<string, unknown>;
-    // With limit:0, no LIMIT clause should be present, and no truncation
-    expect(result.buckets).toBeDefined();
+    )) as { success: boolean; error: string; code?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.error).toContain("must be greater than 0");
   });
 
   it("should handle groupBy with groupLimit", async () => {
@@ -2416,7 +2425,7 @@ describe("pg_stats_time_series optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   it("should return error for missing valueColumn", async () => {
@@ -2437,7 +2446,7 @@ describe("pg_stats_time_series optional params", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 });
 
@@ -3175,7 +3184,7 @@ describe("math-utils.ts — uncovered branches", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   // L230-232: validateNumericColumn — column not found (but table exists)
@@ -3192,7 +3201,7 @@ describe("math-utils.ts — uncovered branches", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
     expect(result.error).toContain("nonexistent");
   });
 
@@ -3250,5 +3259,653 @@ describe("math-utils.ts — uncovered branches", () => {
     // z = (200-100)/(10/sqrt(100)) = 100, extreme value
     expect(result.results.pValue).toBeGreaterThanOrEqual(0);
     expect(result.results.pValue).toBeLessThanOrEqual(1);
+  });
+});
+
+// =============================================================================
+// Window Function Tools
+// =============================================================================
+
+describe("pg_stats_row_number", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should assign sequential row numbers", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, name: "Alice", row_number: 1 },
+        { id: 2, name: "Bob", row_number: 2 },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_row_number")!;
+    const result = (await tool.handler(
+      { table: "users", orderBy: "name" },
+      mockContext,
+    )) as { success: boolean; rowCount: number; rows: unknown[] };
+
+    expect(result.success).toBe(true);
+    expect(result.rowCount).toBe(2);
+    expect(result.rows).toHaveLength(2);
+  });
+
+  it("should support partitionBy", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ id: 1, row_number: 1 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_row_number")!;
+    await tool.handler(
+      { table: "orders", orderBy: "created_at", partitionBy: "status" },
+      mockContext,
+    );
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("PARTITION BY"),
+    );
+  });
+});
+
+describe("pg_stats_rank", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should assign rank with default type", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, score: 100, rank: 1 },
+        { id: 2, score: 90, rank: 2 },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_rank")!;
+    const result = (await tool.handler(
+      { table: "scores", orderBy: "score" },
+      mockContext,
+    )) as { success: boolean; rankType: string; rowCount: number };
+
+    expect(result.success).toBe(true);
+    expect(result.rankType).toBe("rank");
+    expect(result.rowCount).toBe(2);
+  });
+
+  it("should support dense_rank type", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ id: 1, dense_rank: 1 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_rank")!;
+    await tool.handler(
+      { table: "scores", orderBy: "score", method: "dense_rank" },
+      mockContext,
+    );
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("DENSE_RANK()"),
+    );
+  });
+});
+
+describe("pg_stats_lag_lead", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should access previous row values with lag", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, amount: 100, lag_value: null },
+        { id: 2, amount: 200, lag_value: 100 },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_lag_lead")!;
+    const result = (await tool.handler(
+      { table: "orders", column: "amount", orderBy: "id", direction: "lag" },
+      mockContext,
+    )) as { success: boolean; direction: string; offset: number };
+
+    expect(result.success).toBe(true);
+    expect(result.direction).toBe("lag");
+    expect(result.offset).toBe(1);
+  });
+
+  it("should access next row values with lead", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ id: 1, lead_value: 200 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_lag_lead")!;
+    await tool.handler(
+      { table: "orders", column: "amount", orderBy: "id", direction: "lead" },
+      mockContext,
+    );
+
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("LEAD("),
+    );
+  });
+
+  it("should support custom offset", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ id: 1, lag_value: null }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_lag_lead")!;
+    const result = (await tool.handler(
+      {
+        table: "orders",
+        column: "amount",
+        orderBy: "id",
+        direction: "lag",
+        offset: 3,
+      },
+      mockContext,
+    )) as { offset: number };
+
+    expect(result.offset).toBe(3);
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining(", 3"),
+    );
+  });
+});
+
+describe("pg_stats_running_total", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should calculate cumulative running total", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, amount: 100, running_total: 100 },
+        { id: 2, amount: 200, running_total: 300 },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_running_total")!;
+    const result = (await tool.handler(
+      { table: "orders", column: "amount", orderBy: "id" },
+      mockContext,
+    )) as { success: boolean; valueColumn: string; rowCount: number };
+
+    expect(result.success).toBe(true);
+    expect(result.valueColumn).toBe("amount");
+    expect(result.rowCount).toBe(2);
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("SUM("),
+    );
+  });
+});
+
+describe("pg_stats_moving_avg", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should calculate moving average with window size", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, amount: 100, moving_avg: 100 },
+        { id: 2, amount: 200, moving_avg: 150 },
+        { id: 3, amount: 300, moving_avg: 200 },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_moving_avg")!;
+    const result = (await tool.handler(
+      { table: "orders", column: "amount", orderBy: "id", windowSize: 3 },
+      mockContext,
+    )) as { success: boolean; windowSize: number; valueColumn: string };
+
+    expect(result.success).toBe(true);
+    expect(result.windowSize).toBe(3);
+    expect(result.valueColumn).toBe("amount");
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("AVG("),
+    );
+  });
+});
+
+describe("pg_stats_ntile", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should divide rows into N buckets", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, ntile: 1 },
+        { id: 2, ntile: 2 },
+        { id: 3, ntile: 3 },
+        { id: 4, ntile: 4 },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_ntile")!;
+    const result = (await tool.handler(
+      { table: "scores", orderBy: "score", buckets: 4 },
+      mockContext,
+    )) as { success: boolean; buckets: number; rowCount: number };
+
+    expect(result.success).toBe(true);
+    expect(result.buckets).toBe(4);
+    expect(result.rowCount).toBe(4);
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("NTILE(4)"),
+    );
+  });
+});
+
+// =============================================================================
+// Outlier Detection
+// =============================================================================
+
+describe("pg_stats_outliers", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should detect outliers using IQR method (default)", async () => {
+    // Mock column type check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ data_type: "integer" }],
+    });
+    // Mock IQR stats
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ q1: 25, q3: 75, total_count: 100 }],
+    });
+    // Mock outlier rows
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { value: 200, ctid: "(0,1)" },
+        { value: -50, ctid: "(0,2)" },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_outliers")!;
+    const result = (await tool.handler(
+      { table: "measurements", column: "value" },
+      mockContext,
+    )) as {
+      success: boolean;
+      method: string;
+      outlierCount: number;
+      stats: { q1: number; q3: number; iqr: number };
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.method).toBe("iqr");
+    expect(result.outlierCount).toBe(2);
+    expect(result.stats.q1).toBe(25);
+    expect(result.stats.q3).toBe(75);
+    expect(result.stats.iqr).toBe(50);
+  });
+
+  it("should detect outliers using Z-score method", async () => {
+    // Mock column type check
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ data_type: "numeric" }],
+    });
+    // Mock Z-score stats
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ mean: 50, stddev: 10, total_count: 100 }],
+    });
+    // Mock outlier rows
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ value: 95, ctid: "(0,1)" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_outliers")!;
+    const result = (await tool.handler(
+      { table: "measurements", column: "value", method: "zscore" },
+      mockContext,
+    )) as {
+      success: boolean;
+      method: string;
+      stats: { mean: number; stdDev: number };
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.method).toBe("zscore");
+    expect(result.stats.mean).toBe(50);
+    expect(result.stats.stdDev).toBe(10);
+  });
+
+  it("should return empty outliers when stddev is 0 (z-score)", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ data_type: "integer" }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ mean: 50, stddev: 0, total_count: 10 }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_outliers")!;
+    const result = (await tool.handler(
+      { table: "measurements", column: "value", method: "zscore" },
+      mockContext,
+    )) as { outlierCount: number; outliers: unknown[] };
+
+    expect(result.outlierCount).toBe(0);
+    expect(result.outliers).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// Advanced Analysis Tools
+// =============================================================================
+
+describe("pg_stats_top_n", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return top N rows", async () => {
+    // Mock column discovery (auto-exclude long content)
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { column_name: "id", data_type: "integer" },
+        { column_name: "score", data_type: "integer" },
+        { column_name: "bio", data_type: "text" },
+      ],
+    });
+    // Mock actual query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { id: 1, score: 100 },
+        { id: 2, score: 95 },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_top_n")!;
+    const result = (await tool.handler(
+      { table: "players", column: "score", n: 2 },
+      mockContext,
+    )) as {
+      success: boolean;
+      column: string;
+      direction: string;
+      count: number;
+      hint?: string;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.column).toBe("score");
+    expect(result.direction).toBe("desc");
+    expect(result.count).toBe(2);
+    expect(result.hint).toContain("Auto-excluded");
+  });
+});
+
+describe("pg_stats_distinct", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return distinct values with count", async () => {
+    // Mock distinct values
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ value: "active" }, { value: "inactive" }, { value: "pending" }],
+    });
+    // Mock distinct count
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ cnt: "3" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_distinct")!;
+    const result = (await tool.handler(
+      { table: "users", column: "status" },
+      mockContext,
+    )) as {
+      success: boolean;
+      column: string;
+      distinctCount: number;
+      values: unknown[];
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.column).toBe("status");
+    expect(result.distinctCount).toBe(3);
+    expect(result.values).toHaveLength(3);
+  });
+});
+
+describe("pg_stats_frequency", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return frequency distribution", async () => {
+    // Mock frequency data
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { value: "active", frequency: "70", percentage: "70.00" },
+        { value: "inactive", frequency: "30", percentage: "30.00" },
+      ],
+    });
+    // Mock distinct count
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ cnt: "2" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_frequency")!;
+    const result = (await tool.handler(
+      { table: "users", column: "status" },
+      mockContext,
+    )) as {
+      success: boolean;
+      column: string;
+      distinctValues: number;
+      distribution: Array<{
+        value: string;
+        frequency: number;
+        percentage: number;
+      }>;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.column).toBe("status");
+    expect(result.distinctValues).toBe(2);
+    expect(result.distribution).toHaveLength(2);
+    expect(result.distribution[0].frequency).toBe(70);
+    expect(result.distribution[0].percentage).toBe(70);
+  });
+});
+
+describe("pg_stats_summary", () => {
+  let mockAdapter: ReturnType<typeof createMockPostgresAdapter>;
+  let tools: ReturnType<typeof getStatsTools>;
+  let mockContext: ReturnType<typeof createMockRequestContext>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdapter = createMockPostgresAdapter();
+    tools = getStatsTools(mockAdapter as unknown as PostgresAdapter);
+    mockContext = createMockRequestContext();
+  });
+
+  it("should return summary statistics for specified columns", async () => {
+    // Mock column validation
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { column_name: "price", data_type: "numeric" },
+        { column_name: "quantity", data_type: "integer" },
+      ],
+    });
+    // Mock summary query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          price_count: 100,
+          price_avg: 49.99,
+          price_min: 5.0,
+          price_max: 199.99,
+          price_stddev: 25.5,
+          quantity_count: 100,
+          quantity_avg: 3.2,
+          quantity_min: 1,
+          quantity_max: 10,
+          quantity_stddev: 2.1,
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_summary")!;
+    const result = (await tool.handler(
+      { table: "orders", columns: ["price", "quantity"] },
+      mockContext,
+    )) as {
+      success: boolean;
+      table: string;
+      summaries: Array<{ column: string; count: number; avg: number }>;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.table).toBe("public.orders");
+    expect(result.summaries).toHaveLength(2);
+    expect(result.summaries[0].column).toBe("price");
+    expect(result.summaries[0].count).toBe(100);
+    expect(result.summaries[1].column).toBe("quantity");
+  });
+
+  it("should auto-detect numeric columns when none specified", async () => {
+    // Mock column discovery
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "price" }, { column_name: "quantity" }],
+    });
+    // Mock summary query
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        {
+          price_count: 50,
+          price_avg: 30,
+          price_min: 1,
+          price_max: 100,
+          price_stddev: 15,
+          quantity_count: 50,
+          quantity_avg: 5,
+          quantity_min: 1,
+          quantity_max: 20,
+          quantity_stddev: 3,
+        },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_summary")!;
+    const result = (await tool.handler({ table: "orders" }, mockContext)) as {
+      summaries: unknown[];
+    };
+
+    expect(result.summaries).toHaveLength(2);
+    // First call should query information_schema for numeric columns
+    expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
+      expect.stringContaining("information_schema"),
+      expect.any(Array),
+    );
+  });
+
+  it("should throw validation error when explicitly specified column is not numeric", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [
+        { column_name: "price", data_type: "numeric" },
+        { column_name: "status", data_type: "varchar" },
+      ],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_summary")!;
+    const result = (await tool.handler(
+      { table: "orders", columns: ["price", "status"] },
+      mockContext,
+    )) as { success: boolean; error: string; code?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("should throw validation error when explicitly specified column does not exist", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ column_name: "price", data_type: "numeric" }],
+    });
+
+    const tool = tools.find((t) => t.name === "pg_stats_summary")!;
+    const result = (await tool.handler(
+      { table: "orders", columns: ["price", "not_real"] },
+      mockContext,
+    )) as { success: boolean; error: string; code?: string };
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe("VALIDATION_ERROR");
   });
 });

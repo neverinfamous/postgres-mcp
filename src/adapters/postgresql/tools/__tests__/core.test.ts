@@ -109,7 +109,7 @@ describe("parsePostgresError", () => {
   it("should throw table/view not found for 42P01", () => {
     const err = makePgError('relation "missing_table" does not exist', "42P01");
     expect(() => parsePostgresError(err, { tool: "pg_read_query" })).toThrow(
-      "Table or view 'missing_table' not found. Use pg_list_tables to see available tables.",
+      `Table "missing_table" does not exist in schema "public". Use pg_list_tables to see available tables.`,
     );
   });
 
@@ -252,7 +252,7 @@ import {
   AnalyzeQueryIndexesSchema,
   AnalyzeDbHealthSchema,
   AnalyzeWorkloadIndexesSchema,
-} from "../core/schemas.js";
+} from "../core/schemas/index.js";
 
 describe("ListObjectsSchema — preprocess branches", () => {
   it("should convert 'type' string to 'types' array", () => {
@@ -395,7 +395,7 @@ import {
   createMockPostgresAdapter,
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import { getCoreTools } from "../core/index.js";
 
 describe("core/convenience.ts — uncovered branches", () => {
@@ -714,7 +714,7 @@ describe("core/query.ts — uncovered branches", () => {
     )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not found");
+    expect(result.error).toContain("does not exist");
   });
 
   // query.ts L148-155: pg_write_query transaction connection error

@@ -3,13 +3,21 @@
  * 9 tools total.
  */
 
-import type { PostgresAdapter } from "../PostgresAdapter.js";
-import type { ToolDefinition, RequestContext } from "../../../types/index.js";
-import { z } from "zod";
+import type { PostgresAdapter } from "../postgres-adapter.js";
+import type {
+  ToolDefinition,
+  RequestContext,
+  ErrorResponse,
+} from "../../../types/index.js";
+import { ValidationError } from "../../../types/index.js";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
-import { formatPostgresError } from "./core/error-helpers.js";
+import { formatHandlerErrorResponse } from "./core/error-helpers.js";
 import {
+  PgcryptoCreateExtensionSchemaBase,
+  PgcryptoCreateExtensionSchema,
+  PgcryptoGenRandomUuidSchemaBase,
+  PgcryptoGenRandomUuidSchema,
   PgcryptoHashSchema,
   PgcryptoHashSchemaBase,
   PgcryptoHmacSchema,
@@ -55,13 +63,21 @@ function createPgcryptoExtensionTool(adapter: PostgresAdapter): ToolDefinition {
     name: "pg_pgcrypto_create_extension",
     description: "Enable the pgcrypto extension for cryptographic functions.",
     group: "pgcrypto",
-    inputSchema: z.object({}),
+    inputSchema: PgcryptoCreateExtensionSchemaBase,
     outputSchema: PgcryptoCreateExtensionOutputSchema,
     annotations: write("Create Pgcrypto Extension"),
     icons: getToolIcons("pgcrypto", write("Create Pgcrypto Extension")),
-    handler: async (_params: unknown, _context: RequestContext) => {
-      await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS pgcrypto");
-      return { success: true, message: "pgcrypto extension enabled" };
+    handler: async (params: unknown, _context: RequestContext) => {
+      try {
+        const { schema } = PgcryptoCreateExtensionSchema.parse(params);
+        const schemaClause = schema ? ` SCHEMA ${schema}` : "";
+        await adapter.executeQuery(
+          `CREATE EXTENSION IF NOT EXISTS pgcrypto${schemaClause}`,
+        );
+        return { success: true, message: "pgcrypto extension enabled" };
+      } catch (error: unknown) {
+        return handlePgcryptoError(error, "pg_pgcrypto_create_extension");
+      }
     },
   };
 }
@@ -95,19 +111,8 @@ function createPgcryptoHashTool(adapter: PostgresAdapter): ToolDefinition {
           hash: result.rows?.[0]?.["hash"] as string,
           inputLength: data.length,
         };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_pgcrypto_hash",
-          }),
-        };
+      } catch (error: unknown) {
+        return handlePgcryptoError(error, "pg_pgcrypto_hash");
       }
     },
   };
@@ -141,19 +146,8 @@ function createPgcryptoHmacTool(adapter: PostgresAdapter): ToolDefinition {
           encoding: enc,
           hmac: result.rows?.[0]?.["hmac"] as string,
         };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_pgcrypto_hmac",
-          }),
-        };
+      } catch (error: unknown) {
+        return handlePgcryptoError(error, "pg_pgcrypto_hmac");
       }
     },
   };
@@ -181,22 +175,11 @@ function createPgcryptoEncryptTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, queryParams);
         return {
           success: true,
-          encrypted: result.rows?.[0]?.["encrypted"] as string,
+          encryptedData: result.rows?.[0]?.["encrypted"] as string,
           encoding: "base64",
         };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_pgcrypto_encrypt",
-          }),
-        };
+      } catch (error: unknown) {
+        return handlePgcryptoError(error, "pg_pgcrypto_encrypt");
       }
     },
   };
@@ -214,19 +197,17 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Use transformed schema with alias resolution for validation
-        const { encryptedData, password } = PgcryptoDecryptSchema.parse(params);
+        const { data, password } = PgcryptoDecryptSchema.parse(params);
         const result = await adapter.executeQuery(
           `SELECT pgp_sym_decrypt(decode($1, 'base64'), $2) as decrypted`,
-          [encryptedData, password],
+          [data, password],
         );
         const decrypted = result.rows?.[0]?.["decrypted"];
 
-        // Return error for decryption failure (wrong password or corrupted data)
         if (decrypted === undefined || decrypted === null) {
-          return {
-            success: false,
-            error: "Decryption failed — wrong password or corrupted data",
-          };
+          throw new ValidationError(
+            "Decryption failed: Wrong key or corrupt data",
+          );
         }
 
         return {
@@ -234,19 +215,8 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
           decrypted: decrypted as string,
           verified: true,
         };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_pgcrypto_decrypt",
-          }),
-        };
+      } catch (error: unknown) {
+        return handlePgcryptoError(error, "pg_pgcrypto_decrypt");
       }
     },
   };
@@ -255,38 +225,18 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
 function createPgcryptoGenRandomUuidTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Base schema for MCP visibility (count parameter exposed to clients, relaxed)
-  const GenUuidSchemaBase = z.object({
-    count: z.coerce
-      .number()
-      .optional()
-      .describe("Number of UUIDs to generate (default: 1, max: 100)"),
-  });
-
-  // Full schema with strict validation for handler parsing
-  const GenUuidSchema = z
-    .object({
-      count: z.coerce
-        .number()
-        .min(1)
-        .max(100)
-        .optional()
-        .describe("Number of UUIDs to generate (default: 1, max: 100)"),
-    })
-    .default({});
-
   return {
     name: "pg_pgcrypto_gen_random_uuid",
     description: "Generate a cryptographically secure UUID v4.",
     group: "pgcrypto",
-    inputSchema: GenUuidSchemaBase,
+    inputSchema: PgcryptoGenRandomUuidSchemaBase,
     outputSchema: PgcryptoGenRandomUuidOutputSchema,
     annotations: readOnly("Generate UUID"),
     icons: getToolIcons("pgcrypto", readOnly("Generate UUID")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Parse via Zod to enforce count validation (max 100)
-        const parsed = GenUuidSchema.parse(params);
+        const parsed = PgcryptoGenRandomUuidSchema.parse(params);
         const generateCount = parsed.count ?? 1;
         const result = await adapter.executeQuery(
           `SELECT gen_random_uuid()::text as uuid FROM generate_series(1, $1)`,
@@ -303,19 +253,8 @@ function createPgcryptoGenRandomUuidTool(
           response["uuid"] = uuids[0];
         }
         return response;
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_pgcrypto_gen_random_uuid",
-          }),
-        };
+      } catch (error: unknown) {
+        return handlePgcryptoError(error, "pg_pgcrypto_gen_random_uuid");
       }
     },
   };
@@ -347,19 +286,8 @@ function createPgcryptoGenRandomBytesTool(
           length,
           encoding: enc,
         };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_pgcrypto_gen_random_bytes",
-          }),
-        };
+      } catch (error: unknown) {
+        return handlePgcryptoError(error, "pg_pgcrypto_gen_random_bytes");
       }
     },
   };
@@ -389,19 +317,8 @@ function createPgcryptoGenSaltTool(adapter: PostgresAdapter): ToolDefinition {
           salt: result.rows?.[0]?.["salt"] as string,
           type,
         };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_pgcrypto_gen_salt",
-          }),
-        };
+      } catch (error: unknown) {
+        return handlePgcryptoError(error, "pg_pgcrypto_gen_salt");
       }
     },
   };
@@ -433,20 +350,31 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
                 ? "xdes"
                 : "des";
         return { success: true, hash, algorithm };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: `Validation error: ${error.issues.map((i) => i.message).join(", ")}`,
-          };
-        }
-        return {
-          success: false,
-          error: formatPostgresError(error, {
-            tool: "pg_pgcrypto_crypt",
-          }),
-        };
+      } catch (error: unknown) {
+        return handlePgcryptoError(error, "pg_pgcrypto_crypt");
       }
     },
   };
+}
+
+// Helper to convert internal Postgres pgcrypto panics into typed errors
+function handlePgcryptoError(error: unknown, toolName: string): ErrorResponse {
+  if (error !== null && typeof error === "object" && "message" in error) {
+    const msg = String(error.message);
+    if (
+      msg.includes("No such hash algorithm") ||
+      msg.includes("Cannot use") ||
+      msg.includes("unsupported")
+    ) {
+      return formatHandlerErrorResponse(
+        new ValidationError(
+          "Cryptographic error: Unsupported or invalid algorithm",
+        ),
+        { tool: toolName },
+      );
+    }
+  }
+  // Let formatHandlerErrorResponse handle DECRYPTION_FAILED and INVALID_BASE64
+  // using the P154 error-suggestions.ts mappings.
+  return formatHandlerErrorResponse(error, { tool: toolName });
 }

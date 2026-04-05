@@ -4,7 +4,7 @@
  * Backup planning tools: backup_plan, restore_command, physical_backup, restore_validate, backup_schedule_optimize.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
@@ -12,13 +12,17 @@ import type {
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "../core/error-helpers.js";
+import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
   CreateBackupPlanOutputSchema,
   RestoreCommandOutputSchema,
   PhysicalBackupOutputSchema,
   RestoreValidateOutputSchema,
   BackupScheduleOptimizeOutputSchema,
+  CreateBackupPlanSchemaBase,
+  CreateBackupPlanSchema,
+  PhysicalBackupSchemaBase,
+  PhysicalBackupSchema,
 } from "../../schemas/index.js";
 
 export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
@@ -27,27 +31,22 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Generate a backup strategy recommendation with cron schedule.",
     group: "backup",
-    inputSchema: z.object({
-      frequency: z
-        .enum(["hourly", "daily", "weekly"])
-        .optional()
-        .describe("Backup frequency (default: daily)"),
-      retention: z.coerce
-        .number()
-        .optional()
-        .describe("Number of backups to retain (default: 7)"),
-    }),
+    inputSchema: CreateBackupPlanSchemaBase,
     outputSchema: CreateBackupPlanOutputSchema,
     annotations: readOnly("Create Backup Plan"),
     icons: getToolIcons("backup", readOnly("Create Backup Plan")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         // Parse params through schema to validate enum values
-        const schema = z.object({
-          frequency: z.enum(["hourly", "daily", "weekly"]).optional(),
-          retention: z.coerce.number().optional(),
-        });
-        const parsed = schema.parse(params);
+        const parsed = CreateBackupPlanSchema.parse(params);
+        if (
+          parsed.frequency &&
+          !["hourly", "daily", "weekly"].includes(parsed.frequency)
+        ) {
+          throw new Error(
+            "Validation error: frequency must be 'hourly', 'daily', or 'weekly'",
+          );
+        }
         const freq = parsed.frequency ?? "daily";
 
         // Validate retention - must be at least 1
@@ -110,10 +109,9 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_create_backup_plan" }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_create_backup_plan",
+        });
       }
     },
   };
@@ -127,7 +125,8 @@ export function createRestoreCommandTool(
     description: "Generate pg_restore command for restoring backups.",
     group: "backup",
     inputSchema: z.object({
-      backupFile: z.string(),
+      backupFile: z.string().optional(),
+      filename: z.string().optional().describe("Alias for backupFile"),
       database: z
         .string()
         .optional()
@@ -146,6 +145,7 @@ export function createRestoreCommandTool(
           .then(() => {
             const parsed = params as {
               backupFile?: string;
+              filename?: string;
               database?: string;
               schema?: string;
               table?: string;
@@ -153,15 +153,18 @@ export function createRestoreCommandTool(
               schemaOnly?: boolean;
             };
 
+            const backupFile = parsed.backupFile ?? parsed.filename;
             // Validate required param
-            if (parsed.backupFile === undefined || parsed.backupFile === "") {
-              throw new Error("backupFile parameter is required");
+            if (backupFile === undefined || backupFile === "") {
+              throw new Error(
+                "Validation error: backupFile (or filename) parameter is required",
+              );
             }
 
             // Validate mutually exclusive options
             if (parsed.dataOnly === true && parsed.schemaOnly === true) {
               throw new Error(
-                "dataOnly and schemaOnly cannot both be true - pg_restore only supports one at a time",
+                "Validation error: dataOnly and schemaOnly cannot both be true - pg_restore only supports one at a time",
               );
             }
 
@@ -182,7 +185,7 @@ export function createRestoreCommandTool(
             if (parsed.dataOnly === true) command += " --data-only";
             if (parsed.schemaOnly === true) command += " --schema-only";
 
-            command += ` "${parsed.backupFile}"`;
+            command += ` "${backupFile}"`;
 
             return {
               command,
@@ -196,15 +199,13 @@ export function createRestoreCommandTool(
               ],
             };
           })
-          .catch((error: unknown) => ({
-            success: false as const,
-            error: formatPostgresError(error, { tool: "pg_restore_command" }),
-          }));
+          .catch((error: unknown) =>
+            formatHandlerErrorResponse(error, { tool: "pg_restore_command" }),
+          );
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_restore_command" }),
-        });
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_restore_command" }),
+        );
       }
     },
   };
@@ -220,15 +221,7 @@ export function createPhysicalBackupTool(
     name: "pg_backup_physical",
     description: "Generate pg_basebackup command for physical (binary) backup.",
     group: "backup",
-    inputSchema: z.object({
-      targetDir: z.string().describe("Target directory for backup"),
-      format: z.enum(["plain", "tar"]).optional().describe("Backup format"),
-      checkpoint: z
-        .enum(["fast", "spread"])
-        .optional()
-        .describe("Checkpoint mode"),
-      compress: z.coerce.number().optional().describe("Compression level 0-9"),
-    }),
+    inputSchema: PhysicalBackupSchemaBase,
     outputSchema: PhysicalBackupOutputSchema,
     annotations: readOnly("Physical Backup"),
     icons: getToolIcons("backup", readOnly("Physical Backup")),
@@ -237,17 +230,28 @@ export function createPhysicalBackupTool(
         return Promise.resolve()
           .then(() => {
             // Parse params through schema to validate enum values
-            const schema = z.object({
-              targetDir: z.string().optional(),
-              format: z.enum(["plain", "tar"]).optional(),
-              checkpoint: z.enum(["fast", "spread"]).optional(),
-              compress: z.coerce.number().optional(),
-            });
-            const parsed = schema.parse(params);
+            const parsed = PhysicalBackupSchema.parse(params);
+
+            // Validate enums
+            if (parsed.format && !["plain", "tar"].includes(parsed.format)) {
+              throw new Error(
+                "Validation error: format must be 'plain' or 'tar'",
+              );
+            }
+            if (
+              parsed.checkpoint &&
+              !["fast", "spread"].includes(parsed.checkpoint)
+            ) {
+              throw new Error(
+                "Validation error: checkpoint must be 'fast' or 'spread'",
+              );
+            }
 
             // Validate required param
             if (parsed.targetDir === undefined || parsed.targetDir === "") {
-              throw new Error("targetDir parameter is required");
+              throw new Error(
+                "Validation error: targetDir parameter is required",
+              );
             }
 
             // Validate compress range
@@ -255,7 +259,9 @@ export function createPhysicalBackupTool(
               parsed.compress !== undefined &&
               (parsed.compress < 0 || parsed.compress > 9)
             ) {
-              throw new Error("compress must be between 0 and 9");
+              throw new Error(
+                "Validation error: compress must be between 0 and 9",
+              );
             }
 
             let command = "pg_basebackup";
@@ -299,15 +305,13 @@ export function createPhysicalBackupTool(
               ],
             };
           })
-          .catch((error: unknown) => ({
-            success: false as const,
-            error: formatPostgresError(error, { tool: "pg_backup_physical" }),
-          }));
+          .catch((error: unknown) =>
+            formatHandlerErrorResponse(error, { tool: "pg_backup_physical" }),
+          );
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_backup_physical" }),
-        });
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_backup_physical" }),
+        );
       }
     },
   };
@@ -325,8 +329,12 @@ export function createRestoreValidateTool(
       "Generate commands to validate backup integrity and restorability.",
     group: "backup",
     inputSchema: z.object({
-      backupFile: z.string().describe("Path to backup file"),
-      backupType: z.enum(["pg_dump", "pg_basebackup"]).optional(),
+      backupFile: z.string().optional().describe("Path to backup file"),
+      filename: z.string().optional().describe("Alias for backupFile"),
+      backupType: z
+        .string()
+        .optional()
+        .describe("Backup type (pg_dump, pg_basebackup)"),
     }),
     outputSchema: RestoreValidateOutputSchema,
     annotations: readOnly("Restore Validate"),
@@ -338,13 +346,26 @@ export function createRestoreValidateTool(
             // Parse params through schema to validate enum values
             const schema = z.object({
               backupFile: z.string().optional(),
-              backupType: z.enum(["pg_dump", "pg_basebackup"]).optional(),
+              filename: z.string().optional(),
+              backupType: z.string().optional(),
             });
             const parsed = schema.parse(params);
 
+            if (
+              parsed.backupType &&
+              !["pg_dump", "pg_basebackup"].includes(parsed.backupType)
+            ) {
+              throw new Error(
+                "Validation error: backupType must be 'pg_dump' or 'pg_basebackup'",
+              );
+            }
+
+            const backupFile = parsed.backupFile ?? parsed.filename;
             // Validate required param
-            if (parsed.backupFile === undefined || parsed.backupFile === "") {
-              throw new Error("backupFile parameter is required");
+            if (backupFile === undefined || backupFile === "") {
+              throw new Error(
+                "Validation error: backupFile (or filename) parameter is required",
+              );
             }
 
             const backupType = parsed.backupType ?? "pg_dump";
@@ -359,14 +380,14 @@ export function createRestoreValidateTool(
                   {
                     step: 1,
                     name: "Check backup file integrity",
-                    command: `pg_restore --list "${parsed.backupFile}"`,
+                    command: `pg_restore --list "${backupFile}"`,
                   },
                   {
                     step: 2,
                     name: "Test restore to temporary database",
                     commands: [
                       "createdb test_restore",
-                      `pg_restore --dbname=test_restore "${parsed.backupFile}"`,
+                      `pg_restore --dbname=test_restore "${backupFile}"`,
                       "-- Run validation queries",
                       "dropdb test_restore",
                     ],
@@ -389,17 +410,17 @@ export function createRestoreValidateTool(
                   {
                     step: 1,
                     name: "Verify backup with pg_verifybackup (PostgreSQL 13+)",
-                    command: `pg_verifybackup "${parsed.backupFile}"`,
+                    command: `pg_verifybackup "${backupFile}"`,
                   },
                   {
                     step: 2,
                     name: "Verify base backup files",
-                    command: `ls -la "${parsed.backupFile}"/`,
+                    command: `ls -la "${backupFile}"/`,
                   },
                   {
                     step: 3,
                     name: "Check backup_label file",
-                    command: `cat "${parsed.backupFile}"/backup_label`,
+                    command: `cat "${backupFile}"/backup_label`,
                   },
                   {
                     step: 4,
@@ -415,15 +436,13 @@ export function createRestoreValidateTool(
               };
             }
           })
-          .catch((error: unknown) => ({
-            success: false as const,
-            error: formatPostgresError(error, { tool: "pg_restore_validate" }),
-          }));
+          .catch((error: unknown) =>
+            formatHandlerErrorResponse(error, { tool: "pg_restore_validate" }),
+          );
       } catch (error: unknown) {
-        return Promise.resolve({
-          success: false as const,
-          error: formatPostgresError(error, { tool: "pg_restore_validate" }),
-        });
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_restore_validate" }),
+        );
       }
     },
   };
@@ -440,7 +459,7 @@ export function createBackupScheduleOptimizeTool(
     description:
       "Analyze database activity patterns and recommend optimal backup schedule.",
     group: "backup",
-    inputSchema: z.object({}),
+    inputSchema: z.object({}).strict(),
     outputSchema: BackupScheduleOptimizeOutputSchema,
     annotations: readOnly("Backup Schedule Optimize"),
     icons: getToolIcons("backup", readOnly("Backup Schedule Optimize")),
@@ -526,12 +545,9 @@ export function createBackupScheduleOptimizeTool(
           },
         };
       } catch (error: unknown) {
-        return {
-          success: false as const,
-          error: formatPostgresError(error, {
-            tool: "pg_backup_schedule_optimize",
-          }),
-        };
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_backup_schedule_optimize",
+        });
       }
     },
   };

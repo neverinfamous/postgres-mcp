@@ -5,7 +5,7 @@
  * 11 tools total.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
 
 // Basic monitoring tools
@@ -21,11 +21,9 @@ import {
 } from "./basic.js";
 
 // Advanced analysis tools
-import {
-  createCapacityPlanningTool,
-  createResourceUsageAnalyzeTool,
-  createAlertThresholdSetTool,
-} from "./analysis.js";
+import { createCapacityPlanningTool } from "./capacity-planning.js";
+import { createResourceUsageAnalyzeTool } from "./resource-usage.js";
+import { createAlertThresholdSetTool } from "./alert-thresholds.js";
 
 /**
  * Get all monitoring tools

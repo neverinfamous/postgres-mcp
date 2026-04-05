@@ -4,14 +4,14 @@
  * Table listing, description, creation, and deletion tools.
  */
 
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatPostgresError } from "./error-helpers.js";
+import { formatHandlerErrorResponse } from "./error-helpers.js";
 import {
   ListTablesSchemaBase,
   ListTablesSchema,
@@ -26,7 +26,7 @@ import {
   TableListOutputSchema,
   TableDescribeOutputSchema,
   TableOperationOutputSchema,
-} from "./schemas.js";
+} from "./schemas/index.js";
 
 /**
  * List all tables in the database
@@ -76,10 +76,7 @@ export function createListTablesTool(adapter: PostgresAdapter): ToolDefinition {
           }),
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_list_tables" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_list_tables" });
       }
     },
   };
@@ -117,20 +114,18 @@ export function createDescribeTableTool(
         );
 
         if (!typeCheck.rows || typeCheck.rows.length === 0) {
-          return {
-            success: false,
-            error: `Object '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
-          };
+          throw new Error(
+            `Object '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
+          );
         }
 
         const relkind = typeCheck.rows[0]?.["relkind"] as string;
 
         // Sequences have relkind 'S'
         if (relkind === "S") {
-          return {
-            success: false,
-            error: `'${schemaName}.${table}' is a sequence, not a table. Use pg_read_query with "SELECT * FROM ${schemaName}.${table}" to see sequence state, or pg_list_objects to discover objects.`,
-          };
+          throw new Error(
+            `'${schemaName}.${table}' is a sequence, not a table. Use pg_read_query with "SELECT * FROM ${schemaName}.${table}" to see sequence state, or pg_list_objects to discover objects.`,
+          );
         }
 
         // Only allow tables, views, materialized views, foreign tables, partitioned tables
@@ -144,18 +139,14 @@ export function createDescribeTableTool(
             c: "composite type",
           };
           const typeName = kindNames[relkind] ?? `unknown type (${relkind})`;
-          return {
-            success: false,
-            error: `'${schemaName}.${table}' is a ${typeName}, not a table. Use pg_list_objects to discover database objects.`,
-          };
+          throw new Error(
+            `'${schemaName}.${table}' is a ${typeName}, not a table. Use pg_list_objects to discover database objects.`,
+          );
         }
 
         return await adapter.describeTable(table, schemaName);
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_describe_table" }),
-        };
+        return formatHandlerErrorResponse(error, { tool: "pg_describe_table" });
       }
     },
   };
@@ -183,6 +174,28 @@ export function createCreateTableTool(
 
         const schemaPrefix = schema ? `"${schema}".` : "";
         const ifNotExistsClause = ifNotExists ? "IF NOT EXISTS " : "";
+
+        // If ifNotExists is true, check if table already exists BEFORE creating
+        if (ifNotExists === true) {
+          const schemaName = schema ?? "public";
+          const checkSql = `
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = $1 AND table_name = $2
+          `;
+          const checkResult = await adapter.executeQuery(checkSql, [
+            schemaName,
+            name,
+          ]);
+          if (checkResult.rows && checkResult.rows.length > 0) {
+            return {
+              success: true,
+              table: `${schemaName}.${name}`,
+              ifNotExists: true,
+              alreadyExists: true,
+              message: `Table ${name} already exists`,
+            };
+          }
+        }
 
         // Determine primary key: prefer explicit primaryKey array, else column-level
         const explicitPK =
@@ -264,18 +277,12 @@ export function createCreateTableTool(
 
         const sql = `CREATE TABLE ${ifNotExistsClause}${schemaPrefix}"${name}" (\n  ${columnDefs.join(",\n  ")}\n)`;
 
-        try {
-          await adapter.executeQuery(sql);
-        } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
-              tool: "pg_create_table",
-              table: name,
-              schema: schema ?? "public",
-            }),
-          };
-        }
+        await adapter.executeQuery(sql);
+
+        // Manually invalidate metadata cache for deterministic updates
+        // This is necessary because pg_create_table uses executeQuery directly
+        // to bypass validateQuery, meaning it misses executeWriteQuery's cache invalidation.
+        adapter.invalidateTableCache(name, schema ?? "public");
 
         return {
           success: true,
@@ -287,10 +294,15 @@ export function createCreateTableTool(
           }),
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_create_table" }),
-        };
+        const rawTable = (params as Record<string, unknown> | null)?.["name"];
+        const rawSchema = (params as Record<string, unknown> | null)?.[
+          "schema"
+        ];
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_create_table",
+          ...(typeof rawTable === "string" && { table: rawTable }),
+          ...(typeof rawSchema === "string" && { schema: rawSchema }),
+        });
       }
     },
   };
@@ -327,18 +339,10 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
 
         const sql = `DROP TABLE ${ifExistsClause}${schemaPrefix}"${table}"${cascadeClause}`;
 
-        try {
-          await adapter.executeQuery(sql);
-        } catch (error: unknown) {
-          return {
-            success: false,
-            error: formatPostgresError(error, {
-              tool: "pg_drop_table",
-              table,
-              schema: schemaName,
-            }),
-          };
-        }
+        await adapter.executeQuery(sql);
+
+        // Manually invalidate metadata cache for deterministic updates
+        adapter.invalidateTableCache(table, schemaName);
 
         return {
           success: true,
@@ -346,10 +350,18 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
           existed,
         };
       } catch (error: unknown) {
-        return {
-          success: false,
-          error: formatPostgresError(error, { tool: "pg_drop_table" }),
-        };
+        const rawTable =
+          (params as Record<string, unknown> | null)?.["table"] ??
+          (params as Record<string, unknown> | null)?.["tableName"] ??
+          (params as Record<string, unknown> | null)?.["name"];
+        const rawSchema = (params as Record<string, unknown> | null)?.[
+          "schema"
+        ];
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_drop_table",
+          ...(typeof rawTable === "string" && { table: rawTable }),
+          ...(typeof rawSchema === "string" && { schema: rawSchema }),
+        });
       }
     },
   };

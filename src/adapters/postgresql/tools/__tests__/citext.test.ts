@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { PostgresAdapter } from "../../PostgresAdapter.js";
+import type { PostgresAdapter } from "../../postgres-adapter.js";
 import {
   createMockPostgresAdapter,
   createMockRequestContext,
@@ -60,7 +60,7 @@ describe("Citext Tools", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("citext extension is not installed");
+      expect(result.error).toContain("is not installed or enabled");
     });
 
     it("should return structured error if table not found", async () => {
@@ -242,37 +242,18 @@ describe("Citext Tools", () => {
       expect(result.count).toBe(100);
       expect(result.totalCount).toBe(150);
       expect(result.truncated).toBe(true);
-      expect(result.limit).toBe(100);
+      expect(result.limit).toBe(50);
     });
 
-    it("should return all results with limit: 0", async () => {
-      mockAdapter.executeQuery
-        .mockResolvedValueOnce({ rows: [{ total: 3 }] })
-        .mockResolvedValueOnce({
-          rows: [
-            { table_schema: "public", table_name: "a", column_name: "col" },
-            { table_schema: "public", table_name: "b", column_name: "col" },
-            { table_schema: "public", table_name: "c", column_name: "col" },
-          ],
-        });
-
+    it("should return structured error for limit: 0", async () => {
       const tool = findTool("pg_citext_list_columns");
       const result = (await tool!.handler({ limit: 0 }, mockContext)) as {
-        count: number;
-        totalCount: number;
-        truncated: boolean;
-        limit?: number;
+        success: boolean;
+        error: string;
       };
 
-      expect(result.count).toBe(3);
-      expect(result.totalCount).toBe(3);
-      expect(result.truncated).toBe(false);
-      expect(result.limit).toBeUndefined();
-      // Verify no LIMIT clause in query
-      expect(mockAdapter.executeQuery).toHaveBeenLastCalledWith(
-        expect.not.stringContaining("LIMIT"),
-        [],
-      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("must be greater than 0");
     });
   });
 
@@ -680,14 +661,16 @@ describe("Citext Tools", () => {
       )) as {
         success: boolean;
         error: string;
-        currentType: string;
-        allowedTypes: string[];
+        details?: {
+          currentType: string;
+          allowedTypes: string[];
+        };
       };
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("not a text-based type");
-      expect(result.currentType).toBe("integer");
-      expect(result.allowedTypes).toEqual([
+      expect(result.details?.currentType).toBe("integer");
+      expect(result.details?.allowedTypes).toEqual([
         "text",
         "varchar",
         "character varying",
@@ -719,17 +702,19 @@ describe("Citext Tools", () => {
       )) as {
         success: boolean;
         error: string;
-        dependentViews: string[];
-        hint: string;
+        details?: {
+          dependentViews: string[];
+          hint?: string;
+        };
       };
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("dependent views");
-      expect(result.dependentViews).toEqual([
+      expect(result.details?.dependentViews).toEqual([
         "public.user_emails_view",
         "app.active_users_view",
       ]);
-      expect(result.hint).toContain("Drop the listed views");
+      expect(result.error).toContain("Drop the listed views");
     });
 
     // setup.ts L217-232: ALTER TABLE conversion failure
@@ -755,12 +740,12 @@ describe("Citext Tools", () => {
       )) as {
         success: boolean;
         error: string;
-        hint: string;
+        details?: { hint: string };
       };
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Failed to convert column");
-      expect(result.hint).toContain("views depend on this column");
+      expect(result.details?.hint).toContain("views depend on this column");
     });
 
     // setup.ts L233-239: outer catch block for unexpected errors
