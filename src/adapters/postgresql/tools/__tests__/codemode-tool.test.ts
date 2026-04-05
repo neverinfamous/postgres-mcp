@@ -296,7 +296,12 @@ describe("Code Mode Tool", () => {
         { timestamp: new Date(), requestId: "test" },
       )) as {
         success: boolean;
-        metrics?: { wallTimeMs: number; cpuTimeMs: number; memoryUsedMb: number; tokenEstimate?: number };
+        metrics?: {
+          wallTimeMs: number;
+          cpuTimeMs: number;
+          memoryUsedMb: number;
+          tokenEstimate?: number;
+        };
       };
 
       expect(result.success).toBe(true);

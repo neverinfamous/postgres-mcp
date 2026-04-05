@@ -42,21 +42,31 @@ export function createStatStatementsTool(
       try {
         const parsed = StatStatementsSchema.parse(params);
         const rawLimit = parsed.limit;
-        const userLimit = rawLimit === undefined ? 10 : rawLimit === 0 ? null : rawLimit;
+        const userLimit =
+          rawLimit === undefined ? 10 : rawLimit === 0 ? null : rawLimit;
         // Cap at 50 to prevent payload blowout from large pg_stat_statements tables
         const limit = userLimit === null ? 50 : Math.min(userLimit, 50);
         const rawOrderBy: unknown = parsed.orderBy;
         let orderBy = "total_time";
         if (typeof rawOrderBy === "string" && rawOrderBy !== "") {
-          if (["total_time", "calls", "mean_time", "rows"].includes(rawOrderBy)) {
+          if (
+            ["total_time", "calls", "mean_time", "rows"].includes(rawOrderBy)
+          ) {
             orderBy = rawOrderBy;
           } else {
-            throw new ValidationError("Validation error: orderBy must be one of: total_time, calls, mean_time, rows");
+            throw new ValidationError(
+              "Validation error: orderBy must be one of: total_time, calls, mean_time, rows",
+            );
           }
         }
 
         const rawTruncate = parsed.truncateQuery;
-        const truncateLen = rawTruncate === undefined ? 100 : rawTruncate === 0 ? null : rawTruncate;
+        const truncateLen =
+          rawTruncate === undefined
+            ? 100
+            : rawTruncate === 0
+              ? null
+              : rawTruncate;
 
         const sql = `SELECT query, calls, total_exec_time as total_time,
                         mean_exec_time as mean_time, rows,
@@ -79,13 +89,14 @@ export function createStatStatementsTool(
             return {
               ...row,
               query: truncatedQuery,
-              queryTruncated: truncateLen !== null && query.length > truncateLen,
+              queryTruncated:
+                truncateLen !== null && query.length > truncateLen,
               calls: toNum(row["calls"]),
               rows: toNum(row["rows"]),
               shared_blks_hit: toNum(row["shared_blks_hit"]),
               shared_blks_read: toNum(row["shared_blks_read"]),
             };
-          }
+          },
         );
 
         const response: Record<string, unknown> = {
@@ -106,7 +117,9 @@ export function createStatStatementsTool(
         }
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_stat_statements" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_stat_statements",
+        });
       }
     },
   };
@@ -130,10 +143,16 @@ export function createStatActivityTool(
         const idleClause = includeIdle ? "" : "AND state != 'idle'";
 
         const rawTruncate = parsed.truncateQuery;
-        const truncateLen = rawTruncate === undefined ? 100 : rawTruncate === 0 ? null : rawTruncate;
+        const truncateLen =
+          rawTruncate === undefined
+            ? 100
+            : rawTruncate === 0
+              ? null
+              : rawTruncate;
 
         const rawLimit = parsed.limit;
-        const userLimit = rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
+        const userLimit =
+          rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
         const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
 
         const sql = `SELECT pid, usename, datname, client_addr, state,
@@ -148,7 +167,7 @@ export function createStatActivityTool(
                         ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
         const result = await adapter.executeQuery(sql);
-        
+
         const connections = (result.rows ?? []).map(
           (row: Record<string, unknown>) => {
             const queryVal = row["query"];
@@ -160,9 +179,10 @@ export function createStatActivityTool(
             return {
               ...row,
               query: truncatedQuery,
-              queryTruncated: truncateLen !== null && query.length > truncateLen,
+              queryTruncated:
+                truncateLen !== null && query.length > truncateLen,
             };
-          }
+          },
         );
 
         // Count background workers for metadata
@@ -202,11 +222,17 @@ export function createQueryPlanStatsTool(
       try {
         const parsed = QueryPlanStatsSchema.parse(params);
         const rawLimit = parsed.limit;
-        const userLimit = rawLimit === undefined ? 10 : rawLimit === 0 ? null : rawLimit;
+        const userLimit =
+          rawLimit === undefined ? 10 : rawLimit === 0 ? null : rawLimit;
         // Cap at 50 to match pg_stat_statements payload safety
         const limit = userLimit === null ? 50 : Math.min(userLimit, 50);
         const rawTruncate = parsed.truncateQuery;
-        const truncateLen = rawTruncate === undefined ? 100 : rawTruncate === 0 ? null : rawTruncate;
+        const truncateLen =
+          rawTruncate === undefined
+            ? 100
+            : rawTruncate === 0
+              ? null
+              : rawTruncate;
 
         // Check if pg_stat_statements is available with planning time columns
         const sql = `SELECT
@@ -276,7 +302,9 @@ export function createQueryPlanStatsTool(
         }
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_query_plan_stats" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_query_plan_stats",
+        });
       }
     },
   };

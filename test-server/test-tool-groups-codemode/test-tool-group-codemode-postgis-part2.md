@@ -67,7 +67,13 @@ Note: The isError flag propagation issue has been fixed. P154 structured errors 
 All tools must return errors as structured objects instead of throwing. A thrown error propagates as a raw MCP error, which is unhelpful to clients. The expected pattern:
 
 ```json
-{ "success": false, "error": "Human-readable error message", "code": "QUERY_ERROR", "category": "query", "recoverable": false }
+{
+  "success": false,
+  "error": "Human-readable error message",
+  "code": "QUERY_ERROR",
+  "category": "query",
+  "recoverable": false
+}
 ```
 
 The enriched `ErrorResponse` from `formatHandlerError` always includes `success`, `error`, `code`, `category`, and `recoverable`. Optional fields `suggestion` and `details` may also be present. Some tools include additional context fields (e.g., `pg_transaction_execute` includes `statementsExecuted`, `failedStatement`, `autoRolledBack`). These are acceptable as long as `success: false` and `error` are always present.
@@ -76,10 +82,10 @@ The enriched `ErrorResponse` from `formatHandlerError` always includes `success`
 
 There are two kinds of error responses. Only one is correct:
 
-| Type | Source | What you see | Verdict |
-|------|--------|--------------|---------|
-| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields | Correct |
-| **MCP error** ❌ | Uncaught throw propagates to MCP framework | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
+| Type                 | Source                                                             | What you see                                                                                                          | Verdict            |
+| -------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields                                                               | Correct            |
+| **MCP error** ❌     | Uncaught throw propagates to MCP framework                         | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
 
 **Concrete examples:**
 
@@ -134,18 +140,18 @@ For each P154 test, verify that calling with a nonexistent table (e.g., `table: 
 
 Key PostgreSQL error codes that should be intercepted by `formatHandlerError` (not leaked as raw errors):
 
-| PG Error Code | Meaning | Expected Structured Message |
-|---------------|---------|---------------------------|
-| 42P01 | Undefined table | `Table "X" does not exist` |
-| 42P06 | Duplicate schema | `Schema "X" already exists` |
-| 42P07 | Duplicate table | `Table "X" already exists` |
-| 42701 | Duplicate column | `Column "X" already exists` |
-| 42703 | Undefined column | `Column "X" does not exist` |
-| 23505 | Unique violation | `Duplicate key: ...` |
-| 23503 | FK violation | `Foreign key constraint violated` |
-| 42601 | Syntax error | `SQL syntax error: ...` |
-| 3F000 | Invalid schema name | `Schema "X" does not exist` |
-| XX000 | Internal error | `Internal error: ...` |
+| PG Error Code | Meaning             | Expected Structured Message       |
+| ------------- | ------------------- | --------------------------------- |
+| 42P01         | Undefined table     | `Table "X" does not exist`        |
+| 42P06         | Duplicate schema    | `Schema "X" already exists`       |
+| 42P07         | Duplicate table     | `Table "X" already exists`        |
+| 42701         | Duplicate column    | `Column "X" already exists`       |
+| 42703         | Undefined column    | `Column "X" does not exist`       |
+| 23505         | Unique violation    | `Duplicate key: ...`              |
+| 23503         | FK violation        | `Foreign key constraint violated` |
+| 42601         | Syntax error        | `SQL syntax error: ...`           |
+| 3F000         | Invalid schema name | `Schema "X" does not exist`       |
+| XX000         | Internal error      | `Internal error: ...`             |
 
 ## Error Consistency Audit
 
@@ -162,17 +168,17 @@ During testing, check for these inconsistencies across tool groups:
 
 For each tool group under test, verify at least one scenario from each applicable row:
 
-| Error Scenario | Tool Groups to Test | Example Input |
-|----------------|-------------------|---------------|
-| Nonexistent table | All table-accepting tools | `table: "nonexistent_xyz"` |
-| Nonexistent schema | Core, introspection, schema | `schema: "fake_schema"` or `table: "fake_schema.users"` |
-| Invalid SQL syntax | Core (`read_query`, `write_query`) | `sql: "SELECTT * FROM"` |
-| Invalid column name | Stats, JSONB, text, vector, PostGIS | `column: "nonexistent_col"` |
-| Duplicate table/index | Core (`create_table`, `create_index`) | Create existing table |
-| Empty required array | Transactions | `statements: []` |
-| Missing required field via alias | Core, transactions | `sql` alias instead of `query` |
-| **Zod validation (empty params)** | **Every tool with required params** | `{}` (empty object — must return handler error, not MCP `-32602` error) |
-| **Zod validation (wrong type)** | **Tools with typed params** | Pass string where number expected, etc. |
+| Error Scenario                    | Tool Groups to Test                   | Example Input                                                           |
+| --------------------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| Nonexistent table                 | All table-accepting tools             | `table: "nonexistent_xyz"`                                              |
+| Nonexistent schema                | Core, introspection, schema           | `schema: "fake_schema"` or `table: "fake_schema.users"`                 |
+| Invalid SQL syntax                | Core (`read_query`, `write_query`)    | `sql: "SELECTT * FROM"`                                                 |
+| Invalid column name               | Stats, JSONB, text, vector, PostGIS   | `column: "nonexistent_col"`                                             |
+| Duplicate table/index             | Core (`create_table`, `create_index`) | Create existing table                                                   |
+| Empty required array              | Transactions                          | `statements: []`                                                        |
+| Missing required field via alias  | Core, transactions                    | `sql` alias instead of `query`                                          |
+| **Zod validation (empty params)** | **Every tool with required params**   | `{}` (empty object — must return handler error, not MCP `-32602` error) |
+| **Zod validation (wrong type)**   | **Tools with typed params**           | Pass string where number expected, etc.                                 |
 
 ## Cleanup Conventions
 
@@ -242,16 +248,16 @@ Test distance calculations between cities (e.g., New York ↔ London).
 **Checklist:**
 
 1. `pg_geocode({lat: 40.7128, lng: -74.006})` → verify `{geojson, wkt}` present
-4. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
-6. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
+2. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
+3. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
 
-13. `pg_geo_transform()` → verify happy path expected behavior
-14. 🔴 `pg_geo_transform({})` → verify structured P154 error response or valid defaults
-27. `pg_geo_cluster()` → verify happy path expected behavior
-28. 🔴 `pg_geo_cluster({})` → verify structured P154 error response or valid defaults
-29. `pg_geometry_buffer()` → verify happy path expected behavior
-30. 🔴 `pg_geometry_buffer({})` → verify structured P154 error response or valid defaults
-31. `pg_geometry_intersection()` → verify happy path expected behavior
-32. 🔴 `pg_geometry_intersection({})` → verify structured P154 error response or valid defaults
-33. `pg_geometry_transform()` → verify happy path expected behavior
-34. 🔴 `pg_geometry_transform({})` → verify structured P154 error response or valid defaults
+4. `pg_geo_transform()` → verify happy path expected behavior
+5. 🔴 `pg_geo_transform({})` → verify structured P154 error response or valid defaults
+6. `pg_geo_cluster()` → verify happy path expected behavior
+7. 🔴 `pg_geo_cluster({})` → verify structured P154 error response or valid defaults
+8. `pg_geometry_buffer()` → verify happy path expected behavior
+9. 🔴 `pg_geometry_buffer({})` → verify structured P154 error response or valid defaults
+10. `pg_geometry_intersection()` → verify happy path expected behavior
+11. 🔴 `pg_geometry_intersection({})` → verify structured P154 error response or valid defaults
+12. `pg_geometry_transform()` → verify happy path expected behavior
+13. 🔴 `pg_geometry_transform({})` → verify structured P154 error response or valid defaults

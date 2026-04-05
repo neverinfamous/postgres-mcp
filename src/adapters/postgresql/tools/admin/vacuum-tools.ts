@@ -5,7 +5,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import type {
+  ToolDefinition,
+  RequestContext,
+} from "../../../../types/index.js";
 import { admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -48,7 +51,8 @@ export function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
           skipLocked?: boolean;
           truncate?: boolean;
         };
-        const { table, schema, full, verbose, analyze, skipLocked, truncate } = parsed;
+        const { table, schema, full, verbose, analyze, skipLocked, truncate } =
+          parsed;
 
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 2, "Starting VACUUM...");
@@ -61,7 +65,8 @@ export function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
         if (truncate === true) options.push("TRUNCATE");
         if (truncate === false) options.push("TRUNCATE false");
 
-        const optionsClause = options.length > 0 ? `(${options.join(", ")}) ` : "";
+        const optionsClause =
+          options.length > 0 ? `(${options.join(", ")}) ` : "";
         const target =
           table !== undefined ? sanitizeTableName(table, schema) : "";
 
@@ -92,7 +97,9 @@ export function createVacuumTool(adapter: PostgresAdapter): ToolDefinition {
   };
 }
 
-export function createVacuumAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
+export function createVacuumAnalyzeTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_vacuum_analyze",
     description:
@@ -125,7 +132,8 @@ export function createVacuumAnalyzeTool(adapter: PostgresAdapter): ToolDefinitio
         if (truncate === true) options.push("TRUNCATE");
         if (truncate === false) options.push("TRUNCATE false");
 
-        const optionsClause = options.length > 0 ? `(${options.join(", ")}) ` : "";
+        const optionsClause =
+          options.length > 0 ? `(${options.join(", ")}) ` : "";
         const target =
           table !== undefined ? sanitizeTableName(table, schema) : "";
 
@@ -185,7 +193,9 @@ export function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
           columns.length > 0 &&
           table === undefined
         ) {
-          return new ValidationError("table is required when columns is specified").toResponse();
+          return new ValidationError(
+            "table is required when columns is specified",
+          ).toResponse();
         }
 
         const target =
@@ -194,11 +204,12 @@ export function createAnalyzeTool(adapter: PostgresAdapter): ToolDefinition {
           columns !== undefined && columns.length > 0
             ? `(${sanitizeIdentifiers(columns).join(", ")})`
             : "";
-        
+
         const options: string[] = [];
         if (verbose === true) options.push("VERBOSE");
         if (skipLocked === true) options.push("SKIP_LOCKED");
-        const optionsClause = options.length > 0 ? `(${options.join(", ")}) ` : "";
+        const optionsClause =
+          options.length > 0 ? `(${options.join(", ")}) ` : "";
 
         const sql = `ANALYZE ${optionsClause}${target}${columnClause}`;
         await adapter.executeQuery(sql);

@@ -5,11 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased](https://github.com/neverinfamous/postgres-mcp/compare/v3.0.0...HEAD)
 
 See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 
-## [2.3.0] - 2026-03-09
+## [3.0.0](https://github.com/neverinfamous/postgres-mcp/releases/tag/v3.0.0) - 2026-04-05
+
+### Added
+
+- Worker-thread Code Mode sandbox with resource limits, RPC bridge, and configurable timeouts.
+- Transport-agnostic Auth module supporting `SCOPE_PATTERNS`, `BASE_SCOPES`, and RFC 6750.
+- Audit subsystem with session token estimates, JSONL logging, redaction, and `pg_audit_*` tools.
+- 13 new statistics and admin tools (including `pg_stats_outliers`, `pg_append_insight`, and `pg_jsonb_pretty`).
+- 22 group-specific help resources accessible via `postgres://help`.
+- Playwright E2E test coverage for Code Mode, authentication, and backups.
+- Parameter extensions and aliases for core tools (e.g., `toType`, `indexName`).
+- Agent-optimized documentation and Code Mode integration guides.
+
+### Changed
+
+- **BREAKING**: Core write tools require `write` scope; destructive tools require `admin`.
+- Modularized source files using strict `kebab-case` convention.
+- Optimized payload sizes (~30–41% reduction) by reducing default limits (10-20), capping max limits (50-100), and omitting null/empty sections across Performance, Stats, Monitoring, and Introspection tools.
+- Implemented configurable safety limits (default 100, max 500) for `pg_schema_snapshot` and `pg_dependency_graph` to prevent context window exhaustion in large database environments.
+- Applied `openWorldHint: false` to all tools.
+- Centralized default connection pool timeout to 30,000ms.
+- Switched to SWC compilation for Vitest and reduced npm package size by excluding test/source map artifacts.
+
+### Removed
+
+- Obsolete `META_GROUPS` shortcut bundles.
+- Unused `hono` router dependency.
+- Duplicate validation logic across performance handlers.
+
+### Fixed
+
+- Corrected the static `totalResources` count reported by the `postgres://capabilities` resource to 23.
+- Standardized P154 error structures and double-quote formatting across all 230+ tools.
+- Resolved Split Schema Pattern violations across Search, JSONB, Vector, Stats, Performance, and Admin groups.
+- Improved reliability for Performance tools (`pg_stat_statements`, `pg_diagnose_database_performance`, `pg_cache_hit_ratio`): fixed output schemas, aligned error reporting with P154, and handled empty parameter objects.
+- Implemented strict numeric type coercion (`coerceNumber`) and Zod validation for performance tools to prevent native type mismatches and raw MCP errors.
+- Partitioning tools: Fixed membership checks, added `ifNotExists` parameters, and implemented pagination limits.
+- Transaction tools: Fixed `isolation_level` alias mapping and improved transaction error hints.
+- Fixed factual inaccuracies in `performance.md` documentation.
+- Improved resilience in Admin and Monitoring tools when handling missing tables or extensions.
+- Bypassed Docker Hub rate-limit blocks in CI using authenticated pulls.
+- Resolved various logic regressions in cascade simulators, progress logging, and snake_case alias parsing.
+
+### Security
+
+- Patched prototype pollution vulnerabilities in `hono`.
+- Replaced raw exceptions with `PostgresMcpError` to prevent SQL syntax leaks.
+- Enforced SLSA Build L3 compliance via `--provenance` in publishing workflows.
+- Patched vulnerabilities in Docker builds.
+- Added `push` trigger to `secrets-scanning.yml` for early leak detection on feature branches.
+- Cleaned `.trivyignore` to contain only CVE IDs (removed inert path entries).
 
 ### Added
 
@@ -34,6 +84,7 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 ### Security
 
 - **Schema Validation** — Mitigated an SQL injection risk in diagnostics and anomaly-detection modules by replacing ad-hoc string escaping with `validateIdentifier()` schema validation.
+
 ## [2.2.0] - 2026-03-09
 
 ### Added
@@ -69,6 +120,7 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 - **Session Auth & Trust Proxy Configuration** — Added `--trust-proxy` parameter allowing left-most `X-Forwarded-For` verification upon rate checking upstreams. Included logger warnings alerting developers on unauthenticated HTTP endpoints.
 - **Action Supply-Chain Fastening** — Pinned all 37 Github Actions throughout CI/CD triggers to exact SHA constraints instead of rolling version tags.
 - **DDL Template Hardening** — Removed unsafe `.replace(TRACKING_TABLE, ...)` string modifications in favor of explicitly verified SQL object builder pipelines.
+
 ## [2.1.0] - 2026-03-08
 
 ### Changed
@@ -111,6 +163,7 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 - **Header Standards:**
   - Deprecated `X-XSS-Protection`, incorporated `Referrer-Policy: no-referrer`, and disabled generic `Permissions-Policy`. Default `ssl: true` flags force-reject unauthorized protocols without explicit bypass parameters.
 - **NPM Package Auditing** — Hardened pipeline, updated `minimatch`, `hono`, and `jose` addressing ReDoS constraints. Removed local MCP Registry dummy tokens.
+
 ## [2.0.0] - 2026-03-02
 
 ### Added
@@ -135,11 +188,11 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
   - `dev-power` configured into `dev-schema` & `dev-analytics`.
   - Deprecated `base-core` bundle entirely.
 - **File System Refactoring & Documentation Output** — Centralized and converted `server-instructions.ts` strings down to markdown documents parsed organically via `generate-server-instructions.ts` keeping internal syntax clean. Added `backgroundWorkers` response logic for activities.
-- **Code Mode Stability Enhancements** — Reconfigured `vm.Script` into LRU buffers yielding significant performance savings during repetitious loops. Utilized `process.memoryUsage.rss()` to stabilize metric loads across Windows operations. 
+- **Code Mode Stability Enhancements** — Reconfigured `vm.Script` into LRU buffers yielding significant performance savings during repetitious loops. Utilized `process.memoryUsage.rss()` to stabilize metric loads across Windows operations.
 
 ### Removed
 
-- **Worker Isolation Mechanism** — Abstracted and permanently wiped out unused, un-operational `worker_threads` mode files configuring `Code Mode` dependencies. 
+- **Worker Isolation Mechanism** — Abstracted and permanently wiped out unused, un-operational `worker_threads` mode files configuring `Code Mode` dependencies.
 - **Non-Functional Graphing Variables** — Eliminated `includeIndexes` dummy parameter inside Dependency schemas causing confusion against active constraints.
 
 ### Fixed
@@ -147,10 +200,11 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 - **Documentation Refresh** — Consolidated instructions rectifying incorrect feature listings, parameter omissions (like `includeRowCounts`), output inconsistencies, and false `test-tools.md` threshold metrics. Fixed internal Code Mode capabilities stating incorrect subset limits.
 - **Introspection/Migration Quality Improvements:**
   - Added filter boundaries ignoring extension-owned architectures (`topology`, `cron`, `tiger`) when examining graphs or building schema mapping.
-  - Eliminated cyclic-reference locks within topological DDL sorting tools processing recursive rows. 
+  - Eliminated cyclic-reference locks within topological DDL sorting tools processing recursive rows.
   - Restored true NO ACTION severity constraints during Cascade Simulator procedures rather than coalescing RESTRICT rules universally.
 - **Runtime Overheads** — Pinned `.gitignore` constraints preventing accidental local artifacts like `.eslintcache`, test output `.nyc_output`, and `build` volumes.
-- **Dependencies** — Incremented `@modelcontextprotocol/sdk` (1.26.0 -> 1.27.1), Postgres packages, and base TypeScript nodes. Passed Trivy and security resolution patches across `@types/node`. 
+- **Dependencies** — Incremented `@modelcontextprotocol/sdk` (1.26.0 -> 1.27.1), Postgres packages, and base TypeScript nodes. Passed Trivy and security resolution patches across `@types/node`.
+
 ## [1.3.0] - 2026-02-15
 
 ### Added
@@ -173,6 +227,7 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 - **Vector Payload Exhaustion**: Addressed JSON-RPC size limitations for large embeddings by returning compact summaries by default in `pg_vector_embed`, `pg_vector_cluster`, and `pg_vector_aggregate` tools.
 - **Partitioning Error Handling**: Upgraded partitioning tools to output structured `{success: false, error}` blocks instead of crashing when parents or children do not exist.
 - **Object Extraction Edge Cases**: Corrected `schema.table` name parsing, negative index formatting, and strict type handling across the schema, text, partman, and cron tool subsets.
+
 ## [1.2.0] - 2026-02-05
 
 ### Added
@@ -190,6 +245,7 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 - **Default Parameter Masking**: Fixed MCP conversion of the `.default({})` schema on `pg_pgcrypto_gen_random_uuid`, restoring visibility of the `count` parameter.
 - **Kcache Truncation Safety**: Ensured correct truncation calculations and reduced default limits across all kcache query modules.
 - **PostGIS SRID Auto-Detection**: Repaired `fromSrid` auto-detection logic within `pg_geo_transform`.
+
 ## [1.1.0] - 2026-01-29
 
 ### Added
@@ -215,6 +271,7 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 - **SQL Injection Prevention**: Hardened text and vector tools with blocklists against dangerous SQL patterns (`UNION SELECT`, `--`, `pg_sleep`).
 - **Log Sanitization**: Upgraded logger class with `sanitizeStack()` and taint-breaking techniques to mask sensitive OAuth fields and limit control character insertion.
 - **Vulnerability Remediation**: Patched Docker image build dependencies and resolved CodeQL static analysis findings.
+
 ## [1.0.0] - 2026-01-24
 
 ### Added
@@ -233,12 +290,13 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 ### Fixed
 
 - **Cross-Platform Compatibility**: Eliminated Windows/Linux path resolution faults and environment loading constraints.
-- **Result Summarization**: Refactored buffer and extraction payloads to leverage simplified geometries. 
+- **Result Summarization**: Refactored buffer and extraction payloads to leverage simplified geometries.
 
 ### Security
 
 - **Advanced Environment Hardening**: Introduced 100 requests/minute rate-limiting, size guardrails, and Strict-Transport-Security settings to HTTP transport.
 - **Static Analysis Compliance**: Repaired clear-text logging issues and removed unreferenced payloads resolving CodeQL findings.
+
 ## [0.2.0] - 2025-12-14
 
 ### Added
@@ -248,6 +306,7 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 ### Changed
 
 - **Status Upgrade**: Graduated from Development Preview to Initial Implementation Complete.
+
 ## [0.1.0] - 2025-12-13
 
 ### Added

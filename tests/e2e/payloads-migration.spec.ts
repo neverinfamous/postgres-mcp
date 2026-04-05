@@ -18,14 +18,14 @@ test.describe("Payload Contracts: Migration", () => {
     // Drop in case leftover
     await callToolAndParse(client, "pg_drop_table", {
       table: "_migrations_test",
-      ifExists: true
+      ifExists: true,
     });
   });
 
   test.afterAll(async () => {
     await callToolAndParse(client, "pg_drop_table", {
       table: "_migrations_test",
-      ifExists: true
+      ifExists: true,
     });
     await client.close();
   });
@@ -43,7 +43,7 @@ test.describe("Payload Contracts: Migration", () => {
       table: "_migrations_test",
       version: "v1.0.0",
       description: "Init",
-      migrationSql: "SELECT 1"
+      migrationSql: "SELECT 1",
     });
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
@@ -56,7 +56,7 @@ test.describe("Payload Contracts: Migration", () => {
   });
 
   test("pg_migration_status returns pending/applied", async () => {
-    // Might return string or object depending on payload 
+    // Might return string or object depending on payload
     const payload = await callToolAndParse(client, "pg_migration_status", {
       table: "_migrations_test",
     });
@@ -67,8 +67,12 @@ test.describe("Payload Contracts: Migration", () => {
     const payload = await callToolAndParse(client, "pg_migration_apply", {
       table: "_migrations_test",
       migrations: [
-        { version: "v1.0.1", description: "test", migrationSql: "CREATE TABLE stress_mig_test(id INT);" }
-      ]
+        {
+          version: "v1.0.1",
+          description: "test",
+          migrationSql: "CREATE TABLE stress_mig_test(id INT);",
+        },
+      ],
     });
     // Can fail if migrations differ, but object shape
     expect(typeof payload).toBe("object");
@@ -77,7 +81,7 @@ test.describe("Payload Contracts: Migration", () => {
   test("pg_migration_rollback returns success", async () => {
     const payload = await callToolAndParse(client, "pg_migration_rollback", {
       table: "_migrations_test",
-      version: "v1.0.1"
+      version: "v1.0.1",
     });
     expect(typeof payload).toBe("object");
   });

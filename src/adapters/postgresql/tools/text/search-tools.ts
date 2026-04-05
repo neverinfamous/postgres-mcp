@@ -21,9 +21,7 @@ import {
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
-import {
-  buildLimitClause,
-} from "../../../../utils/query-helpers.js";
+import { buildLimitClause } from "../../../../utils/query-helpers.js";
 import {
   preprocessTextParams,
   // Output schemas
@@ -108,11 +106,19 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
-            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+            throw new ValidationError("limit must be non-negative", {
+              code: "VALIDATION_ERROR",
+            });
           } else if (safeLimit === 0) {
-            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must be greater than 0 to prevent large payloads. Max limit is 100.",
+              { code: "VALIDATION_ERROR" },
+            );
           } else if (safeLimit > 100) {
-            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must not exceed 100 to prevent large payloads",
+              { code: "VALIDATION_ERROR" },
+            );
           }
           limitVal = safeLimit;
         }
@@ -134,8 +140,8 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_like_search",
-          });
+          tool: "pg_like_search",
+        });
       }
     },
   };
@@ -160,7 +166,10 @@ export function createTextSentimentTool(
   });
 
   const SentimentSchema = z.object({
-    text: z.string().min(1, "Text must not be empty").describe("Text to analyze"),
+    text: z
+      .string()
+      .min(1, "Text must not be empty")
+      .describe("Text to analyze"),
     returnWords: z
       .boolean()
       .optional()

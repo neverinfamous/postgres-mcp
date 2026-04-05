@@ -3,7 +3,11 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
+} from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -70,7 +74,7 @@ export function createAlertThresholdSetTool(
 
         if (parsed.metric && !validMetrics.includes(parsed.metric)) {
           throw new ValidationError(
-            `Invalid metric "${parsed.metric}". Valid metrics: ${validMetrics.join(", ")}`
+            `Invalid metric "${parsed.metric}". Valid metrics: ${validMetrics.join(", ")}`,
           );
         }
 
@@ -79,10 +83,12 @@ export function createAlertThresholdSetTool(
           if (val?.trim() === "") {
             throw new ValidationError(`Threshold percentage cannot be empty`);
           }
-          if (val?.includes('%')) {
-            const num = parseFloat(val.replace(/[^\d.-]/g, ''));
+          if (val?.includes("%")) {
+            const num = parseFloat(val.replace(/[^\d.-]/g, ""));
             if (Number.isNaN(num) || num < 0 || num > 100) {
-              throw new ValidationError(`Threshold percentage must be between 0% and 100%, got ${val}`);
+              throw new ValidationError(
+                `Threshold percentage must be between 0% and 100%, got ${val}`,
+              );
             }
           }
         };
@@ -97,8 +103,8 @@ export function createAlertThresholdSetTool(
             threshold: {
               warning: parsed.warningThreshold ?? "default",
               critical: parsed.criticalThreshold ?? "default",
-              description: `Custom threshold configured for ${parsed.metric ?? "all metrics"}`
-            }
+              description: `Custom threshold configured for ${parsed.metric ?? "all metrics"}`,
+            },
           });
         }
 
@@ -117,7 +123,7 @@ export function createAlertThresholdSetTool(
         });
       } catch (error: unknown) {
         return Promise.resolve(
-          formatHandlerErrorResponse(error, { tool: "pg_alert_threshold_set" })
+          formatHandlerErrorResponse(error, { tool: "pg_alert_threshold_set" }),
         );
       }
     },

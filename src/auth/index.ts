@@ -86,4 +86,3 @@ export {
   validateAuth as validateAuthTransportAgnostic,
   formatOAuthError as formatOAuthErrorTransportAgnostic,
 } from "./transport-agnostic.js";
-

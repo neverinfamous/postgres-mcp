@@ -441,4 +441,3 @@ export const DropTableSchema = z
   .refine((data) => data.table !== "", {
     message: "table (or tableName/name alias) is required",
   });
-

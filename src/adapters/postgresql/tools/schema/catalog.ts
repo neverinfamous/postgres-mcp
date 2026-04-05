@@ -69,7 +69,9 @@ export function createListFunctionsTool(
             [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            throw new Error(`Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`);
+            throw new Error(
+              `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+            );
           }
         }
 
@@ -189,7 +191,9 @@ export function createListTriggersTool(
             [schemaName],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            throw new Error(`Schema '${schemaName}' does not exist. Use pg_list_schemas to see available schemas.`);
+            throw new Error(
+              `Schema '${schemaName}' does not exist. Use pg_list_schemas to see available schemas.`,
+            );
           }
         }
 
@@ -200,7 +204,9 @@ export function createListTriggersTool(
             [resolvedSchema, tableName],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
-            throw new Error(`Table '${resolvedSchema}.${tableName}' not found. Use pg_list_tables to see available tables.`);
+            throw new Error(
+              `Table '${resolvedSchema}.${tableName}' not found. Use pg_list_tables to see available tables.`,
+            );
           }
         }
 
@@ -236,18 +242,20 @@ export function createListTriggersTool(
 
         const rawLimit = Number(parsed.limit);
         const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
-        const finalSql = limitVal > 0 ? `${sql} LIMIT ${String(limitVal)}` : sql;
+        const finalSql =
+          limitVal > 0 ? `${sql} LIMIT ${String(limitVal)}` : sql;
 
         const result =
           queryParams.length > 0
             ? await adapter.executeQuery(finalSql, queryParams)
             : await adapter.executeQuery(finalSql);
-            
-        return { 
-          triggers: result.rows, 
+
+        return {
+          triggers: result.rows,
           count: result.rows?.length ?? 0,
           limit: limitVal,
-          note: limitVal > 0 && (result.rows?.length ?? 0) >= limitVal
+          note:
+            limitVal > 0 && (result.rows?.length ?? 0) >= limitVal
               ? `Results limited to ${String(limitVal)}. Use 'limit' param for more.`
               : undefined,
         };
@@ -317,7 +325,9 @@ export function createListConstraintsTool(
             [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            throw new Error(`Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`);
+            throw new Error(
+              `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+            );
           }
         }
 
@@ -328,7 +338,9 @@ export function createListConstraintsTool(
             [schemaName, parsed.table],
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
-            throw new Error(`Table '${schemaName}.${parsed.table}' not found. Use pg_list_tables to see available tables.`);
+            throw new Error(
+              `Table '${schemaName}.${parsed.table}' not found. Use pg_list_tables to see available tables.`,
+            );
           }
         }
 
@@ -370,23 +382,27 @@ export function createListConstraintsTool(
 
         const rawLimit = Number(parsed.limit);
         const limitVal = Number.isFinite(rawLimit) ? rawLimit : 50;
-        const finalSql = limitVal > 0 ? `${sql} LIMIT ${String(limitVal)}` : sql;
+        const finalSql =
+          limitVal > 0 ? `${sql} LIMIT ${String(limitVal)}` : sql;
 
         const result =
           queryParams.length > 0
             ? await adapter.executeQuery(finalSql, queryParams)
             : await adapter.executeQuery(finalSql);
-            
-        return { 
-          constraints: result.rows, 
+
+        return {
+          constraints: result.rows,
           count: result.rows?.length ?? 0,
           limit: limitVal,
-          note: limitVal > 0 && (result.rows?.length ?? 0) >= limitVal
+          note:
+            limitVal > 0 && (result.rows?.length ?? 0) >= limitVal
               ? `Results limited to ${String(limitVal)}. Use 'limit' param for more.`
               : undefined,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_list_constraints" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_list_constraints",
+        });
       }
     },
   };

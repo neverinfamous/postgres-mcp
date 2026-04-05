@@ -69,7 +69,9 @@ test.describe("Integration: Core → JSONB → Stats Pipeline", () => {
         column: "score",
       });
       expectSuccess(stats);
-      const s = (stats.statistics ?? stats.stats) as Record<string, unknown> | undefined;
+      const s = (stats.statistics ?? stats.stats) as
+        | Record<string, unknown>
+        | undefined;
       expect(s).toBeDefined();
       expect(s!.count as number).toBeGreaterThanOrEqual(5);
       expect(typeof s!.min).toBe("number");
@@ -123,7 +125,7 @@ test.describe("Integration: Admin → Introspection Health Check", () => {
       expectSuccess(p);
       const result = p.result as Record<string, unknown>;
       expect(typeof result.tableCount).toBe("number");
-      expect((result.tableCount as number)).toBeGreaterThan(0);
+      expect(result.tableCount as number).toBeGreaterThan(0);
       expect(result.hasPlan).toBe(true);
     } finally {
       await client.close();

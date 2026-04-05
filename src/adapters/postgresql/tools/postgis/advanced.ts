@@ -202,13 +202,12 @@ export function createGeoTransformTool(
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_geo_transform",
-            table:
-              ((params as Record<string, unknown>)?.["table"] as string) ??
-              undefined,
-          });
+          tool: "pg_geo_transform",
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
+        });
       }
     },
   };
 }
-

@@ -3,14 +3,14 @@ name: Security Update Check
 on:
   schedule:
     # Run weekly on Sundays at 2 AM UTC
-    - cron: '0 2 * * 0'
+    - cron: "0 2 * * 0"
   workflow_call:
   pull_request:
     branches: [main]
     paths:
-      - 'Dockerfile'
-      - 'package.json'
-      - 'package-lock.json'
+      - "Dockerfile"
+      - "package.json"
+      - "package-lock.json"
   workflow_dispatch:
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
       - name: Checkout repository
@@ -47,31 +47,31 @@ jobs:
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: security-test:latest
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          exit-code: '0'
+          format: "sarif"
+          output: "trivy-results.sarif"
+          exit-code: "0"
           ignore-unfixed: true
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          trivyignores: '.trivyignore'
-          skip-dirs: '/usr/local/lib/node_modules/npm'
+          severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: ".trivyignore"
+          skip-dirs: "/usr/local/lib/node_modules/npm"
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@b1bff81932f5cdfc8695c7752dcee935dcd061c8 # v4.34.1
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
       # Run table scan (blocking) after SARIF is uploaded
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           image-ref: security-test:latest
-          format: 'table'
-          exit-code: '1'
+          format: "table"
+          exit-code: "1"
           ignore-unfixed: true
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          trivyignores: '.trivyignore'
-          skip-dirs: '/usr/local/lib/node_modules/npm'
+          severity: "CRITICAL,HIGH,MEDIUM"
+          trivyignores: ".trivyignore"
+          skip-dirs: "/usr/local/lib/node_modules/npm"
 
       - name: Create security issue if vulnerabilities found
         if: failure()

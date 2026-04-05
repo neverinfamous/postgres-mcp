@@ -143,4 +143,3 @@ export const PointSchemaBase = z.object({
   longitude: z.preprocess(coerceNumber, z.number().optional()).optional(),
   x: z.preprocess(coerceNumber, z.number().optional()).optional(),
 });
-

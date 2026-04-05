@@ -52,7 +52,9 @@ export function createDatabaseSizeTool(
     handler: async (params: unknown, _context: RequestContext) => {
       let database: string | undefined;
       try {
-        const parsed = DatabaseSizeSchema.parse(params) as { database?: string };
+        const parsed = DatabaseSizeSchema.parse(params) as {
+          database?: string;
+        };
         database = parsed.database;
       } catch (err) {
         return formatHandlerErrorResponse(err, { tool: "pg_database_size" });
@@ -116,37 +118,45 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
             [schema],
           );
           if (schemaCheck.rows?.length === 0) {
-            throw new Error(`Schema '${schema}' does not exist. Use pg_list_schemas to see available schemas.`);
+            throw new Error(
+              `Schema '${schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+            );
           }
         }
 
-      const whereClauses: string[] = ["c.relkind IN ('r', 'p')", "n.nspname NOT IN ('pg_catalog', 'information_schema')"];
-      const queryParams: string[] = [];
+        const whereClauses: string[] = [
+          "c.relkind IN ('r', 'p')",
+          "n.nspname NOT IN ('pg_catalog', 'information_schema')",
+        ];
+        const queryParams: string[] = [];
 
-      if (schema) {
-        queryParams.push(schema);
-        whereClauses.push(`n.nspname = $${String(queryParams.length)}`);
-      }
-
-      if (pattern !== undefined && pattern !== '*') {
-        if (pattern.includes("%") || pattern.includes("_")) {
-             queryParams.push(pattern);
-             whereClauses.push(`c.relname LIKE $${String(queryParams.length)}`);
-        } else {
-             queryParams.push(pattern);
-             queryParams.push(`%${pattern}%`);
-             whereClauses.push(`(c.relname = $${String(queryParams.length - 1)} OR c.relname LIKE $${String(queryParams.length)})`);
+        if (schema) {
+          queryParams.push(schema);
+          whereClauses.push(`n.nspname = $${String(queryParams.length)}`);
         }
-      }
 
-      const whereClauseString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : "";
+        if (pattern !== undefined && pattern !== "*") {
+          if (pattern.includes("%") || pattern.includes("_")) {
+            queryParams.push(pattern);
+            whereClauses.push(`c.relname LIKE $${String(queryParams.length)}`);
+          } else {
+            queryParams.push(pattern);
+            queryParams.push(`%${pattern}%`);
+            whereClauses.push(
+              `(c.relname = $${String(queryParams.length - 1)} OR c.relname LIKE $${String(queryParams.length)})`,
+            );
+          }
+        }
 
-      // Apply limit (default 10, max 100 to prevent payload explosion)
-      let effectiveLimit = limit !== undefined && limit > 0 ? limit : 10;
-      if (effectiveLimit > 100) effectiveLimit = 100;
-      const limitClause = ` LIMIT ${String(effectiveLimit)}`;
+        const whereClauseString =
+          whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
-      const sql = `SELECT n.nspname as schema, c.relname as table_name,
+        // Apply limit (default 10, max 100 to prevent payload explosion)
+        let effectiveLimit = limit !== undefined && limit > 0 ? limit : 10;
+        if (effectiveLimit > 100) effectiveLimit = 100;
+        const limitClause = ` LIMIT ${String(effectiveLimit)}`;
+
+        const sql = `SELECT n.nspname as schema, c.relname as table_name,
                         pg_size_pretty(pg_table_size(c.oid)) as table_size,
                         pg_size_pretty(pg_indexes_size(c.oid)) as indexes_size,
                         pg_size_pretty(pg_total_relation_size(c.oid)) as total_size,
@@ -156,40 +166,42 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
                         ${whereClauseString}
                         ORDER BY pg_total_relation_size(c.oid) DESC${limitClause}`;
 
-      const result = await adapter.executeQuery(sql, queryParams);
-      // Coerce total_bytes to number for each table row
-      const tables = (result.rows ?? []).map((row: Record<string, unknown>) => {
-        const totalBytes = row["total_bytes"];
-        return {
-          ...row,
-          total_bytes:
-            typeof totalBytes === "number"
-              ? totalBytes
-              : typeof totalBytes === "string"
-                ? parseInt(totalBytes, 10)
-                : 0,
-        };
-      });
+        const result = await adapter.executeQuery(sql, queryParams);
+        // Coerce total_bytes to number for each table row
+        const tables = (result.rows ?? []).map(
+          (row: Record<string, unknown>) => {
+            const totalBytes = row["total_bytes"];
+            return {
+              ...row,
+              total_bytes:
+                typeof totalBytes === "number"
+                  ? totalBytes
+                  : typeof totalBytes === "string"
+                    ? parseInt(totalBytes, 10)
+                    : 0,
+            };
+          },
+        );
 
-      // If limit was applied and we hit the limit, get total count to indicate truncation
-      if (tables.length === effectiveLimit) {
-        const countSql = `SELECT count(*) as total
+        // If limit was applied and we hit the limit, get total count to indicate truncation
+        if (tables.length === effectiveLimit) {
+          const countSql = `SELECT count(*) as total
                           FROM pg_class c
                           LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
                           ${whereClauseString}`;
-        const countResult = await adapter.executeQuery(countSql, queryParams);
-        const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
+          const countResult = await adapter.executeQuery(countSql, queryParams);
+          const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
-        return {
-          success: true,
-          tables,
-          count: tables.length,
-          totalCount,
-          truncated: totalCount > tables.length,
-        };
-      }
+          return {
+            success: true,
+            tables,
+            count: tables.length,
+            totalCount,
+            truncated: totalCount > tables.length,
+          };
+        }
 
-      return { success: true, tables, count: tables.length };
+        return { success: true, tables, count: tables.length };
       } catch (err) {
         return formatHandlerErrorResponse(err, { tool: "pg_table_sizes" });
       }
@@ -214,14 +226,16 @@ export function createConnectionStatsTool(
     icons: getToolIcons("monitoring", readOnly("Connection Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = ConnectionStatsSchema.parse(params ?? {}) as { database?: string };
+        const parsed = ConnectionStatsSchema.parse(params ?? {}) as {
+          database?: string;
+        };
         const database = parsed.database;
 
         // P154: Validate database existence before querying
         if (database) {
           const dbCheck = await adapter.executeQuery(
             `SELECT 1 FROM pg_database WHERE datname = $1`,
-            [database]
+            [database],
           );
           if (dbCheck.rows?.length === 0) {
             throw new Error(`Database '${database}' does not exist.`);
@@ -245,7 +259,7 @@ export function createConnectionStatsTool(
 
         let totalQuery = `SELECT count(*) as total FROM pg_stat_activity`;
         if (database) totalQuery += ` WHERE datname = $1`;
-        
+
         const totalResult = await adapter.executeQuery(totalQuery, queryParams);
 
         // Coerce connection counts to numbers
@@ -327,7 +341,9 @@ export function createReplicationStatusTool(
           return { success: true, role: "primary", replicas: result.rows };
         }
       } catch (err) {
-        return formatHandlerErrorResponse(err, { tool: "pg_replication_status" });
+        return formatHandlerErrorResponse(err, {
+          tool: "pg_replication_status",
+        });
       }
     },
   };
@@ -397,57 +413,57 @@ export function createShowSettingsTool(
         pattern = parsed.pattern;
         limit = parsed.limit;
 
-      // Auto-detect if user passed exact name vs LIKE pattern
-      // If no wildcards, try exact match first, fall back to LIKE with wildcards
-      let whereClause = "";
-      let queryParams: string[] = [];
+        // Auto-detect if user passed exact name vs LIKE pattern
+        // If no wildcards, try exact match first, fall back to LIKE with wildcards
+        let whereClause = "";
+        let queryParams: string[] = [];
 
-      if (pattern !== undefined) {
-        if (pattern.includes("%") || pattern.includes("_")) {
-          // User specified LIKE pattern explicitly
-          whereClause = "WHERE name LIKE $1";
-          queryParams = [pattern];
-        } else {
-          // Exact name - try exact match first, or pattern match with auto-wildcards
-          whereClause = "WHERE name = $1 OR name LIKE $2";
-          queryParams = [pattern, `%${pattern}%`];
+        if (pattern !== undefined) {
+          if (pattern.includes("%") || pattern.includes("_")) {
+            // User specified LIKE pattern explicitly
+            whereClause = "WHERE name LIKE $1";
+            queryParams = [pattern];
+          } else {
+            // Exact name - try exact match first, or pattern match with auto-wildcards
+            whereClause = "WHERE name = $1 OR name LIKE $2";
+            queryParams = [pattern, `%${pattern}%`];
+          }
         }
-      }
 
-      // Build LIMIT clause and clamp to 100 max to prevent unmanageable token payload output
-      const maxLimit = 100;
-      let appliedLimit = limit !== undefined && limit > 0 ? limit : maxLimit;
-      if (appliedLimit > maxLimit) appliedLimit = maxLimit;
-      const limitClause = ` LIMIT ${String(appliedLimit)}`;
+        // Build LIMIT clause and clamp to 100 max to prevent unmanageable token payload output
+        const maxLimit = 100;
+        let appliedLimit = limit !== undefined && limit > 0 ? limit : maxLimit;
+        if (appliedLimit > maxLimit) appliedLimit = maxLimit;
+        const limitClause = ` LIMIT ${String(appliedLimit)}`;
 
-      const sql = `SELECT name, setting, unit, category, short_desc
+        const sql = `SELECT name, setting, unit, category, short_desc
                         FROM pg_settings
                         ${whereClause}
                         ORDER BY category, name${limitClause}`;
 
-      const result = await adapter.executeQuery(sql, queryParams);
-      const rows = result.rows ?? [];
+        const result = await adapter.executeQuery(sql, queryParams);
+        const rows = result.rows ?? [];
 
-      // If limit was applied, get total count to indicate truncation
-      if (rows.length === appliedLimit) {
-        const countSql = `SELECT count(*) as total FROM pg_settings ${whereClause}`;
-        const countResult = await adapter.executeQuery(countSql, queryParams);
-        const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
+        // If limit was applied, get total count to indicate truncation
+        if (rows.length === appliedLimit) {
+          const countSql = `SELECT count(*) as total FROM pg_settings ${whereClause}`;
+          const countResult = await adapter.executeQuery(countSql, queryParams);
+          const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
+
+          return {
+            success: true,
+            settings: rows,
+            count: rows.length,
+            totalCount,
+            truncated: totalCount > rows.length,
+          };
+        }
 
         return {
           success: true,
           settings: rows,
           count: rows.length,
-          totalCount,
-          truncated: totalCount > rows.length,
         };
-      }
-
-      return {
-        success: true,
-        settings: rows,
-        count: rows.length,
-      };
       } catch (err) {
         return formatHandlerErrorResponse(err, { tool: "pg_show_settings" });
       }

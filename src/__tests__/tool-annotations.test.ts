@@ -71,9 +71,7 @@ describe("Tool Annotations Invariants", () => {
   });
 
   it("all openWorldHint values should be false (no external API calls)", () => {
-    const external = tools.filter(
-      (t) => t.annotations?.openWorldHint === true,
-    );
+    const external = tools.filter((t) => t.annotations?.openWorldHint === true);
     expect(
       external.map((t) => t.name),
       `${String(external.length)} tools have openWorldHint=true (unexpected for a DB server)`,

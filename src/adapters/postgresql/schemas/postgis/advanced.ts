@@ -19,12 +19,27 @@ export const GeoTransformSchemaBase = z.object({
   column: z.string().optional().describe("Geometry column"),
   geom: z.string().optional().describe("Alias for column"),
   geometryColumn: z.string().optional().describe("Alias for column"),
-  fromSrid: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Source SRID"),
-  sourceSrid: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for fromSrid"),
-  toSrid: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Target SRID"),
-  targetSrid: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for toSrid"),
+  fromSrid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Source SRID"),
+  sourceSrid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for fromSrid"),
+  toSrid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Target SRID"),
+  targetSrid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for toSrid"),
   where: z.string().optional().describe("Filter condition"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Maximum rows to return"),
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Maximum rows to return"),
 });
 
 export const GeoTransformSchema = z
@@ -52,7 +67,10 @@ export const GeoTransformSchema = z
 // pg_geo_index_optimize
 // =============================================================================
 export const GeoIndexOptimizeSchemaBase = z.object({
-  table: z.string().optional().describe("Specific table to analyze (or all spatial tables)"),
+  table: z
+    .string()
+    .optional()
+    .describe("Specific table to analyze (or all spatial tables)"),
   tableName: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
@@ -74,16 +92,31 @@ export const GeoClusterSchemaBase = z.object({
   column: z.string().optional().describe("Geometry column name"),
   geom: z.string().optional().describe("Alias for column"),
   geometryColumn: z.string().optional().describe("Alias for column"),
-  method: z.string().optional()
+  method: z
+    .string()
+    .optional()
     .describe("Clustering method (dbscan, kmeans - default: dbscan)"),
-  algorithm: z.string().optional()
-    .describe("Alias for method"),
-  eps: z.preprocess(coerceNumber, z.number().optional()).optional().describe("DBSCAN: Distance threshold"),
-  minPoints: z.preprocess(coerceNumber, z.number().optional()).optional()
+  algorithm: z.string().optional().describe("Alias for method"),
+  eps: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("DBSCAN: Distance threshold"),
+  minPoints: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("DBSCAN: Minimum points per cluster"),
-  numClusters: z.preprocess(coerceNumber, z.number().optional()).optional().describe("K-Means: Number of clusters"),
-  k: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for numClusters"),
-  clusters: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for numClusters"),
+  numClusters: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("K-Means: Number of clusters"),
+  k: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for numClusters"),
+  clusters: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for numClusters"),
   params: z
     .object({
       eps: z.preprocess(coerceNumber, z.number().optional()).optional(),
@@ -125,8 +158,9 @@ export const GeoClusterSchema = z
     message: "column (or geom/geometryColumn alias) is required",
   })
   .refine(
-    (data) => !data.method || ["dbscan", "kmeans"].includes(data.method.toLowerCase()),
-    { message: "method must be 'dbscan' or 'kmeans'" }
+    (data) =>
+      !data.method || ["dbscan", "kmeans"].includes(data.method.toLowerCase()),
+    { message: "method must be 'dbscan' or 'kmeans'" },
   );
 
 // =============================================================================
@@ -141,17 +175,33 @@ export const GeometryBufferSchemaBase = z.object({
     .string()
     .optional()
     .describe("Alias for geometry (GeoJSON format)"),
-  distance: z.preprocess(coerceNumber, z.number().optional()).optional()
+  distance: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Buffer distance (in meters by default)"),
-  radius: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for distance"),
-  meters: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for distance"),
-  unit: z.string().optional()
-    .describe("Distance unit (meters, kilometers, miles, m, km, mi - default: meters)"),
-  simplify: z.preprocess(coerceNumber, z.number().optional()).optional()
+  radius: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for distance"),
+  meters: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for distance"),
+  unit: z
+    .string()
+    .optional()
+    .describe(
+      "Distance unit (meters, kilometers, miles, m, km, mi - default: meters)",
+    ),
+  simplify: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe(
       "Simplification tolerance in meters (default: none). Higher values = fewer points. Set to reduce payload size.",
     ),
-  srid: z.preprocess(coerceNumber, z.number().optional()).optional()
+  srid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Spatial Reference ID (default: 4326 for WGS84)"),
 });
 
@@ -180,9 +230,15 @@ export const GeometryBufferSchema = GeometryBufferSchemaBase.transform(
   .refine((data) => data.simplify === undefined || data.simplify >= 0, {
     message: "simplify must be a non-negative number if provided",
   })
-  .refine((data) => !data.unit || ["meters", "m", "kilometers", "km", "miles", "mi"].includes(data.unit), {
-    message: "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
-  });
+  .refine(
+    (data) =>
+      !data.unit ||
+      ["meters", "m", "kilometers", "km", "miles", "mi"].includes(data.unit),
+    {
+      message:
+        "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
+    },
+  );
 
 // pg_geometry_intersection
 export const GeometryIntersectionSchemaBase = z.object({
@@ -190,29 +246,40 @@ export const GeometryIntersectionSchemaBase = z.object({
   geometry2: z.string().optional().describe("Second WKT or GeoJSON geometry"),
 });
 
-export const GeometryIntersectionSchema = GeometryIntersectionSchemaBase.partial()
-  .transform((data) => ({
-    geometry1: data.geometry1 ?? "",
-    geometry2: data.geometry2 ?? "",
-  }))
-  .refine((data) => data.geometry1 !== "", {
-    message: "geometry1 is required",
-  })
-  .refine((data) => data.geometry2 !== "", {
-    message: "geometry2 is required",
-  });
+export const GeometryIntersectionSchema =
+  GeometryIntersectionSchemaBase.partial()
+    .transform((data) => ({
+      geometry1: data.geometry1 ?? "",
+      geometry2: data.geometry2 ?? "",
+    }))
+    .refine((data) => data.geometry1 !== "", {
+      message: "geometry1 is required",
+    })
+    .refine((data) => data.geometry2 !== "", {
+      message: "geometry2 is required",
+    });
 
 // pg_geometry_transform
 export const GeometryTransformSchemaBase = z.object({
   geometry: z.string().optional().describe("WKT or GeoJSON geometry string"),
   wkt: z.string().optional().describe("Alias for geometry"),
   geojson: z.string().optional().describe("Alias for geometry"),
-  fromSrid: z.preprocess(coerceNumber, z.number().optional()).optional()
+  fromSrid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Source SRID (e.g., 4326 for WGS84)"),
-  sourceSrid: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for fromSrid"),
-  toSrid: z.preprocess(coerceNumber, z.number().optional()).optional()
+  sourceSrid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for fromSrid"),
+  toSrid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Target SRID (e.g., 3857 for Web Mercator)"),
-  targetSrid: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for toSrid"),
+  targetSrid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for toSrid"),
 });
 
 export const GeometryTransformSchema = GeometryTransformSchemaBase.transform(
@@ -231,4 +298,3 @@ export const GeometryTransformSchema = GeometryTransformSchemaBase.transform(
   .refine((data) => data.toSrid > 0, {
     message: "toSrid (or targetSrid alias) is required",
   });
-

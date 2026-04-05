@@ -1,12 +1,13 @@
 ---
-description: 'Audit README and DOCKER_README for consistency and accuracy on every code PR'
+description: "Audit README and DOCKER_README for consistency and accuracy on every code PR"
 private: true
 labels: [documentation, automation]
 
 on:
   pull_request:
     types: [opened, ready_for_review]
-    paths: ['src/**', 'package.json', 'Dockerfile', 'tsconfig*.json', 'scripts/**']
+    paths:
+      ["src/**", "package.json", "Dockerfile", "tsconfig*.json", "scripts/**"]
 
 engine:
   id: copilot

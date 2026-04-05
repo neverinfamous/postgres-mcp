@@ -124,10 +124,16 @@ test.describe("HTTP Transport Protocols", () => {
     test("should complete full SDK client round-trip via Legacy SSE", async () => {
       // Regression test: server.connect() auto-calls start() on SSEServerTransport,
       // so a redundant start() call would throw "already started!" and break SSE entirely.
-      const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
-      const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
+      const { Client } =
+        await import("@modelcontextprotocol/sdk/client/index.js");
+      const { SSEClientTransport } =
+        await import("@modelcontextprotocol/sdk/client/sse.js");
 
-      const transport = new SSEClientTransport(new URL(`${process.env.MCP_TEST_URL || `${process.env.MCP_TEST_URL || 'http://127.0.0.1:3000'}`}/sse`));
+      const transport = new SSEClientTransport(
+        new URL(
+          `${process.env.MCP_TEST_URL || `${process.env.MCP_TEST_URL || "http://127.0.0.1:3000"}`}/sse`,
+        ),
+      );
       const client = new Client(
         { name: "playwright-sse-regression", version: "1.0.0" },
         { capabilities: {} },
@@ -143,7 +149,8 @@ test.describe("HTTP Transport Protocols", () => {
 
         expect(response.isError).toBeUndefined();
         expect(Array.isArray(response.content)).toBe(true);
-        const text = (response.content[0] as { type: string; text: string }).text;
+        const text = (response.content[0] as { type: string; text: string })
+          .text;
         expect(text.length).toBeGreaterThan(0);
       } finally {
         await client.close();

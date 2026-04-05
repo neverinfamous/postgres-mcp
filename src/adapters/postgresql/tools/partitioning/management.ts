@@ -105,8 +105,8 @@ export function createListPartitionsTool(
         };
       } catch (zodError: unknown) {
         return formatHandlerErrorResponse(zodError, {
-            tool: "pg_list_partitions",
-          });
+          tool: "pg_list_partitions",
+        });
       }
 
       // Parse schema.table format if present
@@ -235,11 +235,18 @@ export function createPartitionedTableTool(
         };
       } catch (zodError: unknown) {
         return formatHandlerErrorResponse(zodError, {
-            tool: "pg_create_partitioned_table",
-          });
+          tool: "pg_create_partitioned_table",
+        });
       }
-      const { name, schema, columns, partitionBy, partitionKey, primaryKey, ifNotExists } =
-        parsed;
+      const {
+        name,
+        schema,
+        columns,
+        partitionBy,
+        partitionKey,
+        primaryKey,
+        ifNotExists,
+      } = parsed;
 
       const tableName = sanitizeTableName(name, schema);
 
@@ -362,10 +369,10 @@ export function createPartitionedTableTool(
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_create_partitioned_table",
-            table: name,
-            ...(schema !== undefined && { schema }),
-          });
+          tool: "pg_create_partitioned_table",
+          table: name,
+          ...(schema !== undefined && { schema }),
+        });
       }
       return {
         success: true,
@@ -404,8 +411,8 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (zodError: unknown) {
         return formatHandlerErrorResponse(zodError, {
-            tool: "pg_create_partition",
-          });
+          tool: "pg_create_partition",
+        });
       }
       const {
         parent,
@@ -494,9 +501,9 @@ export function createPartitionTool(adapter: PostgresAdapter): ToolDefinition {
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_create_partition",
-            table: name,
-          });
+          tool: "pg_create_partition",
+          table: name,
+        });
       }
 
       const result: Record<string, unknown> = {

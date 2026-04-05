@@ -109,10 +109,10 @@ export function createCreateSchemaTool(
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
-              tool: "pg_create_schema",
-              schema: name,
-              objectType: "schema",
-            });
+            tool: "pg_create_schema",
+            schema: name,
+            objectType: "schema",
+          });
         }
 
         const result: Record<string, unknown> = { success: true, schema: name };
@@ -168,13 +168,13 @@ export function createDropSchemaTool(adapter: PostgresAdapter): ToolDefinition {
           if (msg.includes("because other objects depend on it")) {
             throw new ValidationError(
               `Cannot drop schema '${name}' because other objects depend on it. Use cascade: true to drop it and all its objects.`,
-              { schema: name }
+              { schema: name },
             );
           }
           return formatHandlerErrorResponse(error, {
-              tool: "pg_drop_schema",
-              schema: name,
-            });
+            tool: "pg_drop_schema",
+            schema: name,
+          });
         }
         return {
           success: true,
@@ -223,7 +223,7 @@ export function createListSequencesTool(
               error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
               code: "VALIDATION_ERROR",
               category: "validation",
-              recoverable: false
+              recoverable: false,
             };
           }
         }
@@ -379,10 +379,10 @@ export function createCreateSequenceTool(
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
-              tool: "pg_create_sequence",
-              objectType: "sequence",
-              ...(schema !== undefined && { schema }),
-            });
+            tool: "pg_create_sequence",
+            objectType: "sequence",
+            ...(schema !== undefined && { schema }),
+          });
         }
 
         const result: Record<string, unknown> = {
@@ -395,7 +395,9 @@ export function createCreateSequenceTool(
         }
         return result;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_create_sequence" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_create_sequence",
+        });
       }
     },
   };
@@ -445,9 +447,9 @@ export function createDropSequenceTool(
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
-              tool: "pg_drop_sequence",
-              ...(schema !== undefined && { schema }),
-            });
+            tool: "pg_drop_sequence",
+            ...(schema !== undefined && { schema }),
+          });
         }
         return { success: true, sequence: `${schemaName}.${name}`, existed };
       } catch (error: unknown) {

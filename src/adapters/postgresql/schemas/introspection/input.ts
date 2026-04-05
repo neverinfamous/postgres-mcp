@@ -39,13 +39,15 @@ export const DependencyGraphSchemaBase = z.object({
     .describe("Maximum tables to include in graph (default: 100, max: 500)"),
 });
 
-export const DependencyGraphSchema = z.object({
+export const DependencyGraphSchema = z
+  .object({
     schema: z.string().optional(),
     includeRowCounts: z.boolean().optional(),
     excludeExtensionSchemas: z.boolean().optional(),
     compact: z.boolean().optional(),
     limit: z.preprocess(coerceNumber, z.number().optional().default(100)),
-}).default({ limit: 100 });
+  })
+  .default({ limit: 100 });
 
 /**
  * pg_topological_sort input
@@ -247,10 +249,7 @@ export const MigrationRisksSchemaBase = z.object({
     .string()
     .optional()
     .describe("Single DDL statement (alias for statements)"),
-  sql: z
-    .string()
-    .optional()
-    .describe("Alias for statements/statement"),
+  sql: z.string().optional().describe("Alias for statements/statement"),
   schema: z
     .string()
     .optional()
@@ -345,7 +344,8 @@ export const MigrationRecordSchema = z.preprocess((input: unknown) => {
     const obj = input as Record<string, unknown>;
     if (obj["migrationSql"] === undefined) {
       if (obj["sql"] !== undefined) return { ...obj, migrationSql: obj["sql"] };
-      if (obj["query"] !== undefined) return { ...obj, migrationSql: obj["query"] };
+      if (obj["query"] !== undefined)
+        return { ...obj, migrationSql: obj["query"] };
     }
   }
   return input;
@@ -364,7 +364,10 @@ export const MigrationApplySchema = MigrationRecordSchema;
  * pg_migration_rollback input
  */
 export const MigrationRollbackSchemaBase = z.object({
-  id: z.union([z.number(), z.string()]).optional().describe("Migration ID to roll back"),
+  id: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Migration ID to roll back"),
   version: z
     .string()
     .optional()
@@ -387,13 +390,16 @@ export const MigrationRollbackSchema = z.object({
  * pg_migration_history input
  */
 export const MigrationHistorySchemaBase = z.object({
-  status: z
-    .string()
-    .optional()
-    .describe("Filter by status"),
+  status: z.string().optional().describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
-  limit: z.union([z.number(), z.string()]).optional().describe("Maximum records to return (default: 50)"),
-  offset: z.union([z.number(), z.string()]).optional().describe("Offset for pagination (default: 0)"),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum records to return (default: 50)"),
+  offset: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Offset for pagination (default: 0)"),
 });
 
 // Internal parse schema — coerces limit/offset types to prevent Zod leaks

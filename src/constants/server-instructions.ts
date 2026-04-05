@@ -11,7 +11,7 @@
  * and instruction level for token efficiency.
  */
 
-import type { ToolGroup } from '../types/index.js'
+import type { ToolGroup } from "../types/index.js";
 
 /**
  * Instruction detail level for token efficiency
@@ -19,7 +19,7 @@ import type { ToolGroup } from '../types/index.js'
  * - standard: ~200-300 tokens - + dynamic help pointers for enabled groups
  * - full: ~350-400 tokens - + active groups summary
  */
-export type InstructionLevel = 'essential' | 'standard' | 'full'
+export type InstructionLevel = "essential" | "standard" | "full";
 
 // =============================================================================
 // Composable Instruction Segments
@@ -59,7 +59,7 @@ Some highlights include:
 - **Scale/Maintenance**: \`partitioning\`, \`partman\`, \`cron\`, \`backup\`, \`admin\`
 - **Analytics**: \`stats\`, \`pgcrypto\`
 
-Review individual \`server-instructions/{group}.md\` for deep-dive examples and parameter aliases, or use \`postgres://help\` directly from the MCP.`
+Review individual \`server-instructions/{group}.md\` for deep-dive examples and parameter aliases, or use \`postgres://help\` directly from the MCP.`;
 
 /**
  * Code Mode summary — only included when codemode group is enabled.
@@ -72,32 +72,62 @@ API: \`pg_group_action\` → \`pg.group.action()\` (e.g., \`pg_jsonb_extract\` �
 Top-level: \`pg.readQuery()\`, \`pg.writeQuery()\`, \`pg.listTables()\`, \`pg.describeTable()\`, \`pg.upsert()\`, etc.
 Positional: \`readQuery("SELECT...")\`, \`exists("users", "id=1")\`, \`createIndex("users", ["email"])\`
 Discovery: \`pg.help()\` → \`{group: methods[]}\`. \`pg.core.help()\`, \`pg.jsonb.help()\` for group-specific.
-Sandbox: No \`setTimeout\`, \`setInterval\`, \`fetch\`, or network access. Use \`pg.core.readQuery()\` for data.`
+Sandbox: No \`setTimeout\`, \`setInterval\`, \`fetch\`, or network access. Use \`pg.core.readQuery()\` for data.`;
 
 /**
  * All group keys that have help content (for dynamic help pointer generation).
  */
-const HELP_GROUP_KEYS: readonly string[] = ["admin","backup","citext","cron","introspection","jsonb","kcache","ltree","migration","monitoring","partitioning","partman","performance","pgcrypto","postgis","schema","stats","text","transactions","vector"]
+const HELP_GROUP_KEYS: readonly string[] = [
+  "admin",
+  "backup",
+  "citext",
+  "cron",
+  "introspection",
+  "jsonb",
+  "kcache",
+  "ltree",
+  "migration",
+  "monitoring",
+  "partitioning",
+  "partman",
+  "performance",
+  "pgcrypto",
+  "postgis",
+  "schema",
+  "stats",
+  "text",
+  "transactions",
+  "vector",
+];
 
 /**
  * Build dynamic help pointers listing only the enabled groups.
  */
 function buildHelpPointers(groups: Set<ToolGroup>): string {
-    const enabledHelpGroups = HELP_GROUP_KEYS.filter((k) => groups.has(k as ToolGroup))
-    if (enabledHelpGroups.length === 0) {
-        return '\n\nRead `postgres://help` for gotchas and critical usage patterns.'
-    }
-    return '\n\n## Help Resources\n\n' +
-        'Read `postgres://help` for gotchas and critical usage patterns.\n' +
-        'Read `postgres://help/{group}` for: ' + enabledHelpGroups.join(', ') + '.'
+  const enabledHelpGroups = HELP_GROUP_KEYS.filter((k) =>
+    groups.has(k as ToolGroup),
+  );
+  if (enabledHelpGroups.length === 0) {
+    return "\n\nRead `postgres://help` for gotchas and critical usage patterns.";
+  }
+  return (
+    "\n\n## Help Resources\n\n" +
+    "Read `postgres://help` for gotchas and critical usage patterns.\n" +
+    "Read `postgres://help/{group}` for: " +
+    enabledHelpGroups.join(", ") +
+    "."
+  );
 }
 
 /**
  * Build active groups summary listing enabled group names with tool counts.
  */
-function buildActiveGroupsSummary(groups: Set<ToolGroup>, enabledToolCount: number): string {
-    const groupList = [...groups].sort().join(', ')
-    return `\n\n## Active Tools (${String(enabledToolCount)})\n\nGroups: ${groupList}`
+function buildActiveGroupsSummary(
+  groups: Set<ToolGroup>,
+  enabledToolCount: number,
+): string {
+  const groupList = [...groups].sort().join(", ");
+  return `\n\n## Active Tools (${String(enabledToolCount)})\n\nGroups: ${groupList}`;
 }
 
 // =============================================================================
@@ -117,39 +147,40 @@ function buildActiveGroupsSummary(groups: Set<ToolGroup>, enabledToolCount: numb
  * @param enabledToolCount - Number of enabled tools (for full level summary)
  */
 export function generateInstructions(
-    enabledGroups: Set<ToolGroup>,
-    level: InstructionLevel = 'standard',
-    enabledToolCount?: number,
+  enabledGroups: Set<ToolGroup>,
+  level: InstructionLevel = "standard",
+  enabledToolCount?: number,
 ): string {
-    // Always start with core instructions
-    let instructions = CORE_INSTRUCTIONS
+  // Always start with core instructions
+  let instructions = CORE_INSTRUCTIONS;
 
-    // Code Mode — only when codemode group is enabled
-    if (enabledGroups.has('codemode')) {
-        instructions += CODE_MODE_INSTRUCTIONS
-    }
+  // Code Mode — only when codemode group is enabled
+  if (enabledGroups.has("codemode")) {
+    instructions += CODE_MODE_INSTRUCTIONS;
+  }
 
-    // Essential: minimal help pointer (no group listing)
-    // Standard+: dynamic help pointers listing enabled groups
-    if (level === 'essential') {
-        instructions += '\n\nRead `postgres://help` for gotchas and critical usage patterns.'
-    } else {
-        instructions += buildHelpPointers(enabledGroups)
-    }
+  // Essential: minimal help pointer (no group listing)
+  // Standard+: dynamic help pointers listing enabled groups
+  if (level === "essential") {
+    instructions +=
+      "\n\nRead `postgres://help` for gotchas and critical usage patterns.";
+  } else {
+    instructions += buildHelpPointers(enabledGroups);
+  }
 
-    // Full level includes active groups summary
-    if (level === 'full' && enabledToolCount !== undefined) {
-        instructions += buildActiveGroupsSummary(enabledGroups, enabledToolCount)
-    }
+  // Full level includes active groups summary
+  if (level === "full" && enabledToolCount !== undefined) {
+    instructions += buildActiveGroupsSummary(enabledGroups, enabledToolCount);
+  }
 
-    return instructions
+  return instructions;
 }
 
 /**
  * Static instructions for backward compatibility.
  * @deprecated Use generateInstructions() instead for dynamic content
  */
-export const INSTRUCTIONS = CORE_INSTRUCTIONS
+export const INSTRUCTIONS = CORE_INSTRUCTIONS;
 
 /**
  * Help content keyed by group name.
@@ -157,7 +188,9 @@ export const INSTRUCTIONS = CORE_INSTRUCTIONS
  * Other keys are tool groups (postgres://help/{group}).
  */
 export const HELP_CONTENT: ReadonlyMap<string, string> = new Map([
-  ["admin", `# Admin Tools
+  [
+    "admin",
+    `# Admin Tools
 
 Core: \`vacuum()\`, \`vacuumAnalyze()\`, \`analyze()\`, \`reindex()\`, \`cluster()\`, \`setConfig()\`, \`reloadConf()\`, \`resetStats()\`, \`cancelBackend()\`, \`terminateBackend()\`, \`appendInsight()\`
 
@@ -186,8 +219,11 @@ Aliases: \`tableName\`→\`table\`, \`indexName\`→\`index\`, \`param\`/\`setti
 - \`setConfig()\`: \`{success, message, parameter?, value?, hint?}\`
 - \`reloadConf()\` / \`resetStats()\`: \`{success, message, hint?}\`
 - \`cancelBackend()\` / \`terminateBackend()\`: \`{success, message, pid?, hint?}\`
-- \`appendInsight()\`: \`{success, insightCount, message}\``],
-  ["backup", `# Backup Tools
+- \`appendInsight()\`: \`{success, insightCount, message}\``,
+  ],
+  [
+    "backup",
+    `# Backup Tools
 
 Core: \`dumpTable()\`, \`dumpSchema()\`, \`copyExport()\`, \`copyImport()\`, \`createBackupPlan()\`, \`restoreCommand()\`, \`physical()\`, \`restoreValidate()\`, \`scheduleOptimize()\`, \`auditListBackups()\`, \`auditDiffBackup()\`, \`auditRestoreBackup()\`
 
@@ -217,8 +253,11 @@ Response Structures:
 - \`pg_audit_diff_backup({filename})\`: Shows DDL + \`volumeDrift\` (row/size delta vs. live table). \`volumeDrift\` fields are conditional — only present when data exists. Note: Unanalyzed tables (\`reltuples = -1\`) automatically execute a fallback \`SELECT COUNT(*)\` for accurate data volume tracking. Defaults to \`compact: true\` to bypass redundant full DDL blocks and conserve tokens. Returns \`{ddl, volumeDrift?: {rowCountSnapshot?, rowCountCurrent?, sizeBytesSnapshot?, sizeBytesCurrent?, summary}}\`
 - \`pg_audit_restore_backup({filename, dryRun?, restoreAs?, confirm})\`: Transaction-wrapped restore. Use \`dryRun: true\` to preview. \`restoreAs\` creates a side-by-side copy instead of overwriting. ⚠️ \`confirm: true\` is strictly REQUIRED for destructive in-place restores. SERIAL sequences dropped with table — DDL with \`nextval()\` fails on restore; use simple types or recreate sequences first. Returns \`{success, restored, restoreAs?}\`
 
-**Top-Level Aliases**: \`pg.dumpTable()\`, \`pg.dumpSchema()\`, \`pg.copyExport()\`, \`pg.copyImport()\`, \`pg.createBackupPlan()\`, \`pg.restoreCommand()\`, \`pg.restoreValidate()\`, \`pg.physical()\`, \`pg.backupPhysical()\`, \`pg.scheduleOptimize()\`, \`pg.backupScheduleOptimize()\`, \`pg.auditListBackups()\`, \`pg.auditDiffBackup()\`, \`pg.auditRestoreBackup()\``],
-  ["citext", `# citext Tools
+**Top-Level Aliases**: \`pg.dumpTable()\`, \`pg.dumpSchema()\`, \`pg.copyExport()\`, \`pg.copyImport()\`, \`pg.createBackupPlan()\`, \`pg.restoreCommand()\`, \`pg.restoreValidate()\`, \`pg.physical()\`, \`pg.backupPhysical()\`, \`pg.scheduleOptimize()\`, \`pg.backupScheduleOptimize()\`, \`pg.auditListBackups()\`, \`pg.auditDiffBackup()\`, \`pg.auditRestoreBackup()\``,
+  ],
+  [
+    "citext",
+    `# citext Tools
 
 Core: \`createExtension()\`, \`convertColumn()\`, \`listColumns()\`, \`analyzeCandidates()\`, \`compare()\`, \`schemaAdvisor()\`
 
@@ -229,8 +268,11 @@ Core: \`createExtension()\`, \`convertColumn()\`, \`listColumns()\`, \`analyzeCa
 - \`pg_citext_compare\`: Test case-insensitive comparison. Returns \`{value1, value2, citextEqual, textEqual, lowerEqual, extensionInstalled}\`. Empty strings are handled gracefully natively without throwing validation errors.
 - \`pg_citext_schema_advisor\`: Supports \`schema.table\` format (auto-parsed). Analyzes specific table. Optional \`compact\` flag (default: \`true\`) to omit recommendations to 'keep' current types. Returns \`{table, recommendations: [{column, currentType, previousType?, recommendation, confidence, reason}], summary, nextSteps}\`. \`tableName\` alias for \`table\`. Already-citext columns include \`previousType: "text or varchar (converted)"\`
 
-**Discovery**: \`pg.citext.help()\` returns \`{methods, methodAliases, examples}\` object`],
-  ["cron", `# Cron Tools (pg_cron)
+**Discovery**: \`pg.citext.help()\` returns \`{methods, methodAliases, examples}\` object`,
+  ],
+  [
+    "cron",
+    `# Cron Tools (pg_cron)
 
 Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unschedule()\`, \`alterJob()\`, \`listJobs()\`, \`jobRunDetails()\`, \`cleanupHistory()\`
 
@@ -243,8 +285,11 @@ Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unsched
 - \`pg_cron_cleanup_history\`: Delete old run records. \`olderThanDays\`/\`days\` param (default: 7). Optional \`jobId\` to target specific job
 - \`pg_cron_create_extension\`: Enable pg_cron extension (idempotent). Requires superuser
 
-**Discovery**: \`pg.cron.help()\` returns \`{methods, methodAliases, examples}\` object`],
-  ["gotchas", `# postgres-mcp Code Mode
+**Discovery**: \`pg.cron.help()\` returns \`{methods, methodAliases, examples}\` object`,
+  ],
+  [
+    "gotchas",
+    `# postgres-mcp Code Mode
 
 ## ⚠️ Critical Gotchas
 
@@ -340,8 +385,11 @@ Core: \`createExtension()\`, \`schedule()\`, \`scheduleInDatabase()\`, \`unsched
 
 No \`setTimeout\`, \`setInterval\`, \`fetch\`, or network access. Use \`pg.core.readQuery()\` for data access.
 
-📊 **Metrics Note**: \`memoryUsedMb\` measures heap delta (end - start). Negative values indicate memory freed during execution (e.g., GC ran). \`metrics.tokenEstimate\` = estimated token cost of the sandbox result (~4 bytes/token).`],
-  ["introspection", `# Introspection Tools
+📊 **Metrics Note**: \`memoryUsedMb\` measures heap delta (end - start). Negative values indicate memory freed during execution (e.g., GC ran). \`metrics.tokenEstimate\` = estimated token cost of the sandbox result (~4 bytes/token).`,
+  ],
+  [
+    "introspection",
+    `# Introspection Tools
 
 Code Mode: \`pg.introspection.*\` — 6 read-only tools for schema analysis.
 Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`schemaSnapshot()\`, \`constraintAnalysis()\`, \`migrationRisks()\`
@@ -355,8 +403,11 @@ Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`sc
 - \`pg_constraint_analysis\`: Identifies constraint issues. Params: \`schema?\`, \`table?\`, \`checks?\`: \`['redundant','missing_fk','missing_not_null','missing_pk','unindexed_fk']\`, \`excludeExtensionSchemas?\` (default: true). Returns \`{findings, summary}\`
 - \`pg_migration_risks\`: Static DDL risk assessment. Params: \`statements\` (aliases: \`statement\`, \`sql\`), \`schema?\` (default: public). ⚠️ Does NOT validate object existence—analyzes SQL patterns only. Returns \`{risks, summary}\`
 
-**Discovery**: \`pg.introspection.help()\` returns \`{methods, methodAliases, examples}\``],
-  ["jsonb", `# JSONB Tools
+**Discovery**: \`pg.introspection.help()\` returns \`{methods, methodAliases, examples}\``,
+  ],
+  [
+    "jsonb",
+    `# JSONB Tools
 
 - \`pg_jsonb_extract\`: Returns null if path doesn't exist
 - \`pg_jsonb_insert\`: Index -1 inserts BEFORE last element; use \`insertAfter: true\` to append. ⚠️ Use array format \`[-1]\` not string \`"[-1]"\` for negative indices
@@ -378,8 +429,11 @@ Core: \`dependencyGraph()\`, \`topologicalSort()\`, \`cascadeSimulator()\`, \`sc
 - 📦 **AI-Optimized Payloads**: \`contains\` and \`pathQuery\` default to 100 results. Returns \`truncated\` + \`totalCount\` when capped. Use \`limit: 0\` for all rows
 - 💡 **Response Shapes**: Several tools return custom keys instead of standard \`.rows\`: \`pg_jsonb_keys\` returns \`{keys: [...]}\`, \`pg_jsonb_typeof\` returns \`{types: [...]}\`, \`pg_jsonb_path_query\` returns \`{results: [...]}\`, \`pg_jsonb_array\` returns \`{array: [...]}\`, \`pg_jsonb_index_suggest\` returns \`{recommendations: [...]}\`, \`pg_jsonb_security_scan\` returns \`{riskLevel, scanResults: [...]}\`, \`pg_jsonb_diff\` returns \`{differences: [...]}\`, and \`pg_jsonb_extract\` maps extraction to \`[{value: ...}]\`.
 
-**Top-Level Aliases**: \`pg.jsonbExtract()\`, \`pg.jsonbSet()\`, \`pg.jsonbInsert()\`, \`pg.jsonbDelete()\`, \`pg.jsonbContains()\`, \`pg.jsonbPathQuery()\`, \`pg.jsonbAgg()\`, \`pg.jsonbObject()\`, \`pg.jsonbArray()\`, \`pg.jsonbKeys()\`, \`pg.jsonbStripNulls()\`, \`pg.jsonbTypeof()\`, \`pg.jsonbValidatePath()\`, \`pg.jsonbMerge()\`, \`pg.jsonbNormalize()\`, \`pg.jsonbDiff()\`, \`pg.jsonbIndexSuggest()\`, \`pg.jsonbSecurityScan()\`, \`pg.jsonbStats()\`, \`pg.jsonbPretty()\``],
-  ["kcache", `# pg_stat_kcache Tools
+**Top-Level Aliases**: \`pg.jsonbExtract()\`, \`pg.jsonbSet()\`, \`pg.jsonbInsert()\`, \`pg.jsonbDelete()\`, \`pg.jsonbContains()\`, \`pg.jsonbPathQuery()\`, \`pg.jsonbAgg()\`, \`pg.jsonbObject()\`, \`pg.jsonbArray()\`, \`pg.jsonbKeys()\`, \`pg.jsonbStripNulls()\`, \`pg.jsonbTypeof()\`, \`pg.jsonbValidatePath()\`, \`pg.jsonbMerge()\`, \`pg.jsonbNormalize()\`, \`pg.jsonbDiff()\`, \`pg.jsonbIndexSuggest()\`, \`pg.jsonbSecurityScan()\`, \`pg.jsonbStats()\`, \`pg.jsonbPretty()\``,
+  ],
+  [
+    "kcache",
+    `# pg_stat_kcache Tools
 
 Core: \`createExtension()\`, \`queryStats()\`, \`topCpu()\`, \`topIo()\`, \`databaseStats()\`, \`resourceAnalysis()\`, \`reset()\`
 
@@ -388,8 +442,11 @@ Core: \`createExtension()\`, \`queryStats()\`, \`topCpu()\`, \`topIo()\`, \`data
 - \`pg_kcache_top_cpu\`: Top CPU-consuming queries. \`limit\` param (default: 5, max: 10). \`queryPreviewLength\` and \`compact\` supported. Returns \`truncated\` + \`totalCount\` when limited
 - \`pg_kcache_top_io\`: \`type\`/\`ioType\` (alias): 'reads', 'writes', 'both' (default). \`limit\` param (default: 5, max: 10). \`queryPreviewLength\` and \`compact\` supported. Returns \`truncated\` + \`totalCount\` when limited
 - \`pg_kcache_database_stats\`: Aggregated CPU/IO stats per database. Optional \`database\` param to filter specific db. \`compact\`: boolean (default: true, omits 0/empty fields to save tokens)
-- \`pg_kcache_reset\`: Resets pg_stat_kcache AND pg_stat_statements statistics`],
-  ["ltree", `# ltree Tools
+- \`pg_kcache_reset\`: Resets pg_stat_kcache AND pg_stat_statements statistics`,
+  ],
+  [
+    "ltree",
+    `# ltree Tools
 
 Core: \`createExtension()\`, \`query()\`, \`match()\`, \`subpath()\`, \`lca()\`, \`listColumns()\`, \`convertColumn()\`, \`createIndex()\`
 
@@ -404,8 +461,11 @@ Core: \`createExtension()\`, \`query()\`, \`match()\`, \`subpath()\`, \`lca()\`,
 - \`pg_ltree_convert_column\`: Convert TEXT column to ltree. Supports \`schema.table\` format. Returns \`{previousType, wasAlreadyLtree}\`. ⚠️ When views depend on column, returns \`{success: false, dependentViews, hint}\`—drop/recreate views manually
 - \`pg_ltree_create_index\`: Create GiST index on ltree column. Supports \`schema.table\` format. Auto-generates index name if \`indexName\` omitted. Returns \`{indexName, indexType: 'gist', alreadyExists?}\`
 
-**Discovery**: \`pg.ltree.help()\` returns \`{methods, methodAliases, examples}\` object. Top-level aliases available: \`pg.ltreeQuery()\`, \`pg.ltreeMatch()\`, etc.`],
-  ["migration", `# Migration Tools
+**Discovery**: \`pg.ltree.help()\` returns \`{methods, methodAliases, examples}\` object. Top-level aliases available: \`pg.ltreeQuery()\`, \`pg.ltreeMatch()\`, etc.`,
+  ],
+  [
+    "migration",
+    `# Migration Tools
 
 Code Mode: \`pg.migration.*\` — 6 tools for schema migration tracking and management.
 Core: \`init()\`, \`record()\`, \`apply()\`, \`rollback()\`, \`history()\`, \`status()\`
@@ -419,8 +479,11 @@ Core: \`init()\`, \`record()\`, \`apply()\`, \`rollback()\`, \`history()\`, \`st
 
 > **Note**: All tools support P154 Structured Errors and will return \`{success: false, error: "...", code: "...", category: "...", recoverable: boolean}\` on failure rather than throwing raw MCP exceptions.
 
-**Discovery**: \`pg.migration.help()\` returns \`{methods, methodAliases, examples}\``],
-  ["monitoring", `# Monitoring Tools
+**Discovery**: \`pg.migration.help()\` returns \`{methods, methodAliases, examples}\``,
+  ],
+  [
+    "monitoring",
+    `# Monitoring Tools
 
 Code Mode: \`pg.monitoring.*\` — \`databaseSize()\`, \`tableSizes()\`, \`connectionStats()\`, \`showSettings()\`, \`capacityPlanning()\`, \`uptime()\`, \`serverVersion()\`, \`recoveryStatus()\`, \`replicationStatus()\`, \`resourceUsageAnalyze()\`, \`alertThresholdSet()\`
 
@@ -445,8 +508,11 @@ Code Mode: \`pg.monitoring.*\` — \`databaseSize()\`, \`tableSizes()\`, \`conne
 
 Aliases: \`connections\`/\`activeConnections\`→\`connectionStats\`, \`tables\`→\`tableSizes\`, \`settings\`/\`config\`→\`showSettings\`, \`alerts\`/\`thresholds\`→\`alertThresholdSet\`, \`systemHealth\`→\`resourceUsageAnalyze\`
 
-**Top-Level Aliases**: \`pg.databaseSize()\`, \`pg.tableSizes()\`, \`pg.connectionStats()\`, \`pg.activeConnections()\`, \`pg.serverVersion()\`, \`pg.uptime()\`, \`pg.showSettings()\`, \`pg.recoveryStatus()\`, \`pg.replicationStatus()\`, \`pg.capacityPlanning()\`, \`pg.resourceUsageAnalyze()\`, \`pg.systemHealth()\`, \`pg.alertThresholdSet()\``],
-  ["partitioning", `# Partitioning Tools
+**Top-Level Aliases**: \`pg.databaseSize()\`, \`pg.tableSizes()\`, \`pg.connectionStats()\`, \`pg.activeConnections()\`, \`pg.serverVersion()\`, \`pg.uptime()\`, \`pg.showSettings()\`, \`pg.recoveryStatus()\`, \`pg.replicationStatus()\`, \`pg.capacityPlanning()\`, \`pg.resourceUsageAnalyze()\`, \`pg.systemHealth()\`, \`pg.alertThresholdSet()\``,
+  ],
+  [
+    "partitioning",
+    `# Partitioning Tools
 
 - \`pg_create_partitioned_table\`: \`partitionBy\` case-insensitive. Accepts \`name\` or \`table\` alias for target. \`partitionKey\` (alias \`key\`) is a string (e.g., \`"created_at"\` or \`"id, created_at"\`). \`primaryKey\` accepts array (e.g., \`['id', 'event_date']\`). Supports \`ifNotExists: true\`. ⛔ \`primaryKey\`/\`unique\` must include partition key—throws validation error otherwise
 - \`pg_create_partition\`: Use \`parent\`/\`table\`/\`parentTable\` for parent. Use \`name\` or \`partitionName\` for partition. Use bounds aliases \`from\`/\`to\` (RANGE), \`values\` array (LIST), or \`modulus\`/\`remainder\` (HASH). Alternatively, \`forValues\` takes a raw SQL string. For DEFAULT partition, use \`isDefault: true\`. Supports \`ifNotExists: true\`. Supports \`schema.table\` format for \`parent\` (auto-parsed)
@@ -457,8 +523,11 @@ Aliases: \`connections\`/\`activeConnections\`→\`connectionStats\`, \`tables\`
 - Response structures: \`pg_create_partitioned_table\` → \`{success, table, partitionBy, partitionKey, primaryKey?, alreadyExists?}\`. \`pg_create_partition\` → \`{success, partition, parent, bounds, subpartitionBy?, subpartitionKey?, alreadyExists?}\`. \`pg_attach_partition\` → \`{success, parent, partition, bounds}\`. \`pg_detach_partition\` → \`{success, parent, partition}\`
 - \`alreadyExists\` is only present when \`ifNotExists: true\` is passed; \`true\` = table/partition pre-existed, \`false\` = newly created
 - ⚠️ Sub-partitioning: \`subpartitionBy\`/\`subpartitionKey\` on \`pg_create_partition\` makes a partition itself partitionable. The parent's \`primaryKey\` must include the sub-partition key column (PostgreSQL constraint)
-- 📍 Code Mode: \`pg.partitioning.create()\` = \`createPartition\`, NOT \`createPartitionedTable\``],
-  ["partman", `# pg_partman Tools
+- 📍 Code Mode: \`pg.partitioning.create()\` = \`createPartition\`, NOT \`createPartitionedTable\``,
+  ],
+  [
+    "partman",
+    `# pg_partman Tools
 
 - \`pg_partman_create_parent\`: Interval uses PostgreSQL syntax ('1 day', '1 month') NOT keywords ('daily'). \`startPartition\` accepts 'now' shorthand for current date. Required params: \`parentTable\`/\`table\`, \`controlColumn\`/\`control\`/\`column\`, \`interval\`
 - \`pg_partman_run_maintenance\`: Without \`parentTable\`, maintains ALL partition sets. Returns \`partial: true\` when some tables are skipped. \`orphaned\` object groups orphaned configs with \`count\`, \`tables\`, and cleanup \`hint\`. \`errors\` array for other failures
@@ -470,8 +539,11 @@ Aliases: \`connections\`/\`activeConnections\`→\`connectionStats\`, \`tables\`
 - \`pg_partman_analyze_partition_health\`: Default \`limit: 50\` (use \`0\` for all). Returns \`truncated\` + \`totalCount\` when limited. \`summary.overallHealth\`: 'healthy'|'warnings'|'issues_found'
 - 📝 **Schema Resolution**: All partman tools auto-prefix \`public.\` when no schema specified in \`parentTable\`
 - 📝 **Aliases**: \`parentTable\` accepts \`table\`, \`parent\`, \`name\`. \`controlColumn\` accepts \`control\`, \`column\`, \`partitionColumn\`. \`targetTable\` accepts \`target\`. \`retentionKeepTable\` accepts \`keepTable\`.
-- 📝 **Strict Error Handling**: Attempting to query unmanaged tables (e.g. via \`pg_partman_show_config\`) throws \`TABLE_NOT_FOUND\`. Missing the extension completely throws \`EXTENSION_MISSING\` — remediate via \`pg_partman_create_extension\` before using partman tools.`],
-  ["performance", `# Performance Tools
+- 📝 **Strict Error Handling**: Attempting to query unmanaged tables (e.g. via \`pg_partman_show_config\`) throws \`TABLE_NOT_FOUND\`. Missing the extension completely throws \`EXTENSION_MISSING\` — remediate via \`pg_partman_create_extension\` before using partman tools.`,
+  ],
+  [
+    "performance",
+    `# Performance Tools
 
 Core (24 methods): \`explain()\`, \`explainAnalyze()\`, \`explainBuffers()\`, \`indexStats()\`, \`tableStats()\`, \`statStatements()\`, \`statActivity()\`, \`locks()\`, \`bloatCheck()\`, \`cacheHitRatio()\`, \`seqScanTables()\`, \`indexRecommendations()\`, \`queryPlanCompare()\`, \`baseline()\`, \`connectionPoolOptimize()\`, \`partitionStrategySuggest()\`, \`unusedIndexes()\`, \`duplicateIndexes()\`, \`vacuumStats()\`, \`queryPlanStats()\`, \`diagnoseDatabasePerformance()\`, \`detectQueryAnomalies()\`, \`detectBloatRisk()\`, \`detectConnectionSpike()\`
 
@@ -506,8 +578,11 @@ Aliases: \`cacheStats\`→\`cacheHitRatio\`, \`queryStats\`→\`statStatements\`
 
 ⚠️ **Extension Dependency**: \`diagnoseDatabasePerformance\` uses \`pg_stat_activity\` (not \`pg_stat_statements\`) for slow query detection — it runs correctly even when \`pg_stat_statements\` is unavailable. \`statStatements\` and \`queryPlanStats\` require the \`pg_stat_statements\` extension and return a structured \`QUERY_ERROR\` if it is not installed.
 
-**Top-Level Aliases**: \`pg.explain()\`, \`pg.explainAnalyze()\`, \`pg.cacheHitRatio()\`, \`pg.indexStats()\`, \`pg.tableStats()\`, \`pg.indexRecommendations()\`, \`pg.bloatCheck()\`, \`pg.vacuumStats()\`, \`pg.unusedIndexes()\`, \`pg.duplicateIndexes()\`, \`pg.seqScanTables()\`, \`pg.diagnoseDatabasePerformance()\`, \`pg.detectQueryAnomalies()\`, \`pg.detectBloatRisk()\`, \`pg.detectConnectionSpike()\``],
-  ["pgcrypto", `# pgcrypto Tools
+**Top-Level Aliases**: \`pg.explain()\`, \`pg.explainAnalyze()\`, \`pg.cacheHitRatio()\`, \`pg.indexStats()\`, \`pg.tableStats()\`, \`pg.indexRecommendations()\`, \`pg.bloatCheck()\`, \`pg.vacuumStats()\`, \`pg.unusedIndexes()\`, \`pg.duplicateIndexes()\`, \`pg.seqScanTables()\`, \`pg.diagnoseDatabasePerformance()\`, \`pg.detectQueryAnomalies()\`, \`pg.detectBloatRisk()\`, \`pg.detectConnectionSpike()\``,
+  ],
+  [
+    "pgcrypto",
+    `# pgcrypto Tools
 
 Core: \`createExtension()\`, \`hash()\`, \`hmac()\`, \`encrypt()\`, \`decrypt()\`, \`genRandomUuid()\`, \`genRandomBytes()\`, \`genSalt()\`, \`crypt()\`
 
@@ -525,8 +600,11 @@ Core: \`createExtension()\`, \`hash()\`, \`hmac()\`, \`encrypt()\`, \`decrypt()\
 
 **Top-Level Aliases**: \`pg.pgcryptoHash()\`, \`pg.pgcryptoEncrypt()\`, \`pg.pgcryptoDecrypt()\`, \`pg.pgcryptoGenRandomUuid()\`, etc.
 
-**Discovery**: \`pg.pgcrypto.help()\` returns \`{methods, methodAliases, examples}\` object`],
-  ["postgis", `# PostGIS Tools
+**Discovery**: \`pg.pgcrypto.help()\` returns \`{methods, methodAliases, examples}\` object`,
+  ],
+  [
+    "postgis",
+    `# PostGIS Tools
 
 **Geometry Creation:**
 
@@ -558,8 +636,11 @@ Core: \`createExtension()\`, \`hash()\`, \`hmac()\`, \`encrypt()\`, \`decrypt()\
 - \`pg_postgis_create_extension\`: Enable PostGIS extension (idempotent). Returns \`{alreadyExists: true}\` when already installed
 - \`pg_geo_index_optimize\`: Analyze spatial indexes. Without \`table\` param, analyzes all spatial indexes. Returns structured error (\`TABLE_NOT_FOUND\`) if specified table has no spatial columns or indexes
 
-**Code Mode Aliases:** \`pg.postgis.addColumn()\` → \`geometryColumn\`, \`pg.postgis.indexOptimize()\` → \`geoIndexOptimize\`, \`pg.postgis.geoCluster()\` → \`pg_geo_cluster\`, \`pg.postgis.geoTransform()\` → \`pg_geo_transform\`. Note: \`pg.{group}.help()\` returns \`{methods, methodAliases, examples}\``],
-  ["schema", `# Schema Tools
+**Code Mode Aliases:** \`pg.postgis.addColumn()\` → \`geometryColumn\`, \`pg.postgis.indexOptimize()\` → \`geoIndexOptimize\`, \`pg.postgis.geoCluster()\` → \`pg_geo_cluster\`, \`pg.postgis.geoTransform()\` → \`pg_geo_transform\`. Note: \`pg.{group}.help()\` returns \`{methods, methodAliases, examples}\``,
+  ],
+  [
+    "schema",
+    `# Schema Tools
 
 Core: \`listSchemas()\`, \`createSchema()\`, \`dropSchema()\`, \`listViews()\`, \`createView()\`, \`dropView()\`, \`listSequences()\`, \`createSequence()\`, \`dropSequence()\`, \`listFunctions()\`, \`listTriggers()\`, \`listConstraints()\`
 
@@ -580,8 +661,11 @@ Response Structures:
 
 📦 **AI-Optimized Payloads**: \`listViews\`, \`listSequences\`, \`listFunctions\`, \`listTriggers\`, and \`listConstraints\` all default to a 50-row limit. Returns \`truncated: true\` + \`totalCount\` when applicable (for views and sequences) or \`limit\` parameter to indicate sizing. Use \`limit: 0\` for all
 
-**Discovery**: \`pg.schema.help()\` returns \`{methods, methodAliases, examples}\` object`],
-  ["stats", `# Stats Tools
+**Discovery**: \`pg.schema.help()\` returns \`{methods, methodAliases, examples}\` object`,
+  ],
+  [
+    "stats",
+    `# Stats Tools
 
 - All stats tools support \`schema.table\` format (auto-parsed, embedded schema takes priority over explicit \`schema\` param)
 - \`descriptive\`: Returns nested \`statistics\` object containing \`count\`, \`min\`, \`max\`, \`avg\`, \`stddev\`, \`variance\`, \`sum\`, \`mode\`. Access via \`desc.statistics.avg\` (note: uses \`avg\` for mean).
@@ -615,8 +699,11 @@ Response Structures:
 - \`pg_stats_summary({ table, columns?, where? })\`: Summary statistics for multiple numeric columns. Defaults to all numeric columns if \`columns\` omitted. Returns \`{success, table, summaries: [{column, count, avg, min, max, stddev}]}\`
 
 **Top-Level Aliases**: \`pg.descriptive()\`, \`pg.percentiles()\`, \`pg.correlation()\`, \`pg.regression()\`, \`pg.timeSeries()\`, \`pg.distribution()\`, \`pg.hypothesis()\`, \`pg.sampling()\`
-**Note**: All newer tools (e.g., window functions, outlier detection, advanced analysis) must be accessed via their group namespace: \`pg.stats.rowNumber()\`, \`pg.stats.ntile()\`, \`pg.stats.outliers()\`, etc.`],
-  ["text", `# Text Tools
+**Note**: All newer tools (e.g., window functions, outlier detection, advanced analysis) must be accessed via their group namespace: \`pg.stats.rowNumber()\`, \`pg.stats.ntile()\`, \`pg.stats.outliers()\`, etc.`,
+  ],
+  [
+    "text",
+    `# Text Tools
 
 - \`pg_text_search\`/\`pg_text_rank\`: Column must be \`text\` type—pre-built \`tsvector\` columns are **not** supported (wrap with \`to_tsvector()\` fails on tsvector input). Use \`pg_read_query\` with raw FTS SQL for tsvector columns
 - \`pg_create_fts_index\`: Returns \`{success, index, config, skipped}\`. \`skipped: true\` = index already existed (IF NOT EXISTS). \`ifNotExists\` defaults to \`true\`
@@ -631,8 +718,11 @@ Defaults: \`threshold\`=0.3 (use 0.1-0.2 for partial), \`maxDistance\`=3 (use 5+
 - \`pg_text_normalize\`: Removes accents only (unaccent). Does NOT lowercase/trim.
 - 📍 **Table vs Standalone**: \`normalize\`, \`sentiment\`, \`toVector\`, \`toQuery\`, \`searchConfig\` are standalone (text input only). For phonetic matching: use \`pg_fuzzy_match\` with \`method: 'soundex'|'metaphone'\` (direct MCP), or \`pg.text.soundex()\`/\`pg.text.metaphone()\` (Code Mode convenience wrappers that call fuzzyMatch internally).
 
-**Top-Level Aliases**: \`pg.textSearch()\`, \`pg.textRank()\`, \`pg.textHeadline()\`, \`pg.textNormalize()\`, \`pg.textSentiment()\`, \`pg.textToVector()\`, \`pg.textToQuery()\`, \`pg.textSearchConfig()\`, \`pg.textTrigramSimilarity()\`, \`pg.textFuzzyMatch()\`, \`pg.textLikeSearch()\`, \`pg.textRegexpMatch()\`, \`pg.textCreateFtsIndex()\``],
-  ["transactions", `# Transactions
+**Top-Level Aliases**: \`pg.textSearch()\`, \`pg.textRank()\`, \`pg.textHeadline()\`, \`pg.textNormalize()\`, \`pg.textSentiment()\`, \`pg.textToVector()\`, \`pg.textToQuery()\`, \`pg.textSearchConfig()\`, \`pg.textTrigramSimilarity()\`, \`pg.textFuzzyMatch()\`, \`pg.textLikeSearch()\`, \`pg.textRegexpMatch()\`, \`pg.textCreateFtsIndex()\``,
+  ],
+  [
+    "transactions",
+    `# Transactions
 
 Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, \`rollbackTo()\`, \`release()\`, \`execute()\`
 
@@ -674,8 +764,11 @@ Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, 
 - \`savepoint/release/rollbackTo\`: \`{success, transactionId, savepoint, message}\`
 - \`execute\`: \`{success, statementsExecuted, results: [{sql, rowsAffected, rowCount, rows?}], transactionId?, autoRolledBack?, statementsTotal?, failedStatement?}\`
 
-**Discovery**: \`pg.transactions.help()\` returns \`{methods, methodAliases, examples}\``],
-  ["vector", `# Vector Tools
+**Discovery**: \`pg.transactions.help()\` returns \`{methods, methodAliases, examples}\``,
+  ],
+  [
+    "vector",
+    `# Vector Tools
 
 ⚠️ **Large Vectors**: Direct MCP tool calls may truncate vectors >256 dimensions due to JSON-RPC message size limits. For vectors ≥256 dimensions (e.g., OpenAI 1536-dim, local 384-dim), use Code Mode: \`await pg.vector.search({table, column, vector, limit})\`
 
@@ -696,5 +789,6 @@ Core: \`begin()\`, \`status()\`, \`commit()\`, \`rollback()\`, \`savepoint()\`, 
 - \`pg_vector_validate\`: Returns \`{valid: bool, vectorDimensions}\`. Empty vector \`[]\` returns \`{valid: true, vectorDimensions: 0}\`
 - ⛔ \`pg_vector_embed\`: Demo only (hash-based). Use OpenAI/Cohere for production.
 - \`pg_hybrid_search\`: Supports \`schema.table\` format (auto-parsed). Combines vector similarity and full-text search with weighted scoring. ⚠️ Text query param is \`textQuery\` (aliases: \`queryText\`, \`query\`). \`textColumn\` auto-detects type: uses tsvector columns directly, wraps text columns with \`to_tsvector()\`. Code mode alias: \`pg.hybridSearch()\` → \`pg.vector.hybridSearch()\`
-- 📝 **Error Handling & Validation**: Vector tools return structured validation errors (\`{success: false, error: "..."}\`) for dimension mismatches. Zod validation has been strictly enforced to eliminate internal framework refine leaks (no \`_truncated\` exposure in outputs). Token clamping on vector size uses strict payload \`limit\` parameters.`],
+- 📝 **Error Handling & Validation**: Vector tools return structured validation errors (\`{success: false, error: "..."}\`) for dimension mismatches. Zod validation has been strictly enforced to eliminate internal framework refine leaks (no \`_truncated\` exposure in outputs). Token clamping on vector size uses strict payload \`limit\` parameters.`,
+  ],
 ]);

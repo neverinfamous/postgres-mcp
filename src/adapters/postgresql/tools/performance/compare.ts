@@ -180,12 +180,14 @@ export function createQueryPlanCompareTool(
                 : null,
             recommendation: "",
           },
-          ...(parsed.compact ? {} : {
-            fullPlans: {
-              plan1: stripZeroValuePlanFields(plan1),
-              plan2: stripZeroValuePlanFields(plan2),
-            },
-          }),
+          ...(parsed.compact
+            ? {}
+            : {
+                fullPlans: {
+                  plan1: stripZeroValuePlanFields(plan1),
+                  plan2: stripZeroValuePlanFields(plan2),
+                },
+              }),
         };
 
         if (comparison.analysis.costDifference !== null) {
@@ -204,8 +206,8 @@ export function createQueryPlanCompareTool(
         return { success: true as const, ...comparison };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_query_plan_compare",
-          });
+          tool: "pg_query_plan_compare",
+        });
       }
     },
   };

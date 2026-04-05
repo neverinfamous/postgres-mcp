@@ -80,10 +80,10 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
           result = await adapter.executeQuery(sql, parsed.params);
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
-              tool: "pg_count",
-              table: parsed.table,
-              schema: schemaName,
-            });
+            tool: "pg_count",
+            table: parsed.table,
+            schema: schemaName,
+          });
         }
 
         const count = Number(result.rows?.[0]?.["count"]) || 0;
@@ -189,8 +189,10 @@ export function createTruncateTool(adapter: PostgresAdapter): ToolDefinition {
 
         let rowCount = -1;
         try {
-          const countResult = await adapter.executeQuery(`SELECT count(*) as c FROM ${qualifiedTable}`);
-          rowCount = Number(countResult.rows?.[0]?.['c'] ?? -1);
+          const countResult = await adapter.executeQuery(
+            `SELECT count(*) as c FROM ${qualifiedTable}`,
+          );
+          rowCount = Number(countResult.rows?.[0]?.["c"] ?? -1);
         } catch {
           // Ignore failures
         }

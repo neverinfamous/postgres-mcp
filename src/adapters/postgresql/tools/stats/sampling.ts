@@ -78,7 +78,9 @@ export function createStatsSamplingTool(
         // TABLESAMPLE BERNOULLI/SYSTEM are percentage-based and cannot guarantee exact row counts
         if (sampleSize !== undefined) {
           if (sampleSize <= 0) {
-            throw new ValidationError("Parameter 'sampleSize' must be greater than 0.");
+            throw new ValidationError(
+              "Parameter 'sampleSize' must be greater than 0.",
+            );
           }
           const limit = sampleSize;
           sql = `

@@ -104,9 +104,12 @@ export function generateVacuumSuggestions(
     // Skip empty tables
     if (table.n_live_tup === 0 && table.n_dead_tup === 0) continue;
 
-    const deadRatio = table.n_live_tup > 0
-      ? table.n_dead_tup / table.n_live_tup
-      : (table.n_dead_tup > 0 ? 1 : 0);
+    const deadRatio =
+      table.n_live_tup > 0
+        ? table.n_dead_tup / table.n_live_tup
+        : table.n_dead_tup > 0
+          ? 1
+          : 0;
 
     const qualified = `${table.schemaname}.${table.relname}`;
 
@@ -125,10 +128,12 @@ export function generateVacuumSuggestions(
     }
 
     // Never-vacuumed warning
-    if (thresholds.neverVacuumedWarning
-        && table.last_vacuum === null
-        && table.last_autovacuum === null
-        && table.n_live_tup > 100) {
+    if (
+      thresholds.neverVacuumedWarning &&
+      table.last_vacuum === null &&
+      table.last_autovacuum === null &&
+      table.n_live_tup > 100
+    ) {
       suggestions.push({
         severity: "warning",
         message: `${qualified}: Never vacuumed (${String(table.n_live_tup)} live rows)`,

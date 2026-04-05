@@ -18,7 +18,10 @@ import {
   WriteQuerySchemaBase,
   WriteQuerySchema,
 } from "../../schemas/index.js";
-import { ReadQueryOutputSchema, WriteQueryOutputSchema } from "./schemas/index.js";
+import {
+  ReadQueryOutputSchema,
+  WriteQueryOutputSchema,
+} from "./schemas/index.js";
 
 /**
  * Execute a read-only SQL query
@@ -34,9 +37,9 @@ export function createReadQueryTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: readOnly("Read Query"),
     icons: getToolIcons("core", readOnly("Read Query")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const sql = (params as Record<string, unknown> | null)?.[
-        "sql"
-      ] as string | undefined;
+      const sql = (params as Record<string, unknown> | null)?.["sql"] as
+        | string
+        | undefined;
       try {
         const {
           sql: parsedSql,
@@ -96,9 +99,9 @@ export function createWriteQueryTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: write("Write Query"),
     icons: getToolIcons("core", write("Write Query")),
     handler: async (params: unknown, _context: RequestContext) => {
-      const sql = (params as Record<string, unknown> | null)?.[
-        "sql"
-      ] as string | undefined;
+      const sql = (params as Record<string, unknown> | null)?.["sql"] as
+        | string
+        | undefined;
       try {
         const {
           sql: parsedSql,

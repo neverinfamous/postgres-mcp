@@ -21,4 +21,3 @@
 - 💡 **Response Shapes**: Several tools return custom keys instead of standard `.rows`: `pg_jsonb_keys` returns `{keys: [...]}`, `pg_jsonb_typeof` returns `{types: [...]}`, `pg_jsonb_path_query` returns `{results: [...]}`, `pg_jsonb_array` returns `{array: [...]}`, `pg_jsonb_index_suggest` returns `{recommendations: [...]}`, `pg_jsonb_security_scan` returns `{riskLevel, scanResults: [...]}`, `pg_jsonb_diff` returns `{differences: [...]}`, and `pg_jsonb_extract` maps extraction to `[{value: ...}]`.
 
 **Top-Level Aliases**: `pg.jsonbExtract()`, `pg.jsonbSet()`, `pg.jsonbInsert()`, `pg.jsonbDelete()`, `pg.jsonbContains()`, `pg.jsonbPathQuery()`, `pg.jsonbAgg()`, `pg.jsonbObject()`, `pg.jsonbArray()`, `pg.jsonbKeys()`, `pg.jsonbStripNulls()`, `pg.jsonbTypeof()`, `pg.jsonbValidatePath()`, `pg.jsonbMerge()`, `pg.jsonbNormalize()`, `pg.jsonbDiff()`, `pg.jsonbIndexSuggest()`, `pg.jsonbSecurityScan()`, `pg.jsonbStats()`, `pg.jsonbPretty()`
-

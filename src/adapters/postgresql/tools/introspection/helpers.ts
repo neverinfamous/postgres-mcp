@@ -193,7 +193,9 @@ export async function checkSchemaExists(
     [schemaFilter],
   );
   if ((result.rows?.length ?? 0) === 0) {
-    throw new ValidationError(`Schema '${schemaFilter}' does not exist. Use pg_list_schemas to see available schemas.`);
+    throw new ValidationError(
+      `Schema '${schemaFilter}' does not exist. Use pg_list_schemas to see available schemas.`,
+    );
   }
 }
 
@@ -215,6 +217,8 @@ export async function checkTableExists(
     [tableFilter, schema],
   );
   if ((result.rows?.length ?? 0) === 0) {
-    throw new ValidationError(`Table '${schema}.${tableFilter}' does not exist. Use pg_list_tables to verify.`);
+    throw new ValidationError(
+      `Table '${schema}.${tableFilter}' does not exist. Use pg_list_tables to verify.`,
+    );
   }
 }

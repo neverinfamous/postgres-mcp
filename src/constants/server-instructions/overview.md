@@ -2,10 +2,10 @@
 
 ## Quick Access
 
-| Purpose         | Action                     |
-| --------------- | -------------------------- |
-| Health check    | `pg_analyze_db_health` tool |
-| Server info     | `pg_server_version` tool   |
+| Purpose         | Action                       |
+| --------------- | ---------------------------- |
+| Health check    | `pg_analyze_db_health` tool  |
+| Server info     | `pg_server_version` tool     |
 | Database schema | `postgres://schema` resource |
 | Audit & Tokens  | `postgres://audit` resource  |
 | Tool help       | `postgres://help` resource   |
@@ -20,8 +20,9 @@ For multi-step data pipelines, complex validations, or token-heavy reads (like v
 
 ## Tool Groups Showcase (200+ Tools)
 
-All tools are grouped by namespace in Code Mode (e.g. `pg.stats.*`, `pg.vector.*`). 
+All tools are grouped by namespace in Code Mode (e.g. `pg.stats.*`, `pg.vector.*`).
 Some highlights include:
+
 - **Core Operations**: `core`, `transactions`, `migration`, `schema`
 - **Data Types**: `jsonb`, `text`, `vector`, `postgis`, `citext`, `ltree`
 - **Introspection/Health**: `introspection`, `monitoring`, `performance`, `kcache`

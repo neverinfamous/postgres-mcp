@@ -8,9 +8,21 @@
 import { describe, it, expect, vi } from "vitest";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { HttpTransport } from "../http/index.js";
-import { setSecurityHeaders, setCorsHeaders, checkRateLimit, readBody, getClientIp } from "../http/security.js";
-import { handleProtectedResourceMetadata, handleHealthCheck } from "../http/handlers.js";
-import { handleLegacyMessageRequest, handleLegacySSERequest } from "../http/legacy-sse.js";
+import {
+  setSecurityHeaders,
+  setCorsHeaders,
+  checkRateLimit,
+  readBody,
+  getClientIp,
+} from "../http/security.js";
+import {
+  handleProtectedResourceMetadata,
+  handleHealthCheck,
+} from "../http/handlers.js";
+import {
+  handleLegacyMessageRequest,
+  handleLegacySSERequest,
+} from "../http/legacy-sse.js";
 import { handleStreamableRequest } from "../http/streamable.js";
 
 // Mock the logger to avoid console output during tests
@@ -84,7 +96,9 @@ describe("HttpTransport", () => {
       const req = createMockRequest();
 
       for (let i = 0; i < 5; i++) {
-        expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
+        expect(
+          checkRateLimit(req, transport.config, rateLimitMap),
+        ).toHaveProperty("allowed", true);
       }
     });
 
@@ -101,12 +115,20 @@ describe("HttpTransport", () => {
       const req = createMockRequest();
 
       // First 3 requests allowed
-      expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
 
       // 4th request should be blocked
-      expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", false);
+      expect(
+        checkRateLimit(req, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", false);
     });
 
     it("should track rate limits per IP address", () => {
@@ -127,14 +149,26 @@ describe("HttpTransport", () => {
       } as unknown as IncomingMessage);
 
       // IP 1: use up their limit
-      expect(checkRateLimit(req1, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(req1, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(req1, transport.config, rateLimitMap)).toHaveProperty("allowed", false);
+      expect(
+        checkRateLimit(req1, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req1, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req1, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", false);
 
       // IP 2: should have their own limit
-      expect(checkRateLimit(req2, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(req2, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(req2, transport.config, rateLimitMap)).toHaveProperty("allowed", false);
+      expect(
+        checkRateLimit(req2, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req2, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req2, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", false);
     });
 
     it("should bypass rate limiting when disabled", () => {
@@ -149,7 +183,9 @@ describe("HttpTransport", () => {
 
       // Should allow unlimited requests
       for (let i = 0; i < 1000; i++) {
-        expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
+        expect(
+          checkRateLimit(req, transport.config, rateLimitMap),
+        ).toHaveProperty("allowed", true);
       }
     });
 
@@ -168,15 +204,23 @@ describe("HttpTransport", () => {
       const req = createMockRequest();
 
       // Use up limit
-      expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", false);
+      expect(
+        checkRateLimit(req, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", false);
 
       // Advance past window
       vi.advanceTimersByTime(61000);
 
       // Should have new limit
-      expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
 
       vi.useRealTimers();
     });
@@ -658,7 +702,12 @@ describe("HttpTransport", () => {
       const res = createMockResponse();
       const url = new URL("http://localhost:3000/messages");
 
-      await handleLegacyMessageRequest(req, res, url, transport.getTransports());
+      await handleLegacyMessageRequest(
+        req,
+        res,
+        url,
+        transport.getTransports(),
+      );
 
       expect(res._statusCode).toBe(400);
       expect(res._body).toContain("Missing sessionId parameter");
@@ -673,7 +722,12 @@ describe("HttpTransport", () => {
       const res = createMockResponse();
       const url = new URL("http://localhost:3000/messages?sessionId=unknown");
 
-      await handleLegacyMessageRequest(req, res, url, transport.getTransports());
+      await handleLegacyMessageRequest(
+        req,
+        res,
+        url,
+        transport.getTransports(),
+      );
 
       expect(res._statusCode).toBe(404);
       expect(res._body).toContain("No transport found for sessionId");
@@ -706,7 +760,12 @@ describe("HttpTransport", () => {
         "http://localhost:3000/messages?sessionId=test-session",
       );
 
-      await handleLegacyMessageRequest(req, res, url, transport.getTransports());
+      await handleLegacyMessageRequest(
+        req,
+        res,
+        url,
+        transport.getTransports(),
+      );
 
       expect(mockSSETransport.handlePostMessage).toHaveBeenCalledWith(req, res);
     });
@@ -1010,7 +1069,9 @@ describe("HttpTransport", () => {
       } as unknown as IncomingMessage);
 
       // Should still allow the request
-      expect(checkRateLimit(req, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(req, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
     });
 
     it("should cleanup expired entries via deterministic interval", async () => {
@@ -1285,7 +1346,11 @@ describe("HttpTransport", () => {
           res,
           transport.config,
           transport.getTransports(),
-          (transport as unknown as { onConnect?: (t: unknown) => void | Promise<void> }).onConnect,
+          (
+            transport as unknown as {
+              onConnect?: (t: unknown) => void | Promise<void>;
+            }
+          ).onConnect,
         );
     }
 
@@ -1538,7 +1603,12 @@ describe("HttpTransport", () => {
         "http://localhost:3000/messages?sessionId=stream-session",
       );
 
-      await handleLegacyMessageRequest(req, res, url, transport.getTransports());
+      await handleLegacyMessageRequest(
+        req,
+        res,
+        url,
+        transport.getTransports(),
+      );
 
       expect(res._statusCode).toBe(400);
       expect(res._body).toContain("different transport protocol");
@@ -1649,7 +1719,9 @@ describe("HttpTransport", () => {
         headers: { "x-forwarded-for": "1.2.3.4" },
       });
 
-      expect(getClientIp(req, transport.config.trustProxy ?? false)).toBe("127.0.0.1");
+      expect(getClientIp(req, transport.config.trustProxy ?? false)).toBe(
+        "127.0.0.1",
+      );
     });
 
     it("should fall back to socket address when X-Forwarded-For is missing", () => {
@@ -1660,7 +1732,9 @@ describe("HttpTransport", () => {
 
       const req = createMockRequest();
 
-      expect(getClientIp(req, transport.config.trustProxy ?? false)).toBe("127.0.0.1");
+      expect(getClientIp(req, transport.config.trustProxy ?? false)).toBe(
+        "127.0.0.1",
+      );
     });
 
     it("should rate limit by forwarded IP when trustProxy is true", () => {
@@ -1683,14 +1757,26 @@ describe("HttpTransport", () => {
       });
 
       // Exhaust limit for forwarded IP 1.2.3.4
-      expect(checkRateLimit(reqA, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(reqA, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(reqA, transport.config, rateLimitMap)).toHaveProperty("allowed", false);
+      expect(
+        checkRateLimit(reqA, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(reqA, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(reqA, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", false);
 
       // Different forwarded IP should have its own limit
-      expect(checkRateLimit(reqB, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(reqB, transport.config, rateLimitMap)).toHaveProperty("allowed", true);
-      expect(checkRateLimit(reqB, transport.config, rateLimitMap)).toHaveProperty("allowed", false);
+      expect(
+        checkRateLimit(reqB, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(reqB, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", true);
+      expect(
+        checkRateLimit(reqB, transport.config, rateLimitMap),
+      ).toHaveProperty("allowed", false);
     });
   });
 

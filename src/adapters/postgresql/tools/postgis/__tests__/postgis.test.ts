@@ -164,9 +164,7 @@ describe("Handler Execution", () => {
   describe("pg_geometry_buffer", () => {
     it("should create buffer from WKT geometry", async () => {
       mockAdapter.executeQuery.mockResolvedValue({
-        rows: [
-          { buffer_geojson: '{"type":"Polygon"}' },
-        ],
+        rows: [{ buffer_geojson: '{"type":"Polygon"}' }],
       });
 
       const tool = tools.find((t) => t.name === "pg_geometry_buffer")!;
@@ -184,9 +182,7 @@ describe("Handler Execution", () => {
 
     it("should detect GeoJSON input format", async () => {
       mockAdapter.executeQuery.mockResolvedValue({
-        rows: [
-          { buffer_geojson: "{}", inputFormat: "GeoJSON" },
-        ],
+        rows: [{ buffer_geojson: "{}", inputFormat: "GeoJSON" }],
       });
 
       const tool = tools.find((t) => t.name === "pg_geometry_buffer")!;

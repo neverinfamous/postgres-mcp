@@ -53,7 +53,9 @@ async function waitForSnapshots(
     }
     await delay(intervalMs);
   }
-  throw new Error(`Expected at least ${minCount} snapshot(s) after ${maxAttempts * intervalMs}ms`);
+  throw new Error(
+    `Expected at least ${minCount} snapshot(s) after ${maxAttempts * intervalMs}ms`,
+  );
 }
 
 test.describe("Audit Backup Snapshots", () => {
@@ -67,9 +69,11 @@ test.describe("Audit Backup Snapshots", () => {
     await startServer(
       port,
       [
-        "--audit-log", logPath,
+        "--audit-log",
+        logPath,
         "--audit-backup",
-        "--tool-filter", "core,backup,schema",
+        "--tool-filter",
+        "core,backup,schema",
       ],
       "backup-list",
     );
@@ -127,7 +131,9 @@ test.describe("Audit Backup Snapshots", () => {
             ifExists: true,
           });
         }
-      } catch { /* ignore cleanup errors */ }
+      } catch {
+        /* ignore cleanup errors */
+      }
       if (client) await client.close();
       stopServer(port);
       await rm(dir, { recursive: true, force: true });
@@ -144,9 +150,11 @@ test.describe("Audit Backup Snapshots", () => {
     await startServer(
       port,
       [
-        "--audit-log", logPath,
+        "--audit-log",
+        logPath,
         "--audit-backup",
-        "--tool-filter", "core,backup,schema",
+        "--tool-filter",
+        "core,backup,schema",
       ],
       "backup-diff",
     );
@@ -169,18 +177,23 @@ test.describe("Audit Backup Snapshots", () => {
 
       // Wait for snapshot to appear
       const listResult = await waitForSnapshots(client, 1);
-      const snapshots = (listResult.snapshots as Array<Record<string, unknown>>)
-        .filter((s) => s.tool === "pg_truncate");
+      const snapshots = (
+        listResult.snapshots as Array<Record<string, unknown>>
+      ).filter((s) => s.tool === "pg_truncate");
       expect(snapshots.length).toBeGreaterThanOrEqual(1);
 
       const filename = snapshots[snapshots.length - 1]!.filename as string;
 
       // Diff the snapshot against current live schema
       // Pass compact: false to ensure DDL strings are returned for the test
-      const diffResult = await callToolAndParse(client, "pg_audit_diff_backup", {
-        filename,
-        compact: false,
-      });
+      const diffResult = await callToolAndParse(
+        client,
+        "pg_audit_diff_backup",
+        {
+          filename,
+          compact: false,
+        },
+      );
 
       // Verify response structure
       expect(diffResult.success).toBe(true);
@@ -206,7 +219,9 @@ test.describe("Audit Backup Snapshots", () => {
             ifExists: true,
           });
         }
-      } catch { /* ignore cleanup errors */ }
+      } catch {
+        /* ignore cleanup errors */
+      }
       if (client) await client.close();
       stopServer(port);
       await rm(dir, { recursive: true, force: true });
@@ -223,9 +238,11 @@ test.describe("Audit Backup Snapshots", () => {
     await startServer(
       port,
       [
-        "--audit-log", logPath,
+        "--audit-log",
+        logPath,
         "--audit-backup",
-        "--tool-filter", "core,backup,schema",
+        "--tool-filter",
+        "core,backup,schema",
       ],
       "backup-restore",
     );
@@ -247,8 +264,9 @@ test.describe("Audit Backup Snapshots", () => {
 
       // Wait for snapshot
       const listResult = await waitForSnapshots(client, 1);
-      const snapshots = (listResult.snapshots as Array<Record<string, unknown>>)
-        .filter((s) => s.tool === "pg_drop_table");
+      const snapshots = (
+        listResult.snapshots as Array<Record<string, unknown>>
+      ).filter((s) => s.tool === "pg_drop_table");
       const filename = snapshots[snapshots.length - 1]!.filename as string;
 
       // dryRun restore — should return DDL without executing
@@ -327,10 +345,12 @@ test.describe("Audit Backup Snapshots", () => {
     await startServer(
       port,
       [
-        "--audit-log", logPath,
+        "--audit-log",
+        logPath,
         "--audit-backup",
         "--audit-backup-data",
-        "--tool-filter", "core,backup,schema",
+        "--tool-filter",
+        "core,backup,schema",
       ],
       "backup-volumedrift",
     );
@@ -367,21 +387,28 @@ test.describe("Audit Backup Snapshots", () => {
 
       // Wait for snapshot
       const listResult = await waitForSnapshots(client, 1);
-      const snapshots = (listResult.snapshots as Array<Record<string, unknown>>)
-        .filter((s) => s.tool === "pg_truncate");
+      const snapshots = (
+        listResult.snapshots as Array<Record<string, unknown>>
+      ).filter((s) => s.tool === "pg_truncate");
       expect(snapshots.length).toBeGreaterThanOrEqual(1);
 
       const filename = snapshots[snapshots.length - 1]!.filename as string;
 
       // Diff — now that the table is empty, volumeDrift should show row count change
-      const diffResult = await callToolAndParse(client, "pg_audit_diff_backup", {
-        filename,
-      });
+      const diffResult = await callToolAndParse(
+        client,
+        "pg_audit_diff_backup",
+        {
+          filename,
+        },
+      );
 
       expect(diffResult.success).toBe(true);
 
       // V2: volumeDrift must be present with summary
-      const volumeDrift = diffResult.volumeDrift as Record<string, unknown> | undefined;
+      const volumeDrift = diffResult.volumeDrift as
+        | Record<string, unknown>
+        | undefined;
       expect(
         volumeDrift,
         "Expected volumeDrift field from pg_audit_diff_backup",
@@ -403,7 +430,9 @@ test.describe("Audit Backup Snapshots", () => {
             ifExists: true,
           });
         }
-      } catch { /* ignore cleanup errors */ }
+      } catch {
+        /* ignore cleanup errors */
+      }
       if (client) await client.close();
       stopServer(port);
       await rm(dir, { recursive: true, force: true });
@@ -420,10 +449,12 @@ test.describe("Audit Backup Snapshots", () => {
     await startServer(
       port,
       [
-        "--audit-log", logPath,
+        "--audit-log",
+        logPath,
         "--audit-backup",
         "--audit-backup-data",
-        "--tool-filter", "core,admin,backup,schema",
+        "--tool-filter",
+        "core,admin,backup,schema",
       ],
       "backup-unanalyzed",
     );
@@ -434,28 +465,33 @@ test.describe("Audit Backup Snapshots", () => {
 
       await callToolAndParse(client, "pg_create_table", {
         name: TEMP_TABLE,
-        columns: [
-          { name: "id", type: "SERIAL", primaryKey: true },
-        ],
+        columns: [{ name: "id", type: "SERIAL", primaryKey: true }],
       });
 
       // NO ANALYZE is called here. reltuples should remain -1.
       await callToolAndParse(client, "pg_truncate", { table: TEMP_TABLE });
 
       const listResult = await waitForSnapshots(client, 1);
-      const snapshots = (listResult.snapshots as Array<Record<string, unknown>>)
-        .filter((s) => s.tool === "pg_truncate");
+      const snapshots = (
+        listResult.snapshots as Array<Record<string, unknown>>
+      ).filter((s) => s.tool === "pg_truncate");
       const filename = snapshots[snapshots.length - 1]!.filename as string;
 
-      const diffResult = await callToolAndParse(client, "pg_audit_diff_backup", {
-        filename,
-      });
+      const diffResult = await callToolAndParse(
+        client,
+        "pg_audit_diff_backup",
+        {
+          filename,
+        },
+      );
 
       expect(diffResult.success).toBe(true);
 
-      const volumeDrift = diffResult.volumeDrift as Record<string, unknown> | undefined;
+      const volumeDrift = diffResult.volumeDrift as
+        | Record<string, unknown>
+        | undefined;
       expect(volumeDrift).toBeDefined();
-      
+
       // Even though we never analyzed, the fallback SELECT COUNT(*) ensures we get 0 instead of -1.
       if (volumeDrift!.rowCountSnapshot !== undefined) {
         expect(volumeDrift!.rowCountSnapshot as number).toBe(0);
@@ -478,9 +514,11 @@ test.describe("Audit Backup Snapshots", () => {
     await startServer(
       port,
       [
-        "--audit-log", logPath,
+        "--audit-log",
+        logPath,
         "--audit-backup",
-        "--tool-filter", "core,backup,schema",
+        "--tool-filter",
+        "core,backup,schema",
       ],
       "backup-restoreas",
     );
@@ -503,8 +541,9 @@ test.describe("Audit Backup Snapshots", () => {
       await callToolAndParse(client, "pg_drop_table", { table: TEMP_TABLE });
 
       const listResult = await waitForSnapshots(client, 1);
-      const snapshots = (listResult.snapshots as Array<Record<string, unknown>>)
-        .filter((s) => s.tool === "pg_drop_table");
+      const snapshots = (
+        listResult.snapshots as Array<Record<string, unknown>>
+      ).filter((s) => s.tool === "pg_drop_table");
       const filename = snapshots[snapshots.length - 1]!.filename as string;
 
       // Restore the snapshot UNDER A NEW NAME (restoreAs)
@@ -548,7 +587,9 @@ test.describe("Audit Backup Snapshots", () => {
             ifExists: true,
           });
         }
-      } catch { /* ignore cleanup errors */ }
+      } catch {
+        /* ignore cleanup errors */
+      }
       if (client) await client.close();
       stopServer(port);
       await rm(dir, { recursive: true, force: true });

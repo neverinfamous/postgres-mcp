@@ -58,15 +58,27 @@ export function parsePostgresError(
   // Regex anchored: must NOT be preceded by "of " (which indicates 42703 column errors)
   if (
     pgCode === "42P01" ||
-    (/(?:relation|view|sequence|materialized view) ["'].*["'] does not exist/i.test(msg) && !/of relation/i.test(msg))
+    (/(?:relation|view|sequence|materialized view) ["'].*["'] does not exist/i.test(
+      msg,
+    ) &&
+      !/of relation/i.test(msg))
   ) {
-    if (context.tool?.startsWith("pg_cron_") && /(?:relation ["']?cron\.job["']?|relation ["']?cron\.job_run_details["']?)/i.test(msg)) {
-      throw new Error(`Extension "pg_cron" is not available. Ensure it is installed and enabled.`, { cause: error });
+    if (
+      context.tool?.startsWith("pg_cron_") &&
+      /(?:relation ["']?cron\.job["']?|relation ["']?cron\.job_run_details["']?)/i.test(
+        msg,
+      )
+    ) {
+      throw new Error(
+        `Extension "pg_cron" is not available. Ensure it is installed and enabled.`,
+        { cause: error },
+      );
     }
 
     // pg_reindex with target=index: index-specific message
     if (context.tool === "pg_reindex" && context.target === "index") {
-      const match = /(?:relation|view|sequence|materialized view) "([^"]+)"/i.exec(msg);
+      const match =
+        /(?:relation|view|sequence|materialized view) "([^"]+)"/i.exec(msg);
       const indexName = match?.[1] ?? context.index ?? "unknown";
       throw new Error(
         `Index '${indexName}' not found. Use pg_get_indexes to see available indexes.`,
@@ -74,7 +86,8 @@ export function parsePostgresError(
       );
     }
 
-    const match = /(?:relation|view|sequence|materialized view) "([^"]+)"/i.exec(msg);
+    const match =
+      /(?:relation|view|sequence|materialized view) "([^"]+)"/i.exec(msg);
     const objectName = match?.[1] ?? context.table ?? "unknown";
     const schemaName = context.schema ?? "public";
 
@@ -273,8 +286,14 @@ export function parsePostgresError(
   if (pgCode === "42704" || /does not exist/i.test(msg)) {
     // Schema-specific: "schema X does not exist" (e.g., CREATE TABLE in nonexistent schema)
     if (/schema ["'].*["'] does not exist/i.test(msg)) {
-      if (context.tool?.startsWith("pg_cron_") && /schema ["']cron["']/i.test(msg)) {
-        throw new Error(`Extension "pg_cron" is not available. Ensure it is installed and enabled.`, { cause: error });
+      if (
+        context.tool?.startsWith("pg_cron_") &&
+        /schema ["']cron["']/i.test(msg)
+      ) {
+        throw new Error(
+          `Extension "pg_cron" is not available. Ensure it is installed and enabled.`,
+          { cause: error },
+        );
       }
 
       const schemaMatch = /schema ["']([^"']+)["']/i.exec(msg);
@@ -327,7 +346,10 @@ export function parsePostgresError(
     }
 
     // Function not found with tsvector argument — column is already tsvector type
-    if (/function to_tsvector\([^)]*tsvector[^)]*\) does not exist/i.test(msg) || /function tsvector[a-z_]*\([^)]*tsvector[^)]*\) does not exist/i.test(msg)) {
+    if (
+      /function to_tsvector\([^)]*tsvector[^)]*\) does not exist/i.test(msg) ||
+      /function tsvector[a-z_]*\([^)]*tsvector[^)]*\) does not exist/i.test(msg)
+    ) {
       throw new Error(
         `Column appears to be a tsvector type, which cannot be used directly with text search tools. ` +
           `Use a text column instead, or query the tsvector column directly with raw SQL (pg_read_query).`,
@@ -389,8 +411,14 @@ export function parsePostgresError(
 
   // 3F000 — invalid schema name
   if (pgCode === "3F000" || /schema ["'].*["'] does not exist/i.test(msg)) {
-    if (context.tool?.startsWith("pg_cron_") && /schema ["']cron["']/i.test(msg)) {
-      throw new Error(`Extension "pg_cron" is not available. Ensure it is installed and enabled.`, { cause: error });
+    if (
+      context.tool?.startsWith("pg_cron_") &&
+      /schema ["']cron["']/i.test(msg)
+    ) {
+      throw new Error(
+        `Extension "pg_cron" is not available. Ensure it is installed and enabled.`,
+        { cause: error },
+      );
     }
 
     const match = /schema "([^"]+)"/i.exec(msg);

@@ -24,7 +24,6 @@ import {
   VectorCreateExtensionSchemaBase,
 } from "../../schemas/index.js";
 
-
 /**
  * Parse a PostgreSQL vector string to a number array.
  * Handles formats like "[0.1,0.2,0.3]" or "(0.1,0.2,0.3)"
@@ -73,9 +72,16 @@ export async function checkTableAndColumn(
   column: string,
   schema: string,
   transactionId?: string,
-): Promise<{ error: string; code: string; category: string; suggestion: string } | null> {
-  const client = transactionId ? adapter.getTransactionConnection(transactionId) : undefined;
-  
+): Promise<{
+  error: string;
+  code: string;
+  category: string;
+  suggestion: string;
+} | null> {
+  const client = transactionId
+    ? adapter.getTransactionConnection(transactionId)
+    : undefined;
+
   // Step 1: check column existence (fast path — covers the common success case)
   const colSql = `
     SELECT 1 FROM information_schema.columns
@@ -124,13 +130,17 @@ export function createVectorExtensionTool(
     handler: async (_params: unknown, _context: RequestContext) => {
       try {
         const parsed = VectorCreateExtensionSchemaBase.parse(_params ?? {});
-        const schemaClause = parsed.schema ? ` SCHEMA ${sanitizeIdentifier(parsed.schema)}` : "";
-        await adapter.executeQuery(`CREATE EXTENSION IF NOT EXISTS vector${schemaClause}`);
+        const schemaClause = parsed.schema
+          ? ` SCHEMA ${sanitizeIdentifier(parsed.schema)}`
+          : "";
+        await adapter.executeQuery(
+          `CREATE EXTENSION IF NOT EXISTS vector${schemaClause}`,
+        );
         return { success: true, message: "pgvector extension enabled" };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_vector_create_extension",
-          });
+          tool: "pg_vector_create_extension",
+        });
       }
     },
   };
@@ -145,7 +155,10 @@ export function createVectorAddColumnTool(
     tableName: z.string().optional().describe("Alias for table"),
     column: z.string().optional().describe("Column name"),
     col: z.string().optional().describe("Alias for column"),
-    dimensions: z.number().optional().describe("Vector dimensions (e.g., 1536 for OpenAI)"),
+    dimensions: z
+      .number()
+      .optional()
+      .describe("Vector dimensions (e.g., 1536 for OpenAI)"),
     schema: z.string().optional().describe("Database schema (default: public)"),
     ifNotExists: z
       .boolean()
@@ -181,8 +194,8 @@ export function createVectorAddColumnTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column", "dimensions"],
           };
         }
@@ -190,8 +203,8 @@ export function createVectorAddColumnTool(
           return {
             success: false,
             error: "column (or col) parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column", "dimensions"],
           };
         }
@@ -199,8 +212,8 @@ export function createVectorAddColumnTool(
           return {
             success: false,
             error: "dimensions parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column", "dimensions"],
           };
         }
@@ -278,7 +291,9 @@ export function createVectorAddColumnTool(
           throw err;
         }
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_vector_add_column" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_vector_add_column",
+        });
       }
     },
   };

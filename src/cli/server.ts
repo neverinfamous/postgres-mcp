@@ -9,7 +9,10 @@ import { PostgresMcpServer } from "../server/mcp-server.js";
 import { logger } from "../utils/logger.js";
 import type { InstructionLevel } from "../constants/server-instructions.js";
 import type { AuditConfig } from "../audit/index.js";
-import { HttpTransport, type HttpTransportConfig } from "../transports/http/index.js";
+import {
+  HttpTransport,
+  type HttpTransportConfig,
+} from "../transports/http/index.js";
 import {
   OAuthResourceServer,
   TokenValidator,

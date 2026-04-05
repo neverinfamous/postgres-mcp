@@ -14,7 +14,10 @@ import type { TestInfo } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 function getDefaultPostgresUrl(): string {
-  return process.env.MCP_TEST_DB || "postgres://postgres:postgres@127.0.0.1:5432/postgres";
+  return (
+    process.env.MCP_TEST_DB ||
+    "postgres://postgres:postgres@127.0.0.1:5432/postgres"
+  );
 }
 
 // ─── Client creation ────────────────────────────────────────────────────────
@@ -24,7 +27,10 @@ function getDefaultPostgresUrl(): string {
  * Falls back to DEFAULT_BASE_URL if not set.
  */
 export function getBaseURL(testInfo: TestInfo): string {
-  return (testInfo.project.use as { baseURL?: string }).baseURL ?? (process.env.MCP_TEST_URL || "http://127.0.0.1:3000");
+  return (
+    (testInfo.project.use as { baseURL?: string }).baseURL ??
+    (process.env.MCP_TEST_URL || "http://127.0.0.1:3000")
+  );
 }
 
 /**
@@ -33,10 +39,10 @@ export function getBaseURL(testInfo: TestInfo): string {
  *
  * @param baseURL - Server base URL. Defaults to `http://127.0.0.1:3000`.
  */
-export async function createClient(
-  baseURL?: string,
-): Promise<Client> {
-  const url = new URL(`${baseURL ?? process.env.MCP_TEST_URL ?? "http://127.0.0.1:3000"}/sse`);
+export async function createClient(baseURL?: string): Promise<Client> {
+  const url = new URL(
+    `${baseURL ?? process.env.MCP_TEST_URL ?? "http://127.0.0.1:3000"}/sse`,
+  );
   const maxRetries = 3;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -49,7 +55,10 @@ export async function createClient(
       await client.connect(transport);
       return client;
     } catch {
-      if (attempt === maxRetries - 1) throw new Error(`Failed to connect to ${url} after ${maxRetries} attempts`);
+      if (attempt === maxRetries - 1)
+        throw new Error(
+          `Failed to connect to ${url} after ${maxRetries} attempts`,
+        );
       await delay(500);
     }
   }
@@ -80,7 +89,9 @@ export async function callToolAndParse(
   try {
     return JSON.parse(first.text!) as Record<string, unknown>;
   } catch (err: unknown) {
-    throw new Error(`Failed to parse tool response as JSON. Response text was:\n${first.text}\n\nOriginal error: ${(err as Error).message}`);
+    throw new Error(
+      `Failed to parse tool response as JSON. Response text was:\n${first.text}\n\nOriginal error: ${(err as Error).message}`,
+    );
   }
 }
 
@@ -122,13 +133,21 @@ export function expectHandlerError(
   payload: Record<string, unknown>,
   expectedMessage?: string | RegExp,
 ): void {
-  expect(payload.success, `Expected handler error, got: ${JSON.stringify(payload)}`).toBe(false);
-  expect(typeof payload.error, `Missing error string in: ${JSON.stringify(payload)}`).toBe("string");
+  expect(
+    payload.success,
+    `Expected handler error, got: ${JSON.stringify(payload)}`,
+  ).toBe(false);
+  expect(
+    typeof payload.error,
+    `Missing error string in: ${JSON.stringify(payload)}`,
+  ).toBe("string");
 
   if (expectedMessage instanceof RegExp) {
     expect(payload.error as string).toMatch(expectedMessage);
   } else if (typeof expectedMessage === "string") {
-    expect((payload.error as string).toLowerCase()).toContain(expectedMessage.toLowerCase());
+    expect((payload.error as string).toLowerCase()).toContain(
+      expectedMessage.toLowerCase(),
+    );
   }
 }
 
@@ -196,7 +215,9 @@ export async function startServer(
     await delay(500);
   }
 
-  throw new Error(`[${label}] Server on port ${port} did not start within ${maxAttempts * 500}ms`);
+  throw new Error(
+    `[${label}] Server on port ${port} did not start within ${maxAttempts * 500}ms`,
+  );
 }
 
 /**

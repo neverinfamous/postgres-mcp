@@ -23,13 +23,9 @@ import {
   TableStatsOutputSchema,
   VacuumStatsOutputSchema,
 } from "../../schemas/index.js";
-import {
-  toNum,
-  validatePerformanceTableExists,
-} from "./helpers.js";
+import { toNum, validatePerformanceTableExists } from "./helpers.js";
 
 export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
-
   return {
     name: "pg_index_stats",
     description: "Get index usage statistics.",
@@ -40,7 +36,10 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("performance", readOnly("Index Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = IndexStatsSchema.parse(params) as Record<string, unknown>;
+        const parsed = IndexStatsSchema.parse(params) as Record<
+          string,
+          unknown
+        >;
         let table = parsed["table"] as string | undefined;
         let schema = parsed["schema"] as string | undefined;
         // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
@@ -122,7 +121,6 @@ export function createIndexStatsTool(adapter: PostgresAdapter): ToolDefinition {
 }
 
 export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
-
   return {
     name: "pg_table_stats",
     description: "Get table access statistics.",
@@ -133,7 +131,10 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("performance", readOnly("Table Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = TableStatsSchema.parse(params) as Record<string, unknown>;
+        const parsed = TableStatsSchema.parse(params) as Record<
+          string,
+          unknown
+        >;
         let table = parsed["table"] as string | undefined;
         let schema = parsed["schema"] as string | undefined;
         // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
@@ -198,11 +199,13 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
             };
             // Omit null timestamp fields to save tokens
             if (mapped["last_vacuum"] === null) delete mapped["last_vacuum"];
-            if (mapped["last_autovacuum"] === null) delete mapped["last_autovacuum"];
+            if (mapped["last_autovacuum"] === null)
+              delete mapped["last_autovacuum"];
             if (mapped["last_analyze"] === null) delete mapped["last_analyze"];
-            if (mapped["last_autoanalyze"] === null) delete mapped["last_autoanalyze"];
+            if (mapped["last_autoanalyze"] === null)
+              delete mapped["last_autoanalyze"];
             return mapped;
-          }
+          },
         );
 
         // Get total count if limited
@@ -232,7 +235,6 @@ export function createTableStatsTool(adapter: PostgresAdapter): ToolDefinition {
 export function createVacuumStatsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-
   return {
     name: "pg_vacuum_stats",
     description:
@@ -244,7 +246,10 @@ export function createVacuumStatsTool(
     icons: getToolIcons("performance", readOnly("Vacuum Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = VacuumStatsSchema.parse(params) as Record<string, unknown>;
+        const parsed = VacuumStatsSchema.parse(params) as Record<
+          string,
+          unknown
+        >;
         let table = parsed["table"] as string | undefined;
         let schema = parsed["schema"] as string | undefined;
         // Parse schema from table if it contains a dot (e.g., 'myschema.orders')

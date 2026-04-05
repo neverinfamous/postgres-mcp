@@ -13,11 +13,16 @@ import { coerceNumber } from "../../../../utils/query-helpers.js";
 // =============================================================================
 
 export const CitextCreateExtensionSchemaBase = z.object({
-  schema: z.string().optional().describe("Schema in which to install the extension (default: public)")
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema in which to install the extension (default: public)"),
 });
 
-export const CitextCreateExtensionSchema = z
-  .preprocess(normalizeOptionalParams, CitextCreateExtensionSchemaBase);
+export const CitextCreateExtensionSchema = z.preprocess(
+  normalizeOptionalParams,
+  CitextCreateExtensionSchemaBase,
+);
 
 /**
  * Base schema for MCP visibility - shows parameters with optional types for framework passthrough.
@@ -95,10 +100,18 @@ export function preprocessCitextTableParams(input: unknown): unknown {
 export const CitextConvertColumnSchemaBase = z.object({
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Alias for table"),
-  column: z.string().optional().describe("Text column to convert from/to citext"),
+  column: z
+    .string()
+    .optional()
+    .describe("Text column to convert from/to citext"),
   col: z.string().optional().describe("Alias for column"),
   schema: z.string().optional().describe("Schema name (default: public)"),
-  toType: z.string().optional().describe("Target data type (e.g. text, varchar, citext) (default: citext)"),
+  toType: z
+    .string()
+    .optional()
+    .describe(
+      "Target data type (e.g. text, varchar, citext) (default: citext)",
+    ),
 });
 
 /**
@@ -140,21 +153,21 @@ export const CitextListColumnsSchemaBase = z.object({
  * Schema for listing citext columns.
  * Preprocesses to handle empty/null params and table name aliases.
  */
-export const CitextListColumnsSchema = z.preprocess(
-  (input) => {
+export const CitextListColumnsSchema = z
+  .preprocess((input) => {
     const obj = preprocessCitextTableParams(normalizeOptionalParams(input));
     if (typeof obj === "object" && obj !== null && "limit" in obj) {
-      (obj as Record<string, unknown>)["limit"] = coerceNumber((obj as Record<string, unknown>)["limit"]);
+      (obj as Record<string, unknown>)["limit"] = coerceNumber(
+        (obj as Record<string, unknown>)["limit"],
+      );
     }
     return obj;
-  },
-  CitextListColumnsSchemaBase,
-)
-.transform((data) => ({
-  schema: data.schema,
-  table: data.table ?? data.tableName,
-  limit: data.limit,
-}));
+  }, CitextListColumnsSchemaBase)
+  .transform((data) => ({
+    schema: data.schema,
+    table: data.table ?? data.tableName,
+    limit: data.limit,
+  }));
 
 /**
  * Base schema for MCP visibility - shows all parameters for analyzeCandidates.
@@ -172,7 +185,10 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
     .optional()
     .describe("Table name to filter (analyzes single table)"),
   tableName: z.string().optional().describe("Alias for table"),
-  limit: z.number().optional().describe("Maximum number of candidates to return"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum number of candidates to return"),
   excludeSystemSchemas: z
     .boolean()
     .optional()
@@ -185,16 +201,15 @@ export const CitextAnalyzeCandidatesSchemaBase = z.object({
  * Schema for analyzing candidate columns for citext conversion.
  * Preprocesses to handle empty/null params.
  */
-export const CitextAnalyzeCandidatesSchema = z.preprocess(
-  (input) => {
-    const obj = preprocessCitextTableParams(normalizeOptionalParams(input));
-    if (typeof obj === "object" && obj !== null && "limit" in obj) {
-      (obj as Record<string, unknown>)["limit"] = coerceNumber((obj as Record<string, unknown>)["limit"]);
-    }
-    return obj;
-  },
-  CitextAnalyzeCandidatesSchemaBase,
-);
+export const CitextAnalyzeCandidatesSchema = z.preprocess((input) => {
+  const obj = preprocessCitextTableParams(normalizeOptionalParams(input));
+  if (typeof obj === "object" && obj !== null && "limit" in obj) {
+    (obj as Record<string, unknown>)["limit"] = coerceNumber(
+      (obj as Record<string, unknown>)["limit"],
+    );
+  }
+  return obj;
+}, CitextAnalyzeCandidatesSchemaBase);
 
 /**
  * Base schema for MCP visibility (shows all parameters including aliases).
@@ -203,7 +218,10 @@ export const CitextSchemaAdvisorSchemaBase = z.object({
   table: z.string().optional().describe("Table name to analyze (required)"),
   tableName: z.string().optional().describe("Alias for table"),
   schema: z.string().optional().describe("Schema name (default: public)"),
-  compact: z.boolean().optional().describe("Omit recommendations to 'keep' current types (default: true)"),
+  compact: z
+    .boolean()
+    .optional()
+    .describe("Omit recommendations to 'keep' current types (default: true)"),
 });
 
 /**

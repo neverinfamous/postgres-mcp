@@ -57,7 +57,7 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
               error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
               code: "QUERY_ERROR",
               category: "query",
-              recoverable: false
+              recoverable: false,
             };
           }
         }
@@ -214,12 +214,17 @@ export function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
             orReplace &&
             !materialized &&
             (errMsg.includes("cannot drop columns from view") ||
-             errMsg.includes("cannot change data type of view column") ||
-             (typeof error === "object" && error !== null && "code" in error && (error as Record<string, unknown>)["code"] === "42P16"))
+              errMsg.includes("cannot change data type of view column") ||
+              (typeof error === "object" &&
+                error !== null &&
+                "code" in error &&
+                (error as Record<string, unknown>)["code"] === "42P16"))
           ) {
             try {
               // Execute a clean drop
-              await adapter.executeQuery(`DROP VIEW IF EXISTS ${schemaPrefix}${viewName}`);
+              await adapter.executeQuery(
+                `DROP VIEW IF EXISTS ${schemaPrefix}${viewName}`,
+              );
               // Retry the create (without OR REPLACE since we just dropped it)
               const retrySql = `CREATE VIEW ${schemaPrefix}${viewName} AS ${query}${checkClause}`;
               await adapter.executeQuery(retrySql);
@@ -232,10 +237,10 @@ export function createCreateViewTool(adapter: PostgresAdapter): ToolDefinition {
             }
           } else {
             return formatHandlerErrorResponse(error, {
-                tool: "pg_create_view",
-                objectType: "view",
-                ...(schema !== undefined && { schema }),
-              });
+              tool: "pg_create_view",
+              objectType: "view",
+              ...(schema !== undefined && { schema }),
+            });
           }
         }
 
@@ -301,9 +306,9 @@ export function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
           await adapter.executeQuery(sql);
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
-              tool: "pg_drop_view",
-              ...(schema !== undefined && { schema }),
-            });
+            tool: "pg_drop_view",
+            ...(schema !== undefined && { schema }),
+          });
         }
         return {
           success: true,

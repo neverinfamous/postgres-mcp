@@ -79,7 +79,10 @@ export function getToolGroup(toolName: string): ToolGroup | undefined {
  */
 export function getEnabledGroups(enabledTools: Set<string>): Set<ToolGroup> {
   const groups = new Set<ToolGroup>();
-  for (const [group, tools] of Object.entries(TOOL_GROUPS) as [ToolGroup, string[]][]) {
+  for (const [group, tools] of Object.entries(TOOL_GROUPS) as [
+    ToolGroup,
+    string[],
+  ][]) {
     if (tools.some((tool) => enabledTools.has(tool))) {
       groups.add(group);
     }
@@ -93,8 +96,6 @@ export function getEnabledGroups(enabledTools: Set<string>): Set<ToolGroup> {
 export function isToolGroup(name: string): name is ToolGroup {
   return name in TOOL_GROUPS;
 }
-
-
 
 /**
  * Parse a tool filter string into structured rules

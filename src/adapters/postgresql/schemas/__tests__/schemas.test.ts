@@ -5,17 +5,13 @@
  * Focus on edge cases and validation paths for coverage improvement.
  */
 
-import {
-  describe,
-  it,
-  expect
-} from "vitest";
+import { describe, it, expect } from "vitest";
 
 // Vector schemas
 import {
   FiniteNumberArray,
   VectorSearchSchema,
-  VectorCreateIndexSchema
+  VectorCreateIndexSchema,
 } from "../vector/index.js";
 
 // PostGIS schemas
@@ -27,7 +23,7 @@ import {
   GeometryDistanceSchema,
   BufferSchema,
   GeocodeSchema,
-  GeoTransformSchema
+  GeoTransformSchema,
 } from "../postgis/index.js";
 
 // Schema management schemas
@@ -36,7 +32,7 @@ import {
   CreateViewSchema,
   DropSequenceSchema,
   DropViewSchema,
-  ListFunctionsSchema
+  ListFunctionsSchema,
 } from "../schema-mgmt.js";
 
 // =============================================================================
@@ -684,7 +680,7 @@ import {
   StatsCorrelationSchema,
   StatsRegressionSchema,
   StatsHypothesisSchema,
-  StatsTimeSeriesSchema
+  StatsTimeSeriesSchema,
 } from "../stats/index.js";
 
 describe("StatsPercentilesSchema", () => {
@@ -871,7 +867,7 @@ import {
   normalizePathForInsert,
   parseJsonbValue,
   normalizePathToArray,
-  normalizePathToString
+  normalizePathToString,
 } from "../jsonb/index.js";
 
 describe("stringPathToArray", () => {
@@ -956,7 +952,7 @@ describe("normalizePathToString", () => {
 
 import {
   CreatePartitionSchema,
-  CreatePartitionedTableSchema
+  CreatePartitionedTableSchema,
 } from "../partitioning/index.js";
 
 describe("CreatePartitionSchema", () => {
@@ -1056,7 +1052,7 @@ import {
   TransactionIdSchema,
   SavepointSchema,
   TransactionExecuteSchema,
-  ListTablesSchema
+  ListTablesSchema,
 } from "../core/index.js";
 
 describe("ReadQuerySchema", () => {
@@ -1408,7 +1404,7 @@ import {
   AnalyzeSchema,
   ReindexSchema,
   TerminateBackendSchema,
-  CancelBackendSchema
+  CancelBackendSchema,
 } from "../admin.js";
 
 describe("VacuumSchema", () => {
@@ -1517,7 +1513,7 @@ import {
   preprocessTextParams,
   TextSearchSchema,
   TrigramSimilaritySchema,
-  RegexpMatchSchema
+  RegexpMatchSchema,
 } from "../text-search.js";
 
 describe("preprocessTextParams", () => {
@@ -1661,7 +1657,7 @@ import {
   JsonbContainsSchema,
   JsonbInsertSchema,
   JsonbDeleteSchema,
-  JsonbAggSchema
+  JsonbAggSchema,
 } from "../jsonb/index.js";
 
 describe("preprocessJsonbParams", () => {
@@ -1895,7 +1891,7 @@ import {
   LtreeConvertColumnSchema,
   LtreeIndexSchema,
   PgcryptoEncryptSchema,
-  PgcryptoDecryptSchema
+  PgcryptoDecryptSchema,
 } from "../extensions/index.js";
 
 describe("CitextConvertColumnSchema", () => {
@@ -2124,9 +2120,9 @@ describe("PgcryptoDecryptSchema", () => {
   });
 
   it("should reject when no password/key provided", () => {
-    expect(() =>
-      PgcryptoDecryptSchema.parse({ data: "data" }),
-    ).toThrow("password (or key alias) is required");
+    expect(() => PgcryptoDecryptSchema.parse({ data: "data" })).toThrow(
+      "password (or key alias) is required",
+    );
   });
 });
 
@@ -2134,9 +2130,7 @@ describe("PgcryptoDecryptSchema", () => {
 // Backup Schema Tests
 // =============================================================================
 
-import {
-  CopyExportSchema
-} from "../backup.js";
+import { CopyExportSchema } from "../backup.js";
 
 describe("CopyExportSchema", () => {
   it("should resolve sql alias to query", () => {
@@ -2217,7 +2211,7 @@ import {
   AttachPartitionSchema,
   DetachPartitionSchema,
   ListPartitionsSchema,
-  PartitionInfoSchema
+  PartitionInfoSchema,
 } from "../partitioning/index.js";
 
 describe("CreatePartitionSchema (preprocessPartitionParams)", () => {
@@ -2524,7 +2518,7 @@ import {
   PartmanCreateParentSchema,
   PartmanRunMaintenanceSchema,
   PartmanUndoPartitionSchema,
-  PartmanRetentionSchema
+  PartmanRetentionSchema,
 } from "../partman/index.js";
 
 describe("PartmanCreateParentSchema (preprocessPartmanParams)", () => {
@@ -2754,7 +2748,7 @@ describe("FiniteNumberArray", () => {
 
 import {
   GeometryTransformSchema,
-  GeometryBufferSchema
+  GeometryBufferSchema,
 } from "../postgis/index.js";
 
 describe("preprocessPostgisParams", () => {
@@ -3068,7 +3062,7 @@ import {
   CronScheduleInDatabaseSchema,
   CronAlterJobSchema,
   CronUnscheduleSchema,
-  CronCleanupHistorySchema
+  CronCleanupHistorySchema,
 } from "../cron.js";
 
 describe("CronScheduleSchema (preprocessCronParams)", () => {
@@ -3226,7 +3220,7 @@ describe("CronCleanupHistorySchema", () => {
 import {
   StatsDescriptiveSchema,
   StatsDistributionSchema,
-  StatsSamplingSchema
+  StatsSamplingSchema,
 } from "../stats/index.js";
 
 describe("StatsDescriptiveSchema (preprocessBasicStatsParams)", () => {
@@ -4168,7 +4162,7 @@ describe("StatsCorrelationSchema", () => {
 
 import {
   ListObjectsSchema,
-  ObjectDetailsSchema
+  ObjectDetailsSchema,
 } from "../../tools/core/schemas/index.js";
 
 describe("ListObjectsSchema preprocess", () => {
@@ -4217,11 +4211,11 @@ describe("ObjectDetailsSchema preprocess", () => {
 
 import {
   validateFtsConfig,
-  InvalidFtsConfigError
+  InvalidFtsConfigError,
 } from "../../../../utils/fts-config.js";
 import {
   validateWhereClause,
-  UnsafeWhereClauseError
+  UnsafeWhereClauseError,
 } from "../../../../utils/where-clause.js";
 
 describe("validateFtsConfig edge cases", () => {

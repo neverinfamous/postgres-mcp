@@ -57,7 +57,11 @@ export function createPostgisExtensionTool(
             alreadyExists: true,
           };
         }
-        return { success: true, message: "PostGIS extension enabled", alreadyExists: false };
+        return {
+          success: true,
+          message: "PostGIS extension enabled",
+          alreadyExists: false,
+        };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_postgis_create_extension",
@@ -154,11 +158,11 @@ export function createGeometryColumnTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_geometry_column",
-            table:
-              ((params as Record<string, unknown>)?.["table"] as string) ??
-              undefined,
-          });
+          tool: "pg_geometry_column",
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
+        });
       }
     },
   };
@@ -245,11 +249,11 @@ export function createSpatialIndexTool(
         return { success: true, index: indexNameRaw, table, column };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_spatial_index",
-            table:
-              ((params as Record<string, unknown>)?.["table"] as string) ??
-              undefined,
-          });
+          tool: "pg_spatial_index",
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
+        });
       }
     },
   };

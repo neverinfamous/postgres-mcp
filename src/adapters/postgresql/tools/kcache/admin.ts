@@ -5,7 +5,12 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { type ToolDefinition, type RequestContext, ValidationError, ExtensionNotAvailableError } from "../../../../types/index.js";
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
+  ExtensionNotAvailableError,
+} from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -23,7 +28,9 @@ import { getKcacheColumnNames } from "./helpers.js";
 /**
  * Enable the pg_stat_kcache extension
  */
-export function createKcacheExtensionTool(adapter: PostgresAdapter): ToolDefinition {
+export function createKcacheExtensionTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_kcache_create_extension",
     description: `Enable the pg_stat_kcache extension for OS-level performance metrics.
@@ -45,7 +52,8 @@ Requires pg_stat_statements to be installed first. Both extensions must be in sh
           (statementsCheck.rows?.[0]?.["installed"] as boolean) ?? false;
         if (!hasStatements) {
           throw new ExtensionNotAvailableError("pg_stat_statements", {
-            reason: "pg_stat_statements must be installed before pg_stat_kcache",
+            reason:
+              "pg_stat_statements must be installed before pg_stat_kcache",
           });
         }
 
@@ -58,7 +66,9 @@ Requires pg_stat_statements to be installed first. Both extensions must be in sh
           note: "Ensure pg_stat_kcache is in shared_preload_libraries for full functionality",
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_kcache_create_extension" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_kcache_create_extension",
+        });
       }
     },
   };
@@ -81,7 +91,9 @@ Shows total CPU time, I/O, and page faults across all queries.`,
     icons: getToolIcons("kcache", readOnly("Kcache Database Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { database, compact } = KcacheDatabaseStatsSchemaBase.parse(params ?? {});
+        const { database, compact } = KcacheDatabaseStatsSchemaBase.parse(
+          params ?? {},
+        );
         const cols = await getKcacheColumnNames(adapter);
 
         let sql: string;
@@ -131,7 +143,7 @@ Shows total CPU time, I/O, and page faults across all queries.`,
         const rawRows = result.rows ?? [];
         const isCompact = compact ?? true;
         const rows = isCompact
-          ? rawRows.map(row => {
+          ? rawRows.map((row) => {
               const obj: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(row)) {
                 if (value !== 0 && value !== "0" && value !== "0 bytes") {
@@ -148,8 +160,8 @@ Shows total CPU time, I/O, and page faults across all queries.`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_kcache_database_stats",
-          });
+          tool: "pg_kcache_database_stats",
+        });
       }
     },
   };
@@ -263,7 +275,7 @@ Helps identify the root cause of performance issues - is the query computation-h
                 )
                 SELECT
                     queryid,
-                    ${isCompact ? '' : 'query_preview,'}
+                    ${isCompact ? "" : "query_preview,"}
                     calls,
                     total_time_ms,
                     cpu_time,
@@ -295,7 +307,7 @@ Helps identify the root cause of performance issues - is the query computation-h
         const truncated = rawRows.length < effectiveTotalCount;
 
         const rows = isCompact
-          ? rawRows.map(row => {
+          ? rawRows.map((row) => {
               const obj: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(row)) {
                 if (value !== 0 && value !== "0" && value !== "0 bytes") {
@@ -342,8 +354,8 @@ Helps identify the root cause of performance issues - is the query computation-h
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_kcache_resource_analysis",
-          });
+          tool: "pg_kcache_resource_analysis",
+        });
       }
     },
   };
@@ -352,7 +364,9 @@ Helps identify the root cause of performance issues - is the query computation-h
 /**
  * Reset kcache statistics
  */
-export function createKcacheResetTool(adapter: PostgresAdapter): ToolDefinition {
+export function createKcacheResetTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_kcache_reset",
     description: `Reset pg_stat_kcache statistics. Use this to start fresh measurements.

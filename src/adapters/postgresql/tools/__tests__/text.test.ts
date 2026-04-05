@@ -180,7 +180,7 @@ describe("pg_text_search", () => {
 
   it("should enforce limit constraints strictly to prevent payload bloat", async () => {
     const tool = tools.find((t) => t.name === "pg_text_search")!;
-    const result = await tool.handler(
+    const result = (await tool.handler(
       {
         table: "articles",
         columns: ["title"],
@@ -188,7 +188,7 @@ describe("pg_text_search", () => {
         limit: 0,
       },
       mockContext,
-    ) as { success: boolean; error: string };
+    )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("must be greater than 0");
@@ -1321,10 +1321,10 @@ describe("text.ts branch coverage", () => {
 
   it("pg_like_search limit:0 should throw validation error", async () => {
     const tool = tools.find((t) => t.name === "pg_like_search")!;
-    const result = await tool.handler(
+    const result = (await tool.handler(
       { table: "t", column: "c", pattern: "%x%", limit: 0 },
       mockContext,
-    ) as { success: boolean; error: string };
+    )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain("greater than 0");
   });
@@ -1356,10 +1356,10 @@ describe("text.ts branch coverage", () => {
 
   it("pg_trigram_similarity with where clause and limit:0 should validate", async () => {
     const tool = tools.find((t) => t.name === "pg_trigram_similarity")!;
-    const result = await tool.handler(
+    const result = (await tool.handler(
       { table: "t", column: "c", value: "x", where: "active=true", limit: 0 },
       mockContext,
-    ) as { success: boolean; error: string };
+    )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain("greater than 0");
   });
@@ -1389,7 +1389,7 @@ describe("text.ts branch coverage", () => {
 
   it("pg_fuzzy_match with where clause and limit:0 should validate", async () => {
     const tool = tools.find((t) => t.name === "pg_fuzzy_match")!;
-    const result = await tool.handler(
+    const result = (await tool.handler(
       {
         table: "t",
         column: "c",
@@ -1398,7 +1398,7 @@ describe("text.ts branch coverage", () => {
         limit: 0,
       },
       mockContext,
-    ) as { success: boolean; error: string };
+    )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain("greater than 0");
   });
@@ -1428,10 +1428,10 @@ describe("text.ts branch coverage", () => {
 
   it("pg_regexp_match with where clause and limit:0 should validate", async () => {
     const tool = tools.find((t) => t.name === "pg_regexp_match")!;
-    const result = await tool.handler(
+    const result = (await tool.handler(
       { table: "t", column: "c", pattern: "^x", where: "id>1", limit: 0 },
       mockContext,
-    ) as { success: boolean; error: string };
+    )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
     expect(result.error).toContain("greater than 0");
   });

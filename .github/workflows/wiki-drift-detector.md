@@ -1,12 +1,13 @@
 ---
-description: 'Audit the GitHub Wiki documentation for accuracy and consistency on every code PR'
+description: "Audit the GitHub Wiki documentation for accuracy and consistency on every code PR"
 private: true
 labels: [documentation, automation, wiki]
 
 on:
   pull_request:
     types: [opened, ready_for_review]
-    paths: ['src/**', 'package.json', 'Dockerfile', 'tsconfig*.json', 'scripts/**']
+    paths:
+      ["src/**", "package.json", "Dockerfile", "tsconfig*.json", "scripts/**"]
 
 engine:
   id: copilot
@@ -58,7 +59,7 @@ Examine the files in `/tmp/wiki` against the PR diff and unreleased changes:
 
 - **Tool-Reference.md** & **Resources-and-Prompts.md** — Are all features described still accurate? Were tools or resources added, removed, or modified? Do the parameter schemas match? Does the tool count match the codebase?
 - **Tool-Filtering.md** — Are all documented environment variables and CLI flags still used in the code? Are there any new ones missing from the docs?
-- **Code-Mode.md** & **Extension-*.md** — Has the architecture changed (e.g., changes to the sandboxed JS execution engine or extensions) in ways that invalidate these docs?
+- **Code-Mode.md** & **Extension-\*.md** — Has the architecture changed (e.g., changes to the sandboxed JS execution engine or extensions) in ways that invalidate these docs?
 - **OAuth-and-Security.md** & **HTTP-Transport.md** — Are deployment options and security configurations accurate with any recent changes?
 
 ## Step 4: Cross-Document Consistency

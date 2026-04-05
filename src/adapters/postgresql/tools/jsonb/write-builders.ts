@@ -5,7 +5,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import type {
+  ToolDefinition,
+  RequestContext,
+} from "../../../../types/index.js";
 import { z } from "zod";
 import { ValidationError } from "../../../../types/errors.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
@@ -109,8 +112,8 @@ export function createJsonbObjectTool(
         return { success: true, object: result.rows?.[0]?.["result"] ?? {} };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_object",
-          });
+          tool: "pg_jsonb_object",
+        });
       }
     },
   };
@@ -162,8 +165,8 @@ export function createJsonbArrayTool(adapter: PostgresAdapter): ToolDefinition {
         return { success: true, array: result.rows?.[0]?.["result"] };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_array",
-          });
+          tool: "pg_jsonb_array",
+        });
       }
     },
   };
@@ -201,7 +204,11 @@ export function createJsonbStripNullsTool(
         if (tableError) return tableError;
 
         // Validate required 'where' parameter before SQL execution
-        if (whereClause === undefined || typeof whereClause !== "string" || whereClause.trim() === "") {
+        if (
+          whereClause === undefined ||
+          typeof whereClause !== "string" ||
+          whereClause.trim() === ""
+        ) {
           throw new ValidationError(
             'pg_jsonb_strip_nulls requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
           );
@@ -225,8 +232,8 @@ export function createJsonbStripNullsTool(
         return { success: true, rowsAffected: result.rowsAffected };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_strip_nulls",
-          });
+          tool: "pg_jsonb_strip_nulls",
+        });
       }
     },
   };

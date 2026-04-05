@@ -41,9 +41,12 @@ export function createHybridSearchTool(
     textQuery: z.string().optional().describe("Text search query"),
     queryText: z.string().optional().describe("Alias for text search query"),
     query: z.string().optional().describe("Alias for text search query"),
-    vectorWeight: z.preprocess(coerceNumber, z.number().optional())
+    vectorWeight: z
+      .preprocess(coerceNumber, z.number().optional())
       .describe("Weight for vector score (0-1, default: 0.5)"),
-    limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max results"),
+    limit: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Max results"),
     select: z
       .array(z.string())
       .optional()
@@ -52,7 +55,8 @@ export function createHybridSearchTool(
 
   const HybridSearchSchema = HybridSearchSchemaBase.transform((data) => ({
     table: data.table ?? data.tableName ?? "",
-    vectorColumn: data.vectorColumn ?? data.vectorCol ?? data.column ?? data.col ?? "",
+    vectorColumn:
+      data.vectorColumn ?? data.vectorCol ?? data.column ?? data.col ?? "",
     textColumn: data.textColumn,
     vector: data.vector ?? data.queryVector,
     textQuery: data.textQuery ?? data.queryText ?? data.query,
@@ -563,7 +567,9 @@ export function createVectorPerformanceTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_vector_performance" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_vector_performance",
+        });
       }
     },
   };

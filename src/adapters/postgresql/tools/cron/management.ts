@@ -6,7 +6,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import type {
+  ToolDefinition,
+  RequestContext,
+} from "../../../../types/index.js";
 import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -29,7 +32,9 @@ import {
 /**
  * Modify an existing job
  */
-export function createCronAlterJobTool(adapter: PostgresAdapter): ToolDefinition {
+export function createCronAlterJobTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_cron_alter_job",
     description: `Modify an existing cron job. Can change schedule, command, database, username,
@@ -43,36 +48,47 @@ or active status. Only specify the parameters you want to change.`,
       let parsedJobId: number | undefined;
       let parsedJobName: string | undefined;
       try {
-        const { jobId, jobName, schedule, command, database, username, active } =
-          CronAlterJobSchema.parse(params) as {
-            jobId?: number;
-            jobName?: string;
-            schedule?: string;
-            command?: string;
-            database?: string;
-            username?: string;
-            active?: boolean;
-          };
-        
+        const {
+          jobId,
+          jobName,
+          schedule,
+          command,
+          database,
+          username,
+          active,
+        } = CronAlterJobSchema.parse(params) as {
+          jobId?: number;
+          jobName?: string;
+          schedule?: string;
+          command?: string;
+          database?: string;
+          username?: string;
+          active?: boolean;
+        };
+
         parsedJobId = jobId;
         parsedJobName = jobName;
-        
+
         // Look up job info if jobName is provided instead of jobId
         if (parsedJobId === undefined && parsedJobName !== undefined) {
-            const lookupSql = "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1";
-            const lookupResult = await adapter.executeQuery(lookupSql, [parsedJobName]);
-            if (lookupResult.rows && lookupResult.rows.length > 0) {
-              parsedJobId = Number(lookupResult.rows[0]?.["jobid"]);
-            } else {
-              return {
-                  success: false,
-                  error: `Job '${parsedJobName}' not found. Use pg_cron_list_jobs to see available jobs.`,
-                  code: "JOB_NOT_FOUND",
-                  category: "resource",
-                  suggestion: "Job not found. Use pg_cron_list_jobs to see available jobs.",
-                  recoverable: false,
-              };
-            }
+          const lookupSql =
+            "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1";
+          const lookupResult = await adapter.executeQuery(lookupSql, [
+            parsedJobName,
+          ]);
+          if (lookupResult.rows && lookupResult.rows.length > 0) {
+            parsedJobId = Number(lookupResult.rows[0]?.["jobid"]);
+          } else {
+            return {
+              success: false,
+              error: `Job '${parsedJobName}' not found. Use pg_cron_list_jobs to see available jobs.`,
+              code: "JOB_NOT_FOUND",
+              category: "resource",
+              suggestion:
+                "Job not found. Use pg_cron_list_jobs to see available jobs.",
+              recoverable: false,
+            };
+          }
         }
 
         const sql = `SELECT cron.alter_job($1, $2, $3, $4, $5, $6)`;
@@ -101,11 +117,11 @@ or active status. Only specify the parameters you want to change.`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_cron_alter_job",
-            ...(parsedJobId !== undefined && {
-              target: String(parsedJobId),
-            }),
-          });
+          tool: "pg_cron_alter_job",
+          ...(parsedJobId !== undefined && {
+            target: String(parsedJobId),
+          }),
+        });
       }
     },
   };
@@ -114,7 +130,9 @@ or active status. Only specify the parameters you want to change.`,
 /**
  * List all scheduled jobs
  */
-export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition {
+export function createCronListJobsTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_cron_list_jobs",
     description:
@@ -161,8 +179,11 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
           rawLimit !== undefined && rawLimit !== null
             ? Number(rawLimit)
             : undefined;
-        
-        if (coercedLimit !== undefined && (isNaN(coercedLimit) || !isFinite(coercedLimit) || coercedLimit < 0)) {
+
+        if (
+          coercedLimit !== undefined &&
+          (isNaN(coercedLimit) || !isFinite(coercedLimit) || coercedLimit < 0)
+        ) {
           return {
             count: 0,
             success: false,
@@ -173,7 +194,8 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
           };
         }
 
-        const limitRaw = coercedLimit !== undefined ? Math.floor(coercedLimit) : undefined;
+        const limitRaw =
+          coercedLimit !== undefined ? Math.floor(coercedLimit) : undefined;
         const limitVal = limitRaw === 0 ? null : (limitRaw ?? 50);
 
         // Get total count first if we're limiting
@@ -197,22 +219,20 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
         const result = await adapter.executeQuery(sql, queryParams);
 
         // Normalize jobid to number (PostgreSQL BIGINT may return as string)
-        const jobs = (result.rows ?? []).map(
-          (row: Record<string, unknown>) => {
-            let cmd = row["command"] as string | undefined;
-            if (compact && cmd && cmd.length > 200) {
-              cmd = cmd.substring(0, 197) + "...";
-            }
-            return {
-              ...row,
-              command: cmd,
-              jobid:
-                row["jobid"] !== null && row["jobid"] !== undefined
-                  ? Number(row["jobid"])
-                  : null,
-            };
-          },
-        );
+        const jobs = (result.rows ?? []).map((row: Record<string, unknown>) => {
+          let cmd = row["command"] as string | undefined;
+          if (compact && cmd && cmd.length > 200) {
+            cmd = cmd.substring(0, 197) + "...";
+          }
+          return {
+            ...row,
+            command: cmd,
+            jobid:
+              row["jobid"] !== null && row["jobid"] !== undefined
+                ? Number(row["jobid"])
+                : null,
+          };
+        });
 
         // Count unnamed jobs for hint
         const unnamedCount = jobs.filter(
@@ -240,7 +260,8 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
         }
 
         if (unnamedCount > 0) {
-          resultPayload["hint"] = `${String(unnamedCount)} job(s) have no name. Use jobId to reference them with alterJob or unschedule.`;
+          resultPayload["hint"] =
+            `${String(unnamedCount)} job(s) have no name. Use jobId to reference them with alterJob or unschedule.`;
         }
 
         return resultPayload;
@@ -257,7 +278,9 @@ export function createCronListJobsTool(adapter: PostgresAdapter): ToolDefinition
 /**
  * View job execution history
  */
-export function createCronJobRunDetailsTool(adapter: PostgresAdapter): ToolDefinition {
+export function createCronJobRunDetailsTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_cron_job_run_details",
     description: `View execution history for cron jobs. Shows start/end times, status, and return messages.
@@ -290,18 +313,22 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
             ? Number(rawLimitValue)
             : undefined;
 
-        if (coercedLimit !== undefined && (isNaN(coercedLimit) || !isFinite(coercedLimit) || coercedLimit < 0)) {
+        if (
+          coercedLimit !== undefined &&
+          (isNaN(coercedLimit) || !isFinite(coercedLimit) || coercedLimit < 0)
+        ) {
           return {
-             count: 0,
-             success: false,
-             error: `Invalid limit value: ${String(rawLimitValue)}. Must be a positive integer.`,
-             code: "VALIDATION_ERROR",
-             category: "validation",
-             recoverable: false,
+            count: 0,
+            success: false,
+            error: `Invalid limit value: ${String(rawLimitValue)}. Must be a positive integer.`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false,
           };
         }
 
-        const limit = coercedLimit !== undefined ? Math.floor(coercedLimit) : undefined;
+        const limit =
+          coercedLimit !== undefined ? Math.floor(coercedLimit) : undefined;
         const limitVal = limit === 0 ? null : (limit ?? 10);
 
         const VALID_STATUSES = ["running", "succeeded", "failed"];
@@ -324,7 +351,7 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
           queryParams.push(jobId);
         } else if (jobName !== undefined) {
           conditions.push(
-            `jobid IN (SELECT jobid FROM cron.job WHERE jobname = $${String(paramIndex++)})`
+            `jobid IN (SELECT jobid FROM cron.job WHERE jobname = $${String(paramIndex++)})`,
           );
           queryParams.push(jobName);
         }
@@ -340,7 +367,7 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
         // Get total count for truncation indicator (only needed when limiting)
         let totalCount: number | undefined;
         const summaryStats = { succeeded: 0, failed: 0, running: 0 };
-        
+
         if (limitVal !== null) {
           const countSql = `SELECT status, COUNT(*)::int as total FROM cron.job_run_details ${whereClause} GROUP BY status`;
           const countResult = await adapter.executeQuery(countSql, queryParams);
@@ -348,9 +375,12 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
           for (const row of countResult.rows ?? []) {
             const rowData = row as { status: string; total: number };
             totalCount += rowData.total;
-            if (rowData.status === "succeeded") summaryStats.succeeded = rowData.total;
-            if (rowData.status === "failed") summaryStats.failed = rowData.total;
-            if (rowData.status === "running") summaryStats.running = rowData.total;
+            if (rowData.status === "succeeded")
+              summaryStats.succeeded = rowData.total;
+            if (rowData.status === "failed")
+              summaryStats.failed = rowData.total;
+            if (rowData.status === "running")
+              summaryStats.running = rowData.total;
           }
         }
 
@@ -383,7 +413,8 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
 
           if (compact) {
             if (cmd && cmd.length > 200) cmd = cmd.substring(0, 197) + "...";
-            if (retMsg && retMsg.length > 200) retMsg = retMsg.substring(0, 197) + "...";
+            if (retMsg && retMsg.length > 200)
+              retMsg = retMsg.substring(0, 197) + "...";
           }
 
           return {
@@ -402,9 +433,15 @@ Useful for monitoring and debugging scheduled jobs. Default limit is 10 rows.`,
         });
 
         if (limitVal === null) {
-          summaryStats.succeeded = rows.filter((r) => (r as Record<string, unknown>)["status"] === "succeeded").length;
-          summaryStats.failed = rows.filter((r) => (r as Record<string, unknown>)["status"] === "failed").length;
-          summaryStats.running = rows.filter((r) => (r as Record<string, unknown>)["status"] === "running").length;
+          summaryStats.succeeded = rows.filter(
+            (r) => (r as Record<string, unknown>)["status"] === "succeeded",
+          ).length;
+          summaryStats.failed = rows.filter(
+            (r) => (r as Record<string, unknown>)["status"] === "failed",
+          ).length;
+          summaryStats.running = rows.filter(
+            (r) => (r as Record<string, unknown>)["status"] === "running",
+          ).length;
         }
 
         // Determine if results were truncated (only when limiting)
@@ -507,8 +544,8 @@ from growing too large. By default, removes records older than 7 days.`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_cron_cleanup_history",
-          });
+          tool: "pg_cron_cleanup_history",
+        });
       }
     },
   };

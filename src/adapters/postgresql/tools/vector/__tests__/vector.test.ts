@@ -971,7 +971,7 @@ describe("Object Existence Checks (P154)", () => {
       )) as Record<string, unknown>;
 
       expect(result.success).toBe(false);
-      expect((result.error as string)).toMatch(/Vector dimension mismatch/);
+      expect(result.error as string).toMatch(/Vector dimension mismatch/);
       expect(result.expectedDimensions).toBe(384);
       expect(result.providedDimensions).toBe(3);
       expect(result.suggestion).toContain("384");

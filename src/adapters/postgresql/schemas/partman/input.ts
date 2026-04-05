@@ -127,9 +127,7 @@ export const PartmanCreateParentSchemaBase = z.object({
   controlColumn: z
     .string()
     .optional()
-    .describe(
-      "Column used for partitioning (timestamp or integer). Required.",
-    ),
+    .describe("Column used for partitioning (timestamp or integer). Required."),
   control: z.string().optional().describe("Alias for controlColumn"),
   column: z.string().optional().describe("Alias for controlColumn"),
   partitionColumn: z.string().optional().describe("Alias for controlColumn"),
@@ -139,7 +137,9 @@ export const PartmanCreateParentSchemaBase = z.object({
     .describe(
       'Partition interval using PostgreSQL syntax (e.g., "1 month", "1 day", "1 week", "10000" for integer). Required.',
     ),
-  premake: z.union([z.number(), z.string()]).optional()
+  premake: z
+    .union([z.number(), z.string()])
+    .optional()
     .describe("Number of partitions to create in advance (default: 4)"),
   startPartition: z
     .string()
@@ -160,16 +160,19 @@ export const PartmanCreateParentSchemaBase = z.object({
 });
 
 export const PartmanCreateParentSchema = z
-  .preprocess(preprocessPartmanParams, z.object({
-    parentTable: z.string().optional(),
-    controlColumn: z.string().optional(),
-    interval: z.string().optional(),
-    premake: z.preprocess(coerceNumber, z.number().optional()).optional(),
-    startPartition: z.string().optional(),
-    templateTable: z.string().optional(),
-    epochType: z.enum(["seconds", "milliseconds", "nanoseconds"]).optional(),
-    defaultPartition: z.boolean().optional(),
-  }))
+  .preprocess(
+    preprocessPartmanParams,
+    z.object({
+      parentTable: z.string().optional(),
+      controlColumn: z.string().optional(),
+      interval: z.string().optional(),
+      premake: z.preprocess(coerceNumber, z.number().optional()).optional(),
+      startPartition: z.string().optional(),
+      templateTable: z.string().optional(),
+      epochType: z.enum(["seconds", "milliseconds", "nanoseconds"]).optional(),
+      defaultPartition: z.boolean().optional(),
+    }),
+  )
   .default({});
 
 /**
@@ -214,19 +217,24 @@ export const PartmanShowPartitionsSchemaBase = z.object({
     .enum(["asc", "desc"])
     .optional()
     .describe("Order of partitions by boundary"),
-  limit: z.union([z.number(), z.string()]).optional()
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
     .describe(
       "Maximum number of partitions to return (default: 50, use 0 for all)",
     ),
 });
 
 export const PartmanShowPartitionsSchema = z
-  .preprocess(preprocessPartmanParams, z.object({
-    parentTable: z.string().optional(),
-    includeDefault: z.boolean().optional(),
-    order: z.enum(["asc", "desc"]).optional(),
-    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
-  }))
+  .preprocess(
+    preprocessPartmanParams,
+    z.object({
+      parentTable: z.string().optional(),
+      includeDefault: z.boolean().optional(),
+      order: z.enum(["asc", "desc"]).optional(),
+      limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    }),
+  )
   .default({});
 
 /**
@@ -240,17 +248,22 @@ export const PartmanShowConfigSchemaBase = z.object({
     .describe("Parent table name (all configs if omitted)"),
   table: z.string().optional().describe("Alias for parentTable"),
   name: z.string().optional().describe("Alias for parentTable"),
-  limit: z.union([z.number(), z.string()]).optional()
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
     .describe(
       "Maximum number of configs to return (default: 50, use 0 for all)",
     ),
 });
 
 export const PartmanShowConfigSchema = z
-  .preprocess(preprocessPartmanParams, z.object({
-    parentTable: z.string().optional(),
-    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
-  }))
+  .preprocess(
+    preprocessPartmanParams,
+    z.object({
+      parentTable: z.string().optional(),
+      limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    }),
+  )
   .default({});
 
 /**
@@ -285,17 +298,27 @@ export const PartmanPartitionDataSchemaBase = z.object({
     ),
   table: z.string().optional().describe("Alias for parentTable"),
   name: z.string().optional().describe("Alias for parentTable"),
-  batchSize: z.union([z.number(), z.string()]).optional()
+  batchSize: z
+    .union([z.number(), z.string()])
+    .optional()
     .describe("Rows to move per batch (default: varies by function)"),
-  lockWaitSeconds: z.union([z.number(), z.string()]).optional().describe("Lock wait timeout in seconds"),
+  lockWaitSeconds: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Lock wait timeout in seconds"),
 });
 
 export const PartmanPartitionDataSchema = z
-  .preprocess(preprocessPartmanParams, z.object({
-    parentTable: z.string().optional(),
-    batchSize: z.preprocess(coerceNumber, z.number().optional()).optional(),
-    lockWaitSeconds: z.preprocess(coerceNumber, z.number().optional()).optional(),
-  }))
+  .preprocess(
+    preprocessPartmanParams,
+    z.object({
+      parentTable: z.string().optional(),
+      batchSize: z.preprocess(coerceNumber, z.number().optional()).optional(),
+      lockWaitSeconds: z
+        .preprocess(coerceNumber, z.number().optional())
+        .optional(),
+    }),
+  )
   .default({});
 
 /**
@@ -347,7 +370,10 @@ export const PartmanUndoPartitionSchemaBase = z.object({
       "Target table for consolidated data. Must exist before calling. Required.",
     ),
   target: z.string().optional().describe("Alias for targetTable"),
-  batchSize: z.union([z.number(), z.string()]).optional().describe("Rows to move per batch"),
+  batchSize: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Rows to move per batch"),
   keepTable: z
     .boolean()
     .optional()
@@ -355,12 +381,15 @@ export const PartmanUndoPartitionSchemaBase = z.object({
 });
 
 export const PartmanUndoPartitionSchema = z
-  .preprocess(preprocessPartmanParams, z.object({
-    parentTable: z.string().optional(),
-    targetTable: z.string().optional(),
-    batchSize: z.preprocess(coerceNumber, z.number().optional()).optional(),
-    keepTable: z.boolean().optional(),
-  }))
+  .preprocess(
+    preprocessPartmanParams,
+    z.object({
+      parentTable: z.string().optional(),
+      targetTable: z.string().optional(),
+      batchSize: z.preprocess(coerceNumber, z.number().optional()).optional(),
+      keepTable: z.boolean().optional(),
+    }),
+  )
   .default({});
 
 /**
@@ -369,7 +398,10 @@ export const PartmanUndoPartitionSchema = z
 export const PartmanUpdateConfigSchema = z.preprocess(
   preprocessPartmanParams,
   z.object({
-    parentTable: z.string().optional().describe("Parent table name (schema.table format)"),
+    parentTable: z
+      .string()
+      .optional()
+      .describe("Parent table name (schema.table format)"),
     premake: z.number().optional().describe("Number of partitions to pre-make"),
     optimizeTrigger: z
       .number()
@@ -401,15 +433,20 @@ export const PartmanAnalyzeHealthSchemaBase = z.object({
     .describe("Specific parent table to analyze (all if omitted)"),
   table: z.string().optional().describe("Alias for parentTable"),
   name: z.string().optional().describe("Alias for parentTable"),
-  limit: z.union([z.number(), z.string()]).optional()
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
     .describe(
       "Maximum number of partition sets to analyze (default: 50, use 0 for all)",
     ),
 });
 
 export const PartmanAnalyzeHealthSchema = z
-  .preprocess(preprocessPartmanParams, z.object({
-    parentTable: z.string().optional(),
-    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
-  }))
+  .preprocess(
+    preprocessPartmanParams,
+    z.object({
+      parentTable: z.string().optional(),
+      limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    }),
+  )
   .default({});

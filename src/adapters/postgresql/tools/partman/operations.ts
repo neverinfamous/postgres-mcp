@@ -22,7 +22,11 @@ import {
   PartmanCheckDefaultOutputSchema,
   PartmanPartitionDataOutputSchema,
 } from "../../schemas/index.js";
-import { getPartmanSchema, callPartmanProcedure, checkTableExists } from "./helpers.js";
+import {
+  getPartmanSchema,
+  callPartmanProcedure,
+  checkTableExists,
+} from "./helpers.js";
 /**
  * Check for data in default partition
  */
@@ -46,7 +50,9 @@ Data in default indicates partitions may be missing for certain time/value range
         if (!parentTable) {
           throw new ValidationError(
             'parentTable parameter is required. Specify the parent table (e.g., "public.events") to check its default partition.',
-            { hint: "Use pg_partman_show_config to list all partition sets first." }
+            {
+              hint: "Use pg_partman_show_config to list all partition sets first.",
+            },
           );
         }
 
@@ -54,7 +60,9 @@ Data in default indicates partitions may be missing for certain time/value range
         if (!(await checkTableExists(adapter, parentTable))) {
           throw new ValidationError(
             `Table '${parentTable}' does not exist. Cannot check default partition for non-existent table.`,
-            { hint: "Verify the table name or use pg_partman_show_config to list existing partition sets." }
+            {
+              hint: "Verify the table name or use pg_partman_show_config to list existing partition sets.",
+            },
           );
         }
 
@@ -170,8 +178,8 @@ Data in default indicates partitions may be missing for certain time/value range
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_partman_check_default",
-          });
+          tool: "pg_partman_check_default",
+        });
       }
     },
   };
@@ -205,7 +213,9 @@ Creates new partitions if needed for the data being moved.`,
         if (!parentTable) {
           throw new ValidationError(
             'parentTable parameter is required. Specify the parent table (e.g., "public.events") to move data from its default partition.',
-            { hint: "Use pg_partman_show_config to list all partition sets first." }
+            {
+              hint: "Use pg_partman_show_config to list all partition sets first.",
+            },
           );
         }
 
@@ -213,7 +223,9 @@ Creates new partitions if needed for the data being moved.`,
         if (!(await checkTableExists(adapter, parentTable))) {
           throw new ValidationError(
             `Table '${parentTable}' does not exist. Cannot move data from default partition for non-existent table.`,
-            { hint: "Verify the table name or use pg_partman_show_config to list existing partition sets." }
+            {
+              hint: "Verify the table name or use pg_partman_show_config to list existing partition sets.",
+            },
           );
         }
 
@@ -243,7 +255,9 @@ Creates new partitions if needed for the data being moved.`,
 
         const config = configResult.rows?.[0];
         if (!config) {
-          throw new ValidationError(`No pg_partman configuration found for ${parentTable}`);
+          throw new ValidationError(
+            `No pg_partman configuration found for ${parentTable}`,
+          );
         }
 
         // Get row count in default partition before moving data
@@ -280,7 +294,7 @@ Creates new partitions if needed for the data being moved.`,
               hint:
                 "Ensure pg_partman is properly installed and the partition set is configured correctly. " +
                 "Use pg_partman_show_config to verify configuration.",
-            }
+            },
           );
         }
 
@@ -309,8 +323,8 @@ Creates new partitions if needed for the data being moved.`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_partman_partition_data",
-          });
+          tool: "pg_partman_partition_data",
+        });
       }
     },
   };

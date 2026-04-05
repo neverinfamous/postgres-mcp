@@ -98,7 +98,11 @@ export function createAuditInterceptor(
       let tokenEstimate: number | undefined;
 
       // Pre-mutation snapshot (before tool executes)
-      if (backupManager && queryAdapter && backupManager.shouldSnapshot(toolName)) {
+      if (
+        backupManager &&
+        queryAdapter &&
+        backupManager.shouldSnapshot(toolName)
+      ) {
         try {
           backupRef = await backupManager.createSnapshot(
             toolName,
@@ -119,7 +123,10 @@ export function createAuditInterceptor(
         if (typeof result === "object" && result !== null) {
           try {
             // Match mcp-registry.ts exact payload token calculation (minified + _meta)
-            const json = JSON.stringify({ ...result, _meta: { tokenEstimate: 0 } });
+            const json = JSON.stringify({
+              ...result,
+              _meta: { tokenEstimate: 0 },
+            });
             tokenEstimate = Math.ceil(Buffer.byteLength(json, "utf8") / 4);
           } catch {
             // Serialization failure must not block tool execution
@@ -132,7 +139,7 @@ export function createAuditInterceptor(
       } catch (err) {
         success = false;
         error = err instanceof Error ? err.message : String(err);
-        
+
         // Match mcp-registry.ts raw exception fallback token calculation
         const errorResult = {
           success: false,
@@ -141,9 +148,12 @@ export function createAuditInterceptor(
           category: "internal",
           recoverable: false,
         };
-        const enriched = JSON.stringify({ ...errorResult, _meta: { tokenEstimate: 0 } });
+        const enriched = JSON.stringify({
+          ...errorResult,
+          _meta: { tokenEstimate: 0 },
+        });
         tokenEstimate = Math.ceil(Buffer.byteLength(enriched, "utf8") / 4);
-        
+
         throw err; // Re-throw — don't swallow
       } finally {
         const durationMs = Math.round(performance.now() - start);

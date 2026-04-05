@@ -6,7 +6,11 @@
  * hard timeouts, and MessagePort RPC bridge.
  */
 
-import { Worker, MessageChannel, type ResourceLimits } from "node:worker_threads";
+import {
+  Worker,
+  MessageChannel,
+  type ResourceLimits,
+} from "node:worker_threads";
 import * as crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import * as path from "node:path";

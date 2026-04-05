@@ -29,7 +29,9 @@ export class CodeModeSecurityManager {
     this.config = { ...DEFAULT_SECURITY_CONFIG, ...config };
     // Periodically purge expired rate-limit entries to prevent unbounded map growth
     // in long-running deployments with many unique client IDs.
-    this.cleanupTimer = setInterval(() => { this.cleanupRateLimits(); }, 60_000);
+    this.cleanupTimer = setInterval(() => {
+      this.cleanupRateLimits();
+    }, 60_000);
     this.cleanupTimer.unref();
   }
 

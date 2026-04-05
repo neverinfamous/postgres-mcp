@@ -11,10 +11,14 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { test, expect } from "./fixtures.js";
-import { startServer, stopServer, createClient, callToolRaw, callToolAndParse } from "./helpers.js";
+import {
+  startServer,
+  stopServer,
+  createClient,
+  callToolRaw,
+  callToolAndParse,
+} from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-
-
 
 const AUDIT_PORT_BASE = 3170;
 const AUDIT_FILTER = "transactions";
@@ -29,7 +33,7 @@ test.describe("Audit Log Rotation Stress", () => {
   test("maintains 5 rotated files under high write throughput", async () => {
     const port = AUDIT_PORT_BASE + 1;
     const logPath = auditLogPath("rotation-stress");
-    
+
     // Set max size extremely small to force rapid rotation
     const originalMaxSize = process.env.AUDIT_LOG_MAX_SIZE;
     process.env.AUDIT_LOG_MAX_SIZE = "200";
@@ -49,19 +53,25 @@ test.describe("Audit Log Rotation Stress", () => {
       // to trigger the rotation logic repeatedly.
       const iterations = 40;
       for (let i = 0; i < iterations; i++) {
-        const beginRes = await callToolAndParse(client, "pg_transaction_begin", {});
+        const beginRes = await callToolAndParse(
+          client,
+          "pg_transaction_begin",
+          {},
+        );
         const txId = beginRes["transactionId"] as string | undefined;
         if (txId) {
-          await callToolAndParse(client, "pg_transaction_rollback", { transactionId: txId });
+          await callToolAndParse(client, "pg_transaction_rollback", {
+            transactionId: txId,
+          });
         }
         // Every few iterations, pause to let background disk writes complete and rotate
         if (i % 5 === 0) {
-          await new Promise(r => setTimeout(r, 150));
+          await new Promise((r) => setTimeout(r, 150));
         }
       }
-      
+
       // Wait for all async flushes and final rotations
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
 
       // Verify the file retention policy (keeps up to 5 rotations)
       // logPath.1, logPath.2, ..., logPath.5 should exist
@@ -72,21 +82,22 @@ test.describe("Audit Log Rotation Stress", () => {
           const s = await stat(rotatedPath);
           if (s.size > 0) {
             rotatedCount++;
-            
+
             // Should not exceed 5
             if (i > 5) {
-               throw new Error(`Rotation exceeded maximum limit, found ${rotatedPath}`);
+              throw new Error(
+                `Rotation exceeded maximum limit, found ${rotatedPath}`,
+              );
             }
           }
         } catch {
-           // File doesn't exist, which is fine if we haven't hit the cap
+          // File doesn't exist, which is fine if we haven't hit the cap
         }
       }
-      
+
       // We wrote enough to guarantee at least 2-3 rotations
       expect(rotatedCount).toBeGreaterThanOrEqual(2);
       expect(rotatedCount).toBeLessThanOrEqual(5);
-      
     } finally {
       if (originalMaxSize === undefined) {
         delete process.env.AUDIT_LOG_MAX_SIZE;
@@ -95,11 +106,11 @@ test.describe("Audit Log Rotation Stress", () => {
       }
       if (client) await client.close();
       stopServer(port);
-      
+
       // Cleanup all possible rotated files
       await rm(logPath, { force: true }).catch(() => {});
       for (let i = 1; i <= 6; i++) {
-         await rm(`${logPath}.${i}`, { force: true }).catch(() => {});
+        await rm(`${logPath}.${i}`, { force: true }).catch(() => {});
       }
     }
   });

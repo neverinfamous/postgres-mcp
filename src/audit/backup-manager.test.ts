@@ -40,7 +40,9 @@ function defaultConfig(overrides: Partial<BackupConfig> = {}): BackupConfig {
 }
 
 /** Helper: create a mock SnapshotQueryAdapter */
-function mockAdapter(overrides: Partial<SnapshotQueryAdapter> = {}): SnapshotQueryAdapter {
+function mockAdapter(
+  overrides: Partial<SnapshotQueryAdapter> = {},
+): SnapshotQueryAdapter {
   return {
     executeQuery: vi.fn().mockResolvedValue({ rows: [] }),
     describeTable: vi.fn().mockResolvedValue({
@@ -212,7 +214,9 @@ describe("BackupManager", () => {
       expect(filename).toBeDefined();
       await mgr.flush();
       const snapshot = await mgr.getSnapshot(filename!);
-      expect(snapshot!.ddl).toContain('Pre-drop snapshot of schema "old_schema"');
+      expect(snapshot!.ddl).toContain(
+        'Pre-drop snapshot of schema "old_schema"',
+      );
       expect(snapshot!.ddl).toContain("users");
     });
 
@@ -262,10 +266,20 @@ describe("BackupManager", () => {
       const adapter = mockAdapter();
       const mgr = new BackupManager(defaultConfig(), logPath);
 
-      await mgr.createSnapshot("pg_drop_table", { table: "first" }, "req-a", adapter);
+      await mgr.createSnapshot(
+        "pg_drop_table",
+        { table: "first" },
+        "req-a",
+        adapter,
+      );
       // Small delay to ensure different timestamps
       await new Promise((r) => setTimeout(r, 10));
-      await mgr.createSnapshot("pg_vacuum", { table: "second" }, "req-b", adapter);
+      await mgr.createSnapshot(
+        "pg_vacuum",
+        { table: "second" },
+        "req-b",
+        adapter,
+      );
 
       await mgr.flush();
       const snapshots = await mgr.listSnapshots();
@@ -325,11 +339,26 @@ describe("BackupManager", () => {
       const mgr = new BackupManager(defaultConfig({ maxCount: 2 }), logPath);
 
       // Create 3 snapshots
-      await mgr.createSnapshot("pg_drop_table", { table: "a" }, "req-a", adapter);
+      await mgr.createSnapshot(
+        "pg_drop_table",
+        { table: "a" },
+        "req-a",
+        adapter,
+      );
       await new Promise((r) => setTimeout(r, 10));
-      await mgr.createSnapshot("pg_drop_table", { table: "b" }, "req-b", adapter);
+      await mgr.createSnapshot(
+        "pg_drop_table",
+        { table: "b" },
+        "req-b",
+        adapter,
+      );
       await new Promise((r) => setTimeout(r, 10));
-      await mgr.createSnapshot("pg_drop_table", { table: "c" }, "req-c", adapter);
+      await mgr.createSnapshot(
+        "pg_drop_table",
+        { table: "c" },
+        "req-c",
+        adapter,
+      );
 
       await mgr.flush();
       const stderrSpy = vi.spyOn(process.stderr, "write").mockReturnValue(true);
@@ -365,7 +394,12 @@ describe("BackupManager", () => {
       const adapter = mockAdapter();
       const mgr = new BackupManager(defaultConfig(), logPath);
 
-      await mgr.createSnapshot("pg_drop_table", { table: "users" }, "req-s1", adapter);
+      await mgr.createSnapshot(
+        "pg_drop_table",
+        { table: "users" },
+        "req-s1",
+        adapter,
+      );
 
       await mgr.flush();
       const stats = await mgr.getStats();
@@ -408,7 +442,12 @@ describe("BackupManager", () => {
       const adapter = mockAdapter();
       const mgr = new BackupManager(defaultConfig(), logPath);
 
-      await mgr.createSnapshot("pg_drop_table", { table: "t" }, "req-x", adapter);
+      await mgr.createSnapshot(
+        "pg_drop_table",
+        { table: "t" },
+        "req-x",
+        adapter,
+      );
 
       // Write a non-snapshot file
       await mgr.flush();
@@ -420,8 +459,7 @@ describe("BackupManager", () => {
     });
 
     it("should handle data capture failure gracefully", async () => {
-      const execMock = vi.fn()
-        .mockRejectedValueOnce(new Error("query failed"));
+      const execMock = vi.fn().mockRejectedValueOnce(new Error("query failed"));
       const adapter = mockAdapter({
         executeQuery: execMock,
       });

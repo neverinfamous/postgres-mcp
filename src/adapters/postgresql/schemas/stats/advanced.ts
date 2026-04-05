@@ -182,10 +182,7 @@ export const StatsTopNOutputSchema = z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Top N rows"),
-    hint: z
-      .string()
-      .optional()
-      .describe("Hint about excluded columns"),
+    hint: z.string().optional().describe("Hint about excluded columns"),
     error: z.string().optional().describe("Error message if failed"),
   })
   .extend(ErrorResponseFields.shape)
@@ -196,10 +193,7 @@ export const StatsDistinctOutputSchema = z
     success: z.boolean().optional().describe("Whether the operation succeeded"),
     column: z.string().optional().describe("Column analyzed"),
     distinctCount: z.number().optional().describe("Number of distinct values"),
-    values: z
-      .array(z.unknown())
-      .optional()
-      .describe("Distinct values"),
+    values: z.array(z.unknown()).optional().describe("Distinct values"),
     error: z.string().optional().describe("Error message if failed"),
   })
   .extend(ErrorResponseFields.shape)
@@ -231,8 +225,15 @@ export const StatsSummaryOutputSchema = z
           avg: z.number().nullable().optional().describe("Average value"),
           min: z.number().nullable().optional().describe("Minimum value"),
           max: z.number().nullable().optional().describe("Maximum value"),
-          stddev: z.number().nullable().optional().describe("Standard deviation"),
-          error: z.string().optional().describe("Error for non-numeric columns"),
+          stddev: z
+            .number()
+            .nullable()
+            .optional()
+            .describe("Standard deviation"),
+          error: z
+            .string()
+            .optional()
+            .describe("Error for non-numeric columns"),
         }),
       )
       .optional()

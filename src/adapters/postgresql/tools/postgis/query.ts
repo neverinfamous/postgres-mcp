@@ -114,11 +114,11 @@ export function createPointInPolygonTool(
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_point_in_polygon",
-            table:
-              ((params as Record<string, unknown>)?.["table"] as string) ??
-              undefined,
-          });
+          tool: "pg_point_in_polygon",
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
+        });
       }
     },
   };
@@ -148,7 +148,10 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
         if (!columnName) {
           // P154: Check table existence first to give a clear error before attempting column detection
           const tableCheckSql = `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`;
-          const tableCheckResult = await adapter.executeQuery(tableCheckSql, [schemaName, table]);
+          const tableCheckResult = await adapter.executeQuery(tableCheckSql, [
+            schemaName,
+            table,
+          ]);
           if ((tableCheckResult.rows?.length ?? 0) === 0) {
             return {
               success: false as const,
@@ -165,14 +168,21 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
             WHERE table_schema = $1 AND table_name = $2
             AND udt_name IN ('geometry', 'geography')
           `;
-          const geoColResult = await adapter.executeQuery(geoColQuery, [schemaName, table]);
+          const geoColResult = await adapter.executeQuery(geoColQuery, [
+            schemaName,
+            table,
+          ]);
           const geoRows = geoColResult.rows ?? [];
 
           if (geoRows.length === 0) {
-            throw new ValidationError(`No geometry/geography column found in table '${table}'. Add a geometry column or specify 'column' explicitly.`);
+            throw new ValidationError(
+              `No geometry/geography column found in table '${table}'. Add a geometry column or specify 'column' explicitly.`,
+            );
           }
           if (geoRows.length > 1) {
-            throw new ValidationError(`Multiple geometry columns found in table '${table}'. Please specify 'column' explicitly.`);
+            throw new ValidationError(
+              `Multiple geometry columns found in table '${table}'. Please specify 'column' explicitly.`,
+            );
           }
           const detectedCol = geoRows[0]?.["column_name"] as string | undefined;
           columnName = sanitizeIdentifier(detectedCol ?? "");
@@ -216,14 +226,18 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
             LIMIT ${String(limitVal)}`;
 
         const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
-        return { success: true, results: result.rows, count: result.rows?.length ?? 0 };
+        return {
+          success: true,
+          results: result.rows,
+          count: result.rows?.length ?? 0,
+        };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_distance",
-            table:
-              ((params as Record<string, unknown>)?.["table"] as string) ??
-              undefined,
-          });
+          tool: "pg_distance",
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
+        });
       }
     },
   };
@@ -295,7 +309,10 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, [parsed.distance]);
 
         // Build response with truncation indicators if default limit was applied
-        const response: Record<string, unknown> = { success: true, results: result.rows };
+        const response: Record<string, unknown> = {
+          success: true,
+          results: result.rows,
+        };
 
         // Check if results were truncated (works for both default and explicit limits)
         if (effectiveLimit > 0) {
@@ -319,11 +336,11 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_buffer",
-            table:
-              ((params as Record<string, unknown>)?.["table"] as string) ??
-              undefined,
-          });
+          tool: "pg_buffer",
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
+        });
       }
     },
   };
@@ -412,7 +429,10 @@ export function createIntersectionTool(
           geomExpr = `ST_GeomFromText($1)`;
         }
 
-        const limitClause = parsed.limit !== undefined && parsed.limit > 0 ? ` LIMIT ${String(parsed.limit)}` : "";
+        const limitClause =
+          parsed.limit !== undefined && parsed.limit > 0
+            ? ` LIMIT ${String(parsed.limit)}`
+            : "";
 
         const sql = `SELECT ${selectCols}
                           FROM ${qualifiedTable}
@@ -428,11 +448,11 @@ export function createIntersectionTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_intersection",
-            table:
-              ((params as Record<string, unknown>)?.["table"] as string) ??
-              undefined,
-          });
+          tool: "pg_intersection",
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
+        });
       }
     },
   };
@@ -508,7 +528,10 @@ export function createBoundingBoxTool(
           corrections.push("minLat/maxLat were swapped");
         }
 
-        const limitClause = parsed.limit !== undefined && parsed.limit > 0 ? ` LIMIT ${String(parsed.limit)}` : "";
+        const limitClause =
+          parsed.limit !== undefined && parsed.limit > 0
+            ? ` LIMIT ${String(parsed.limit)}`
+            : "";
 
         const sql = `SELECT ${selectCols}, ST_AsText(${columnName}) as geometry_text
                           FROM ${qualifiedTable}
@@ -535,11 +558,11 @@ export function createBoundingBoxTool(
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_bounding_box",
-            table:
-              ((params as Record<string, unknown>)?.["table"] as string) ??
-              undefined,
-          });
+          tool: "pg_bounding_box",
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
+        });
       }
     },
   };

@@ -49,7 +49,8 @@ export function createAnalyzeWorkloadIndexesTool(
             error: "Validation error: topQueries must be a non-negative number",
             code: "VALIDATION_ERROR",
             category: "validation",
-            suggestion: "Use topQueries: 0 to skip analysis, or a positive number.",
+            suggestion:
+              "Use topQueries: 0 to skip analysis, or a positive number.",
             recoverable: false,
           };
         }
@@ -88,7 +89,10 @@ export function createAnalyzeWorkloadIndexesTool(
                 LIMIT $2
             `;
 
-        const result = await adapter.executeQuery(sql, [minCallThreshold, limit]);
+        const result = await adapter.executeQuery(sql, [
+          minCallThreshold,
+          limit,
+        ]);
 
         const recommendations: {
           query: string;
@@ -157,8 +161,8 @@ export function createAnalyzeWorkloadIndexesTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_analyze_workload_indexes",
-          });
+          tool: "pg_analyze_workload_indexes",
+        });
       }
     },
   };

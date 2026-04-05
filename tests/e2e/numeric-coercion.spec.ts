@@ -94,16 +94,12 @@ test.describe("Numeric Coercion: Text", () => {
   });
 
   test("trigram_similarity with limit: 'abc' → handler error", async ({}, testInfo) => {
-    await assertNumericCoercion(
-      getBaseURL(testInfo),
-      "pg_trigram_similarity",
-      {
-        table: "test_products",
-        column: "name",
-        search: "laptop",
-        limit: "abc",
-      },
-    );
+    await assertNumericCoercion(getBaseURL(testInfo), "pg_trigram_similarity", {
+      table: "test_products",
+      column: "name",
+      search: "laptop",
+      limit: "abc",
+    });
   });
 });
 

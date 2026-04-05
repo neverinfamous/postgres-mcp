@@ -6,7 +6,11 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
+} from "../../../../types/index.js";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -23,9 +27,7 @@ import {
   LtreeCreateIndexOutputSchema,
 } from "../../schemas/index.js";
 
-export function getOperationsTools(
-  adapter: PostgresAdapter,
-): ToolDefinition[] {
+export function getOperationsTools(adapter: PostgresAdapter): ToolDefinition[] {
   return [
     createLtreeMatchTool(adapter),
     createLtreeConvertColumnTool(adapter),
@@ -63,19 +65,19 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
           if (!tableCheck.rows || tableCheck.rows.length === 0) {
             throw new ValidationError(
               `Table ${qualifiedTable} does not exist.`,
-              { table: qualifiedTable }
+              { table: qualifiedTable },
             );
           }
           throw new ValidationError(
             `Column "${column}" not found in table ${qualifiedTable}.`,
-            { column, table: qualifiedTable }
+            { column, table: qualifiedTable },
           );
         }
         const udtName = colCheck.rows[0]?.["udt_name"] as string;
         if (udtName !== "ltree") {
           throw new ValidationError(
             `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
-            { foundType: udtName, column }
+            { foundType: udtName, column },
           );
         }
 
@@ -109,8 +111,8 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_ltree_match",
-          });
+          tool: "pg_ltree_match",
+        });
       }
     },
   };
@@ -145,7 +147,7 @@ function createLtreeConvertColumnTool(
         if (!hasExt) {
           throw new ValidationError(
             "ltree extension is not installed. Run pg_ltree_create_extension first.",
-            { extension: "ltree" }
+            { extension: "ltree" },
           );
         }
 
@@ -162,12 +164,12 @@ function createLtreeConvertColumnTool(
           if (!tableCheck.rows || tableCheck.rows.length === 0) {
             throw new ValidationError(
               `Table ${qualifiedTable} does not exist. Verify the table name.`,
-              { table: qualifiedTable }
+              { table: qualifiedTable },
             );
           }
           throw new ValidationError(
             `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
-            { column, table: qualifiedTable }
+            { column, table: qualifiedTable },
           );
         }
 
@@ -196,7 +198,7 @@ function createLtreeConvertColumnTool(
               allowedTypes: ["text", "varchar", "character varying"],
               suggestion:
                 "Create a new TEXT column with ltree-formatted paths, then convert that column.",
-            }
+            },
           );
         }
 
@@ -232,7 +234,7 @@ function createLtreeConvertColumnTool(
                   `${v["view_schema"] as string}.${v["dependent_view"] as string}`,
               ),
               hint: "Drop the listed views, run this conversion, then recreate the views. PostgreSQL cannot ALTER COLUMN TYPE when views depend on it.",
-            }
+            },
           );
         }
 
@@ -247,8 +249,8 @@ function createLtreeConvertColumnTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_ltree_convert_column",
-          });
+          tool: "pg_ltree_convert_column",
+        });
       }
     },
   };
@@ -285,19 +287,19 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
           if (!tableCheck.rows || tableCheck.rows.length === 0) {
             throw new ValidationError(
               `Table ${qualifiedTable} does not exist.`,
-              { table: qualifiedTable }
+              { table: qualifiedTable },
             );
           }
           throw new ValidationError(
             `Column "${column}" not found in table ${qualifiedTable}.`,
-            { column, table: qualifiedTable }
+            { column, table: qualifiedTable },
           );
         }
         const udtName = colCheck.rows[0]?.["udt_name"] as string;
         if (udtName !== "ltree") {
           throw new ValidationError(
             `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
-            { foundType: udtName, column }
+            { foundType: udtName, column },
           );
         }
 
@@ -350,8 +352,8 @@ function createLtreeCreateIndexTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_ltree_create_index",
-          });
+          tool: "pg_ltree_create_index",
+        });
       }
     },
   };

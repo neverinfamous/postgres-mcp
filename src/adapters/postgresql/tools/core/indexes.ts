@@ -75,7 +75,9 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
           [schemaName],
         );
         if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-          throw new Error(`Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`);
+          throw new Error(
+            `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+          );
         }
 
         const tableCheck = await adapter.executeQuery(
@@ -83,16 +85,18 @@ export function createGetIndexesTool(adapter: PostgresAdapter): ToolDefinition {
           [schemaName, table],
         );
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          throw new Error(`Table '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`);
+          throw new Error(
+            `Table '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
+          );
         }
 
         const indexes = await adapter.getTableIndexes(table, schema);
-        
+
         // Apply limit if specified
         const totalCount = indexes.length;
         const effectiveLimit = limit ?? 1000;
         const limited = indexes.slice(0, effectiveLimit);
-        
+
         return {
           indexes: limited,
           count: limited.length,
@@ -222,11 +226,11 @@ export function createCreateIndexTool(
           }
           // Return structured error
           return formatHandlerErrorResponse(error, {
-              tool: "pg_create_index",
-              index: name,
-              table,
-              schema: schemaName,
-            });
+            tool: "pg_create_index",
+            index: name,
+            table,
+            schema: schemaName,
+          });
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_create_index" });
@@ -344,8 +348,10 @@ export function createDropIndexTool(adapter: PostgresAdapter): ToolDefinition {
         const parsed = DropIndexSchema.safeParse(params);
         return formatHandlerErrorResponse(error, {
           tool: "pg_drop_index",
-          ...(parsed.success && parsed.data.name !== "" && { index: parsed.data.name }),
-          ...(parsed.success && parsed.data.schema && { schema: parsed.data.schema }),
+          ...(parsed.success &&
+            parsed.data.name !== "" && { index: parsed.data.name }),
+          ...(parsed.success &&
+            parsed.data.schema && { schema: parsed.data.schema }),
         });
       }
     },

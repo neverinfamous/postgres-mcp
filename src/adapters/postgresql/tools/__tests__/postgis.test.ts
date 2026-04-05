@@ -483,7 +483,9 @@ describe("PostGIS Tools", () => {
 
   describe("pg_spatial_index", () => {
     it("should create GiST spatial index", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      }); // Table exists
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // Index does not exist
 
       const tool = findTool("pg_spatial_index");
@@ -503,7 +505,9 @@ describe("PostGIS Tools", () => {
     });
 
     it("should use custom index name", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      }); // Table exists
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // Index does not exist
 
       const tool = findTool("pg_spatial_index");
@@ -522,7 +526,9 @@ describe("PostGIS Tools", () => {
     });
 
     it("should return alreadyExists when ifNotExists is true and index exists", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      }); // Table exists
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ exists: true }],
       });
@@ -543,7 +549,9 @@ describe("PostGIS Tools", () => {
     });
 
     it("should accept indexName as alias for name", async () => {
-      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ "?column?": 1 }],
+      }); // Table exists
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // Index does not exist
 
       const tool = findTool("pg_spatial_index");
@@ -1003,7 +1011,9 @@ describe("PostGIS Tools", () => {
 
     describe("pg_spatial_index edge cases", () => {
       it("should add note instead of Postgres error if index exists without ifNotExists: true", async () => {
-        mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }); // Table exists
+        mockAdapter.executeQuery.mockResolvedValueOnce({
+          rows: [{ "?column?": 1 }],
+        }); // Table exists
         mockAdapter.executeQuery.mockResolvedValueOnce({
           rows: [{ exists: true }],
         }); // check Result

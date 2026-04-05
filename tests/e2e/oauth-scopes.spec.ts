@@ -106,7 +106,8 @@ test.describe.serial("OAuth 2.1 Scope Enforcement E2E", () => {
         "--port",
         String(MCP_PORT),
         "--postgres",
-        process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
+        process.env.MCP_TEST_DB ||
+          "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
         "+all",
         "--oauth-enabled",
@@ -141,9 +142,7 @@ test.describe.serial("OAuth 2.1 Scope Enforcement E2E", () => {
       serverProcess.kill("SIGTERM");
     }
     if (jwksServer) {
-      await new Promise<void>((resolve) =>
-        jwksServer.close(() => resolve()),
-      );
+      await new Promise<void>((resolve) => jwksServer.close(() => resolve()));
     }
   });
 
@@ -375,7 +374,9 @@ test.describe.serial("OAuth 2.1 Scope Enforcement E2E", () => {
     const writeExtracted = extractResult(writeResult);
     // Should pass scope check, fail DB check
     if (writeExtracted.isError) {
-      expect(writeExtracted.text.toLowerCase()).not.toContain("insufficient scope");
+      expect(writeExtracted.text.toLowerCase()).not.toContain(
+        "insufficient scope",
+      );
     }
 
     // ❌ DENIED: pg_drop_table (core group → admin scope override)
@@ -391,18 +392,30 @@ test.describe.serial("OAuth 2.1 Scope Enforcement E2E", () => {
     const session = await initializeSession(readToken);
 
     // ✅ ALLOWED: pg_audit_list_backups (backup group → read scope override)
-    const listResult = await callTool(readToken, session, "pg_audit_list_backups", {});
+    const listResult = await callTool(
+      readToken,
+      session,
+      "pg_audit_list_backups",
+      {},
+    );
     const listExtracted = extractResult(listResult);
     // Should pass scope check, might return success
     if (listExtracted.isError) {
-      expect(listExtracted.text.toLowerCase()).not.toContain("insufficient scope");
+      expect(listExtracted.text.toLowerCase()).not.toContain(
+        "insufficient scope",
+      );
     }
 
     // ❌ DENIED: pg_audit_restore_backup (backup group → admin scope default)
-    const restoreResult = await callTool(readToken, session, "pg_audit_restore_backup", {
-      backupFile: "test.snapshot.json",
-      confirm: true,
-    });
+    const restoreResult = await callTool(
+      readToken,
+      session,
+      "pg_audit_restore_backup",
+      {
+        backupFile: "test.snapshot.json",
+        confirm: true,
+      },
+    );
     const restoreExtracted = extractResult(restoreResult);
     expect(restoreExtracted.isError).toBe(true);
     expect(restoreExtracted.text.toLowerCase()).toContain("insufficient scope");
@@ -411,24 +424,25 @@ test.describe.serial("OAuth 2.1 Scope Enforcement E2E", () => {
   test("expired or invalid tokens are rejected at connection time", async () => {
     const base = `http://127.0.0.1:${MCP_PORT}/mcp`;
 
-    const getInitRes = async (token: string) => fetch(base, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json, text/event-stream",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-03-26",
-          capabilities: {},
-          clientInfo: { name: "scope-test-client", version: "1.0" },
+    const getInitRes = async (token: string) =>
+      fetch(base, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+          Authorization: `Bearer ${token}`,
         },
-      }),
-    });
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-03-26",
+            capabilities: {},
+            clientInfo: { name: "scope-test-client", version: "1.0" },
+          },
+        }),
+      });
 
     const resExpired = await getInitRes(expiredToken);
     expect(resExpired.status).toBe(401);

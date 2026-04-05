@@ -6,7 +6,11 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
+} from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -56,8 +60,8 @@ function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
         return { success: true, message: "ltree extension enabled" };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_ltree_create_extension",
-          });
+          tool: "pg_ltree_create_extension",
+        });
       }
     },
   };
@@ -77,11 +81,11 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const { table, column, path, mode, schema, limit } =
           LtreeQuerySchema.parse(params);
-        
+
         if (path === "") {
           throw new ValidationError(
             `Empty path "" is not allowed as it acts as an unconstrained match-all query. Please provide a specific path.`,
-            { path }
+            { path },
           );
         }
 
@@ -104,19 +108,19 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
           if (!tableCheck.rows || tableCheck.rows.length === 0) {
             throw new ValidationError(
               `Table ${qualifiedTable} does not exist.`,
-              { table: qualifiedTable }
+              { table: qualifiedTable },
             );
           }
           throw new ValidationError(
             `Column "${column}" not found in table ${qualifiedTable}.`,
-            { column, table: qualifiedTable }
+            { column, table: qualifiedTable },
           );
         }
         const udtName = colCheck.rows[0]?.["udt_name"] as string;
         if (udtName !== "ltree") {
           throw new ValidationError(
             `Column "${column}" is not an ltree type (found: ${udtName}). Use an ltree column or convert with pg_ltree_convert_column.`,
-            { foundType: udtName, column }
+            { foundType: udtName, column },
           );
         }
 
@@ -188,8 +192,8 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_ltree_query",
-          });
+          tool: "pg_ltree_query",
+        });
       }
     },
   };
@@ -220,7 +224,7 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
         if (effectiveOffset < 0 || effectiveOffset >= pathDepth) {
           throw new ValidationError(
             `Invalid offset: ${String(offset)}. Path "${path}" has ${String(pathDepth)} labels (valid offset range: 0 to ${String(pathDepth - 1)}, or -${String(pathDepth)} to -1 for negative indexing).`,
-            { originalPath: path, pathDepth }
+            { originalPath: path, pathDepth },
           );
         }
 
@@ -242,8 +246,8 @@ function createLtreeSubpathTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_ltree_subpath",
-          });
+          tool: "pg_ltree_subpath",
+        });
       }
     },
   };
@@ -264,13 +268,13 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
         if (paths.length < 1) {
           throw new ValidationError(
             `Minimum 1 path required for lca, received ${String(paths.length)}.`,
-            { providedCount: paths.length }
+            { providedCount: paths.length },
           );
         }
 
         // If all paths are identical, the LCA is the path itself
         // (Postgres lca() natively returns the parent if given identical paths)
-        const allIdentical = paths.every(p => p === paths[0]);
+        const allIdentical = paths.every((p) => p === paths[0]);
         if (allIdentical) {
           return {
             success: true,
@@ -294,8 +298,8 @@ function createLtreeLcaTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_ltree_lca",
-          });
+          tool: "pg_ltree_lca",
+        });
       }
     },
   };
@@ -332,8 +336,8 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_ltree_list_columns",
-          });
+          tool: "pg_ltree_list_columns",
+        });
       }
     },
   };

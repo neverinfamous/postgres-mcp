@@ -100,8 +100,8 @@ export function createGeometryBufferTool(
           result = await adapter.executeQuery(sql, [geometry, distance]);
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
-              tool: "pg_geometry_buffer",
-            });
+            tool: "pg_geometry_buffer",
+          });
         }
         const row = result.rows?.[0];
         const response: Record<string, unknown> = {
@@ -125,8 +125,8 @@ export function createGeometryBufferTool(
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_geometry_buffer",
-          });
+          tool: "pg_geometry_buffer",
+        });
       }
     },
   };
@@ -173,8 +173,8 @@ export function createGeometryIntersectionTool(
           result = await adapter.executeQuery(sql, [geometry1, geometry2]);
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
-              tool: "pg_geometry_intersection",
-            });
+            tool: "pg_geometry_intersection",
+          });
         }
         return {
           success: true,
@@ -185,8 +185,8 @@ export function createGeometryIntersectionTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_geometry_intersection",
-          });
+          tool: "pg_geometry_intersection",
+        });
       }
     },
   };
@@ -224,8 +224,8 @@ export function createGeometryTransformTool(
           result = await adapter.executeQuery(sql, [geometry]);
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
-              tool: "pg_geometry_transform",
-            });
+            tool: "pg_geometry_transform",
+          });
         }
         return {
           success: true,
@@ -236,8 +236,8 @@ export function createGeometryTransformTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_geometry_transform",
-          });
+          tool: "pg_geometry_transform",
+        });
       }
     },
   };

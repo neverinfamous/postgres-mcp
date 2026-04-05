@@ -39,8 +39,13 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         // Parse params through schema to validate enum values
         const parsed = CreateBackupPlanSchema.parse(params);
-        if (parsed.frequency && !["hourly", "daily", "weekly"].includes(parsed.frequency)) {
-          throw new Error("Validation error: frequency must be 'hourly', 'daily', or 'weekly'");
+        if (
+          parsed.frequency &&
+          !["hourly", "daily", "weekly"].includes(parsed.frequency)
+        ) {
+          throw new Error(
+            "Validation error: frequency must be 'hourly', 'daily', or 'weekly'",
+          );
         }
         const freq = parsed.frequency ?? "daily";
 
@@ -104,7 +109,9 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
           },
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_create_backup_plan" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_create_backup_plan",
+        });
       }
     },
   };
@@ -149,7 +156,9 @@ export function createRestoreCommandTool(
             const backupFile = parsed.backupFile ?? parsed.filename;
             // Validate required param
             if (backupFile === undefined || backupFile === "") {
-              throw new Error("Validation error: backupFile (or filename) parameter is required");
+              throw new Error(
+                "Validation error: backupFile (or filename) parameter is required",
+              );
             }
 
             // Validate mutually exclusive options
@@ -190,9 +199,13 @@ export function createRestoreCommandTool(
               ],
             };
           })
-          .catch((error: unknown) => formatHandlerErrorResponse(error, { tool: "pg_restore_command" }));
+          .catch((error: unknown) =>
+            formatHandlerErrorResponse(error, { tool: "pg_restore_command" }),
+          );
       } catch (error: unknown) {
-        return Promise.resolve(formatHandlerErrorResponse(error, { tool: "pg_restore_command" }));
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_restore_command" }),
+        );
       }
     },
   };
@@ -221,15 +234,24 @@ export function createPhysicalBackupTool(
 
             // Validate enums
             if (parsed.format && !["plain", "tar"].includes(parsed.format)) {
-              throw new Error("Validation error: format must be 'plain' or 'tar'");
+              throw new Error(
+                "Validation error: format must be 'plain' or 'tar'",
+              );
             }
-            if (parsed.checkpoint && !["fast", "spread"].includes(parsed.checkpoint)) {
-              throw new Error("Validation error: checkpoint must be 'fast' or 'spread'");
+            if (
+              parsed.checkpoint &&
+              !["fast", "spread"].includes(parsed.checkpoint)
+            ) {
+              throw new Error(
+                "Validation error: checkpoint must be 'fast' or 'spread'",
+              );
             }
 
             // Validate required param
             if (parsed.targetDir === undefined || parsed.targetDir === "") {
-              throw new Error("Validation error: targetDir parameter is required");
+              throw new Error(
+                "Validation error: targetDir parameter is required",
+              );
             }
 
             // Validate compress range
@@ -237,7 +259,9 @@ export function createPhysicalBackupTool(
               parsed.compress !== undefined &&
               (parsed.compress < 0 || parsed.compress > 9)
             ) {
-              throw new Error("Validation error: compress must be between 0 and 9");
+              throw new Error(
+                "Validation error: compress must be between 0 and 9",
+              );
             }
 
             let command = "pg_basebackup";
@@ -281,9 +305,13 @@ export function createPhysicalBackupTool(
               ],
             };
           })
-          .catch((error: unknown) => formatHandlerErrorResponse(error, { tool: "pg_backup_physical" }));
+          .catch((error: unknown) =>
+            formatHandlerErrorResponse(error, { tool: "pg_backup_physical" }),
+          );
       } catch (error: unknown) {
-        return Promise.resolve(formatHandlerErrorResponse(error, { tool: "pg_backup_physical" }));
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_backup_physical" }),
+        );
       }
     },
   };
@@ -303,7 +331,10 @@ export function createRestoreValidateTool(
     inputSchema: z.object({
       backupFile: z.string().optional().describe("Path to backup file"),
       filename: z.string().optional().describe("Alias for backupFile"),
-      backupType: z.string().optional().describe("Backup type (pg_dump, pg_basebackup)"),
+      backupType: z
+        .string()
+        .optional()
+        .describe("Backup type (pg_dump, pg_basebackup)"),
     }),
     outputSchema: RestoreValidateOutputSchema,
     annotations: readOnly("Restore Validate"),
@@ -320,14 +351,21 @@ export function createRestoreValidateTool(
             });
             const parsed = schema.parse(params);
 
-            if (parsed.backupType && !["pg_dump", "pg_basebackup"].includes(parsed.backupType)) {
-              throw new Error("Validation error: backupType must be 'pg_dump' or 'pg_basebackup'");
+            if (
+              parsed.backupType &&
+              !["pg_dump", "pg_basebackup"].includes(parsed.backupType)
+            ) {
+              throw new Error(
+                "Validation error: backupType must be 'pg_dump' or 'pg_basebackup'",
+              );
             }
 
             const backupFile = parsed.backupFile ?? parsed.filename;
             // Validate required param
             if (backupFile === undefined || backupFile === "") {
-              throw new Error("Validation error: backupFile (or filename) parameter is required");
+              throw new Error(
+                "Validation error: backupFile (or filename) parameter is required",
+              );
             }
 
             const backupType = parsed.backupType ?? "pg_dump";
@@ -398,9 +436,13 @@ export function createRestoreValidateTool(
               };
             }
           })
-          .catch((error: unknown) => formatHandlerErrorResponse(error, { tool: "pg_restore_validate" }));
+          .catch((error: unknown) =>
+            formatHandlerErrorResponse(error, { tool: "pg_restore_validate" }),
+          );
       } catch (error: unknown) {
-        return Promise.resolve(formatHandlerErrorResponse(error, { tool: "pg_restore_validate" }));
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_restore_validate" }),
+        );
       }
     },
   };
@@ -504,8 +546,8 @@ export function createBackupScheduleOptimizeTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_backup_schedule_optimize",
-          });
+          tool: "pg_backup_schedule_optimize",
+        });
       }
     },
   };

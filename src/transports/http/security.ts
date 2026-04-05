@@ -100,10 +100,7 @@ export const DEFAULTS = {
  * When trustProxy is enabled, uses the leftmost IP from X-Forwarded-For.
  * Falls back to req.socket.remoteAddress.
  */
-export function getClientIp(
-  req: IncomingMessage,
-  trustProxy: boolean,
-): string {
+export function getClientIp(req: IncomingMessage, trustProxy: boolean): string {
   if (trustProxy) {
     const forwarded = req.headers["x-forwarded-for"];
     if (typeof forwarded === "string") {
@@ -169,10 +166,7 @@ export function setSecurityHeaders(
   // Prevent clickjacking
   res.setHeader("X-Frame-Options", "DENY");
   // Prevent caching
-  res.setHeader(
-    "Cache-Control",
-    "no-store, no-cache, must-revalidate",
-  );
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   // Referrer policy
   res.setHeader("Referrer-Policy", "no-referrer");
   // Permissions policy (restrict browser features)
@@ -226,10 +220,7 @@ export function setCorsHeaders(
   if (isAllowed) {
     // Use specific origin instead of * for proper CORS handling
     res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET, POST, DELETE, OPTIONS",
-    );
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
       "Content-Type, Authorization, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID",

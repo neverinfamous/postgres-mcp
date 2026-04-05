@@ -1,5 +1,10 @@
 import { test, expect } from "./fixtures.js";
-import { startServer, stopServer, createClient, callToolAndParse } from "./helpers.js";
+import {
+  startServer,
+  stopServer,
+  createClient,
+  callToolAndParse,
+} from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 const WORKER_PORT = 3125;
@@ -11,7 +16,11 @@ test.describe("Code Mode Worker-Thread Execution", () => {
 
   test.beforeAll(async () => {
     process.env.CODEMODE_WORKER = "true";
-    await startServer(WORKER_PORT, ["--tool-filter", "codemode,core"], "worker-mode");
+    await startServer(
+      WORKER_PORT,
+      ["--tool-filter", "codemode,core"],
+      "worker-mode",
+    );
     client = await createClient(`http://127.0.0.1:${WORKER_PORT}`);
   });
 

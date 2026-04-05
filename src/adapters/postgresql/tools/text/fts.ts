@@ -22,9 +22,7 @@ import {
 } from "../../../../utils/identifiers.js";
 import { checkTableAndColumn } from "../vector/data.js";
 import { sanitizeFtsConfig } from "../../../../utils/fts-config.js";
-import {
-  buildLimitClause,
-} from "../../../../utils/query-helpers.js";
+import { buildLimitClause } from "../../../../utils/query-helpers.js";
 import {
   TextSearchSchema,
   TextSearchSchemaBase,
@@ -60,18 +58,22 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
         } else if (parsed.column !== undefined) {
           cols = [parsed.column];
         } else {
-          throw new ValidationError("Either 'columns' (array) or 'column' (string) is required");
+          throw new ValidationError(
+            "Either 'columns' (array) or 'column' (string) is required",
+          );
         }
 
         // Build qualified table name with schema support
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          throw new ValidationError("Either 'table' or 'tableName' is required");
+          throw new ValidationError(
+            "Either 'table' or 'tableName' is required",
+          );
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         const insertSchemaName = parsed.schema ?? "public";
-        
+
         // P154: Pre-validate table and columns exist
         for (const col of cols) {
           const missing = await checkTableAndColumn(
@@ -79,9 +81,9 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
             resolvedTable,
             col,
             insertSchemaName,
-            (params as Record<string, unknown>)?.[
-              "transactionId"
-            ] as string | undefined
+            (params as Record<string, unknown>)?.["transactionId"] as
+              | string
+              | undefined,
           );
           if (missing) {
             return { success: false, ...missing };
@@ -100,11 +102,19 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
-            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+            throw new ValidationError("limit must be non-negative", {
+              code: "VALIDATION_ERROR",
+            });
           } else if (safeLimit === 0) {
-            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must be greater than 0 to prevent large payloads. Max limit is 100.",
+              { code: "VALIDATION_ERROR" },
+            );
           } else if (safeLimit > 100) {
-            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must not exceed 100 to prevent large payloads",
+              { code: "VALIDATION_ERROR" },
+            );
           }
           limitVal = safeLimit;
         }
@@ -130,8 +140,8 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_text_search",
-          });
+          tool: "pg_text_search",
+        });
       }
     },
   };
@@ -186,13 +196,17 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         } else if (parsed.column !== undefined) {
           cols = [parsed.column];
         } else {
-          throw new ValidationError("Either column or columns parameter is required");
+          throw new ValidationError(
+            "Either column or columns parameter is required",
+          );
         }
 
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          throw new ValidationError("Either 'table' or 'tableName' is required");
+          throw new ValidationError(
+            "Either 'table' or 'tableName' is required",
+          );
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         const sanitizedCols = sanitizeIdentifiers(cols);
@@ -207,11 +221,19 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
-            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+            throw new ValidationError("limit must be non-negative", {
+              code: "VALIDATION_ERROR",
+            });
           } else if (safeLimit === 0) {
-            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must be greater than 0 to prevent large payloads. Max limit is 100.",
+              { code: "VALIDATION_ERROR" },
+            );
           } else if (safeLimit > 100) {
-            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must not exceed 100 to prevent large payloads",
+              { code: "VALIDATION_ERROR" },
+            );
           }
           limitVal = safeLimit;
         }
@@ -237,8 +259,8 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_text_rank",
-          });
+          tool: "pg_text_rank",
+        });
       }
     },
   };
@@ -330,7 +352,9 @@ export function createTextHeadlineTool(
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          throw new ValidationError("Either 'table' or 'tableName' is required");
+          throw new ValidationError(
+            "Either 'table' or 'tableName' is required",
+          );
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.query) {
@@ -346,11 +370,19 @@ export function createTextHeadlineTool(
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
-            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+            throw new ValidationError("limit must be non-negative", {
+              code: "VALIDATION_ERROR",
+            });
           } else if (safeLimit === 0) {
-            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must be greater than 0 to prevent large payloads. Max limit is 100.",
+              { code: "VALIDATION_ERROR" },
+            );
           } else if (safeLimit > 100) {
-            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must not exceed 100 to prevent large payloads",
+              { code: "VALIDATION_ERROR" },
+            );
           }
           limitVal = safeLimit;
         }
@@ -375,8 +407,8 @@ export function createTextHeadlineTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_text_headline",
-          });
+          tool: "pg_text_headline",
+        });
       }
     },
   };
@@ -419,7 +451,9 @@ export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          throw new ValidationError("Either 'table' or 'tableName' is required");
+          throw new ValidationError(
+            "Either 'table' or 'tableName' is required",
+          );
         }
         if (!parsed.column) {
           throw new ValidationError("column is required");
@@ -442,9 +476,9 @@ export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
           resolvedTable,
           parsed.column,
           schemaName,
-          (params as Record<string, unknown>)?.[
-            "transactionId"
-          ] as string | undefined
+          (params as Record<string, unknown>)?.["transactionId"] as
+            | string
+            | undefined,
         );
         if (missing) {
           return { success: false, ...missing };
@@ -471,8 +505,8 @@ export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_create_fts_index",
-          });
+          tool: "pg_create_fts_index",
+        });
       }
     },
   };

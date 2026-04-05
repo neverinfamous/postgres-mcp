@@ -11,9 +11,16 @@ import type { DatabaseAdapter } from "../adapters/database-adapter.js";
 import type { ToolFilterConfig, ToolGroup } from "../types/index.js";
 import { parseToolFilter, getEnabledGroups } from "../filtering/tool-filter.js";
 import { logger } from "../utils/logger.js";
-import { generateInstructions, HELP_CONTENT } from "../constants/server-instructions.js";
+import {
+  generateInstructions,
+  HELP_CONTENT,
+} from "../constants/server-instructions.js";
 import type { InstructionLevel } from "../constants/server-instructions.js";
-import { AuditLogger, createAuditInterceptor, BackupManager } from "../audit/index.js";
+import {
+  AuditLogger,
+  createAuditInterceptor,
+  BackupManager,
+} from "../audit/index.js";
 import type { AuditConfig, SnapshotQueryAdapter } from "../audit/index.js";
 
 export interface ServerConfig {
@@ -42,7 +49,7 @@ export class PostgresMcpServer {
 
     // Generate dynamic instructions based on enabled tool groups and level
     const enabledGroups = getEnabledGroups(this.filterConfig.enabledTools);
-    const level = config.instructionLevel ?? 'standard';
+    const level = config.instructionLevel ?? "standard";
     const instructions = generateInstructions(
       enabledGroups,
       level,
@@ -80,15 +87,19 @@ export class PostgresMcpServer {
       this.auditLogger = new AuditLogger(config.auditConfig);
 
       // Set up backup manager if configured
-      if (config.auditConfig.backup?.enabled && config.auditConfig.logPath !== "stderr") {
+      if (
+        config.auditConfig.backup?.enabled &&
+        config.auditConfig.logPath !== "stderr"
+      ) {
         this.backupManager = new BackupManager(
           config.auditConfig.backup,
           config.auditConfig.logPath,
         );
         // Pass backup manager to adapter so audit backup tools can access it
         if ("setBackupManager" in this.adapter) {
-          (this.adapter as { setBackupManager: (m: BackupManager) => void })
-            .setBackupManager(this.backupManager);
+          (
+            this.adapter as { setBackupManager: (m: BackupManager) => void }
+          ).setBackupManager(this.backupManager);
         }
       }
 
@@ -156,15 +167,18 @@ export class PostgresMcpServer {
         "postgres_help",
         "postgres://help",
         {
-          description: "Critical gotchas, response structures, and Code Mode API reference",
+          description:
+            "Critical gotchas, response structures, and Code Mode API reference",
           mimeType: "text/markdown",
         },
         () => ({
-          contents: [{
-            uri: "postgres://help",
-            mimeType: "text/markdown",
-            text: gotchasContent,
-          }],
+          contents: [
+            {
+              uri: "postgres://help",
+              mimeType: "text/markdown",
+              text: gotchasContent,
+            },
+          ],
         }),
       );
     }
@@ -183,11 +197,13 @@ export class PostgresMcpServer {
           mimeType: "text/markdown",
         },
         () => ({
-          contents: [{
-            uri: `postgres://help/${key}`,
-            mimeType: "text/markdown",
-            text: content,
-          }],
+          contents: [
+            {
+              uri: `postgres://help/${key}`,
+              mimeType: "text/markdown",
+              text: content,
+            },
+          ],
         }),
       );
       registeredHelp.push(`postgres://help/${key}`);
@@ -293,12 +309,16 @@ export class PostgresMcpServer {
 
         // Compute session summary from available entries
         const totalTokenEstimate = entries.reduce(
-          (sum, e) => sum + (e.tokenEstimate ?? 0), 0,
+          (sum, e) => sum + (e.tokenEstimate ?? 0),
+          0,
         );
         const callCount = entries.length;
 
         // Top 5 tools by aggregate token consumption
-        const toolTokenMap = new Map<string, { calls: number; tokens: number }>();
+        const toolTokenMap = new Map<
+          string,
+          { calls: number; tokens: number }
+        >();
         for (const e of entries) {
           const existing = toolTokenMap.get(e.tool) ?? { calls: 0, tokens: 0 };
           existing.calls++;
@@ -308,7 +328,11 @@ export class PostgresMcpServer {
         const topToolsByTokens = [...toolTokenMap.entries()]
           .sort((a, b) => b[1].tokens - a[1].tokens)
           .slice(0, 5)
-          .map(([tool, stats]) => ({ tool, calls: stats.calls, tokens: stats.tokens }));
+          .map(([tool, stats]) => ({
+            tool,
+            calls: stats.calls,
+            tokens: stats.tokens,
+          }));
 
         return {
           contents: [

@@ -15,7 +15,14 @@
  * but never block tool execution.
  */
 
-import { writeFile, readFile, readdir, mkdir, stat, unlink } from "node:fs/promises";
+import {
+  writeFile,
+  readFile,
+  readdir,
+  mkdir,
+  stat,
+  unlink,
+} from "node:fs/promises";
 import { join, dirname, basename } from "node:path";
 import { gunzipSync, gzip as gzipCb } from "node:zlib";
 import { promisify } from "node:util";
@@ -33,7 +40,10 @@ import type {
  *
  * Tools not in this map are audited but don't trigger snapshots.
  */
-const SNAPSHOT_TOOL_ARGS: Record<string, { targetKey: string; schemaKey?: string }> = {
+const SNAPSHOT_TOOL_ARGS: Record<
+  string,
+  { targetKey: string; schemaKey?: string }
+> = {
   // Core group — destructive (admin scope via override)
   pg_drop_table: { targetKey: "table", schemaKey: "schema" },
   pg_drop_index: { targetKey: "index", schemaKey: "schema" },
@@ -77,11 +87,22 @@ const DEFAULT_MAX_DATA_SIZE_BYTES = 50 * 1024 * 1024;
  * Avoids circular imports from the full adapter.
  */
 export interface SnapshotQueryAdapter {
-  executeQuery(sql: string, params?: unknown[]): Promise<{
+  executeQuery(
+    sql: string,
+    params?: unknown[],
+  ): Promise<{
     rows?: Record<string, unknown>[];
   }>;
-  describeTable(table: string, schema?: string): Promise<{
-    columns?: { name: string; type: string; nullable: boolean; defaultValue?: unknown }[];
+  describeTable(
+    table: string,
+    schema?: string,
+  ): Promise<{
+    columns?: {
+      name: string;
+      type: string;
+      nullable: boolean;
+      defaultValue?: unknown;
+    }[];
     primaryKey?: string[] | null;
   }>;
 }
@@ -130,13 +151,25 @@ export class BackupManager {
       const schema = typeof rawSchema === "string" ? rawSchema : "public";
 
       // Migration tools get a full-schema snapshot
-      if (toolName === "pg_migration_apply" || toolName === "pg_migration_rollback") {
-        return await this.captureSchemaSnapshot(logAs ?? toolName, target, requestId);
+      if (
+        toolName === "pg_migration_apply" ||
+        toolName === "pg_migration_rollback"
+      ) {
+        return await this.captureSchemaSnapshot(
+          logAs ?? toolName,
+          target,
+          requestId,
+        );
       }
 
       // Schema drop gets a schema-level snapshot
       if (toolName === "pg_drop_schema") {
-        return await this.captureSchemaDropSnapshot(logAs ?? toolName, target, requestId, adapter);
+        return await this.captureSchemaDropSnapshot(
+          logAs ?? toolName,
+          target,
+          requestId,
+          adapter,
+        );
       }
 
       // All others get a table/object DDL snapshot
@@ -149,7 +182,9 @@ export class BackupManager {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`[AUDIT-BACKUP] Snapshot failed for ${toolName}: ${message}\n`);
+      process.stderr.write(
+        `[AUDIT-BACKUP] Snapshot failed for ${toolName}: ${message}\n`,
+      );
       return undefined;
     }
   }
@@ -164,7 +199,8 @@ export class BackupManager {
       const snapshots: SnapshotMetadata[] = [];
 
       for (const file of files) {
-        if (!file.endsWith(SNAPSHOT_EXT) && !file.endsWith(SNAPSHOT_EXT_LEGACY)) continue;
+        if (!file.endsWith(SNAPSHOT_EXT) && !file.endsWith(SNAPSHOT_EXT_LEGACY))
+          continue;
         try {
           const parsed = await this.readSnapshotFile(file);
           if (parsed) {
@@ -247,7 +283,9 @@ export class BackupManager {
       }
 
       if (deleted > 0) {
-        process.stderr.write(`[AUDIT-BACKUP] Cleaned up ${String(deleted)} snapshot(s)\n`);
+        process.stderr.write(
+          `[AUDIT-BACKUP] Cleaned up ${String(deleted)} snapshot(s)\n`,
+        );
       }
 
       return deleted;
@@ -267,7 +305,11 @@ export class BackupManager {
     }
   }
 
-  async getStats(): Promise<{ count: number; oldestAge?: string; totalSizeKB: number }> {
+  async getStats(): Promise<{
+    count: number;
+    oldestAge?: string;
+    totalSizeKB: number;
+  }> {
     try {
       const files = await readdir(this.snapshotDir);
       const snapshotFiles = files.filter(
@@ -327,12 +369,13 @@ export class BackupManager {
       schemaName,
       adapter,
     );
-    const { data, dataSkipped, dataSkippedReason } = await this.captureTableData(
-      tableName,
-      schemaName,
-      totalSizeBytes,
-      adapter,
-    );
+    const { data, dataSkipped, dataSkippedReason } =
+      await this.captureTableData(
+        tableName,
+        schemaName,
+        totalSizeBytes,
+        adapter,
+      );
 
     return this.writeSnapshot(
       toolName,
@@ -375,19 +418,24 @@ export class BackupManager {
       }
     } catch (seqErr) {
       const msg = seqErr instanceof Error ? seqErr.message : String(seqErr);
-      process.stderr.write(`[AUDIT-BACKUP] Sequence query failed for ${tableName}: ${msg}\n`);
+      process.stderr.write(
+        `[AUDIT-BACKUP] Sequence query failed for ${tableName}: ${msg}\n`,
+      );
     }
 
     const tableInfo = await adapter.describeTable(tableName, schemaName);
     const columns = tableInfo.columns ?? [];
-    
+
     // Fallback: If sequenceDdls is empty, extract sequences from DEFAULT nextval('...')
     if (!sequenceDdls) {
       for (const col of columns) {
-        if (typeof col.defaultValue === "string" && col.defaultValue.includes("nextval(")) {
+        if (
+          typeof col.defaultValue === "string" &&
+          col.defaultValue.includes("nextval(")
+        ) {
           const match = /nextval\('([^']+)'::regclass\)/.exec(col.defaultValue);
           if (match?.[1]) {
-            const seqName = match[1].replace(/"/g, ''); // Extract sequence name
+            const seqName = match[1].replace(/"/g, ""); // Extract sequence name
             sequenceDdls += `CREATE SEQUENCE IF NOT EXISTS "${schemaName}"."${seqName}";\n`;
           }
         }
@@ -409,7 +457,9 @@ export class BackupManager {
 
     const primaryKey = tableInfo.primaryKey;
     if (primaryKey && primaryKey.length > 0) {
-      ddlLines.push(`    PRIMARY KEY (${primaryKey.map((k) => `"${k}"`).join(", ")})`);
+      ddlLines.push(
+        `    PRIMARY KEY (${primaryKey.map((k) => `"${k}"`).join(", ")})`,
+      );
     }
 
     return `${sequenceDdls}CREATE TABLE "${schemaName}"."${tableName}" (\n${ddlLines.join(",\n")}\n);`;
@@ -447,12 +497,13 @@ export class BackupManager {
         if (rowCount === -1) {
           try {
             const countResult = await adapter.executeQuery(
-              `SELECT COUNT(*) as _c FROM "${schemaName}"."${tableName}"`
+              `SELECT COUNT(*) as _c FROM "${schemaName}"."${tableName}"`,
             );
-            const cVal = countResult.rows?.[0]?.['_c'];
-            rowCount = (typeof cVal === "number" || typeof cVal === "string") 
-              ? parseInt(String(cVal), 10) 
-              : -1;
+            const cVal = countResult.rows?.[0]?.["_c"];
+            rowCount =
+              typeof cVal === "number" || typeof cVal === "string"
+                ? parseInt(String(cVal), 10)
+                : -1;
             if (isNaN(rowCount)) rowCount = -1;
           } catch {
             // Count fallback is best-effort
@@ -493,7 +544,8 @@ export class BackupManager {
       return { dataSkipped: false };
     }
 
-    const maxDataSize = this.config.maxDataSizeBytes || DEFAULT_MAX_DATA_SIZE_BYTES;
+    const maxDataSize =
+      this.config.maxDataSizeBytes || DEFAULT_MAX_DATA_SIZE_BYTES;
 
     // Skip if table exceeds the configured size threshold
     if (totalSizeBytes !== undefined && totalSizeBytes > maxDataSize) {
@@ -520,7 +572,8 @@ export class BackupManager {
               const vals = Object.values(row)
                 .map((v) => {
                   if (v === null) return "NULL";
-                  if (typeof v === "string") return `'${v.replace(/'/g, "''")}'`;
+                  if (typeof v === "string")
+                    return `'${v.replace(/'/g, "''")}'`;
                   if (typeof v === "number" || typeof v === "boolean")
                     return String(v);
                   return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
@@ -610,10 +663,16 @@ export class BackupManager {
         type: data ? "ddl+data" : "ddl",
         requestId,
         sizeBytes: 0, // Updated after serialization
-        ...(volumeMeta?.rowCount !== undefined && { rowCount: volumeMeta.rowCount }),
-        ...(volumeMeta?.totalSizeBytes !== undefined && { totalSizeBytes: volumeMeta.totalSizeBytes }),
+        ...(volumeMeta?.rowCount !== undefined && {
+          rowCount: volumeMeta.rowCount,
+        }),
+        ...(volumeMeta?.totalSizeBytes !== undefined && {
+          totalSizeBytes: volumeMeta.totalSizeBytes,
+        }),
         ...(volumeMeta?.dataSkipped && { dataSkipped: true }),
-        ...(volumeMeta?.dataSkippedReason && { dataSkippedReason: volumeMeta.dataSkippedReason }),
+        ...(volumeMeta?.dataSkippedReason && {
+          dataSkippedReason: volumeMeta.dataSkippedReason,
+        }),
       },
       ddl,
       data,
@@ -631,12 +690,18 @@ export class BackupManager {
     const compressed = await gzipAsync(Buffer.from(finalJson, "utf-8"));
     const filePath = join(this.snapshotDir, filename);
 
-    const writePromise = writeFile(filePath, compressed).catch((err: unknown) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`[AUDIT-BACKUP] Async write failed for ${filename}: ${msg}\n`);
-    });
+    const writePromise = writeFile(filePath, compressed).catch(
+      (err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        process.stderr.write(
+          `[AUDIT-BACKUP] Async write failed for ${filename}: ${msg}\n`,
+        );
+      },
+    );
     this.pendingWrites.add(writePromise);
-    void writePromise.finally(() => { this.pendingWrites.delete(writePromise); });
+    void writePromise.finally(() => {
+      this.pendingWrites.delete(writePromise);
+    });
 
     return filename;
   }
@@ -644,7 +709,9 @@ export class BackupManager {
   /**
    * Read and decompress a snapshot file (supports both gzip and legacy JSON).
    */
-  private async readSnapshotFile(filename: string): Promise<SnapshotContent | null> {
+  private async readSnapshotFile(
+    filename: string,
+  ): Promise<SnapshotContent | null> {
     const filePath = join(this.snapshotDir, filename);
     const raw = await readFile(filePath);
 

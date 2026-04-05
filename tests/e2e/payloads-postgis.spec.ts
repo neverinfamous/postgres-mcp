@@ -33,7 +33,11 @@ test.describe("Payload Contracts: PostGIS", () => {
   });
 
   test("pg_postgis_create_extension returns object", async () => {
-    const payload = await callToolAndParse(client, "pg_postgis_create_extension", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_postgis_create_extension",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 
@@ -61,7 +65,7 @@ test.describe("Payload Contracts: PostGIS", () => {
     const payload = await callToolAndParse(client, "pg_point_in_polygon", {
       table: testTable,
       column: "geom",
-      polygon: 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))'
+      polygon: "POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))",
     });
     expect(typeof payload).toBe("object");
   });
@@ -122,7 +126,7 @@ test.describe("Payload Contracts: PostGIS", () => {
 
   test("pg_geocode returns { geometries }", async () => {
     const payload = await callToolAndParse(client, "pg_geocode", {
-      address: "1600 Pennsylvania Ave NW, Washington, DC"
+      address: "1600 Pennsylvania Ave NW, Washington, DC",
     });
     expect(typeof payload).toBe("object");
   });
@@ -140,7 +144,7 @@ test.describe("Payload Contracts: PostGIS", () => {
   test("pg_geometry_buffer returns standalone buffer", async () => {
     const payload = await callToolAndParse(client, "pg_geometry_buffer", {
       geometry: "POINT(0 0)",
-      distance: 10
+      distance: 10,
     });
     expect(typeof payload).toBe("object");
   });

@@ -24,7 +24,12 @@ import { toNum, toStr, riskFromScore } from "./anomaly-detection.js";
 // pg_detect_connection_spike
 // =============================================================================
 
-const coerceNumber = (val: unknown): unknown => typeof val === "string" ? (isNaN(Number(val)) ? undefined : Number(val)) : val;
+const coerceNumber = (val: unknown): unknown =>
+  typeof val === "string"
+    ? isNaN(Number(val))
+      ? undefined
+      : Number(val)
+    : val;
 
 const ConnectionSpikeInputBase = z.object({
   warningPercent: z
@@ -39,8 +44,8 @@ const ConnectionSpikeInput = z.preprocess(
     return data;
   },
   z.object({
-    warningPercent: z.preprocess(coerceNumber, z.number().optional())
-  })
+    warningPercent: z.preprocess(coerceNumber, z.number().optional()),
+  }),
 );
 
 interface ConnectionConcentration {
@@ -243,8 +248,8 @@ export function createDetectConnectionSpikeTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_detect_connection_spike",
-          });
+          tool: "pg_detect_connection_spike",
+        });
       }
     },
   };

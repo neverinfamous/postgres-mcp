@@ -114,14 +114,18 @@ export function createDescribeTableTool(
         );
 
         if (!typeCheck.rows || typeCheck.rows.length === 0) {
-          throw new Error(`Object '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`);
+          throw new Error(
+            `Object '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
+          );
         }
 
         const relkind = typeCheck.rows[0]?.["relkind"] as string;
 
         // Sequences have relkind 'S'
         if (relkind === "S") {
-          throw new Error(`'${schemaName}.${table}' is a sequence, not a table. Use pg_read_query with "SELECT * FROM ${schemaName}.${table}" to see sequence state, or pg_list_objects to discover objects.`);
+          throw new Error(
+            `'${schemaName}.${table}' is a sequence, not a table. Use pg_read_query with "SELECT * FROM ${schemaName}.${table}" to see sequence state, or pg_list_objects to discover objects.`,
+          );
         }
 
         // Only allow tables, views, materialized views, foreign tables, partitioned tables
@@ -135,7 +139,9 @@ export function createDescribeTableTool(
             c: "composite type",
           };
           const typeName = kindNames[relkind] ?? `unknown type (${relkind})`;
-          throw new Error(`'${schemaName}.${table}' is a ${typeName}, not a table. Use pg_list_objects to discover database objects.`);
+          throw new Error(
+            `'${schemaName}.${table}' is a ${typeName}, not a table. Use pg_list_objects to discover database objects.`,
+          );
         }
 
         return await adapter.describeTable(table, schemaName);
@@ -274,7 +280,7 @@ export function createCreateTableTool(
         await adapter.executeQuery(sql);
 
         // Manually invalidate metadata cache for deterministic updates
-        // This is necessary because pg_create_table uses executeQuery directly 
+        // This is necessary because pg_create_table uses executeQuery directly
         // to bypass validateQuery, meaning it misses executeWriteQuery's cache invalidation.
         adapter.invalidateTableCache(name, schema ?? "public");
 
@@ -289,7 +295,9 @@ export function createCreateTableTool(
         };
       } catch (error: unknown) {
         const rawTable = (params as Record<string, unknown> | null)?.["name"];
-        const rawSchema = (params as Record<string, unknown> | null)?.["schema"];
+        const rawSchema = (params as Record<string, unknown> | null)?.[
+          "schema"
+        ];
         return formatHandlerErrorResponse(error, {
           tool: "pg_create_table",
           ...(typeof rawTable === "string" && { table: rawTable }),
@@ -342,11 +350,14 @@ export function createDropTableTool(adapter: PostgresAdapter): ToolDefinition {
           existed,
         };
       } catch (error: unknown) {
-        const rawTable = (params as Record<string, unknown> | null)?.["table"] ?? 
-                         (params as Record<string, unknown> | null)?.["tableName"] ??
-                         (params as Record<string, unknown> | null)?.["name"];
-        const rawSchema = (params as Record<string, unknown> | null)?.["schema"];
-        return formatHandlerErrorResponse(error, { 
+        const rawTable =
+          (params as Record<string, unknown> | null)?.["table"] ??
+          (params as Record<string, unknown> | null)?.["tableName"] ??
+          (params as Record<string, unknown> | null)?.["name"];
+        const rawSchema = (params as Record<string, unknown> | null)?.[
+          "schema"
+        ];
+        return formatHandlerErrorResponse(error, {
           tool: "pg_drop_table",
           ...(typeof rawTable === "string" && { table: rawTable }),
           ...(typeof rawSchema === "string" && { schema: rawSchema }),

@@ -8,11 +8,17 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import type {
+  ToolDefinition,
+  RequestContext,
+} from "../../../../types/index.js";
 // import { z } from "zod";
 import { readOnly, admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerErrorResponse, formatPostgresError } from "../core/error-helpers.js";
+import {
+  formatHandlerErrorResponse,
+  formatPostgresError,
+} from "../core/error-helpers.js";
 import { ValidationError, QueryError } from "../../../../types/index.js";
 import type { BackupManager } from "../../../../audit/backup-manager.js";
 import type { SnapshotMetadata } from "../../../../audit/types.js";
@@ -45,7 +51,9 @@ export function createAuditListBackupsTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         if (!backupManager) {
-          throw new ValidationError("Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.");
+          throw new ValidationError(
+            "Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.",
+          );
         }
 
         const parsed = AuditListBackupsSchema.parse(params);
@@ -64,15 +72,20 @@ export function createAuditListBackupsTool(
           // Default: filter out verbose anonymous snapshots from Code Mode tracking
           snapshots = snapshots.filter((s) => s.target !== "unknown");
         }
-        
-        if (parsed.limit !== undefined && (parsed.limit < 0 || parsed.limit > 500)) {
-          throw new ValidationError("limit must be between 0 (no limit, capped at 500) and 500");
+
+        if (
+          parsed.limit !== undefined &&
+          (parsed.limit < 0 || parsed.limit > 500)
+        ) {
+          throw new ValidationError(
+            "limit must be between 0 (no limit, capped at 500) and 500",
+          );
         }
 
         const count = snapshots.length;
         const requestedLimit = parsed.limit ?? 20;
         const limit = requestedLimit === 0 ? 500 : requestedLimit;
-        
+
         // Check size of snapshots. If payload is too large, compact by default
         let isCompact = parsed.compact === true;
         let truncated = false;
@@ -81,8 +94,8 @@ export function createAuditListBackupsTool(
           truncated = true;
         }
 
-        if ((parsed.compact ?? true)) {
-           isCompact = true;
+        if (parsed.compact ?? true) {
+          isCompact = true;
         }
 
         interface CompactSnapshot {
@@ -95,19 +108,19 @@ export function createAuditListBackupsTool(
         }
         let resultSnapshots: SnapshotMetadata[] | CompactSnapshot[] = snapshots;
         if (isCompact) {
-            resultSnapshots = snapshots.map((s): CompactSnapshot => {
-                const compactSnap: CompactSnapshot = {
-                    filename: s.filename,
-                    timestamp: s.timestamp,
-                    tool: s.tool,
-                    target: s.target,
-                    type: s.type,
-                };
-                if (s.rowCount !== undefined && s.rowCount !== -1) {
-                    compactSnap.rowCount = s.rowCount;
-                }
-                return compactSnap;
-            });
+          resultSnapshots = snapshots.map((s): CompactSnapshot => {
+            const compactSnap: CompactSnapshot = {
+              filename: s.filename,
+              timestamp: s.timestamp,
+              tool: s.tool,
+              target: s.target,
+              type: s.type,
+            };
+            if (s.rowCount !== undefined && s.rowCount !== -1) {
+              compactSnap.rowCount = s.rowCount;
+            }
+            return compactSnap;
+          });
         }
 
         return {
@@ -119,7 +132,9 @@ export function createAuditListBackupsTool(
           ...(truncated && { truncated: true }),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_audit_list_backups" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_audit_list_backups",
+        });
       }
     },
   };
@@ -144,7 +159,9 @@ export function createAuditRestoreBackupTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         if (!backupManager) {
-          throw new ValidationError("Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.");
+          throw new ValidationError(
+            "Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.",
+          );
         }
 
         const parsed = AuditRestoreBackupSchema.parse(params);
@@ -153,7 +170,9 @@ export function createAuditRestoreBackupTool(
         }
 
         if (!parsed.dryRun && !parsed.restoreAs && !parsed.confirm) {
-          throw new ValidationError("confirm: true is required for in-place destructive restores");
+          throw new ValidationError(
+            "confirm: true is required for in-place destructive restores",
+          );
         }
 
         const snapshot = await backupManager.getSnapshot(parsed.filename);
@@ -177,29 +196,46 @@ export function createAuditRestoreBackupTool(
           ddl = ddl.replaceAll(originalQualified, restoreQualified);
 
           // Prevent sequence collisions on side-by-side restores by rewriting sequence names
-          const safeOriginalTarget = originalTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const seqPattern1 = new RegExp(`${safeOriginalTarget}_id_seq([0-9]*)`, 'g');
-          const seqPattern2 = new RegExp(`${safeOriginalTarget}_seq([0-9]*)`, 'g');
+          const safeOriginalTarget = originalTarget.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&",
+          );
+          const seqPattern1 = new RegExp(
+            `${safeOriginalTarget}_id_seq([0-9]*)`,
+            "g",
+          );
+          const seqPattern2 = new RegExp(
+            `${safeOriginalTarget}_seq([0-9]*)`,
+            "g",
+          );
           ddl = ddl.replace(seqPattern1, `${restoreName}_id_seq$1`);
           ddl = ddl.replace(seqPattern2, `${restoreName}_seq$1`);
-          
+
           // Rewrite data INSERT statements if present
           if (dataStatements) {
-            dataStatements = dataStatements.replaceAll(originalQualified, restoreQualified);
+            dataStatements = dataStatements.replaceAll(
+              originalQualified,
+              restoreQualified,
+            );
           }
         } else {
           // If we are doing in-place restore (no restoreAs)
           // The target object could be a TABLE, VIEW, MATERIALIZED VIEW, or SEQUENCE.
           // Since we might not know exactly which one, generate conditional drops for all possibilities.
-          ddl = `DROP TABLE IF EXISTS ${originalQualified} CASCADE;\n` +
-                `DROP VIEW IF EXISTS ${originalQualified} CASCADE;\n` +
-                `DROP MATERIALIZED VIEW IF EXISTS ${originalQualified} CASCADE;\n` +
-                `DROP SEQUENCE IF EXISTS ${originalQualified} CASCADE;\n` + 
-                `DROP SEQUENCE IF EXISTS "${originalSchema}"."${originalTarget}_id_seq" CASCADE;\n` +
-                `DROP SEQUENCE IF EXISTS "${originalSchema}"."${originalTarget}_seq" CASCADE;\n` + ddl;
-          
+          ddl =
+            `DROP TABLE IF EXISTS ${originalQualified} CASCADE;\n` +
+            `DROP VIEW IF EXISTS ${originalQualified} CASCADE;\n` +
+            `DROP MATERIALIZED VIEW IF EXISTS ${originalQualified} CASCADE;\n` +
+            `DROP SEQUENCE IF EXISTS ${originalQualified} CASCADE;\n` +
+            `DROP SEQUENCE IF EXISTS "${originalSchema}"."${originalTarget}_id_seq" CASCADE;\n` +
+            `DROP SEQUENCE IF EXISTS "${originalSchema}"."${originalTarget}_seq" CASCADE;\n` +
+            ddl;
+
           // Inject IF NOT EXISTS into sequence creation to prevent crashes on orphaned sequences
-          ddl = ddl.replace(/CREATE SEQUENCE (?!IF NOT EXISTS)/gi, "CREATE SEQUENCE IF NOT EXISTS ");
+          ddl = ddl.replace(
+            /CREATE SEQUENCE (?!IF NOT EXISTS)/gi,
+            "CREATE SEQUENCE IF NOT EXISTS ",
+          );
         }
 
         // Dry run: return DDL without executing
@@ -209,7 +245,9 @@ export function createAuditRestoreBackupTool(
             dryRun: true,
             metadata: snapshot.metadata,
             ddl,
-            ...(dataStatements && { dataStatements: dataStatements.split("\n").length }),
+            ...(dataStatements && {
+              dataStatements: dataStatements.split("\n").length,
+            }),
             ...(parsed.restoreAs && { restoreAs: parsed.restoreAs }),
           };
         }
@@ -222,7 +260,9 @@ export function createAuditRestoreBackupTool(
 
           // Execute data INSERTs if present
           if (dataStatements) {
-            const statements = dataStatements.split("\n").filter((s) => s.trim());
+            const statements = dataStatements
+              .split("\n")
+              .filter((s) => s.trim());
             for (const stmt of statements) {
               await adapter.executeQuery(stmt);
             }
@@ -232,9 +272,15 @@ export function createAuditRestoreBackupTool(
 
           // Invalidate cache since we modified table schema/data
           if (parsed.restoreAs) {
-            adapter.invalidateTableCache(parsed.restoreAs, snapshot.metadata.schema);
+            adapter.invalidateTableCache(
+              parsed.restoreAs,
+              snapshot.metadata.schema,
+            );
           } else {
-            adapter.invalidateTableCache(snapshot.metadata.target, snapshot.metadata.schema);
+            adapter.invalidateTableCache(
+              snapshot.metadata.target,
+              snapshot.metadata.schema,
+            );
           }
 
           return {
@@ -247,7 +293,8 @@ export function createAuditRestoreBackupTool(
               : 0,
             ...(parsed.restoreAs && {
               restoreAs: parsed.restoreAs,
-              hint: `Restored as "${originalSchema}"."${parsed.restoreAs}". ` +
+              hint:
+                `Restored as "${originalSchema}"."${parsed.restoreAs}". ` +
                 "Use pg_read_query to compare with the live table, then merge needed rows.",
             }),
           };
@@ -258,18 +305,31 @@ export function createAuditRestoreBackupTool(
           } catch {
             // Rollback failure is secondary
           }
-          const msg = formatPostgresError(restoreErr, { tool: "pg_audit_restore_backup" });
-          
-          const errStr = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
-          if (msg.includes("already exists") || msg.includes("duplicate") || errStr.includes("already exists")) {
-               const err = new ValidationError(`Restore failed: Table '${parsed.restoreAs ?? snapshot.metadata.target}' already exists.`);
-               Object.assign(err, { code: "OBJECT_ALREADY_EXISTS" });
-               throw err;
+          const msg = formatPostgresError(restoreErr, {
+            tool: "pg_audit_restore_backup",
+          });
+
+          const errStr =
+            restoreErr instanceof Error
+              ? restoreErr.message
+              : String(restoreErr);
+          if (
+            msg.includes("already exists") ||
+            msg.includes("duplicate") ||
+            errStr.includes("already exists")
+          ) {
+            const err = new ValidationError(
+              `Restore failed: Table '${parsed.restoreAs ?? snapshot.metadata.target}' already exists.`,
+            );
+            Object.assign(err, { code: "OBJECT_ALREADY_EXISTS" });
+            throw err;
           }
           throw new ValidationError(`Restore failed: ${msg}`);
         }
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_audit_restore_backup" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_audit_restore_backup",
+        });
       }
     },
   };
@@ -294,7 +354,9 @@ export function createAuditDiffBackupTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         if (!backupManager) {
-          throw new ValidationError("Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.");
+          throw new ValidationError(
+            "Audit backup not enabled. Start with --audit-log <path> --audit-backup to enable.",
+          );
         }
 
         const parsed = AuditDiffBackupSchema.parse(params);
@@ -327,65 +389,73 @@ export function createAuditDiffBackupTool(
             objectExists = false;
             currentDdl = `-- Object "${schema}"."${target}" does not exist (dropped?)`;
           } else {
-             // Let's use getTableDDL of adapter for accurate DDL matching
-             const ddlInfo = await adapter.executeQuery(
+            // Let's use getTableDDL of adapter for accurate DDL matching
+            const ddlInfo = await adapter.executeQuery(
               `SELECT
                  pg_catalog.pg_get_indexdef(i.indexrelid, 0, true) AS ddl
                FROM pg_catalog.pg_class c
                JOIN pg_catalog.pg_index i ON c.oid = i.indrelid
                JOIN pg_catalog.pg_class c2 ON i.indexrelid = c2.oid
                WHERE c.relname = $1 AND c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = $2) AND i.indisprimary = true`,
-              [target, schema]
-             );
-             
-              const ddlLines = columns.map((col) => {
+              [target, schema],
+            );
+
+            const ddlLines = columns.map((col) => {
               let line = `    "${col.name}" ${col.type}`;
               if (col.defaultValue !== undefined && col.defaultValue !== null) {
-                const defVal = typeof col.defaultValue === "object"
-                  ? JSON.stringify(col.defaultValue)
-                  : String(col.defaultValue as string | number | boolean);
+                const defVal =
+                  typeof col.defaultValue === "object"
+                    ? JSON.stringify(col.defaultValue)
+                    : String(col.defaultValue as string | number | boolean);
                 line += ` DEFAULT ${defVal}`;
               }
               if (!col.nullable) line += " NOT NULL";
               return line;
             });
-            
+
             // To prevent false positive drift: The snapshot diff might have `PRIMARY KEY` inline or as index.
             // If the snapshot uses inline PRIMARY KEY, we should include it too.
             // Actually, we'll just check if snapshot DDL has PRIMARY KEY inline.
             const currLines = [...ddlLines];
-            
+
             const pkRow = ddlInfo.rows?.[0];
-            const pkDdlRaw = pkRow?.['ddl'];
+            const pkDdlRaw = pkRow?.["ddl"];
             const pkSql = typeof pkDdlRaw === "string" ? pkDdlRaw : undefined;
-            if (pkSql !== undefined && snapshot.ddl.includes('PRIMARY KEY')) {
-               // extract keys
-               const match = /USING btree \((.+?)\)/i.exec(pkSql);
-               const pkCols = match !== null ? match[1] : undefined;
-               if (pkCols !== undefined) {
-                 // pg_get_indexdef might not quote column names, whereas pg_dump always does.
-                 // We quote them here to perfectly match the snapshot's DDL and avoid false positive drift.
-                 const quotedCols = pkCols
-                   .split(',')
-                   .map(c => c.trim().startsWith('"') ? c.trim() : `"${c.trim()}"`)
-                   .join(', ');
-                 currLines.push(`    PRIMARY KEY (${quotedCols})`);
-               }
+            if (pkSql !== undefined && snapshot.ddl.includes("PRIMARY KEY")) {
+              // extract keys
+              const match = /USING btree \((.+?)\)/i.exec(pkSql);
+              const pkCols = match !== null ? match[1] : undefined;
+              if (pkCols !== undefined) {
+                // pg_get_indexdef might not quote column names, whereas pg_dump always does.
+                // We quote them here to perfectly match the snapshot's DDL and avoid false positive drift.
+                const quotedCols = pkCols
+                  .split(",")
+                  .map((c) =>
+                    c.trim().startsWith('"') ? c.trim() : `"${c.trim()}"`,
+                  )
+                  .join(", ");
+                currLines.push(`    PRIMARY KEY (${quotedCols})`);
+              }
             }
 
             currentDdl = `CREATE TABLE "${schema}"."${target}" (\n${currLines.join(",\n")}\n);`;
-            
+
             // Re-add CREATE SEQUENCE if snapshot had it so it aligns perfectly
-            if (snapshot.ddl.includes('CREATE SEQUENCE')) {
-               const seqRegex = /CREATE SEQUENCE IF NOT EXISTS "([^"]+)"\."([^"]+)"/i;
-               const seqMatch = seqRegex.exec(snapshot.ddl);
-               const seqSchema = seqMatch?.[1];
-               const seqName = seqMatch?.[2];
-               if (seqSchema !== undefined && seqName !== undefined) {
-                   currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${seqSchema}"."${seqName}";\n` + currentDdl;
-               } else {
-                   currentDdl = `CREATE SEQUENCE IF NOT EXISTS "${schema}"."${target}_id_seq";\n` + currentDdl;
-               }
+            if (snapshot.ddl.includes("CREATE SEQUENCE")) {
+              const seqRegex =
+                /CREATE SEQUENCE IF NOT EXISTS "([^"]+)"\."([^"]+)"/i;
+              const seqMatch = seqRegex.exec(snapshot.ddl);
+              const seqSchema = seqMatch?.[1];
+              const seqName = seqMatch?.[2];
+              if (seqSchema !== undefined && seqName !== undefined) {
+                currentDdl =
+                  `CREATE SEQUENCE IF NOT EXISTS "${seqSchema}"."${seqName}";\n` +
+                  currentDdl;
+              } else {
+                currentDdl =
+                  `CREATE SEQUENCE IF NOT EXISTS "${schema}"."${target}_id_seq";\n` +
+                  currentDdl;
+              }
             }
           }
         } catch {
@@ -417,15 +487,21 @@ export function createAuditDiffBackupTool(
         const schemaDrift = additions.length > 0 || removals.length > 0;
 
         // §3: Volume drift analysis — compare snapshot metadata against current pg_class stats
-        let volumeDrift: {
-          rowCountSnapshot?: number;
-          rowCountCurrent?: number;
-          sizeBytesSnapshot?: number;
-          sizeBytesCurrent?: number;
-          summary: string;
-        } | undefined;
+        let volumeDrift:
+          | {
+              rowCountSnapshot?: number;
+              rowCountCurrent?: number;
+              sizeBytesSnapshot?: number;
+              sizeBytesCurrent?: number;
+              summary: string;
+            }
+          | undefined;
 
-        if (objectExists && (snapshot.metadata.rowCount !== undefined || snapshot.metadata.totalSizeBytes !== undefined)) {
+        if (
+          objectExists &&
+          (snapshot.metadata.rowCount !== undefined ||
+            snapshot.metadata.totalSizeBytes !== undefined)
+        ) {
           try {
             const sizeResult = await adapter.executeQuery(
               `SELECT reltuples::bigint AS row_count,
@@ -435,27 +511,42 @@ export function createAuditDiffBackupTool(
                WHERE c.relname = $1 AND n.nspname = $2`,
               [target, schema],
             );
-            const currentStats = sizeResult.rows?.[0] as { row_count?: number | string; total_size_bytes?: number } | undefined;
+            const currentStats = sizeResult.rows?.[0] as
+              | { row_count?: number | string; total_size_bytes?: number }
+              | undefined;
 
             if (currentStats) {
               const rowSnapRaw = snapshot.metadata.rowCount;
               const rowSnap = rowSnapRaw === -1 ? undefined : rowSnapRaw;
               let countRaw: number | undefined;
-              if (currentStats.row_count === "-1" || String(currentStats.row_count) === "-1") {
+              if (
+                currentStats.row_count === "-1" ||
+                String(currentStats.row_count) === "-1"
+              ) {
                 try {
-                  const countRes = await adapter.executeQuery(`SELECT count(*)::int as exact_count FROM "${schema}"."${target}"`);
-                  const cVal = countRes.rows?.[0]?.['exact_count'];
-                  countRaw = (typeof cVal === "number" || typeof cVal === "string")
-                    ? parseInt(String(cVal), 10)
-                    : undefined;
+                  const countRes = await adapter.executeQuery(
+                    `SELECT count(*)::int as exact_count FROM "${schema}"."${target}"`,
+                  );
+                  const cVal = countRes.rows?.[0]?.["exact_count"];
+                  countRaw =
+                    typeof cVal === "number" || typeof cVal === "string"
+                      ? parseInt(String(cVal), 10)
+                      : undefined;
                 } catch {
                   // Fallback count is best-effort
                 }
               }
-              const rowCurrRaw = countRaw ?? (currentStats.row_count !== undefined ? parseInt(String(currentStats.row_count), 10) : undefined);
+              const rowCurrRaw =
+                countRaw ??
+                (currentStats.row_count !== undefined
+                  ? parseInt(String(currentStats.row_count), 10)
+                  : undefined);
               const rowCurr = rowCurrRaw === -1 ? undefined : rowCurrRaw;
               const sizeSnap = snapshot.metadata.totalSizeBytes;
-              const sizeCurr = typeof currentStats.total_size_bytes === "number" ? currentStats.total_size_bytes : undefined;
+              const sizeCurr =
+                typeof currentStats.total_size_bytes === "number"
+                  ? currentStats.total_size_bytes
+                  : undefined;
 
               // Generate human-readable summary
               const parts: string[] = [];
@@ -463,10 +554,16 @@ export function createAuditDiffBackupTool(
                 if (rowCurr === 0 && rowSnap > 0) {
                   parts.push(`Row count dropped from ${String(rowSnap)} → 0`);
                 } else if (rowCurr !== rowSnap) {
-                  parts.push(`Row count changed from ${String(rowSnap)} → ${String(rowCurr)}`);
+                  parts.push(
+                    `Row count changed from ${String(rowSnap)} → ${String(rowCurr)}`,
+                  );
                 }
               }
-              if (sizeSnap !== undefined && sizeCurr !== undefined && sizeCurr !== sizeSnap) {
+              if (
+                sizeSnap !== undefined &&
+                sizeCurr !== undefined &&
+                sizeCurr !== sizeSnap
+              ) {
                 const snapMB = (sizeSnap / (1024 * 1024)).toFixed(1);
                 const currMB = (sizeCurr / (1024 * 1024)).toFixed(1);
                 parts.push(`Size changed from ${snapMB}MB → ${currMB}MB`);
@@ -477,17 +574,28 @@ export function createAuditDiffBackupTool(
                 ...(rowCurr !== undefined && { rowCountCurrent: rowCurr }),
                 ...(sizeSnap !== undefined && { sizeBytesSnapshot: sizeSnap }),
                 ...(sizeCurr !== undefined && { sizeBytesCurrent: sizeCurr }),
-                summary: parts.length > 0 ? parts.join("; ") : "No volume change detected",
+                summary:
+                  parts.length > 0
+                    ? parts.join("; ")
+                    : "No volume change detected",
               };
             }
           } catch {
             // Volume drift is best-effort
           }
         }
-        
+
         let hasDifferences = schemaDrift;
-        if (volumeDrift && ((volumeDrift.rowCountCurrent !== undefined && volumeDrift.rowCountSnapshot !== undefined && volumeDrift.rowCountCurrent !== volumeDrift.rowCountSnapshot) || (volumeDrift.sizeBytesCurrent !== undefined && volumeDrift.sizeBytesSnapshot !== undefined && volumeDrift.sizeBytesCurrent !== volumeDrift.sizeBytesSnapshot))) {
-            hasDifferences = true;
+        if (
+          volumeDrift &&
+          ((volumeDrift.rowCountCurrent !== undefined &&
+            volumeDrift.rowCountSnapshot !== undefined &&
+            volumeDrift.rowCountCurrent !== volumeDrift.rowCountSnapshot) ||
+            (volumeDrift.sizeBytesCurrent !== undefined &&
+              volumeDrift.sizeBytesSnapshot !== undefined &&
+              volumeDrift.sizeBytesCurrent !== volumeDrift.sizeBytesSnapshot))
+        ) {
+          hasDifferences = true;
         }
 
         return {
@@ -497,11 +605,23 @@ export function createAuditDiffBackupTool(
           hasDifferences,
           ...(schemaDrift && {
             diff: {
-              ...(additions.length > 0 && { 
-                additions: parsed.compact && additions.length > 50 ? [...additions.slice(0, 50), `... and ${String(additions.length - 50)} more`] : additions 
+              ...(additions.length > 0 && {
+                additions:
+                  parsed.compact && additions.length > 50
+                    ? [
+                        ...additions.slice(0, 50),
+                        `... and ${String(additions.length - 50)} more`,
+                      ]
+                    : additions,
               }),
-              ...(removals.length > 0 && { 
-                removals: parsed.compact && removals.length > 50 ? [...removals.slice(0, 50), `... and ${String(removals.length - 50)} more`] : removals 
+              ...(removals.length > 0 && {
+                removals:
+                  parsed.compact && removals.length > 50
+                    ? [
+                        ...removals.slice(0, 50),
+                        `... and ${String(removals.length - 50)} more`,
+                      ]
+                    : removals,
               }),
             },
           }),
@@ -512,7 +632,9 @@ export function createAuditDiffBackupTool(
           }),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_audit_diff_backup" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_audit_diff_backup",
+        });
       }
     },
   };

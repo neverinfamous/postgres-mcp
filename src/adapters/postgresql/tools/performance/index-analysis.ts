@@ -69,11 +69,16 @@ export function createUnusedIndexesTool(
       try {
         const parsed = UnusedIndexesSchema.parse(params);
         const rawLimit = parsed.limit;
-        const limit = rawLimit === undefined ? 20 : rawLimit === 0 ? null : rawLimit;
+        const limit =
+          rawLimit === undefined ? 20 : rawLimit === 0 ? null : rawLimit;
 
         // P154: Validate schema existence before querying (throws ValidationError on failure)
         if (parsed.schema !== undefined) {
-          await validatePerformanceTableExists(adapter, undefined, parsed.schema);
+          await validatePerformanceTableExists(
+            adapter,
+            undefined,
+            parsed.schema,
+          );
         }
 
         let whereClause =
@@ -204,11 +209,16 @@ export function createDuplicateIndexesTool(
       try {
         const parsed = DuplicateIndexesSchema.parse(params);
         const rawLimit = parsed.limit;
-        const limit = rawLimit === undefined ? 50 : rawLimit === 0 ? null : rawLimit;
+        const limit =
+          rawLimit === undefined ? 50 : rawLimit === 0 ? null : rawLimit;
 
         // P154: Validate schema existence before querying (throws ValidationError on failure)
         if (parsed.schema !== undefined) {
-          await validatePerformanceTableExists(adapter, undefined, parsed.schema);
+          await validatePerformanceTableExists(
+            adapter,
+            undefined,
+            parsed.schema,
+          );
         }
 
         const queryParams: string[] = [];
@@ -297,7 +307,9 @@ export function createDuplicateIndexesTool(
         }
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_duplicate_indexes" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_duplicate_indexes",
+        });
       }
     },
   };

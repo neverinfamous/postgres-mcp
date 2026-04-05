@@ -17,17 +17,15 @@ import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
 import { ValidationError } from "../../../../types/errors.js";
-import { 
+import {
   DiagnoseOutputSchema,
   DiagnoseInputSchemaBase,
-  DiagnoseInputSchema
+  DiagnoseInputSchema,
 } from "../../schemas/index.js";
 
 // =============================================================================
 // Schemas
 // =============================================================================
-
-
 
 // =============================================================================
 // Health Rating Helpers
@@ -109,7 +107,11 @@ async function diagnoseSlowQueries(
 
   const status = rateValue(count, 2, 5, false);
 
-  return { status, data: count > 0 ? { slowQueries: queries, count } : { count }, recommendations };
+  return {
+    status,
+    data: count > 0 ? { slowQueries: queries, count } : { count },
+    recommendations,
+  };
 }
 
 async function diagnoseBlockingLocks(
@@ -151,7 +153,11 @@ async function diagnoseBlockingLocks(
 
   const status = rateValue(count, 0, 2, false);
 
-  return { status, data: count > 0 ? { blockedQueries: blocked, count } : { count }, recommendations };
+  return {
+    status,
+    data: count > 0 ? { blockedQueries: blocked, count } : { count },
+    recommendations,
+  };
 }
 
 async function diagnoseConnectionPressure(adapter: PostgresAdapter): Promise<
@@ -383,9 +389,14 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
         const topN = Math.max(1, Math.min(100, rawTopN));
 
         if (schema) {
-          const check = await adapter.executeQuery("SELECT 1 FROM information_schema.schemata WHERE schema_name = $1", [schema]);
+          const check = await adapter.executeQuery(
+            "SELECT 1 FROM information_schema.schemata WHERE schema_name = $1",
+            [schema],
+          );
           if (!check.rows || check.rows.length === 0) {
-            throw new Error(`Schema "${schema}" does not exist. Use pg_list_objects with type 'table' to see available schemas.`);
+            throw new Error(
+              `Schema "${schema}" does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            );
           }
         }
 
@@ -445,8 +456,8 @@ export function createDiagnoseTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_diagnose_database_performance",
-          });
+          tool: "pg_diagnose_database_performance",
+        });
       }
     },
   };

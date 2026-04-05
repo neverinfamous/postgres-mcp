@@ -18,7 +18,10 @@ import {
   sanitizeIdentifier,
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
-import { VectorInsertOutputSchema, VectorBatchInsertOutputSchema } from "../../schemas/index.js";
+import {
+  VectorInsertOutputSchema,
+  VectorBatchInsertOutputSchema,
+} from "../../schemas/index.js";
 import { checkTableAndColumn } from "./data.js";
 
 export function createVectorInsertTool(
@@ -81,8 +84,8 @@ export function createVectorInsertTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column", "vector"],
           };
         }
@@ -90,8 +93,8 @@ export function createVectorInsertTool(
           return {
             success: false,
             error: "column (or col) parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column", "vector"],
           };
         }
@@ -104,8 +107,8 @@ export function createVectorInsertTool(
             success: false,
             error:
               "vector parameter is required and must be a non-empty array of numbers",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column", "vector"],
           };
         }
@@ -148,9 +151,9 @@ export function createVectorInsertTool(
           resolvedTable,
           parsed.column,
           insertSchemaName,
-          (params as Record<string, unknown>)?.[
-            "transactionId"
-          ] as string | undefined
+          (params as Record<string, unknown>)?.["transactionId"] as
+            | string
+            | undefined,
         );
         if (missing) {
           return { success: false, ...missing };
@@ -183,8 +186,10 @@ export function createVectorInsertTool(
           const txId = (params as Record<string, unknown>)?.[
             "transactionId"
           ] as string | undefined;
-          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
-          const result = client 
+          const client = txId
+            ? adapter.getTransactionConnection(txId)
+            : undefined;
+          const result = client
             ? await adapter.executeOnConnection(client, sql, queryParams)
             : await adapter.executeQuery(sql, queryParams);
 
@@ -224,8 +229,10 @@ export function createVectorInsertTool(
           const txId = (params as Record<string, unknown>)?.[
             "transactionId"
           ] as string | undefined;
-          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
-          const result = client 
+          const client = txId
+            ? adapter.getTransactionConnection(txId)
+            : undefined;
+          const result = client
             ? await adapter.executeOnConnection(client, sql, params_)
             : await adapter.executeQuery(sql, params_);
           return { success: true, rowsAffected: result.rowsAffected };
@@ -330,8 +337,8 @@ export function createVectorBatchInsertTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column", "vectors"],
           };
         }
@@ -339,8 +346,8 @@ export function createVectorBatchInsertTool(
           return {
             success: false,
             error: "column (or col) parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column", "vectors"],
           };
         }
@@ -348,10 +355,11 @@ export function createVectorBatchInsertTool(
         if (!parsed.vectors || !Array.isArray(parsed.vectors)) {
           return {
             success: false,
-            error: "Validation error: vectors parameter is required and must be a non-empty array",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
-            suggestion: "Provide an array of vector objects"
+            error:
+              "Validation error: vectors parameter is required and must be a non-empty array",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion: "Provide an array of vector objects",
           };
         }
 
@@ -373,9 +381,9 @@ export function createVectorBatchInsertTool(
           resolvedTable,
           parsed.column,
           resolvedSchema ?? "public",
-          (params as Record<string, unknown>)?.[
-            "transactionId"
-          ] as string | undefined
+          (params as Record<string, unknown>)?.["transactionId"] as
+            | string
+            | undefined,
         );
         if (existenceError !== null) {
           return { success: false, ...existenceError };
@@ -425,8 +433,10 @@ export function createVectorBatchInsertTool(
           const txId = (params as Record<string, unknown>)?.[
             "transactionId"
           ] as string | undefined;
-          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
-          const result = client 
+          const client = txId
+            ? adapter.getTransactionConnection(txId)
+            : undefined;
+          const result = client
             ? await adapter.executeOnConnection(client, sql, allParams)
             : await adapter.executeQuery(sql, allParams);
           return {
@@ -457,7 +467,9 @@ export function createVectorBatchInsertTool(
           throw error;
         }
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_vector_batch_insert" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_vector_batch_insert",
+        });
       }
     },
   };

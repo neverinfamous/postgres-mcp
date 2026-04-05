@@ -35,20 +35,20 @@ name: Agentic Maintenance
 
 on:
   schedule:
-    - cron: '37 0 * * *' # Daily (based on minimum expires: 14 days)
+    - cron: "37 0 * * *" # Daily (based on minimum expires: 14 days)
   workflow_dispatch:
     inputs:
       operation:
-        description: 'Optional maintenance operation to run'
+        description: "Optional maintenance operation to run"
         required: false
         type: choice
-        default: ''
+        default: ""
         options:
-          - ''
-          - 'disable'
-          - 'enable'
-          - 'update'
-          - 'upgrade'
+          - ""
+          - "disable"
+          - "enable"
+          - "update"
+          - "upgrade"
 
 permissions: {}
 

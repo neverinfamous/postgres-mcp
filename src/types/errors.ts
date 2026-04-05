@@ -58,7 +58,10 @@ export class PostgresMcpError extends Error {
 
     // Prefer the suggestion's specific code and category over generic ones
     this.code = match?.code && REFINABLE_CODES.has(code) ? match.code : code;
-    this.category = (match?.category !== undefined && REFINABLE_CODES.has(code)) ? match.category : category;
+    this.category =
+      match?.category !== undefined && REFINABLE_CODES.has(code)
+        ? match.category
+        : category;
 
     // Capture stack trace
     Error.captureStackTrace?.(this, this.constructor);

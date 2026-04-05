@@ -265,10 +265,11 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
            WHERE s.relkind = 'S' AND t.relname = $1 AND n.nspname = $2`,
           [tableName, schemaName],
         );
-        const ownedSeqs = ownedSeqsResult.rows?.map(r => String(r['seq_name'])) ?? [];
+        const ownedSeqs =
+          ownedSeqsResult.rows?.map((r) => String(r["seq_name"])) ?? [];
         let sequenceDdls = "";
         for (const seq of ownedSeqs) {
-           sequenceDdls += `CREATE SEQUENCE IF NOT EXISTS ${sanitizeTableName(seq, schemaName)};\n`;
+          sequenceDdls += `CREATE SEQUENCE IF NOT EXISTS ${sanitizeTableName(seq, schemaName)};\n`;
         }
 
         const tableInfo = await adapter.describeTable(tableName, schemaName);
@@ -429,9 +430,10 @@ export function createDumpSchemaTool(
           ],
         });
       } catch (error: unknown) {
-        return Promise.resolve(formatHandlerErrorResponse(error, { tool: "pg_dump_schema" }));
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_dump_schema" }),
+        );
       }
     },
   };
 }
-

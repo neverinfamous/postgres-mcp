@@ -13,7 +13,6 @@ import {
   preprocessPartitionParams,
 } from "./preprocess.js";
 
-
 /**
  * Preprocess CreatePartitionedTable parameters:
  * - Parse schema.table format from name (e.g., 'myschema.events' → schema: 'myschema', name: 'events')
@@ -146,7 +145,10 @@ export const CreatePartitionSchemaBase = z.object({
   name: z.string().optional().describe("Partition name (alias: partitionName)"),
   partitionName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
-  ifNotExists: z.boolean().optional().describe("Skip if partition already exists"),
+  ifNotExists: z
+    .boolean()
+    .optional()
+    .describe("Skip if partition already exists"),
   forValues: z
     .string()
     .optional()
@@ -199,9 +201,7 @@ export const CreatePartitionSchema = z.preprocess(
     },
   )
     .refine(
-      (data) =>
-        data.name !== undefined ||
-        data.partitionName !== undefined,
+      (data) => data.name !== undefined || data.partitionName !== undefined,
       {
         message: "One of name or partitionName is required",
         path: ["name"],
@@ -216,7 +216,9 @@ export const CreatePartitionSchema = z.preprocess(
       (data) =>
         data.subpartitionBy === undefined ||
         (typeof data.subpartitionBy === "string" &&
-          ["range", "list", "hash"].includes(data.subpartitionBy.toLowerCase())),
+          ["range", "list", "hash"].includes(
+            data.subpartitionBy.toLowerCase(),
+          )),
       {
         message: "subpartitionBy must be range, list, or hash",
         path: ["subpartitionBy"],
@@ -359,43 +361,60 @@ export const DetachPartitionSchema = z.preprocess(
 /**
  * pg_create_partitioned_table output
  */
-export const CreatePartitionedTableOutputSchema = z.object({
-  table: z.string().optional().describe("Table name (schema.name)"),
-  partitionBy: z.string().optional().describe("Partition strategy used"),
-  partitionKey: z.string().optional().describe("Partition key column(s)"),
-  primaryKey: z.array(z.string()).optional().describe("Primary key columns if set"),
-  alreadyExists: z.boolean().optional().describe("True if ifNotExists was used and table already existed"),
-}).extend(ErrorResponseFields.shape);
+export const CreatePartitionedTableOutputSchema = z
+  .object({
+    table: z.string().optional().describe("Table name (schema.name)"),
+    partitionBy: z.string().optional().describe("Partition strategy used"),
+    partitionKey: z.string().optional().describe("Partition key column(s)"),
+    primaryKey: z
+      .array(z.string())
+      .optional()
+      .describe("Primary key columns if set"),
+    alreadyExists: z
+      .boolean()
+      .optional()
+      .describe("True if ifNotExists was used and table already existed"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 /**
  * pg_create_partition output
  */
-export const CreatePartitionOutputSchema = z.object({
-  partition: z.string().optional().describe("Partition name (schema.name)"),
-  parent: z.string().optional().describe("Parent table name"),
-  bounds: z.string().optional().describe("Partition bounds description"),
-  subpartitionBy: z.string().optional().describe("Sub-partition strategy"),
-  subpartitionKey: z.string().optional().describe("Sub-partition key"),
-  alreadyExists: z.boolean().optional().describe("True if ifNotExists was used and partition already existed"),
-}).extend(ErrorResponseFields.shape);
+export const CreatePartitionOutputSchema = z
+  .object({
+    partition: z.string().optional().describe("Partition name (schema.name)"),
+    parent: z.string().optional().describe("Parent table name"),
+    bounds: z.string().optional().describe("Partition bounds description"),
+    subpartitionBy: z.string().optional().describe("Sub-partition strategy"),
+    subpartitionKey: z.string().optional().describe("Sub-partition key"),
+    alreadyExists: z
+      .boolean()
+      .optional()
+      .describe("True if ifNotExists was used and partition already existed"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 /**
  * pg_attach_partition output
  */
-export const AttachPartitionOutputSchema = z.object({
-  success: z.boolean().optional().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  parent: z.string().optional().describe("Parent table name"),
-  partition: z.string().optional().describe("Attached partition name"),
-  bounds: z.string().optional().describe("Partition bounds description"),
-}).extend(ErrorResponseFields.shape);
+export const AttachPartitionOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    parent: z.string().optional().describe("Parent table name"),
+    partition: z.string().optional().describe("Attached partition name"),
+    bounds: z.string().optional().describe("Partition bounds description"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 /**
  * pg_detach_partition output
  */
-export const DetachPartitionOutputSchema = z.object({
-  success: z.boolean().optional().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  parent: z.string().optional().describe("Parent table name"),
-  partition: z.string().optional().describe("Detached partition name"),
-}).extend(ErrorResponseFields.shape);
+export const DetachPartitionOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    parent: z.string().optional().describe("Parent table name"),
+    partition: z.string().optional().describe("Detached partition name"),
+  })
+  .extend(ErrorResponseFields.shape);

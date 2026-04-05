@@ -53,7 +53,11 @@ export {
   fetchTableNodes,
 } from "./helpers.js";
 export type { FkEdge, TableNode } from "./helpers.js";
-export { detectCycles, topologicalSort, calculateMaxDepth } from "./algorithms.js";
+export {
+  detectCycles,
+  topologicalSort,
+  calculateMaxDepth,
+} from "./algorithms.js";
 
 // =============================================================================
 // pg_dependency_graph
@@ -78,7 +82,8 @@ export function createDependencyGraphTool(
         // Validate schema existence when filtering by schema
         await checkSchemaExists(adapter, parsed.schema);
 
-        const includeRowCounts = parsed.includeRowCounts !== false && !parsed.compact;
+        const includeRowCounts =
+          parsed.includeRowCounts !== false && !parsed.compact;
 
         const excludeExt = parsed.excludeExtensionSchemas;
 
@@ -135,7 +140,7 @@ export function createDependencyGraphTool(
 
         const limit = Math.min(Math.max(parsed.limit ?? 100, 1), 500);
         const originalNodeCount = allNodes.size;
-        
+
         // Truncate nodes if needed
         let finalNodes = [...allNodes].sort();
         const isTruncated = finalNodes.length > limit;
@@ -158,9 +163,10 @@ export function createDependencyGraphTool(
         });
 
         // Build edges (only for active nodes)
-        const finalEdges = fks.filter(fk => 
-          activeNodes.has(qualifiedName(fk.fromSchema, fk.fromTable)) && 
-          activeNodes.has(qualifiedName(fk.toSchema, fk.toTable))
+        const finalEdges = fks.filter(
+          (fk) =>
+            activeNodes.has(qualifiedName(fk.fromSchema, fk.fromTable)) &&
+            activeNodes.has(qualifiedName(fk.toSchema, fk.toTable)),
         );
 
         const edges = parsed.compact
@@ -189,19 +195,21 @@ export function createDependencyGraphTool(
             totalTables: originalNodeCount,
             totalRelationships: fks.length,
             maxDepth,
-            ...(parsed.compact ? {} : { 
-              ...(rootTables.length > 0 ? { rootTables } : {}),
-              ...(leafTables.length > 0 ? { leafTables } : {})
-            }),
+            ...(parsed.compact
+              ? {}
+              : {
+                  ...(rootTables.length > 0 ? { rootTables } : {}),
+                  ...(leafTables.length > 0 ? { leafTables } : {}),
+                }),
           },
-          hint: isTruncated 
-            ? `Result truncated to ${String(limit)} nodes. Use 'schema' filter to narrow the graph.` 
+          hint: isTruncated
+            ? `Result truncated to ${String(limit)} nodes. Use 'schema' filter to narrow the graph.`
             : undefined,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_dependency_graph",
-          });
+          tool: "pg_dependency_graph",
+        });
       }
     },
   };
@@ -335,8 +343,8 @@ export function createTopologicalSortTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_topological_sort",
-          });
+          tool: "pg_topological_sort",
+        });
       }
     },
   };
@@ -377,7 +385,9 @@ export function createCascadeSimulatorTool(
 
         // Check if source table exists
         if (!tableMap.has(sourceQName)) {
-          throw new ValidationError(`Table '${sourceQName}' does not exist. Use pg_list_tables to verify.`);
+          throw new ValidationError(
+            `Table '${sourceQName}' does not exist. Use pg_list_tables to verify.`,
+          );
         }
 
         // Build reverse adjacency: for each table, find what references it
@@ -500,8 +510,8 @@ export function createCascadeSimulatorTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_cascade_simulator",
-          });
+          tool: "pg_cascade_simulator",
+        });
       }
     },
   };

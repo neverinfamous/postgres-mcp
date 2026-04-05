@@ -129,7 +129,7 @@ test.describe("Errors: JSONB", () => {
         table: "_e2e_nonexistent_xyz",
         column: "doc",
         path: "{key}",
-        value: "\"test\"",
+        value: '"test"',
       });
       expectHandlerError(p);
     } finally {
@@ -294,7 +294,6 @@ test.describe("Errors: Vector", () => {
     }
   });
 
-
   test("vector_distance with mismatched dimensions → DIMENSION_MISMATCH", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
     try {
@@ -320,7 +319,6 @@ test.describe("Errors: Vector", () => {
       await client.close();
     }
   });
-
 
   test("vector_normalize with empty vector → structured error", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
@@ -388,10 +386,14 @@ test.describe("Errors: Performance", () => {
   test("partition_strategy_suggest on nonexistent table → structured error", async ({}, testInfo) => {
     const client = await createClient(getBaseURL(testInfo));
     try {
-      const p = await callToolAndParse(client, "pg_partition_strategy_suggest", {
-        table: "_e2e_nonexistent_xyz",
-        thresholdBytes: -1, // invalid
-      });
+      const p = await callToolAndParse(
+        client,
+        "pg_partition_strategy_suggest",
+        {
+          table: "_e2e_nonexistent_xyz",
+          thresholdBytes: -1, // invalid
+        },
+      );
       expectHandlerError(p);
     } finally {
       await client.close();
@@ -604,7 +606,4 @@ test.describe("Errors: Kcache", () => {
       await client.close();
     }
   });
-
-
 });
-

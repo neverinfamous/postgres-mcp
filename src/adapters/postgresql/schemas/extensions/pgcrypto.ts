@@ -120,10 +120,7 @@ export const PgcryptoEncryptSchema = PgcryptoEncryptSchemaBase.transform(
  * Uses base schema for MCP exposure and transform schema for validation.
  */
 export const PgcryptoDecryptSchemaBase = z.object({
-  data: z
-    .string()
-    .optional()
-    .describe("Encrypted data (base64 from encrypt)"),
+  data: z.string().optional().describe("Encrypted data (base64 from encrypt)"),
   encryptedData: z.string().optional().describe("Alias for data"),
   password: z.string().optional().describe("Decryption password"),
   key: z.string().optional().describe("Alias for password"),

@@ -16,7 +16,9 @@ export const PostgisCreateExtensionOutputSchema = z
     alreadyExists: z
       .boolean()
       .optional()
-      .describe("Whether PostGIS was already installed (true on idempotent calls)"),
+      .describe(
+        "Whether PostGIS was already installed (true on idempotent calls)",
+      ),
     error: z.string().optional().describe("Error message"),
   })
   .describe("PostGIS extension creation result");
@@ -185,7 +187,10 @@ export const GeoIndexOptimizeOutputSchema = z
     error: z.string().optional().describe("Error message"),
     code: z.string().optional().describe("Error code (e.g. TABLE_NOT_FOUND)"),
     category: z.string().optional().describe("Error category"),
-    recoverable: z.boolean().optional().describe("Whether error is recoverable"),
+    recoverable: z
+      .boolean()
+      .optional()
+      .describe("Whether error is recoverable"),
     suggestion: z.string().optional().describe("Helpful suggestion"),
     spatialIndexes: z
       .array(z.record(z.string(), z.unknown()))

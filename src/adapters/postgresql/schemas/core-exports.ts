@@ -89,7 +89,6 @@ export {
   DiagnoseOutputSchema,
 } from "./performance.js";
 
-
 // Admin operation schemas
 export {
   VacuumSchema,

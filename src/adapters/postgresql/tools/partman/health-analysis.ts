@@ -12,12 +12,16 @@ import type {
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { 
+import {
   PartmanAnalyzeHealthOutputSchema,
   PartmanAnalyzeHealthSchemaBase,
-  PartmanAnalyzeHealthSchema
+  PartmanAnalyzeHealthSchema,
 } from "../../schemas/index.js";
-import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT, checkTableExists } from "./helpers.js";
+import {
+  getPartmanSchema,
+  DEFAULT_PARTMAN_LIMIT,
+  checkTableExists,
+} from "./helpers.js";
 
 /**
  * Analyze partition health and provide recommendations
@@ -92,7 +96,8 @@ stale maintenance, and retention configuration.`,
               error: `Table '${parsed.parentTable}' does not exist.`,
               code: "TABLE_NOT_FOUND",
               category: "validation",
-              suggestion: "Check that you specified the correct schema and table name."
+              suggestion:
+                "Check that you specified the correct schema and table name.",
             };
           }
 
@@ -103,7 +108,8 @@ stale maintenance, and retention configuration.`,
               error: `No pg_partman configuration found for table '${parsed.parentTable}'.`,
               code: "VALIDATION_ERROR",
               category: "validation",
-              suggestion: "Use pg_partman_show_config to list configured partition sets, or pg_partman_create_parent to configure partitioning for this table."
+              suggestion:
+                "Use pg_partman_show_config to list configured partition sets, or pg_partman_create_parent to configure partitioning for this table.",
             };
           }
         }
@@ -279,8 +285,8 @@ stale maintenance, and retention configuration.`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_partman_analyze_partition_health",
-          });
+          tool: "pg_partman_analyze_partition_health",
+        });
       }
     },
   };

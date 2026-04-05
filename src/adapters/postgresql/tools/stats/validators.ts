@@ -58,9 +58,7 @@ export async function validateNumericColumn(
     if (tableResult.rows?.length === 0) {
       throw new ValidationError(`Table "${schema}.${table}" does not exist`);
     }
-    throw new ValidationError(
-      `Column "${column}" does not exist`,
-    );
+    throw new ValidationError(`Column "${column}" does not exist`);
   }
 
   if (!NUMERIC_TYPES.includes(typeRow.data_type)) {

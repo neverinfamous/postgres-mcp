@@ -114,7 +114,10 @@ describe("pg_transaction_begin", () => {
       isolationLevel: string;
     };
 
-    expect(mockAdapter.beginTransaction).toHaveBeenCalledWith("SERIALIZABLE", undefined);
+    expect(mockAdapter.beginTransaction).toHaveBeenCalledWith(
+      "SERIALIZABLE",
+      undefined,
+    );
     expect(result.isolationLevel).toBe("SERIALIZABLE");
   });
 });

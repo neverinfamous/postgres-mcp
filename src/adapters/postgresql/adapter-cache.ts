@@ -90,10 +90,7 @@ export function invalidateSchemaCache(cache: MetadataCache): void {
  * Extracts the table name from common DDL patterns; falls back to
  * full schema cache invalidation for ambiguous statements.
  */
-export function invalidateCacheForDdl(
-  cache: MetadataCache,
-  sql: string,
-): void {
+export function invalidateCacheForDdl(cache: MetadataCache, sql: string): void {
   const normalized = sql.replace(/\s+/g, " ").trim().toUpperCase();
 
   // Match: ALTER TABLE, CREATE TABLE, DROP TABLE

@@ -20,7 +20,12 @@ test.describe("Payload Contracts: Partman", () => {
       table: testTable,
       columns: [
         { name: "id", type: "serial", primaryKey: true },
-        { name: "created_at", type: "timestamp", notNull: true, default: "now()" }
+        {
+          name: "created_at",
+          type: "timestamp",
+          notNull: true,
+          default: "now()",
+        },
       ],
       partitionBy: "RANGE (created_at)",
       ifNotExists: true,
@@ -43,7 +48,11 @@ test.describe("Payload Contracts: Partman", () => {
   });
 
   test("pg_partman_create_extension returns object", async () => {
-    const payload = await callToolAndParse(client, "pg_partman_create_extension", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_partman_create_extension",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 
@@ -58,14 +67,22 @@ test.describe("Payload Contracts: Partman", () => {
   });
 
   test("pg_partman_run_maintenance returns success", async () => {
-    const payload = await callToolAndParse(client, "pg_partman_run_maintenance", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_partman_run_maintenance",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 
   test("pg_partman_show_partitions returns list", async () => {
-    const payload = await callToolAndParse(client, "pg_partman_show_partitions", {
-      parentTable: "public." + testTable,
-    });
+    const payload = await callToolAndParse(
+      client,
+      "pg_partman_show_partitions",
+      {
+        parentTable: "public." + testTable,
+      },
+    );
     expect(typeof payload).toBe("object");
   });
 
@@ -84,9 +101,13 @@ test.describe("Payload Contracts: Partman", () => {
   });
 
   test("pg_partman_partition_data returns status", async () => {
-    const payload = await callToolAndParse(client, "pg_partman_partition_data", {
-      parentTable: "public." + testTable,
-    });
+    const payload = await callToolAndParse(
+      client,
+      "pg_partman_partition_data",
+      {
+        parentTable: "public." + testTable,
+      },
+    );
     expect(typeof payload).toBe("object");
   });
 
@@ -99,7 +120,11 @@ test.describe("Payload Contracts: Partman", () => {
   });
 
   test("pg_partman_analyze_partition_health returns health metrics", async () => {
-    const payload = await callToolAndParse(client, "pg_partman_analyze_partition_health", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_partman_analyze_partition_health",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 
@@ -109,15 +134,24 @@ test.describe("Payload Contracts: Partman", () => {
       table: testTable + "_archive",
       columns: [
         { name: "id", type: "serial", primaryKey: true },
-        { name: "created_at", type: "timestamp", notNull: true, default: "now()" }
+        {
+          name: "created_at",
+          type: "timestamp",
+          notNull: true,
+          default: "now()",
+        },
       ],
       ifNotExists: true,
     });
 
-    const payload = await callToolAndParse(client, "pg_partman_undo_partition", {
-      parentTable: "public." + testTable,
-      targetTable: "public." + testTable + "_archive",
-    });
+    const payload = await callToolAndParse(
+      client,
+      "pg_partman_undo_partition",
+      {
+        parentTable: "public." + testTable,
+        targetTable: "public." + testTable + "_archive",
+      },
+    );
     expect(typeof payload).toBe("object");
   });
 });

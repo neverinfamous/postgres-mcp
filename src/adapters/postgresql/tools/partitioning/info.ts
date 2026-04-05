@@ -52,8 +52,8 @@ export function createAttachPartitionTool(
         };
       } catch (zodError: unknown) {
         return formatHandlerErrorResponse(zodError, {
-            tool: "pg_attach_partition",
-          });
+          tool: "pg_attach_partition",
+        });
       }
       const { parent, partition, forValues, schema } = parsed;
 
@@ -130,9 +130,9 @@ export function createAttachPartitionTool(
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_attach_partition",
-            table: parsedPartition.table,
-          });
+          tool: "pg_attach_partition",
+          table: parsedPartition.table,
+        });
       }
 
       return {
@@ -169,8 +169,8 @@ export function createDetachPartitionTool(
         };
       } catch (zodError: unknown) {
         return formatHandlerErrorResponse(zodError, {
-            tool: "pg_detach_partition",
-          });
+          tool: "pg_detach_partition",
+        });
       }
       const { parent, partition, concurrently, finalize, schema } = parsed;
 
@@ -244,7 +244,6 @@ export function createDetachPartitionTool(
         };
       }
 
-
       const parentName = sanitizeTableName(
         parsedParent.table,
         parsedParent.schema,
@@ -269,9 +268,9 @@ export function createDetachPartitionTool(
         await adapter.executeQuery(sql);
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_detach_partition",
-            table: parsedPartition.table,
-          });
+          tool: "pg_detach_partition",
+          table: parsedPartition.table,
+        });
       }
 
       return {
@@ -306,8 +305,8 @@ export function createPartitionInfoTool(
         };
       } catch (zodError: unknown) {
         return formatHandlerErrorResponse(zodError, {
-            tool: "pg_partition_info",
-          });
+          tool: "pg_partition_info",
+        });
       }
 
       // Parse schema.table format if present
@@ -421,7 +420,7 @@ export function createPartitionInfoTool(
       };
 
       if (truncated) {
-         response["totalCount"] = tableInfo?.partition_count ?? 0;
+        response["totalCount"] = tableInfo?.partition_count ?? 0;
       }
 
       return response;

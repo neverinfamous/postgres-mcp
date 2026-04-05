@@ -55,7 +55,8 @@ export function createListObjectsTool(
               error: `Validation error: Invalid type(s): ${invalidTypes.map((t) => `"${t}"`).join(", ")}. Valid types: ${VALID_OBJECT_TYPES.join(", ")}`,
               code: "VALIDATION_ERROR",
               category: "validation",
-              suggestion: "Check the input parameters match the expected schema.",
+              suggestion:
+                "Check the input parameters match the expected schema.",
               recoverable: false,
             };
           }
@@ -208,8 +209,8 @@ export function createListObjectsTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_list_objects",
-          });
+          tool: "pg_list_objects",
+        });
       }
     },
   };
@@ -280,18 +281,24 @@ export function createObjectDetailsTool(
 
         // Validate type if specified
         if (type && detectedType && type !== detectedType) {
-          throw new Error(`Object '${schemaName}.${name}' is a ${detectedType}, not a ${type}. Use type: '${detectedType}' or omit type to auto-detect.`);
+          throw new Error(
+            `Object '${schemaName}.${name}' is a ${detectedType}, not a ${type}. Use type: '${detectedType}' or omit type to auto-detect.`,
+          );
         }
 
         // If type was provided but object not found, return clear error
         if (type && !detectedType) {
-          throw new Error(`Object '${schemaName}.${name}' not found (searched as ${type}). Use pg_list_objects to discover available objects.`);
+          throw new Error(
+            `Object '${schemaName}.${name}' not found (searched as ${type}). Use pg_list_objects to discover available objects.`,
+          );
         }
 
         const objectType = type ?? detectedType;
 
         if (!objectType) {
-          throw new Error(`Object '${schemaName}.${name}' not found. Use pg_list_objects to discover available objects.`);
+          throw new Error(
+            `Object '${schemaName}.${name}' not found. Use pg_list_objects to discover available objects.`,
+          );
         }
 
         let details: Record<string, unknown> = {
@@ -423,8 +430,8 @@ export function createObjectDetailsTool(
         return details;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_object_details",
-          });
+          tool: "pg_object_details",
+        });
       }
     },
   };
@@ -463,8 +470,8 @@ export function createListExtensionsTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_list_extensions",
-          });
+          tool: "pg_list_extensions",
+        });
       }
     },
   };

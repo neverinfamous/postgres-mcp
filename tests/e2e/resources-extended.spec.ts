@@ -21,7 +21,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -37,7 +37,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -51,7 +51,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -68,7 +68,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -84,7 +84,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       // May be empty if pg_stat_statements not enabled
       expect(typeof parsed).toBe("object");
     } finally {
@@ -101,7 +101,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -117,7 +117,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -133,7 +133,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -147,7 +147,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -165,7 +165,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -181,7 +181,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -197,7 +197,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const parsed = JSON.parse('text' in content ? content.text : '');
+      const parsed = JSON.parse("text" in content ? content.text : "");
       expect(typeof parsed).toBe("object");
     } finally {
       await client.close();
@@ -215,7 +215,7 @@ test.describe("Extended Resource Reads", () => {
       expect(response.contents).toBeDefined();
       expect(response.contents.length).toBeGreaterThan(0);
       const content = response.contents[0];
-      const text = 'text' in content ? content.text : '';
+      const text = "text" in content ? content.text : "";
       // insights resource returns a text memo (may be empty placeholder or contain insights)
       expect(typeof text).toBe("string");
       expect(text.length).toBeGreaterThan(0);

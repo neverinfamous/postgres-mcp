@@ -116,7 +116,8 @@ test.describe("Boundary: NULL Values", () => {
       });
 
       await callToolAndParse(client, "pg_write_query", {
-        query: "INSERT INTO _e2e_boundary_nulls (value) VALUES (NULL), (NULL), (NULL)",
+        query:
+          "INSERT INTO _e2e_boundary_nulls (value) VALUES (NULL), (NULL), (NULL)",
       });
 
       // Read should succeed with NULL values

@@ -7,12 +7,7 @@
 import type { PostgresAdapter } from "../postgres-adapter.js";
 import type { ResourceDefinition } from "../../../types/index.js";
 import { LOW_PRIORITY } from "../../../utils/resource-annotations.js";
-import {
-  toStr,
-  SMALL_TABLE_THRESHOLD,
-} from "../../../utils/query-helpers.js";
-
-
+import { toStr, SMALL_TABLE_THRESHOLD } from "../../../utils/query-helpers.js";
 
 interface VectorColumn {
   schema: string;

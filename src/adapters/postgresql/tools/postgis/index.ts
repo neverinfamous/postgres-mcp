@@ -25,10 +25,7 @@ import {
 } from "./query.js";
 
 // Advanced coordinate operations
-import {
-  createGeocodeTool,
-  createGeoTransformTool,
-} from "./advanced.js";
+import { createGeocodeTool, createGeoTransformTool } from "./advanced.js";
 
 // Spatial analysis operations
 import {

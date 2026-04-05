@@ -16,7 +16,9 @@ test.describe("E2E Resource Reads (via MCP SDK Client)", () => {
 
   test.beforeAll(async () => {
     const transport = new SSEClientTransport(
-      new URL(`${process.env.MCP_TEST_URL || `${process.env.MCP_TEST_URL || 'http://127.0.0.1:3000'}`}/sse`),
+      new URL(
+        `${process.env.MCP_TEST_URL || `${process.env.MCP_TEST_URL || "http://127.0.0.1:3000"}`}/sse`,
+      ),
     );
     client = new Client(
       { name: "playwright-resource-test", version: "1.0.0" },

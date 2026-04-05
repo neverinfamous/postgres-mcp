@@ -24,8 +24,7 @@ const ERROR_SUGGESTIONS: {
   // Validation errors
   {
     pattern: /invalid (latitude|longitude)/i,
-    suggestion:
-      "Check the input parameters match the expected schema.",
+    suggestion: "Check the input parameters match the expected schema.",
     category: ErrorCategory.VALIDATION,
     code: "VALIDATION_ERROR",
   },
@@ -89,7 +88,8 @@ const ERROR_SUGGESTIONS: {
   },
   {
     pattern: /is already managed by pg_partman/i,
-    suggestion: "Use pg_partman_show_config to view existing configuration, or pg_partman_undo_partition to recreate.",
+    suggestion:
+      "Use pg_partman_show_config to view existing configuration, or pg_partman_undo_partition to recreate.",
     category: ErrorCategory.VALIDATION,
     code: "PARTITION_ALREADY_MANAGED",
   },
@@ -100,14 +100,17 @@ const ERROR_SUGGESTIONS: {
   },
   {
     pattern: /A job with name '.*' already exists/i,
-    suggestion: "Job names must be unique. Use pg_cron_list_jobs to find existing jobs before scheduling.",
+    suggestion:
+      "Job names must be unique. Use pg_cron_list_jobs to find existing jobs before scheduling.",
     category: ErrorCategory.VALIDATION,
     code: "JOB_NAME_CONFLICT",
   },
 
   {
-    pattern: /(unrecognized configuration parameter|invalid value for parameter)/i,
-    suggestion: "Verify the configuration parameter name and value. Use pg_show_settings to see available parameters.",
+    pattern:
+      /(unrecognized configuration parameter|invalid value for parameter)/i,
+    suggestion:
+      "Verify the configuration parameter name and value. Use pg_show_settings to see available parameters.",
     category: ErrorCategory.VALIDATION,
     code: "VALIDATION_ERROR",
   },
@@ -129,8 +132,7 @@ const ERROR_SUGGESTIONS: {
   },
   {
     pattern: /table ['"].*['"] does not exist/i,
-    suggestion:
-      "Table not found. Run pg_list_tables to see available tables.",
+    suggestion: "Table not found. Run pg_list_tables to see available tables.",
     category: ErrorCategory.RESOURCE,
     code: "TABLE_NOT_FOUND",
   },
@@ -143,8 +145,7 @@ const ERROR_SUGGESTIONS: {
   },
   {
     pattern: /Job .* not found/i,
-    suggestion:
-      "Job not found. Use pg_cron_list_jobs to see available jobs.",
+    suggestion: "Job not found. Use pg_cron_list_jobs to see available jobs.",
     category: ErrorCategory.RESOURCE,
     code: "JOB_NOT_FOUND",
   },
@@ -164,8 +165,7 @@ const ERROR_SUGGESTIONS: {
   },
   {
     pattern: /index ["'].*["'] (?:does not exist|not found)/i,
-    suggestion:
-      "Index not found. Use pg_get_indexes to see available indexes.",
+    suggestion: "Index not found. Use pg_get_indexes to see available indexes.",
     category: ErrorCategory.RESOURCE,
     code: "INDEX_NOT_FOUND",
   },

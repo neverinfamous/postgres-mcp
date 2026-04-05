@@ -256,7 +256,9 @@ export function createStatsHypothesisTool(
           results: testResults,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_stats_hypothesis" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_stats_hypothesis",
+        });
       }
     },
   };

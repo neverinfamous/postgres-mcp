@@ -21,14 +21,9 @@ import {
   CacheHitRatioInputSchema,
   CacheHitRatioOutputSchema,
 } from "../../schemas/index.js";
-import {
-  toNum,
-  validatePerformanceTableExists,
-} from "./helpers.js";
+import { toNum, validatePerformanceTableExists } from "./helpers.js";
 
 // ─── pg_locks ────────────────────────────────────────────────────────────────
-
-
 
 export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
   return {
@@ -45,7 +40,8 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
 
         const showBlocked = parsed.showBlocked === true;
         const rawLimit = parsed.limit;
-        const userLimit = rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
+        const userLimit =
+          rawLimit === undefined ? 100 : rawLimit === 0 ? null : rawLimit;
         const limit = userLimit === null ? 100 : Math.min(userLimit, 100);
 
         let sql: string;
@@ -87,8 +83,6 @@ export function createLocksTool(adapter: PostgresAdapter): ToolDefinition {
 // ─── pg_bloat_check ──────────────────────────────────────────────────────────
 
 export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
-
-
   return {
     name: "pg_bloat_check",
     description:
@@ -111,7 +105,8 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
         }
         let whereClause = "n_dead_tup > 0";
         if (!schemaName && !tableName) {
-          whereClause += " AND schemaname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')";
+          whereClause +=
+            " AND schemaname NOT IN ('cron', 'topology', 'tiger', 'tiger_data')";
         }
         const queryParams: string[] = [];
         if (schemaName !== undefined) {
@@ -190,7 +185,9 @@ export function createCacheHitRatioTool(
           cache_hit_ratio: row ? toNum(row["cache_hit_ratio"]) : null,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_cache_hit_ratio" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_cache_hit_ratio",
+        });
       }
     },
   };

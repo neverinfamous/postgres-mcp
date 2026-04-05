@@ -17,7 +17,6 @@ import {
 } from "./utils.js";
 import { coerceNumber } from "../../../../utils/query-helpers.js";
 
-
 // =============================================================================
 // pg_geometry_column
 // =============================================================================
@@ -27,10 +26,16 @@ export const GeometryColumnSchemaBase = z.object({
   column: z.string().optional().describe("Column name for the geometry"),
   geom: z.string().optional().describe("Alias for column"),
   geometryColumn: z.string().optional().describe("Alias for column"),
-  srid: z.preprocess(coerceNumber, z.number().optional()).optional()
+  srid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Spatial Reference ID (default: 4326 for WGS84)"),
-  type: z.string().optional()
-    .describe("Allowed values: POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, GEOMETRY"),
+  type: z
+    .string()
+    .optional()
+    .describe(
+      "Allowed values: POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, GEOMETRY",
+    ),
   schema: z.string().optional(),
   ifNotExists: z
     .boolean()
@@ -60,9 +65,17 @@ export const GeometryColumnSchema = z
     (data) => {
       if (!data.type) return true;
       const t = data.type.toUpperCase();
-      return ["POINT","LINESTRING","POLYGON","MULTIPOINT","MULTILINESTRING","MULTIPOLYGON","GEOMETRY"].includes(t);
+      return [
+        "POINT",
+        "LINESTRING",
+        "POLYGON",
+        "MULTIPOINT",
+        "MULTILINESTRING",
+        "MULTIPOLYGON",
+        "GEOMETRY",
+      ].includes(t);
     },
-    { message: "type must be a valid geometry type" }
+    { message: "type must be a valid geometry type" },
   );
 
 // =============================================================================
@@ -78,20 +91,56 @@ export const GeometryDistanceSchemaBase = z.object({
   point: PointSchemaBase.optional().describe(
     "Reference point (supports lat/lng, latitude/longitude, or x/y)",
   ),
-  lat: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Latitude (-90 to 90)"),
-  latitude: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for lat"),
-  lng: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Longitude (-180 to 180)"),
-  lon: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for lng"),
-  longitude: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for lng"),
-  x: z.preprocess(coerceNumber, z.number().optional()).optional().describe("X coordinate"),
-  y: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Y coordinate"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Max results"),
-  maxDistance: z.preprocess(coerceNumber, z.number().optional()).optional()
+  lat: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Latitude (-90 to 90)"),
+  latitude: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for lat"),
+  lng: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Longitude (-180 to 180)"),
+  lon: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for lng"),
+  longitude: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for lng"),
+  x: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("X coordinate"),
+  y: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Y coordinate"),
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Max results"),
+  maxDistance: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Max distance (in meters by default)"),
-  radius: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for maxDistance"),
-  distance: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for maxDistance"),
-  unit: z.string().optional()
-    .describe("Distance unit (meters, kilometers, miles, m, km, mi - default: meters)"),
+  radius: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for maxDistance"),
+  distance: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for maxDistance"),
+  unit: z
+    .string()
+    .optional()
+    .describe(
+      "Distance unit (meters, kilometers, miles, m, km, mi - default: meters)",
+    ),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
@@ -121,9 +170,15 @@ export const GeometryDistanceSchema = z
   .refine((data) => data.maxDistance === undefined || data.maxDistance >= 0, {
     message: "distance must be a non-negative number",
   })
-  .refine((data) => !data.unit || ["meters", "m", "kilometers", "km", "miles", "mi"].includes(data.unit), {
-    message: "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
-  })
+  .refine(
+    (data) =>
+      !data.unit ||
+      ["meters", "m", "kilometers", "km", "miles", "mi"].includes(data.unit),
+    {
+      message:
+        "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
+    },
+  )
   .refine((data) => data.point.lat >= -90 && data.point.lat <= 90, {
     message: "lat must be between -90 and 90 degrees",
   })
@@ -144,13 +199,34 @@ export const PointInPolygonSchemaBase = z.object({
   point: PointSchemaBase.optional().describe(
     "Point to check (supports lat/lng, latitude/longitude, or x/y)",
   ),
-  lat: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Latitude (-90 to 90)"),
-  latitude: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for lat"),
-  lng: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Longitude (-180 to 180)"),
-  lon: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for lng"),
-  longitude: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for lng"),
-  x: z.preprocess(coerceNumber, z.number().optional()).optional().describe("X coordinate"),
-  y: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Y coordinate"),
+  lat: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Latitude (-90 to 90)"),
+  latitude: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for lat"),
+  lng: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Longitude (-180 to 180)"),
+  lon: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for lng"),
+  longitude: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for lng"),
+  x: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("X coordinate"),
+  y: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Y coordinate"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
@@ -225,17 +301,33 @@ export const BufferSchemaBase = z.object({
   column: z.string().optional().describe("Geometry column"),
   geom: z.string().optional().describe("Alias for column"),
   geometryColumn: z.string().optional().describe("Alias for column"),
-  distance: z.preprocess(coerceNumber, z.number().optional()).optional()
+  distance: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Buffer distance (in meters by default)"),
-  meters: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for distance"),
-  radius: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for distance"),
-  unit: z.string().optional()
-    .describe("Distance unit (meters, kilometers, miles, m, km, mi - default: meters)"),
-  simplify: z.preprocess(coerceNumber, z.number().optional()).optional()
+  meters: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for distance"),
+  radius: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for distance"),
+  unit: z
+    .string()
+    .optional()
+    .describe(
+      "Distance unit (meters, kilometers, miles, m, km, mi - default: meters)",
+    ),
+  simplify: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe(
       "Simplification tolerance in meters (default: 10). Higher values = fewer points. Set to 0 to disable.",
     ),
-  limit: z.preprocess(coerceNumber, z.number().optional()).optional()
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Maximum rows to return (default: 10 to prevent large payloads)"),
   where: z.string().optional(),
 });
@@ -272,9 +364,15 @@ export const BufferSchema = z
     message:
       "simplify must be a non-negative number if provided (0 to disable)",
   })
-  .refine((data) => !data.unit || ["meters", "m", "kilometers", "km", "miles", "mi"].includes(data.unit), {
-    message: "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
-  });
+  .refine(
+    (data) =>
+      !data.unit ||
+      ["meters", "m", "kilometers", "km", "miles", "mi"].includes(data.unit),
+    {
+      message:
+        "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
+    },
+  );
 
 // =============================================================================
 // pg_intersection
@@ -320,11 +418,16 @@ export const IntersectionSchemaBase = z.object({
     .describe(
       'GeoJSON or WKT geometry to check intersection (e.g., "POINT(0 0)" or GeoJSON object)',
     ),
-  srid: z.preprocess(coerceNumber, z.number().optional()).optional()
+  srid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe(
       "SRID for input geometry (auto-detected from column if not provided)",
     ),
-  limit: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Max results"),
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Max results"),
   select: z.array(z.string()).optional().describe("Columns to select"),
 });
 
@@ -367,11 +470,26 @@ export const BoundingBoxSchemaBase = z.object({
   column: z.string().optional().describe("Geometry column"),
   geom: z.string().optional().describe("Alias for column"),
   geometryColumn: z.string().optional().describe("Alias for column"),
-  minLng: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Minimum longitude"),
-  minLat: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Minimum latitude"),
-  maxLng: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Maximum longitude"),
-  maxLat: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Maximum latitude"),
-  limit: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Max results"),
+  minLng: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Minimum longitude"),
+  minLat: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Minimum latitude"),
+  maxLng: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Maximum longitude"),
+  maxLat: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Maximum latitude"),
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Max results"),
   select: z.array(z.string()).optional().describe("Columns to select"),
 });
 
@@ -411,12 +529,29 @@ export const BoundingBoxSchema = z
 // pg_geocode
 // =============================================================================
 export const GeocodeSchemaBase = z.object({
-  lat: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Latitude (-90 to 90)"),
-  latitude: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for lat"),
-  lng: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Longitude (-180 to 180)"),
-  lon: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for lng"),
-  longitude: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Alias for lng"),
-  srid: z.preprocess(coerceNumber, z.number().optional()).optional()
+  lat: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Latitude (-90 to 90)"),
+  latitude: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for lat"),
+  lng: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Longitude (-180 to 180)"),
+  lon: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for lng"),
+  longitude: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Alias for lng"),
+  srid: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Spatial Reference ID for output geometry (default: 4326)"),
 });
 
@@ -469,7 +604,8 @@ export const GeocodeSchema = z
     },
   )
   .refine(
-    (data) => data.srid === undefined || (Number.isInteger(data.srid) && data.srid > 0),
+    (data) =>
+      data.srid === undefined || (Number.isInteger(data.srid) && data.srid > 0),
     {
       message: "srid must be a positive integer",
     },

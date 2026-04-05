@@ -68,7 +68,9 @@ export function createMigrationRollbackTool(
         if (parsed.id !== undefined) {
           const num = parsed.id;
           if (isNaN(num)) {
-            throw new ValidationError(`Invalid migration id: expected a number, got "${String(parsed.id)}"`);
+            throw new ValidationError(
+              `Invalid migration id: expected a number, got "${String(parsed.id)}"`,
+            );
           }
           coercedId = num;
         }
@@ -94,7 +96,7 @@ export function createMigrationRollbackTool(
             error: `Migration not found: ${identifier}`,
             code: "NOT_FOUND",
             category: "validation",
-            recoverable: true
+            recoverable: true,
           };
         }
 
@@ -105,11 +107,15 @@ export function createMigrationRollbackTool(
         const rollbackSql = (row["rollback_sql"] as string | null) ?? null;
 
         if (rowStatus === "rolled_back") {
-          throw new ValidationError(`Migration "${rowVersion}" (id: ${String(rowId)}) has already been rolled back.`);
+          throw new ValidationError(
+            `Migration "${rowVersion}" (id: ${String(rowId)}) has already been rolled back.`,
+          );
         }
 
         if (rollbackSql === null) {
-          throw new ValidationError(`Migration "${rowVersion}" (id: ${String(rowId)}) has no rollback SQL stored. Manual rollback required.`);
+          throw new ValidationError(
+            `Migration "${rowVersion}" (id: ${String(rowId)}) has no rollback SQL stored. Manual rollback required.`,
+          );
         }
 
         if (parsed.dryRun === true) {
@@ -125,7 +131,8 @@ export function createMigrationRollbackTool(
         const transactionId = await adapter.beginTransaction();
         try {
           const client = adapter.getTransactionConnection(transactionId);
-          if (!client) throw new Error("Could not acquire transaction connection");
+          if (!client)
+            throw new Error("Could not acquire transaction connection");
 
           await adapter.executeOnConnection(client, rollbackSql);
           await adapter.executeOnConnection(
@@ -148,12 +155,14 @@ export function createMigrationRollbackTool(
         } catch (err: unknown) {
           await adapter.rollbackTransaction(transactionId);
           const msg = err instanceof Error ? err.message : String(err);
-          throw new ValidationError(`Rollback failed for migration "${rowVersion}" (id: ${String(rowId)}): ${msg}. Transaction was rolled back.`);
+          throw new ValidationError(
+            `Rollback failed for migration "${rowVersion}" (id: ${String(rowId)}): ${msg}. Transaction was rolled back.`,
+          );
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_migration_rollback",
-          });
+          tool: "pg_migration_rollback",
+        });
       }
     },
   };
@@ -238,8 +247,8 @@ export function createMigrationHistoryTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_migration_history",
-          });
+          tool: "pg_migration_history",
+        });
       }
     },
   };
@@ -288,7 +297,13 @@ export function createMigrationStatusTool(
             initialized: false,
             latestVersion: null,
             latestAppliedAt: null,
-            counts: { total: 0, applied: 0, recorded: 0, rolledBack: 0, failed: 0 },
+            counts: {
+              total: 0,
+              applied: 0,
+              recorded: 0,
+              rolledBack: 0,
+              failed: 0,
+            },
             sourceSystems: [],
           };
         }
@@ -354,8 +369,8 @@ export function createMigrationStatusTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_migration_status",
-          });
+          tool: "pg_migration_status",
+        });
       }
     },
   };

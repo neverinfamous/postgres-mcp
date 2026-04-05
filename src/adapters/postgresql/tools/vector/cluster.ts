@@ -45,10 +45,18 @@ export function createVectorClusterTool(
     tableName: z.string().optional().describe("Alias for table"),
     column: z.string().optional().describe("Vector column"),
     col: z.string().optional().describe("Alias for column"),
-    k: z.preprocess(coerceNumber, z.number().optional()).describe("Number of clusters"),
-    clusters: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for k (number of clusters)"),
-    iterations: z.preprocess(coerceNumber, z.number().optional()).describe("Max iterations (default: 10)"),
-    sampleSize: z.preprocess(coerceNumber, z.number().optional()).describe("Sample size for large tables"),
+    k: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Number of clusters"),
+    clusters: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Alias for k (number of clusters)"),
+    iterations: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Max iterations (default: 10)"),
+    sampleSize: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Sample size for large tables"),
     schema: z.string().optional().describe("Database schema (default: public)"),
   });
 
@@ -89,8 +97,8 @@ export function createVectorClusterTool(
           return {
             success: false,
             error: `Validation error: k must be a finite positive number, received "${String(parsed.k)}"`,
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion: "Provide a numeric value for k (e.g., 3, 5, 10)",
           };
         }

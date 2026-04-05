@@ -157,7 +157,7 @@ export function registerSingleTool(
             category: "internal",
             recoverable: false,
           };
-          
+
           const enriched = JSON.stringify({
             ...errorResult,
             _meta: { tokenEstimate: 0 },

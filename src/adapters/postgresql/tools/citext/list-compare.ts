@@ -49,20 +49,28 @@ Useful for auditing case-insensitive columns.`,
 
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
-            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+            throw new ValidationError("limit must be non-negative", {
+              code: "VALIDATION_ERROR",
+            });
           }
           if (safeLimit === 0) {
-            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must be greater than 0 to prevent large payloads. Max limit is 100.",
+              { code: "VALIDATION_ERROR" },
+            );
           }
         }
 
         // Default limit of 50 to prevent large payloads, max 100
         const DEFAULT_LIMIT = 50;
         const MAX_LIMIT = 100;
-        
+
         const effectiveLimit = safeLimit ?? DEFAULT_LIMIT;
         if (effectiveLimit > MAX_LIMIT) {
-             throw new ValidationError(`limit must not exceed ${String(MAX_LIMIT)}`, { code: "VALIDATION_ERROR" });
+          throw new ValidationError(
+            `limit must not exceed ${String(MAX_LIMIT)}`,
+            { code: "VALIDATION_ERROR" },
+          );
         }
 
         // Validate schema existence when specified
@@ -73,7 +81,10 @@ Useful for auditing case-insensitive columns.`,
             [schema],
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-            throw new ValidationError(`Schema "${schema}" does not exist. Verify the schema name.`, { code: "SCHEMA_NOT_FOUND" });
+            throw new ValidationError(
+              `Schema "${schema}" does not exist. Verify the schema name.`,
+              { code: "SCHEMA_NOT_FOUND" },
+            );
           }
         }
 
@@ -141,8 +152,8 @@ Useful for auditing case-insensitive columns.`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_citext_list_columns",
-          });
+          tool: "pg_citext_list_columns",
+        });
       }
     },
   };
@@ -222,8 +233,8 @@ Useful for testing citext behavior before converting columns.`,
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_citext_compare",
-          });
+          tool: "pg_citext_compare",
+        });
       }
     },
   };

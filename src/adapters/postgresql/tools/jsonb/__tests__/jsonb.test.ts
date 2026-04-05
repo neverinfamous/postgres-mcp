@@ -702,8 +702,6 @@ describe("JSONB Validation and Error Paths", () => {
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/Cannot substitute an existing key/);
     });
-
-
   });
 
   describe("pg_jsonb_strip_nulls validations", () => {

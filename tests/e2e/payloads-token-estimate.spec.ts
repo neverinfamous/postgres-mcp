@@ -9,11 +9,7 @@
 
 import { test, expect } from "./fixtures.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import {
-  createClient,
-  callToolAndParse,
-  expectSuccess,
-} from "./helpers.js";
+import { createClient, callToolAndParse, expectSuccess } from "./helpers.js";
 
 test.describe.configure({ mode: "serial" });
 
@@ -70,15 +66,15 @@ test.describe("Payload Contracts: _meta.tokenEstimate", () => {
     const payload = await callToolAndParse(client, "pg_read_query", {
       sql: "SELECT * FROM non_existent_table_for_token_test",
     });
-    
+
     // Should be a structured error response, but still have _meta
     expect(payload.success).toBe(false);
     expect(payload.error).toBeDefined();
-    
+
     const meta = payload._meta as Record<string, unknown> | undefined;
     expect(
       meta,
-      "Expected _meta to be present in structured error response payload"
+      "Expected _meta to be present in structured error response payload",
     ).toBeDefined();
     expect(typeof meta?.tokenEstimate).toBe("number");
     expect(meta!.tokenEstimate as number).toBeGreaterThan(0);
@@ -152,7 +148,7 @@ test.describe("Payload Contracts: _meta.tokenEstimate", () => {
     const metrics = payload.metrics as Record<string, unknown> | undefined;
     expect(
       metrics,
-      "Expected metrics to be present in failed pg_execute_code response"
+      "Expected metrics to be present in failed pg_execute_code response",
     ).toBeDefined();
     expect(typeof metrics?.tokenEstimate).toBe("number");
     expect(metrics!.tokenEstimate as number).toBeGreaterThan(0);

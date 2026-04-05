@@ -307,7 +307,10 @@ describe("JSONB Tools", () => {
         mockContext,
       )) as { object: Record<string, unknown> };
 
-      expect(result).toEqual({ success: true, object: { name: "John", age: 30 } });
+      expect(result).toEqual({
+        success: true,
+        object: { name: "John", age: 30 },
+      });
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
         expect.stringContaining("jsonb_build_object"),
         expect.anything(),
@@ -502,7 +505,9 @@ describe("JSONB Tools", () => {
     });
 
     it("should return structured error for bad path", async () => {
-      mockAdapter.executeQuery.mockRejectedValueOnce(new Error("syntax error at end of jsonpath input"));
+      mockAdapter.executeQuery.mockRejectedValueOnce(
+        new Error("syntax error at end of jsonpath input"),
+      );
 
       const tool = findTool("pg_jsonb_validate_path");
       const result = (await tool!.handler(

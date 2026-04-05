@@ -102,7 +102,7 @@ export function createSchemaSnapshotTool(
             LEFT JOIN pg_attrdef d ON (a.attrelid, a.attnum) = (d.adrelid, d.adnum)
             WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped
             ) AS columns`;
-        
+
         const rowSizeFields = parsed.compact
           ? ""
           : `,
@@ -148,7 +148,7 @@ export function createSchemaSnapshotTool(
                 `SELECT
                 n.nspname AS schema, c.relname AS name,
                 CASE c.relkind WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END AS type,
-                ${parsed.compact ? 'NULL::text' : 'pg_get_viewdef(c.oid, true)'} AS definition
+                ${parsed.compact ? "NULL::text" : "pg_get_viewdef(c.oid, true)"} AS definition
               FROM pg_class c
               JOIN pg_namespace n ON n.oid = c.relnamespace
               WHERE c.relkind IN ('v', 'm')
@@ -165,7 +165,7 @@ export function createSchemaSnapshotTool(
                 `SELECT
                 i.relname AS name, t.relname AS table_name, n.nspname AS schema,
                 am.amname AS type, ix.indisunique AS is_unique,
-                ${parsed.compact ? 'NULL::text' : 'pg_get_indexdef(ix.indexrelid)'} AS definition,
+                ${parsed.compact ? "NULL::text" : "pg_get_indexdef(ix.indexrelid)"} AS definition,
                 pg_relation_size(i.oid) AS size_bytes
               FROM pg_index ix
               JOIN pg_class t ON t.oid = ix.indrelid
@@ -188,7 +188,7 @@ export function createSchemaSnapshotTool(
                 c.conname AS name, t.relname AS table_name, n.nspname AS schema,
                 CASE c.contype WHEN 'p' THEN 'primary_key' WHEN 'f' THEN 'foreign_key'
                   WHEN 'u' THEN 'unique' WHEN 'c' THEN 'check' WHEN 'x' THEN 'exclusion' END AS type,
-                ${parsed.compact ? 'NULL::text' : 'pg_get_constraintdef(c.oid)'} AS definition
+                ${parsed.compact ? "NULL::text" : "pg_get_constraintdef(c.oid)"} AS definition
               FROM pg_constraint c
               JOIN pg_class t ON t.oid = c.conrelid
               JOIN pg_namespace n ON n.oid = t.relnamespace
@@ -206,7 +206,7 @@ export function createSchemaSnapshotTool(
             ? adapter.executeQuery(
                 `SELECT
                 n.nspname AS schema, p.proname AS name,
-                ${parsed.compact ? 'NULL::text' : 'pg_get_function_arguments(p.oid)'} AS arguments,
+                ${parsed.compact ? "NULL::text" : "pg_get_function_arguments(p.oid)"} AS arguments,
                 pg_get_function_result(p.oid) AS return_type,
                 l.lanname AS language, p.provolatile AS volatility
               FROM pg_proc p
@@ -301,10 +301,14 @@ export function createSchemaSnapshotTool(
         ]);
 
         // Helper to defensively strip null/undefined/empty arrays from records recursively
-        const stripNulls = (rows: Record<string, unknown>[]): Record<string, unknown>[] => {
+        const stripNulls = (
+          rows: Record<string, unknown>[],
+        ): Record<string, unknown>[] => {
           const clean = (obj: unknown): unknown => {
             if (Array.isArray(obj)) {
-              const mapped = obj.map(clean).filter((v) => v != null && v !== "");
+              const mapped = obj
+                .map(clean)
+                .filter((v) => v != null && v !== "");
               return mapped.length > 0 ? mapped : undefined;
             }
             if (obj !== null && typeof obj === "object") {
@@ -317,7 +321,8 @@ export function createSchemaSnapshotTool(
                   typeof cleaned === "object" &&
                   cleaned !== null &&
                   Object.keys(cleaned).length === 0
-                ) continue;
+                )
+                  continue;
                 res[k] = cleaned;
               }
               return res;
@@ -329,39 +334,48 @@ export function createSchemaSnapshotTool(
 
         // Assign results to snapshot and stats
         if (tablesResult !== null) {
-          if (tablesResult.rows && tablesResult.rows.length > 0) snapshot["tables"] = stripNulls(tablesResult.rows);
+          if (tablesResult.rows && tablesResult.rows.length > 0)
+            snapshot["tables"] = stripNulls(tablesResult.rows);
           stats.tables = tablesResult.rows?.length ?? 0;
         }
         if (viewsResult !== null) {
-          if (viewsResult.rows && viewsResult.rows.length > 0) snapshot["views"] = stripNulls(viewsResult.rows);
+          if (viewsResult.rows && viewsResult.rows.length > 0)
+            snapshot["views"] = stripNulls(viewsResult.rows);
           stats.views = viewsResult.rows?.length ?? 0;
         }
         if (indexesResult !== null) {
-          if (indexesResult.rows && indexesResult.rows.length > 0) snapshot["indexes"] = stripNulls(indexesResult.rows);
+          if (indexesResult.rows && indexesResult.rows.length > 0)
+            snapshot["indexes"] = stripNulls(indexesResult.rows);
           stats.indexes = indexesResult.rows?.length ?? 0;
         }
         if (constraintsResult !== null) {
-          if (constraintsResult.rows && constraintsResult.rows.length > 0) snapshot["constraints"] = stripNulls(constraintsResult.rows);
+          if (constraintsResult.rows && constraintsResult.rows.length > 0)
+            snapshot["constraints"] = stripNulls(constraintsResult.rows);
           stats.constraints = constraintsResult.rows?.length ?? 0;
         }
         if (functionsResult !== null) {
-          if (functionsResult.rows && functionsResult.rows.length > 0) snapshot["functions"] = stripNulls(functionsResult.rows);
+          if (functionsResult.rows && functionsResult.rows.length > 0)
+            snapshot["functions"] = stripNulls(functionsResult.rows);
           stats.functions = functionsResult.rows?.length ?? 0;
         }
         if (triggersResult !== null) {
-          if (triggersResult.rows && triggersResult.rows.length > 0) snapshot["triggers"] = stripNulls(triggersResult.rows);
+          if (triggersResult.rows && triggersResult.rows.length > 0)
+            snapshot["triggers"] = stripNulls(triggersResult.rows);
           stats.triggers = triggersResult.rows?.length ?? 0;
         }
         if (seqResult !== null) {
-          if (seqResult.rows && seqResult.rows.length > 0) snapshot["sequences"] = stripNulls(seqResult.rows);
+          if (seqResult.rows && seqResult.rows.length > 0)
+            snapshot["sequences"] = stripNulls(seqResult.rows);
           stats.sequences = seqResult.rows?.length ?? 0;
         }
         if (typesResult !== null) {
-          if (typesResult.rows && typesResult.rows.length > 0) snapshot["types"] = stripNulls(typesResult.rows);
+          if (typesResult.rows && typesResult.rows.length > 0)
+            snapshot["types"] = stripNulls(typesResult.rows);
           stats.customTypes = typesResult.rows?.length ?? 0;
         }
         if (extResult !== null) {
-          if (extResult.rows && extResult.rows.length > 0) snapshot["extensions"] = stripNulls(extResult.rows);
+          if (extResult.rows && extResult.rows.length > 0)
+            snapshot["extensions"] = stripNulls(extResult.rows);
           stats.extensions = extResult.rows?.length ?? 0;
         }
 
@@ -370,9 +384,13 @@ export function createSchemaSnapshotTool(
           if (v > 0) finalStats[k] = v;
         }
 
-        const finalHint = stats.tables >= limit || stats.views >= limit || stats.indexes >= limit || stats.constraints >= limit 
-          ? `Result truncated to ${String(limit)} objects per section. Use more specific schema filters or request fewer sections.`
-          : undefined;
+        const finalHint =
+          stats.tables >= limit ||
+          stats.views >= limit ||
+          stats.indexes >= limit ||
+          stats.constraints >= limit
+            ? `Result truncated to ${String(limit)} objects per section. Use more specific schema filters or request fewer sections.`
+            : undefined;
 
         return {
           success: true,
@@ -383,8 +401,8 @@ export function createSchemaSnapshotTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_schema_snapshot",
-          });
+          tool: "pg_schema_snapshot",
+        });
       }
     },
   };

@@ -19,7 +19,13 @@ import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { test, expect } from "./fixtures.js";
-import { startServer, stopServer, createClient, callToolRaw, callToolAndParse } from "./helpers.js";
+import {
+  startServer,
+  stopServer,
+  createClient,
+  callToolRaw,
+  callToolAndParse,
+} from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 // Force sequential execution to prevent parallel workers from colliding on manual ports/files
@@ -57,7 +63,9 @@ async function readAuditLogWithRetry(
     }
     await delay(intervalMs);
   }
-  throw new Error(`Audit log file ${path} not found or empty after ${maxAttempts * intervalMs}ms`);
+  throw new Error(
+    `Audit log file ${path} not found or empty after ${maxAttempts * intervalMs}ms`,
+  );
 }
 
 test.describe("Audit Log", () => {
@@ -161,10 +169,15 @@ test.describe("Audit Log", () => {
       expect(resource.contents.length).toBeGreaterThan(0);
 
       const text = resource.contents[0]!.text!;
-      const body = JSON.parse(text) as { entries: Array<Record<string, unknown>>; total: number };
+      const body = JSON.parse(text) as {
+        entries: Array<Record<string, unknown>>;
+        total: number;
+      };
       expect(body.entries.length).toBeGreaterThanOrEqual(1);
       expect(body.total).toBeGreaterThanOrEqual(1);
-      expect(body.entries[body.entries.length - 1]!.tool).toBe("pg_transaction_begin");
+      expect(body.entries[body.entries.length - 1]!.tool).toBe(
+        "pg_transaction_begin",
+      );
 
       // Rollback to clean up
       await callToolRaw(client, "pg_transaction_rollback", {});
@@ -311,7 +324,11 @@ test.describe("Audit Log", () => {
         summary: {
           totalTokenEstimate: number;
           callCount: number;
-          topToolsByTokens: Array<{ tool: string; calls: number; tokens: number }>;
+          topToolsByTokens: Array<{
+            tool: string;
+            calls: number;
+            tokens: number;
+          }>;
           note: string;
         };
         entries: Array<Record<string, unknown>>;
@@ -340,7 +357,7 @@ test.describe("Audit Log", () => {
       stopServer(port);
       await rm(logPath, { force: true });
     }
-    });
+  });
 
   test("audit log rotates when max size is exceeded", async () => {
     const port = AUDIT_PORT_BASE + 7;
@@ -363,10 +380,16 @@ test.describe("Audit Log", () => {
 
         // Write first batch to exceed 500 bytes
         for (let i = 0; i < 8; i++) {
-          const res = await callToolAndParse(client, "pg_transaction_begin", {});
+          const res = await callToolAndParse(
+            client,
+            "pg_transaction_begin",
+            {},
+          );
           const txId = res["transactionId"] as string | undefined;
           if (txId) {
-            await callToolAndParse(client, "pg_transaction_rollback", { transactionId: txId });
+            await callToolAndParse(client, "pg_transaction_rollback", {
+              transactionId: txId,
+            });
           }
         }
         // Force server to flush first batch
@@ -374,10 +397,16 @@ test.describe("Audit Log", () => {
 
         // Write second batch to trigger rotation based on first batch's size
         for (let i = 0; i < 2; i++) {
-          const res = await callToolAndParse(client, "pg_transaction_begin", {});
+          const res = await callToolAndParse(
+            client,
+            "pg_transaction_begin",
+            {},
+          );
           const txId = res["transactionId"] as string | undefined;
           if (txId) {
-            await callToolAndParse(client, "pg_transaction_rollback", { transactionId: txId });
+            await callToolAndParse(client, "pg_transaction_rollback", {
+              transactionId: txId,
+            });
           }
         }
 
@@ -395,7 +424,6 @@ test.describe("Audit Log", () => {
         // The current log should theoretically be smaller or at least valid
         const currentStat = await stat(logPath);
         expect(currentStat.size).toBeGreaterThanOrEqual(0);
-
       } finally {
         if (client) await client.close();
         stopServer(port);
@@ -417,8 +445,14 @@ test.describe("Audit Log", () => {
 
     // Manually write a corrupted log file before server starts
     const { appendFile } = await import("node:fs/promises");
-    await appendFile(logPath, '{"tool":"pg_transaction_begin","category":"wri\n'); // Incomplete JSON
-    await appendFile(logPath, '{"tool":"pg_transaction_rollback","category":"write","success":true,"timestamp":"2023-10-10T10:00:00.000Z","durationMs":0,"args":{}}\n'); // Valid JSON
+    await appendFile(
+      logPath,
+      '{"tool":"pg_transaction_begin","category":"wri\n',
+    ); // Incomplete JSON
+    await appendFile(
+      logPath,
+      '{"tool":"pg_transaction_rollback","category":"write","success":true,"timestamp":"2023-10-10T10:00:00.000Z","durationMs":0,"args":{}}\n',
+    ); // Valid JSON
 
     await startServer(
       port,
@@ -433,14 +467,17 @@ test.describe("Audit Log", () => {
       // Perform a new write
       await callToolRaw(client, "pg_transaction_begin", {});
       await callToolRaw(client, "pg_transaction_rollback", {});
-      
+
       // Wait generous amount for background flush to disk
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 2000));
 
       // Read via resource which is evaluated natively by AuditLogger
       const resource = await client.readResource({ uri: "postgres://audit" });
       const text = resource.contents[0]!.text!;
-      const body = JSON.parse(text) as { entries: Array<Record<string, unknown>>; total: number };
+      const body = JSON.parse(text) as {
+        entries: Array<Record<string, unknown>>;
+        total: number;
+      };
 
       // Corrupted line is ignored, valid previous line + new lines are read
       const toolsRead = body.entries.map((e) => e.tool);
@@ -453,5 +490,3 @@ test.describe("Audit Log", () => {
     }
   });
 });
-
-

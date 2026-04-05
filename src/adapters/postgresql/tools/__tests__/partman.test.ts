@@ -330,7 +330,12 @@ describe("pg_partman_create_parent", () => {
         interval: "1 month",
       },
       mockContext,
-    )) as { success: boolean; error: string; hint: string; suggestion?: string };
+    )) as {
+      success: boolean;
+      error: string;
+      hint: string;
+      suggestion?: string;
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("already managed by pg_partman");
@@ -375,7 +380,12 @@ describe("pg_partman_create_parent", () => {
         interval: "1 day",
       },
       mockContext,
-    )) as { success: boolean; error: string; hint: string; details?: { hint?: string } };
+    )) as {
+      success: boolean;
+      error: string;
+      hint: string;
+      details?: { hint?: string };
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("not a partitioned table");
@@ -402,7 +412,12 @@ describe("pg_partman_create_parent", () => {
         interval: "999xyz", // Invalid interval format that passes Zod string check
       },
       mockContext,
-    )) as { success: boolean; error: string; examples: string[]; details?: { examples?: string[] } };
+    )) as {
+      success: boolean;
+      error: string;
+      examples: string[];
+      details?: { examples?: string[] };
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Invalid interval format");
@@ -1777,8 +1792,7 @@ describe("pg_partman_partition_data", () => {
 
   it("should return structured error when partman schema not found", async () => {
     // checkTableExists returns empty → TABLE_NOT_FOUND fires before partman check
-    mockAdapter.executeQuery
-      .mockResolvedValueOnce({ rows: [] }); // checkTableExists returns no rows
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] }); // checkTableExists returns no rows
 
     const tool = tools.find((t) => t.name === "pg_partman_partition_data")!;
     const result = (await tool.handler(
@@ -1937,7 +1951,12 @@ describe("pg_partman_set_retention", () => {
         retention: "30 days",
       },
       mockContext,
-    )) as { success: boolean; error: string; hint: string; details?: { hint: string } };
+    )) as {
+      success: boolean;
+      error: string;
+      hint: string;
+      details?: { hint: string };
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("No pg_partman configuration found");
@@ -2113,7 +2132,12 @@ describe("pg_partman_undo_partition", () => {
         targetTable: "public.events_archive",
       },
       mockContext,
-    )) as { success: boolean; error: string; hint: string; details?: { hint: string } };
+    )) as {
+      success: boolean;
+      error: string;
+      hint: string;
+      details?: { hint: string };
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("No pg_partman configuration found");
@@ -2495,7 +2519,7 @@ describe("partman helpers uncovered branches", () => {
     const result = (await tool.handler(
       { parentTable: "public.events", targetTable: "public.events_archive" },
       mockContext,
-    )) as { success: boolean, error: string };
+    )) as { success: boolean; error: string };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("is not installed or enabled");
@@ -2540,7 +2564,12 @@ describe("pg_partman_check_default — uncovered branches", () => {
     const result = (await tool.handler(
       { parentTable: "public.nonexistent" },
       mockContext,
-    )) as { success: boolean; error: string; hint: string; details?: { hint: string } };
+    )) as {
+      success: boolean;
+      error: string;
+      hint: string;
+      details?: { hint: string };
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("does not exist");
@@ -2760,7 +2789,12 @@ describe("pg_partman_partition_data — uncovered branches", () => {
     const result = (await tool.handler(
       { parentTable: "public.events" },
       mockContext,
-    )) as { success: boolean; error: string; hint: string; details?: { hint: string } };
+    )) as {
+      success: boolean;
+      error: string;
+      hint: string;
+      details?: { hint: string };
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Failed to move data");
@@ -2900,7 +2934,12 @@ describe("pg_partman_create_parent — uncovered branches", () => {
         interval: "invalid_interval",
       },
       mockContext,
-    )) as { success: boolean; error: string; examples: string[]; details?: { examples: string[] } };
+    )) as {
+      success: boolean;
+      error: string;
+      examples: string[];
+      details?: { examples: string[] };
+    };
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("Invalid interval format");

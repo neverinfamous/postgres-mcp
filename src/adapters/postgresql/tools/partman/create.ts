@@ -46,8 +46,8 @@ export function createPartmanExtensionTool(
         return { success: true, message: "pg_partman extension enabled" };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_partman_create_extension",
-          });
+          tool: "pg_partman_create_extension",
+        });
       }
     },
   };
@@ -201,23 +201,31 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
                   "Use pg_partman_show_config to view existing configuration. " +
                   "To recreate: use pg_partman_undo_partition first, or if the table was dropped, clean up with: " +
                   `DELETE FROM ${partmanSchema}.part_config WHERE parent_table = '${validatedParentTable}';`,
-              }
+              },
             );
           }
           if (
             errorMsg.includes("does not exist") &&
             errorMsg.includes("relation")
           ) {
-            throw new Error(`Table '${validatedParentTable}' does not exist. Create the parent table first with appropriate columns, then call pg_partman_create_parent.`, { cause: e });
+            throw new Error(
+              `Table '${validatedParentTable}' does not exist. Create the parent table first with appropriate columns, then call pg_partman_create_parent.`,
+              { cause: e },
+            );
           }
           if (errorMsg.includes("Unable to find given parent table")) {
-            throw new Error(`Table '${validatedParentTable}' does not exist. Create the parent table first with PARTITION BY clause, then call pg_partman_create_parent.`, { cause: e });
+            throw new Error(
+              `Table '${validatedParentTable}' does not exist. Create the parent table first with PARTITION BY clause, then call pg_partman_create_parent.`,
+              { cause: e },
+            );
           }
           // Check 'is not partitioned' BEFORE 'NOT NULL' - if table isn't partitioned, that's the primary issue
           if (errorMsg.includes("is not partitioned")) {
             throw new ValidationError(
               `Table '${validatedParentTable}' is not a partitioned table.`,
-              { hint: "Create the table with PARTITION BY clause. Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);" }
+              {
+                hint: "Create the table with PARTITION BY clause. Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);",
+              },
             );
           }
           if (
@@ -226,7 +234,9 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
           ) {
             throw new ValidationError(
               `Control column '${validatedControlColumn}' must have a NOT NULL constraint.`,
-              { hint: "Add NOT NULL constraint to the control column. Example: ALTER TABLE events ALTER COLUMN ts SET NOT NULL;" }
+              {
+                hint: "Add NOT NULL constraint to the control column. Example: ALTER TABLE events ALTER COLUMN ts SET NOT NULL;",
+              },
             );
           }
           // Catch pg_partman's partition type requirement error
@@ -236,9 +246,11 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
           ) {
             throw new ValidationError(
               `Table '${validatedParentTable}' must be created as RANGE or LIST partitioned before calling createParent.`,
-              { hint:
+              {
+                hint:
                   "Create the table with PARTITION BY RANGE or PARTITION BY LIST clause first. " +
-                  "Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);" }
+                  "Example: CREATE TABLE events (ts TIMESTAMPTZ NOT NULL, ...) PARTITION BY RANGE (ts);",
+              },
             );
           }
           // Catch invalid interval format error with user-friendly message
@@ -257,7 +269,7 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
                   "3 months",
                   "1 year",
                 ],
-              }
+              },
             );
           }
 
@@ -296,8 +308,8 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_partman_create_parent",
-          });
+          tool: "pg_partman_create_parent",
+        });
       }
     },
   };

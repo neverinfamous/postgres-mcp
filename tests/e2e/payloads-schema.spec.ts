@@ -50,17 +50,21 @@ test.describe("Payload Contracts: Schema + Introspection + Migration", () => {
 
   test("pg_dependency_graph returns dependency data and respects compact mode", async () => {
     // 1. Full payload
-    const full = await callToolAndParse(client, "pg_dependency_graph", {
+    const full = (await callToolAndParse(client, "pg_dependency_graph", {
       table: "test_orders",
-    }) as any;
+    })) as any;
     expectSuccess(full);
     expect(typeof full).toBe("object");
 
     // 2. Compact payload
-    const compactPayload = await callToolAndParse(client, "pg_dependency_graph", {
-      table: "test_orders",
-      compact: true,
-    }) as any;
+    const compactPayload = (await callToolAndParse(
+      client,
+      "pg_dependency_graph",
+      {
+        table: "test_orders",
+        compact: true,
+      },
+    )) as any;
     expectSuccess(compactPayload);
     // Check that optional heavy fields are stripped in compact mode
     if (compactPayload.graph && compactPayload.graph.nodes) {
@@ -103,12 +107,20 @@ test.describe("Payload Contracts: Schema + Introspection + Migration", () => {
 
   test("pg_schema_snapshot returns snapshot object and respects compact mode", async () => {
     // 1. Full payload
-    const full = await callToolAndParse(client, "pg_schema_snapshot", {}) as any;
+    const full = (await callToolAndParse(
+      client,
+      "pg_schema_snapshot",
+      {},
+    )) as any;
     expectSuccess(full);
     expect(typeof full).toBe("object");
 
     // 2. Compact payload
-    const compactPayload = await callToolAndParse(client, "pg_schema_snapshot", { compact: true }) as any;
+    const compactPayload = (await callToolAndParse(
+      client,
+      "pg_schema_snapshot",
+      { compact: true },
+    )) as any;
     expectSuccess(compactPayload);
     if (compactPayload.snapshot && compactPayload.snapshot.tables) {
       const tables = compactPayload.snapshot.tables as Record<string, any>;
@@ -122,55 +134,75 @@ test.describe("Payload Contracts: Schema + Introspection + Migration", () => {
   });
 
   // --- Newly Added Schema Lifecycle & Introspection Specs ---
-  
+
   test("pg_create_schema returns { success }", async () => {
-    const payload = await callToolAndParse(client, "pg_create_schema", { schema: "audit_dummy_schema", ifNotExists: true });
+    const payload = await callToolAndParse(client, "pg_create_schema", {
+      schema: "audit_dummy_schema",
+      ifNotExists: true,
+    });
     expectSuccess(payload);
     expect(payload.success).toBe(true);
   });
 
   test("pg_drop_schema returns { success }", async () => {
-    const payload = await callToolAndParse(client, "pg_drop_schema", { schema: "audit_dummy_schema", ifExists: true, cascade: true });
+    const payload = await callToolAndParse(client, "pg_drop_schema", {
+      schema: "audit_dummy_schema",
+      ifExists: true,
+      cascade: true,
+    });
     expectSuccess(payload);
     expect(typeof payload.success).toBe("boolean");
   });
 
   test("pg_create_view returns { success }", async () => {
-    const payload = await callToolAndParse(client, "pg_create_view", { 
-      viewName: "audit_dummy_view", 
+    const payload = await callToolAndParse(client, "pg_create_view", {
+      viewName: "audit_dummy_view",
       query: "SELECT 1 AS num",
-      orReplace: true 
+      orReplace: true,
     });
     expectSuccess(payload);
     expect(payload.success).toBe(true);
   });
 
   test("pg_drop_view returns { success }", async () => {
-    const payload = await callToolAndParse(client, "pg_drop_view", { name: "audit_dummy_view", ifExists: true });
+    const payload = await callToolAndParse(client, "pg_drop_view", {
+      name: "audit_dummy_view",
+      ifExists: true,
+    });
     expectSuccess(payload);
     expect(typeof payload.success).toBe("boolean");
   });
 
   test("pg_create_sequence returns { success }", async () => {
-    const payload = await callToolAndParse(client, "pg_create_sequence", { name: "audit_dummy_seq", ifNotExists: true });
+    const payload = await callToolAndParse(client, "pg_create_sequence", {
+      name: "audit_dummy_seq",
+      ifNotExists: true,
+    });
     expectSuccess(payload);
     expect(payload.success).toBe(true);
   });
 
   test("pg_drop_sequence returns { success }", async () => {
-    const payload = await callToolAndParse(client, "pg_drop_sequence", { name: "audit_dummy_seq", ifExists: true });
+    const payload = await callToolAndParse(client, "pg_drop_sequence", {
+      name: "audit_dummy_seq",
+      ifExists: true,
+    });
     expectSuccess(payload);
     expect(typeof payload.success).toBe("boolean");
   });
 
   test("pg_cascade_simulator returns analysis", async () => {
-    const payload = await callToolAndParse(client, "pg_cascade_simulator", { table: "test_products" });
+    const payload = await callToolAndParse(client, "pg_cascade_simulator", {
+      table: "test_products",
+    });
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
   });
 
   test("pg_migration_risks returns risks evaluation", async () => {
-    const payload = await callToolAndParse(client, "pg_migration_risks", { statements: ["DROP TABLE test_products"] });
+    const payload = await callToolAndParse(client, "pg_migration_risks", {
+      statements: ["DROP TABLE test_products"],
+    });
     expectSuccess(payload);
     expect(typeof payload).toBe("object");
   });

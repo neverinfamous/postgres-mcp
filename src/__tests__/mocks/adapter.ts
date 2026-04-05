@@ -169,7 +169,9 @@ export function createMockPostgresAdapter(): Partial<PostgresAdapter> & {
       return executeQueryMock(sql, params) as unknown as Promise<unknown>;
     }),
     invalidateSchemaCache: vi.fn(),
-    invalidateTableCache: vi.fn((_tableName: string, _schemaName?: string) => undefined),
+    invalidateTableCache: vi.fn(
+      (_tableName: string, _schemaName?: string) => undefined,
+    ),
 
     // Schema methods
     getSchema: vi.fn().mockResolvedValue(createMockSchemaInfo()),

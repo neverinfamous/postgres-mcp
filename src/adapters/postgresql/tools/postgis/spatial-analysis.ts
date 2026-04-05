@@ -51,7 +51,7 @@ export function createGeoIndexOptimizeTool(
         const parsed = GeoIndexOptimizeSchema.parse(params ?? {});
         const schemaName = parsed.schema ?? "public";
 
-      const indexQuery = `
+        const indexQuery = `
                 SELECT
                     c.relname as table_name,
                     i.relname as index_name,
@@ -75,13 +75,13 @@ export function createGeoIndexOptimizeTool(
                 ORDER BY index_size_bytes DESC
             `;
 
-      const indexParams: unknown[] = [schemaName];
-      if (parsed.table !== undefined) indexParams.push(parsed.table);
+        const indexParams: unknown[] = [schemaName];
+        if (parsed.table !== undefined) indexParams.push(parsed.table);
 
-      const [indexes, tableStats] = await Promise.all([
-        adapter.executeQuery(indexQuery, indexParams),
-        adapter.executeQuery(
-          `
+        const [indexes, tableStats] = await Promise.all([
+          adapter.executeQuery(indexQuery, indexParams),
+          adapter.executeQuery(
+            `
                     SELECT
                         c.relname as table_name,
                         n_live_tup as row_count,
@@ -98,79 +98,81 @@ export function createGeoIndexOptimizeTool(
                         AND ic.udt_name IN ('geometry', 'geography')
                     )
                 `,
-          indexParams,
-        ),
-      ]);
+            indexParams,
+          ),
+        ]);
 
-      const recommendations: string[] = [];
+        const recommendations: string[] = [];
 
-      for (const idx of indexes.rows ?? []) {
-        const scans = Number(idx["index_scans"] ?? 0);
-        const sizeBytes = Number(idx["index_size_bytes"] ?? 0);
+        for (const idx of indexes.rows ?? []) {
+          const scans = Number(idx["index_scans"] ?? 0);
+          const sizeBytes = Number(idx["index_size_bytes"] ?? 0);
 
-        if (scans === 0 && sizeBytes > 1024 * 1024) {
-          recommendations.push(
-            `Index "${String(idx["index_name"])}" on ${String(idx["table_name"])} is unused but takes ${String(idx["index_size"])}. Consider dropping it.`,
-          );
+          if (scans === 0 && sizeBytes > 1024 * 1024) {
+            recommendations.push(
+              `Index "${String(idx["index_name"])}" on ${String(idx["table_name"])} is unused but takes ${String(idx["index_size"])}. Consider dropping it.`,
+            );
+          }
+          if (scans > 0 && sizeBytes > 100 * 1024 * 1024) {
+            recommendations.push(
+              `Large spatial index "${String(idx["index_name"])}" (${String(idx["index_size"])}). Consider partitioning the table for better performance.`,
+            );
+          }
         }
-        if (scans > 0 && sizeBytes > 100 * 1024 * 1024) {
-          recommendations.push(
-            `Large spatial index "${String(idx["index_name"])}" (${String(idx["index_size"])}). Consider partitioning the table for better performance.`,
+
+        for (const table of tableStats.rows ?? []) {
+          const rowCount = Number(table["row_count"] ?? 0);
+          const hasIndex = (indexes.rows ?? []).some(
+            (idx) => idx["table_name"] === table["table_name"],
           );
+
+          if (rowCount > 10000 && !hasIndex) {
+            recommendations.push(
+              `Table "${String(table["table_name"])}" has ${String(rowCount)} rows but no spatial index. Consider adding a GiST index.`,
+            );
+          }
         }
-      }
 
-      for (const table of tableStats.rows ?? []) {
-        const rowCount = Number(table["row_count"] ?? 0);
-        const hasIndex = (indexes.rows ?? []).some(
-          (idx) => idx["table_name"] === table["table_name"],
-        );
-
-        if (rowCount > 10000 && !hasIndex) {
-          recommendations.push(
-            `Table "${String(table["table_name"])}" has ${String(rowCount)} rows but no spatial index. Consider adding a GiST index.`,
-          );
+        if (
+          parsed.table !== undefined &&
+          (indexes.rows?.length ?? 0) === 0 &&
+          (tableStats.rows?.length ?? 0) === 0
+        ) {
+          return {
+            success: false,
+            error: `Table "${parsed.table}" not found in schema "${schemaName}" or has no spatial columns/indexes.`,
+            code: "TABLE_NOT_FOUND",
+            category: "query",
+            recoverable: false,
+            suggestion: `Use pg_geo_index_optimize without a table filter to see all spatial tables in schema "${schemaName}".`,
+          };
         }
-      }
 
-      if (
-        parsed.table !== undefined &&
-        (indexes.rows?.length ?? 0) === 0 &&
-        (tableStats.rows?.length ?? 0) === 0
-      ) {
         return {
-          success: false,
-          error: `Table "${parsed.table}" not found in schema "${schemaName}" or has no spatial columns/indexes.`,
-          code: "TABLE_NOT_FOUND",
-          category: "query",
-          recoverable: false,
-          suggestion: `Use pg_geo_index_optimize without a table filter to see all spatial tables in schema "${schemaName}".`,
+          success: true,
+          spatialIndexes: indexes.rows,
+          tableStats: tableStats.rows,
+          recommendations:
+            recommendations.length > 0
+              ? recommendations
+              : (indexes.rows?.length ?? 0) === 0
+                ? [
+                    "No spatial indexes found in this schema. Consider adding GiST indexes for spatial columns.",
+                  ]
+                : ["All spatial indexes appear optimized"],
+          tips: [
+            "Use GiST indexes for general spatial queries",
+            "Consider SP-GiST for point-only data",
+            "CLUSTER table by spatial index for range queries",
+            "Use BRIN indexes for very large, sorted spatial data",
+          ],
         };
-      }
-
-      return {
-        success: true,
-        spatialIndexes: indexes.rows,
-        tableStats: tableStats.rows,
-        recommendations:
-          recommendations.length > 0
-            ? recommendations
-            : (indexes.rows?.length ?? 0) === 0
-              ? [
-                  "No spatial indexes found in this schema. Consider adding GiST indexes for spatial columns.",
-                ]
-              : ["All spatial indexes appear optimized"],
-        tips: [
-          "Use GiST indexes for general spatial queries",
-          "Consider SP-GiST for point-only data",
-          "CLUSTER table by spatial index for range queries",
-          "Use BRIN indexes for very large, sorted spatial data",
-        ],
-      };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_geo_index_optimize",
-          table: ((params as Record<string, unknown>)?.["table"] as string) ?? undefined,
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
         });
       }
     },
@@ -385,11 +387,11 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_geo_cluster",
-            table:
-              ((params as Record<string, unknown>)?.["table"] as string) ??
-              undefined,
-          });
+          tool: "pg_geo_cluster",
+          table:
+            ((params as Record<string, unknown>)?.["table"] as string) ??
+            undefined,
+        });
       }
     },
   };

@@ -28,10 +28,7 @@ export const KcacheQueryStatsSchemaBase = z.object({
     .describe(
       "Order results by metric (default: total_time). Valid: total_time, cpu_time, reads, writes",
     ),
-  minCalls: z
-    .number()
-    .optional()
-    .describe("Minimum call count to include"),
+  minCalls: z.number().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
     .number()
     .optional()
@@ -41,14 +38,15 @@ export const KcacheQueryStatsSchemaBase = z.object({
   compact: z
     .boolean()
     .optional()
-    .describe("If true, omits the query_preview text and 0/empty fields to save output tokens"),
+    .describe(
+      "If true, omits the query_preview text and 0/empty fields to save output tokens",
+    ),
 });
 
 export const KcacheQueryStatsSchema = z.preprocess(
   normalizeOptionalParams,
   KcacheQueryStatsSchemaBase,
 );
-
 
 /**
  * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
@@ -57,9 +55,7 @@ export const KcacheTopCpuSchemaBase = z.object({
   limit: z
     .number()
     .optional()
-    .describe(
-      "Number of top queries to return (default: 5, min: 1, max: 10).",
-    ),
+    .describe("Number of top queries to return (default: 5, min: 1, max: 10)."),
   queryPreviewLength: z
     .number()
     .optional()
@@ -69,7 +65,9 @@ export const KcacheTopCpuSchemaBase = z.object({
   compact: z
     .boolean()
     .optional()
-    .describe("If true, omits the query_preview text and 0/empty fields to save output tokens"),
+    .describe(
+      "If true, omits the query_preview text and 0/empty fields to save output tokens",
+    ),
 });
 
 /**
@@ -81,9 +79,7 @@ export const KcacheTopIoSchemaBase = z.object({
   limit: z
     .number()
     .optional()
-    .describe(
-      "Number of top queries to return (default: 5, min: 1, max: 10).",
-    ),
+    .describe("Number of top queries to return (default: 5, min: 1, max: 10)."),
   queryPreviewLength: z
     .number()
     .optional()
@@ -93,7 +89,9 @@ export const KcacheTopIoSchemaBase = z.object({
   compact: z
     .boolean()
     .optional()
-    .describe("If true, omits the query_preview text and 0/empty fields to save output tokens"),
+    .describe(
+      "If true, omits the query_preview text and 0/empty fields to save output tokens",
+    ),
 });
 
 /**
@@ -133,10 +131,7 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     .describe(
       "Maximum number of queries to return (default: 5, min: 1, max: 10).",
     ),
-  minCalls: z
-    .number()
-    .optional()
-    .describe("Minimum call count to include"),
+  minCalls: z.number().optional().describe("Minimum call count to include"),
   queryPreviewLength: z
     .number()
     .optional()
@@ -146,7 +141,9 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
   compact: z
     .boolean()
     .optional()
-    .describe("If true, omits the query_preview text and 0/empty fields to save output tokens"),
+    .describe(
+      "If true, omits the query_preview text and 0/empty fields to save output tokens",
+    ),
 });
 
 export const KcacheResourceAnalysisSchema = z.preprocess(

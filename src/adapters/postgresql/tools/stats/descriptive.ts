@@ -92,7 +92,9 @@ export function createStatsDescriptiveTool(
             table,
           ]);
           if (tableResult.rows?.length === 0) {
-            throw new ValidationError(`Table "${schema ?? "public"}.${table}" does not exist`);
+            throw new ValidationError(
+              `Table "${schema ?? "public"}.${table}" does not exist`,
+            );
           }
           throw new ValidationError(`Column "${column}" does not exist`);
         }
@@ -213,7 +215,9 @@ export function createStatsDescriptiveTool(
           statistics: mapStats(stats),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_stats_descriptive" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_stats_descriptive",
+        });
       }
     },
   };
@@ -361,7 +365,9 @@ export function createStatsPercentilesTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_stats_percentiles" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_stats_percentiles",
+        });
       }
     },
   };

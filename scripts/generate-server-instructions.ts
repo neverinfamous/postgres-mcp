@@ -30,12 +30,20 @@ function escapeForTemplateLiteral(content: string): string {
 }
 
 // Read overview (slim instructions field content)
-const overviewMd = readFileSync(resolve(helpDir, "overview.md"), "utf-8").trim();
+const overviewMd = readFileSync(
+  resolve(helpDir, "overview.md"),
+  "utf-8",
+).trim();
 const overviewEscaped = escapeForTemplateLiteral(overviewMd);
 
 // Read all help files (everything except overview.md)
 const helpFiles = readdirSync(helpDir)
-  .filter((f) => f.endsWith(".md") && f !== "overview.md" && f.toLowerCase() !== "readme.md")
+  .filter(
+    (f) =>
+      f.endsWith(".md") &&
+      f !== "overview.md" &&
+      f.toLowerCase() !== "readme.md",
+  )
   .sort();
 
 const helpEntries: { key: string; content: string }[] = [];
@@ -77,31 +85,27 @@ lines.push(
 lines.push(" * and instruction level for token efficiency.");
 lines.push(" */");
 lines.push("");
-lines.push(
-  "import type { ToolGroup } from '../types/index.js'",
-);
+lines.push("import type { ToolGroup } from '../types/index.js'");
 lines.push("");
 lines.push("/**");
-lines.push(
-  " * Instruction detail level for token efficiency",
-);
+lines.push(" * Instruction detail level for token efficiency");
 lines.push(
   " * - essential: ~150 tokens - Core quick access only (for token-constrained clients)",
 );
 lines.push(
   " * - standard: ~200-300 tokens - + dynamic help pointers for enabled groups",
 );
-lines.push(
-  " * - full: ~350-400 tokens - + active groups summary",
-);
+lines.push(" * - full: ~350-400 tokens - + active groups summary");
 lines.push(" */");
-lines.push(
-  "export type InstructionLevel = 'essential' | 'standard' | 'full'",
-);
+lines.push("export type InstructionLevel = 'essential' | 'standard' | 'full'");
 lines.push("");
-lines.push("// =============================================================================");
+lines.push(
+  "// =============================================================================",
+);
 lines.push("// Composable Instruction Segments");
-lines.push("// =============================================================================");
+lines.push(
+  "// =============================================================================",
+);
 lines.push("");
 lines.push("/**");
 lines.push(
@@ -111,17 +115,13 @@ lines.push(
   " * Contains quick access table, built-in tools, and base help pointer.",
 );
 lines.push(" */");
-lines.push(
-  "const CORE_INSTRUCTIONS = " + BT + overviewEscaped + BT,
-);
+lines.push("const CORE_INSTRUCTIONS = " + BT + overviewEscaped + BT);
 lines.push("");
 lines.push("/**");
 lines.push(
   " * Code Mode summary — only included when codemode group is enabled.",
 );
-lines.push(
-  " * Provides API mapping and sandbox constraints.",
-);
+lines.push(" * Provides API mapping and sandbox constraints.");
 lines.push(" */");
 lines.push(
   "const CODE_MODE_INSTRUCTIONS = " +
@@ -133,7 +133,7 @@ lines.push(
         "",
         "API: `pg_group_action` → `pg.group.action()` (e.g., `pg_jsonb_extract` → `pg.jsonb.extract()`)",
         "Top-level: `pg.readQuery()`, `pg.writeQuery()`, `pg.listTables()`, `pg.describeTable()`, `pg.upsert()`, etc.",
-        "Positional: `readQuery(\"SELECT...\")`, `exists(\"users\", \"id=1\")`, `createIndex(\"users\", [\"email\"])`",
+        'Positional: `readQuery("SELECT...")`, `exists("users", "id=1")`, `createIndex("users", ["email"])`',
         "Discovery: `pg.help()` → `{group: methods[]}`. `pg.core.help()`, `pg.jsonb.help()` for group-specific.",
         "Sandbox: No `setTimeout`, `setInterval`, `fetch`, or network access. Use `pg.core.readQuery()` for data.",
       ].join("\n"),
@@ -147,18 +147,13 @@ lines.push(
 );
 lines.push(" */");
 lines.push(
-  "const HELP_GROUP_KEYS: readonly string[] = " +
-    JSON.stringify(groupHelpKeys),
+  "const HELP_GROUP_KEYS: readonly string[] = " + JSON.stringify(groupHelpKeys),
 );
 lines.push("");
 lines.push("/**");
-lines.push(
-  " * Build dynamic help pointers listing only the enabled groups.",
-);
+lines.push(" * Build dynamic help pointers listing only the enabled groups.");
 lines.push(" */");
-lines.push(
-  "function buildHelpPointers(groups: Set<ToolGroup>): string {",
-);
+lines.push("function buildHelpPointers(groups: Set<ToolGroup>): string {");
 lines.push(
   "    const enabledHelpGroups = HELP_GROUP_KEYS.filter((k) => groups.has(k as ToolGroup))",
 );
@@ -167,9 +162,7 @@ lines.push(
   "        return '\\n\\nRead `postgres://help` for gotchas and critical usage patterns.'",
 );
 lines.push("    }");
-lines.push(
-  "    return '\\n\\n## Help Resources\\n\\n' +",
-);
+lines.push("    return '\\n\\n## Help Resources\\n\\n' +");
 lines.push(
   "        'Read `postgres://help` for gotchas and critical usage patterns.\\n' +",
 );
@@ -186,17 +179,19 @@ lines.push(" */");
 lines.push(
   "function buildActiveGroupsSummary(groups: Set<ToolGroup>, enabledToolCount: number): string {",
 );
-lines.push(
-  "    const groupList = [...groups].sort().join(', ')",
-);
+lines.push("    const groupList = [...groups].sort().join(', ')");
 lines.push(
   "    return `\\n\\n## Active Tools (${String(enabledToolCount)})\\n\\nGroups: ${groupList}`",
 );
 lines.push("}");
 lines.push("");
-lines.push("// =============================================================================");
+lines.push(
+  "// =============================================================================",
+);
 lines.push("// Public API");
-lines.push("// =============================================================================");
+lines.push(
+  "// =============================================================================",
+);
 lines.push("");
 lines.push("/**");
 lines.push(
@@ -206,70 +201,42 @@ lines.push(" *");
 lines.push(
   " * Sections are conditionally included based on which tool groups are enabled:",
 );
-lines.push(
-  " * - Code Mode → only with `codemode` group",
-);
+lines.push(" * - Code Mode → only with `codemode` group");
 lines.push(
   " * - Help group listing → `standard`+ level, only lists enabled groups",
 );
-lines.push(
-  " * - Active tools summary → `full` level only",
-);
+lines.push(" * - Active tools summary → `full` level only");
 lines.push(" *");
-lines.push(
-  " * @param enabledGroups - Set of enabled tool group names",
-);
-lines.push(
-  " * @param level - Instruction detail level (default: 'standard')",
-);
+lines.push(" * @param enabledGroups - Set of enabled tool group names");
+lines.push(" * @param level - Instruction detail level (default: 'standard')");
 lines.push(
   " * @param enabledToolCount - Number of enabled tools (for full level summary)",
 );
 lines.push(" */");
-lines.push(
-  "export function generateInstructions(",
-);
-lines.push(
-  "    enabledGroups: Set<ToolGroup>,",
-);
-lines.push(
-  "    level: InstructionLevel = 'standard',",
-);
-lines.push(
-  "    enabledToolCount?: number,",
-);
+lines.push("export function generateInstructions(");
+lines.push("    enabledGroups: Set<ToolGroup>,");
+lines.push("    level: InstructionLevel = 'standard',");
+lines.push("    enabledToolCount?: number,");
 lines.push("): string {");
 lines.push("    // Always start with core instructions");
-lines.push(
-  "    let instructions = CORE_INSTRUCTIONS",
-);
+lines.push("    let instructions = CORE_INSTRUCTIONS");
 lines.push("");
 lines.push("    // Code Mode — only when codemode group is enabled");
 lines.push("    if (enabledGroups.has('codemode')) {");
-lines.push(
-  "        instructions += CODE_MODE_INSTRUCTIONS",
-);
+lines.push("        instructions += CODE_MODE_INSTRUCTIONS");
 lines.push("    }");
 lines.push("");
-lines.push(
-  "    // Essential: minimal help pointer (no group listing)",
-);
-lines.push(
-  "    // Standard+: dynamic help pointers listing enabled groups",
-);
+lines.push("    // Essential: minimal help pointer (no group listing)");
+lines.push("    // Standard+: dynamic help pointers listing enabled groups");
 lines.push("    if (level === 'essential') {");
 lines.push(
   "        instructions += '\\n\\nRead `postgres://help` for gotchas and critical usage patterns.'",
 );
 lines.push("    } else {");
-lines.push(
-  "        instructions += buildHelpPointers(enabledGroups)",
-);
+lines.push("        instructions += buildHelpPointers(enabledGroups)");
 lines.push("    }");
 lines.push("");
-lines.push(
-  "    // Full level includes active groups summary",
-);
+lines.push("    // Full level includes active groups summary");
 lines.push("    if (level === 'full' && enabledToolCount !== undefined) {");
 lines.push(
   "        instructions += buildActiveGroupsSummary(enabledGroups, enabledToolCount)",
@@ -280,9 +247,7 @@ lines.push("    return instructions");
 lines.push("}");
 lines.push("");
 lines.push("/**");
-lines.push(
-  " * Static instructions for backward compatibility.",
-);
+lines.push(" * Static instructions for backward compatibility.");
 lines.push(
   " * @deprecated Use generateInstructions() instead for dynamic content",
 );
@@ -291,12 +256,8 @@ lines.push("export const INSTRUCTIONS = CORE_INSTRUCTIONS");
 lines.push("");
 lines.push("/**");
 lines.push(" * Help content keyed by group name.");
-lines.push(
-  " * 'gotchas' is the always-available help (postgres://help).",
-);
-lines.push(
-  " * Other keys are tool groups (postgres://help/{group}).",
-);
+lines.push(" * 'gotchas' is the always-available help (postgres://help).");
+lines.push(" * Other keys are tool groups (postgres://help/{group}).");
 lines.push(" */");
 lines.push(
   "export const HELP_CONTENT: ReadonlyMap<string, string> = new Map([",

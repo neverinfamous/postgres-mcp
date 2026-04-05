@@ -231,4 +231,3 @@ export interface RpcResponse {
   /** Error message (if failed) */
   error?: string;
 }
-

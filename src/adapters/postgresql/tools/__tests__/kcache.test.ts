@@ -222,7 +222,10 @@ describe("Kcache Tools", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_kcache_top_cpu");
-      await tool!.handler({ queryPreviewLength: 200, compact: false }, mockContext);
+      await tool!.handler(
+        { queryPreviewLength: 200, compact: false },
+        mockContext,
+      );
 
       expect(mockAdapter.executeQuery).toHaveBeenLastCalledWith(
         expect.stringContaining("LEFT(s.query, 200)"),
@@ -316,7 +319,10 @@ describe("Kcache Tools", () => {
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
 
       const tool = findTool("pg_kcache_top_io");
-      await tool!.handler({ queryPreviewLength: 300, compact: false }, mockContext);
+      await tool!.handler(
+        { queryPreviewLength: 300, compact: false },
+        mockContext,
+      );
 
       expect(mockAdapter.executeQuery).toHaveBeenLastCalledWith(
         expect.stringContaining("LEFT(s.query, 300)"),
@@ -708,28 +714,40 @@ describe("Kcache Tools", () => {
     it("should throw ValidationError when numeric parameters are NaN in query_stats", async () => {
       const tool = findTool("pg_kcache_query_stats");
       // Mocks are normally cleared in beforeEach, but just to be sure
-      const result = await tool!.handler({ limit: "abc" }, mockContext) as { success: boolean; error: string };
+      const result = (await tool!.handler({ limit: "abc" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
       expect(result.success).toBe(false);
       expect(result.error).toContain("received string");
     });
 
     it("should throw ValidationError when numeric parameters are NaN in top_cpu", async () => {
       const tool = findTool("pg_kcache_top_cpu");
-      const result = await tool!.handler({ limit: "abc" }, mockContext) as { success: boolean; error: string };
+      const result = (await tool!.handler({ limit: "abc" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
       expect(result.success).toBe(false);
       expect(result.error).toContain("received string");
     });
 
     it("should throw ValidationError when numeric parameters are NaN in top_io", async () => {
       const tool = findTool("pg_kcache_top_io");
-      const result = await tool!.handler({ limit: "abc" }, mockContext) as { success: boolean; error: string };
+      const result = (await tool!.handler({ limit: "abc" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
       expect(result.success).toBe(false);
       expect(result.error).toContain("received string");
     });
 
     it("should throw ValidationError when numeric parameters are NaN in resource_analysis", async () => {
       const tool = findTool("pg_kcache_resource_analysis");
-      const result = await tool!.handler({ limit: "abc" }, mockContext) as { success: boolean; error: string };
+      const result = (await tool!.handler({ limit: "abc" }, mockContext)) as {
+        success: boolean;
+        error: string;
+      };
       expect(result.success).toBe(false);
       expect(result.error).toContain("received string");
     });

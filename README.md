@@ -23,22 +23,23 @@
 
 ## 🎯 What Sets Us Apart
 
-| Feature                                | Description                                                                                                                                                                                                                                                                                                  |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Code Mode (V8 Isolate)**             | **Massive Token Savings:** Execute complex, multi-step operations inside a secure, true V8 isolate (`worker_threads`). Stop burning tokens on back-and-forth tool calls and reduce your AI overhead by up to 90%.                                                                                                       |
-| **Deterministic Error Handling**       | No more cryptic database errors causing AI hallucinations. We intercept and translate raw SQL exceptions into clear, actionable advice so your agent knows exactly how to recover without guessing.                                                                                                                                            |
-| **248 Token-Optimized Tools**          | The largest PostgreSQL toolset on the MCP registry. Every query uses zero-cost token estimation and smart dataset truncation, ensuring agents always see the big picture without blowing their context windows.                                                                                                            |
-| **OAuth 2.1 + Granular Control**       | Real enterprise security. Authenticate via OAuth 2.1 and control exactly who can read, write, or administer your database with precision scopes mapped down to the specific tool layer.                                                                                                                                                           |
-| **Audit Trails & Semantic Diffing**    | Total accountability. Track exactly what your AI is doing with detailed JSON logs, automatically snapshot schemas before mutations, and confidently review semantic row-by-row diffs before restoring data.                                                                                                                                                         |
-| **23 Resources & 20 Prompts**          | Instant database meta-awareness. Agents automatically read real-time health, performance, and replication metrics, and can invoke built-in prompt workflows for query tuning and schema design.                                                                                                                                                                               |
-| **Introspection & Migrations**         | Prevent costly mistakes. Let your AI simulate the cascade impact of schema changes, safely order foreign-key updates, and track migration history automatically.                                                                                                                                                                        |
-| **8 Extension Ecosystems**             | Ready for advanced workloads. First-class API support for **pgvector** (AI search), **PostGIS** (geospatial), **pg_cron**, **pgcrypto**, and more—all strictly typed and validated out of the box.                                                                                                                                                                              |
-| **Smart Tool Filtering**               | Give your agent exactly what it needs without overflowing IDE limits. Dynamically compile your server with any combination of our 22 distinct tool groups.                                                                                                                                                                           |
-| **Enterprise Infrastructure**          | Built for production. Blazing fast (millions of ops/sec), protected against SQL injection, features high-performance connection pooling, and supports both Streamable HTTP and Legacy SSE protocols simultaneously.                                                                                                                                                                  |
+| Feature                             | Description                                                                                                                                                                                                         |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Code Mode (V8 Isolate)**          | **Massive Token Savings:** Execute complex, multi-step operations inside a secure, true V8 isolate (`worker_threads`). Stop burning tokens on back-and-forth tool calls and reduce your AI overhead by up to 90%.   |
+| **Deterministic Error Handling**    | No more cryptic database errors causing AI hallucinations. We intercept and translate raw SQL exceptions into clear, actionable advice so your agent knows exactly how to recover without guessing.                 |
+| **248 Token-Optimized Tools**       | The largest PostgreSQL toolset on the MCP registry. Every query uses zero-cost token estimation and smart dataset truncation, ensuring agents always see the big picture without blowing their context windows.     |
+| **OAuth 2.1 + Granular Control**    | Real enterprise security. Authenticate via OAuth 2.1 and control exactly who can read, write, or administer your database with precision scopes mapped down to the specific tool layer.                             |
+| **Audit Trails & Semantic Diffing** | Total accountability. Track exactly what your AI is doing with detailed JSON logs, automatically snapshot schemas before mutations, and confidently review semantic row-by-row diffs before restoring data.         |
+| **23 Resources & 20 Prompts**       | Instant database meta-awareness. Agents automatically read real-time health, performance, and replication metrics, and can invoke built-in prompt workflows for query tuning and schema design.                     |
+| **Introspection & Migrations**      | Prevent costly mistakes. Let your AI simulate the cascade impact of schema changes, safely order foreign-key updates, and track migration history automatically.                                                    |
+| **8 Extension Ecosystems**          | Ready for advanced workloads. First-class API support for **pgvector** (AI search), **PostGIS** (geospatial), **pg_cron**, **pgcrypto**, and more—all strictly typed and validated out of the box.                  |
+| **Smart Tool Filtering**            | Give your agent exactly what it needs without overflowing IDE limits. Dynamically compile your server with any combination of our 22 distinct tool groups.                                                          |
+| **Enterprise Infrastructure**       | Built for production. Blazing fast (millions of ops/sec), protected against SQL injection, features high-performance connection pooling, and supports both Streamable HTTP and Legacy SSE protocols simultaneously. |
 
 ## Suggested Rule (Add to AGENTS.md, GEMINI.md, etc)
 
 **MCP TOKEN MANAGEMENT**:
+
 - **Token Visibility**: When interacting with `postgres-mcp`, always monitor the `_meta.tokenEstimate` (or `metrics.tokenEstimate` in Code Mode) returned in tool responses.
 - **Audit Resource**: Use the `postgres://audit` resource to review session-level token consumption and identify high-cost operations.
 - **Proactive Efficiency**: If operations are consuming high token counts, prefer code mode and proactively use `limit` parameters.
@@ -179,12 +180,12 @@ Run `npm run bench` to execute the performance benchmark suite (10 files, 93+ sc
 
 The `--tool-filter` argument accepts **groups** or **tool names** — mix and match freely:
 
-| Filter Pattern   | Example                   | Description               |
-| ---------------- | ------------------------- | ------------------------- |
-| Groups only      | `core,jsonb,transactions` | Combine individual groups |
-| Tool names       | `pg_read_query,pg_explain`| Custom tool selection     |
-| Group + Tool     | `core,+pg_stat_statements`| Extend a group            |
-| Group - Tool     | `core,-pg_drop_table`     | Remove specific tools     |
+| Filter Pattern | Example                    | Description               |
+| -------------- | -------------------------- | ------------------------- |
+| Groups only    | `core,jsonb,transactions`  | Combine individual groups |
+| Tool names     | `pg_read_query,pg_explain` | Custom tool selection     |
+| Group + Tool   | `core,+pg_stat_statements` | Extend a group            |
+| Group - Tool   | `core,-pg_drop_table`      | Remove specific tools     |
 
 ### Tool Groups (22 Available)
 
@@ -215,14 +216,14 @@ The `--tool-filter` argument accepts **groups** or **tool names** — mix and ma
 
 ### Syntax Reference
 
-| Prefix   | Target   | Example          | Effect                                        |
-| -------- | -------- | ---------------- | --------------------------------------------- |
-| _(none)_ | Group    | `core`           | **Whitelist Mode:** Enable ONLY this group    |
-| _(none)_ | Tool     | `pg_read_query`  | **Whitelist Mode:** Enable ONLY this tool     |
-| `+`      | Group    | `+vector`        | Add tools from this group to current set      |
-| `-`      | Group    | `-admin`         | Remove tools in this group from current set   |
-| `+`      | Tool     | `+pg_explain`    | Add one specific tool                         |
-| `-`      | Tool     | `-pg_drop_table` | Remove one specific tool                      |
+| Prefix   | Target | Example          | Effect                                      |
+| -------- | ------ | ---------------- | ------------------------------------------- |
+| _(none)_ | Group  | `core`           | **Whitelist Mode:** Enable ONLY this group  |
+| _(none)_ | Tool   | `pg_read_query`  | **Whitelist Mode:** Enable ONLY this tool   |
+| `+`      | Group  | `+vector`        | Add tools from this group to current set    |
+| `-`      | Group  | `-admin`         | Remove tools in this group from current set |
+| `+`      | Tool   | `+pg_explain`    | Add one specific tool                       |
+| `-`      | Tool   | `-pg_drop_table` | Remove one specific tool                    |
 
 ## 🌐 HTTP/SSE Transport (Remote Access)
 
@@ -279,8 +280,8 @@ Legacy protocol (MCP 2024-11-05) — for clients like Python `mcp.client.sse`:
 
 ### Utility Endpoints
 
-| Method | Endpoint  | Purpose                                          |
-| ------ | --------- | ------------------------------------------------ |
+| Method | Endpoint  | Purpose                                                                |
+| ------ | --------- | ---------------------------------------------------------------------- |
 | `GET`  | `/health` | Health check (bypasses rate limiting, always available for monitoring) |
 
 ## 🔐 Authentication
@@ -355,39 +356,39 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 
 ### Environment Variables
 
-| Variable | Default | Description | CLI Flag |
-|----------|---------|-------------|----------|
-| `POSTGRES_HOST` | `localhost` | Database host | `--host` |
-| `POSTGRES_PORT` | `5432` | Database port | `--pg-port` |
-| `POSTGRES_USER` | `postgres` | Database username | `--user` |
-| `POSTGRES_PASSWORD` | _(empty)_ | Database password | `--password` |
-| `POSTGRES_DATABASE` | `postgres` | Database name | `--database` |
-| `POSTGRES_URL` | — | Connection string (overrides individual vars) | `--postgres` |
-| `MCP_HOST` | `localhost` | Server bind host (`0.0.0.0` for containers) | `--server-host` |
-| `MCP_TRANSPORT` | `stdio` | Transport type: `stdio`, `http`, `sse` | `--transport` |
-| `PORT` | `3000` | HTTP port for http/sse transports | `--port` |
-| `MCP_AUTH_TOKEN` | — | Simple bearer token for HTTP auth | `--auth-token` |
-| `LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warning`, `error` | `--log-level` |
-| `METADATA_CACHE_TTL_MS` | `30000` | Schema cache TTL (ms) | — |
-| `POSTGRES_TOOL_FILTER` | — | Tool filter string (also `MCP_TOOL_FILTER`) | `--tool-filter` |
-| `MCP_RATE_LIMIT_MAX` | `100` | Rate limit per IP per 15min window | — |
-| `MCP_REQUEST_TIMEOUT`| `300000` | HTTP request timeout (ms) for Slowloris protection | — |
-| `MCP_HEADERS_TIMEOUT`| `60000` | HTTP headers timeout (ms) | — |
-| `TRUST_PROXY` | `false` | Trust X-Forwarded-For for client IP | `--trust-proxy` |
-| `OAUTH_ENABLED` | `false` | Enable OAuth 2.1 authentication | `--oauth-enabled` |
-| `OAUTH_ISSUER` | — | Authorization server URL | `--oauth-issuer` |
-| `OAUTH_AUDIENCE` | — | Expected token audience | `--oauth-audience` |
-| `OAUTH_JWKS_URI` | _(auto)_ | JWKS URI (auto-discovered from issuer) | `--oauth-jwks-uri` |
-| `OAUTH_CLOCK_TOLERANCE` | `60` | Clock tolerance in seconds | `--oauth-clock-tolerance` |
-| `AUDIT_LOG_PATH` | — | Audit log file path (`stderr` for container logs) | `--audit-log` |
-| `AUDIT_REDACT` | `false` | Omit tool arguments from audit entries | `--audit-redact` |
-| `AUDIT_BACKUP` | `false` | Enable pre-mutation DDL snapshots | `--audit-backup` |
-| `AUDIT_BACKUP_DATA` | `false` | Include sample data rows in snapshots | `--audit-backup-data` |
-| `AUDIT_BACKUP_MAX_AGE` | `30` | Maximum snapshot age in days | `--audit-backup-max-age` |
-| `AUDIT_BACKUP_MAX_COUNT` | `1000` | Maximum number of snapshots to retain | `--audit-backup-max-count` |
-| `AUDIT_BACKUP_MAX_DATA_SIZE` | `52428800` | Maximum table size for data capture (bytes) | `--audit-backup-max-data-size` |
-| `AUDIT_READS` | `false` | Log read-scoped tool calls (compact entries) | `--audit-reads` |
-| `AUDIT_LOG_MAX_SIZE` | `10485760` | Max log file size before rotation (bytes). Keeps up to 5 files. | `--audit-log-max-size` |
+| Variable                     | Default     | Description                                                     | CLI Flag                       |
+| ---------------------------- | ----------- | --------------------------------------------------------------- | ------------------------------ |
+| `POSTGRES_HOST`              | `localhost` | Database host                                                   | `--host`                       |
+| `POSTGRES_PORT`              | `5432`      | Database port                                                   | `--pg-port`                    |
+| `POSTGRES_USER`              | `postgres`  | Database username                                               | `--user`                       |
+| `POSTGRES_PASSWORD`          | _(empty)_   | Database password                                               | `--password`                   |
+| `POSTGRES_DATABASE`          | `postgres`  | Database name                                                   | `--database`                   |
+| `POSTGRES_URL`               | —           | Connection string (overrides individual vars)                   | `--postgres`                   |
+| `MCP_HOST`                   | `localhost` | Server bind host (`0.0.0.0` for containers)                     | `--server-host`                |
+| `MCP_TRANSPORT`              | `stdio`     | Transport type: `stdio`, `http`, `sse`                          | `--transport`                  |
+| `PORT`                       | `3000`      | HTTP port for http/sse transports                               | `--port`                       |
+| `MCP_AUTH_TOKEN`             | —           | Simple bearer token for HTTP auth                               | `--auth-token`                 |
+| `LOG_LEVEL`                  | `info`      | Log level: `debug`, `info`, `warning`, `error`                  | `--log-level`                  |
+| `METADATA_CACHE_TTL_MS`      | `30000`     | Schema cache TTL (ms)                                           | —                              |
+| `POSTGRES_TOOL_FILTER`       | —           | Tool filter string (also `MCP_TOOL_FILTER`)                     | `--tool-filter`                |
+| `MCP_RATE_LIMIT_MAX`         | `100`       | Rate limit per IP per 15min window                              | —                              |
+| `MCP_REQUEST_TIMEOUT`        | `300000`    | HTTP request timeout (ms) for Slowloris protection              | —                              |
+| `MCP_HEADERS_TIMEOUT`        | `60000`     | HTTP headers timeout (ms)                                       | —                              |
+| `TRUST_PROXY`                | `false`     | Trust X-Forwarded-For for client IP                             | `--trust-proxy`                |
+| `OAUTH_ENABLED`              | `false`     | Enable OAuth 2.1 authentication                                 | `--oauth-enabled`              |
+| `OAUTH_ISSUER`               | —           | Authorization server URL                                        | `--oauth-issuer`               |
+| `OAUTH_AUDIENCE`             | —           | Expected token audience                                         | `--oauth-audience`             |
+| `OAUTH_JWKS_URI`             | _(auto)_    | JWKS URI (auto-discovered from issuer)                          | `--oauth-jwks-uri`             |
+| `OAUTH_CLOCK_TOLERANCE`      | `60`        | Clock tolerance in seconds                                      | `--oauth-clock-tolerance`      |
+| `AUDIT_LOG_PATH`             | —           | Audit log file path (`stderr` for container logs)               | `--audit-log`                  |
+| `AUDIT_REDACT`               | `false`     | Omit tool arguments from audit entries                          | `--audit-redact`               |
+| `AUDIT_BACKUP`               | `false`     | Enable pre-mutation DDL snapshots                               | `--audit-backup`               |
+| `AUDIT_BACKUP_DATA`          | `false`     | Include sample data rows in snapshots                           | `--audit-backup-data`          |
+| `AUDIT_BACKUP_MAX_AGE`       | `30`        | Maximum snapshot age in days                                    | `--audit-backup-max-age`       |
+| `AUDIT_BACKUP_MAX_COUNT`     | `1000`      | Maximum number of snapshots to retain                           | `--audit-backup-max-count`     |
+| `AUDIT_BACKUP_MAX_DATA_SIZE` | `52428800`  | Maximum table size for data capture (bytes)                     | `--audit-backup-max-data-size` |
+| `AUDIT_READS`                | `false`     | Log read-scoped tool calls (compact entries)                    | `--audit-reads`                |
+| `AUDIT_LOG_MAX_SIZE`         | `10485760`  | Max log file size before rotation (bytes). Keeps up to 5 files. | `--audit-log-max-size`         |
 
 > **Aliases:** `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` are also supported (standard PostgreSQL client env vars).
 
@@ -395,34 +396,34 @@ The server exposes metadata at `/.well-known/oauth-protected-resource`.
 
 ### CLI Reference
 
-| Flag | Description |
-|------|-------------|
-| `--postgres <url>` | Connection string |
-| `--host <host>` | PostgreSQL host |
-| `--pg-port <port>` | PostgreSQL port |
-| `--user <user>` | Username |
-| `--password <pw>` | Password (prefer `PGPASSWORD`) |
-| `--database <db>` | Database name |
-| `--ssl` | Enable SSL |
-| `--pool-max <n>` | Max pool connections (default: 10) |
-| `--transport <type>` | `stdio` \| `http` \| `sse` |
-| `--port <n>` | HTTP port |
-| `--server-host <host>` | Server bind host |
-| `--auth-token <token>` | Simple bearer token for HTTP auth |
-| `--stateless` | Stateless HTTP mode (no sessions, no SSE) |
-| `--tool-filter <filter>` | Tool filter string |
-| `--log-level <level>` | Log verbosity |
-| `--oauth-enabled` | Enable OAuth 2.1 |
-| `--trust-proxy` | Trust reverse proxy headers |
-| `--audit-log <path>` | Enable JSONL audit trail (`stderr` for container logs) |
-| `--audit-redact` | Omit tool arguments from audit entries |
-| `--audit-backup` | Enable pre-mutation DDL snapshots |
-| `--audit-backup-data` | Include sample data rows in snapshots |
-| `--audit-backup-max-age <days>` | Maximum snapshot age in days (default: 30) |
-| `--audit-backup-max-count <count>` | Maximum number of snapshots to retain (default: 1000) |
-| `--audit-backup-max-data-size <bytes>` | Maximum table size for data capture (default: 52428800) |
-| `--audit-reads` | Log read-scoped tool calls (compact entries) |
-| `--audit-log-max-size <bytes>` | Max log file size before rotation (default: 10MB). System retains up to 5 rotated historical archives before oldest deletion (`.1` through `.5`). |
+| Flag                                   | Description                                                                                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--postgres <url>`                     | Connection string                                                                                                                                 |
+| `--host <host>`                        | PostgreSQL host                                                                                                                                   |
+| `--pg-port <port>`                     | PostgreSQL port                                                                                                                                   |
+| `--user <user>`                        | Username                                                                                                                                          |
+| `--password <pw>`                      | Password (prefer `PGPASSWORD`)                                                                                                                    |
+| `--database <db>`                      | Database name                                                                                                                                     |
+| `--ssl`                                | Enable SSL                                                                                                                                        |
+| `--pool-max <n>`                       | Max pool connections (default: 10)                                                                                                                |
+| `--transport <type>`                   | `stdio` \| `http` \| `sse`                                                                                                                        |
+| `--port <n>`                           | HTTP port                                                                                                                                         |
+| `--server-host <host>`                 | Server bind host                                                                                                                                  |
+| `--auth-token <token>`                 | Simple bearer token for HTTP auth                                                                                                                 |
+| `--stateless`                          | Stateless HTTP mode (no sessions, no SSE)                                                                                                         |
+| `--tool-filter <filter>`               | Tool filter string                                                                                                                                |
+| `--log-level <level>`                  | Log verbosity                                                                                                                                     |
+| `--oauth-enabled`                      | Enable OAuth 2.1                                                                                                                                  |
+| `--trust-proxy`                        | Trust reverse proxy headers                                                                                                                       |
+| `--audit-log <path>`                   | Enable JSONL audit trail (`stderr` for container logs)                                                                                            |
+| `--audit-redact`                       | Omit tool arguments from audit entries                                                                                                            |
+| `--audit-backup`                       | Enable pre-mutation DDL snapshots                                                                                                                 |
+| `--audit-backup-data`                  | Include sample data rows in snapshots                                                                                                             |
+| `--audit-backup-max-age <days>`        | Maximum snapshot age in days (default: 30)                                                                                                        |
+| `--audit-backup-max-count <count>`     | Maximum number of snapshots to retain (default: 1000)                                                                                             |
+| `--audit-backup-max-data-size <bytes>` | Maximum table size for data capture (default: 52428800)                                                                                           |
+| `--audit-reads`                        | Log read-scoped tool calls (compact entries)                                                                                                      |
+| `--audit-log-max-size <bytes>`         | Max log file size before rotation (default: 10MB). System retains up to 5 rotated historical archives before oldest deletion (`.1` through `.5`). |
 
 ## 🤖 AI-Powered Prompts
 

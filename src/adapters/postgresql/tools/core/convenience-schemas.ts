@@ -23,7 +23,9 @@ export async function validateTableExists(
   schema: string,
   transactionId?: string,
 ): Promise<string | null> {
-  const client = transactionId ? adapter.getTransactionConnection(transactionId) : undefined;
+  const client = transactionId
+    ? adapter.getTransactionConnection(transactionId)
+    : undefined;
 
   // Check if the schema exists first for granular error messages
   const schemaSql = `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`;

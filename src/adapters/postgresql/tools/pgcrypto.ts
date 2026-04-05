@@ -4,7 +4,11 @@
  */
 
 import type { PostgresAdapter } from "../postgres-adapter.js";
-import type { ToolDefinition, RequestContext, ErrorResponse } from "../../../types/index.js";
+import type {
+  ToolDefinition,
+  RequestContext,
+  ErrorResponse,
+} from "../../../types/index.js";
 import { ValidationError } from "../../../types/index.js";
 import { readOnly, write } from "../../../utils/annotations.js";
 import { getToolIcons } from "../../../utils/icons.js";
@@ -201,7 +205,9 @@ function createPgcryptoDecryptTool(adapter: PostgresAdapter): ToolDefinition {
         const decrypted = result.rows?.[0]?.["decrypted"];
 
         if (decrypted === undefined || decrypted === null) {
-          throw new ValidationError("Decryption failed: Wrong key or corrupt data");
+          throw new ValidationError(
+            "Decryption failed: Wrong key or corrupt data",
+          );
         }
 
         return {
@@ -355,8 +361,17 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
 function handlePgcryptoError(error: unknown, toolName: string): ErrorResponse {
   if (error !== null && typeof error === "object" && "message" in error) {
     const msg = String(error.message);
-    if (msg.includes("No such hash algorithm") || msg.includes("Cannot use") || msg.includes("unsupported")) {
-      return formatHandlerErrorResponse(new ValidationError("Cryptographic error: Unsupported or invalid algorithm"), { tool: toolName });
+    if (
+      msg.includes("No such hash algorithm") ||
+      msg.includes("Cannot use") ||
+      msg.includes("unsupported")
+    ) {
+      return formatHandlerErrorResponse(
+        new ValidationError(
+          "Cryptographic error: Unsupported or invalid algorithm",
+        ),
+        { tool: toolName },
+      );
     }
   }
   // Let formatHandlerErrorResponse handle DECRYPTION_FAILED and INVALID_BASE64

@@ -38,7 +38,9 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
           params: queryParams,
         } = ExplainSchema.parse(params);
         if (!sql) {
-          throw new ValidationError("Missing required parameter: sql (or query alias)");
+          throw new ValidationError(
+            "Missing required parameter: sql (or query alias)",
+          );
         }
         const fmt = format ?? "text";
         const explainSql = `EXPLAIN (FORMAT ${fmt.toUpperCase()}) ${sql}`;
@@ -48,7 +50,10 @@ export function createExplainTool(adapter: PostgresAdapter): ToolDefinition {
         );
 
         if (fmt === "json") {
-          return { success: true as const, plan: result.rows?.[0]?.["QUERY PLAN"] };
+          return {
+            success: true as const,
+            plan: result.rows?.[0]?.["QUERY PLAN"],
+          };
         }
         return {
           success: true as const,
@@ -80,7 +85,9 @@ export function createExplainAnalyzeTool(
           params: queryParams,
         } = ExplainSchema.parse(params);
         if (!sql) {
-          throw new ValidationError("Missing required parameter: sql (or query alias)");
+          throw new ValidationError(
+            "Missing required parameter: sql (or query alias)",
+          );
         }
         const fmt = format ?? "text";
         const explainSql = `EXPLAIN (ANALYZE, FORMAT ${fmt.toUpperCase()}) ${sql}`;
@@ -90,14 +97,19 @@ export function createExplainAnalyzeTool(
         );
 
         if (fmt === "json") {
-          return { success: true as const, plan: result.rows?.[0]?.["QUERY PLAN"] };
+          return {
+            success: true as const,
+            plan: result.rows?.[0]?.["QUERY PLAN"],
+          };
         }
         return {
           success: true as const,
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_explain_analyze" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_explain_analyze",
+        });
       }
     },
   };
@@ -122,7 +134,9 @@ export function createExplainBuffersTool(
           params: queryParams,
         } = ExplainSchema.parse(params);
         if (!sql) {
-          throw new ValidationError("Missing required parameter: sql (or query alias)");
+          throw new ValidationError(
+            "Missing required parameter: sql (or query alias)",
+          );
         }
         const fmt = format ?? "text";
         const explainSql = `EXPLAIN (ANALYZE, BUFFERS, FORMAT ${fmt.toUpperCase()}) ${sql}`;
@@ -132,14 +146,19 @@ export function createExplainBuffersTool(
         );
 
         if (fmt === "json") {
-          return { success: true as const, plan: result.rows?.[0]?.["QUERY PLAN"] };
+          return {
+            success: true as const,
+            plan: result.rows?.[0]?.["QUERY PLAN"],
+          };
         }
         return {
           success: true as const,
           plan: result.rows?.map((r) => Object.values(r)[0]).join("\n"),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_explain_buffers" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_explain_buffers",
+        });
       }
     },
   };

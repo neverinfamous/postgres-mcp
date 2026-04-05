@@ -60,8 +60,8 @@ export function createTextNormalizeTool(
         return { normalized: result.rows?.[0]?.["normalized"] };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_text_normalize",
-          });
+          tool: "pg_text_normalize",
+        });
       }
     },
   };
@@ -111,8 +111,8 @@ export function createTextToVectorTool(
         return { vector: result.rows?.[0]?.["vector"] };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_text_to_vector",
-          });
+          tool: "pg_text_to_vector",
+        });
       }
     },
   };
@@ -187,8 +187,8 @@ export function createTextToQueryTool(
         return { query: result.rows?.[0]?.["query"], mode };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_text_to_query",
-          });
+          tool: "pg_text_to_query",
+        });
       }
     },
   };
@@ -227,8 +227,8 @@ export function createTextSearchConfigTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_text_search_config",
-          });
+          tool: "pg_text_search_config",
+        });
       }
     },
   };

@@ -184,7 +184,9 @@ export function createStatsCorrelationTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_stats_correlation" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_stats_correlation",
+        });
       }
     },
   };
@@ -349,7 +351,9 @@ export function createStatsRegressionTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_stats_regression" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_stats_regression",
+        });
       }
     },
   };

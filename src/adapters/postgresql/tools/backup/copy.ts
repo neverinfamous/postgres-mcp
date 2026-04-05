@@ -55,7 +55,9 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
         } = CopyExportSchema.parse(params); // Use transform for validation
 
         if (format && !["csv", "text", "binary"].includes(format)) {
-          throw new Error("Validation error: format must be 'csv', 'text', or 'binary'");
+          throw new Error(
+            "Validation error: format must be 'csv', 'text', or 'binary'",
+          );
         }
 
         const options: string[] = [];
@@ -73,11 +75,13 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
         if (format === "csv" || format === undefined) {
           const firstRow = result.rows?.[0];
           const headers = result.fields
-            ? result.fields.map(f => f.name)
-            : (firstRow != null ? Object.keys(firstRow) : []);
+            ? result.fields.map((f) => f.name)
+            : firstRow != null
+              ? Object.keys(firstRow)
+              : [];
           const delim = delimiter ?? ",";
           const lines: string[] = [];
-          
+
           if (header !== false && headers.length > 0) {
             lines.push(headers.join(delim));
           }
@@ -92,7 +96,6 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
                 : {}),
             };
           }
-
 
           for (const row of result.rows) {
             lines.push(
@@ -128,10 +131,12 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
           let dataStr = lines.join("\n");
           let isPayloadTruncated = isTruncated;
-          
+
           if (dataStr.length > 50000) {
-             dataStr = dataStr.substring(0, 50000) + "\n...[WARNING: Data payload truncated to 50KB to protect system limits. Specify a limit parameter.]";
-             isPayloadTruncated = true;
+            dataStr =
+              dataStr.substring(0, 50000) +
+              "\n...[WARNING: Data payload truncated to 50KB to protect system limits. Specify a limit parameter.]";
+            isPayloadTruncated = true;
           }
 
           await sendProgress(progress, 3, 3, "Export complete");
@@ -139,7 +144,9 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
           return {
             data: dataStr,
             rowCount: result.rows.length,
-            ...(isPayloadTruncated ? { truncated: true, limit: effectiveLimit } : {}),
+            ...(isPayloadTruncated
+              ? { truncated: true, limit: effectiveLimit }
+              : {}),
             ...(conflictWarning !== undefined
               ? { warning: conflictWarning }
               : {}),
@@ -150,8 +157,10 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
         if (format === "text") {
           const firstRow = result.rows?.[0];
           const headers = result.fields
-            ? result.fields.map(f => f.name)
-            : (firstRow != null ? Object.keys(firstRow) : []);
+            ? result.fields.map((f) => f.name)
+            : firstRow != null
+              ? Object.keys(firstRow)
+              : [];
           const delim = delimiter ?? "\t";
           const lines: string[] = [];
 
@@ -169,8 +178,6 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
                 : {}),
             };
           }
-
-
 
           for (const row of result.rows) {
             lines.push(
@@ -202,10 +209,12 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
           let dataStr = lines.join("\n");
           let isPayloadTruncated = isTruncated;
-          
+
           if (dataStr.length > 50000) {
-             dataStr = dataStr.substring(0, 50000) + "\n...[WARNING: Data payload truncated to 50KB to protect system limits. Specify a limit parameter.]";
-             isPayloadTruncated = true;
+            dataStr =
+              dataStr.substring(0, 50000) +
+              "\n...[WARNING: Data payload truncated to 50KB to protect system limits. Specify a limit parameter.]";
+            isPayloadTruncated = true;
           }
 
           await sendProgress(progress, 3, 3, "Export complete");
@@ -213,7 +222,9 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
           return {
             data: dataStr,
             rowCount: result.rows.length,
-            ...(isPayloadTruncated ? { truncated: true, limit: effectiveLimit } : {}),
+            ...(isPayloadTruncated
+              ? { truncated: true, limit: effectiveLimit }
+              : {}),
             ...(conflictWarning !== undefined
               ? { warning: conflictWarning }
               : {}),
@@ -280,8 +291,13 @@ export function createCopyImportTool(
               table: tableValue,
             };
 
-            if (parsed.format && !["csv", "text", "binary"].includes(parsed.format)) {
-              throw new Error("Validation error: format must be 'csv', 'text', or 'binary'");
+            if (
+              parsed.format &&
+              !["csv", "text", "binary"].includes(parsed.format)
+            ) {
+              throw new Error(
+                "Validation error: format must be 'csv', 'text', or 'binary'",
+              );
             }
 
             // Parse schema.table format (e.g., 'public.users' -> schema='public', table='users')
@@ -325,9 +341,13 @@ export function createCopyImportTool(
               notes: "Use \\copy in psql for client-side files",
             };
           })
-          .catch((error: unknown) => formatHandlerErrorResponse(error, { tool: "pg_copy_import" }));
+          .catch((error: unknown) =>
+            formatHandlerErrorResponse(error, { tool: "pg_copy_import" }),
+          );
       } catch (error: unknown) {
-        return Promise.resolve(formatHandlerErrorResponse(error, { tool: "pg_copy_import" }));
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_copy_import" }),
+        );
       }
     },
   };

@@ -24,8 +24,6 @@ import { validatePerformanceTableExists } from "./helpers.js";
 export function createSeqScanTablesTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-
-
   return {
     name: "pg_seq_scan_tables",
     description:
@@ -53,7 +51,11 @@ export function createSeqScanTablesTool(
 
         // P154: Validate schema existence when filtering by schema (throws ValidationError on failure)
         if (parsed.schema !== undefined) {
-          await validatePerformanceTableExists(adapter, undefined, parsed.schema);
+          await validatePerformanceTableExists(
+            adapter,
+            undefined,
+            parsed.schema,
+          );
         }
 
         const sql = `SELECT schemaname, relname as table_name,
@@ -95,7 +97,9 @@ export function createSeqScanTablesTool(
         }
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_seq_scan_tables" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_seq_scan_tables",
+        });
       }
     },
   };
@@ -104,8 +108,6 @@ export function createSeqScanTablesTool(
 export function createIndexRecommendationsTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-
-
   // Helper to check if HypoPG extension is available
   const checkHypoPG = async (): Promise<boolean> => {
     try {
@@ -374,8 +376,8 @@ export function createIndexRecommendationsTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_index_recommendations",
-          });
+          tool: "pg_index_recommendations",
+        });
       }
     },
   };

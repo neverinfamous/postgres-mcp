@@ -75,8 +75,8 @@ export function createVectorAggregateTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column"],
           };
         }
@@ -85,8 +85,8 @@ export function createVectorAggregateTool(
             success: false,
             error:
               "column (or col) parameter is required for the vector column name",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column"],
           };
         }
@@ -251,7 +251,9 @@ export function createVectorAggregateTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_vector_aggregate" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_vector_aggregate",
+        });
       }
     },
   };
@@ -303,8 +305,8 @@ export function createVectorValidateTool(
             success: false,
             error:
               "Validation error: at least one of vector, table+column, or dimensions is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion:
               "Provide a vector to validate, or table+column to check column dimensions, or dimensions to compare against",
           };
@@ -423,7 +425,9 @@ export function createVectorValidateTool(
             : {}),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_vector_validate" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_vector_validate",
+        });
       }
     },
   };

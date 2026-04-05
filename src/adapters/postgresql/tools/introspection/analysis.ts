@@ -33,7 +33,6 @@ import {
 // pg_constraint_analysis
 // =============================================================================
 
-
 export function createConstraintAnalysisTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
@@ -54,11 +53,7 @@ export function createConstraintAnalysisTool(
         await checkSchemaExists(adapter, parsed.schema);
 
         // Validate table existence when filtering by table
-        await checkTableExists(
-          adapter,
-          parsed.table,
-          parsed.schema,
-        );
+        await checkTableExists(adapter, parsed.table, parsed.schema);
 
         const runAll = !parsed.checks || parsed.checks.length === 0;
         const checks = new Set(parsed.checks ?? []);
@@ -221,8 +216,8 @@ export function createConstraintAnalysisTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_constraint_analysis",
-          });
+          tool: "pg_constraint_analysis",
+        });
       }
     },
   };
@@ -296,8 +291,10 @@ const DDL_RISK_PATTERNS: {
     pattern: /\bCREATE\s+TABLE\b(?!\s+IF\s+NOT\s+EXISTS)/i,
     category: "schema_change",
     riskLevel: "low",
-    description: "CREATE TABLE without IF NOT EXISTS will fail if the table already exists. Unsafe for idempotency.",
-    mitigation: "Consider using CREATE TABLE IF NOT EXISTS to make the migration idempotent.",
+    description:
+      "CREATE TABLE without IF NOT EXISTS will fail if the table already exists. Unsafe for idempotency.",
+    mitigation:
+      "Consider using CREATE TABLE IF NOT EXISTS to make the migration idempotent.",
     requiresDowntime: false,
     lockImpact: "ACCESS EXCLUSIVE (brief)",
   },
@@ -439,9 +436,7 @@ export function createMigrationRisksTool(
               if (pattern.requiresDowntime) {
                 requiresDowntime = true;
               }
-              if (
-                riskOrder[pattern.riskLevel] > riskOrder[highestRiskLevel]
-              ) {
+              if (riskOrder[pattern.riskLevel] > riskOrder[highestRiskLevel]) {
                 highestRiskLevel = pattern.riskLevel;
               }
               lockImpacts.add(pattern.lockImpact);
@@ -462,7 +457,9 @@ export function createMigrationRisksTool(
           },
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_migration_risks" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_migration_risks",
+        });
       }
     },
   };

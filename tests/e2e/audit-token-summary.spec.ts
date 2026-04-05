@@ -11,7 +11,12 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { test, expect } from "./fixtures.js";
-import { startServer, stopServer, createClient, callToolAndParse } from "./helpers.js";
+import {
+  startServer,
+  stopServer,
+  createClient,
+  callToolAndParse,
+} from "./helpers.js";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 
 const AUDIT_PORT_BASE = 3180;
@@ -39,7 +44,10 @@ test.describe("Audit Token Summary Accuracy", () => {
     try {
       client = await createClient(`http://127.0.0.1:${port}`);
 
-      const toolsToCall: Array<{ name: string, args: Record<string, unknown> }> = [
+      const toolsToCall: Array<{
+        name: string;
+        args: Record<string, unknown>;
+      }> = [
         { name: "pg_transaction_begin", args: {} },
         { name: "pg_read_query", args: { sql: "SELECT 1 AS test_val" } },
         { name: "pg_list_tables", args: { limit: 2 } },
@@ -55,40 +63,47 @@ test.describe("Audit Token Summary Accuracy", () => {
         if (t.name === "pg_transaction_rollback" && currentTxId) {
           t.args = { transactionId: currentTxId };
         }
-        
+
         const payload = await callToolAndParse(client, t.name, t.args);
         expect(payload.error).toBeUndefined();
-        
+
         if (t.name === "pg_transaction_begin") {
           currentTxId = payload["transactionId"] as string | undefined;
         }
-        
+
         const meta = payload._meta as Record<string, unknown> | undefined;
         expect(typeof meta?.tokenEstimate).toBe("number");
         const tokens = meta!.tokenEstimate as number;
-        
+
         expectedTotalTokens += tokens;
-        expectedTokensByTool[t.name] = (expectedTokensByTool[t.name] || 0) + tokens;
-        
+        expectedTokensByTool[t.name] =
+          (expectedTokensByTool[t.name] || 0) + tokens;
+
         // Brief delay to ensure async audit log write
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 100));
       }
 
       // Read the audit resource
       const resource = await client.readResource({ uri: "postgres://audit" });
       expect(resource.contents).toBeDefined();
-      
+
       const body = JSON.parse((resource.contents[0] as any).text!) as {
         summary: {
           totalTokenEstimate: number;
           callCount: number;
-          topToolsByTokens: Array<{ tool: string; calls: number; tokens: number }>;
+          topToolsByTokens: Array<{
+            tool: string;
+            calls: number;
+            tokens: number;
+          }>;
         };
       };
 
       // Verify topTools distribution
       for (const t of toolsToCall) {
-        const topToolStat = body.summary.topToolsByTokens.find(stat => stat.tool === t.name);
+        const topToolStat = body.summary.topToolsByTokens.find(
+          (stat) => stat.tool === t.name,
+        );
         expect(topToolStat).toBeDefined();
         // The aggregated tokens for the tool should match our tracked expected total
         expect(topToolStat!.tokens).toBe(expectedTokensByTool[t.name]);
@@ -97,7 +112,6 @@ test.describe("Audit Token Summary Accuracy", () => {
       // Summary totals must accurately match the sums from individual _meta payloads
       expect(body.summary.callCount).toBe(4);
       expect(body.summary.totalTokenEstimate).toBe(expectedTotalTokens);
-      
     } finally {
       if (client) await client.close();
       stopServer(port);
@@ -125,12 +139,16 @@ test.describe("Audit Token Summary Accuracy", () => {
       await callToolAndParse(client, "pg_read_query", { sql: "SELECT 2" });
 
       // Call high-cost tool like schema snapshot
-      const snapshotPayload = await callToolAndParse(client, "pg_schema_snapshot", {});
+      const snapshotPayload = await callToolAndParse(
+        client,
+        "pg_schema_snapshot",
+        {},
+      );
       const highCostEstimate = (snapshotPayload._meta as any).tokenEstimate;
       expect(highCostEstimate).toBeGreaterThan(100);
 
       // Flush delay
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 600));
 
       const resource = await client.readResource({ uri: "postgres://audit" });
       const body = JSON.parse((resource.contents[0] as any).text!) as any;
@@ -138,7 +156,6 @@ test.describe("Audit Token Summary Accuracy", () => {
       // pg_schema_snapshot should be the #1 tool in tokens used
       expect(body.summary.topToolsByTokens[0].tool).toBe("pg_schema_snapshot");
       expect(body.summary.totalTokenEstimate).toBeGreaterThan(highCostEstimate);
-      
     } finally {
       if (client) await client.close();
       stopServer(port);

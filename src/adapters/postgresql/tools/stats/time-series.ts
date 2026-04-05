@@ -75,17 +75,20 @@ export function createStatsTimeSeriesTool(
         const userProvidedLimit = limit !== undefined;
         const DEFAULT_LIMIT = 100;
         const MAX_LIMIT = 10000;
-        
+
         if (limit !== undefined && limit <= 0) {
-          throw new ValidationError("Parameter 'limit' must be greater than 0.");
+          throw new ValidationError(
+            "Parameter 'limit' must be greater than 0.",
+          );
         }
-        
+
         let effectiveLimit = limit ?? DEFAULT_LIMIT;
         if (effectiveLimit > MAX_LIMIT) {
           effectiveLimit = MAX_LIMIT;
         }
 
-        const usingDefaultLimit = !userProvidedLimit && effectiveLimit < MAX_LIMIT;
+        const usingDefaultLimit =
+          !userProvidedLimit && effectiveLimit < MAX_LIMIT;
 
         // First check if table exists
         const schemaName = schema ?? "public";
@@ -98,7 +101,9 @@ export function createStatsTimeSeriesTool(
           table,
         ]);
         if (tableCheckResult.rows?.length === 0) {
-          throw new ValidationError(`Table "${schemaName}.${table}" does not exist`);
+          throw new ValidationError(
+            `Table "${schemaName}.${table}" does not exist`,
+          );
         }
 
         // Validate timeColumn is a timestamp/date type
@@ -201,9 +206,11 @@ export function createStatsTimeSeriesTool(
           // Handle groupLimit: undefined uses default (20), 0 raises validation error
           const DEFAULT_GROUP_LIMIT = 20;
           const MAX_GROUP_LIMIT = 1000;
-          
+
           if (groupLimit !== undefined && groupLimit <= 0) {
-            throw new ValidationError("Parameter 'groupLimit' must be greater than 0.");
+            throw new ValidationError(
+              "Parameter 'groupLimit' must be greater than 0.",
+            );
           }
           let effectiveGroupLimit = groupLimit ?? DEFAULT_GROUP_LIMIT;
           if (effectiveGroupLimit > MAX_GROUP_LIMIT) {
@@ -377,7 +384,9 @@ export function createStatsTimeSeriesTool(
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_stats_time_series" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_stats_time_series",
+        });
       }
     },
   };

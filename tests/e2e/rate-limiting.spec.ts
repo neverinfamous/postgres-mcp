@@ -30,7 +30,8 @@ test.describe.serial("Rate Limiting", () => {
         "--port",
         String(RATE_PORT_1),
         "--postgres",
-        process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
+        process.env.MCP_TEST_DB ||
+          "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
         "starter",
       ],
@@ -60,7 +61,8 @@ test.describe.serial("Rate Limiting", () => {
       }
       await delay(500);
     }
-    if (!serverReady) throw new Error("Server failed to start on port " + RATE_PORT_1);
+    if (!serverReady)
+      throw new Error("Server failed to start on port " + RATE_PORT_1);
 
     try {
       // Send 5 requests (within limit)
@@ -124,7 +126,8 @@ test.describe.serial("Rate Limiting", () => {
         "--port",
         String(RATE_PORT_2),
         "--postgres",
-        process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
+        process.env.MCP_TEST_DB ||
+          "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
         "starter",
       ],
@@ -152,7 +155,8 @@ test.describe.serial("Rate Limiting", () => {
       }
       await delay(500);
     }
-    if (!serverReady) throw new Error("Server failed to start on port " + RATE_PORT_2);
+    if (!serverReady)
+      throw new Error("Server failed to start on port " + RATE_PORT_2);
 
     try {
       // Exhaust the limit
@@ -217,7 +221,8 @@ test.describe.serial("Rate Limiting", () => {
         "--port",
         String(RATE_PORT_3),
         "--postgres",
-        process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
+        process.env.MCP_TEST_DB ||
+          "postgres://postgres:postgres@localhost:5432/postgres",
         "--tool-filter",
         "starter",
       ],
@@ -245,7 +250,8 @@ test.describe.serial("Rate Limiting", () => {
       }
       await delay(500);
     }
-    if (!serverReady) throw new Error("Server failed to start on port " + RATE_PORT_3);
+    if (!serverReady)
+      throw new Error("Server failed to start on port " + RATE_PORT_3);
 
     try {
       // Exhaust rate limit

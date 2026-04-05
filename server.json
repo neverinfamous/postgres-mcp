@@ -3,19 +3,19 @@
   "name": "io.github.neverinfamous/postgres-mcp",
   "title": "PostgreSQL MCP Server",
   "description": "PostgreSQL MCP server with connection pooling, tool filtering, and full extension support",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@neverinfamous/postgres-mcp",
-      "version": "2.3.0",
+      "version": "3.0.0",
       "transport": {
         "type": "stdio"
       }
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/writenotenow/postgres-mcp:v2.3.0",
+      "identifier": "docker.io/writenotenow/postgres-mcp:v3.0.0",
       "transport": {
         "type": "stdio"
       }

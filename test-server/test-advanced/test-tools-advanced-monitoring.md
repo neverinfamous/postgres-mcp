@@ -58,13 +58,18 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 
 Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) return as parseable JSON objects. During error path testing, verify this: if an invalid Code Mode call returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
 
-
 ## Structured Error Response Pattern
 
 All tools must return errors as structured objects instead of throwing. A thrown error propagates as a raw MCP error, which is unhelpful to clients. The expected pattern:
 
 ```json
-{ "success": false, "error": "Human-readable error message", "code": "QUERY_ERROR", "category": "query", "recoverable": false }
+{
+  "success": false,
+  "error": "Human-readable error message",
+  "code": "QUERY_ERROR",
+  "category": "query",
+  "recoverable": false
+}
 ```
 
 The enriched `ErrorResponse` from `formatHandlerError` always includes `success`, `error`, `code`, `category`, and `recoverable`. Optional fields `suggestion` and `details` may also be present. Some tools include additional context fields (e.g., `pg_transaction_execute` includes `statementsExecuted`, `failedStatement`, `autoRolledBack`). These are acceptable as long as `success: false` and `error` are always present.
@@ -73,10 +78,10 @@ The enriched `ErrorResponse` from `formatHandlerError` always includes `success`
 
 There are two kinds of error responses. Only one is correct:
 
-| Type | Source | What you see | Verdict |
-|------|--------|--------------|---------|
-| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields | Correct |
-| **MCP error** ❌ | Uncaught throw propagates to MCP framework | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
+| Type                 | Source                                                             | What you see                                                                                                          | Verdict            |
+| -------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields                                                               | Correct            |
+| **MCP error** ❌     | Uncaught throw propagates to MCP framework                         | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
 
 **Concrete examples:**
 
@@ -131,18 +136,18 @@ For each P154 test, verify that calling with a nonexistent table (e.g., `table: 
 
 Key PostgreSQL error codes that should be intercepted by `formatHandlerError` (not leaked as raw errors):
 
-| PG Error Code | Meaning | Expected Structured Message |
-|---------------|---------|---------------------------|
-| 42P01 | Undefined table | `Table "X" does not exist` |
-| 42P06 | Duplicate schema | `Schema "X" already exists` |
-| 42P07 | Duplicate table | `Table "X" already exists` |
-| 42701 | Duplicate column | `Column "X" already exists` |
-| 42703 | Undefined column | `Column "X" does not exist` |
-| 23505 | Unique violation | `Duplicate key: ...` |
-| 23503 | FK violation | `Foreign key constraint violated` |
-| 42601 | Syntax error | `SQL syntax error: ...` |
-| 3F000 | Invalid schema name | `Schema "X" does not exist` |
-| XX000 | Internal error | `Internal error: ...` |
+| PG Error Code | Meaning             | Expected Structured Message       |
+| ------------- | ------------------- | --------------------------------- |
+| 42P01         | Undefined table     | `Table "X" does not exist`        |
+| 42P06         | Duplicate schema    | `Schema "X" already exists`       |
+| 42P07         | Duplicate table     | `Table "X" already exists`        |
+| 42701         | Duplicate column    | `Column "X" already exists`       |
+| 42703         | Undefined column    | `Column "X" does not exist`       |
+| 23505         | Unique violation    | `Duplicate key: ...`              |
+| 23503         | FK violation        | `Foreign key constraint violated` |
+| 42601         | Syntax error        | `SQL syntax error: ...`           |
+| 3F000         | Invalid schema name | `Schema "X" does not exist`       |
+| XX000         | Internal error      | `Internal error: ...`             |
 
 ## Error Consistency Audit
 
@@ -159,17 +164,17 @@ During testing, check for these inconsistencies across tool groups:
 
 For each tool group under test, verify at least one scenario from each applicable row:
 
-| Error Scenario | Tool Groups to Test | Example Input |
-|----------------|-------------------|---------------|
-| Nonexistent table | All table-accepting tools | `table: "nonexistent_xyz"` |
-| Nonexistent schema | Core, introspection, schema | `schema: "fake_schema"` or `table: "fake_schema.users"` |
-| Invalid SQL syntax | Core (`read_query`, `write_query`) | `sql: "SELECTT * FROM"` |
-| Invalid column name | Stats, JSONB, text, vector, PostGIS | `column: "nonexistent_col"` |
-| Duplicate table/index | Core (`create_table`, `create_index`) | Create existing table |
-| Empty required array | Transactions | `statements: []` |
-| Missing required field via alias | Core, transactions | `sql` alias instead of `query` |
-| **Zod validation (empty params)** | **Every tool with required params** | `{}` (empty object — must return handler error, not MCP `-32602` error) |
-| **Zod validation (wrong type)** | **Tools with typed params** | Pass string where number expected, etc. |
+| Error Scenario                    | Tool Groups to Test                   | Example Input                                                           |
+| --------------------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| Nonexistent table                 | All table-accepting tools             | `table: "nonexistent_xyz"`                                              |
+| Nonexistent schema                | Core, introspection, schema           | `schema: "fake_schema"` or `table: "fake_schema.users"`                 |
+| Invalid SQL syntax                | Core (`read_query`, `write_query`)    | `sql: "SELECTT * FROM"`                                                 |
+| Invalid column name               | Stats, JSONB, text, vector, PostGIS   | `column: "nonexistent_col"`                                             |
+| Duplicate table/index             | Core (`create_table`, `create_index`) | Create existing table                                                   |
+| Empty required array              | Transactions                          | `statements: []`                                                        |
+| Missing required field via alias  | Core, transactions                    | `sql` alias instead of `query`                                          |
+| **Zod validation (empty params)** | **Every tool with required params**   | `{}` (empty object — must return handler error, not MCP `-32602` error) |
+| **Zod validation (wrong type)**   | **Tools with typed params**           | Pass string where number expected, etc.                                 |
 
 ## Cleanup Conventions
 
@@ -230,18 +235,15 @@ DROP TABLE IF EXISTS stress_my_test_table;
 ### Category 1: Extreme Limits & Boundary Values
 
 **1.1 Data Size Explosion Queries**
+
 1. `pg_capacity_planning` across ALL tables (using `limit: 0` or massive bounded inputs) → verify the payload doesn't explode in token sizes. Ensure robust bounds parsing.
 2. `pg_table_sizes` using wildcards matching `*` vs strict filters → verifying exact token bounds and performance impact.
 
-**1.2 Invalid Thresholds**
-3. `pg_alert_threshold_set` with invalid boundary metrics: negative percentages (e.g. `-50%`) or impossible values (`>100%`) for resource constraints → Expect a strongly typed `VALIDATION_ERROR`.
-4. `pg_alert_threshold_set` with missing or blank string parameters.
+**1.2 Invalid Thresholds** 3. `pg_alert_threshold_set` with invalid boundary metrics: negative percentages (e.g. `-50%`) or impossible values (`>100%`) for resource constraints → Expect a strongly typed `VALIDATION_ERROR`. 4. `pg_alert_threshold_set` with missing or blank string parameters.
 
 ### Category 2: State Pollution & Idempotency
 
-**2.1 Alert Idempotency**
-5. Setup the same `pg_alert_threshold_set` three times sequentially. Output must process cleanly without duplicates or primary key state violations in dynamic tracker tables (if any apply).
-6. Request `pg_system_health` immediately following alert configurations and ensure thresholds reflect instantly and completely idempotently.
+**2.1 Alert Idempotency** 5. Setup the same `pg_alert_threshold_set` three times sequentially. Output must process cleanly without duplicates or primary key state violations in dynamic tracker tables (if any apply). 6. Request `pg_system_health` immediately following alert configurations and ensure thresholds reflect instantly and completely idempotently.
 
 ### Category 3: Alias & Parameter Combinations
 
@@ -254,14 +256,11 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 ### Category 5: Large Payload & Truncation Verification
 
-**5.1 High Volume Health Dumps**
-10. `pg_system_health` inherently hits many internal dynamic views. Monitor `metrics.tokenEstimate`. It must not exceed 4,000 tokens during worst-case outputs.
-11. `pg_show_settings({ limit: 5 })` vs `pg_show_settings({ limit: 0 })`. Note the drastic token divergence and flag it if missing explicit size boundaries triggers unmanageable output.
+**5.1 High Volume Health Dumps** 10. `pg_system_health` inherently hits many internal dynamic views. Monitor `metrics.tokenEstimate`. It must not exceed 4,000 tokens during worst-case outputs. 11. `pg_show_settings({ limit: 5 })` vs `pg_show_settings({ limit: 0 })`. Note the drastic token divergence and flag it if missing explicit size boundaries triggers unmanageable output.
 
 ### Category 6: Code Mode Parity
 
-**6.1 API Validation**
-12. Use Code Mode to dynamically fetch `pg_database_size()` and simultaneously evaluate raw `SELECT pg_database_size(current_database())` to confirm metric parsing integrity matches the raw DB output identically without parsing corruption.
+**6.1 API Validation** 12. Use Code Mode to dynamically fetch `pg_database_size()` and simultaneously evaluate raw `SELECT pg_database_size(current_database())` to confirm metric parsing integrity matches the raw DB output identically without parsing corruption.
 
 ### Final Cleanup
 

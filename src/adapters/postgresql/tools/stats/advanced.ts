@@ -61,9 +61,7 @@ const NUMERIC_TYPES = new Set([
 // TOP N
 // =============================================================================
 
-export function createStatsTopNTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createStatsTopNTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_stats_top_n",
     description:
@@ -85,13 +83,7 @@ export function createStatsTopNTool(
           where?: string;
         };
 
-        const {
-          table,
-          column,
-          schema,
-          where,
-          selectColumns,
-        } = parsed;
+        const { table, column, schema, where, selectColumns } = parsed;
         const n =
           parsed.n === undefined || Number.isNaN(parsed.n) ? 10 : parsed.n;
         if (n <= 0) {
@@ -103,9 +95,7 @@ export function createStatsTopNTool(
         const direction = parsed.direction ?? "desc";
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where
-          ? `WHERE ${sanitizeWhereClause(where)}`
-          : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         let columnList: string;
         let hint: string | undefined;
@@ -217,15 +207,15 @@ export function createStatsDistinctTool(
             ? 100
             : parsed.limit;
         if (limit <= 0) {
-          throw new ValidationError("Parameter 'limit' must be greater than 0.");
+          throw new ValidationError(
+            "Parameter 'limit' must be greater than 0.",
+          );
         }
         if (limit > 1000) {
           throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
         }
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where
-          ? `WHERE ${sanitizeWhereClause(where)}`
-          : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         const sql = `
           SELECT DISTINCT "${column}" AS value
@@ -298,15 +288,15 @@ export function createStatsFrequencyTool(
             ? 20
             : parsed.limit;
         if (limit <= 0) {
-          throw new ValidationError("Parameter 'limit' must be greater than 0.");
+          throw new ValidationError(
+            "Parameter 'limit' must be greater than 0.",
+          );
         }
         if (limit > 1000) {
           throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
         }
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where
-          ? `WHERE ${sanitizeWhereClause(where)}`
-          : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         const sql = `
           SELECT
@@ -381,9 +371,7 @@ export function createStatsSummaryTool(
         const { table, schema, where } = parsed;
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
-        const whereClause = where
-          ? `WHERE ${sanitizeWhereClause(where)}`
-          : "";
+        const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
         // Determine columns to summarize
         let targetColumns: string[];
@@ -453,7 +441,9 @@ export function createStatsSummaryTool(
               [schemaName, table],
             );
             if (!tableCheck.rows || tableCheck.rows.length === 0) {
-              throw new ValidationError(`Table "${schemaName}.${table}" does not exist`);
+              throw new ValidationError(
+                `Table "${schemaName}.${table}" does not exist`,
+              );
             }
           }
 
@@ -489,12 +479,9 @@ export function createStatsSummaryTool(
           return {
             column: col,
             count: Number(row[`${col}_count`] ?? 0),
-            avg:
-              row[`${col}_avg`] !== null ? Number(row[`${col}_avg`]) : null,
-            min:
-              row[`${col}_min`] !== null ? Number(row[`${col}_min`]) : null,
-            max:
-              row[`${col}_max`] !== null ? Number(row[`${col}_max`]) : null,
+            avg: row[`${col}_avg`] !== null ? Number(row[`${col}_avg`]) : null,
+            min: row[`${col}_min`] !== null ? Number(row[`${col}_min`]) : null,
+            max: row[`${col}_max`] !== null ? Number(row[`${col}_max`]) : null,
             stddev:
               row[`${col}_stddev`] !== null
                 ? Number(row[`${col}_stddev`])

@@ -161,4 +161,3 @@ export const DEFAULT_AUDIT_BACKUP_MAX_AGE_DAYS = 30;
 
 /** Default maximum number of snapshots to retain. */
 export const DEFAULT_AUDIT_BACKUP_MAX_COUNT = 1_000;
-

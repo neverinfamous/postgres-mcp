@@ -234,14 +234,16 @@ program
       }
 
       // Build audit config from CLI options + env
-      const auditLogPath =
-        options.auditLog ?? process.env["AUDIT_LOG_PATH"];
+      const auditLogPath = options.auditLog ?? process.env["AUDIT_LOG_PATH"];
       const auditRedact =
         options.auditRedact ?? process.env["AUDIT_REDACT"] === "true";
       const auditReads =
         options.auditReads ?? process.env["AUDIT_READS"] === "true";
       const auditLogMaxSize =
-        options.auditLogMaxSize ?? Number(process.env["AUDIT_LOG_MAX_SIZE"] ?? DEFAULT_AUDIT_LOG_MAX_SIZE_BYTES);
+        options.auditLogMaxSize ??
+        Number(
+          process.env["AUDIT_LOG_MAX_SIZE"] ?? DEFAULT_AUDIT_LOG_MAX_SIZE_BYTES,
+        );
       const auditConfig = auditLogPath
         ? {
             enabled: true,
@@ -249,15 +251,33 @@ program
             redact: auditRedact,
             auditReads,
             maxSizeBytes: auditLogMaxSize,
-            backup: (options.auditBackup ?? process.env["AUDIT_BACKUP"] === "true")
-              ? {
-                  enabled: true,
-                  includeData: options.auditBackupData ?? process.env["AUDIT_BACKUP_DATA"] === "true",
-                  maxAgeDays: options.auditBackupMaxAge ?? Number(process.env["AUDIT_BACKUP_MAX_AGE"] ?? DEFAULT_AUDIT_BACKUP_MAX_AGE_DAYS),
-                  maxCount: options.auditBackupMaxCount ?? Number(process.env["AUDIT_BACKUP_MAX_COUNT"] ?? DEFAULT_AUDIT_BACKUP_MAX_COUNT),
-                  maxDataSizeBytes: options.auditBackupMaxDataSize ?? Number(process.env["AUDIT_BACKUP_MAX_DATA_SIZE"] ?? DEFAULT_AUDIT_BACKUP_MAX_DATA_SIZE_BYTES),
-                }
-              : undefined,
+            backup:
+              (options.auditBackup ?? process.env["AUDIT_BACKUP"] === "true")
+                ? {
+                    enabled: true,
+                    includeData:
+                      options.auditBackupData ??
+                      process.env["AUDIT_BACKUP_DATA"] === "true",
+                    maxAgeDays:
+                      options.auditBackupMaxAge ??
+                      Number(
+                        process.env["AUDIT_BACKUP_MAX_AGE"] ??
+                          DEFAULT_AUDIT_BACKUP_MAX_AGE_DAYS,
+                      ),
+                    maxCount:
+                      options.auditBackupMaxCount ??
+                      Number(
+                        process.env["AUDIT_BACKUP_MAX_COUNT"] ??
+                          DEFAULT_AUDIT_BACKUP_MAX_COUNT,
+                      ),
+                    maxDataSizeBytes:
+                      options.auditBackupMaxDataSize ??
+                      Number(
+                        process.env["AUDIT_BACKUP_MAX_DATA_SIZE"] ??
+                          DEFAULT_AUDIT_BACKUP_MAX_DATA_SIZE_BYTES,
+                      ),
+                  }
+                : undefined,
           }
         : undefined;
 
@@ -266,24 +286,40 @@ program
         process.env["MCP_TRANSPORT"] ??
         "stdio") as TransportType;
 
-        // Determine instruction level
-        const instructionLevel = (options.instructionLevel ??
-          process.env["MCP_INSTRUCTION_LEVEL"] ??
-          "standard") as InstructionLevel;
+      // Determine instruction level
+      const instructionLevel = (options.instructionLevel ??
+        process.env["MCP_INSTRUCTION_LEVEL"] ??
+        "standard") as InstructionLevel;
 
-        if (transport === "http" || transport === "sse") {
-          if (!oauthConfig?.enabled && !options.authToken && !process.env["MCP_AUTH_TOKEN"]) {
-            logger.warn(
-              "HTTP transport started WITHOUT authentication — all clients have unrestricted access. " +
-                "Enable OAuth with --oauth-enabled or use --auth-token for simple bearer auth.",
-            );
-          }
-          // Start with HTTP transport
-          await startHttpServer(adapter, toolFilter, instructionLevel, oauthConfig, options, auditConfig);
-        } else {
-          // Start with stdio transport (default)
-          await startStdioServer(adapter, toolFilter, instructionLevel, auditConfig);
+      if (transport === "http" || transport === "sse") {
+        if (
+          !oauthConfig?.enabled &&
+          !options.authToken &&
+          !process.env["MCP_AUTH_TOKEN"]
+        ) {
+          logger.warn(
+            "HTTP transport started WITHOUT authentication — all clients have unrestricted access. " +
+              "Enable OAuth with --oauth-enabled or use --auth-token for simple bearer auth.",
+          );
         }
+        // Start with HTTP transport
+        await startHttpServer(
+          adapter,
+          toolFilter,
+          instructionLevel,
+          oauthConfig,
+          options,
+          auditConfig,
+        );
+      } else {
+        // Start with stdio transport (default)
+        await startStdioServer(
+          adapter,
+          toolFilter,
+          instructionLevel,
+          auditConfig,
+        );
+      }
     } catch (error: unknown) {
       logger.error("Failed to start server", {
         error: error instanceof Error ? error.message : String(error),

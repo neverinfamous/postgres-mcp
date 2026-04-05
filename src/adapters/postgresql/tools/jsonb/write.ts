@@ -10,7 +10,6 @@ import type {
   RequestContext,
 } from "../../../../types/index.js";
 
-
 import { ValidationError } from "../../../../types/errors.js";
 import { write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -68,12 +67,16 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
 
         // Validate required 'where' parameter
         if (!where || where.trim() === "") {
-          throw new ValidationError('pg_jsonb_set requires a WHERE clause to identify rows to update. Example: where: "id = 1"');
+          throw new ValidationError(
+            'pg_jsonb_set requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
+          );
         }
 
         // Validate value is provided (undefined would set column to null)
         if (value === undefined) {
-          throw new ValidationError("pg_jsonb_set requires a value parameter. To remove a key, use pg_jsonb_delete instead.");
+          throw new ValidationError(
+            "pg_jsonb_set requires a value parameter. To remove a key, use pg_jsonb_delete instead.",
+          );
         }
 
         const createFlag = createMissing !== false;
@@ -157,8 +160,8 @@ export function createJsonbSetTool(adapter: PostgresAdapter): ToolDefinition {
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_set",
-          });
+          tool: "pg_jsonb_set",
+        });
       }
     },
   };
@@ -202,7 +205,9 @@ export function createJsonbInsertTool(
 
         // Validate required 'where' parameter
         if (!parsed.where || parsed.where.trim() === "") {
-          throw new ValidationError('pg_jsonb_insert requires a WHERE clause to identify rows to update. Example: where: "id = 1"');
+          throw new ValidationError(
+            'pg_jsonb_insert requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
+          );
         }
 
         // Check for NULL columns first - jsonb_insert requires existing array context
@@ -210,12 +215,13 @@ export function createJsonbInsertTool(
         const checkResult = await adapter.executeQuery(checkSql);
         const nullCount = Number(checkResult.rows?.[0]?.["null_count"] ?? 0);
         if (nullCount > 0) {
-          throw new ValidationError(`pg_jsonb_insert cannot operate on NULL columns. Use pg_jsonb_set to initialize the column first: pg_jsonb_set({table: "${table}", column: "${column}", path: "myarray", value: [], where: "..."})`);
+          throw new ValidationError(
+            `pg_jsonb_insert cannot operate on NULL columns. Use pg_jsonb_set to initialize the column first: pg_jsonb_set({table: "${table}", column: "${column}", path: "myarray", value: [], where: "..."})`,
+          );
         }
 
         // Determine target path type for potential error context later if needed
         // PostgreSQL natively allows jsonb_insert on both arrays and objects (for objects, fails if key exists)
-
 
         const sql = `UPDATE ${qualifiedTable} SET "${column}" = jsonb_insert("${column}", $1, $2::jsonb, $3) WHERE ${sanitizeWhereClause(parsed.where)}`;
         const result = await adapter.executeQuery(sql, [
@@ -239,8 +245,10 @@ export function createJsonbInsertTool(
           error.message.includes("cannot replace existing key")
         ) {
           return formatHandlerErrorResponse(
-            new ValidationError(`Cannot substitute an existing key. For objects, use pg_jsonb_set to update existing keys. For arrays, use pg_jsonb_set to replace an element.`),
-            { tool: "pg_jsonb_insert" }
+            new ValidationError(
+              `Cannot substitute an existing key. For objects, use pg_jsonb_set to update existing keys. For arrays, use pg_jsonb_set to replace an element.`,
+            ),
+            { tool: "pg_jsonb_insert" },
           );
         }
         if (
@@ -249,13 +257,15 @@ export function createJsonbInsertTool(
           error.message.includes("path element")
         ) {
           return formatHandlerErrorResponse(
-            new ValidationError(`pg_jsonb_insert requires numeric index for array position. Use array format with number: ["tags", 0] not ["tags", "0"] or "tags.0"`),
-            { tool: "pg_jsonb_insert" }
+            new ValidationError(
+              `pg_jsonb_insert requires numeric index for array position. Use array format with number: ["tags", 0] not ["tags", "0"] or "tags.0"`,
+            ),
+            { tool: "pg_jsonb_insert" },
           );
         }
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_insert",
-          });
+          tool: "pg_jsonb_insert",
+        });
       }
     },
   };
@@ -293,7 +303,9 @@ export function createJsonbDeleteTool(
 
         // Validate required 'where' parameter
         if (!parsed.where || parsed.where.trim() === "") {
-          throw new ValidationError('pg_jsonb_delete requires a WHERE clause to identify rows to update. Example: where: "id = 1"');
+          throw new ValidationError(
+            'pg_jsonb_delete requires a WHERE clause to identify rows to update. Example: where: "id = 1"',
+          );
         }
 
         // Validate path is not empty
@@ -304,7 +316,9 @@ export function createJsonbDeleteTool(
           parsed.path === "" ||
           (Array.isArray(parsed.path) && parsed.path.length === 0)
         ) {
-          throw new ValidationError("pg_jsonb_delete requires a non-empty path. Provide a key name or path to delete.");
+          throw new ValidationError(
+            "pg_jsonb_delete requires a non-empty path. Provide a key name or path to delete.",
+          );
         }
 
         // Determine if path should be treated as nested (array path) or single key
@@ -347,8 +361,8 @@ export function createJsonbDeleteTool(
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_delete",
-          });
+          tool: "pg_jsonb_delete",
+        });
       }
     },
   };

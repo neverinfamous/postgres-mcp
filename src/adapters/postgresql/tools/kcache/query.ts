@@ -5,7 +5,11 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
+} from "../../../../types/index.js";
 import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -23,7 +27,9 @@ import { getKcacheColumnNames } from "./helpers.js";
 /**
  * Query stats with CPU/IO metrics joined from pg_stat_statements
  */
-export function createKcacheQueryStatsTool(adapter: PostgresAdapter): ToolDefinition {
+export function createKcacheQueryStatsTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_kcache_query_stats",
     description: `Get query statistics with OS-level CPU and I/O metrics.
@@ -70,7 +76,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         ) {
           throw new ValidationError(
             `Invalid orderBy value "${orderBy}". Valid options: ${VALID_ORDER_BY.join(", ")}`,
-            { validOptions: VALID_ORDER_BY }
+            { validOptions: VALID_ORDER_BY },
           );
         }
 
@@ -155,7 +161,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const rawQueries = result.rows ?? [];
         const finalQueries = isCompact
-          ? rawQueries.map(row => {
+          ? rawQueries.map((row) => {
               const obj: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(row)) {
                 if (value !== 0 && value !== "0" && value !== "0 bytes") {
@@ -176,7 +182,9 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         return response;
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_kcache_query_stats" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_kcache_query_stats",
+        });
       }
     },
   };
@@ -185,7 +193,9 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 /**
  * Top CPU-consuming queries
  */
-export function createKcacheTopCpuTool(adapter: PostgresAdapter): ToolDefinition {
+export function createKcacheTopCpuTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_kcache_top_cpu",
     description: `Get top CPU-consuming queries. Shows which queries spend the most time
@@ -204,7 +214,10 @@ in user CPU (application code) vs system CPU (kernel operations).`,
             compact: z.boolean().optional(),
           })
           .parse(params ?? {});
-        if (parsed.limit !== undefined && (parsed.limit < 1 || parsed.limit > 10)) {
+        if (
+          parsed.limit !== undefined &&
+          (parsed.limit < 1 || parsed.limit > 10)
+        ) {
           throw new ValidationError("limit must be between 1 and 10");
         }
 
@@ -214,10 +227,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
         const previewLen =
           parsed.queryPreviewLength === 0
             ? 10000
-            : Math.min(
-                parsed.queryPreviewLength ?? 100,
-                500,
-              );
+            : Math.min(parsed.queryPreviewLength ?? 100, 500);
         const cols = await getKcacheColumnNames(adapter);
 
         // Get total count first for truncation indicator
@@ -273,7 +283,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
 
         const rawQueries = result.rows ?? [];
         const finalQueries = isCompact
-          ? rawQueries.map(row => {
+          ? rawQueries.map((row) => {
               const obj: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(row)) {
                 if (value !== 0 && value !== "0" && value !== "0 bytes") {
@@ -303,7 +313,9 @@ in user CPU (application code) vs system CPU (kernel operations).`,
 /**
  * Top I/O-consuming queries
  */
-export function createKcacheTopIoTool(adapter: PostgresAdapter): ToolDefinition {
+export function createKcacheTopIoTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_kcache_top_io",
     description: `Get top I/O-consuming queries. Shows filesystem-level reads and writes,
@@ -340,11 +352,14 @@ which represent actual disk access (not just shared buffer hits).`,
         ) {
           throw new ValidationError(
             `Invalid type/ioType value "${rawIoType}". Valid options: ${VALID_IO_TYPES.join(", ")}`,
-            { validOptions: VALID_IO_TYPES }
+            { validOptions: VALID_IO_TYPES },
           );
         }
         const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
-        if (parsed.limit !== undefined && (parsed.limit < 1 || parsed.limit > 10)) {
+        if (
+          parsed.limit !== undefined &&
+          (parsed.limit < 1 || parsed.limit > 10)
+        ) {
           throw new ValidationError("limit must be between 1 and 10");
         }
 
@@ -354,10 +369,7 @@ which represent actual disk access (not just shared buffer hits).`,
         const previewLen =
           parsed.queryPreviewLength === 0
             ? 10000
-            : Math.min(
-                parsed.queryPreviewLength ?? 100,
-                500,
-              );
+            : Math.min(parsed.queryPreviewLength ?? 100, 500);
         const cols = await getKcacheColumnNames(adapter);
 
         const orderColumn =
@@ -420,7 +432,7 @@ which represent actual disk access (not just shared buffer hits).`,
 
         const rawQueries = result.rows ?? [];
         const finalQueries = isCompact
-          ? rawQueries.map(row => {
+          ? rawQueries.map((row) => {
               const obj: Record<string, unknown> = {};
               for (const [key, value] of Object.entries(row)) {
                 if (value !== 0 && value !== "0" && value !== "0 bytes") {

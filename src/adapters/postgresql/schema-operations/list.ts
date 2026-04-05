@@ -5,16 +5,9 @@
  * and checking extension availability.
  */
 
-import type {
-  SchemaInfo,
-  TableInfo,
-  IndexInfo,
-} from "../../../types/index.js";
+import type { SchemaInfo, TableInfo, IndexInfo } from "../../../types/index.js";
 import type { QueryExecutor, CacheHelpers } from "./describe.js";
-import {
-  parseColumnsArray,
-  extractIndexColumns,
-} from "./describe.js";
+import { parseColumnsArray, extractIndexColumns } from "./describe.js";
 
 // ---------------------------------------------------------------------------
 // Schema query functions
@@ -161,8 +154,12 @@ export async function queryListTables(
       owner: row["owner"] as string,
       rowCount: effectiveRowCount,
       // Omit zero/null/false defaults to reduce payload
-      ...(Number(row["size_bytes"]) > 0 ? { sizeBytes: Number(row["size_bytes"]) } : {}),
-      ...(Number(row["total_size_bytes"]) > 0 ? { totalSizeBytes: Number(row["total_size_bytes"]) } : {}),
+      ...(Number(row["size_bytes"]) > 0
+        ? { sizeBytes: Number(row["size_bytes"]) }
+        : {}),
+      ...(Number(row["total_size_bytes"]) > 0
+        ? { totalSizeBytes: Number(row["total_size_bytes"]) }
+        : {}),
       ...(row["comment"] != null ? { comment: row["comment"] as string } : {}),
       ...(statsStale ? { statsStale: true as const } : {}),
     };

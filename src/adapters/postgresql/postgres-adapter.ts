@@ -32,10 +32,7 @@ import type {
   PromptDefinition,
   ToolGroup,
 } from "../../types/index.js";
-import {
-  ConnectionError,
-  QueryError,
-} from "../../types/index.js";
+import { ConnectionError, QueryError } from "../../types/index.js";
 import { logger } from "../../utils/logger.js";
 import { VERSION } from "../../utils/version.js";
 import {
@@ -265,8 +262,16 @@ export class PostgresAdapter extends DatabaseAdapter {
   // Transaction Support (delegated to transaction-operations.ts)
   // =========================================================================
 
-  async beginTransaction(isolationLevel?: string, readOnly?: boolean): Promise<string> {
-    return txBegin(this.pool, this.activeTransactions, isolationLevel, readOnly);
+  async beginTransaction(
+    isolationLevel?: string,
+    readOnly?: boolean,
+  ): Promise<string> {
+    return txBegin(
+      this.pool,
+      this.activeTransactions,
+      isolationLevel,
+      readOnly,
+    );
   }
 
   async commitTransaction(transactionId: string): Promise<void> {
@@ -342,7 +347,8 @@ export class PostgresAdapter extends DatabaseAdapter {
    */
   private get cacheHelpers(): CacheHelpers {
     return {
-      getCached: (key: string) => getCached(this.metadataCache, key, this.cacheTtlMs),
+      getCached: (key: string) =>
+        getCached(this.metadataCache, key, this.cacheTtlMs),
       setCache: (key: string, data: unknown) => {
         setCache(this.metadataCache, key, data);
       },

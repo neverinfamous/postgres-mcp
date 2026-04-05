@@ -23,7 +23,10 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { validateIdentifier } from "../../../../utils/identifiers.js";
-import { DetectQueryAnomaliesOutputSchema, DetectBloatRiskOutputSchema } from "../../schemas/performance.js";
+import {
+  DetectQueryAnomaliesOutputSchema,
+  DetectBloatRiskOutputSchema,
+} from "../../schemas/performance.js";
 import { validatePerformanceTableExists } from "./helpers.js";
 
 // =============================================================================
@@ -38,8 +41,6 @@ export const toNum = (val: unknown): number =>
 export const toStr = (val: unknown, fallback = ""): string =>
   typeof val === "string" ? val : fallback;
 
-
-
 export function riskFromScore(score: number): RiskLevel {
   if (score >= 80) return "critical";
   if (score >= 60) return "high";
@@ -51,7 +52,12 @@ export function riskFromScore(score: number): RiskLevel {
 // 1. pg_detect_query_anomalies
 // =============================================================================
 
-const coerceNumber = (val: unknown): unknown => typeof val === "string" ? (isNaN(Number(val)) ? undefined : Number(val)) : val;
+const coerceNumber = (val: unknown): unknown =>
+  typeof val === "string"
+    ? isNaN(Number(val))
+      ? undefined
+      : Number(val)
+    : val;
 
 const QueryAnomaliesInputBase = z.object({
   threshold: z
@@ -73,8 +79,8 @@ const QueryAnomaliesInput = z.preprocess(
   },
   z.object({
     threshold: z.preprocess(coerceNumber, z.number().optional()),
-    minCalls: z.preprocess(coerceNumber, z.number().optional())
-  })
+    minCalls: z.preprocess(coerceNumber, z.number().optional()),
+  }),
 );
 
 export function createDetectQueryAnomaliesTool(
@@ -103,7 +109,7 @@ export function createDetectQueryAnomaliesTool(
 
         const threshold = parsed.data.threshold ?? 2.0;
         const minCalls = parsed.data.minCalls ?? 10;
-        
+
         if (threshold < 0.5 || threshold > 10) {
           return {
             success: false,
@@ -111,7 +117,7 @@ export function createDetectQueryAnomaliesTool(
             code: "VALIDATION_ERROR",
           };
         }
-        
+
         if (minCalls < 1 || minCalls > 10000) {
           return {
             success: false,
@@ -173,7 +179,8 @@ export function createDetectQueryAnomaliesTool(
         );
 
         const anomalyCount = anomalies.length;
-        const maxZScore = anomalies.length > 0 ? (anomalies[0]?.zScore ?? 0) : 0;
+        const maxZScore =
+          anomalies.length > 0 ? (anomalies[0]?.zScore ?? 0) : 0;
 
         // Risk based on count and severity
         let riskScore = 0;
@@ -202,8 +209,8 @@ export function createDetectQueryAnomaliesTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_detect_query_anomalies",
-          });
+          tool: "pg_detect_query_anomalies",
+        });
       }
     },
   };
@@ -231,8 +238,8 @@ const BloatRiskInput = z.preprocess(
   },
   z.object({
     schema: z.string().optional(),
-    minRows: z.preprocess(coerceNumber, z.number().optional())
-  })
+    minRows: z.preprocess(coerceNumber, z.number().optional()),
+  }),
 );
 
 export function createDetectBloatRiskTool(
@@ -428,7 +435,10 @@ export function createDetectBloatRiskTool(
             : `${String(highRiskCount)} table(s) at high bloat risk out of ${String(tables.length)} analyzed`;
 
         // Optmization: To reduce payload size, omit fully detailed low-risk tables if we have many
-        const filteredTables = tables.filter((t: { riskScore: number }, index: number) => t.riskScore >= 40 || index < 5);
+        const filteredTables = tables.filter(
+          (t: { riskScore: number }, index: number) =>
+            t.riskScore >= 40 || index < 5,
+        );
 
         return {
           success: true as const,
@@ -439,10 +449,9 @@ export function createDetectBloatRiskTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_detect_bloat_risk",
-          });
+          tool: "pg_detect_bloat_risk",
+        });
       }
     },
   };
 }
-

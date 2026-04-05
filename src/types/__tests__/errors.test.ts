@@ -25,7 +25,11 @@ import { ErrorCategory } from "../error-types.js";
 
 describe("PostgresMcpError", () => {
   it("should create error with message and code", () => {
-    const error = new PostgresMcpError("Test error", "TEST_CODE", ErrorCategory.INTERNAL);
+    const error = new PostgresMcpError(
+      "Test error",
+      "TEST_CODE",
+      ErrorCategory.INTERNAL,
+    );
 
     expect(error).toBeInstanceOf(Error);
     expect(error).toBeInstanceOf(PostgresMcpError);
@@ -37,7 +41,12 @@ describe("PostgresMcpError", () => {
 
   it("should create error with message, code, and details", () => {
     const details = { key: "value", number: 42 };
-    const error = new PostgresMcpError("Test error", "TEST_CODE", ErrorCategory.INTERNAL, { details });
+    const error = new PostgresMcpError(
+      "Test error",
+      "TEST_CODE",
+      ErrorCategory.INTERNAL,
+      { details },
+    );
 
     expect(error.message).toBe("Test error");
     expect(error.code).toBe("TEST_CODE");
@@ -45,7 +54,11 @@ describe("PostgresMcpError", () => {
   });
 
   it("should have proper stack trace", () => {
-    const error = new PostgresMcpError("Stack test", "STACK_CODE", ErrorCategory.INTERNAL);
+    const error = new PostgresMcpError(
+      "Stack test",
+      "STACK_CODE",
+      ErrorCategory.INTERNAL,
+    );
 
     expect(error.stack).toBeDefined();
     expect(error.stack).toContain("PostgresMcpError");
@@ -53,7 +66,11 @@ describe("PostgresMcpError", () => {
 
   it("should be throwable and catchable", () => {
     expect(() => {
-      throw new PostgresMcpError("Thrown error", "THROWN_CODE", ErrorCategory.INTERNAL);
+      throw new PostgresMcpError(
+        "Thrown error",
+        "THROWN_CODE",
+        ErrorCategory.INTERNAL,
+      );
     }).toThrow(PostgresMcpError);
   });
 });

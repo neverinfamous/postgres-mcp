@@ -28,16 +28,20 @@ test.describe("Payload Contracts: Partitioning", () => {
   });
 
   test("pg_create_partitioned_table returns success", async () => {
-    const payload = await callToolAndParse(client, "pg_create_partitioned_table", {
-      name: testTable,
-      columns: [
-        { name: "id", type: "serial" },
-        { name: "log_date", type: "date" }
-      ],
-      partitionBy: "range",
-      partitionKey: "log_date",
-      ifNotExists: true,
-    });
+    const payload = await callToolAndParse(
+      client,
+      "pg_create_partitioned_table",
+      {
+        name: testTable,
+        columns: [
+          { name: "id", type: "serial" },
+          { name: "log_date", type: "date" },
+        ],
+        partitionBy: "range",
+        partitionKey: "log_date",
+        ifNotExists: true,
+      },
+    );
     expectSuccess(payload);
     expect(payload.success).toBe(true);
   });
@@ -68,7 +72,6 @@ test.describe("Payload Contracts: Partitioning", () => {
     expectSuccess(payload);
     expect(Array.isArray(payload.partitions)).toBe(true);
   });
-
 
   test("pg_detach_partition returns success", async () => {
     const payload = await callToolAndParse(client, "pg_detach_partition", {

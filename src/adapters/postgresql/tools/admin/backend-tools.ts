@@ -5,7 +5,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import type {
+  ToolDefinition,
+  RequestContext,
+} from "../../../../types/index.js";
 import { admin, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -79,15 +82,17 @@ export function createReindexTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_reindex",
-            ...(parsedTarget !== undefined && { target: parsedTarget }),
-          });
+          tool: "pg_reindex",
+          ...(parsedTarget !== undefined && { target: parsedTarget }),
+        });
       }
     },
   };
 }
 
-export function createTerminateBackendTool(adapter: PostgresAdapter): ToolDefinition {
+export function createTerminateBackendTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_terminate_backend",
     description:
@@ -101,21 +106,25 @@ export function createTerminateBackendTool(adapter: PostgresAdapter): ToolDefini
       try {
         const { pid } = TerminateBackendSchema.parse(params);
         if (pid <= 0) {
-          return new ValidationError("pid must be a positive integer").toResponse();
+          return new ValidationError(
+            "pid must be a positive integer",
+          ).toResponse();
         }
         const sql = `SELECT pg_terminate_backend($1)`;
         const result = await adapter.executeQuery(sql, [pid]);
         const terminated = result.rows?.[0]?.["pg_terminate_backend"] === true;
-        
+
         if (!terminated) {
           return {
             success: false,
-            error: "Failed to terminate backend. Process may not exist or permission denied.",
+            error:
+              "Failed to terminate backend. Process may not exist or permission denied.",
             code: "PROCESS_NOT_FOUND",
             category: "query",
-            suggestion: "Verify the PID exists and you have permission to terminate it.",
+            suggestion:
+              "Verify the PID exists and you have permission to terminate it.",
             recoverable: false,
-            pid
+            pid,
           };
         }
         return {
@@ -125,14 +134,16 @@ export function createTerminateBackendTool(adapter: PostgresAdapter): ToolDefini
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_terminate_backend",
-          });
+          tool: "pg_terminate_backend",
+        });
       }
     },
   };
 }
 
-export function createCancelBackendTool(adapter: PostgresAdapter): ToolDefinition {
+export function createCancelBackendTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_cancel_backend",
     description: "Cancel a running query (graceful, preferred over terminate).",
@@ -145,21 +156,25 @@ export function createCancelBackendTool(adapter: PostgresAdapter): ToolDefinitio
       try {
         const { pid } = CancelBackendSchema.parse(params);
         if (pid <= 0) {
-          return new ValidationError("pid must be a positive integer").toResponse();
+          return new ValidationError(
+            "pid must be a positive integer",
+          ).toResponse();
         }
         const sql = `SELECT pg_cancel_backend($1)`;
         const result = await adapter.executeQuery(sql, [pid]);
         const cancelled = result.rows?.[0]?.["pg_cancel_backend"] === true;
-        
+
         if (!cancelled) {
           return {
             success: false,
-            error: "Failed to cancel query. Process may not exist or permission denied.",
+            error:
+              "Failed to cancel query. Process may not exist or permission denied.",
             code: "PROCESS_NOT_FOUND",
             category: "query",
-            suggestion: "Verify the PID exists and you have permission to cancel its query.",
+            suggestion:
+              "Verify the PID exists and you have permission to cancel its query.",
             recoverable: false,
-            pid
+            pid,
           };
         }
         return {
@@ -169,8 +184,8 @@ export function createCancelBackendTool(adapter: PostgresAdapter): ToolDefinitio
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_cancel_backend",
-          });
+          tool: "pg_cancel_backend",
+        });
       }
     },
   };

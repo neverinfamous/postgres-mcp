@@ -24,7 +24,8 @@ async function startStatelessServer(): Promise<void> {
       "--port",
       String(STATELESS_PORT),
       "--postgres",
-      process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
+      process.env.MCP_TEST_DB ||
+        "postgres://postgres:postgres@localhost:5432/postgres",
       "--stateless",
       "--tool-filter",
       "starter",

@@ -25,7 +25,10 @@ function preprocessCreateSchemaParams(input: unknown): unknown {
   if (result["name"] === undefined || result["name"] === "") {
     if (result["schema"] !== undefined && result["schema"] !== "") {
       result["name"] = result["schema"];
-    } else if (result["schemaName"] !== undefined && result["schemaName"] !== "") {
+    } else if (
+      result["schemaName"] !== undefined &&
+      result["schemaName"] !== ""
+    ) {
       result["name"] = result["schemaName"];
     }
   }
@@ -66,7 +69,10 @@ export const CreateSequenceSchemaBase = z.object({
   sequenceName: z.string().optional().describe("Alias for name"),
   schema: z.string().optional().describe("Schema name"),
   start: z.unknown().optional().describe("Start value (number)"),
-  increment: z.unknown().optional().describe("Increment by (number, default: 1)"),
+  increment: z
+    .unknown()
+    .optional()
+    .describe("Increment by (number, default: 1)"),
   minValue: z.unknown().optional().describe("Minimum value (number)"),
   maxValue: z.unknown().optional().describe("Maximum value (number)"),
   cache: z
@@ -120,7 +126,11 @@ function preprocessCreateSequenceParams(input: unknown): unknown {
   const result = { ...(input as Record<string, unknown>) };
 
   // Resolve sequenceName alias to name before dotted-name extraction
-  if ((result["name"] === undefined || result["name"] === "") && result["sequenceName"] !== undefined && result["sequenceName"] !== "") {
+  if (
+    (result["name"] === undefined || result["name"] === "") &&
+    result["sequenceName"] !== undefined &&
+    result["sequenceName"] !== ""
+  ) {
     result["name"] = result["sequenceName"];
   }
 
@@ -130,32 +140,35 @@ function preprocessCreateSequenceParams(input: unknown): unknown {
 // Transformed schema with alias resolution and schema.name preprocessing
 export const CreateSequenceSchema = z.preprocess(
   preprocessCreateSequenceParams,
-  z.object({
-    name: z.string().optional(),
-    sequenceName: z.string().optional(),
-    schema: z.string().optional(),
-    start: z.preprocess(coerceStrictNumber, z.number().optional()),
-    increment: z.preprocess(coerceStrictNumber, z.number().optional()),
-    minValue: z.preprocess(coerceStrictNumber, z.number().optional()),
-    maxValue: z.preprocess(coerceStrictNumber, z.number().optional()),
-    cache: z.preprocess(coerceStrictNumber, z.number().optional()),
-    cycle: z.boolean().optional(),
-    ownedBy: z.string().optional(),
-    ifNotExists: z.boolean().optional(),
-  }).transform((data) => ({
-    name: data.name ?? data.sequenceName ?? "",
-    schema: data.schema,
-    start: data.start,
-    increment: data.increment,
-    minValue: data.minValue,
-    maxValue: data.maxValue,
-    cache: data.cache,
-    cycle: data.cycle,
-    ownedBy: data.ownedBy,
-    ifNotExists: data.ifNotExists,
-  })).refine((data) => data.name !== "", {
-    message: "name (or sequenceName alias) is required",
-  }),
+  z
+    .object({
+      name: z.string().optional(),
+      sequenceName: z.string().optional(),
+      schema: z.string().optional(),
+      start: z.preprocess(coerceStrictNumber, z.number().optional()),
+      increment: z.preprocess(coerceStrictNumber, z.number().optional()),
+      minValue: z.preprocess(coerceStrictNumber, z.number().optional()),
+      maxValue: z.preprocess(coerceStrictNumber, z.number().optional()),
+      cache: z.preprocess(coerceStrictNumber, z.number().optional()),
+      cycle: z.boolean().optional(),
+      ownedBy: z.string().optional(),
+      ifNotExists: z.boolean().optional(),
+    })
+    .transform((data) => ({
+      name: data.name ?? data.sequenceName ?? "",
+      schema: data.schema,
+      start: data.start,
+      increment: data.increment,
+      minValue: data.minValue,
+      maxValue: data.maxValue,
+      cache: data.cache,
+      cycle: data.cycle,
+      ownedBy: data.ownedBy,
+      ifNotExists: data.ifNotExists,
+    }))
+    .refine((data) => data.name !== "", {
+      message: "name (or sequenceName alias) is required",
+    }),
 );
 
 // Valid checkOption values for views
@@ -243,7 +256,11 @@ export const DropSequenceSchemaBase = z.object({
 function preprocessDropSequenceParams(input: unknown): unknown {
   if (typeof input !== "object" || input === null) return input;
   const result = { ...(input as Record<string, unknown>) };
-  if ((result["name"] === undefined || result["name"] === "") && result["sequenceName"] !== undefined && result["sequenceName"] !== "") {
+  if (
+    (result["name"] === undefined || result["name"] === "") &&
+    result["sequenceName"] !== undefined &&
+    result["sequenceName"] !== ""
+  ) {
     result["name"] = result["sequenceName"];
   }
   return extractSchemaFromDottedName(result);
@@ -308,37 +325,61 @@ export const DropViewSchema = z
 
 export const ListSequencesSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
-  limit: z.unknown().optional().describe("Maximum number of sequences to return (number, default: 50). Use 0 for all."),
+  limit: z
+    .unknown()
+    .optional()
+    .describe(
+      "Maximum number of sequences to return (number, default: 50). Use 0 for all.",
+    ),
 });
 
-export const ListSequencesSchema = z.preprocess((input: unknown) => {
-  const val = input ?? {};
-  if (typeof val !== "object" || val === null) return val;
-  const result = { ...(val as Record<string, unknown>) };
-  return result;
-}, z.object({
-  schema: z.string().optional(),
-  limit: z.preprocess(coerceStrictNumber, z.number().optional()),
-}));
+export const ListSequencesSchema = z.preprocess(
+  (input: unknown) => {
+    const val = input ?? {};
+    if (typeof val !== "object" || val === null) return val;
+    const result = { ...(val as Record<string, unknown>) };
+    return result;
+  },
+  z.object({
+    schema: z.string().optional(),
+    limit: z.preprocess(coerceStrictNumber, z.number().optional()),
+  }),
+);
 
 export const ListViewsSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
-  includeMaterialized: z.boolean().optional().describe("Whether to include materialized views"),
-  truncateDefinition: z.unknown().optional().describe("Max length for view definitions (number, default: 500). Use 0 for no truncation."),
-  limit: z.unknown().optional().describe("Maximum number of views to return (number, default: 50). Use 0 for all views."),
+  includeMaterialized: z
+    .boolean()
+    .optional()
+    .describe("Whether to include materialized views"),
+  truncateDefinition: z
+    .unknown()
+    .optional()
+    .describe(
+      "Max length for view definitions (number, default: 500). Use 0 for no truncation.",
+    ),
+  limit: z
+    .unknown()
+    .optional()
+    .describe(
+      "Maximum number of views to return (number, default: 50). Use 0 for all views.",
+    ),
 });
 
-export const ListViewsSchema = z.preprocess((input: unknown) => {
-  const val = input ?? {};
-  if (typeof val !== "object" || val === null) return val;
-  const result = { ...(val as Record<string, unknown>) };
-  return result;
-}, z.object({
-  schema: z.string().optional(),
-  includeMaterialized: z.boolean().optional(),
-  truncateDefinition: z.preprocess(coerceStrictNumber, z.number().optional()),
-  limit: z.preprocess(coerceStrictNumber, z.number().optional()),
-}));
+export const ListViewsSchema = z.preprocess(
+  (input: unknown) => {
+    const val = input ?? {};
+    if (typeof val !== "object" || val === null) return val;
+    const result = { ...(val as Record<string, unknown>) };
+    return result;
+  },
+  z.object({
+    schema: z.string().optional(),
+    includeMaterialized: z.boolean().optional(),
+    truncateDefinition: z.preprocess(coerceStrictNumber, z.number().optional()),
+    limit: z.preprocess(coerceStrictNumber, z.number().optional()),
+  }),
+);
 
 // =============================================================================
 // List Functions Schema - Split Schema pattern for MCP visibility
@@ -379,7 +420,7 @@ export const ListFunctionsSchema = z.preprocess(
     exclude: z.array(z.string()).optional(),
     language: z.string().optional(),
     limit: z.preprocess(coerceStrictNumber, z.number().optional()),
-  })
+  }),
 );
 
 // =============================================================================
@@ -389,7 +430,12 @@ export const ListFunctionsSchema = z.preprocess(
 export const ListTriggersSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name"),
   table: z.string().optional().describe("Table name"),
-  limit: z.unknown().optional().describe("Maximum number of triggers to return (number, default: 50). Use 0 for all."),
+  limit: z
+    .unknown()
+    .optional()
+    .describe(
+      "Maximum number of triggers to return (number, default: 50). Use 0 for all.",
+    ),
 });
 
 export const ListTriggersSchema = z.preprocess(
@@ -398,7 +444,7 @@ export const ListTriggersSchema = z.preprocess(
     schema: z.string().optional(),
     table: z.string().optional(),
     limit: z.preprocess(coerceStrictNumber, z.number().optional()),
-  })
+  }),
 );
 
 // =============================================================================
@@ -414,7 +460,12 @@ export const ListConstraintsSchemaBase = z.object({
     .describe(
       "Constraint type filter: 'primary_key', 'foreign_key', 'unique', 'check'",
     ),
-  limit: z.unknown().optional().describe("Maximum number of constraints to return (number, default: 50). Use 0 for all."),
+  limit: z
+    .unknown()
+    .optional()
+    .describe(
+      "Maximum number of constraints to return (number, default: 50). Use 0 for all.",
+    ),
 });
 
 export const ListConstraintsSchema = z.preprocess(
@@ -424,7 +475,7 @@ export const ListConstraintsSchema = z.preprocess(
     schema: z.string().optional(),
     type: z.string().optional(),
     limit: z.preprocess(coerceStrictNumber, z.number().optional()),
-  })
+  }),
 );
 
 // ============================================================================
@@ -434,10 +485,12 @@ export const ListConstraintsSchema = z.preprocess(
 /**
  * pg_list_schemas output
  */
-export const ListSchemasOutputSchema = z.object({
-  schemas: z.array(z.string()).optional().describe("Schema names"),
-  count: z.number().optional().describe("Number of schemas"),
-}).extend(ErrorResponseFields.shape);
+export const ListSchemasOutputSchema = z
+  .object({
+    schemas: z.array(z.string()).optional().describe("Schema names"),
+    count: z.number().optional().describe("Number of schemas"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 /**
  * pg_create_schema output

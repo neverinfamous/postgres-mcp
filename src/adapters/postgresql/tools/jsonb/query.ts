@@ -135,8 +135,8 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_agg",
-          });
+          tool: "pg_jsonb_agg",
+        });
       }
     },
   };
@@ -159,7 +159,7 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
         const table = parsed.table;
         const column = parsed.column;
         let keys: string[] = [];
-        
+
         if (parsed.json !== undefined) {
           const sql = `SELECT DISTINCT jsonb_object_keys($1::jsonb) as key`;
           const result = await adapter.executeQuery(sql, [parsed.json]);
@@ -184,7 +184,7 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
           const result = await adapter.executeQuery(sql);
           keys = (result.rows ?? []).map((r) => r["key"] as string);
         }
-        
+
         const response: {
           success: boolean;
           keys?: string[];
@@ -204,13 +204,15 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
           error.message.includes("cannot call jsonb_object_keys")
         ) {
           return formatHandlerErrorResponse(
-            new ValidationError(`pg_jsonb_keys requires object columns. For array columns, use pg_jsonb_normalize with mode: 'array'.`),
-            { tool: "pg_jsonb_keys" }
+            new ValidationError(
+              `pg_jsonb_keys requires object columns. For array columns, use pg_jsonb_normalize with mode: 'array'.`,
+            ),
+            { tool: "pg_jsonb_keys" },
           );
         }
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_keys",
-          });
+          tool: "pg_jsonb_keys",
+        });
       }
     },
   };
@@ -246,7 +248,9 @@ export function createJsonbTypeofTool(
         if (parsed.json !== undefined) {
           const pathExpr = pathArray !== undefined ? ` #> $2` : "";
           const sql = `SELECT jsonb_typeof($1::jsonb${pathExpr}) as type, false as column_null`;
-          const queryParams = pathArray ? [parsed.json, pathArray] : [parsed.json];
+          const queryParams = pathArray
+            ? [parsed.json, pathArray]
+            : [parsed.json];
           const result = await adapter.executeQuery(sql, queryParams);
           types = (result.rows ?? []).map((r) => r["type"] as string | null);
         } else {
@@ -275,7 +279,12 @@ export function createJsonbTypeofTool(
             result.rows?.some((r) => r["column_null"] === true) ?? false;
         }
 
-        const response: { success: boolean; types?: (string | null)[]; count: number; columnNull: boolean } = {
+        const response: {
+          success: boolean;
+          types?: (string | null)[];
+          count: number;
+          columnNull: boolean;
+        } = {
           success: true,
           count: types?.length ?? 0,
           columnNull,
@@ -284,8 +293,8 @@ export function createJsonbTypeofTool(
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_typeof",
-          });
+          tool: "pg_jsonb_typeof",
+        });
       }
     },
   };

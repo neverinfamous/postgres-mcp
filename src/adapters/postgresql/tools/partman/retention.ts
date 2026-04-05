@@ -21,7 +21,11 @@ import {
   PartmanSetRetentionOutputSchema,
   PartmanUndoPartitionOutputSchema,
 } from "../../schemas/index.js";
-import { getPartmanSchema, callPartmanProcedure, checkTableExists } from "./helpers.js";
+import {
+  getPartmanSchema,
+  callPartmanProcedure,
+  checkTableExists,
+} from "./helpers.js";
 
 /**
  * Configure retention policies
@@ -45,9 +49,12 @@ Partitions older than the retention period will be dropped or detached during ma
 
         // Validate required parentTable
         if (!parentTable) {
-          throw new ValidationError("Missing required parameter: parentTable.", {
-            hint: 'Example: pg_partman_set_retention({ parentTable: "public.events", retention: "30 days" })',
-          });
+          throw new ValidationError(
+            "Missing required parameter: parentTable.",
+            {
+              hint: 'Example: pg_partman_set_retention({ parentTable: "public.events", retention: "30 days" })',
+            },
+          );
         }
 
         const validatedParentTable = parentTable;
@@ -76,13 +83,19 @@ Partitions older than the retention period will be dropped or detached during ma
           if ((result.rowsAffected ?? 0) === 0) {
             // Give specific TABLE_NOT_FOUND error if table doesn't even exist
             if (!(await checkTableExists(adapter, validatedParentTable))) {
-              throw new ValidationError(`Table '${validatedParentTable}' does not exist.`, {
-                hint: "Check that you specified the correct schema and table name."
-              });
+              throw new ValidationError(
+                `Table '${validatedParentTable}' does not exist.`,
+                {
+                  hint: "Check that you specified the correct schema and table name.",
+                },
+              );
             }
-            throw new ValidationError(`No pg_partman configuration found for ${validatedParentTable}.`, {
-              hint: "Use pg_partman_show_config to list existing partition sets.",
-            });
+            throw new ValidationError(
+              `No pg_partman configuration found for ${validatedParentTable}.`,
+              {
+                hint: "Use pg_partman_show_config to list existing partition sets.",
+              },
+            );
           }
 
           return {
@@ -106,11 +119,14 @@ Partitions older than the retention period will be dropped or detached during ma
           !validIntervalPattern.test(validatedRetention) &&
           !validNumericPattern.test(validatedRetention)
         ) {
-          throw new ValidationError(`Invalid retention format '${validatedRetention}'.`, {
-            hint:
-              "Use PostgreSQL interval syntax (e.g., '30 days', '6 months', '1 year') " +
-              "or integer value for integer-based partitions.",
-          });
+          throw new ValidationError(
+            `Invalid retention format '${validatedRetention}'.`,
+            {
+              hint:
+                "Use PostgreSQL interval syntax (e.g., '30 days', '6 months', '1 year') " +
+                "or integer value for integer-based partitions.",
+            },
+          );
         }
 
         const updates: string[] = [`retention = '${validatedRetention}'`];
@@ -129,13 +145,19 @@ Partitions older than the retention period will be dropped or detached during ma
         if ((result.rowsAffected ?? 0) === 0) {
           // Give specific TABLE_NOT_FOUND error if table doesn't even exist
           if (!(await checkTableExists(adapter, validatedParentTable))) {
-            throw new ValidationError(`Table '${validatedParentTable}' does not exist.`, {
-              hint: "Check that you specified the correct schema and table name."
-            });
+            throw new ValidationError(
+              `Table '${validatedParentTable}' does not exist.`,
+              {
+                hint: "Check that you specified the correct schema and table name.",
+              },
+            );
           }
-          throw new ValidationError(`No pg_partman configuration found for ${validatedParentTable}.`, {
-            hint: "Use pg_partman_show_config to list existing partition sets.",
-          });
+          throw new ValidationError(
+            `No pg_partman configuration found for ${validatedParentTable}.`,
+            {
+              hint: "Use pg_partman_show_config to list existing partition sets.",
+            },
+          );
         }
 
         // Check partition type to use appropriate terminology in message
@@ -165,8 +187,8 @@ Partitions older than the retention period will be dropped or detached during ma
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_partman_set_retention",
-          });
+          tool: "pg_partman_set_retention",
+        });
       }
     },
   };
@@ -206,10 +228,13 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
           const missing: string[] = [];
           if (!parentTable) missing.push("parentTable");
           if (!targetTable) missing.push("targetTable (or target)");
-          throw new ValidationError(`Missing required parameters: ${missing.join(", ")}.`, {
-            hint: 'Example: pg_partman_undo_partition({ parentTable: "public.events", targetTable: "public.events_archive" }). Target table must exist first.',
-            aliases: { target: "targetTable" },
-          });
+          throw new ValidationError(
+            `Missing required parameters: ${missing.join(", ")}.`,
+            {
+              hint: 'Example: pg_partman_undo_partition({ parentTable: "public.events", targetTable: "public.events_archive" }). Target table must exist first.',
+              aliases: { target: "targetTable" },
+            },
+          );
         }
 
         // At this point, parentTable and targetTable are guaranteed to be defined
@@ -225,17 +250,23 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
         const partmanSchema = await getPartmanSchema(adapter);
 
         if (!(await checkTableExists(adapter, validatedParentTable))) {
-          throw new ValidationError(`Table '${validatedParentTable}' does not exist.`, {
-            hint: "Check that you specified the correct schema and table name."
-          });
+          throw new ValidationError(
+            `Table '${validatedParentTable}' does not exist.`,
+            {
+              hint: "Check that you specified the correct schema and table name.",
+            },
+          );
         }
 
         if (!(await checkTableExists(adapter, validatedTargetTable))) {
-          throw new ValidationError(`Target table '${validatedTargetTable}' does not exist.`, {
-            hint:
-              "pg_partman's undo_partition requires the target table to exist before consolidating data. " +
-              "Create the target table first with the same structure as the parent table.",
-          });
+          throw new ValidationError(
+            `Target table '${validatedTargetTable}' does not exist.`,
+            {
+              hint:
+                "pg_partman's undo_partition requires the target table to exist before consolidating data. " +
+                "Create the target table first with the same structure as the parent table.",
+            },
+          );
         }
 
         const args: string[] = [
@@ -268,7 +299,7 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
               parentTable: validatedParentTable,
               targetTable: validatedTargetTable,
               hint: "Use pg_partman_show_config to verify the partition set exists and is properly configured.",
-            }
+            },
           );
         }
 
@@ -288,8 +319,8 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_partman_undo_partition",
-          });
+          tool: "pg_partman_undo_partition",
+        });
       }
     },
   };

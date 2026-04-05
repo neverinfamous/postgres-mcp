@@ -19,7 +19,10 @@ import {
   sanitizeIdentifier,
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
-import { coerceLimit, DEFAULT_QUERY_LIMIT } from "../../../../utils/query-helpers.js";
+import {
+  coerceLimit,
+  DEFAULT_QUERY_LIMIT,
+} from "../../../../utils/query-helpers.js";
 import {
   JsonbValidatePathOutputSchema,
   JsonbMergeOutputSchema,
@@ -77,7 +80,9 @@ export function createJsonbValidatePathTool(
           typeof parsed.path !== "string" ||
           parsed.path.trim() === ""
         ) {
-          throw new ValidationError("path is required and must be a non-empty string");
+          throw new ValidationError(
+            "path is required and must be a non-empty string",
+          );
         }
         if (parsed.testValue !== undefined) {
           const varsJson = parsed.vars ? JSON.stringify(parsed.vars) : "{}";
@@ -109,7 +114,9 @@ export function createJsonbValidatePathTool(
         }
       } catch (error: unknown) {
         if (error instanceof ValidationError) {
-          return formatHandlerErrorResponse(error, { tool: "pg_jsonb_validate_path" });
+          return formatHandlerErrorResponse(error, {
+            tool: "pg_jsonb_validate_path",
+          });
         }
         // Invalid JSONPath syntax — return structured error with valid: false
         // Using success: false (not success: true) to signal caller the path is unusable
@@ -267,19 +274,28 @@ export function createJsonbMergeTool(adapter: PostgresAdapter): ToolDefinition {
             parsed.overlay,
             useMergeArrays,
           );
-          return { success: true, merged, deep: true, mergeArrays: useMergeArrays };
+          return {
+            success: true,
+            merged,
+            deep: true,
+            mergeArrays: useMergeArrays,
+          };
         } else {
           const sql = `SELECT $1::jsonb || $2::jsonb as result`;
           const result = await adapter.executeQuery(sql, [
             toJsonString(parsed.base),
             toJsonString(parsed.overlay),
           ]);
-          return { success: true, merged: result.rows?.[0]?.["result"], deep: false };
+          return {
+            success: true,
+            merged: result.rows?.[0]?.["result"],
+            deep: false,
+          };
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_merge",
-          });
+          tool: "pg_jsonb_merge",
+        });
       }
     },
   };
@@ -318,7 +334,9 @@ export function createJsonbNormalizeTool(
         // Validate mode parameter
         const validModes = ["keys", "array", "pairs", "flatten"];
         if (!validModes.includes(mode)) {
-          throw new ValidationError(`pg_jsonb_normalize: Invalid mode '${mode}'. Valid modes: ${validModes.join(", ")}`);
+          throw new ValidationError(
+            `pg_jsonb_normalize: Invalid mode '${mode}'. Valid modes: ${validModes.join(", ")}`,
+          );
         }
 
         const resolvedLimit = coerceLimit(parsed.limit, DEFAULT_QUERY_LIMIT);
@@ -326,11 +344,11 @@ export function createJsonbNormalizeTool(
         const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
 
         if (parsed.json) {
-           let sql: string;
-           if (mode === "array") {
-             sql = `SELECT 'raw_json' as source_id, jsonb_array_elements($1::jsonb) as element`;
-           } else if (mode === "flatten") {
-             sql = `
+          let sql: string;
+          if (mode === "array") {
+            sql = `SELECT 'raw_json' as source_id, jsonb_array_elements($1::jsonb) as element`;
+          } else if (mode === "flatten") {
+            sql = `
                     WITH RECURSIVE
                     source_rows AS (
                         SELECT 'raw_json' as source_id, $1::jsonb as doc
@@ -357,56 +375,74 @@ export function createJsonbNormalizeTool(
                     WHERE value_type != 'object' OR value = '{}'::jsonb
                     ORDER BY source_id, path
                 `;
-           } else if (mode === "pairs") {
-             sql = `SELECT 'raw_json' as source_id, key, value FROM jsonb_each($1::jsonb)`;
-           } else {
-             sql = `SELECT 'raw_json' as source_id, key, value FROM jsonb_each_text($1::jsonb)`;
-           }
+          } else if (mode === "pairs") {
+            sql = `SELECT 'raw_json' as source_id, key, value FROM jsonb_each($1::jsonb)`;
+          } else {
+            sql = `SELECT 'raw_json' as source_id, key, value FROM jsonb_each_text($1::jsonb)`;
+          }
 
-           const finalSql = fetchLimit > 0 ? `${sql} LIMIT ${String(fetchLimit)}` : sql;
-           const result = await adapter.executeQuery(finalSql, [parsed.json]);
-           
-           let rows = result.rows ?? [];
-           let isTruncated = false;
-           let exactTotalCount: number | undefined;
-           
-           if (effectiveLimit > 0 && rows.length > effectiveLimit) {
-               isTruncated = true;
-               rows = rows.slice(0, effectiveLimit);
-               const countSql = `SELECT COUNT(*) as total FROM (${sql}) sub`;
-               const countResult = await adapter.executeQuery(countSql, [parsed.json]);
-               exactTotalCount = Number(countResult.rows?.[0]?.["total"] ?? rows.length);
-           }
+          const finalSql =
+            fetchLimit > 0 ? `${sql} LIMIT ${String(fetchLimit)}` : sql;
+          const result = await adapter.executeQuery(finalSql, [parsed.json]);
 
-           if (mode === "flatten" && rows.length === 0) {
-              const typeCheck = await adapter.executeQuery(`SELECT jsonb_typeof($1::jsonb) as type`, [parsed.json]);
-              if (typeCheck.rows?.[0]?.["type"] === "array") {
-                throw new ValidationError("pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.");
-              }
-           }
-           const response: { success: boolean; rows?: unknown[]; count: number; mode: string; truncated?: boolean; totalCount?: number } = {
-             success: true,
-             count: rows.length,
-             mode,
-           };
-           if (rows.length > 0) response.rows = rows;
-           if (isTruncated) {
-             response.truncated = true;
-             if (exactTotalCount !== undefined) response.totalCount = exactTotalCount;
-           }
-           return response;
+          let rows = result.rows ?? [];
+          let isTruncated = false;
+          let exactTotalCount: number | undefined;
+
+          if (effectiveLimit > 0 && rows.length > effectiveLimit) {
+            isTruncated = true;
+            rows = rows.slice(0, effectiveLimit);
+            const countSql = `SELECT COUNT(*) as total FROM (${sql}) sub`;
+            const countResult = await adapter.executeQuery(countSql, [
+              parsed.json,
+            ]);
+            exactTotalCount = Number(
+              countResult.rows?.[0]?.["total"] ?? rows.length,
+            );
+          }
+
+          if (mode === "flatten" && rows.length === 0) {
+            const typeCheck = await adapter.executeQuery(
+              `SELECT jsonb_typeof($1::jsonb) as type`,
+              [parsed.json],
+            );
+            if (typeCheck.rows?.[0]?.["type"] === "array") {
+              throw new ValidationError(
+                "pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.",
+              );
+            }
+          }
+          const response: {
+            success: boolean;
+            rows?: unknown[];
+            count: number;
+            mode: string;
+            truncated?: boolean;
+            totalCount?: number;
+          } = {
+            success: true,
+            count: rows.length,
+            mode,
+          };
+          if (rows.length > 0) response.rows = rows;
+          if (isTruncated) {
+            response.truncated = true;
+            if (exactTotalCount !== undefined)
+              response.totalCount = exactTotalCount;
+          }
+          return response;
         }
 
         const table = parsed.table;
         const column = parsed.column;
         if (!table || !column) {
-          throw new ValidationError("Either 'json' (raw string) or 'table' + 'column' (table mode) is required");
+          throw new ValidationError(
+            "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
+          );
         }
         const whereClause = parsed.where
           ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
-
-
 
         // Validate schema existence for non-public schemas
         const schemaName = parsed.schema ?? "public";
@@ -416,7 +452,9 @@ export function createJsonbNormalizeTool(
             [schemaName],
           );
           if (!schemaResult.rows || schemaResult.rows.length === 0) {
-            throw new ValidationError(`Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`);
+            throw new ValidationError(
+              `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            );
           }
         }
 
@@ -484,19 +522,22 @@ export function createJsonbNormalizeTool(
           sql = `SELECT ${rowIdExpr} as ${rowIdAlias}, key, value FROM ${tableName}, jsonb_each_text(${columnName}) ${whereClause}`;
         }
 
-        const finalSql = fetchLimit > 0 ? `${sql} LIMIT ${String(fetchLimit)}` : sql;
+        const finalSql =
+          fetchLimit > 0 ? `${sql} LIMIT ${String(fetchLimit)}` : sql;
         const result = await adapter.executeQuery(finalSql);
-        
+
         let rows = result.rows ?? [];
         let isTruncated = false;
         let exactTotalCount: number | undefined;
-        
+
         if (effectiveLimit > 0 && rows.length > effectiveLimit) {
-            isTruncated = true;
-            rows = rows.slice(0, effectiveLimit);
-            const countSql = `SELECT COUNT(*) as total FROM (${sql}) sub`;
-            const countResult = await adapter.executeQuery(countSql);
-            exactTotalCount = Number(countResult.rows?.[0]?.["total"] ?? rows.length);
+          isTruncated = true;
+          rows = rows.slice(0, effectiveLimit);
+          const countSql = `SELECT COUNT(*) as total FROM (${sql}) sub`;
+          const countResult = await adapter.executeQuery(countSql);
+          exactTotalCount = Number(
+            countResult.rows?.[0]?.["total"] ?? rows.length,
+          );
         }
 
         // Check for empty flatten results on array columns
@@ -504,10 +545,19 @@ export function createJsonbNormalizeTool(
           const typeCheckSql = `SELECT jsonb_typeof(${columnName}) as type FROM ${tableName}${whereClause} LIMIT 1`;
           const typeResult = await adapter.executeQuery(typeCheckSql);
           if (typeResult.rows?.[0]?.["type"] === "array") {
-            throw new ValidationError(`pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.`);
+            throw new ValidationError(
+              `pg_jsonb_normalize flatten mode requires object columns. Column appears to contain arrays - use 'array' mode instead.`,
+            );
           }
         }
-        const response: { success: boolean; rows?: unknown[]; count: number; mode: string; truncated?: boolean; totalCount?: number } = {
+        const response: {
+          success: boolean;
+          rows?: unknown[];
+          count: number;
+          mode: string;
+          truncated?: boolean;
+          totalCount?: number;
+        } = {
           success: true,
           count: rows.length,
           mode,
@@ -515,7 +565,8 @@ export function createJsonbNormalizeTool(
         if (rows.length > 0) response.rows = rows;
         if (isTruncated) {
           response.truncated = true;
-          if (exactTotalCount !== undefined) response.totalCount = exactTotalCount;
+          if (exactTotalCount !== undefined)
+            response.totalCount = exactTotalCount;
         }
         return response;
       } catch (error: unknown) {
@@ -525,8 +576,10 @@ export function createJsonbNormalizeTool(
           error.message.includes("cannot call jsonb_each")
         ) {
           return formatHandlerErrorResponse(
-            new ValidationError(`pg_jsonb_normalize requires object columns for this mode. For array columns, use mode: 'array'.`),
-            { tool: "pg_jsonb_normalize" }
+            new ValidationError(
+              `pg_jsonb_normalize requires object columns for this mode. For array columns, use mode: 'array'.`,
+            ),
+            { tool: "pg_jsonb_normalize" },
           );
         }
         if (
@@ -534,13 +587,15 @@ export function createJsonbNormalizeTool(
           error.message.includes("cannot extract elements from an object")
         ) {
           return formatHandlerErrorResponse(
-            new ValidationError(`pg_jsonb_normalize 'array' mode requires array columns. For object columns, use mode: 'keys' or 'pairs'.`),
-            { tool: "pg_jsonb_normalize" }
+            new ValidationError(
+              `pg_jsonb_normalize 'array' mode requires array columns. For object columns, use mode: 'keys' or 'pairs'.`,
+            ),
+            { tool: "pg_jsonb_normalize" },
           );
         }
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_normalize",
-          });
+          tool: "pg_jsonb_normalize",
+        });
       }
     },
   };
@@ -554,14 +609,8 @@ export function createJsonbNormalizeTool(
 // Base schema for MCP visibility — z.unknown() to avoid SDK-level Zod rejection
 // of non-object types (arrays, primitives). Handler validates internally.
 const JsonbDiffSchemaBase = z.object({
-  doc1: z
-    .unknown()
-    .optional()
-    .describe("First JSONB object to compare"),
-  doc2: z
-    .unknown()
-    .optional()
-    .describe("Second JSONB object to compare"),
+  doc1: z.unknown().optional().describe("First JSONB object to compare"),
+  doc2: z.unknown().optional().describe("Second JSONB object to compare"),
 });
 
 // Internal schema for handler validation (required fields)
@@ -590,7 +639,9 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
         try {
           parsed = JsonbDiffSchema.parse(params);
         } catch {
-          throw new ValidationError("pg_jsonb_diff requires two JSONB objects. Arrays and primitive values are not supported. Use {} format for both doc1 and doc2.");
+          throw new ValidationError(
+            "pg_jsonb_diff requires two JSONB objects. Arrays and primitive values are not supported. Use {} format for both doc1 and doc2.",
+          );
         }
 
         const sql = `
@@ -628,12 +679,13 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
           comparison: "shallow",
           hint: "Compares top-level keys only. Nested object changes show as modified.",
         };
-        if (result.rows && result.rows.length > 0) response.differences = result.rows;
+        if (result.rows && result.rows.length > 0)
+          response.differences = result.rows;
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_diff",
-          });
+          tool: "pg_jsonb_diff",
+        });
       }
     },
   };

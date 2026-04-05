@@ -1,4 +1,4 @@
-import { ErrorResponseFields } from '../error-response-fields.js';
+import { ErrorResponseFields } from "../error-response-fields.js";
 /**
  * postgres-mcp - pgvector Output Schemas
  *
@@ -176,11 +176,16 @@ export const VectorAggregateOutputSchema = z
         z.object({
           group_key: z.unknown().describe("Group key value"),
           count: z.number().describe("Count in group"),
-          average_vector: z.object({
-            preview: z.array(z.number()).nullable().describe("Vector preview"),
-            dimensions: z.number().describe("Vector dimensions"),
-            truncated: z.boolean().describe("Whether vector is truncated"),
-          }).nullable(),
+          average_vector: z
+            .object({
+              preview: z
+                .array(z.number())
+                .nullable()
+                .describe("Vector preview"),
+              dimensions: z.number().describe("Vector dimensions"),
+              truncated: z.boolean().describe("Whether vector is truncated"),
+            })
+            .nullable(),
         }),
       )
       .optional()

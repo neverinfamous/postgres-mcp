@@ -381,10 +381,10 @@ describe("pg_detect_bloat_risk", () => {
 
   it("should reject negative minRows with a validation error", async () => {
     const tool = findTool(tools, "pg_detect_bloat_risk");
-    const result = (await tool.handler(
-      { minRows: -100 },
-      mockContext,
-    )) as { success: boolean; error: string };
+    const result = (await tool.handler({ minRows: -100 }, mockContext)) as {
+      success: boolean;
+      error: string;
+    };
 
     // Negative minRows is invalid; expect a structured validation error instead of silent clamping
     expect(result.success).toBe(false);

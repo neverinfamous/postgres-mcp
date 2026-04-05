@@ -90,7 +90,10 @@ export function preprocessBasicStatsParams(input: unknown): unknown {
     result["where"] = result["filter"];
   }
   // Alias: fractions → percentiles
-  if (result["fractions"] !== undefined && result["percentiles"] === undefined) {
+  if (
+    result["fractions"] !== undefined &&
+    result["percentiles"] === undefined
+  ) {
     result["percentiles"] = result["fractions"];
   }
   // Parse schema.table format (embedded schema takes priority)
@@ -213,7 +216,10 @@ export function preprocessRegressionParams(input: unknown): unknown {
     result["xColumn"] = result["x"];
   }
   // Alias: independentColumn → xColumn
-  if (result["independentColumn"] !== undefined && result["xColumn"] === undefined) {
+  if (
+    result["independentColumn"] !== undefined &&
+    result["xColumn"] === undefined
+  ) {
     result["xColumn"] = result["independentColumn"];
   }
   // Alias: y → yColumn
@@ -221,7 +227,10 @@ export function preprocessRegressionParams(input: unknown): unknown {
     result["yColumn"] = result["y"];
   }
   // Alias: dependentColumn → yColumn
-  if (result["dependentColumn"] !== undefined && result["yColumn"] === undefined) {
+  if (
+    result["dependentColumn"] !== undefined &&
+    result["yColumn"] === undefined
+  ) {
     result["yColumn"] = result["dependentColumn"];
   }
   // Alias: column1 → xColumn (for consistency with correlation)

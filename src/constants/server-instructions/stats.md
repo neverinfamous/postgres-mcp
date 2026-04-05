@@ -33,4 +33,3 @@
 
 **Top-Level Aliases**: `pg.descriptive()`, `pg.percentiles()`, `pg.correlation()`, `pg.regression()`, `pg.timeSeries()`, `pg.distribution()`, `pg.hypothesis()`, `pg.sampling()`
 **Note**: All newer tools (e.g., window functions, outlier detection, advanced analysis) must be accessed via their group namespace: `pg.stats.rowNumber()`, `pg.stats.ntile()`, `pg.stats.outliers()`, etc.
-

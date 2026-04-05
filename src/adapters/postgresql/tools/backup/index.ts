@@ -10,16 +10,10 @@ import type { ToolDefinition } from "../../../../types/index.js";
 import type { BackupManager } from "../../../../audit/backup-manager.js";
 
 // Dump operations
-import {
-  createDumpTableTool,
-  createDumpSchemaTool,
-} from "./dump.js";
+import { createDumpTableTool, createDumpSchemaTool } from "./dump.js";
 
 // COPY operations
-import {
-  createCopyExportTool,
-  createCopyImportTool,
-} from "./copy.js";
+import { createCopyExportTool, createCopyImportTool } from "./copy.js";
 
 // Backup planning
 import {

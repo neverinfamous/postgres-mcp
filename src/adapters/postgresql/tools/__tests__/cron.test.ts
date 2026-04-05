@@ -425,7 +425,10 @@ describe("pg_cron_job_run_details", () => {
   it("should get job run details", async () => {
     // Mock COUNT query first (for truncation indicator)
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ status: "succeeded", total: 2 }, { status: "failed", total: 1 }],
+      rows: [
+        { status: "succeeded", total: 2 },
+        { status: "failed", total: 1 },
+      ],
     });
     // Mock main query
     mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -985,7 +988,9 @@ describe("cron.ts uncovered branches", () => {
   it("should accept limit of 0 correctly disabling limits", async () => {
     // Mock main query
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [{ jobid: 1, jobname: "test", schedule: "* * * * *", active: true }],
+      rows: [
+        { jobid: 1, jobname: "test", schedule: "* * * * *", active: true },
+      ],
     });
 
     const tool = tools.find((t) => t.name === "pg_cron_list_jobs")!;
@@ -996,7 +1001,7 @@ describe("cron.ts uncovered branches", () => {
 
     expect(result.success).toBe(true);
     expect(result.jobs.length).toBe(1);
-    
+
     // There shouldn't be a LIMIT clause when 0 is used
     const sql = mockAdapter.executeQuery.mock.calls[0]?.[0] as string;
     expect(sql).not.toContain("LIMIT");

@@ -35,17 +35,25 @@ test.describe("Payload Contracts: Transactions (Extended)", () => {
     expect(typeof txnId).toBe("string");
 
     // Savepoint
-    const savepoint = await callToolAndParse(client, "pg_transaction_savepoint", {
-      transactionId: txnId,
-      name: "sp1",
-    });
+    const savepoint = await callToolAndParse(
+      client,
+      "pg_transaction_savepoint",
+      {
+        transactionId: txnId,
+        name: "sp1",
+      },
+    );
     expectSuccess(savepoint);
 
     // Rollback to savepoint
-    const rollbackTo = await callToolAndParse(client, "pg_transaction_rollback_to", {
-      transactionId: txnId,
-      name: "sp1",
-    });
+    const rollbackTo = await callToolAndParse(
+      client,
+      "pg_transaction_rollback_to",
+      {
+        transactionId: txnId,
+        name: "sp1",
+      },
+    );
     expectSuccess(rollbackTo);
 
     // Commit
@@ -76,20 +84,27 @@ test.describe("Payload Contracts: Transactions (Extended)", () => {
       const exec = await callToolAndParse(client, "pg_transaction_execute", {
         transactionId: txnId,
         statements: [
-          { sql: "INSERT INTO _e2e_txn_rollback_test (value) VALUES ('should_not_persist')" },
+          {
+            sql: "INSERT INTO _e2e_txn_rollback_test (value) VALUES ('should_not_persist')",
+          },
         ],
       });
       expectSuccess(exec);
 
       // Rollback
-      const rollback = await callToolAndParse(client, "pg_transaction_rollback", {
-        transactionId: txnId,
-      });
+      const rollback = await callToolAndParse(
+        client,
+        "pg_transaction_rollback",
+        {
+          transactionId: txnId,
+        },
+      );
       expectSuccess(rollback);
 
       // Verify row was NOT inserted
       const check = await callToolAndParse(client, "pg_read_query", {
-        query: "SELECT COUNT(*) AS cnt FROM _e2e_txn_rollback_test WHERE value = 'should_not_persist'",
+        query:
+          "SELECT COUNT(*) AS cnt FROM _e2e_txn_rollback_test WHERE value = 'should_not_persist'",
       });
       expectSuccess(check);
       const rows = check.rows as Array<{ cnt: number }>;

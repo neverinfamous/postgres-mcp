@@ -22,13 +22,19 @@ export const JsonbPrettySchemaBase = z.object({
     .string()
     .optional()
     .describe("Raw JSON string to format (alias for json)"),
-  table: z.string().optional().describe("Table name (for formatting column data)"),
+  table: z
+    .string()
+    .optional()
+    .describe("Table name (for formatting column data)"),
   tableName: z.string().optional().describe("Table name (alias for table)"),
   column: z.string().optional().describe("JSONB column name"),
   col: z.string().optional().describe("JSONB column name (alias for column)"),
   where: z.string().optional().describe("WHERE clause to filter rows"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.union([z.number(), z.string()]).optional().describe("Maximum rows to format (default: 10)"),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum rows to format (default: 10)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 

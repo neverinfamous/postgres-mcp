@@ -137,27 +137,43 @@ test.describe("Payload Contracts: Performance", () => {
   });
 
   test("pg_query_plan_stats returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_query_plan_stats", { queryId: "0" });
+    const payload = await callToolAndParse(client, "pg_query_plan_stats", {
+      queryId: "0",
+    });
     expect(typeof payload).toBe("object");
   });
 
   test("pg_index_recommendations returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_index_recommendations", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_index_recommendations",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 
   test("pg_performance_baseline returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_performance_baseline", { duration: "1 hour" });
+    const payload = await callToolAndParse(client, "pg_performance_baseline", {
+      duration: "1 hour",
+    });
     expect(typeof payload).toBe("object");
   });
 
   test("pg_connection_pool_optimize returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_connection_pool_optimize", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_connection_pool_optimize",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 
   test("pg_partition_strategy_suggest returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_partition_strategy_suggest", { table: "test_products", thresholdBytes: 10000 });
+    const payload = await callToolAndParse(
+      client,
+      "pg_partition_strategy_suggest",
+      { table: "test_products", thresholdBytes: 10000 },
+    );
     expect(typeof payload).toBe("object");
   });
 
@@ -167,12 +183,20 @@ test.describe("Payload Contracts: Performance", () => {
   });
 
   test("pg_detect_connection_spike returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_detect_connection_spike", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_detect_connection_spike",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 
   test("pg_detect_query_anomalies returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_detect_query_anomalies", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_detect_query_anomalies",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 

@@ -438,8 +438,9 @@ describe("Vector Tools WHERE Clause Injection", () => {
   describe("pg_vector_search WHERE injection", () => {
     it("should reject WHERE clause with injection", async () => {
       // Mock existence check and type check to pass so WHERE validation triggers
-      mockAdapter.executeQuery
-        .mockResolvedValueOnce({ rows: [{ udt_name: "vector" }] }); // type check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ udt_name: "vector" }],
+      }); // type check
 
       const tool = vectorTools.find((t) => t.name === "pg_vector_search")!;
       const result = (await tool.handler(

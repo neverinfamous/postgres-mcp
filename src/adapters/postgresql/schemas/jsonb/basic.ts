@@ -41,17 +41,20 @@ export const JsonbExtractSchemaBase = z.object({
     ),
   where: z.string().optional().describe("WHERE clause"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.union([z.number(), z.string()]).optional().describe("Maximum number of rows to return"),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum number of rows to return"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Internal schema with refine (for handler validation)
 const JsonbExtractSchemaRefined = JsonbExtractSchemaBase.extend({
   limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
-}).refine(
-  (data) => data.table !== undefined || data.tableName !== undefined,
-  { message: "Either 'table' or 'tableName' is required" },
-)
+})
+  .refine((data) => data.table !== undefined || data.tableName !== undefined, {
+    message: "Either 'table' or 'tableName' is required",
+  })
   .refine((data) => data.column !== undefined || data.col !== undefined, {
     message: "Either 'column' or 'col' is required",
   })
@@ -145,21 +148,25 @@ export const JsonbContainsSchemaBase = z.object({
     .describe("Columns to select in result"),
   where: z.string().optional().describe("Additional WHERE clause filter"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.union([z.number(), z.string()]).optional().describe(
-    "Maximum number of rows to return (default: 100). Use 0 for all rows.",
-  ),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe(
+      "Maximum number of rows to return (default: 100). Use 0 for all rows.",
+    ),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Internal schema with refine (for handler validation)
 const JsonbContainsSchemaRefined = JsonbContainsSchemaBase.extend({
   limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
-}).refine(
-  (data) => data.table !== undefined || data.tableName !== undefined,
-  { message: "Either 'table' or 'tableName' is required" },
-).refine((data) => data.column !== undefined || data.col !== undefined, {
-  message: "Either 'column' or 'col' is required",
-});
+})
+  .refine((data) => data.table !== undefined || data.tableName !== undefined, {
+    message: "Either 'table' or 'tableName' is required",
+  })
+  .refine((data) => data.column !== undefined || data.col !== undefined, {
+    message: "Either 'column' or 'col' is required",
+  });
 
 // Full schema with preprocess (for handler parsing)
 export const JsonbContainsSchema = z.preprocess(
@@ -187,22 +194,39 @@ export const JsonbPathQuerySchemaBase = z.object({
     .describe("Variables for JSONPath (access with $var_name)"),
   where: z.string().optional().describe("WHERE clause"),
   filter: z.string().optional().describe("WHERE clause (alias for where)"),
-  limit: z.union([z.number(), z.string()]).optional().describe(
-    "Maximum number of results to return (default: 100). Use 0 for all results.",
-  ),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe(
+      "Maximum number of results to return (default: 100). Use 0 for all results.",
+    ),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Internal schema with refine (for handler validation)
 const JsonbPathQuerySchemaRefined = JsonbPathQuerySchemaBase.extend({
   limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
-}).refine(
-  (data) => data.json !== undefined || (data.table !== undefined || data.tableName !== undefined),
-  { message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required" },
-)
-  .refine((data) => data.json !== undefined || (data.column !== undefined || data.col !== undefined), {
-    message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
-  })
+})
+  .refine(
+    (data) =>
+      data.json !== undefined ||
+      data.table !== undefined ||
+      data.tableName !== undefined,
+    {
+      message:
+        "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
+    },
+  )
+  .refine(
+    (data) =>
+      data.json !== undefined ||
+      data.column !== undefined ||
+      data.col !== undefined,
+    {
+      message:
+        "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
+    },
+  )
   .refine((data) => data.path !== undefined, {
     message: "path is required",
   });
@@ -325,11 +349,24 @@ export const JsonbTypeofSchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbTypeofSchemaRefined = JsonbTypeofSchemaBase.refine(
-  (data) => data.json !== undefined || (data.table !== undefined || data.tableName !== undefined),
-  { message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required" },
-).refine((data) => data.json !== undefined || (data.column !== undefined || data.col !== undefined), {
-  message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
-});
+  (data) =>
+    data.json !== undefined ||
+    data.table !== undefined ||
+    data.tableName !== undefined,
+  {
+    message:
+      "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
+  },
+).refine(
+  (data) =>
+    data.json !== undefined ||
+    data.column !== undefined ||
+    data.col !== undefined,
+  {
+    message:
+      "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
+  },
+);
 
 // Full schema with preprocess (for handler parsing)
 export const JsonbTypeofSchema = z.preprocess(
@@ -352,11 +389,24 @@ export const JsonbKeysSchemaBase = z.object({
 
 // Internal schema with refine (for handler validation)
 const JsonbKeysSchemaRefined = JsonbKeysSchemaBase.refine(
-  (data) => data.json !== undefined || (data.table !== undefined || data.tableName !== undefined),
-  { message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required" },
-).refine((data) => data.json !== undefined || (data.column !== undefined || data.col !== undefined), {
-  message: "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
-});
+  (data) =>
+    data.json !== undefined ||
+    data.table !== undefined ||
+    data.tableName !== undefined,
+  {
+    message:
+      "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
+  },
+).refine(
+  (data) =>
+    data.json !== undefined ||
+    data.column !== undefined ||
+    data.col !== undefined,
+  {
+    message:
+      "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
+  },
+);
 
 // Full schema with preprocess (for handler parsing)
 export const JsonbKeysSchema = z.preprocess(
@@ -417,17 +467,19 @@ export const JsonbAggSchemaBase = z.object({
     .string()
     .optional()
     .describe('ORDER BY clause (e.g., "id DESC", "name ASC")'),
-  limit: z.union([z.number(), z.string()]).optional().describe("Maximum number of rows to aggregate"),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum number of rows to aggregate"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
 // Internal schema with refine (for handler validation)
 const JsonbAggSchemaRefined = JsonbAggSchemaBase.extend({
   limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
-}).refine(
-  (data) => data.table !== undefined || data.tableName !== undefined,
-  { message: "Either 'table' or 'tableName' is required" },
-);
+}).refine((data) => data.table !== undefined || data.tableName !== undefined, {
+  message: "Either 'table' or 'tableName' is required",
+});
 
 // Full schema with preprocess (for handler parsing)
 export const JsonbAggSchema = z.preprocess(

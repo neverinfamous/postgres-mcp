@@ -19,12 +19,12 @@ suites — they run directly with `node`.
 
 ## Scripts
 
-| Script | What it tests | Pass criteria |
-|--------|--------------|---------------|
-| `test-filter-instructions.mjs` | `--tool-filter` × `--instruction-level` matrix (8 configs) | Instruction sections present/absent per config |
-| `test-instruction-levels.mjs` | `essential` ≤ `standard` ≤ `full` ordering + section checks | Char counts monotonically increase; sections gated correctly |
-| `test-prompts.mjs` | `prompts/list` + `prompts/get` for all 20 prompts | All 24 test cases return valid `messages` with expected content |
-| `test-tool-annotations.mjs` | `tools/list` annotation coverage | All 248 tools have `annotations` with `openWorldHint` set |
+| Script                         | What it tests                                               | Pass criteria                                                   |
+| ------------------------------ | ----------------------------------------------------------- | --------------------------------------------------------------- |
+| `test-filter-instructions.mjs` | `--tool-filter` × `--instruction-level` matrix (8 configs)  | Instruction sections present/absent per config                  |
+| `test-instruction-levels.mjs`  | `essential` ≤ `standard` ≤ `full` ordering + section checks | Char counts monotonically increase; sections gated correctly    |
+| `test-prompts.mjs`             | `prompts/list` + `prompts/get` for all 20 prompts           | All 24 test cases return valid `messages` with expected content |
+| `test-tool-annotations.mjs`    | `tools/list` annotation coverage                            | All 248 tools have `annotations` with `openWorldHint` set       |
 
 ## Running
 
@@ -73,8 +73,10 @@ Scripts use `||` (not `??`) for env var fallbacks to handle empty strings that
 Windows shells may inject:
 
 ```javascript
-process.env.POSTGRES_PASSWORD = process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD || 'postgres'
-process.env.POSTGRES_HOST     = process.env.POSTGRES_HOST     || process.env.PGHOST     || '127.0.0.1'
+process.env.POSTGRES_PASSWORD =
+  process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD || "postgres";
+process.env.POSTGRES_HOST =
+  process.env.POSTGRES_HOST || process.env.PGHOST || "127.0.0.1";
 ```
 
 The CLI (`src/cli/config.ts`) checks `PGHOST` → `POSTGRES_HOST` → `'localhost'`,
@@ -83,11 +85,11 @@ reliable Docker connectivity on all platforms.
 
 ## Failure Modes
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `Timeout` or `Server exited prematurely with code 1` | PostgreSQL not running or wrong credentials | Start the Docker container; check port 5432 |
-| `MODULE_NOT_FOUND: dist/cli.js` | Stale build or wrong `PROJECT_DIR` | Run `npm run build`; verify `resolve(__dirname, '..', '..')` |
-| `client password must be a string` | Empty `POSTGRES_PASSWORD` env var | Ensure env block uses `\|\|` not `??` |
+| Symptom                                              | Cause                                       | Fix                                                          |
+| ---------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------ |
+| `Timeout` or `Server exited prematurely with code 1` | PostgreSQL not running or wrong credentials | Start the Docker container; check port 5432                  |
+| `MODULE_NOT_FOUND: dist/cli.js`                      | Stale build or wrong `PROJECT_DIR`          | Run `npm run build`; verify `resolve(__dirname, '..', '..')` |
+| `client password must be a string`                   | Empty `POSTGRES_PASSWORD` env var           | Ensure env block uses `\|\|` not `??`                        |
 
 ## Relationship to Other Test Suites
 

@@ -50,13 +50,15 @@ export function createAppendInsightTool(): ToolDefinition {
         const parsed = await Promise.resolve(AppendInsightSchema.parse(params));
 
         if (!parsed.insight?.trim()) {
-          return new ValidationError("Insight text cannot be empty").toResponse();
+          return new ValidationError(
+            "Insight text cannot be empty",
+          ).toResponse();
         }
 
         if (parsed.insight.length > 1000) {
           const lenStr = parsed.insight.length.toString(10);
           return new ValidationError(
-            `Insight text is too long (${lenStr} chars). Maximum allowed is 1000 characters.`
+            `Insight text is too long (${lenStr} chars). Maximum allowed is 1000 characters.`,
           ).toResponse();
         }
 

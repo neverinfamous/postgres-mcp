@@ -1509,7 +1509,7 @@ describe("pg_migration_apply", () => {
         sourceSystem: "agent",
       },
       mockContext,
-    )) as { success: boolean; record?: { version: string }, error?: string };
+    )) as { success: boolean; record?: { version: string }; error?: string };
 
     if (!result.success) console.error("XYZ-ERROR", result.error);
 

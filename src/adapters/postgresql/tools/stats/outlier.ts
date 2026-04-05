@@ -50,12 +50,7 @@ export function createStatsOutliersTool(
           maxOutliers?: number;
         };
 
-        const {
-          table,
-          column,
-          schema,
-          where,
-        } = parsed;
+        const { table, column, schema, where } = parsed;
         const method = parsed.method ?? "iqr";
         const maxOutliers =
           parsed.maxOutliers === undefined || Number.isNaN(parsed.maxOutliers)

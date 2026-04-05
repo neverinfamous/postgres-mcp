@@ -22,9 +22,7 @@ beforeAll(() => {
 
 describe("Tool Output Schema Invariants", () => {
   it("should have outputSchema on all tools", () => {
-    const missing = tools.filter(
-      (t) => !t.outputSchema,
-    );
+    const missing = tools.filter((t) => !t.outputSchema);
     expect(
       missing.map((t) => t.name),
       "All tools should have an outputSchema",

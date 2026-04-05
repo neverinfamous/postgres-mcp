@@ -48,32 +48,47 @@ test.describe("Payload Contracts: Backup + Transactions", () => {
   });
 
   test("pg_dump_schema returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_dump_schema", { schema: "public" });
+    const payload = await callToolAndParse(client, "pg_dump_schema", {
+      schema: "public",
+    });
     expect(typeof payload).toBe("object");
   });
 
   test("pg_create_backup_plan returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_create_backup_plan", { databases: ["postgres"] });
+    const payload = await callToolAndParse(client, "pg_create_backup_plan", {
+      databases: ["postgres"],
+    });
     expect(typeof payload).toBe("object");
   });
 
   test("pg_restore_command returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_restore_command", { input: "dummy.sql", database: "postgres" });
+    const payload = await callToolAndParse(client, "pg_restore_command", {
+      input: "dummy.sql",
+      database: "postgres",
+    });
     expect(typeof payload).toBe("object");
   });
 
   test("pg_backup_physical returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_backup_physical", { directory: "/tmp/backup" });
+    const payload = await callToolAndParse(client, "pg_backup_physical", {
+      directory: "/tmp/backup",
+    });
     expect(typeof payload).toBe("object");
   });
 
   test("pg_restore_validate returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_restore_validate", { directory: "/tmp/backup" });
+    const payload = await callToolAndParse(client, "pg_restore_validate", {
+      directory: "/tmp/backup",
+    });
     expect(typeof payload).toBe("object");
   });
 
   test("pg_backup_schedule_optimize returns shape", async () => {
-    const payload = await callToolAndParse(client, "pg_backup_schedule_optimize", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_backup_schedule_optimize",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 });

@@ -5,7 +5,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { ValidationError, ExtensionNotAvailableError } from "../../../../types/index.js";
+import {
+  ValidationError,
+  ExtensionNotAvailableError,
+} from "../../../../types/index.js";
 
 /**
  * Default row limit for partman list/analysis tools.
@@ -45,13 +48,13 @@ export async function getPartmanSchema(
     `);
 
   const schema = result.rows?.[0]?.["table_schema"] as string | undefined;
-  
+
   if (!schema) {
     throw new ExtensionNotAvailableError("pg_partman", {
-      hint: "Run pg_partman_create_extension() first."
+      hint: "Run pg_partman_create_extension() first.",
     });
   }
-  
+
   return schema;
 }
 

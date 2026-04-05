@@ -25,7 +25,8 @@ async function startAuthServer(): Promise<void> {
       "--port",
       String(AUTH_PORT),
       "--postgres",
-      process.env.MCP_TEST_DB || "postgres://postgres:postgres@localhost:5432/postgres",
+      process.env.MCP_TEST_DB ||
+        "postgres://postgres:postgres@localhost:5432/postgres",
       "--auth-token",
       AUTH_TOKEN,
       "--tool-filter",

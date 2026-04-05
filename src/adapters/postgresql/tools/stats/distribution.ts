@@ -182,9 +182,11 @@ export function createStatsDistributionTool(
           // Handle groupLimit: undefined uses default (20), 0 raises validation error
           const DEFAULT_GROUP_LIMIT = 20;
           const MAX_GROUP_LIMIT = 1000;
-          
+
           if (groupLimit !== undefined && groupLimit <= 0) {
-            throw new ValidationError("Parameter 'groupLimit' must be greater than 0.");
+            throw new ValidationError(
+              "Parameter 'groupLimit' must be greater than 0.",
+            );
           }
           let effectiveGroupLimit = groupLimit ?? DEFAULT_GROUP_LIMIT;
           if (effectiveGroupLimit > MAX_GROUP_LIMIT) {
@@ -301,7 +303,9 @@ export function createStatsDistributionTool(
           histogram,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_stats_distribution" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_stats_distribution",
+        });
       }
     },
   };

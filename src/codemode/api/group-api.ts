@@ -47,7 +47,7 @@ export function createGroupApi(
           normalizedParams,
           context.requestId,
           () => tool.handler(normalizedParams, context),
-          { logAs: "pg_execute_code" }
+          { logAs: "pg_execute_code" },
         );
       }
       return tool.handler(normalizedParams, context);

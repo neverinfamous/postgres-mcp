@@ -58,13 +58,18 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 
 Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) return as parseable JSON objects. During error path testing, verify this: if an invalid Code Mode call returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
 
-
 ## Structured Error Response Pattern
 
 All tools must return errors as structured objects instead of throwing. A thrown error propagates as a raw MCP error, which is unhelpful to clients. The expected pattern:
 
 ```json
-{ "success": false, "error": "Human-readable error message", "code": "QUERY_ERROR", "category": "query", "recoverable": false }
+{
+  "success": false,
+  "error": "Human-readable error message",
+  "code": "QUERY_ERROR",
+  "category": "query",
+  "recoverable": false
+}
 ```
 
 The enriched `ErrorResponse` from `formatHandlerError` always includes `success`, `error`, `code`, `category`, and `recoverable`. Optional fields `suggestion` and `details` may also be present. Some tools include additional context fields (e.g., `pg_transaction_execute` includes `statementsExecuted`, `failedStatement`, `autoRolledBack`). These are acceptable as long as `success: false` and `error` are always present.
@@ -73,10 +78,10 @@ The enriched `ErrorResponse` from `formatHandlerError` always includes `success`
 
 There are two kinds of error responses. Only one is correct:
 
-| Type | Source | What you see | Verdict |
-|------|--------|--------------|---------|
-| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields | Correct |
-| **MCP error** ❌ | Uncaught throw propagates to MCP framework | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
+| Type                 | Source                                                             | What you see                                                                                                          | Verdict            |
+| -------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields                                                               | Correct            |
+| **MCP error** ❌     | Uncaught throw propagates to MCP framework                         | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
 
 **Concrete examples:**
 
@@ -131,18 +136,18 @@ For each P154 test, verify that calling with a nonexistent table (e.g., `table: 
 
 Key PostgreSQL error codes that should be intercepted by `formatHandlerError` (not leaked as raw errors):
 
-| PG Error Code | Meaning | Expected Structured Message |
-|---------------|---------|---------------------------|
-| 42P01 | Undefined table | `Table "X" does not exist` |
-| 42P06 | Duplicate schema | `Schema "X" already exists` |
-| 42P07 | Duplicate table | `Table "X" already exists` |
-| 42701 | Duplicate column | `Column "X" already exists` |
-| 42703 | Undefined column | `Column "X" does not exist` |
-| 23505 | Unique violation | `Duplicate key: ...` |
-| 23503 | FK violation | `Foreign key constraint violated` |
-| 42601 | Syntax error | `SQL syntax error: ...` |
-| 3F000 | Invalid schema name | `Schema "X" does not exist` |
-| XX000 | Internal error | `Internal error: ...` |
+| PG Error Code | Meaning             | Expected Structured Message       |
+| ------------- | ------------------- | --------------------------------- |
+| 42P01         | Undefined table     | `Table "X" does not exist`        |
+| 42P06         | Duplicate schema    | `Schema "X" already exists`       |
+| 42P07         | Duplicate table     | `Table "X" already exists`        |
+| 42701         | Duplicate column    | `Column "X" already exists`       |
+| 42703         | Undefined column    | `Column "X" does not exist`       |
+| 23505         | Unique violation    | `Duplicate key: ...`              |
+| 23503         | FK violation        | `Foreign key constraint violated` |
+| 42601         | Syntax error        | `SQL syntax error: ...`           |
+| 3F000         | Invalid schema name | `Schema "X" does not exist`       |
+| XX000         | Internal error      | `Internal error: ...`             |
 
 ## Error Consistency Audit
 
@@ -159,17 +164,17 @@ During testing, check for these inconsistencies across tool groups:
 
 For each tool group under test, verify at least one scenario from each applicable row:
 
-| Error Scenario | Tool Groups to Test | Example Input |
-|----------------|-------------------|---------------|
-| Nonexistent table | All table-accepting tools | `table: "nonexistent_xyz"` |
-| Nonexistent schema | Core, introspection, schema | `schema: "fake_schema"` or `table: "fake_schema.users"` |
-| Invalid SQL syntax | Core (`read_query`, `write_query`) | `sql: "SELECTT * FROM"` |
-| Invalid column name | Stats, JSONB, text, vector, PostGIS | `column: "nonexistent_col"` |
-| Duplicate table/index | Core (`create_table`, `create_index`) | Create existing table |
-| Empty required array | Transactions | `statements: []` |
-| Missing required field via alias | Core, transactions | `sql` alias instead of `query` |
-| **Zod validation (empty params)** | **Every tool with required params** | `{}` (empty object — must return handler error, not MCP `-32602` error) |
-| **Zod validation (wrong type)** | **Tools with typed params** | Pass string where number expected, etc. |
+| Error Scenario                    | Tool Groups to Test                   | Example Input                                                           |
+| --------------------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| Nonexistent table                 | All table-accepting tools             | `table: "nonexistent_xyz"`                                              |
+| Nonexistent schema                | Core, introspection, schema           | `schema: "fake_schema"` or `table: "fake_schema.users"`                 |
+| Invalid SQL syntax                | Core (`read_query`, `write_query`)    | `sql: "SELECTT * FROM"`                                                 |
+| Invalid column name               | Stats, JSONB, text, vector, PostGIS   | `column: "nonexistent_col"`                                             |
+| Duplicate table/index             | Core (`create_table`, `create_index`) | Create existing table                                                   |
+| Empty required array              | Transactions                          | `statements: []`                                                        |
+| Missing required field via alias  | Core, transactions                    | `sql` alias instead of `query`                                          |
+| **Zod validation (empty params)** | **Every tool with required params**   | `{}` (empty object — must return handler error, not MCP `-32602` error) |
+| **Zod validation (wrong type)**   | **Tools with typed params**           | Pass string where number expected, etc.                                 |
 
 ## Cleanup Conventions
 
@@ -242,17 +247,24 @@ DROP TABLE IF EXISTS stress_my_test_table;
 ```javascript
 // Window function pipeline: rank → filter top quartile → running total
 const ranked = await pg.stats.ntile({
-  table: "test_measurements", column: "temperature",
-  orderBy: "temperature", buckets: 4, limit: 640
+  table: "test_measurements",
+  column: "temperature",
+  orderBy: "temperature",
+  buckets: 4,
+  limit: 640,
 });
-const topQuartile = ranked.rows?.filter(r => r.ntile === 1 || r.ntile === "1").length ?? 0;
+const topQuartile =
+  ranked.rows?.filter((r) => r.ntile === 1 || r.ntile === "1").length ?? 0;
 const runningTotal = await pg.stats.runningTotal({
-  table: "test_measurements", column: "temperature",
-  orderBy: "measured_at", partitionBy: "sensor_id", limit: 10
+  table: "test_measurements",
+  column: "temperature",
+  orderBy: "measured_at",
+  partitionBy: "sensor_id",
+  limit: 10,
 });
 return {
   topQuartileCount: topQuartile,
-  runningTotalRows: runningTotal.rows?.length ?? 0
+  runningTotalRows: runningTotal.rows?.length ?? 0,
 };
 ```
 
@@ -261,16 +273,18 @@ return {
 ```javascript
 // Outlier → distinct → frequency pipeline
 const outliers = await pg.stats.outliers({
-  table: "test_measurements", column: "temperature"
+  table: "test_measurements",
+  column: "temperature",
 });
 const distinct = await pg.stats.distinct({
-  table: "test_measurements", column: "sensor_id"
+  table: "test_measurements",
+  column: "sensor_id",
 });
-const summary = await pg.stats.summary({table: "test_measurements"});
+const summary = await pg.stats.summary({ table: "test_measurements" });
 return {
   outlierMethod: outliers.method,
   distinctSensors: distinct.distinctCount,
-  summaryColumns: summary.summaries?.length ?? 0
+  summaryColumns: summary.summaries?.length ?? 0,
 };
 ```
 

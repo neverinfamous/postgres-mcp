@@ -67,9 +67,9 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
           adapter,
           parsed.table,
           schemaName,
-          (params as Record<string, unknown>)?.[
-            "transactionId"
-          ] as string | undefined
+          (params as Record<string, unknown>)?.["transactionId"] as
+            | string
+            | undefined,
         );
         if (validationError) {
           return { success: false, error: validationError };
@@ -77,7 +77,7 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
         const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
         const columns = Object.keys(parsed.data);
-        const values = Object.values(parsed.data).map(value => {
+        const values = Object.values(parsed.data).map((value) => {
           if (value !== null && typeof value === "object") {
             return JSON.stringify(value);
           }
@@ -126,8 +126,10 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
           const txId = (params as Record<string, unknown>)?.[
             "transactionId"
           ] as string | undefined;
-          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
-          const result = client 
+          const client = txId
+            ? adapter.getTransactionConnection(txId)
+            : undefined;
+          const result = client
             ? await adapter.executeOnConnection(client, sql, values)
             : await adapter.executeQuery(sql, values);
           // Determine if it was an insert or update from xmax
@@ -164,17 +166,18 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
                   `Create a unique constraint first: ALTER TABLE ${qualifiedTable} ADD CONSTRAINT unique_name UNIQUE (${conflictCols})`,
                 code: "CONSTRAINT_ERROR",
                 category: ErrorCategory.VALIDATION,
-                suggestion: "Add a UNIQUE constraint to the conflict columns before upserting.",
+                suggestion:
+                  "Add a UNIQUE constraint to the conflict columns before upserting.",
                 recoverable: false,
                 details: undefined,
               };
             }
           }
           return formatHandlerErrorResponse(error, {
-              tool: "pg_upsert",
-              table: parsed.table,
-              schema: schemaName,
-            });
+            tool: "pg_upsert",
+            table: parsed.table,
+            schema: schemaName,
+          });
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_upsert" });
@@ -226,9 +229,9 @@ export function createBatchInsertTool(
         adapter,
         parsed.table,
         schemaName,
-        (params as Record<string, unknown>)?.[
-          "transactionId"
-        ] as string | undefined
+        (params as Record<string, unknown>)?.["transactionId"] as
+          | string
+          | undefined,
       );
       if (validationError) {
         return { success: false, error: validationError };
@@ -260,8 +263,10 @@ export function createBatchInsertTool(
           const txId = (params as Record<string, unknown>)?.[
             "transactionId"
           ] as string | undefined;
-          const client = txId ? adapter.getTransactionConnection(txId) : undefined;
-          const result = client 
+          const client = txId
+            ? adapter.getTransactionConnection(txId)
+            : undefined;
+          const result = client
             ? await adapter.executeOnConnection(client, sql)
             : await adapter.executeQuery(sql);
           totalAffected += result.rowsAffected ?? 1;
@@ -308,19 +313,21 @@ export function createBatchInsertTool(
 
       let result;
       try {
-        const txId = (params as Record<string, unknown>)?.[
-          "transactionId"
-        ] as string | undefined;
-        const client = txId ? adapter.getTransactionConnection(txId) : undefined;
-        result = client 
+        const txId = (params as Record<string, unknown>)?.["transactionId"] as
+          | string
+          | undefined;
+        const client = txId
+          ? adapter.getTransactionConnection(txId)
+          : undefined;
+        result = client
           ? await adapter.executeOnConnection(client, sql, values)
           : await adapter.executeQuery(sql, values);
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_batch_insert",
-            table: parsed.table,
-            schema: schemaName,
-          });
+          tool: "pg_batch_insert",
+          table: parsed.table,
+          schema: schemaName,
+        });
       }
       return {
         success: true,

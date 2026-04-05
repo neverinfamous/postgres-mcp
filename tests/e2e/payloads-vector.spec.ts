@@ -34,7 +34,11 @@ test.describe("Payload Contracts: Vector", () => {
   });
 
   test("pg_vector_create_extension returns object", async () => {
-    const payload = await callToolAndParse(client, "pg_vector_create_extension", {});
+    const payload = await callToolAndParse(
+      client,
+      "pg_vector_create_extension",
+      {},
+    );
     expect(typeof payload).toBe("object");
   });
 
@@ -92,12 +96,12 @@ test.describe("Payload Contracts: Vector", () => {
   });
 
   test("pg_vector_search rejects limit <= 0 with validation error", async () => {
-    const response = await callToolAndParse(client, "pg_vector_search", {
+    const response = (await callToolAndParse(client, "pg_vector_search", {
       table: testTable,
       column: "embedding",
       vector: [1, 2, 3],
       limit: -5,
-    }) as any;
+    })) as any;
     expect(response.success).toBe(false);
     expect(typeof response.error).toBe("string");
     expect(response.error.toLowerCase()).toContain("validation");
@@ -170,18 +174,22 @@ test.describe("Payload Contracts: Vector", () => {
   });
 
   test("pg_vector_dimension_reduce returns { reduced }", async () => {
-    const payload = await callToolAndParse(client, "pg_vector_dimension_reduce", {
-      table: testTable,
-      column: "embedding",
-      targetDimensions: 2,
-    });
+    const payload = await callToolAndParse(
+      client,
+      "pg_vector_dimension_reduce",
+      {
+        table: testTable,
+        column: "embedding",
+        targetDimensions: 2,
+      },
+    );
     expect(typeof payload).toBe("object");
   });
 
   test("pg_vector_embed returns { embedding }", async () => {
     const payload = await callToolAndParse(client, "pg_vector_embed", {
       text: "hello world",
-      provider: "mock"
+      provider: "mock",
     });
     expect(typeof payload).toBe("object");
   });

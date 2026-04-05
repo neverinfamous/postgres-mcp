@@ -31,7 +31,6 @@ export type ToolGroup =
   | "migration" // Schema migration tracking & management
   | "codemode"; // Code Mode - sandboxed code execution
 
-
 /**
  * Tool filter rule
  */

@@ -68,7 +68,9 @@ export function createJsonbIndexSuggestTool(
             [schemaName],
           );
           if (!schemaResult.rows || schemaResult.rows.length === 0) {
-            throw new ValidationError(`Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`);
+            throw new ValidationError(
+              `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            );
           }
         }
 
@@ -158,13 +160,15 @@ export function createJsonbIndexSuggestTool(
             error.message.includes("cannot call jsonb_each"))
         ) {
           return formatHandlerErrorResponse(
-            new ValidationError(`pg_jsonb_index_suggest requires JSONB objects (not arrays). Column may not be JSONB type or contains arrays.`),
-            { tool: "pg_jsonb_index_suggest" }
+            new ValidationError(
+              `pg_jsonb_index_suggest requires JSONB objects (not arrays). Column may not be JSONB type or contains arrays.`,
+            ),
+            { tool: "pg_jsonb_index_suggest" },
           );
         }
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_index_suggest",
-          });
+          tool: "pg_jsonb_index_suggest",
+        });
       }
     },
   };
@@ -210,7 +214,9 @@ export function createJsonbSecurityScanTool(
             [schemaName],
           );
           if (!schemaResult.rows || schemaResult.rows.length === 0) {
-            throw new ValidationError(`Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`);
+            throw new ValidationError(
+              `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            );
           }
         }
 
@@ -303,13 +309,15 @@ export function createJsonbSecurityScanTool(
             error.message.includes("cannot call jsonb_each"))
         ) {
           return formatHandlerErrorResponse(
-            new ValidationError(`pg_jsonb_security_scan requires JSONB objects. Column may contain arrays or non-JSONB data.`),
-            { tool: "pg_jsonb_security_scan" }
+            new ValidationError(
+              `pg_jsonb_security_scan requires JSONB objects. Column may contain arrays or non-JSONB data.`,
+            ),
+            { tool: "pg_jsonb_security_scan" },
           );
         }
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_security_scan",
-          });
+          tool: "pg_jsonb_security_scan",
+        });
       }
     },
   };
@@ -351,7 +359,9 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
             [schemaName],
           );
           if (!schemaResult.rows || schemaResult.rows.length === 0) {
-            throw new ValidationError(`Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`);
+            throw new ValidationError(
+              `Schema '${schemaName}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+            );
           }
         }
 
@@ -451,14 +461,15 @@ export function createJsonbStatsTool(adapter: PostgresAdapter): ToolDefinition {
         };
         if (basicsNormalized) response.basics = basicsNormalized;
         if (topKeys.length > 0) response.topKeys = topKeys;
-        if (typeDistribution.length > 0) response.typeDistribution = typeDistribution;
+        if (typeDistribution.length > 0)
+          response.typeDistribution = typeDistribution;
         if (hint) response.hint = hint;
 
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_stats",
-          });
+          tool: "pg_jsonb_stats",
+        });
       }
     },
   };

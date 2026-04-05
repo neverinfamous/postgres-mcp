@@ -13,7 +13,10 @@ import type {
 import { QueryError } from "../../../../types/index.js";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
-import { formatHandlerErrorResponse, formatPostgresError } from "../core/error-helpers.js";
+import {
+  formatHandlerErrorResponse,
+  formatPostgresError,
+} from "../core/error-helpers.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import {
   MigrationInitSchemaBase,
@@ -97,8 +100,8 @@ export function createMigrationInitTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_migration_init",
-          });
+          tool: "pg_migration_init",
+        });
       }
     },
   };
@@ -165,8 +168,8 @@ export function createMigrationRecordTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_migration_record",
-          });
+          tool: "pg_migration_record",
+        });
       }
     },
   };
@@ -207,7 +210,8 @@ export function createMigrationApplyTool(
         const transactionId = await adapter.beginTransaction();
         try {
           const client = adapter.getTransactionConnection(transactionId);
-          if (!client) throw new Error("Could not acquire transaction connection");
+          if (!client)
+            throw new Error("Could not acquire transaction connection");
 
           // Execute the migration SQL
           await adapter.executeOnConnection(client, parsed.migrationSql);
@@ -250,7 +254,9 @@ export function createMigrationApplyTool(
           // Roll back the entire transaction (migration SQL + INSERT)
           await adapter.rollbackTransaction(transactionId);
 
-          const message = formatPostgresError(err, { tool: "pg_migration_apply" });
+          const message = formatPostgresError(err, {
+            tool: "pg_migration_apply",
+          });
 
           // Record a 'failed' entry outside the rolled-back transaction
           try {
@@ -273,12 +279,14 @@ export function createMigrationApplyTool(
             // Best-effort: if we can't record the failure, still return the error
           }
 
-          throw new QueryError(`Migration "${parsed.version}" failed: ${message}. Transaction was rolled back.`);
+          throw new QueryError(
+            `Migration "${parsed.version}" failed: ${message}. Transaction was rolled back.`,
+          );
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_migration_apply",
-          });
+          tool: "pg_migration_apply",
+        });
       }
     },
   };

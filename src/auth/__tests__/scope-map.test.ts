@@ -78,7 +78,9 @@ describe("Tool Scope Map", () => {
   });
 
   it("should apply all per-tool overrides", () => {
-    for (const [toolName, expectedScope] of Object.entries(TOOL_SCOPE_OVERRIDES)) {
+    for (const [toolName, expectedScope] of Object.entries(
+      TOOL_SCOPE_OVERRIDES,
+    )) {
       expect(getRequiredScope(toolName)).toBe(expectedScope);
     }
   });

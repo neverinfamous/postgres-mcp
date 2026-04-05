@@ -44,8 +44,7 @@ export class AuditLogger {
 
   constructor(config: AuditConfig) {
     this.config = config;
-    this.stderrMode =
-      config.logPath.toLowerCase() === STDERR_SENTINEL;
+    this.stderrMode = config.logPath.toLowerCase() === STDERR_SENTINEL;
 
     if (config.enabled) {
       // Use unref() so the timer doesn't keep the process alive
@@ -83,7 +82,7 @@ export class AuditLogger {
       // If the buffer is empty after waiting, return
       if (this.buffer.length === 0) return;
     }
-    
+
     if (this.buffer.length === 0) return;
 
     const doFlush = async (): Promise<void> => {
@@ -101,7 +100,11 @@ export class AuditLogger {
         } else {
           await this.ensureDirectory();
           // One appendFile call with all buffered lines — each terminated by \n
-          await appendFile(this.config.logPath, lines.join("\n") + "\n", "utf-8");
+          await appendFile(
+            this.config.logPath,
+            lines.join("\n") + "\n",
+            "utf-8",
+          );
         }
       } catch (err) {
         // Never throw — audit must not break tool execution

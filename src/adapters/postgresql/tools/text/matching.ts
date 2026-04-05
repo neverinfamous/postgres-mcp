@@ -21,9 +21,7 @@ import {
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
-import {
-  buildLimitClause,
-} from "../../../../utils/query-helpers.js";
+import { buildLimitClause } from "../../../../utils/query-helpers.js";
 import {
   TrigramSimilaritySchema,
   TrigramSimilaritySchemaBase,
@@ -68,11 +66,19 @@ export function createTrigramSimilarityTool(
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
-            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+            throw new ValidationError("limit must be non-negative", {
+              code: "VALIDATION_ERROR",
+            });
           } else if (safeLimit === 0) {
-            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must be greater than 0 to prevent large payloads. Max limit is 100.",
+              { code: "VALIDATION_ERROR" },
+            );
           } else if (safeLimit > 100) {
-            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must not exceed 100 to prevent large payloads",
+              { code: "VALIDATION_ERROR" },
+            );
           }
           limitVal = safeLimit;
         }
@@ -81,7 +87,9 @@ export function createTrigramSimilarityTool(
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          throw new ValidationError("Either 'table' or 'tableName' is required");
+          throw new ValidationError(
+            "Either 'table' or 'tableName' is required",
+          );
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.value) {
@@ -116,8 +124,8 @@ export function createTrigramSimilarityTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_trigram_similarity",
-          });
+          tool: "pg_trigram_similarity",
+        });
       }
     },
   };
@@ -182,7 +190,9 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         ];
         const rawMethod = parsed.method ?? "levenshtein";
         if (!VALID_METHODS.includes(rawMethod as FuzzyMethod)) {
-          throw new ValidationError(`Invalid method "${rawMethod}". Valid methods: ${VALID_METHODS.join(", ")}`);
+          throw new ValidationError(
+            `Invalid method "${rawMethod}". Valid methods: ${VALID_METHODS.join(", ")}`,
+          );
         }
         const method: FuzzyMethod = rawMethod as FuzzyMethod;
 
@@ -197,11 +207,19 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
-            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+            throw new ValidationError("limit must be non-negative", {
+              code: "VALIDATION_ERROR",
+            });
           } else if (safeLimit === 0) {
-            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must be greater than 0 to prevent large payloads. Max limit is 100.",
+              { code: "VALIDATION_ERROR" },
+            );
           } else if (safeLimit > 100) {
-            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must not exceed 100 to prevent large payloads",
+              { code: "VALIDATION_ERROR" },
+            );
           }
           limitVal = safeLimit;
         }
@@ -210,7 +228,9 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          throw new ValidationError("Either 'table' or 'tableName' is required");
+          throw new ValidationError(
+            "Either 'table' or 'tableName' is required",
+          );
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.value) {
@@ -249,8 +269,8 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_fuzzy_match",
-          });
+          tool: "pg_fuzzy_match",
+        });
       }
     },
   };
@@ -278,7 +298,9 @@ export function createRegexpMatchTool(
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          throw new ValidationError("Either 'table' or 'tableName' is required");
+          throw new ValidationError(
+            "Either 'table' or 'tableName' is required",
+          );
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.pattern) {
@@ -297,11 +319,19 @@ export function createRegexpMatchTool(
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
-            throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+            throw new ValidationError("limit must be non-negative", {
+              code: "VALIDATION_ERROR",
+            });
           } else if (safeLimit === 0) {
-            throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must be greater than 0 to prevent large payloads. Max limit is 100.",
+              { code: "VALIDATION_ERROR" },
+            );
           } else if (safeLimit > 100) {
-            throw new ValidationError("limit must not exceed 100 to prevent large payloads", { code: "VALIDATION_ERROR" });
+            throw new ValidationError(
+              "limit must not exceed 100 to prevent large payloads",
+              { code: "VALIDATION_ERROR" },
+            );
           }
           limitVal = safeLimit;
         }
@@ -323,10 +353,9 @@ export function createRegexpMatchTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_regexp_match",
-          });
+          tool: "pg_regexp_match",
+        });
       }
     },
   };
 }
-

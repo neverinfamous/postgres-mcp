@@ -311,5 +311,3 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
   ],
   codemode: ["pg_execute_code"],
 };
-
-

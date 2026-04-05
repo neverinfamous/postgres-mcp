@@ -5,24 +5,30 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type { ToolDefinition, RequestContext } from "../../../../types/index.js";
+import type {
+  ToolDefinition,
+  RequestContext,
+} from "../../../../types/index.js";
 import { admin } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
-import { sanitizeIdentifier, sanitizeTableName } from "../../../../utils/identifiers.js";
+import {
+  sanitizeIdentifier,
+  sanitizeTableName,
+} from "../../../../utils/identifiers.js";
 import {
   buildProgressContext,
   sendProgress,
 } from "../../../../utils/progress-utils.js";
-import { 
-  ClusterOutputSchema, 
+import {
+  ClusterOutputSchema,
   ConfigOutputSchema,
   ReloadConfSchemaBase,
   ResetStatsSchemaBase,
   SetConfigSchemaBase,
   SetConfigSchema,
   ClusterSchemaBase,
-  ClusterSchema
+  ClusterSchema,
 } from "../../schemas/index.js";
 
 export function createReloadConfTool(adapter: PostgresAdapter): ToolDefinition {
@@ -106,8 +112,6 @@ export function createResetStatsTool(adapter: PostgresAdapter): ToolDefinition {
   };
 }
 
-
-
 export function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_cluster",
@@ -119,7 +123,8 @@ export function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
     annotations: admin("Cluster Table"),
     icons: getToolIcons("admin", admin("Cluster Table")),
     handler: async (params: unknown, context: RequestContext) => {
-      let parsedTarget: { table?: string; index?: string; schema?: string } = {};
+      let parsedTarget: { table?: string; index?: string; schema?: string } =
+        {};
       try {
         const progress = buildProgressContext(context);
         await sendProgress(progress, 1, 2, "Starting CLUSTER...");
@@ -160,11 +165,17 @@ export function createClusterTool(adapter: PostgresAdapter): ToolDefinition {
           ...(parsed.index && { index: parsed.index }),
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { 
+        return formatHandlerErrorResponse(error, {
           tool: "pg_cluster",
-          ...(parsedTarget.table !== undefined && { table: sanitizeTableName(parsedTarget.table, parsedTarget.schema) }),
-          ...(parsedTarget.index !== undefined && { index: parsedTarget.index }),
-          ...(parsedTarget.schema !== undefined && { schema: parsedTarget.schema })
+          ...(parsedTarget.table !== undefined && {
+            table: sanitizeTableName(parsedTarget.table, parsedTarget.schema),
+          }),
+          ...(parsedTarget.index !== undefined && {
+            index: parsedTarget.index,
+          }),
+          ...(parsedTarget.schema !== undefined && {
+            schema: parsedTarget.schema,
+          }),
         });
       }
     },

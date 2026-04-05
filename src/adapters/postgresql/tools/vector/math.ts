@@ -48,8 +48,8 @@ export function createVectorDistanceTool(
           return {
             success: false,
             error: "Validation error: vector1 and vector2 are required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion:
               "Provide two vectors to calculate distance between them",
           };
@@ -61,7 +61,10 @@ export function createVectorDistanceTool(
             `Vector dimensions must match: vector1 has ${String(parsed.vector1.length)} dimensions, vector2 has ${String(parsed.vector2.length)} dimensions`,
             "DIMENSION_MISMATCH",
             ErrorCategory.VALIDATION,
-            { suggestion: "Ensure both vectors have the same number of dimensions" }
+            {
+              suggestion:
+                "Ensure both vectors have the same number of dimensions",
+            },
           ).toResponse();
         }
 
@@ -73,9 +76,10 @@ export function createVectorDistanceTool(
           return {
             success: false,
             error: `Validation error: Invalid metric '${metric}'`,
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
-            suggestion: "Metric must be one of: 'l2', 'cosine', 'inner_product'",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            suggestion:
+              "Metric must be one of: 'l2', 'cosine', 'inner_product'",
           };
         }
 
@@ -93,9 +97,15 @@ export function createVectorDistanceTool(
 
         const sql = `SELECT '${v1}'::vector ${op} '${v2}':: vector as distance`;
         const result = await adapter.executeQuery(sql);
-        return { success: true, distance: result.rows?.[0]?.["distance"], metric };
+        return {
+          success: true,
+          distance: result.rows?.[0]?.["distance"],
+          metric,
+        };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_vector_distance" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_vector_distance",
+        });
       }
     },
   };
@@ -127,8 +137,8 @@ export function createVectorNormalizeTool(): ToolDefinition {
           return Promise.resolve({
             success: false,
             error: "Validation error: vector is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion: "Provide a vector array to normalize, e.g., [3, 4]",
           });
         }
@@ -153,7 +163,9 @@ export function createVectorNormalizeTool(): ToolDefinition {
 
         return Promise.resolve({ success: true, normalized, magnitude });
       } catch (error: unknown) {
-        return Promise.resolve(formatHandlerErrorResponse(error, { tool: "pg_vector_normalize" }));
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_vector_normalize" }),
+        );
       }
     },
   };

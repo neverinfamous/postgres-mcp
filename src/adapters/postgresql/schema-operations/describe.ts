@@ -178,11 +178,16 @@ export async function queryDescribeTable(
   // Performance optimization: run all 5 independent queries in parallel.
   // Each query hits different pg_catalog tables with the same (tableName, schemaName)
   // params, so there are no data dependencies between them.
-  const [columnsResult, tableResult, indexesResult, constraintsResult, foreignKeysResult] =
-    await Promise.all([
-      // 1. Column information including foreign key references
-      executeQuery(
-        `
+  const [
+    columnsResult,
+    tableResult,
+    indexesResult,
+    constraintsResult,
+    foreignKeysResult,
+  ] = await Promise.all([
+    // 1. Column information including foreign key references
+    executeQuery(
+      `
             SELECT
                 a.attname as name,
                 pg_catalog.format_type(a.atttypid, a.atttypmod) as type,
@@ -221,12 +226,12 @@ export async function queryDescribeTable(
               AND NOT a.attisdropped
             ORDER BY a.attnum
         `,
-        [schemaName, tableName],
-      ),
+      [schemaName, tableName],
+    ),
 
-      // 2. Table metadata
-      executeQuery(
-        `
+    // 2. Table metadata
+    executeQuery(
+      `
             SELECT
                 CASE c.relkind
                     WHEN 'r' THEN 'table'
@@ -248,12 +253,12 @@ export async function queryDescribeTable(
             WHERE c.relname = $1
               AND n.nspname = $2
         `,
-        [tableName, schemaName],
-      ),
+      [tableName, schemaName],
+    ),
 
-      // 3. Indexes
-      executeQuery(
-        `
+    // 3. Indexes
+    executeQuery(
+      `
             SELECT
                 i.relname as name,
                 am.amname as type,
@@ -272,12 +277,12 @@ export async function queryDescribeTable(
             GROUP BY i.relname, am.amname, ix.indisunique, ix.indisprimary, ix.indexrelid
             ORDER BY i.relname
         `,
-        [tableName, schemaName],
-      ),
+      [tableName, schemaName],
+    ),
 
-      // 4. Constraints (CHECK, UNIQUE, PRIMARY KEY, EXCLUSION - FK handled separately)
-      executeQuery(
-        `
+    // 4. Constraints (CHECK, UNIQUE, PRIMARY KEY, EXCLUSION - FK handled separately)
+    executeQuery(
+      `
             SELECT
                 c.conname as name,
                 CASE c.contype
@@ -301,12 +306,12 @@ export async function queryDescribeTable(
                 CASE c.contype WHEN 'p' THEN 0 WHEN 'u' THEN 1 WHEN 'c' THEN 2 ELSE 3 END,
                 c.conname
         `,
-        [tableName, schemaName],
-      ),
+      [tableName, schemaName],
+    ),
 
-      // 5. Foreign keys
-      executeQuery(
-        `
+    // 5. Foreign keys
+    executeQuery(
+      `
             SELECT
                 c.conname as name,
                 a.attname as column,
@@ -339,9 +344,9 @@ export async function queryDescribeTable(
               AND c.contype = 'f'
             ORDER BY c.conname
         `,
-        [tableName, schemaName],
-      ),
-    ]);
+      [tableName, schemaName],
+    ),
+  ]);
 
   // --- Process results ---
 
@@ -359,7 +364,9 @@ export async function queryDescribeTable(
       notNull: !nullable,
       // Omit false/null defaults to reduce payload — only include when truthy/present
       ...(row["primary_key"] === true ? { primaryKey: true as const } : {}),
-      ...(row["default_value"] != null ? { defaultValue: row["default_value"] } : {}),
+      ...(row["default_value"] != null
+        ? { defaultValue: row["default_value"] }
+        : {}),
       ...(isGenerated ? { isGenerated: true as const } : {}),
       ...(isGenerated && row["generated_expression"] != null
         ? { generatedExpression: row["generated_expression"] as string }
@@ -382,7 +389,7 @@ export async function queryDescribeTable(
   if (!tableRow) {
     throw new ValidationError(
       `Table or view '${schemaName}.${tableName}' not found.`,
-      { tableName, schemaName }
+      { tableName, schemaName },
     );
   }
 
@@ -438,16 +445,24 @@ export async function queryDescribeTable(
     name: tableName,
     schema: schemaName,
     type: (tableRow?.["type"] as TableInfo["type"]) ?? "table",
-    ...(tableRow?.["owner"] != null ? { owner: tableRow["owner"] as string } : {}),
+    ...(tableRow?.["owner"] != null
+      ? { owner: tableRow["owner"] as string }
+      : {}),
     rowCount: (() => {
       const rc = tableRow?.["row_count"];
       const liveEst = Number(tableRow?.["live_row_estimate"]) || 0;
       return rc !== null && rc !== undefined ? Number(rc) : liveEst;
     })(),
     // Omit null/false defaults to reduce payload
-    ...(tableRow?.["comment"] != null ? { comment: tableRow["comment"] as string } : {}),
-    ...(tableRow?.["is_partitioned"] === true ? { isPartitioned: true as const } : {}),
-    ...(tableRow?.["partition_key"] != null ? { partitionKey: tableRow["partition_key"] as string } : {}),
+    ...(tableRow?.["comment"] != null
+      ? { comment: tableRow["comment"] as string }
+      : {}),
+    ...(tableRow?.["is_partitioned"] === true
+      ? { isPartitioned: true as const }
+      : {}),
+    ...(tableRow?.["partition_key"] != null
+      ? { partitionKey: tableRow["partition_key"] as string }
+      : {}),
     columns,
     primaryKey,
     indexes,

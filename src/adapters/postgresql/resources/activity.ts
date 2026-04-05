@@ -12,8 +12,6 @@ import type {
 import { HIGH_PRIORITY } from "../../../utils/resource-annotations.js";
 import { toStr } from "../../../utils/query-helpers.js";
 
-
-
 interface BlockingRelationship {
   blockerPid: number;
   blockerQuery: string;

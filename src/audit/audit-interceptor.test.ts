@@ -72,9 +72,7 @@ describe("AuditInterceptor", () => {
     await logger.flush();
 
     // No audit file should be created for read-only tools
-    await expect(
-      readFile(join(dir, "audit.jsonl"), "utf-8"),
-    ).rejects.toThrow();
+    await expect(readFile(join(dir, "audit.jsonl"), "utf-8")).rejects.toThrow();
   });
 
   it("should log write tool execution", async () => {
@@ -183,10 +181,10 @@ describe("AuditInterceptor", () => {
         { sql: "INSERT INTO nonexistent" },
         "req-006",
         async () => {
-          throw new Error("relation \"nonexistent\" does not exist");
+          throw new Error('relation "nonexistent" does not exist');
         },
       ),
-    ).rejects.toThrow("relation \"nonexistent\" does not exist");
+    ).rejects.toThrow('relation "nonexistent" does not exist');
 
     await logger.flush();
 
@@ -194,7 +192,7 @@ describe("AuditInterceptor", () => {
     const entry = JSON.parse(content.trim()) as AuditEntry;
 
     expect(entry.success).toBe(false);
-    expect(entry.error).toBe("relation \"nonexistent\" does not exist");
+    expect(entry.error).toBe('relation "nonexistent" does not exist');
     expect(entry.tool).toBe("pg_write_query");
   });
 
@@ -203,16 +201,11 @@ describe("AuditInterceptor", () => {
     mockGetAuthContext.mockReturnValue(undefined);
 
     const interceptor = createAuditInterceptor(logger);
-    await interceptor.around(
-      "pg_write_query",
-      {},
-      "req-007",
-      async () => {
-        // Simulate some work
-        await new Promise((resolve) => setTimeout(resolve, 10));
-        return { ok: true };
-      },
-    );
+    await interceptor.around("pg_write_query", {}, "req-007", async () => {
+      // Simulate some work
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return { ok: true };
+    });
     await logger.flush();
 
     const content = await readFile(join(dir, "audit.jsonl"), "utf-8");
@@ -243,10 +236,7 @@ describe("AuditInterceptor", () => {
     );
     await logger.flush();
 
-    const content = await readFile(
-      join(dir, "audit-redacted.jsonl"),
-      "utf-8",
-    );
+    const content = await readFile(join(dir, "audit-redacted.jsonl"), "utf-8");
     const entry = JSON.parse(content.trim()) as AuditEntry;
 
     expect(entry.args).toBeUndefined();
@@ -346,12 +336,9 @@ describe("AuditInterceptor", () => {
     });
 
     const interceptor = createAuditInterceptor(logger);
-    await interceptor.around(
-      "pg_list_tables",
-      {},
-      "req-012",
-      async () => ({ tables: ["users"] }),
-    );
+    await interceptor.around("pg_list_tables", {}, "req-012", async () => ({
+      tables: ["users"],
+    }));
     await logger.flush();
 
     const content = await readFile(join(dir, "audit-compact.jsonl"), "utf-8");

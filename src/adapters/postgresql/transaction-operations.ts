@@ -6,10 +6,7 @@
  */
 
 import type { PoolClient } from "pg";
-import {
-  ConnectionError,
-  TransactionError,
-} from "../../types/index.js";
+import { ConnectionError, TransactionError } from "../../types/index.js";
 import { logger } from "../../utils/logger.js";
 import { quoteIdentifier } from "../../utils/identifiers.js";
 import { parsePostgresError } from "./tools/core/error-helpers.js";
@@ -48,9 +45,7 @@ export async function beginTransaction(
     return transactionId;
   } catch (error: unknown) {
     client.release();
-    throw new TransactionError(
-      `Failed to begin transaction: ${String(error)}`,
-    );
+    throw new TransactionError(`Failed to begin transaction: ${String(error)}`);
   }
 }
 

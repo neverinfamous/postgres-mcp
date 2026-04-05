@@ -6,7 +6,11 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import { type ToolDefinition, type RequestContext, ValidationError } from "../../../../types/index.js";
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
+} from "../../../../types/index.js";
 import { write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -29,7 +33,9 @@ import {
 /**
  * Enable the pg_cron extension
  */
-export function createCronExtensionTool(adapter: PostgresAdapter): ToolDefinition {
+export function createCronExtensionTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_cron_create_extension",
     description:
@@ -56,7 +62,9 @@ export function createCronExtensionTool(adapter: PostgresAdapter): ToolDefinitio
 /**
  * Schedule a new cron job
  */
-export function createCronScheduleTool(adapter: PostgresAdapter): ToolDefinition {
+export function createCronScheduleTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_cron_schedule",
     description: `Schedule a new cron job. Supports standard cron syntax (e.g., "0 2 * * *" for 2 AM daily)
@@ -73,10 +81,13 @@ or interval syntax (e.g., "30 seconds"). Note: pg_cron allows duplicate job name
         const { schedule, command, jobName } = CronScheduleSchema.parse(params);
 
         if (jobName !== undefined) {
-          const lookupSql = "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1";
+          const lookupSql =
+            "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1";
           const lookupResult = await adapter.executeQuery(lookupSql, [jobName]);
           if (lookupResult.rows && lookupResult.rows.length > 0) {
-            throw new ValidationError(`A job with name '${jobName}' already exists. pg_cron requires unique job names for reliable administration.`);
+            throw new ValidationError(
+              `A job with name '${jobName}' already exists. pg_cron requires unique job names for reliable administration.`,
+            );
           }
         }
 
@@ -135,10 +146,13 @@ maintenance tasks. Returns the job ID.`,
           CronScheduleInDatabaseSchema.parse(params);
 
         if (jobName !== undefined) {
-          const lookupSql = "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1";
+          const lookupSql =
+            "SELECT jobid FROM cron.job WHERE jobname = $1 LIMIT 1";
           const lookupResult = await adapter.executeQuery(lookupSql, [jobName]);
           if (lookupResult.rows && lookupResult.rows.length > 0) {
-            throw new ValidationError(`A job with name '${jobName}' already exists. pg_cron requires unique job names for reliable administration.`);
+            throw new ValidationError(
+              `A job with name '${jobName}' already exists. pg_cron requires unique job names for reliable administration.`,
+            );
           }
         }
 
@@ -169,8 +183,8 @@ maintenance tasks. Returns the job ID.`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_cron_schedule_in_database",
-          });
+          tool: "pg_cron_schedule_in_database",
+        });
       }
     },
   };
@@ -179,7 +193,9 @@ maintenance tasks. Returns the job ID.`,
 /**
  * Remove a scheduled job
  */
-export function createCronUnscheduleTool(adapter: PostgresAdapter): ToolDefinition {
+export function createCronUnscheduleTool(
+  adapter: PostgresAdapter,
+): ToolDefinition {
   return {
     name: "pg_cron_unschedule",
     description:
@@ -259,7 +275,9 @@ export function createCronUnscheduleTool(adapter: PostgresAdapter): ToolDefiniti
             : "Job not found",
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_cron_unschedule" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_cron_unschedule",
+        });
       }
     },
   };

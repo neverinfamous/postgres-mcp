@@ -49,15 +49,25 @@ describe("pg_audit_list_backups", () => {
       listSnapshots: vi.fn(),
       getSnapshot: vi.fn(),
     };
-    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter, mockBackupManager as unknown as BackupManager);
+    tools = getBackupTools(
+      mockAdapter as unknown as PostgresAdapter,
+      mockBackupManager as unknown as BackupManager,
+    );
     mockContext = createMockRequestContext();
   });
 
   it("should fail gracefully when backupManager is null", async () => {
-    const disabledTools = getBackupTools(mockAdapter as unknown as PostgresAdapter, null);
+    const disabledTools = getBackupTools(
+      mockAdapter as unknown as PostgresAdapter,
+      null,
+    );
     const tool = disabledTools.find((t) => t.name === "pg_audit_list_backups")!;
-    const result = (await tool.handler({}, mockContext)) as { success: boolean; code?: string; error: string };
-    
+    const result = (await tool.handler({}, mockContext)) as {
+      success: boolean;
+      code?: string;
+      error: string;
+    };
+
     expect(result.success).toBe(false);
     expect(result.code).toBe("VALIDATION_ERROR");
   });
@@ -70,13 +80,16 @@ describe("pg_audit_list_backups", () => {
     ]);
 
     const tool = tools.find((t) => t.name === "pg_audit_list_backups")!;
-    
+
     // Default handles filtering out unknown
     const result1 = (await tool.handler({}, mockContext)) as any;
     expect(result1.count).toBe(2);
-    
+
     // Explicit limit targeting table1
-    const result2 = (await tool.handler({ target: "table1" }, mockContext)) as any;
+    const result2 = (await tool.handler(
+      { target: "table1" },
+      mockContext,
+    )) as any;
     expect(result2.count).toBe(1);
     expect(result2.snapshots[0].filename).toBe("a");
   });
@@ -95,21 +108,35 @@ describe("pg_audit_restore_backup", () => {
       listSnapshots: vi.fn(),
       getSnapshot: vi.fn(),
     };
-    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter, mockBackupManager as unknown as BackupManager);
+    tools = getBackupTools(
+      mockAdapter as unknown as PostgresAdapter,
+      mockBackupManager as unknown as BackupManager,
+    );
     mockContext = createMockRequestContext();
   });
 
   it("should fail when backupManager is null", async () => {
-    const disabledTools = getBackupTools(mockAdapter as unknown as PostgresAdapter, null);
-    const tool = disabledTools.find((t) => t.name === "pg_audit_restore_backup")!;
-    const result = (await tool.handler({ filename: "x.json", confirm: true }, mockContext)) as any;
+    const disabledTools = getBackupTools(
+      mockAdapter as unknown as PostgresAdapter,
+      null,
+    );
+    const tool = disabledTools.find(
+      (t) => t.name === "pg_audit_restore_backup",
+    )!;
+    const result = (await tool.handler(
+      { filename: "x.json", confirm: true },
+      mockContext,
+    )) as any;
     expect(result.success).toBe(false);
     expect(result.code).toBe("VALIDATION_ERROR");
   });
 
   it("should fail when confirm is missing for destructive restores", async () => {
     const tool = tools.find((t) => t.name === "pg_audit_restore_backup")!;
-    const result = (await tool.handler({ filename: "x.json" }, mockContext)) as any;
+    const result = (await tool.handler(
+      { filename: "x.json" },
+      mockContext,
+    )) as any;
     expect(result.success).toBe(false);
     expect(result.code).toBe("VALIDATION_ERROR");
     expect(result.error).toMatch(/confirm: true is required/i);
@@ -123,8 +150,11 @@ describe("pg_audit_restore_backup", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_audit_restore_backup")!;
-    const result = (await tool.handler({ filename: "x.json", dryRun: true }, mockContext)) as any;
-    
+    const result = (await tool.handler(
+      { filename: "x.json", dryRun: true },
+      mockContext,
+    )) as any;
+
     expect(result.success).toBe(true);
     expect(result.dryRun).toBe(true);
     expect(result.ddl).toContain("DROP TABLE IF EXISTS");
@@ -139,17 +169,20 @@ describe("pg_audit_restore_backup", () => {
     });
 
     mockAdapter.executeQuery.mockResolvedValue({});
-    
+
     const tool = tools.find((t) => t.name === "pg_audit_restore_backup")!;
-    const result = (await tool.handler({ filename: "x.json", restoreAs: "users_backup" }, mockContext)) as any;
-    
+    const result = (await tool.handler(
+      { filename: "x.json", restoreAs: "users_backup" },
+      mockContext,
+    )) as any;
+
     expect(result.success).toBe(true);
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith("BEGIN");
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-        expect.stringContaining('CREATE TABLE "public"."users_backup"')
+      expect.stringContaining('CREATE TABLE "public"."users_backup"'),
     );
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO "public"."users_backup"')
+      expect.stringContaining('INSERT INTO "public"."users_backup"'),
     );
     expect(mockAdapter.executeQuery).toHaveBeenCalledWith("COMMIT");
   });
@@ -167,33 +200,46 @@ describe("pg_audit_diff_backup", () => {
     mockBackupManager = {
       getSnapshot: vi.fn(),
     };
-    tools = getBackupTools(mockAdapter as unknown as PostgresAdapter, mockBackupManager as unknown as BackupManager);
+    tools = getBackupTools(
+      mockAdapter as unknown as PostgresAdapter,
+      mockBackupManager as unknown as BackupManager,
+    );
     mockContext = createMockRequestContext();
   });
 
   it("should detect diff drifts perfectly", async () => {
     mockBackupManager.getSnapshot.mockResolvedValue({
-      metadata: { target: "t1", schema: "public", rowCount: 10, totalSizeBytes: 1024 },
+      metadata: {
+        target: "t1",
+        schema: "public",
+        rowCount: 10,
+        totalSizeBytes: 1024,
+      },
       ddl: 'CREATE TABLE "public"."t1" (\n    "id" int NOT NULL\n);',
     });
 
     mockAdapter.describeTable = vi.fn().mockResolvedValue({
-        columns: [
-            { name: "id", type: "int", nullable: false },
-            { name: "new_col", type: "text", nullable: true }
-        ]
+      columns: [
+        { name: "id", type: "int", nullable: false },
+        { name: "new_col", type: "text", nullable: true },
+      ],
     });
-    
+
     mockAdapter.executeQuery.mockResolvedValue({
-        rows: [{ row_count: 15, total_size_bytes: 2048 }]
+      rows: [{ row_count: 15, total_size_bytes: 2048 }],
     });
 
     const tool = tools.find((t) => t.name === "pg_audit_diff_backup")!;
-    const result = (await tool.handler({ filename: "t1_snapshot.json" }, mockContext)) as any;
-    
+    const result = (await tool.handler(
+      { filename: "t1_snapshot.json" },
+      mockContext,
+    )) as any;
+
     expect(result.success).toBe(true);
     expect(result.hasDifferences).toBe(true);
-    expect(result.diff.additions.some((line: string) => line.includes("new_col"))).toBe(true);
+    expect(
+      result.diff.additions.some((line: string) => line.includes("new_col")),
+    ).toBe(true);
     expect(result.volumeDrift.rowCountSnapshot).toBe(10);
     expect(result.volumeDrift.rowCountCurrent).toBe(15);
   });

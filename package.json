@@ -1,6 +1,6 @@
 {
   "name": "@neverinfamous/postgres-mcp",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "mcpName": "io.github.neverinfamous/postgres-mcp",
   "description": "PostgreSQL MCP server with connection pooling, tool filtering, and full extension support",
   "type": "module",

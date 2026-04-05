@@ -57,10 +57,7 @@ export const ListObjectsSchemaBase = z.object({
     .string()
     .optional()
     .describe("Schema name (default: all user schemas)"),
-  types: z
-    .array(z.string())
-    .optional()
-    .describe("Object types to include"),
+  types: z.array(z.string()).optional().describe("Object types to include"),
   type: z
     .union([z.string(), z.array(z.string())])
     .optional()

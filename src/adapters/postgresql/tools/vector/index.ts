@@ -24,10 +24,7 @@ import {
   createVectorCreateIndexTool,
 } from "./search.js";
 
-import {
-  createVectorDistanceTool,
-  createVectorNormalizeTool,
-} from "./math.js";
+import { createVectorDistanceTool, createVectorNormalizeTool } from "./math.js";
 
 import {
   createVectorAggregateTool,

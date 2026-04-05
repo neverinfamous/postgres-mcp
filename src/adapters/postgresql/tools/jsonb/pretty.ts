@@ -70,7 +70,9 @@ export function createJsonbPrettyTool(
         const column = parsed.column ?? parsed.col;
 
         if (!table || !column) {
-          throw new ValidationError("Either 'json' (raw string) or 'table' + 'column' (table mode) is required");
+          throw new ValidationError(
+            "Either 'json' (raw string) or 'table' + 'column' (table mode) is required",
+          );
         }
 
         const [qualifiedTable, tableError] = await resolveJsonbTable(
@@ -81,9 +83,7 @@ export function createJsonbPrettyTool(
         if (tableError) return tableError;
 
         const where = parsed.where ?? parsed.filter;
-        const whereClause = where
-          ? ` WHERE ${sanitizeWhereClause(where)}`
-          : "";
+        const whereClause = where ? ` WHERE ${sanitizeWhereClause(where)}` : "";
         const limit =
           parsed.limit === undefined || Number.isNaN(parsed.limit)
             ? 10
@@ -93,8 +93,7 @@ export function createJsonbPrettyTool(
 
         const result = await adapter.executeQuery(sql);
         const rows = (result.rows ?? []).map((row) => ({
-          formatted:
-            (row as { formatted: string }).formatted ?? "null",
+          formatted: (row as { formatted: string }).formatted ?? "null",
         }));
 
         const response: {

@@ -58,13 +58,18 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 
 Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) return as parseable JSON objects. During error path testing, verify this: if an invalid Code Mode call returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
 
-
 ## Structured Error Response Pattern
 
 All tools must return errors as structured objects instead of throwing. A thrown error propagates as a raw MCP error, which is unhelpful to clients. The expected pattern:
 
 ```json
-{ "success": false, "error": "Human-readable error message", "code": "QUERY_ERROR", "category": "query", "recoverable": false }
+{
+  "success": false,
+  "error": "Human-readable error message",
+  "code": "QUERY_ERROR",
+  "category": "query",
+  "recoverable": false
+}
 ```
 
 The enriched `ErrorResponse` from `formatHandlerError` always includes `success`, `error`, `code`, `category`, and `recoverable`. Optional fields `suggestion` and `details` may also be present. Some tools include additional context fields (e.g., `pg_transaction_execute` includes `statementsExecuted`, `failedStatement`, `autoRolledBack`). These are acceptable as long as `success: false` and `error` are always present.
@@ -73,10 +78,10 @@ The enriched `ErrorResponse` from `formatHandlerError` always includes `success`
 
 There are two kinds of error responses. Only one is correct:
 
-| Type | Source | What you see | Verdict |
-|------|--------|--------------|---------|
-| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields | Correct |
-| **MCP error** ❌ | Uncaught throw propagates to MCP framework | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
+| Type                 | Source                                                             | What you see                                                                                                          | Verdict            |
+| -------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields                                                               | Correct            |
+| **MCP error** ❌     | Uncaught throw propagates to MCP framework                         | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
 
 **Concrete examples:**
 
@@ -131,18 +136,18 @@ For each P154 test, verify that calling with a nonexistent table (e.g., `table: 
 
 Key PostgreSQL error codes that should be intercepted by `formatHandlerError` (not leaked as raw errors):
 
-| PG Error Code | Meaning | Expected Structured Message |
-|---------------|---------|---------------------------|
-| 42P01 | Undefined table | `Table "X" does not exist` |
-| 42P06 | Duplicate schema | `Schema "X" already exists` |
-| 42P07 | Duplicate table | `Table "X" already exists` |
-| 42701 | Duplicate column | `Column "X" already exists` |
-| 42703 | Undefined column | `Column "X" does not exist` |
-| 23505 | Unique violation | `Duplicate key: ...` |
-| 23503 | FK violation | `Foreign key constraint violated` |
-| 42601 | Syntax error | `SQL syntax error: ...` |
-| 3F000 | Invalid schema name | `Schema "X" does not exist` |
-| XX000 | Internal error | `Internal error: ...` |
+| PG Error Code | Meaning             | Expected Structured Message       |
+| ------------- | ------------------- | --------------------------------- |
+| 42P01         | Undefined table     | `Table "X" does not exist`        |
+| 42P06         | Duplicate schema    | `Schema "X" already exists`       |
+| 42P07         | Duplicate table     | `Table "X" already exists`        |
+| 42701         | Duplicate column    | `Column "X" already exists`       |
+| 42703         | Undefined column    | `Column "X" does not exist`       |
+| 23505         | Unique violation    | `Duplicate key: ...`              |
+| 23503         | FK violation        | `Foreign key constraint violated` |
+| 42601         | Syntax error        | `SQL syntax error: ...`           |
+| 3F000         | Invalid schema name | `Schema "X" does not exist`       |
+| XX000         | Internal error      | `Internal error: ...`             |
 
 ## Error Consistency Audit
 
@@ -159,17 +164,17 @@ During testing, check for these inconsistencies across tool groups:
 
 For each tool group under test, verify at least one scenario from each applicable row:
 
-| Error Scenario | Tool Groups to Test | Example Input |
-|----------------|-------------------|---------------|
-| Nonexistent table | All table-accepting tools | `table: "nonexistent_xyz"` |
-| Nonexistent schema | Core, introspection, schema | `schema: "fake_schema"` or `table: "fake_schema.users"` |
-| Invalid SQL syntax | Core (`read_query`, `write_query`) | `sql: "SELECTT * FROM"` |
-| Invalid column name | Stats, JSONB, text, vector, PostGIS | `column: "nonexistent_col"` |
-| Duplicate table/index | Core (`create_table`, `create_index`) | Create existing table |
-| Empty required array | Transactions | `statements: []` |
-| Missing required field via alias | Core, transactions | `sql` alias instead of `query` |
-| **Zod validation (empty params)** | **Every tool with required params** | `{}` (empty object — must return handler error, not MCP `-32602` error) |
-| **Zod validation (wrong type)** | **Tools with typed params** | Pass string where number expected, etc. |
+| Error Scenario                    | Tool Groups to Test                   | Example Input                                                           |
+| --------------------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| Nonexistent table                 | All table-accepting tools             | `table: "nonexistent_xyz"`                                              |
+| Nonexistent schema                | Core, introspection, schema           | `schema: "fake_schema"` or `table: "fake_schema.users"`                 |
+| Invalid SQL syntax                | Core (`read_query`, `write_query`)    | `sql: "SELECTT * FROM"`                                                 |
+| Invalid column name               | Stats, JSONB, text, vector, PostGIS   | `column: "nonexistent_col"`                                             |
+| Duplicate table/index             | Core (`create_table`, `create_index`) | Create existing table                                                   |
+| Empty required array              | Transactions                          | `statements: []`                                                        |
+| Missing required field via alias  | Core, transactions                    | `sql` alias instead of `query`                                          |
+| **Zod validation (empty params)** | **Every tool with required params**   | `{}` (empty object — must return handler error, not MCP `-32602` error) |
+| **Zod validation (wrong type)**   | **Tools with typed params**           | Pass string where number expected, etc.                                 |
 
 ## Cleanup Conventions
 
@@ -229,25 +234,17 @@ DROP TABLE IF EXISTS stress_my_test_table;
 
 **1.1 Deep Dependency Cascades**
 Create `stress_schema_cascade_test`. Create `table_1` inside it. Create `stress_view_1` relying on it.
+
 1. `pg_drop_schema` without `cascade: true` → Expect proper `VALIDATION_ERROR` (dependent objects exist), not a crash.
 2. `pg_drop_schema` with `cascade: true` → Assert dropping is successful and wipes cleanly.
 
-**1.2 Sequence Boundary Testing**
-3. `pg_create_sequence` with extreme bounds: `maxvalue: 3`, `increment: 2`.
-4. Attempt to cycle the sequence (e.g., via `pg_read_query` using `nextval`) 3 times to intentionally cause an exception limit breach.
-5. Capture whether the adapter wraps the native sequence limit syntax error into a clean `VALIDATION_ERROR` or leaks the native PostgreSQL error.
+**1.2 Sequence Boundary Testing** 3. `pg_create_sequence` with extreme bounds: `maxvalue: 3`, `increment: 2`. 4. Attempt to cycle the sequence (e.g., via `pg_read_query` using `nextval`) 3 times to intentionally cause an exception limit breach. 5. Capture whether the adapter wraps the native sequence limit syntax error into a clean `VALIDATION_ERROR` or leaks the native PostgreSQL error.
 
 ### Category 2: State Pollution & Idempotency
 
-**2.1 Idempotent View Replacements**
-6. `pg_create_view` -> Create `stress_view_replace` using `SELECT 1 AS num`.
-7. `pg_create_view` -> Attempt recreation on `stress_view_replace` using `SELECT 2 AS num` with `orReplace: false`. Expect `VALIDATION_ERROR` (already exists).
-8. `pg_create_view` -> Recreate using `orReplace: true`. Expect success.
+**2.1 Idempotent View Replacements** 6. `pg_create_view` -> Create `stress_view_replace` using `SELECT 1 AS num`. 7. `pg_create_view` -> Attempt recreation on `stress_view_replace` using `SELECT 2 AS num` with `orReplace: false`. Expect `VALIDATION_ERROR` (already exists). 8. `pg_create_view` -> Recreate using `orReplace: true`. Expect success.
 
-**2.2 Create-Drop-Recreate schema Cycles**
-9. `pg_create_schema` -> `stress_schema_cycle`
-10. `pg_drop_schema` -> `stress_schema_cycle` -> expect `{existed: true}`
-11. `pg_drop_schema` -> `stress_schema_cycle` again with `ifExists: true` -> expect `{existed: false}` (should not throw).
+**2.2 Create-Drop-Recreate schema Cycles** 9. `pg_create_schema` -> `stress_schema_cycle` 10. `pg_drop_schema` -> `stress_schema_cycle` -> expect `{existed: true}` 11. `pg_drop_schema` -> `stress_schema_cycle` again with `ifExists: true` -> expect `{existed: false}` (should not throw).
 
 ### Category 3: Alias & Parameter Combinations
 
@@ -262,15 +259,12 @@ Create `stress_schema_cascade_test`. Create `table_1` inside it. Create `stress_
 ### Category 5: Large Payload & Truncation Verification
 
 **5.1 Sequence Metadata Payloads**
-If sequences exist across many tables, generating lists can swell.
-16. Code Mode script to dynamically generate 50 sequences inside `stress_schema_mass`.
-17. Introspect sequences using `pg_list_sequences`. Ensure response is cleanly token-estimated and `totalCount` correctly identifies exact counts if truncated limits apply.
+If sequences exist across many tables, generating lists can swell. 16. Code Mode script to dynamically generate 50 sequences inside `stress_schema_mass`. 17. Introspect sequences using `pg_list_sequences`. Ensure response is cleanly token-estimated and `totalCount` correctly identifies exact counts if truncated limits apply.
 
 ### Category 6: Code Mode Parity
 
 **6.1 API Aliases vs Direct Calls**
-Verify that a direct tool call simulation via JS provides parity to native outputs.
-18. Execute `pg.schema.createSchema({ schema: "stress_schema_parity" })` and compare schema existence validation loops programmatically.
+Verify that a direct tool call simulation via JS provides parity to native outputs. 18. Execute `pg.schema.createSchema({ schema: "stress_schema_parity" })` and compare schema existence validation loops programmatically.
 
 ### Final Cleanup
 

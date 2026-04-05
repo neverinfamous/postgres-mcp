@@ -58,13 +58,18 @@ Indexes: `idx_orders_status`, `idx_orders_date`, `idx_articles_fts` (GIN), `idx_
 
 Note: The isError flag propagation issue has been fixed. P154 structured errors (`{success: false, error: "..."}`) return as parseable JSON objects. During error path testing, verify this: if an invalid Code Mode call returns a raw error string instead of a JSON object with `success` and `error` fields, report it as ❌.
 
-
 ## Structured Error Response Pattern
 
 All tools must return errors as structured objects instead of throwing. A thrown error propagates as a raw MCP error, which is unhelpful to clients. The expected pattern:
 
 ```json
-{ "success": false, "error": "Human-readable error message", "code": "QUERY_ERROR", "category": "query", "recoverable": false }
+{
+  "success": false,
+  "error": "Human-readable error message",
+  "code": "QUERY_ERROR",
+  "category": "query",
+  "recoverable": false
+}
 ```
 
 The enriched `ErrorResponse` from `formatHandlerError` always includes `success`, `error`, `code`, `category`, and `recoverable`. Optional fields `suggestion` and `details` may also be present. Some tools include additional context fields (e.g., `pg_transaction_execute` includes `statementsExecuted`, `failedStatement`, `autoRolledBack`). These are acceptable as long as `success: false` and `error` are always present.
@@ -73,10 +78,10 @@ The enriched `ErrorResponse` from `formatHandlerError` always includes `success`
 
 There are two kinds of error responses. Only one is correct:
 
-| Type | Source | What you see | Verdict |
-|------|--------|--------------|---------|
-| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields | Correct |
-| **MCP error** ❌ | Uncaught throw propagates to MCP framework | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
+| Type                 | Source                                                             | What you see                                                                                                          | Verdict            |
+| -------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| **Handler error** ✅ | Handler catches error and returns `{success: false, error: "..."}` | Parseable JSON object with `success` and `error` fields                                                               | Correct            |
+| **MCP error** ❌     | Uncaught throw propagates to MCP framework                         | Raw text error string, often prefixed with `Error:`, wrapped in an `isError: true` content block — no `success` field | Bug — report as ❌ |
 
 **Concrete examples:**
 
@@ -131,18 +136,18 @@ For each P154 test, verify that calling with a nonexistent table (e.g., `table: 
 
 Key PostgreSQL error codes that should be intercepted by `formatHandlerError` (not leaked as raw errors):
 
-| PG Error Code | Meaning | Expected Structured Message |
-|---------------|---------|---------------------------|
-| 42P01 | Undefined table | `Table "X" does not exist` |
-| 42P06 | Duplicate schema | `Schema "X" already exists` |
-| 42P07 | Duplicate table | `Table "X" already exists` |
-| 42701 | Duplicate column | `Column "X" already exists` |
-| 42703 | Undefined column | `Column "X" does not exist` |
-| 23505 | Unique violation | `Duplicate key: ...` |
-| 23503 | FK violation | `Foreign key constraint violated` |
-| 42601 | Syntax error | `SQL syntax error: ...` |
-| 3F000 | Invalid schema name | `Schema "X" does not exist` |
-| XX000 | Internal error | `Internal error: ...` |
+| PG Error Code | Meaning             | Expected Structured Message       |
+| ------------- | ------------------- | --------------------------------- |
+| 42P01         | Undefined table     | `Table "X" does not exist`        |
+| 42P06         | Duplicate schema    | `Schema "X" already exists`       |
+| 42P07         | Duplicate table     | `Table "X" already exists`        |
+| 42701         | Duplicate column    | `Column "X" already exists`       |
+| 42703         | Undefined column    | `Column "X" does not exist`       |
+| 23505         | Unique violation    | `Duplicate key: ...`              |
+| 23503         | FK violation        | `Foreign key constraint violated` |
+| 42601         | Syntax error        | `SQL syntax error: ...`           |
+| 3F000         | Invalid schema name | `Schema "X" does not exist`       |
+| XX000         | Internal error      | `Internal error: ...`             |
 
 ## Error Consistency Audit
 
@@ -159,17 +164,17 @@ During testing, check for these inconsistencies across tool groups:
 
 For each tool group under test, verify at least one scenario from each applicable row:
 
-| Error Scenario | Tool Groups to Test | Example Input |
-|----------------|-------------------|---------------|
-| Nonexistent table | All table-accepting tools | `table: "nonexistent_xyz"` |
-| Nonexistent schema | Core, introspection, schema | `schema: "fake_schema"` or `table: "fake_schema.users"` |
-| Invalid SQL syntax | Core (`read_query`, `write_query`) | `sql: "SELECTT * FROM"` |
-| Invalid column name | Stats, JSONB, text, vector, PostGIS | `column: "nonexistent_col"` |
-| Duplicate table/index | Core (`create_table`, `create_index`) | Create existing table |
-| Empty required array | Transactions | `statements: []` |
-| Missing required field via alias | Core, transactions | `sql` alias instead of `query` |
-| **Zod validation (empty params)** | **Every tool with required params** | `{}` (empty object — must return handler error, not MCP `-32602` error) |
-| **Zod validation (wrong type)** | **Tools with typed params** | Pass string where number expected, etc. |
+| Error Scenario                    | Tool Groups to Test                   | Example Input                                                           |
+| --------------------------------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| Nonexistent table                 | All table-accepting tools             | `table: "nonexistent_xyz"`                                              |
+| Nonexistent schema                | Core, introspection, schema           | `schema: "fake_schema"` or `table: "fake_schema.users"`                 |
+| Invalid SQL syntax                | Core (`read_query`, `write_query`)    | `sql: "SELECTT * FROM"`                                                 |
+| Invalid column name               | Stats, JSONB, text, vector, PostGIS   | `column: "nonexistent_col"`                                             |
+| Duplicate table/index             | Core (`create_table`, `create_index`) | Create existing table                                                   |
+| Empty required array              | Transactions                          | `statements: []`                                                        |
+| Missing required field via alias  | Core, transactions                    | `sql` alias instead of `query`                                          |
+| **Zod validation (empty params)** | **Every tool with required params**   | `{}` (empty object — must return handler error, not MCP `-32602` error) |
+| **Zod validation (wrong type)**   | **Tools with typed params**           | Pass string where number expected, etc.                                 |
 
 ## Cleanup Conventions
 
@@ -244,51 +249,33 @@ DROP TABLE IF EXISTS stress_my_test_table;
 Test handling of extreme size, depth, and edge-case literal values.
 
 **1.1 Deep Nesting and Extraction**
+
 1. Insert a 15-level deeply nested JSON document into a new `stress_jsonb_test` table.
 2. `pg_jsonb_extract` → target `level1.level2...level15`. Verify retrieval.
 3. `pg_jsonb_extract` → target a non-existent path `{path: "level1.wrong"}`. Expect clean validation handling or empty result.
 
-**1.2 Massive Arrays**
-4. Insert a JSON array containing 1,000 identical sub-objects.
-5. `pg_jsonb_path_query` → use standard JSON Path parsing to filter and return exactly 50 objects.
-6. `pg_jsonb_delete` → trigger an out-of-bounds error on `index: 999999`. Expect native PostgreSQL behavior (silent success/no-op).
+**1.2 Massive Arrays** 4. Insert a JSON array containing 1,000 identical sub-objects. 5. `pg_jsonb_path_query` → use standard JSON Path parsing to filter and return exactly 50 objects. 6. `pg_jsonb_delete` → trigger an out-of-bounds error on `index: 999999`. Expect native PostgreSQL behavior (silent success/no-op).
 
-**1.3 Degenerate Literals**
-7. `pg_jsonb_typeof` → test against raw literal parameters `{json: "{}"}` (empty object), `{json: "[]"}` (empty array), and `{json: "null"}`.
-8. `pg_jsonb_keys` → attempt to retrieve keys from a scalar primitive `{table: "test_jsonb_docs", column: "tags"}` (array column) or a literal `{json: "42"}`. Expect structured error preventing `jsonb_object_keys` exception.
-9. `pg_jsonb_path_query` → query against an empty array `[]`.
+**1.3 Degenerate Literals** 7. `pg_jsonb_typeof` → test against raw literal parameters `{json: "{}"}` (empty object), `{json: "[]"}` (empty array), and `{json: "null"}`. 8. `pg_jsonb_keys` → attempt to retrieve keys from a scalar primitive `{table: "test_jsonb_docs", column: "tags"}` (array column) or a literal `{json: "42"}`. Expect structured error preventing `jsonb_object_keys` exception. 9. `pg_jsonb_path_query` → query against an empty array `[]`.
 
 ### Category 2: State Pollution & Idempotency
 
-**2.1 Idempotent Write Operations**
-10. `pg_jsonb_insert` → attempt to override an existing key, then insert a completely new missing key. Ensure it operates predictably without crashing.
-11. `pg_jsonb_delete` → delete the exact same key twice consecutively. Should succeed idempotently without throwing.
-12. `pg_jsonb_set` + `pg_jsonb_delete` → SET a new path on an existing row, then immediately DELETE that path. Verify row returns to original state.
+**2.1 Idempotent Write Operations** 10. `pg_jsonb_insert` → attempt to override an existing key, then insert a completely new missing key. Ensure it operates predictably without crashing. 11. `pg_jsonb_delete` → delete the exact same key twice consecutively. Should succeed idempotently without throwing. 12. `pg_jsonb_set` + `pg_jsonb_delete` → SET a new path on an existing row, then immediately DELETE that path. Verify row returns to original state.
 
 ### Category 3: Cross-Tool Consistency
 
 Ensure tools agree on types, paths, and values.
 
-**3.1 Type Agreement**
-13. `pg_jsonb_typeof` vs `pg_jsonb_keys` → Verify that if `typeof` returns `"object"`, `keys` successfully enumerates it.
-14. `pg_jsonb_extract` + `pg_jsonb_set` Round-trip → Set a nested number field (e.g., `42`), extract it, and verify the type inside code mode using `typeof result === 'number'`. It must not be a double-escaped string.
+**3.1 Type Agreement** 13. `pg_jsonb_typeof` vs `pg_jsonb_keys` → Verify that if `typeof` returns `"object"`, `keys` successfully enumerates it. 14. `pg_jsonb_extract` + `pg_jsonb_set` Round-trip → Set a nested number field (e.g., `42`), extract it, and verify the type inside code mode using `typeof result === 'number'`. It must not be a double-escaped string.
 
-**3.2 Operation Parity**
-15. `pg_jsonb_normalize` → Test `mode: "flatten"` and verify the leaf node paths exactly match what `pg_jsonb_extract` would require to reach those nodes.
-16. `pg_jsonb_merge` vs `pg_jsonb_normalize` → Merge two documents where one overrides the other, then normalize both the standalone result and the base documents. Verify consistency.
+**3.2 Operation Parity** 15. `pg_jsonb_normalize` → Test `mode: "flatten"` and verify the leaf node paths exactly match what `pg_jsonb_extract` would require to reach those nodes. 16. `pg_jsonb_merge` vs `pg_jsonb_normalize` → Merge two documents where one overrides the other, then normalize both the standalone result and the base documents. Verify consistency.
 
 ### Category 4: Analytics Tool Stress
 
 Stress test the analysis and scanning tools on degenerate and dangerous patterns.
 
-**4.1 Indexing and Suggestions**
-17. `pg_jsonb_index_suggest` → test on `test_jsonb_docs.metadata` (object column) vs `test_jsonb_docs.tags` (array column). Array columns should gracefully report no keys / return validation error since `jsonb_each` doesn't work on arrays.
-18. `pg_jsonb_index_suggest` → test on a column that already has a GIN index (create one on a temporary table first). Verify the tool correctly detects the existing index and avoids duplicate recommendations.
+**4.1 Indexing and Suggestions** 17. `pg_jsonb_index_suggest` → test on `test_jsonb_docs.metadata` (object column) vs `test_jsonb_docs.tags` (array column). Array columns should gracefully report no keys / return validation error since `jsonb_each` doesn't work on arrays. 18. `pg_jsonb_index_suggest` → test on a column that already has a GIN index (create one on a temporary table first). Verify the tool correctly detects the existing index and avoids duplicate recommendations.
 
-**4.2 Security Scanning**
-19. `pg_jsonb_security_scan` → Insert intentionally malicious payloads: script tags `<script>alert(1)</script>`, SQL injection strings `' OR 1=1; DROP TABLE users; --`, and mock credentials `{"api_key": "sk_test_123"}`. Verify detection.
-20. `pg_jsonb_security_scan` → test with a large `sampleSize` parameter (allow coercion testing as well).
+**4.2 Security Scanning** 19. `pg_jsonb_security_scan` → Insert intentionally malicious payloads: script tags `<script>alert(1)</script>`, SQL injection strings `' OR 1=1; DROP TABLE users; --`, and mock credentials `{"api_key": "sk_test_123"}`. Verify detection. 20. `pg_jsonb_security_scan` → test with a large `sampleSize` parameter (allow coercion testing as well).
 
-**4.3 Statistical Analysis**
-21. `pg_jsonb_stats` → Test on an entirely empty table. Expect graceful zero-state, not division-by-zero crashes.
-22. `pg_jsonb_stats` → Test on a table with heterogeneous types in the same column (mixed objects, arrays, and scalars). Verify `typeDistribution` sums correctly.
+**4.3 Statistical Analysis** 21. `pg_jsonb_stats` → Test on an entirely empty table. Expect graceful zero-state, not division-by-zero crashes. 22. `pg_jsonb_stats` → Test on a table with heterogeneous types in the same column (mixed objects, arrays, and scalars). Verify `typeDistribution` sums correctly.

@@ -144,9 +144,7 @@ export function createStatsRowNumberTool(
 // RANK / DENSE_RANK / PERCENT_RANK
 // =============================================================================
 
-export function createStatsRankTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createStatsRankTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_stats_rank",
     description:
@@ -398,9 +396,7 @@ export function createStatsMovingAvgTool(
 // NTILE
 // =============================================================================
 
-export function createStatsNtileTool(
-  adapter: PostgresAdapter,
-): ToolDefinition {
+export function createStatsNtileTool(adapter: PostgresAdapter): ToolDefinition {
   return {
     name: "pg_stats_ntile",
     description:

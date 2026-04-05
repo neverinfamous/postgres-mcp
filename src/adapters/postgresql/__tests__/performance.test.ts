@@ -60,7 +60,10 @@ describe("Performance Benchmarks", () => {
 
       // Every group should have at least one tool
       for (const [group, tools] of Object.entries(TOOL_GROUPS)) {
-        expect(tools.length, `group "${group}" should not be empty`).toBeGreaterThan(0);
+        expect(
+          tools.length,
+          `group "${group}" should not be empty`,
+        ).toBeGreaterThan(0);
       }
     });
   });

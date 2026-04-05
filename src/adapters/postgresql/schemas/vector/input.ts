@@ -58,54 +58,62 @@ export const VectorSearchSchemaBase = z.object({
 });
 
 // Transformed schema with alias resolution and schema.table parsing
-export const VectorSearchSchema = VectorSearchSchemaBase.transform((data, ctx) => {
-  // Parse schema.table format (embedded schema takes priority over explicit schema param)
-  let resolvedTable = data.table ?? data.tableName ?? "";
-  let resolvedSchema = data.schema;
-  if (resolvedTable.includes(".")) {
-    const parts = resolvedTable.split(".");
-    resolvedSchema = parts[0] ?? data.schema ?? "public";
-    resolvedTable = parts[1] ?? resolvedTable;
-  }
+export const VectorSearchSchema = VectorSearchSchemaBase.transform(
+  (data, ctx) => {
+    // Parse schema.table format (embedded schema takes priority over explicit schema param)
+    let resolvedTable = data.table ?? data.tableName ?? "";
+    let resolvedSchema = data.schema;
+    if (resolvedTable.includes(".")) {
+      const parts = resolvedTable.split(".");
+      resolvedSchema = parts[0] ?? data.schema ?? "public";
+      resolvedTable = parts[1] ?? resolvedTable;
+    }
 
-  const rawLimit = data.limit !== undefined ? Number(data.limit) : undefined;
-  
-  if (rawLimit !== undefined && (!Number.isFinite(rawLimit) || rawLimit <= 0)) {
-    ctx.addIssue({
-      code: "custom",
-      message: `limit must be a positive number, received: ${String(data.limit)}`,
-      path: ["limit"],
-    });
-    return z.NEVER;
-  }
-  
-  // Resolve metric vs distanceMetric
-  const resolvedMetric = data.metric ?? 
-    (data.distanceMetric === "cosine" || data.distanceMetric === "l2" || data.distanceMetric === "inner_product" 
-      ? data.distanceMetric 
-      : undefined);
+    const rawLimit = data.limit !== undefined ? Number(data.limit) : undefined;
 
-  if (data.distanceMetric && !resolvedMetric) {
-     ctx.addIssue({
-       code: "custom",
-       message: `Invalid distance metric: ${data.distanceMetric}. Must be l2, cosine, or inner_product`,
-       path: ["distanceMetric"],
-     });
-     return z.NEVER;
-  }
+    if (
+      rawLimit !== undefined &&
+      (!Number.isFinite(rawLimit) || rawLimit <= 0)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: `limit must be a positive number, received: ${String(data.limit)}`,
+        path: ["limit"],
+      });
+      return z.NEVER;
+    }
 
-  return {
-    table: resolvedTable,
-    column: data.column ?? data.col ?? "",
-    vector: data.vector ?? data.queryVector,
-    metric: resolvedMetric,
-    limit: rawLimit,
-    select: data.select,
-    where: data.where ?? data.filter,
-    schema: resolvedSchema,
-    excludeNull: data.excludeNull,
-  };
-});
+    // Resolve metric vs distanceMetric
+    const resolvedMetric =
+      data.metric ??
+      (data.distanceMetric === "cosine" ||
+      data.distanceMetric === "l2" ||
+      data.distanceMetric === "inner_product"
+        ? data.distanceMetric
+        : undefined);
+
+    if (data.distanceMetric && !resolvedMetric) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Invalid distance metric: ${data.distanceMetric}. Must be l2, cosine, or inner_product`,
+        path: ["distanceMetric"],
+      });
+      return z.NEVER;
+    }
+
+    return {
+      table: resolvedTable,
+      column: data.column ?? data.col ?? "",
+      vector: data.vector ?? data.queryVector,
+      metric: resolvedMetric,
+      limit: rawLimit,
+      select: data.select,
+      where: data.where ?? data.filter,
+      schema: resolvedSchema,
+      excludeNull: data.excludeNull,
+    };
+  },
+);
 
 // Base schema for MCP exposure
 export const VectorCreateIndexSchemaBase = z.object({
@@ -124,14 +132,29 @@ export const VectorCreateIndexSchemaBase = z.object({
     .boolean()
     .optional()
     .describe("Skip if index already exists (default: false)"),
-  lists: z.preprocess(coerceNumber, z.number().optional()).optional().describe("Number of lists for IVFFlat"),
-  m: z.preprocess(coerceNumber, z.number().optional()).optional().describe("HNSW m parameter"),
-  efConstruction: z.preprocess(coerceNumber, z.number().optional()).optional()
+  lists: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Number of lists for IVFFlat"),
+  m: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("HNSW m parameter"),
+  efConstruction: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("HNSW ef_construction parameter"),
-  ef_construction: z.preprocess(coerceNumber, z.number().optional()).optional()
+  ef_construction: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
     .describe("Alias for efConstruction"),
   schema: z.string().optional().describe("Database schema (default: public)"),
-  indexName: z.string().optional().describe("Custom index name (default: auto-generated from table_column_type)"),
+  indexName: z
+    .string()
+    .optional()
+    .describe(
+      "Custom index name (default: auto-generated from table_column_type)",
+    ),
   name: z.string().optional().describe("Alias for indexName"),
 });
 
@@ -139,20 +162,23 @@ export const VectorCreateIndexSchemaBase = z.object({
 export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
   (data, ctx) => {
     const resolvedType = data.type ?? data.method;
-    
+
     // Resolve metric vs distanceMetric
-    const resolvedMetric = data.metric ?? 
-      (data.distanceMetric === "cosine" || data.distanceMetric === "l2" || data.distanceMetric === "inner_product" 
-        ? data.distanceMetric 
+    const resolvedMetric =
+      data.metric ??
+      (data.distanceMetric === "cosine" ||
+      data.distanceMetric === "l2" ||
+      data.distanceMetric === "inner_product"
+        ? data.distanceMetric
         : undefined);
 
     if (data.distanceMetric && !resolvedMetric) {
-       ctx.addIssue({
-         code: "custom",
-         message: `Invalid distance metric: ${data.distanceMetric}. Must be l2, cosine, or inner_product (distanceMetric)`,
-         path: ["distanceMetric"],
-       });
-       return z.NEVER;
+      ctx.addIssue({
+        code: "custom",
+        message: `Invalid distance metric: ${data.distanceMetric}. Must be l2, cosine, or inner_product (distanceMetric)`,
+        path: ["distanceMetric"],
+      });
+      return z.NEVER;
     }
 
     return {
@@ -167,10 +193,13 @@ export const VectorCreateIndexSchema = VectorCreateIndexSchemaBase.transform(
       schema: data.schema,
       indexName: data.indexName ?? data.name,
     };
-  }
+  },
 );
 
 // Base schema exposure for MCP
 export const VectorCreateExtensionSchemaBase = z.object({
-  schema: z.string().optional().describe("Database schema to create the extension in (default: public)"),
+  schema: z
+    .string()
+    .optional()
+    .describe("Database schema to create the extension in (default: public)"),
 });

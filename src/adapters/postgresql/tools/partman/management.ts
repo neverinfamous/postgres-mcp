@@ -26,7 +26,11 @@ import {
   PartmanShowPartitionsOutputSchema,
   PartmanShowConfigOutputSchema,
 } from "../../schemas/index.js";
-import { getPartmanSchema, DEFAULT_PARTMAN_LIMIT, checkTableExists } from "./helpers.js";
+import {
+  getPartmanSchema,
+  DEFAULT_PARTMAN_LIMIT,
+  checkTableExists,
+} from "./helpers.js";
 
 /**
  * Run partition maintenance
@@ -57,7 +61,9 @@ Maintains all partition sets if no specific parent table is specified.`,
           if (!(await checkTableExists(adapter, parentTable))) {
             throw new ValidationError(
               `Table '${parentTable}' does not exist.`,
-              { hint: "Check that you specified the correct schema and table name." }
+              {
+                hint: "Check that you specified the correct schema and table name.",
+              },
             );
           }
 
@@ -73,7 +79,7 @@ Maintains all partition sets if no specific parent table is specified.`,
               {
                 parentTable,
                 hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables.",
-              }
+              },
             );
           }
 
@@ -110,7 +116,8 @@ Maintains all partition sets if no specific parent table is specified.`,
                 success: true,
                 parentTable,
                 analyze: analyze ?? true,
-                message: "Partition set has no child partitions yet. Insert data to create partitions.",
+                message:
+                  "Partition set has no child partitions yet. Insert data to create partitions.",
               };
             }
 
@@ -210,8 +217,8 @@ Maintains all partition sets if no specific parent table is specified.`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_partman_run_maintenance",
-          });
+          tool: "pg_partman_run_maintenance",
+        });
       }
     },
   };
@@ -251,7 +258,9 @@ export function createPartmanShowPartitionsTool(
         if (!parentTable) {
           throw new ValidationError(
             'parentTable parameter is required. Specify the parent table (e.g., "public.events") to list its partitions.',
-            { hint: "Use pg_partman_show_config to list all partition sets first." }
+            {
+              hint: "Use pg_partman_show_config to list all partition sets first.",
+            },
           );
         }
 
@@ -262,10 +271,9 @@ export function createPartmanShowPartitionsTool(
 
         // Check if table exists (P154)
         if (!(await checkTableExists(adapter, parentTable))) {
-          throw new ValidationError(
-            `Table '${parentTable}' does not exist.`,
-            { hint: "Check that you specified the correct schema and table name." }
-          );
+          throw new ValidationError(`Table '${parentTable}' does not exist.`, {
+            hint: "Check that you specified the correct schema and table name.",
+          });
         }
 
         // Check if table is managed by pg_partman
@@ -277,7 +285,9 @@ export function createPartmanShowPartitionsTool(
         if ((configCheck.rows?.length ?? 0) === 0) {
           throw new ValidationError(
             `Table '${parentTable}' is not managed by pg_partman.`,
-            { hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables." }
+            {
+              hint: "Use pg_partman_create_parent to set up partitioning, or pg_partman_show_config to list managed tables.",
+            },
           );
         }
 
@@ -319,8 +329,8 @@ export function createPartmanShowPartitionsTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_partman_show_partitions",
-          });
+          tool: "pg_partman_show_partitions",
+        });
       }
     },
   };
@@ -349,9 +359,12 @@ export function createPartmanShowConfigTool(
         if (parsed.parentTable !== undefined) {
           // Check if table exists (P154)
           if (!(await checkTableExists(adapter, parsed.parentTable))) {
-            throw new ValidationError(`Table '${parsed.parentTable}' does not exist.`, {
-              hint: "Check that you specified the correct schema and table name."
-            });
+            throw new ValidationError(
+              `Table '${parsed.parentTable}' does not exist.`,
+              {
+                hint: "Check that you specified the correct schema and table name.",
+              },
+            );
           }
         }
 
@@ -446,7 +459,7 @@ export function createPartmanShowConfigTool(
             code: "TABLE_NOT_FOUND",
             category: "resource",
             suggestion: "Use pg_partman_create_parent to set up partitioning.",
-            recoverable: false
+            recoverable: false,
           };
         }
 
@@ -456,13 +469,16 @@ export function createPartmanShowConfigTool(
           truncated,
           totalCount,
           orphanedCount: orphanedCount > 0 ? orphanedCount : undefined,
-          hint: orphanedCount > 0
+          hint:
+            orphanedCount > 0
               ? `${String(orphanedCount)} orphaned config(s) found - parent table no longer exists. ` +
                 `To clean up, use raw SQL: DELETE FROM ${partmanSchema}.part_config WHERE parent_table = '<table_name>';`
               : undefined,
         };
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_partman_show_config" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_partman_show_config",
+        });
       }
     },
   };

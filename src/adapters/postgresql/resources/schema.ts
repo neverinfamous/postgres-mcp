@@ -21,8 +21,6 @@ interface TableStatsModification {
   n_live_tup: number;
 }
 
-
-
 /** Safely convert unknown value to number */
 function toNum(value: unknown): number {
   if (typeof value === "number") return value;

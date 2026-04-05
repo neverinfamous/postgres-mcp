@@ -46,136 +46,154 @@ Looks for common patterns like email, username, name, slug, etc.`,
           limit?: unknown;
           excludeSystemSchemas?: boolean;
         };
-      const {
-        patterns,
-        schema,
-        table,
-        excludeSystemSchemas: userExcludeSystemSchemas,
-      } = parsed;
-      const safeLimit = parsed.limit as number | undefined;
+        const {
+          patterns,
+          schema,
+          table,
+          excludeSystemSchemas: userExcludeSystemSchemas,
+        } = parsed;
+        const safeLimit = parsed.limit as number | undefined;
 
-      if (safeLimit !== undefined) {
-        if (safeLimit < 0) {
-          throw new ValidationError("limit must be non-negative", { code: "VALIDATION_ERROR" });
+        if (safeLimit !== undefined) {
+          if (safeLimit < 0) {
+            throw new ValidationError("limit must be non-negative", {
+              code: "VALIDATION_ERROR",
+            });
+          }
+          if (safeLimit === 0) {
+            throw new ValidationError(
+              "limit must be greater than 0 to prevent large payloads. Max limit is 100.",
+              { code: "VALIDATION_ERROR" },
+            );
+          }
         }
-        if (safeLimit === 0) {
-          throw new ValidationError("limit must be greater than 0 to prevent large payloads. Max limit is 100.", { code: "VALIDATION_ERROR" });
-        }
-      }
 
-      // Validate table/schema existence before querying
-      if (table !== undefined) {
-        const schemaName = schema ?? "public";
-        const qualifiedTable = `"${schemaName}"."${table}"`;
-        const tableCheck = await adapter.executeQuery(
-          `SELECT 1 FROM information_schema.tables
+        // Validate table/schema existence before querying
+        if (table !== undefined) {
+          const schemaName = schema ?? "public";
+          const qualifiedTable = `"${schemaName}"."${table}"`;
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables
            WHERE table_schema = $1 AND table_name = $2`,
-          [schemaName, table],
-        );
-        if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          throw new ValidationError(`Table ${qualifiedTable} does not exist. Verify the table name and schema.`, { code: "TABLE_NOT_FOUND" });
-        }
-      } else if (schema !== undefined) {
-        const schemaCheck = await adapter.executeQuery(
-          `SELECT 1 FROM information_schema.schemata
+            [schemaName, table],
+          );
+          if (!tableCheck.rows || tableCheck.rows.length === 0) {
+            throw new ValidationError(
+              `Table ${qualifiedTable} does not exist. Verify the table name and schema.`,
+              { code: "TABLE_NOT_FOUND" },
+            );
+          }
+        } else if (schema !== undefined) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata
            WHERE schema_name = $1`,
-          [schema],
-        );
-        if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-          throw new ValidationError(`Schema "${schema}" does not exist. Verify the schema name.`, { code: "SCHEMA_NOT_FOUND" });
+            [schema],
+          );
+          if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+            throw new ValidationError(
+              `Schema "${schema}" does not exist. Verify the schema name.`,
+              { code: "SCHEMA_NOT_FOUND" },
+            );
+          }
         }
-      }
 
-      // Default limit of 50 to prevent large payloads and transport truncation
-      const DEFAULT_LIMIT = 50;
-      const MAX_LIMIT = 100;
-      const effectiveLimit = safeLimit ?? DEFAULT_LIMIT;
-      if (effectiveLimit > MAX_LIMIT) {
-          throw new ValidationError(`limit must not exceed ${String(MAX_LIMIT)}`, { code: "VALIDATION_ERROR" });
-      }
+        // Default limit of 50 to prevent large payloads and transport truncation
+        const DEFAULT_LIMIT = 50;
+        const MAX_LIMIT = 100;
+        const effectiveLimit = safeLimit ?? DEFAULT_LIMIT;
+        if (effectiveLimit > MAX_LIMIT) {
+          throw new ValidationError(
+            `limit must not exceed ${String(MAX_LIMIT)}`,
+            { code: "VALIDATION_ERROR" },
+          );
+        }
 
-      // Exclude system schemas by default when no table filter is specified
-      const excludeSystemSchemas = userExcludeSystemSchemas ?? true;
+        // Exclude system schemas by default when no table filter is specified
+        const excludeSystemSchemas = userExcludeSystemSchemas ?? true;
 
-      const searchPatterns = patterns ?? [
-        "email",
-        "e_mail",
-        "mail",
-        "username",
-        "user_name",
-        "login",
-        "name",
-        "first_name",
-        "last_name",
-        "full_name",
-        "slug",
-        "handle",
-        "nickname",
-        "code",
-        "sku",
-        "identifier",
-      ];
+        const searchPatterns = patterns ?? [
+          "email",
+          "e_mail",
+          "mail",
+          "username",
+          "user_name",
+          "login",
+          "name",
+          "first_name",
+          "last_name",
+          "full_name",
+          "slug",
+          "handle",
+          "nickname",
+          "code",
+          "sku",
+          "identifier",
+        ];
 
-      // System/extension schemas to exclude by default (reduces noise from extension tables)
-      const systemSchemas = [
-        "cron",
-        "topology",
-        "partman",
-        "tiger",
-        "tiger_data",
-      ];
+        // System/extension schemas to exclude by default (reduces noise from extension tables)
+        const systemSchemas = [
+          "cron",
+          "topology",
+          "partman",
+          "tiger",
+          "tiger_data",
+        ];
 
-      const conditions: string[] = [
-        "data_type IN ('text', 'character varying')",
-        "table_schema NOT IN ('pg_catalog', 'information_schema')",
-      ];
-      const queryParams: unknown[] = [];
-      let paramIndex = 1;
+        const conditions: string[] = [
+          "data_type IN ('text', 'character varying')",
+          "table_schema NOT IN ('pg_catalog', 'information_schema')",
+        ];
+        const queryParams: unknown[] = [];
+        let paramIndex = 1;
 
-      // Only apply system schema exclusion when no specific schema/table is requested
-      if (excludeSystemSchemas && schema === undefined && table === undefined) {
-        const placeholders = systemSchemas.map(() => {
+        // Only apply system schema exclusion when no specific schema/table is requested
+        if (
+          excludeSystemSchemas &&
+          schema === undefined &&
+          table === undefined
+        ) {
+          const placeholders = systemSchemas.map(() => {
+            const idx = paramIndex++;
+            return `$${String(idx)}`;
+          });
+          conditions.push(`table_schema NOT IN (${placeholders.join(", ")})`);
+          queryParams.push(...systemSchemas);
+        }
+
+        if (schema !== undefined) {
+          conditions.push(`table_schema = $${String(paramIndex++)}`);
+          queryParams.push(schema);
+        }
+
+        if (table !== undefined) {
+          conditions.push(`table_name = $${String(paramIndex++)}`);
+          queryParams.push(table);
+        }
+
+        const patternConditions = searchPatterns.map((p) => {
           const idx = paramIndex++;
-          return `$${String(idx)}`;
+          queryParams.push(`%${p}%`);
+          return `LOWER(column_name) LIKE $${String(idx)}`;
         });
-        conditions.push(`table_schema NOT IN (${placeholders.join(", ")})`);
-        queryParams.push(...systemSchemas);
-      }
+        conditions.push(`(${patternConditions.join(" OR ")})`);
 
-      if (schema !== undefined) {
-        conditions.push(`table_schema = $${String(paramIndex++)}`);
-        queryParams.push(schema);
-      }
+        // Build WHERE clause for reuse
+        const whereClause = conditions.join(" AND ");
 
-      if (table !== undefined) {
-        conditions.push(`table_name = $${String(paramIndex++)}`);
-        queryParams.push(table);
-      }
-
-      const patternConditions = searchPatterns.map((p) => {
-        const idx = paramIndex++;
-        queryParams.push(`%${p}%`);
-        return `LOWER(column_name) LIKE $${String(idx)}`;
-      });
-      conditions.push(`(${patternConditions.join(" OR ")})`);
-
-      // Build WHERE clause for reuse
-      const whereClause = conditions.join(" AND ");
-
-      // Count total candidates first
-      const countSql = `
+        // Count total candidates first
+        const countSql = `
                 SELECT COUNT(*) as total
                 FROM information_schema.columns
                 WHERE ${whereClause}
             `;
-      const countResult = await adapter.executeQuery(countSql, queryParams);
-      const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
+        const countResult = await adapter.executeQuery(countSql, queryParams);
+        const totalCount = Number(countResult.rows?.[0]?.["total"] ?? 0);
 
-      // Add LIMIT clause
-      const limitClause =
-        effectiveLimit !== undefined ? `LIMIT ${String(effectiveLimit)}` : "";
+        // Add LIMIT clause
+        const limitClause =
+          effectiveLimit !== undefined ? `LIMIT ${String(effectiveLimit)}` : "";
 
-      const sql = `
+        const sql = `
                 SELECT
                     table_schema,
                     table_name,
@@ -189,60 +207,60 @@ Looks for common patterns like email, username, name, slug, etc.`,
                 ${limitClause}
             `;
 
-      const result = await adapter.executeQuery(sql, queryParams);
-      const candidates = result.rows ?? [];
+        const result = await adapter.executeQuery(sql, queryParams);
+        const candidates = result.rows ?? [];
 
-      // Determine if results were truncated
-      const truncated =
-        effectiveLimit !== undefined && candidates.length < totalCount;
+        // Determine if results were truncated
+        const truncated =
+          effectiveLimit !== undefined && candidates.length < totalCount;
 
-      // Count high/medium confidence candidates without storing duplicates
-      let highConfidenceCount = 0;
-      let mediumConfidenceCount = 0;
+        // Count high/medium confidence candidates without storing duplicates
+        let highConfidenceCount = 0;
+        let mediumConfidenceCount = 0;
 
-      for (const row of candidates) {
-        const colName = (row["column_name"] as string).toLowerCase();
-        if (
-          colName.includes("email") ||
-          colName.includes("username") ||
-          colName === "login"
-        ) {
-          highConfidenceCount++;
-        } else {
-          mediumConfidenceCount++;
+        for (const row of candidates) {
+          const colName = (row["column_name"] as string).toLowerCase();
+          if (
+            colName.includes("email") ||
+            colName.includes("username") ||
+            colName === "login"
+          ) {
+            highConfidenceCount++;
+          } else {
+            mediumConfidenceCount++;
+          }
         }
-      }
 
-      return {
-        success: true,
-        candidates,
-        count: candidates.length,
-        totalCount,
-        truncated,
-        ...(effectiveLimit !== undefined && { limit: effectiveLimit }),
-        ...(table !== undefined && { table }),
-        ...(schema !== undefined && { schema }),
-        summary: {
-          highConfidence: highConfidenceCount,
-          mediumConfidence: mediumConfidenceCount,
-        },
-        recommendation:
-          candidates.length > 0
-            ? "Consider converting these columns to citext for case-insensitive comparisons"
-            : "No obvious candidates found. Use custom patterns if needed.",
-        // Include excluded schemas info when filtering is applied
-        ...(excludeSystemSchemas &&
-          schema === undefined &&
-          table === undefined && {
-            excludedSchemas: systemSchemas,
-          }),
-        // Include patterns used for transparency (only if explicitly requested to save payload size)
-        ...(patterns !== undefined && { patternsUsed: searchPatterns }),
-      };
+        return {
+          success: true,
+          candidates,
+          count: candidates.length,
+          totalCount,
+          truncated,
+          ...(effectiveLimit !== undefined && { limit: effectiveLimit }),
+          ...(table !== undefined && { table }),
+          ...(schema !== undefined && { schema }),
+          summary: {
+            highConfidence: highConfidenceCount,
+            mediumConfidence: mediumConfidenceCount,
+          },
+          recommendation:
+            candidates.length > 0
+              ? "Consider converting these columns to citext for case-insensitive comparisons"
+              : "No obvious candidates found. Use custom patterns if needed.",
+          // Include excluded schemas info when filtering is applied
+          ...(excludeSystemSchemas &&
+            schema === undefined &&
+            table === undefined && {
+              excludedSchemas: systemSchemas,
+            }),
+          // Include patterns used for transparency (only if explicitly requested to save payload size)
+          ...(patterns !== undefined && { patternsUsed: searchPatterns }),
+        };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_citext_analyze_candidates",
-          });
+          tool: "pg_citext_analyze_candidates",
+        });
       }
     },
   };
@@ -266,7 +284,9 @@ Requires the 'table' parameter to specify which table to analyze.`,
     icons: getToolIcons("citext", readOnly("Citext Schema Advisor")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { table, schema, compact } = CitextSchemaAdvisorSchema.parse(params) as {
+        const { table, schema, compact } = CitextSchemaAdvisorSchema.parse(
+          params,
+        ) as {
           table: string;
           schema?: string;
           compact: boolean;
@@ -284,7 +304,10 @@ Requires the 'table' parameter to specify which table to analyze.`,
         );
 
         if (!tableCheck.rows || tableCheck.rows.length === 0) {
-          throw new ValidationError(`Table ${qualifiedTable} not found. Verify the table name and schema.`, { code: "TABLE_NOT_FOUND" });
+          throw new ValidationError(
+            `Table ${qualifiedTable} not found. Verify the table name and schema.`,
+            { code: "TABLE_NOT_FOUND" },
+          );
         }
 
         const colResult = await adapter.executeQuery(
@@ -411,8 +434,8 @@ Requires the 'table' parameter to specify which table to analyze.`,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_citext_schema_advisor",
-          });
+          tool: "pg_citext_schema_advisor",
+        });
       }
     },
   };

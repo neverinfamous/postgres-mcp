@@ -19,42 +19,55 @@ test.describe("Advanced HTTP Transport Security", () => {
       stopServer(ADV_SEC_PORT);
     });
 
-    test("should reject requests with invalid Host header (DNS rebinding protection)", async ({ request }) => {
+    test("should reject requests with invalid Host header (DNS rebinding protection)", async ({
+      request,
+    }) => {
       // Direct request with valid local IP works
-      const validResponse = await request.get(`http://127.0.0.1:${ADV_SEC_PORT}/health`, {
-        headers: { Host: `127.0.0.1:${ADV_SEC_PORT}` }
-      });
+      const validResponse = await request.get(
+        `http://127.0.0.1:${ADV_SEC_PORT}/health`,
+        {
+          headers: { Host: `127.0.0.1:${ADV_SEC_PORT}` },
+        },
+      );
       expect(validResponse.status()).toBe(200);
 
       // Request with malicious host header
-      const invalidResponse = await request.get(`http://127.0.0.1:${ADV_SEC_PORT}/health`, {
-        headers: { Host: "malicious-attacker.com" }
-      });
+      const invalidResponse = await request.get(
+        `http://127.0.0.1:${ADV_SEC_PORT}/health`,
+        {
+          headers: { Host: "malicious-attacker.com" },
+        },
+      );
       expect(invalidResponse.status()).toBe(403);
       const invalidBody = await invalidResponse.json();
       expect(invalidBody.error?.message).toContain("Invalid Host");
     });
 
-    test("should use X-Forwarded-For for rate limiting when trustProxy is true", async ({ request }) => {
+    test("should use X-Forwarded-For for rate limiting when trustProxy is true", async ({
+      request,
+    }) => {
       const targetUrl = `http://127.0.0.1:${ADV_SEC_PORT}/health`;
-      
+
       // Simulate multiple requests from same forwarded IP
       const spoofedIp = "203.0.113.1";
-      
+
       for (let i = 0; i < 5; i++) {
         const response = await request.get(targetUrl, {
-          headers: { "X-Forwarded-For": spoofedIp }
+          headers: { "X-Forwarded-For": spoofedIp },
         });
         expect(response.status()).toBe(200); // health bypasses rate limit
       }
-      
+
       // Hit an endpoint that DOES rate limit
       // Set to 110 requests to breach the default 100 max limit
       for (let i = 0; i < 110; i++) {
-        const response = await request.get(`http://127.0.0.1:${ADV_SEC_PORT}/`, {
-          headers: { "X-Forwarded-For": spoofedIp }
-        });
-        
+        const response = await request.get(
+          `http://127.0.0.1:${ADV_SEC_PORT}/`,
+          {
+            headers: { "X-Forwarded-For": spoofedIp },
+          },
+        );
+
         if (i >= 105) {
           // Should trigger 429 eventually
           expect([200, 429]).toContain(response.status());
@@ -80,36 +93,39 @@ test.describe("Advanced HTTP Transport Security", () => {
 
     test("should drop connection if headers take too long (Slowloris protection)", async () => {
       return new Promise<void>((resolve, reject) => {
-        const client = createConnection({ port: SLOWLORIS_PORT, host: "localhost" }, () => {
-          // Send incomplete headers slowly
-          client.write("GET /health HTTP/1.1\\r\\n");
-          client.write("Host: localhost\\r\\n");
-          
-          // Trickle data to keep socket active but headers incomplete
-          const interval = setInterval(() => {
-            if (!client.destroyed) {
-              client.write("X-Slow: 1\\r\\n");
-            }
-          }, 300);
+        const client = createConnection(
+          { port: SLOWLORIS_PORT, host: "localhost" },
+          () => {
+            // Send incomplete headers slowly
+            client.write("GET /health HTTP/1.1\\r\\n");
+            client.write("Host: localhost\\r\\n");
 
-          const timeout = setTimeout(() => {
-            clearInterval(interval);
-            client.destroy();
-            reject(new Error("Socket did not close within expected timeout"));
-          }, 3500); // Should timeout at 1000ms
+            // Trickle data to keep socket active but headers incomplete
+            const interval = setInterval(() => {
+              if (!client.destroyed) {
+                client.write("X-Slow: 1\\r\\n");
+              }
+            }, 300);
 
-          client.on("close", () => {
-            clearInterval(interval);
-            clearTimeout(timeout);
-            resolve();
-          });
-          
-          client.on("error", (err) => {
-            clearInterval(interval);
-            clearTimeout(timeout);
-            resolve();
-          });
-        });
+            const timeout = setTimeout(() => {
+              clearInterval(interval);
+              client.destroy();
+              reject(new Error("Socket did not close within expected timeout"));
+            }, 3500); // Should timeout at 1000ms
+
+            client.on("close", () => {
+              clearInterval(interval);
+              clearTimeout(timeout);
+              resolve();
+            });
+
+            client.on("error", (err) => {
+              clearInterval(interval);
+              clearTimeout(timeout);
+              resolve();
+            });
+          },
+        );
       });
     });
   });

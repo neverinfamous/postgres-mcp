@@ -21,7 +21,8 @@ const TOTAL_TOOLS = Object.values(TOOL_GROUPS).flat().length;
 /** Helper to sum sizes of named groups */
 function groupSum(...groups: string[]): number {
   return groups.reduce(
-    (sum, g) => sum + ((TOOL_GROUPS as Record<string, string[]>)[g]?.length ?? 0),
+    (sum, g) =>
+      sum + ((TOOL_GROUPS as Record<string, string[]>)[g]?.length ?? 0),
     0,
   );
 }
@@ -62,10 +63,15 @@ describe("TOOL_GROUPS", () => {
   it("should have non-empty groups with no duplicate tools", () => {
     const allTools: string[] = [];
     for (const [group, tools] of Object.entries(TOOL_GROUPS)) {
-      expect(tools.length, `group "${group}" should not be empty`).toBeGreaterThan(0);
+      expect(
+        tools.length,
+        `group "${group}" should not be empty`,
+      ).toBeGreaterThan(0);
       // Every tool should follow pg_ naming convention
       for (const tool of tools) {
-        expect(tool, `tool in "${group}" should start with pg_`).toMatch(/^pg_/);
+        expect(tool, `tool in "${group}" should start with pg_`).toMatch(
+          /^pg_/,
+        );
       }
       allTools.push(...tools);
     }
@@ -79,8 +85,6 @@ describe("TOOL_GROUPS", () => {
     expect(totalTools).toBe(TOTAL_TOOLS);
   });
 });
-
-
 
 describe("getAllToolNames", () => {
   it("should return all tool names", () => {
@@ -120,8 +124,6 @@ describe("getToolGroup", () => {
   });
 });
 
-
-
 describe("parseToolFilter", () => {
   it("should return all tools enabled for empty filter", () => {
     const config = parseToolFilter("");
@@ -150,16 +152,12 @@ describe("parseToolFilter", () => {
     expect(config.enabledTools.has("pg_jsonb_extract")).toBe(true);
   });
 
-
-
   it("should enable tools with + prefix", () => {
     const config = parseToolFilter("-core,+pg_read_query");
     // Disabled all 20 core tools, re-enabled 1
     expect(config.enabledTools.has("pg_read_query")).toBe(true);
     expect(config.enabledTools.has("pg_write_query")).toBe(false);
   });
-
-
 
   it("should process rules left-to-right", () => {
     // First enable core, then disable pg_read_query
@@ -275,8 +273,6 @@ describe("getFilterSummary", () => {
     expect(summary).toContain("-core");
     expect(summary).toContain("group");
   });
-
-
 
   it("should show per-group breakdown", () => {
     const config = parseToolFilter("-vector");

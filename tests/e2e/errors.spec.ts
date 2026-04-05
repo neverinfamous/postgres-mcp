@@ -16,7 +16,9 @@ test.describe("Structured Error Responses", () => {
 
   test.beforeAll(async () => {
     const transport = new SSEClientTransport(
-      new URL(`${process.env.MCP_TEST_URL || `${process.env.MCP_TEST_URL || 'http://127.0.0.1:3000'}`}/sse`),
+      new URL(
+        `${process.env.MCP_TEST_URL || `${process.env.MCP_TEST_URL || "http://127.0.0.1:3000"}`}/sse`,
+      ),
     );
     client = new Client(
       { name: "playwright-errors-test", version: "1.0.0" },
@@ -46,7 +48,7 @@ test.describe("Structured Error Responses", () => {
       name: "pg_read_query",
       arguments: {
         query:
-          'SELECT nonexistent_column_xyz FROM information_schema.tables LIMIT 1',
+          "SELECT nonexistent_column_xyz FROM information_schema.tables LIMIT 1",
       },
     });
 

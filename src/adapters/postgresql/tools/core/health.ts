@@ -39,121 +39,121 @@ export function createAnalyzeDbHealthTool(
     icons: getToolIcons("core", readOnly("Analyze Database Health")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-      const { includeIndexes, includeVacuum, includeConnections } =
-        AnalyzeDbHealthSchema.parse(params);
+        const { includeIndexes, includeVacuum, includeConnections } =
+          AnalyzeDbHealthSchema.parse(params);
 
-      interface DbHealthReport {
-        cacheHitRatio?:
-          | {
-              ratio: number | null; // Primary numeric value
-              heap: number | null;
-              index: number | null;
-              status: string;
-            }
-          | undefined;
-        databaseSize?: string | undefined;
-        tableStats?: Record<string, unknown> | undefined;
-        unusedIndexes?: number | undefined;
-        tablesNeedingVacuum?: number | undefined;
-        connections?: Record<string, unknown> | undefined;
-        isReplica?: boolean | undefined;
-        overallScore?: number | undefined;
-        overallStatus?: string | undefined;
-        bloat?:
-          | {
-              tableBloatBytes: number;
-              indexBloatBytes: number;
-              totalBloatBytes: number;
-              tablesWithBloat: number;
-            }
-          | undefined;
-      }
+        interface DbHealthReport {
+          cacheHitRatio?:
+            | {
+                ratio: number | null; // Primary numeric value
+                heap: number | null;
+                index: number | null;
+                status: string;
+              }
+            | undefined;
+          databaseSize?: string | undefined;
+          tableStats?: Record<string, unknown> | undefined;
+          unusedIndexes?: number | undefined;
+          tablesNeedingVacuum?: number | undefined;
+          connections?: Record<string, unknown> | undefined;
+          isReplica?: boolean | undefined;
+          overallScore?: number | undefined;
+          overallStatus?: string | undefined;
+          bloat?:
+            | {
+                tableBloatBytes: number;
+                indexBloatBytes: number;
+                totalBloatBytes: number;
+                tablesWithBloat: number;
+              }
+            | undefined;
+        }
 
-      const health: DbHealthReport = {};
+        const health: DbHealthReport = {};
 
-      // Cache hit ratio
-      const cacheQuery = `
+        // Cache hit ratio
+        const cacheQuery = `
                 SELECT
                     sum(heap_blks_hit) / NULLIF(sum(heap_blks_hit) + sum(heap_blks_read), 0) as heap_hit_ratio,
                     sum(idx_blks_hit) / NULLIF(sum(idx_blks_hit) + sum(idx_blks_read), 0) as index_hit_ratio
                 FROM pg_statio_user_tables
             `;
-      const cacheResult = await adapter.executeQuery(cacheQuery);
-      const cacheRow = cacheResult.rows?.[0] as
-        | { heap_hit_ratio: number | null; index_hit_ratio: number | null }
-        | undefined;
+        const cacheResult = await adapter.executeQuery(cacheQuery);
+        const cacheRow = cacheResult.rows?.[0] as
+          | { heap_hit_ratio: number | null; index_hit_ratio: number | null }
+          | undefined;
 
-      if (cacheRow) {
-        const heapRatio =
-          cacheRow.heap_hit_ratio !== null
-            ? Number((cacheRow.heap_hit_ratio * 100).toFixed(2))
-            : null;
-        health.cacheHitRatio = {
-          ratio: heapRatio, // Primary numeric value for easy access
-          heap: heapRatio,
-          index:
-            cacheRow.index_hit_ratio !== null
-              ? Number((cacheRow.index_hit_ratio * 100).toFixed(2))
-              : null,
-          status:
-            (cacheRow.heap_hit_ratio ?? 0) > 0.95
-              ? "good"
-              : (cacheRow.heap_hit_ratio ?? 0) > 0.8
-                ? "fair"
-                : "poor",
-        };
-      }
+        if (cacheRow) {
+          const heapRatio =
+            cacheRow.heap_hit_ratio !== null
+              ? Number((cacheRow.heap_hit_ratio * 100).toFixed(2))
+              : null;
+          health.cacheHitRatio = {
+            ratio: heapRatio, // Primary numeric value for easy access
+            heap: heapRatio,
+            index:
+              cacheRow.index_hit_ratio !== null
+                ? Number((cacheRow.index_hit_ratio * 100).toFixed(2))
+                : null,
+            status:
+              (cacheRow.heap_hit_ratio ?? 0) > 0.95
+                ? "good"
+                : (cacheRow.heap_hit_ratio ?? 0) > 0.8
+                  ? "fair"
+                  : "poor",
+          };
+        }
 
-      // Database size
-      const sizeQuery = `SELECT pg_size_pretty(pg_database_size(current_database())) as size`;
-      const sizeResult = await adapter.executeQuery(sizeQuery);
-      if (sizeResult.rows && sizeResult.rows.length > 0) {
-        health.databaseSize = (sizeResult.rows[0] as { size: string }).size;
-      }
+        // Database size
+        const sizeQuery = `SELECT pg_size_pretty(pg_database_size(current_database())) as size`;
+        const sizeResult = await adapter.executeQuery(sizeQuery);
+        if (sizeResult.rows && sizeResult.rows.length > 0) {
+          health.databaseSize = (sizeResult.rows[0] as { size: string }).size;
+        }
 
-      // Table count and total rows estimate
-      const statsQuery = `
+        // Table count and total rows estimate
+        const statsQuery = `
                 SELECT
                     COUNT(*) as table_count,
                     SUM(n_live_tup) as total_rows
                 FROM pg_stat_user_tables
             `;
-      const statsResult = await adapter.executeQuery(statsQuery);
-      if (statsResult.rows && statsResult.rows.length > 0) {
-        health.tableStats = statsResult.rows[0];
-      }
+        const statsResult = await adapter.executeQuery(statsQuery);
+        if (statsResult.rows && statsResult.rows.length > 0) {
+          health.tableStats = statsResult.rows[0];
+        }
 
-      if (includeIndexes !== false) {
-        const unusedQuery = `
+        if (includeIndexes !== false) {
+          const unusedQuery = `
                     SELECT COUNT(*) as unused_count
                     FROM pg_stat_user_indexes
                     WHERE idx_scan = 0 AND idx_tup_read = 0
                 `;
-        const unusedResult = await adapter.executeQuery(unusedQuery);
-        if (unusedResult.rows && unusedResult.rows.length > 0) {
-          health.unusedIndexes = (
-            unusedResult.rows[0] as { unused_count: number }
-          ).unused_count;
+          const unusedResult = await adapter.executeQuery(unusedQuery);
+          if (unusedResult.rows && unusedResult.rows.length > 0) {
+            health.unusedIndexes = (
+              unusedResult.rows[0] as { unused_count: number }
+            ).unused_count;
+          }
         }
-      }
 
-      if (includeVacuum !== false) {
-        const vacuumQuery = `
+        if (includeVacuum !== false) {
+          const vacuumQuery = `
                     SELECT COUNT(*) as tables_needing_vacuum
                     FROM pg_stat_user_tables
                     WHERE n_dead_tup > n_live_tup * 0.1
                     AND n_dead_tup > 1000
                 `;
-        const vacuumResult = await adapter.executeQuery(vacuumQuery);
-        if (vacuumResult.rows && vacuumResult.rows.length > 0) {
-          health.tablesNeedingVacuum = (
-            vacuumResult.rows[0] as { tables_needing_vacuum: number }
-          ).tables_needing_vacuum;
+          const vacuumResult = await adapter.executeQuery(vacuumQuery);
+          if (vacuumResult.rows && vacuumResult.rows.length > 0) {
+            health.tablesNeedingVacuum = (
+              vacuumResult.rows[0] as { tables_needing_vacuum: number }
+            ).tables_needing_vacuum;
+          }
         }
-      }
 
-      if (includeConnections !== false) {
-        const connQuery = `
+        if (includeConnections !== false) {
+          const connQuery = `
                     SELECT
                         COUNT(*) as total,
                         COUNT(*) FILTER (WHERE state = 'active') as active,
@@ -163,14 +163,14 @@ export function createAnalyzeDbHealthTool(
                     FROM pg_stat_activity
                     WHERE backend_type = 'client backend'
                 `;
-        const connResult = await adapter.executeQuery(connQuery);
-        if (connResult.rows && connResult.rows.length > 0) {
-          health.connections = connResult.rows[0];
+          const connResult = await adapter.executeQuery(connQuery);
+          if (connResult.rows && connResult.rows.length > 0) {
+            health.connections = connResult.rows[0];
+          }
         }
-      }
 
-      // Bloat analysis (estimate based on dead tuples)
-      const bloatQuery = `
+        // Bloat analysis (estimate based on dead tuples)
+        const bloatQuery = `
                 SELECT
                     COALESCE(SUM(pg_relation_size(c.oid) * GREATEST(0, 1 - n_live_tup::float / NULLIF(reltuples, 0))), 0)::bigint as table_bloat_bytes,
                     COALESCE(SUM(pg_indexes_size(c.oid) * GREATEST(0, 1 - n_live_tup::float / NULLIF(reltuples, 0))), 0)::bigint as index_bloat_bytes,
@@ -179,56 +179,62 @@ export function createAnalyzeDbHealthTool(
                 JOIN pg_class c ON c.relname = s.relname
                 JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = s.schemaname
             `;
-      try {
-        const bloatResult = await adapter.executeQuery(bloatQuery);
-        if (bloatResult.rows && bloatResult.rows.length > 0) {
-          const row = bloatResult.rows[0] as {
-            table_bloat_bytes: bigint;
-            index_bloat_bytes: bigint;
-            tables_with_bloat: number;
-          };
-          const tableBloat = Number(row.table_bloat_bytes) || 0;
-          const indexBloat = Number(row.index_bloat_bytes) || 0;
-          health.bloat = {
-            tableBloatBytes: tableBloat,
-            indexBloatBytes: indexBloat,
-            totalBloatBytes: tableBloat + indexBloat,
-            tablesWithBloat: row.tables_with_bloat,
-          };
+        try {
+          const bloatResult = await adapter.executeQuery(bloatQuery);
+          if (bloatResult.rows && bloatResult.rows.length > 0) {
+            const row = bloatResult.rows[0] as {
+              table_bloat_bytes: bigint;
+              index_bloat_bytes: bigint;
+              tables_with_bloat: number;
+            };
+            const tableBloat = Number(row.table_bloat_bytes) || 0;
+            const indexBloat = Number(row.index_bloat_bytes) || 0;
+            health.bloat = {
+              tableBloatBytes: tableBloat,
+              indexBloatBytes: indexBloat,
+              totalBloatBytes: tableBloat + indexBloat,
+              tablesWithBloat: row.tables_with_bloat,
+            };
+          }
+        } catch (error: unknown) {
+          logger.warn("Bloat estimation unavailable", {
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
+
+        // Replication status
+        const replQuery = `SELECT pg_is_in_recovery() as is_replica`;
+        const replResult = await adapter.executeQuery(replQuery);
+        if (replResult.rows && replResult.rows.length > 0) {
+          health.isReplica = (
+            replResult.rows[0] as { is_replica: boolean }
+          ).is_replica;
+        }
+
+        // Overall health score
+        let score = 100;
+        if (
+          health.cacheHitRatio?.heap !== null &&
+          health.cacheHitRatio?.heap !== undefined &&
+          (health.cacheHitRatio?.heap ?? 100) < 95
+        )
+          score -= 20;
+        if ((health.unusedIndexes ?? 0) > 10) score -= 10;
+        if ((health.tablesNeedingVacuum ?? 0) > 5) score -= 15;
+
+        health.overallScore = Math.max(0, score);
+        health.overallStatus =
+          score >= 80
+            ? "healthy"
+            : score >= 60
+              ? "needs_attention"
+              : "critical";
+
+        return health;
       } catch (error: unknown) {
-        logger.warn("Bloat estimation unavailable", {
-          error: error instanceof Error ? error.message : String(error),
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_analyze_db_health",
         });
-      }
-
-      // Replication status
-      const replQuery = `SELECT pg_is_in_recovery() as is_replica`;
-      const replResult = await adapter.executeQuery(replQuery);
-      if (replResult.rows && replResult.rows.length > 0) {
-        health.isReplica = (
-          replResult.rows[0] as { is_replica: boolean }
-        ).is_replica;
-      }
-
-      // Overall health score
-      let score = 100;
-      if (
-        health.cacheHitRatio?.heap !== null &&
-        health.cacheHitRatio?.heap !== undefined &&
-        (health.cacheHitRatio?.heap ?? 100) < 95
-      )
-        score -= 20;
-      if ((health.unusedIndexes ?? 0) > 10) score -= 10;
-      if ((health.tablesNeedingVacuum ?? 0) > 5) score -= 15;
-
-      health.overallScore = Math.max(0, score);
-      health.overallStatus =
-        score >= 80 ? "healthy" : score >= 60 ? "needs_attention" : "critical";
-
-      return health;
-      } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_analyze_db_health" });
       }
     },
   };
@@ -297,9 +303,9 @@ export function createAnalyzeQueryIndexesTool(
           result = await adapter.executeQuery(explainSql, queryParams);
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
-              tool: "pg_analyze_query_indexes",
-              sql,
-            });
+            tool: "pg_analyze_query_indexes",
+            sql,
+          });
         }
 
         if (!result.rows || result.rows.length === 0) {
@@ -426,8 +432,8 @@ export function createAnalyzeQueryIndexesTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_analyze_query_indexes",
-          });
+          tool: "pg_analyze_query_indexes",
+        });
       }
     },
   };

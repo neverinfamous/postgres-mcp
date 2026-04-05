@@ -371,7 +371,9 @@ describe("pg_stats_percentiles", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain('Table "public.missing_table" does not exist');
+    expect(result.error).toContain(
+      'Table "public.missing_table" does not exist',
+    );
   });
 
   it("should throw error for non-numeric column in percentiles", async () => {
@@ -534,9 +536,7 @@ describe("pg_stats_correlation", () => {
       mockContext,
     )) as { success: boolean; error: string };
     expect(result.success).toBe(false);
-    expect(result.error).toContain(
-      'Column "nonexistent_col" does not exist',
-    );
+    expect(result.error).toContain('Column "nonexistent_col" does not exist');
   });
 });
 
@@ -2265,7 +2265,7 @@ describe("pg_stats_time_series optional params", () => {
       },
       mockContext,
     )) as { success: boolean; error: string; code?: string };
-    
+
     expect(result.success).toBe(false);
     expect(result.code).toBe("VALIDATION_ERROR");
     expect(result.error).toContain("must be greater than 0");
@@ -3721,7 +3721,12 @@ describe("pg_stats_distinct", () => {
     const result = (await tool.handler(
       { table: "users", column: "status" },
       mockContext,
-    )) as { success: boolean; column: string; distinctCount: number; values: unknown[] };
+    )) as {
+      success: boolean;
+      column: string;
+      distinctCount: number;
+      values: unknown[];
+    };
 
     expect(result.success).toBe(true);
     expect(result.column).toBe("status");
@@ -3763,7 +3768,11 @@ describe("pg_stats_frequency", () => {
       success: boolean;
       column: string;
       distinctValues: number;
-      distribution: Array<{ value: string; frequency: number; percentage: number }>;
+      distribution: Array<{
+        value: string;
+        frequency: number;
+        percentage: number;
+      }>;
     };
 
     expect(result.success).toBe(true);
@@ -3834,10 +3843,7 @@ describe("pg_stats_summary", () => {
   it("should auto-detect numeric columns when none specified", async () => {
     // Mock column discovery
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [
-        { column_name: "price" },
-        { column_name: "quantity" },
-      ],
+      rows: [{ column_name: "price" }, { column_name: "quantity" }],
     });
     // Mock summary query
     mockAdapter.executeQuery.mockResolvedValueOnce({
@@ -3858,10 +3864,9 @@ describe("pg_stats_summary", () => {
     });
 
     const tool = tools.find((t) => t.name === "pg_stats_summary")!;
-    const result = (await tool.handler(
-      { table: "orders" },
-      mockContext,
-    )) as { summaries: unknown[] };
+    const result = (await tool.handler({ table: "orders" }, mockContext)) as {
+      summaries: unknown[];
+    };
 
     expect(result.summaries).toHaveLength(2);
     // First call should query information_schema for numeric columns
@@ -3891,9 +3896,7 @@ describe("pg_stats_summary", () => {
 
   it("should throw validation error when explicitly specified column does not exist", async () => {
     mockAdapter.executeQuery.mockResolvedValueOnce({
-      rows: [
-        { column_name: "price", data_type: "numeric" },
-      ],
+      rows: [{ column_name: "price", data_type: "numeric" }],
     });
 
     const tool = tools.find((t) => t.name === "pg_stats_summary")!;
@@ -3906,4 +3909,3 @@ describe("pg_stats_summary", () => {
     expect(result.code).toBe("VALIDATION_ERROR");
   });
 });
-

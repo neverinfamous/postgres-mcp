@@ -91,7 +91,8 @@ export class ConnectionPool {
 
       // Apply statement timeout: defaults to 30s to prevent runaway queries.
       // Explicit 0 disables it; explicit positive value overrides the default.
-      const timeout = this.config.statementTimeout ?? DEFAULT_STATEMENT_TIMEOUT_MS;
+      const timeout =
+        this.config.statementTimeout ?? DEFAULT_STATEMENT_TIMEOUT_MS;
       if (timeout > 0) {
         poolConfig.statement_timeout = timeout;
       }

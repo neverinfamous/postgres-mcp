@@ -9,8 +9,6 @@ import type { ResourceDefinition } from "../../../types/index.js";
 import { LOW_PRIORITY } from "../../../utils/resource-annotations.js";
 import { toStr } from "../../../utils/query-helpers.js";
 
-
-
 interface CronResourceData {
   extensionInstalled: boolean;
   extensionVersion: string | null;

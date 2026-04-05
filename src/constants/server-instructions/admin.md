@@ -3,7 +3,7 @@
 Core: `vacuum()`, `vacuumAnalyze()`, `analyze()`, `reindex()`, `cluster()`, `setConfig()`, `reloadConf()`, `resetStats()`, `cancelBackend()`, `terminateBackend()`, `appendInsight()`
 
 - All admin tools support `schema.table` format (auto-parsed, embedded schema takes priority over explicit `schema` param)
-- `vacuum({ table?, full?, analyze?, verbose? })`: Without `table`, vacuums ALL tables. `verbose` output goes to logs. Note: Vacuum timing logic triggers log progress feedback *after* validation execution correctly.
+- `vacuum({ table?, full?, analyze?, verbose? })`: Without `table`, vacuums ALL tables. `verbose` output goes to logs. Note: Vacuum timing logic triggers log progress feedback _after_ validation execution correctly.
 - `reindex({ target, name?, concurrently? })`: Targets: 'table', 'index', 'schema', 'database'. `database` target defaults to current db when `name` omitted
 - `cluster()`: Without args, re-clusters all previously-clustered tables. If `index` is specified, `table` is also required.
 - `setConfig({ name, value, isLocal? })`: `isLocal: true` applies only to current transaction
@@ -18,7 +18,7 @@ Aliases: `tableName`→`table`, `indexName`→`index`, `param`/`setting`→`name
 **Discovery**: `pg.admin.help()` returns `{methods, methodAliases, examples}` object
 
 **Response structures**:
-*(Note: All operations strictly adhere to P154 error handling, returning `{success: false, error: "...", code: "..."}` natively for domain errors and Zod validation failures).*
+_(Note: All operations strictly adhere to P154 error handling, returning `{success: false, error: "...", code: "..."}` natively for domain errors and Zod validation failures)._
 
 - `vacuum()` / `vacuumAnalyze()`: `{success, message, table?, schema?, hint?}`
 - `analyze()`: `{success, message, table?, schema?, hint?}`

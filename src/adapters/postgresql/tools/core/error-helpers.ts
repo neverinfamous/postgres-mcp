@@ -122,15 +122,15 @@ export function formatHandlerErrorResponse(
   } catch (structured: unknown) {
     const message =
       structured instanceof Error ? structured.message : String(structured);
-    
+
     // Instantiate a QueryError to seamlessly apply auto-refinements via findSuggestion mapped to ERROR_SUGGESTIONS
     // This allows converting "Query error: Table X not found" into "TABLE_NOT_FOUND" code.
     const queryError = new QueryError(
-      message, 
-      undefined, 
-      structured instanceof Error ? { cause: structured } : undefined
+      message,
+      undefined,
+      structured instanceof Error ? { cause: structured } : undefined,
     );
-    
+
     return queryError.toResponse();
   }
 

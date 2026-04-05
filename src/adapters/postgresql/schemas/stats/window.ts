@@ -206,10 +206,7 @@ export const WindowRankOutputSchema = z
 export const WindowLagLeadOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether the operation succeeded"),
-    direction: z
-      .string()
-      .optional()
-      .describe("Direction used (lag or lead)"),
+    direction: z.string().optional().describe("Direction used (lag or lead)"),
     offset: z.number().optional().describe("Offset used"),
     rowCount: z.number().optional().describe("Number of rows returned"),
     rows: z

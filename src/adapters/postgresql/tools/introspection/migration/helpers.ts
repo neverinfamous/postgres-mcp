@@ -101,7 +101,7 @@ export async function checkDuplicateHash(
           `Use a different migration SQL or roll back the existing one first.`,
         code: "DUPLICATE_MIGRATION",
         category: "validation",
-        recoverable: true
+        recoverable: true,
       },
     };
   }
@@ -135,6 +135,10 @@ export function formatRecord(row: Record<string, unknown>): FormattedRecord {
     migrationHash: row["migration_hash"] as string,
     sourceSystem: (row["source_system"] as string | null) ?? null,
     status: row["status"] as string,
-    ...(row["error_information"] !== undefined ? { errorInformation: (row["error_information"] as string | null) ?? null } : {})
+    ...(row["error_information"] !== undefined
+      ? {
+          errorInformation: (row["error_information"] as string | null) ?? null,
+        }
+      : {}),
   };
 }

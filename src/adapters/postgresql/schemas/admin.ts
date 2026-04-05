@@ -56,7 +56,10 @@ export const VacuumSchemaBase = z.object({
   analyze: z.boolean().optional().describe("Update statistics"),
   verbose: z.boolean().optional().describe("Print progress"),
   skipLocked: z.boolean().optional().describe("Skip locked relations"),
-  truncate: z.boolean().optional().describe("Truncate empty pages at the end of the table"),
+  truncate: z
+    .boolean()
+    .optional()
+    .describe("Truncate empty pages at the end of the table"),
 });
 
 // Preprocess schema for handlers (resolves aliases and parses schema.table)
@@ -69,19 +72,24 @@ export const VacuumSchema = z.preprocess(
     analyze: z.boolean().optional().describe("Update statistics"),
     verbose: z.boolean().optional().describe("Print progress"),
     skipLocked: z.boolean().optional().describe("Skip locked relations"),
-    truncate: z.boolean().optional().describe("Truncate empty pages at the end of the table"),
+    truncate: z
+      .boolean()
+      .optional()
+      .describe("Truncate empty pages at the end of the table"),
   }),
 );
 
 // Output schema for MCP 2025-11-25 structuredContent
-export const VacuumOutputSchema = z.object({
-  success: z.boolean().describe("Whether the vacuum operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  table: z.string().optional().describe("Table that was vacuumed"),
-  schema: z.string().optional().describe("Schema of the table"),
-  hint: z.string().optional().describe("Additional information"),
-}).extend(ErrorResponseFields.shape);
+export const VacuumOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the vacuum operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    table: z.string().optional().describe("Table that was vacuumed"),
+    schema: z.string().optional().describe("Schema of the table"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // ============== ANALYZE SCHEMA ==============
 // Base schema for MCP visibility
@@ -188,8 +196,9 @@ export const ReindexSchema = z
       return true;
     },
     {
-      message: "target must be one of 'table', 'index', 'schema', 'database', or 'system'",
-    }
+      message:
+        "target must be one of 'table', 'index', 'schema', 'database', or 'system'",
+    },
   )
   .refine(
     (data) => {
@@ -354,7 +363,9 @@ export const ClusterSchema = z
       index: z
         .string()
         .optional()
-        .describe("Index to cluster on (optional if table previously clustered)"),
+        .describe(
+          "Index to cluster on (optional if table previously clustered)",
+        ),
       schema: z.string().optional(),
     }),
   )
@@ -375,65 +386,75 @@ export const ClusterSchema = z
 // ============== OUTPUT SCHEMAS (MCP 2025-11-25 structuredContent) ==============
 
 // Output schema for ANALYZE operations
-export const AnalyzeOutputSchema = z.object({
-  success: z.boolean().describe("Whether the analyze operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  table: z.string().optional().describe("Table that was analyzed"),
-  schema: z.string().optional().describe("Schema of the table"),
-  hint: z.string().optional().describe("Additional information"),
-}).extend(ErrorResponseFields.shape);
+export const AnalyzeOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the analyze operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    table: z.string().optional().describe("Table that was analyzed"),
+    schema: z.string().optional().describe("Schema of the table"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for REINDEX operations
-export const ReindexOutputSchema = z.object({
-  success: z.boolean().describe("Whether the reindex operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  target: z
-    .string()
-    .optional()
-    .describe("What was reindexed (table/index/schema/database)"),
-  name: z.string().optional().describe("Name of the reindexed object"),
-  concurrently: z
-    .boolean()
-    .optional()
-    .describe("Whether concurrent reindex was used"),
-  hint: z.string().optional().describe("Additional information"),
-}).extend(ErrorResponseFields.shape);
+export const ReindexOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the reindex operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    target: z
+      .string()
+      .optional()
+      .describe("What was reindexed (table/index/schema/database)"),
+    name: z.string().optional().describe("Name of the reindexed object"),
+    concurrently: z
+      .boolean()
+      .optional()
+      .describe("Whether concurrent reindex was used"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for CLUSTER operations
-export const ClusterOutputSchema = z.object({
-  success: z.boolean().describe("Whether the cluster operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  table: z.string().optional().describe("Table that was clustered"),
-  index: z.string().optional().describe("Index used for clustering"),
-  hint: z.string().optional().describe("Additional information"),
-}).extend(ErrorResponseFields.shape);
+export const ClusterOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the cluster operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    table: z.string().optional().describe("Table that was clustered"),
+    index: z.string().optional().describe("Index used for clustering"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for backend operations (terminate/cancel)
-export const BackendOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  pid: z.number().optional().describe("Process ID that was affected"),
-  hint: z.string().optional().describe("Additional information"),
-}).extend(ErrorResponseFields.shape);
+export const BackendOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    pid: z.number().optional().describe("Process ID that was affected"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for configuration operations (reload_conf, set_config, reset_stats)
-export const ConfigOutputSchema = z.object({
-  success: z.boolean().describe("Whether the operation succeeded"),
-  message: z.string().optional().describe("Human-readable result message"),
-  error: z.string().optional().describe("Error message if operation failed"),
-  parameter: z
-    .string()
-    .optional()
-    .describe("Configuration parameter name (set_config)"),
-  value: z
-    .string()
-    .optional()
-    .describe("Configuration parameter value (set_config)"),
-  hint: z.string().optional().describe("Additional information"),
-}).extend(ErrorResponseFields.shape);
+export const ConfigOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the operation succeeded"),
+    message: z.string().optional().describe("Human-readable result message"),
+    error: z.string().optional().describe("Error message if operation failed"),
+    parameter: z
+      .string()
+      .optional()
+      .describe("Configuration parameter name (set_config)"),
+    value: z
+      .string()
+      .optional()
+      .describe("Configuration parameter value (set_config)"),
+    hint: z.string().optional().describe("Additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // ============== INSIGHT SCHEMAS ==============
 // Base schema for MCP visibility
@@ -454,7 +475,7 @@ export const AppendInsightSchema = z.preprocess(
   },
   z.object({
     insight: z.string().describe("Business insight to record"),
-  })
+  }),
 );
 
 export const AppendInsightOutputSchema = z

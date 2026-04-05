@@ -92,10 +92,8 @@ function buildApiProxy(
       continue;
     }
 
-    const groupProxy: Record<
-      string,
-      (...args: unknown[]) => Promise<unknown>
-    > = {};
+    const groupProxy: Record<string, (...args: unknown[]) => Promise<unknown>> =
+      {};
 
     for (const methodName of methodNames) {
       groupProxy[methodName] = (...args: unknown[]) =>
@@ -146,8 +144,7 @@ function buildApiProxy(
     return Promise.resolve({
       groups,
       totalMethods,
-      usage:
-        "Use pg.<group>.help() for group details. Example: pg.core.help()",
+      usage: "Use pg.<group>.help() for group details. Example: pg.core.help()",
     });
   };
 

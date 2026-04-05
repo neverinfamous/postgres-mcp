@@ -20,7 +20,8 @@ export function createSafeRestoreWorkflowPrompt(): PromptDefinition {
     arguments: [
       {
         name: "snapshot",
-        description: "Snapshot filename or target table name (optional — helps customize guidance)",
+        description:
+          "Snapshot filename or target table name (optional — helps customize guidance)",
         required: false,
       },
     ],

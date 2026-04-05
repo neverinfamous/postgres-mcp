@@ -259,11 +259,7 @@ test.describe("Zod Sweep: Schema", () => {
 // =============================================================================
 
 test.describe("Zod Sweep: Backup", () => {
-  const tools = [
-    "pg_dump_table",
-    "pg_copy_export",
-    "pg_copy_import",
-  ];
+  const tools = ["pg_dump_table", "pg_copy_export", "pg_copy_import"];
 
   for (const tool of tools) {
     test(`${tool}({}) → handler error`, async ({}, testInfo) => {
@@ -410,7 +406,7 @@ test.describe("Zod Sweep: Minor Extensions & Monitoring", () => {
     "pg_partman_check_default",
     "pg_partman_partition_data",
     "pg_partman_set_retention",
-    "pg_partman_undo_partition"
+    "pg_partman_undo_partition",
   ];
 
   for (const tool of tools) {
@@ -419,4 +415,3 @@ test.describe("Zod Sweep: Minor Extensions & Monitoring", () => {
     });
   }
 });
-

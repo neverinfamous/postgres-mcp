@@ -61,8 +61,8 @@ export function createVectorIndexOptimizeTool(
           return {
             success: false,
             error: "table (or tableName) parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column"],
           };
         }
@@ -70,8 +70,8 @@ export function createVectorIndexOptimizeTool(
           return {
             success: false,
             error: "column (or col) parameter is required",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             requiredParams: ["table", "column"],
           };
         }
@@ -193,8 +193,8 @@ export function createVectorIndexOptimizeTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_vector_index_optimize",
-          });
+          tool: "pg_vector_index_optimize",
+        });
       }
     },
   };
@@ -222,13 +222,19 @@ export function createVectorDimensionReduceTool(
       .string()
       .optional()
       .describe("ID column to include in results (default: id)"),
-    limit: z.preprocess(coerceNumber, z.number().optional()).describe("Max rows to process (default: 20, max: 100)"),
+    limit: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Max rows to process (default: 20, max: 100)"),
     // Common parameters - targetDimensions is required
     targetDimensions: z
       .preprocess(coerceNumber, z.number().optional())
       .describe("Target number of dimensions"),
-    dimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Alias for targetDimensions"),
-    seed: z.preprocess(coerceNumber, z.number().optional()).describe("Random seed for reproducibility"),
+    dimensions: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Alias for targetDimensions"),
+    seed: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Random seed for reproducibility"),
     summarize: z
       .boolean()
       .optional()
@@ -300,14 +306,16 @@ export function createVectorDimensionReduceTool(
         // Refine guarantees targetDimensions is defined, but add explicit check for type narrowing
         const targetDim = parsed.targetDimensions;
         if (targetDim === undefined) {
-          throw new ValidationError("targetDimensions (or dimensions alias) is required");
+          throw new ValidationError(
+            "targetDimensions (or dimensions alias) is required",
+          );
         }
         if (isNaN(targetDim) || targetDim <= 0) {
           return {
             success: false,
             error: `Validation error: targetDimensions must be a positive number, received "${String(parsed.targetDimensions)}"`,
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion:
               "Provide a positive numeric value for targetDimensions (e.g., 128, 256)",
           };
@@ -443,13 +451,12 @@ export function createVectorDimensionReduceTool(
             "Either vector (for direct mode) or table+column (for table mode) must be provided",
           code: "VALIDATION_ERROR",
           category: "validation",
-          suggestion:
-            "Provide vector: [...] OR table: '...' and column: '...'",
+          suggestion: "Provide vector: [...] OR table: '...' and column: '...'",
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_vector_dimension_reduce",
-          });
+          tool: "pg_vector_dimension_reduce",
+        });
       }
     },
   };
@@ -459,7 +466,9 @@ export function createVectorEmbedTool(): ToolDefinition {
   // Base schema for MCP visibility — text optional to prevent MCP -32602 rejection
   const EmbedSchemaBase = z.object({
     text: z.string().optional().describe("Text to embed"),
-    dimensions: z.preprocess(coerceNumber, z.number().optional()).describe("Vector dimensions (default: 384)"),
+    dimensions: z
+      .preprocess(coerceNumber, z.number().optional())
+      .describe("Vector dimensions (default: 384)"),
     summarize: z
       .boolean()
       .optional()
@@ -485,21 +494,20 @@ export function createVectorEmbedTool(): ToolDefinition {
             success: false,
             error:
               "Validation error: text parameter is required and must be non-empty",
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion: "Provide text content to generate an embedding",
           });
         }
 
-        const dims =
-          parsed.dimensions ?? 384;
+        const dims = parsed.dimensions ?? 384;
 
         if (isNaN(dims) || dims <= 0) {
           return Promise.resolve({
             success: false,
             error: `Validation error: dimensions must be a positive number, received "${String(parsed.dimensions)}"`,
-            code: 'VALIDATION_ERROR',
-            category: 'validation',
+            code: "VALIDATION_ERROR",
+            category: "validation",
             suggestion:
               "Provide a positive numeric value for dimensions (e.g., 384, 768, 1536)",
           });
@@ -539,7 +547,9 @@ export function createVectorEmbedTool(): ToolDefinition {
             "This is a demo embedding using hash functions. For production, use OpenAI, Cohere, or other embedding APIs.",
         });
       } catch (error: unknown) {
-        return Promise.resolve(formatHandlerErrorResponse(error, { tool: "pg_vector_embed" }));
+        return Promise.resolve(
+          formatHandlerErrorResponse(error, { tool: "pg_vector_embed" }),
+        );
       }
     },
   };

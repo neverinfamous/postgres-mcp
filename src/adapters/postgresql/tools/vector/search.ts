@@ -49,13 +49,19 @@ export function createVectorSearchTool(
 
         // Validate required params with clear errors
         if (table === "") {
-          throw new ValidationError("table (or tableName) parameter is required");
+          throw new ValidationError(
+            "table (or tableName) parameter is required",
+          );
         }
         if (column === "") {
-          throw new ValidationError("column (or col) parameter is required for the vector column name");
+          throw new ValidationError(
+            "column (or col) parameter is required for the vector column name",
+          );
         }
         if (!vector || !Array.isArray(vector)) {
-          throw new ValidationError("vector parameter is required and must be an array of numbers");
+          throw new ValidationError(
+            "vector parameter is required and must be an array of numbers",
+          );
         }
 
         const tableName = sanitizeTableName(table, schema);
@@ -137,7 +143,11 @@ export function createVectorSearchTool(
           const finalRows = (result.rows ?? []).map((row) => {
             const newRow = { ...row };
             for (const [k, v] of Object.entries(newRow)) {
-              if (typeof v === "string" && v.startsWith("[") && v.endsWith("]")) {
+              if (
+                typeof v === "string" &&
+                v.startsWith("[") &&
+                v.endsWith("]")
+              ) {
                 const vec = parseVector(v);
                 if (vec) {
                   newRow[k] = truncateVector(vec);
@@ -230,10 +240,14 @@ export function createVectorCreateIndexTool(
 
         // Validate required params with clear errors
         if (table === "") {
-          throw new ValidationError("table (or tableName) parameter is required");
+          throw new ValidationError(
+            "table (or tableName) parameter is required",
+          );
         }
         if (column === "") {
-          throw new ValidationError("column (or col) parameter is required for the vector column name");
+          throw new ValidationError(
+            "column (or col) parameter is required for the vector column name",
+          );
         }
         // Refine guarantees type is defined, but TypeScript can't narrow through .refine()
         if (type === undefined) {
@@ -358,7 +372,9 @@ export function createVectorCreateIndexTool(
           throw error;
         }
       } catch (error: unknown) {
-        return formatHandlerErrorResponse(error, { tool: "pg_vector_create_index" });
+        return formatHandlerErrorResponse(error, {
+          tool: "pg_vector_create_index",
+        });
       }
     },
   };

@@ -15,7 +15,10 @@ import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import { ValidationError } from "../../../../types/errors.js";
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
-import { coerceLimit, DEFAULT_QUERY_LIMIT } from "../../../../utils/query-helpers.js";
+import {
+  coerceLimit,
+  DEFAULT_QUERY_LIMIT,
+} from "../../../../utils/query-helpers.js";
 import {
   sanitizeTableName,
   sanitizeIdentifier,
@@ -104,7 +107,9 @@ export function createJsonbExtractTool(
           ? ` WHERE ${sanitizeWhereClause(parsed.where)}`
           : "";
         const limitClause =
-          limit !== null && limit !== undefined ? ` LIMIT ${String(limit)}` : "";
+          limit !== null && limit !== undefined
+            ? ` LIMIT ${String(limit)}`
+            : "";
 
         // After preprocess and refine, table, column, and path are guaranteed set
         const table = parsed.table ?? parsed.tableName;
@@ -161,7 +166,12 @@ export function createJsonbExtractTool(
             return row;
           });
           const allNulls = rows?.every((r) => r["value"] === null) ?? false;
-          const response: { success: boolean; rows?: unknown; count: number; hint?: string } = {
+          const response: {
+            success: boolean;
+            rows?: unknown;
+            count: number;
+            hint?: string;
+          } = {
             success: true,
             count: rows?.length ?? 0,
           };
@@ -195,8 +205,8 @@ export function createJsonbExtractTool(
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_extract",
-          });
+          tool: "pg_jsonb_extract",
+        });
       }
     },
   };
@@ -315,8 +325,8 @@ export function createJsonbContainsTool(
         return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_contains",
-          });
+          tool: "pg_jsonb_contains",
+        });
       }
     },
   };
@@ -355,14 +365,26 @@ export function createJsonbPathQueryTool(
           // Query directly against literal JSON
           const baseSql = `SELECT jsonb_path_query($1::jsonb, $2::jsonpath, $3::jsonb) as result`;
           const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
-          const sql = fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
-          const result = await adapter.executeQuery(sql, [json, path, varsJson]);
+          const sql =
+            fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
+          const result = await adapter.executeQuery(sql, [
+            json,
+            path,
+            varsJson,
+          ]);
           allResults = result.rows?.map((r) => r["result"]) ?? [];
-          isTruncated = effectiveLimit > 0 && allResults.length > effectiveLimit;
+          isTruncated =
+            effectiveLimit > 0 && allResults.length > effectiveLimit;
           if (isTruncated) {
             const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query($1::jsonb, $2::jsonpath, $3::jsonb)) sub`;
-            const countResult = await adapter.executeQuery(countSql, [json, path, varsJson]);
-            exactTotalCount = Number(countResult.rows?.[0]?.["total"] ?? allResults.length);
+            const countResult = await adapter.executeQuery(countSql, [
+              json,
+              path,
+              varsJson,
+            ]);
+            exactTotalCount = Number(
+              countResult.rows?.[0]?.["total"] ?? allResults.length,
+            );
           }
         } else {
           if (!table || !column) {
@@ -377,24 +399,35 @@ export function createJsonbPathQueryTool(
           );
           if (tableError) throw new ValidationError(tableError.error);
 
-          const whereClause = where ? ` WHERE ${sanitizeWhereClause(where)}` : "";
+          const whereClause = where
+            ? ` WHERE ${sanitizeWhereClause(where)}`
+            : "";
           const baseSql = `SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) as result FROM ${qualifiedTable}${whereClause}`;
 
           // Fetch limit+1 rows to detect truncation without a separate count query
           const fetchLimit = effectiveLimit > 0 ? effectiveLimit + 1 : 0;
-          const sql = fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
+          const sql =
+            fetchLimit > 0 ? `${baseSql} LIMIT ${String(fetchLimit)}` : baseSql;
           const result = await adapter.executeQuery(sql, [path, varsJson]);
           allResults = result.rows?.map((r) => r["result"]) ?? [];
-          isTruncated = effectiveLimit > 0 && allResults.length > effectiveLimit;
-          
+          isTruncated =
+            effectiveLimit > 0 && allResults.length > effectiveLimit;
+
           if (isTruncated) {
             const countSql = `SELECT COUNT(*) as total FROM (SELECT jsonb_path_query("${column}", $1::jsonpath, $2::jsonb) FROM ${qualifiedTable}${whereClause}) sub`;
-            const countResult = await adapter.executeQuery(countSql, [path, varsJson]);
-            exactTotalCount = Number(countResult.rows?.[0]?.["total"] ?? allResults.length);
+            const countResult = await adapter.executeQuery(countSql, [
+              path,
+              varsJson,
+            ]);
+            exactTotalCount = Number(
+              countResult.rows?.[0]?.["total"] ?? allResults.length,
+            );
           }
         }
 
-        const results = isTruncated ? allResults.slice(0, effectiveLimit) : allResults;
+        const results = isTruncated
+          ? allResults.slice(0, effectiveLimit)
+          : allResults;
 
         const response: {
           success: boolean;
@@ -419,13 +452,15 @@ export function createJsonbPathQueryTool(
           /jsonpath/i.test(error.message)
         ) {
           return formatHandlerErrorResponse(
-            new ValidationError("Invalid JSONPath syntax. Use $.key, $.array[*], or $.* ? (@.field > 10) syntax."),
-            { tool: "pg_jsonb_path_query" }
+            new ValidationError(
+              "Invalid JSONPath syntax. Use $.key, $.array[*], or $.* ? (@.field > 10) syntax.",
+            ),
+            { tool: "pg_jsonb_path_query" },
           );
         }
         return formatHandlerErrorResponse(error, {
-            tool: "pg_jsonb_path_query",
-          });
+          tool: "pg_jsonb_path_query",
+        });
       }
     },
   };
@@ -457,6 +492,3 @@ export function parseSelectAlias(selectItem: string): {
       : selectItem;
   return { expr: selectItem, alias: cleanKey };
 }
-
-
-

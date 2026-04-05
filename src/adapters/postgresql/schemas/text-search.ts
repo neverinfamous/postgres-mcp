@@ -12,7 +12,6 @@
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
 
-
 /**
  * Preprocess text tool parameters to normalize common input patterns.
  * Exported so tools can apply it in their handlers.
@@ -151,108 +150,131 @@ export const RegexpMatchSchema = z.preprocess(
 // =============================================================================
 
 // Common output schema for text tools that return rows with count
-export const TextRowsOutputSchema = z.object({
-  rows: z
-    .array(z.record(z.string(), z.unknown()))
-    .optional()
-    .describe("Matching rows"),
-  count: z.number().optional().describe("Number of rows returned"),
-  truncated: z
-    .boolean()
-    .optional()
-    .describe("Whether results were truncated by the default limit"),
-  hint: z
-    .string()
-    .optional()
-    .describe("Hint about truncation when results are capped"),
-  success: z.boolean().optional().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message if operation failed"),
-}).extend(ErrorResponseFields.shape);
+export const TextRowsOutputSchema = z
+  .object({
+    rows: z
+      .array(z.record(z.string(), z.unknown()))
+      .optional()
+      .describe("Matching rows"),
+    count: z.number().optional().describe("Number of rows returned"),
+    truncated: z
+      .boolean()
+      .optional()
+      .describe("Whether results were truncated by the default limit"),
+    hint: z
+      .string()
+      .optional()
+      .describe("Hint about truncation when results are capped"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for pg_create_fts_index
-export const FtsIndexOutputSchema = z.object({
-  success: z.boolean().describe("Whether index creation succeeded"),
-  index: z.string().optional().describe("Index name"),
-  config: z.string().optional().describe("Text search configuration used"),
-  skipped: z
-    .boolean()
-    .optional()
-    .describe("Whether index already existed (IF NOT EXISTS)"),
-  error: z.string().optional().describe("Error message if operation failed"),
-}).extend(ErrorResponseFields.shape);
+export const FtsIndexOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether index creation succeeded"),
+    index: z.string().optional().describe("Index name"),
+    config: z.string().optional().describe("Text search configuration used"),
+    skipped: z
+      .boolean()
+      .optional()
+      .describe("Whether index already existed (IF NOT EXISTS)"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_normalize
-export const TextNormalizeOutputSchema = z.object({
-  normalized: z.string().optional().describe("Text with accent marks removed"),
-  success: z.boolean().optional().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message if operation failed"),
-}).extend(ErrorResponseFields.shape);
+export const TextNormalizeOutputSchema = z
+  .object({
+    normalized: z
+      .string()
+      .optional()
+      .describe("Text with accent marks removed"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_sentiment
-export const TextSentimentOutputSchema = z.object({
-  sentiment: z
-    .enum(["very_positive", "positive", "neutral", "negative", "very_negative"])
-    .optional()
-    .describe("Overall sentiment classification"),
-  score: z
-    .number()
-    .optional()
-    .describe("Net sentiment score (positive - negative)"),
-  positiveCount: z
-    .number()
-    .optional()
-    .describe("Number of positive words found"),
-  negativeCount: z
-    .number()
-    .optional()
-    .describe("Number of negative words found"),
-  confidence: z
-    .enum(["low", "medium", "high"])
-    .optional()
-    .describe("Confidence level"),
-  matchedPositive: z
-    .array(z.string())
-    .optional()
-    .describe("Matched positive words (if returnWords=true)"),
-  matchedNegative: z
-    .array(z.string())
-    .optional()
-    .describe("Matched negative words (if returnWords=true)"),
-  success: z.boolean().optional().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message if operation failed"),
-}).extend(ErrorResponseFields.shape);
+export const TextSentimentOutputSchema = z
+  .object({
+    sentiment: z
+      .enum([
+        "very_positive",
+        "positive",
+        "neutral",
+        "negative",
+        "very_negative",
+      ])
+      .optional()
+      .describe("Overall sentiment classification"),
+    score: z
+      .number()
+      .optional()
+      .describe("Net sentiment score (positive - negative)"),
+    positiveCount: z
+      .number()
+      .optional()
+      .describe("Number of positive words found"),
+    negativeCount: z
+      .number()
+      .optional()
+      .describe("Number of negative words found"),
+    confidence: z
+      .enum(["low", "medium", "high"])
+      .optional()
+      .describe("Confidence level"),
+    matchedPositive: z
+      .array(z.string())
+      .optional()
+      .describe("Matched positive words (if returnWords=true)"),
+    matchedNegative: z
+      .array(z.string())
+      .optional()
+      .describe("Matched negative words (if returnWords=true)"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_to_vector
-export const TextToVectorOutputSchema = z.object({
-  vector: z.string().optional().describe("tsvector representation"),
-  success: z.boolean().optional().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message if operation failed"),
-}).extend(ErrorResponseFields.shape);
+export const TextToVectorOutputSchema = z
+  .object({
+    vector: z.string().optional().describe("tsvector representation"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_to_query
-export const TextToQueryOutputSchema = z.object({
-  query: z.string().optional().describe("tsquery representation"),
-  mode: z.string().optional().describe("Query parsing mode used"),
-  success: z.boolean().optional().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message if operation failed"),
-}).extend(ErrorResponseFields.shape);
+export const TextToQueryOutputSchema = z
+  .object({
+    query: z.string().optional().describe("tsquery representation"),
+    mode: z.string().optional().describe("Query parsing mode used"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Output schema for pg_text_search_config
-export const TextSearchConfigOutputSchema = z.object({
-  configs: z
-    .array(
-      z.object({
-        name: z.string().describe("Configuration name"),
-        schema: z.string().describe("Schema containing the configuration"),
-        description: z
-          .string()
-          .nullable()
-          .describe("Configuration description"),
-      }),
-    )
-    .optional()
-    .describe("Available text search configurations"),
-  count: z.number().optional().describe("Number of configurations"),
-  success: z.boolean().optional().describe("Whether the operation succeeded"),
-  error: z.string().optional().describe("Error message if operation failed"),
-}).extend(ErrorResponseFields.shape);
+export const TextSearchConfigOutputSchema = z
+  .object({
+    configs: z
+      .array(
+        z.object({
+          name: z.string().describe("Configuration name"),
+          schema: z.string().describe("Schema containing the configuration"),
+          description: z
+            .string()
+            .nullable()
+            .describe("Configuration description"),
+        }),
+      )
+      .optional()
+      .describe("Available text search configurations"),
+    count: z.number().optional().describe("Number of configurations"),
+    success: z.boolean().optional().describe("Whether the operation succeeded"),
+    error: z.string().optional().describe("Error message if operation failed"),
+  })
+  .extend(ErrorResponseFields.shape);

@@ -107,7 +107,7 @@ export const CronCreateExtensionSchemaBase = z.object({});
 
 export const CronCreateExtensionSchema = z.preprocess(
   (input) => (typeof input === "object" && input !== null ? input : {}),
-  z.object({}).strict()
+  z.object({}).strict(),
 );
 
 export const CronScheduleSchemaBase = z.object({
@@ -126,10 +126,9 @@ export const CronScheduleSchemaBase = z.object({
 
 export const CronScheduleSchema = z.preprocess(
   preprocessCronParams,
-  CronScheduleSchemaBase.refine(
-    (data) => data.schedule !== undefined,
-    { message: "schedule is required" }
-  )
+  CronScheduleSchemaBase.refine((data) => data.schedule !== undefined, {
+    message: "schedule is required",
+  })
     .refine(
       (data) =>
         data.command !== undefined ||
@@ -192,7 +191,7 @@ export const CronScheduleInDatabaseSchema = z.preprocess(
   preprocessCronParams,
   CronScheduleInDatabaseSchemaBase.refine(
     (data) => data.schedule !== undefined,
-    { message: "schedule is required" }
+    { message: "schedule is required" },
   )
     .refine(
       (data) =>
@@ -234,23 +233,35 @@ export const CronScheduleInDatabaseSchema = z.preprocess(
 );
 
 export const CronUnscheduleSchemaBase = z.object({
-  jobId: z.union([z.number(), z.string()]).optional().describe("Job ID to remove"),
+  jobId: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Job ID to remove"),
   jobName: z.string().optional().describe("Job name to remove"),
   name: z.string().optional().describe("Alias for jobName"),
 });
 
 export const CronUnscheduleSchema = CronUnscheduleSchemaBase.refine(
-  (data) => data.jobId !== undefined || data.jobName !== undefined || data.name !== undefined,
+  (data) =>
+    data.jobId !== undefined ||
+    data.jobName !== undefined ||
+    data.name !== undefined,
   {
     message: "Either jobId or jobName (or name alias) must be provided",
   },
 ).transform((data) => ({
-  jobId: data.jobId !== undefined && data.jobId !== null ? Number(data.jobId) : undefined,
+  jobId:
+    data.jobId !== undefined && data.jobId !== null
+      ? Number(data.jobId)
+      : undefined,
   jobName: data.jobName ?? data.name,
 }));
 
 export const CronAlterJobSchemaBase = z.object({
-  jobId: z.union([z.number(), z.string()]).optional().describe("Job ID to modify"),
+  jobId: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Job ID to modify"),
   jobName: z.string().optional().describe("Job name to modify"),
   name: z.string().optional().describe("Alias for jobName"),
   schedule: z
@@ -267,7 +278,10 @@ export const CronAlterJobSchemaBase = z.object({
 
 export const CronAlterJobSchema = z
   .object({
-    jobId: z.union([z.number(), z.string()]).optional().describe("Job ID to modify"),
+    jobId: z
+      .union([z.number(), z.string()])
+      .optional()
+      .describe("Job ID to modify"),
     jobName: z.string().optional().describe("Job name to modify"),
     name: z.string().optional().describe("Alias for jobName"),
     schedule: z
@@ -293,94 +307,153 @@ export const CronAlterJobSchema = z
     },
   )
   .refine(
-    (data) => data.jobId !== undefined || data.jobName !== undefined || data.name !== undefined,
-    { message: "Either jobId or jobName (or name alias) must be provided" }
+    (data) =>
+      data.jobId !== undefined ||
+      data.jobName !== undefined ||
+      data.name !== undefined,
+    { message: "Either jobId or jobName (or name alias) must be provided" },
   )
   .transform((data) => ({
     ...data,
-    jobId: data.jobId !== undefined && data.jobId !== null ? Number(data.jobId) : undefined,
+    jobId:
+      data.jobId !== undefined && data.jobId !== null
+        ? Number(data.jobId)
+        : undefined,
     jobName: data.jobName ?? data.name,
   }));
 
 export const CronListJobsSchemaBase = z.object({
   active: z.boolean().optional().describe("Filter by active status"),
-  limit: z.union([z.number(), z.string()]).optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
-  compact: z.boolean().optional().describe("Whether to truncate long text fields like command (default: true)"),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum jobs to return (default: 50, use 0 for all)"),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      "Whether to truncate long text fields like command (default: true)",
+    ),
 });
 
-export const CronListJobsSchema = z.object({
-  active: z.boolean().optional().describe("Filter by active status"),
-  limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional().describe("Maximum jobs to return (default: 50, use 0 for all)"),
-  compact: z.boolean().optional().default(true).describe("Whether to truncate long text fields"),
-}).default({ compact: true });
+export const CronListJobsSchema = z
+  .object({
+    active: z.boolean().optional().describe("Filter by active status"),
+    limit: z
+      .preprocess(coerceStrictNumber, z.number().optional())
+      .optional()
+      .describe("Maximum jobs to return (default: 50, use 0 for all)"),
+    compact: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("Whether to truncate long text fields"),
+  })
+  .default({ compact: true });
 
 export const CronJobRunDetailsSchemaBase = z.object({
-  jobId: z.union([z.number(), z.string()]).optional().describe("Filter by job ID"),
+  jobId: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Filter by job ID"),
   jobName: z.string().optional().describe("Filter by job name"),
   status: z
     .string()
     .optional()
     .describe("Filter by status (running, succeeded, failed)"),
-  limit: z.union([z.number(), z.string()]).optional().describe("Maximum records to return (default: 10)"),
-  compact: z.boolean().optional().describe("Whether to truncate long text fields like command and return_message (default: true)"),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum records to return (default: 10)"),
+  compact: z
+    .boolean()
+    .optional()
+    .describe(
+      "Whether to truncate long text fields like command and return_message (default: true)",
+    ),
 });
 
 export const CronJobRunDetailsSchema = z
   .object({
-    jobId: z.union([z.number(), z.string()]).optional().describe("Filter by job ID"),
+    jobId: z
+      .union([z.number(), z.string()])
+      .optional()
+      .describe("Filter by job ID"),
     jobName: z.string().optional().describe("Filter by job name"),
     status: z
       .string()
       .optional()
       .describe("Filter by status (running, succeeded, failed)"),
-    limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional()
+    limit: z
+      .preprocess(coerceStrictNumber, z.number().optional())
+      .optional()
       .describe("Maximum records to return (default: 10)"),
-    compact: z.boolean().optional().default(true).describe("Whether to truncate long text fields"),
+    compact: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("Whether to truncate long text fields"),
   })
   .default({ compact: true })
   .transform((data) => ({
     ...data,
-    jobId: data.jobId !== undefined && data.jobId !== null ? Number(data.jobId) : undefined,
+    jobId:
+      data.jobId !== undefined && data.jobId !== null
+        ? Number(data.jobId)
+        : undefined,
   }));
 
 export const CronCleanupHistorySchemaBase = z.object({
-  olderThanDays: z.union([z.number(), z.string()]).optional().describe("Delete records older than N days (default: 7)"),
-  days: z.union([z.number(), z.string()]).optional().describe("Alias for olderThanDays"),
-  jobId: z.union([z.number(), z.string()]).optional().describe("Clean up only for specific job"),
+  olderThanDays: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Delete records older than N days (default: 7)"),
+  days: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Alias for olderThanDays"),
+  jobId: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Clean up only for specific job"),
 });
 
 export const CronCleanupHistorySchema = z.preprocess(
   (input) => preprocessCronParams(input ?? {}),
-  z.object({
-    olderThanDays: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
-    days: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
-    jobId: z.unknown().optional(),
-  }).transform((data) => {
-    const rawDays = data.olderThanDays as unknown;
-    const coercedDays =
-      rawDays !== undefined && rawDays !== null ? Number(rawDays) : undefined;
+  z
+    .object({
+      olderThanDays: z
+        .preprocess(coerceStrictNumber, z.number().optional())
+        .optional(),
+      days: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
+      jobId: z.unknown().optional(),
+    })
+    .transform((data) => {
+      const rawDays = data.olderThanDays as unknown;
+      const coercedDays =
+        rawDays !== undefined && rawDays !== null ? Number(rawDays) : undefined;
 
-    // Coerce jobId through CoercibleJobId for type safety
-    const rawJobId = data.jobId;
-    let parsedJobId: number | undefined;
-    if (rawJobId !== undefined && rawJobId !== null) {
-      const coerced = CoercibleJobId.safeParse(rawJobId);
-      if (coerced.success) {
-        parsedJobId = coerced.data;
-      } else {
-        // Invalid jobId format — will surface as structured error in handler
-        throw coerced.error;
+      // Coerce jobId through CoercibleJobId for type safety
+      const rawJobId = data.jobId;
+      let parsedJobId: number | undefined;
+      if (rawJobId !== undefined && rawJobId !== null) {
+        const coerced = CoercibleJobId.safeParse(rawJobId);
+        if (coerced.success) {
+          parsedJobId = coerced.data;
+        } else {
+          // Invalid jobId format — will surface as structured error in handler
+          throw coerced.error;
+        }
       }
-    }
 
-    return {
-      olderThanDays:
-        coercedDays !== undefined && !isNaN(coercedDays)
-          ? coercedDays
-          : undefined,
-      jobId: parsedJobId,
-    };
-  }),
+      return {
+        olderThanDays:
+          coercedDays !== undefined && !isNaN(coercedDays)
+            ? coercedDays
+            : undefined,
+        jobId: parsedJobId,
+      };
+    }),
 );
 
 // ============================================================================

@@ -8,7 +8,10 @@
 import { z } from "zod";
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type { ToolDefinition } from "../../../../types/index.js";
-import { createSandboxPool, type ISandboxPool } from "../../../../codemode/index.js";
+import {
+  createSandboxPool,
+  type ISandboxPool,
+} from "../../../../codemode/index.js";
 import { CodeModeSecurityManager } from "../../../../codemode/security.js";
 import { createPgApi } from "../../../../codemode/api/index.js";
 import { toolNameToMethodName } from "../../../../codemode/api/group-api.js";
@@ -61,29 +64,34 @@ export const ExecuteCodeSchema = ExecuteCodeParseSchema.transform((data) => ({
 });
 
 // Schema for pg_execute_code output
-export const ExecuteCodeOutputSchema = z.object({
-  success: z.boolean().describe("Whether the code executed successfully"),
-  result: z
-    .unknown()
-    .optional()
-    .describe("Return value from the executed code"),
-  error: z.string().optional().describe("Error message if execution failed"),
-  metrics: z
-    .object({
-      wallTimeMs: z
-        .number()
-        .describe("Wall clock execution time in milliseconds"),
-      cpuTimeMs: z.number().describe("CPU time used in milliseconds"),
-      memoryUsedMb: z.number().describe("Memory used in megabytes"),
-      tokenEstimate: z
-        .number()
-        .optional()
-        .describe("Estimated token count of the result (~4 bytes per token)"),
-    })
-    .optional()
-    .describe("Execution performance metrics"),
-  hint: z.string().optional().describe("Helpful tip or additional information"),
-}).extend(ErrorResponseFields.shape);
+export const ExecuteCodeOutputSchema = z
+  .object({
+    success: z.boolean().describe("Whether the code executed successfully"),
+    result: z
+      .unknown()
+      .optional()
+      .describe("Return value from the executed code"),
+    error: z.string().optional().describe("Error message if execution failed"),
+    metrics: z
+      .object({
+        wallTimeMs: z
+          .number()
+          .describe("Wall clock execution time in milliseconds"),
+        cpuTimeMs: z.number().describe("CPU time used in milliseconds"),
+        memoryUsedMb: z.number().describe("Memory used in megabytes"),
+        tokenEstimate: z
+          .number()
+          .optional()
+          .describe("Estimated token count of the result (~4 bytes per token)"),
+      })
+      .optional()
+      .describe("Execution performance metrics"),
+    hint: z
+      .string()
+      .optional()
+      .describe("Helpful tip or additional information"),
+  })
+  .extend(ErrorResponseFields.shape);
 
 // Singleton instances (initialized on first use)
 let sandboxPool: ISandboxPool | null = null;
@@ -96,8 +104,13 @@ function ensureInitialized(): {
   pool: ISandboxPool;
   security: CodeModeSecurityManager;
 } {
-  sandboxPool ??= createSandboxPool(process.env["CODEMODE_WORKER"] === "true" ? "worker" : "vm");
-  if ("initialize" in sandboxPool && typeof sandboxPool.initialize === "function") {
+  sandboxPool ??= createSandboxPool(
+    process.env["CODEMODE_WORKER"] === "true" ? "worker" : "vm",
+  );
+  if (
+    "initialize" in sandboxPool &&
+    typeof sandboxPool.initialize === "function"
+  ) {
     (sandboxPool as { initialize: () => void }).initialize();
   }
   securityManager ??= new CodeModeSecurityManager();
@@ -160,116 +173,120 @@ return results;
     icons: getToolIcons("codemode", { destructiveHint: true }),
     handler: async (params: unknown) => {
       try {
-        const { code, readonly, timeout } = ExecuteCodeSchema.parse(params) as ExecuteCodeOptions;
+        const { code, readonly, timeout } = ExecuteCodeSchema.parse(
+          params,
+        ) as ExecuteCodeOptions;
 
         // Initialize infrastructure
-      const { pool, security } = ensureInitialized();
+        const { pool, security } = ensureInitialized();
 
-      // Validate code
-      const validation = security.validateCode(code);
-      if (!validation.valid) {
-        return {
-          success: false,
-          error: `Code validation failed: ${validation.errors.join("; ")}`,
-          metrics: { wallTimeMs: 0, cpuTimeMs: 0, memoryUsedMb: 0 },
-        };
-      }
+        // Validate code
+        const validation = security.validateCode(code);
+        if (!validation.valid) {
+          return {
+            success: false,
+            error: `Code validation failed: ${validation.errors.join("; ")}`,
+            metrics: { wallTimeMs: 0, cpuTimeMs: 0, memoryUsedMb: 0 },
+          };
+        }
 
-      // Check rate limit
-      const clientId = "default"; // Could be extracted from context in future
-      if (!security.checkRateLimit(clientId)) {
-        return {
-          success: false,
-          error: "Rate limit exceeded. Please wait before executing more code.",
-          metrics: { wallTimeMs: 0, cpuTimeMs: 0, memoryUsedMb: 0 },
-        };
-      }
+        // Check rate limit
+        const clientId = "default"; // Could be extracted from context in future
+        if (!security.checkRateLimit(clientId)) {
+          return {
+            success: false,
+            error:
+              "Rate limit exceeded. Please wait before executing more code.",
+            metrics: { wallTimeMs: 0, cpuTimeMs: 0, memoryUsedMb: 0 },
+          };
+        }
 
-      // Create pg API bindings
-      const pgApi = createPgApi(adapter);
-      const bindings = pgApi.createSandboxBindings();
+        // Create pg API bindings
+        const pgApi = createPgApi(adapter);
+        const bindings = pgApi.createSandboxBindings();
 
-      // Enforce readonly mode by wrapping write-capable methods
-      if (readonly === true) {
-        enforceReadonly(bindings, adapter);
-      }
+        // Enforce readonly mode by wrapping write-capable methods
+        if (readonly === true) {
+          enforceReadonly(bindings, adapter);
+        }
 
-      // Validate bindings are populated
-      const totalMethods = Object.values(bindings).reduce(
-        (sum: number, group) => {
-          if (typeof group === "object" && group !== null) {
-            return sum + Object.keys(group).length;
+        // Validate bindings are populated
+        const totalMethods = Object.values(bindings).reduce(
+          (sum: number, group) => {
+            if (typeof group === "object" && group !== null) {
+              return sum + Object.keys(group).length;
+            }
+            return sum;
+          },
+          0,
+        );
+        if (totalMethods === 0) {
+          return {
+            success: false,
+            error:
+              "pg.* API not available: no tool bindings were created. Ensure adapter.getToolDefinitions() returns valid tools.",
+            metrics: { wallTimeMs: 0, cpuTimeMs: 0, memoryUsedMb: 0 },
+          };
+        }
+
+        // Capture active transactions before execution for cleanup on error
+        const transactionsBefore = new Set(adapter.getActiveTransactionIds());
+
+        // Execute in sandbox
+        const result = await pool.execute(code, bindings, timeout);
+
+        // Cleanup orphaned transactions on failure
+        // Any transaction started during execution but not committed/rolled back is orphaned
+        if (!result.success) {
+          const transactionsAfter = adapter.getActiveTransactionIds();
+          const orphanedTransactions = transactionsAfter.filter(
+            (txId) => !transactionsBefore.has(txId),
+          );
+
+          // Best-effort cleanup of orphaned transactions
+          for (const txId of orphanedTransactions) {
+            await adapter.cleanupTransaction(txId);
           }
-          return sum;
-        },
-        0,
-      );
-      if (totalMethods === 0) {
-        return {
-          success: false,
-          error:
-            "pg.* API not available: no tool bindings were created. Ensure adapter.getToolDefinitions() returns valid tools.",
-          metrics: { wallTimeMs: 0, cpuTimeMs: 0, memoryUsedMb: 0 },
-        };
-      }
+        }
 
-      // Capture active transactions before execution for cleanup on error
-      const transactionsBefore = new Set(adapter.getActiveTransactionIds());
+        // Sanitize result
+        if (result.success && result.result !== undefined) {
+          result.result = security.sanitizeResult(result.result);
+        }
 
-      // Execute in sandbox
-      const result = await pool.execute(code, bindings, timeout);
-
-      // Cleanup orphaned transactions on failure
-      // Any transaction started during execution but not committed/rolled back is orphaned
-      if (!result.success) {
-        const transactionsAfter = adapter.getActiveTransactionIds();
-        const orphanedTransactions = transactionsAfter.filter(
-          (txId) => !transactionsBefore.has(txId),
+        // Compute token estimate for Code Mode responses
+        const resultJson = JSON.stringify(result.result ?? null);
+        const tokenEstimate = Math.ceil(
+          Buffer.byteLength(resultJson, "utf8") / 4,
         );
 
-        // Best-effort cleanup of orphaned transactions
-        for (const txId of orphanedTransactions) {
-          await adapter.cleanupTransaction(txId);
-        }
+        // Audit log
+        const record = security.createExecutionRecord(
+          code,
+          result,
+          readonly ?? false,
+          clientId,
+        );
+        security.auditLog(record);
+
+        // Add help hint for discoverability
+        const helpHint =
+          "Tip: Use pg.help() to list all groups, or pg.core.help() for group-specific methods.";
+
+        // Include hint and enriched metrics in response
+        return {
+          ...result,
+          metrics:
+            result.metrics != null
+              ? { ...result.metrics, tokenEstimate }
+              : undefined,
+          hint: helpHint,
+        };
+      } catch (error) {
+        return formatHandlerErrorResponse(error, { tool: "pg_execute_code" });
       }
-
-      // Sanitize result
-      if (result.success && result.result !== undefined) {
-        result.result = security.sanitizeResult(result.result);
-      }
-
-      // Compute token estimate for Code Mode responses
-      const resultJson = JSON.stringify(result.result ?? null);
-      const tokenEstimate = Math.ceil(
-        Buffer.byteLength(resultJson, "utf8") / 4,
-      );
-
-      // Audit log
-      const record = security.createExecutionRecord(
-        code,
-        result,
-        readonly ?? false,
-        clientId,
-      );
-      security.auditLog(record);
-
-      // Add help hint for discoverability
-      const helpHint =
-        "Tip: Use pg.help() to list all groups, or pg.core.help() for group-specific methods.";
-
-      // Include hint and enriched metrics in response
-      return {
-        ...result,
-        metrics: result.metrics != null
-          ? { ...result.metrics, tokenEstimate }
-          : undefined,
-        hint: helpHint,
-      };
-    } catch (error) {
-      return formatHandlerErrorResponse(error, { tool: "pg_execute_code" });
-    }
-  },
-};
+    },
+  };
 }
 
 /**

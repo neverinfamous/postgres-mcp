@@ -59,8 +59,12 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
     icons: getToolIcons("transactions", write("Begin Transaction")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { isolationLevel, read_only } = BeginTransactionSchema.parse(params);
-        const transactionId = await adapter.beginTransaction(isolationLevel, read_only);
+        const { isolationLevel, read_only } =
+          BeginTransactionSchema.parse(params);
+        const transactionId = await adapter.beginTransaction(
+          isolationLevel,
+          read_only,
+        );
         return {
           success: true,
           transactionId,
@@ -71,8 +75,8 @@ function createBeginTransactionTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_transaction_begin",
-          });
+          tool: "pg_transaction_begin",
+        });
       }
     },
   };
@@ -135,13 +139,13 @@ function createTransactionStatusTool(adapter: PostgresAdapter): ToolDefinition {
             };
           }
           return formatHandlerErrorResponse(probeError, {
-              tool: "pg_transaction_status",
-            });
+            tool: "pg_transaction_status",
+          });
         }
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_transaction_status",
-          });
+          tool: "pg_transaction_status",
+        });
       }
     },
   };
@@ -167,8 +171,8 @@ function createCommitTransactionTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_transaction_commit",
-          });
+          tool: "pg_transaction_commit",
+        });
       }
     },
   };
@@ -196,8 +200,8 @@ function createRollbackTransactionTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_transaction_rollback",
-          });
+          tool: "pg_transaction_rollback",
+        });
       }
     },
   };
@@ -225,8 +229,8 @@ function createSavepointTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_transaction_savepoint",
-          });
+          tool: "pg_transaction_savepoint",
+        });
       }
     },
   };
@@ -254,8 +258,8 @@ function createReleaseSavepointTool(adapter: PostgresAdapter): ToolDefinition {
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_transaction_release",
-          });
+          tool: "pg_transaction_release",
+        });
       }
     },
   };
@@ -284,8 +288,8 @@ function createRollbackToSavepointTool(
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_transaction_rollback_to",
-          });
+          tool: "pg_transaction_rollback_to",
+        });
       }
     },
   };
@@ -310,8 +314,8 @@ function createTransactionExecuteTool(
         parsed = await TransactionExecuteSchema.parseAsync(params);
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
-            tool: "pg_transaction_execute",
-          });
+          tool: "pg_transaction_execute",
+        });
       }
 
       const { statements, transactionId, isolationLevel, read_only } = parsed;
