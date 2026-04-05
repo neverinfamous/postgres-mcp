@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate validation logic across performance handlers.
 
 ### Fixed
+- Corrected the static `totalResources` count reported by the `postgres://capabilities` resource to 23.
 - Standardized P154 error structures and double-quote formatting across all 230+ tools.
 - Resolved Split Schema Pattern violations across Search, JSONB, Vector, Stats, Performance, and Admin groups.
 - Improved reliability for Performance tools (`pg_stat_statements`, `pg_diagnose_database_performance`, `pg_cache_hit_ratio`): fixed output schemas, aligned error reporting with P154, and handled empty parameter objects.
