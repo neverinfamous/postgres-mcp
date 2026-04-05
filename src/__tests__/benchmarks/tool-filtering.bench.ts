@@ -13,10 +13,8 @@ import {
   getToolGroup,
   getFilterSummary,
   TOOL_GROUPS,
-  META_GROUPS,
 } from "../../filtering/tool-filter.js";
-import { getMetaGroupTools } from "../../filtering/tool-filter.js";
-import type { ToolGroup, MetaGroup } from "../../types/index.js";
+import type { ToolGroup } from "../../types/index.js";
 
 // Suppress logger output
 vi.mock("../../utils/logger.js", () => ({
@@ -145,15 +143,4 @@ describe("Filter Summary", () => {
     { iterations: 2000, warmupIterations: 20 },
   );
 
-  bench(
-    "getMetaGroupInfo() catalog (inline)",
-    () => {
-      Object.entries(META_GROUPS).map(([metaGroup, groups]) => ({
-        metaGroup: metaGroup as MetaGroup,
-        groups,
-        count: getMetaGroupTools(metaGroup as MetaGroup).length,
-      }));
-    },
-    { iterations: 2000, warmupIterations: 20 },
-  );
 });
