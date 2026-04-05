@@ -2337,7 +2337,7 @@ describe("pg_migration_rollback — uncovered branches", () => {
       rows: [
         {
           id: 3,
-          version: "3.0.0",
+          version: "3.0.2",
           status: "applied",
           rollback_sql: "DROP TABLE foo CASCADE",
           applied_at: "2026-01-01",
