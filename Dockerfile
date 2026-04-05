@@ -45,6 +45,23 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package node_modules/minimatch && \
     rm minimatch-10.2.5.tgz
 
+# Fix CVE-2026-33671, CVE-2026-33672: Manually update npm's bundled picomatch to 4.0.4
+RUN cd /usr/local/lib/node_modules/npm && \
+    npm pack picomatch@4.0.4 && \
+    rm -rf node_modules/picomatch && \
+    tar -xzf picomatch-4.0.4.tgz && \
+    mv package node_modules/picomatch && \
+    rm picomatch-4.0.4.tgz
+
+# Fix CVE-2026-33750: Manually update npm's bundled brace-expansion to 5.0.5
+RUN cd /usr/local/lib/node_modules/npm && \
+    npm pack brace-expansion@5.0.5 && \
+    rm -rf node_modules/brace-expansion && \
+    tar -xzf brace-expansion-5.0.5.tgz && \
+    mv package node_modules/brace-expansion && \
+    rm brace-expansion-5.0.5.tgz
+
+
 # Copy package files first for better layer caching
 COPY package*.json ./
 
