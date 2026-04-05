@@ -191,7 +191,16 @@ export function setSecurityHeaders(
 }
 
 /**
- * Set CORS headers based on configuration
+ * Set CORS headers based on configuration.
+ *
+ * Two distinct paths:
+ *
+ * 1. CREDENTIAL PATH (corsAllowCredentials=true): only exact allowlist matches
+ *    are accepted. The ACAO header is set to the value from the allowlist array
+ *    (config-sourced, not user-input-sourced), satisfying CodeQL's taint analysis.
+ *
+ * 2. NO-CREDENTIAL PATH: wildcards and subdomain patterns are permitted.
+ *    Reflecting the request origin is safe here because ACAC is never set.
  */
 export function setCorsHeaders(
   req: IncomingMessage,
@@ -201,37 +210,59 @@ export function setCorsHeaders(
   const origins = config.corsOrigins;
   if (!origins || origins.length === 0) return;
 
-  const origin = req.headers.origin;
-  if (!origin) return;
+  const requestOrigin = req.headers.origin;
+  if (!requestOrigin) return;
 
-  // Check if origin is allowed
-  let isAllowed = false;
-  let matchedByWildcard = false;
-
-  for (const allowed of origins) {
-    if (allowed === "*") {
-      isAllowed = true;
-      matchedByWildcard = true;
-      break;
+  if (config.corsAllowCredentials) {
+    // --- CREDENTIAL PATH ---
+    // Only exact string matches are safe for credential-bearing cross-origin requests.
+    // Wildcards and subdomain patterns are explicitly rejected here to prevent
+    // credential leakage to untrusted origins.
+    //
+    // IMPORTANT: we use `allowlistedOrigin` (a value from the config array, a
+    // trusted source) as the ACAO header value — NOT `requestOrigin` (user input).
+    // This severs the taint chain that CodeQL's js/cors-misconfiguration-for-credentials
+    // rule tracks from req.headers.origin → Access-Control-Allow-Origin.
+    const allowlistedOrigin = origins.find(
+      (o) => o !== "*" && !o.startsWith("*.") && o === requestOrigin,
+    );
+    if (allowlistedOrigin !== undefined) {
+      res.setHeader("Access-Control-Allow-Origin", allowlistedOrigin);
+      res.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET, POST, DELETE, OPTIONS",
+      );
+      res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, Mcp-Session-Id, Mcp-Protocol-Version, Last-Event-ID",
+      );
+      res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
+      res.setHeader("Access-Control-Max-Age", "86400");
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
     }
-    if (allowed.startsWith("*.")) {
-      // Wildcard subdomain matching: "*.example.com" → ".example.com"
-      const domain = allowed.slice(1);
-      if (origin.endsWith(domain) && origin.length > domain.length) {
-        isAllowed = true;
-        matchedByWildcard = true;
-        break;
-      }
-    }
-    if (origin === allowed) {
-      isAllowed = true;
-      break;
-    }
+    return;
   }
 
+  // --- NO-CREDENTIAL PATH ---
+  // No Access-Control-Allow-Credentials header is emitted here, so reflecting
+  // the request origin (even for wildcard/subdomain matches) is safe per spec.
+  const isAllowed =
+    origins.includes("*") ||
+    origins.some((allowed) => {
+      if (allowed === "*") return true;
+      if (allowed.startsWith("*.")) {
+        // Wildcard subdomain matching: "*.example.com" → ".example.com"
+        const domain = allowed.slice(1);
+        return (
+          requestOrigin.endsWith(domain) && requestOrigin.length > domain.length
+        );
+      }
+      return requestOrigin === allowed;
+    });
+
   if (isAllowed) {
-    // Use specific origin instead of * for proper CORS handling
-    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Origin", requestOrigin);
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
@@ -239,23 +270,14 @@ export function setCorsHeaders(
     );
     res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
     res.setHeader("Access-Control-Max-Age", "86400");
-
-    // Vary header is important for correct caching behavior
     res.setHeader("Vary", "Origin");
-
-    // Allow credentials only for specifically-listed origins, never for wildcard matches.
-    // Sending credentials with a wildcard-matched origin is a CORS misconfiguration
-    // that allows credential leakage to untrusted subdomains.
-    if (config.corsAllowCredentials && !matchedByWildcard) {
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-    }
   }
 }
-
 
 // =============================================================================
 // Body Parsing
 // =============================================================================
+
 
 /**
  * Read and parse JSON body from an incoming request.
