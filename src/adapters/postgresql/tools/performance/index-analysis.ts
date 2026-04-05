@@ -20,6 +20,7 @@ import {
 import {
   defaultToEmpty,
   toNum,
+  coerceNumber,
   validatePerformanceTableExists,
 } from "./helpers.js";
 
@@ -47,7 +48,12 @@ export function createUnusedIndexesTool(
 
   const UnusedIndexesSchema = z.preprocess(
     defaultToEmpty,
-    UnusedIndexesSchemaBase,
+    z.object({
+      schema: z.string().optional(),
+      minSize: z.string().optional(),
+      limit: z.preprocess(coerceNumber, z.number().optional()),
+      summary: z.boolean().optional(),
+    }),
   );
 
   return {
@@ -179,7 +185,10 @@ export function createDuplicateIndexesTool(
 
   const DuplicateIndexesSchema = z.preprocess(
     defaultToEmpty,
-    DuplicateIndexesSchemaBase,
+    z.object({
+      schema: z.string().optional(),
+      limit: z.preprocess(coerceNumber, z.number().optional()),
+    }),
   );
 
   return {

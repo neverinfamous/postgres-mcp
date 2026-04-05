@@ -3463,28 +3463,34 @@ describe("wrong-type limit param handling", () => {
     expect(result.statements.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_unused_indexes should return validation error for non-numeric string", async () => {
+  it("pg_unused_indexes should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ schemaname: "public", relname: "t", indexrelname: "idx", scans: "1", tuples_read: "1", size: "1 MB", size_bytes: "1000000" }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_unused_indexes")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      unusedIndexes: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.success).toBe(true);
+    expect(result.unusedIndexes.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_duplicate_indexes should return validation error for non-numeric string", async () => {
+  it("pg_duplicate_indexes should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ schemaname: "public", tablename: "t", index1: "idx1", index1_columns: ["a"], index1_size: "1 MB", index2: "idx2", index2_columns: ["a"], index2_size: "1 MB", duplicate_type: "EXACT_DUPLICATE" }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_duplicate_indexes")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      duplicateIndexes: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.success).toBe(true);
+    expect(result.duplicateIndexes.length).toBeGreaterThanOrEqual(0);
   });
 
   it("pg_vacuum_stats should silently fall back to default limit for non-numeric string", async () => {
@@ -3517,16 +3523,19 @@ describe("wrong-type limit param handling", () => {
     expect(result.locks.length).toBeGreaterThanOrEqual(0);
   });
 
-  it("pg_seq_scan_tables should return validation error for non-numeric string", async () => {
+  it("pg_seq_scan_tables should silently fall back to default limit for non-numeric string", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ schemaname: "public", table_name: "t", seq_scan: "1", seq_tup_read: "1", idx_scan: "1", idx_tup_fetch: "1", seq_scan_pct: "50" }],
+    });
+
     const tool = tools.find((t) => t.name === "pg_seq_scan_tables")!;
     const result = (await tool.handler({ limit: "abc" }, mockContext)) as {
       success: boolean;
-      error: string;
-      code: string;
+      tables: unknown[];
     };
 
-    expect(result.success).toBe(false);
-    expect(result.code).toBe("VALIDATION_ERROR");
+    expect(result.success).toBe(true);
+    expect(result.tables.length).toBeGreaterThanOrEqual(0);
   });
 
   it("pg_query_plan_stats should silently fall back to default limit for non-numeric string", async () => {

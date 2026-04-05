@@ -133,8 +133,19 @@ export function createDependencyGraphTool(
         const cycles = detectCycles(adjacency);
         const maxDepth = calculateMaxDepth(adjacency, leafTables);
 
+        const limit = Math.min(Math.max(parsed.limit ?? 100, 1), 500);
+        const originalNodeCount = allNodes.size;
+        
+        // Truncate nodes if needed
+        let finalNodes = [...allNodes].sort();
+        const isTruncated = finalNodes.length > limit;
+        if (isTruncated) {
+          finalNodes = finalNodes.slice(0, limit);
+        }
+        const activeNodes = new Set(finalNodes);
+
         // Build nodes
-        const nodes = [...allNodes].sort().map((name) => {
+        const nodes = finalNodes.map((name) => {
           const info = tableMap.get(name);
           const parts = name.split(".");
           return {
@@ -146,13 +157,18 @@ export function createDependencyGraphTool(
           };
         });
 
-        // Build edges
+        // Build edges (only for active nodes)
+        const finalEdges = fks.filter(fk => 
+          activeNodes.has(qualifiedName(fk.fromSchema, fk.fromTable)) && 
+          activeNodes.has(qualifiedName(fk.toSchema, fk.toTable))
+        );
+
         const edges = parsed.compact
-          ? fks.map((fk) => ({
+          ? finalEdges.map((fk) => ({
               from: qualifiedName(fk.fromSchema, fk.fromTable),
               to: qualifiedName(fk.toSchema, fk.toTable),
             }))
-          : fks.map((fk) => ({
+          : finalEdges.map((fk) => ({
               from: qualifiedName(fk.fromSchema, fk.fromTable),
               to: qualifiedName(fk.toSchema, fk.toTable),
               constraint: fk.constraintName,
@@ -170,7 +186,7 @@ export function createDependencyGraphTool(
           ...(edges.length > 0 ? { edges } : {}),
           ...(cycles.length > 0 ? { circularDependencies: cycles } : {}),
           stats: {
-            totalTables: allNodes.size,
+            totalTables: originalNodeCount,
             totalRelationships: fks.length,
             maxDepth,
             ...(parsed.compact ? {} : { 
@@ -178,6 +194,9 @@ export function createDependencyGraphTool(
               ...(leafTables.length > 0 ? { leafTables } : {})
             }),
           },
+          hint: isTruncated 
+            ? `Result truncated to ${String(limit)} nodes. Use 'schema' filter to narrow the graph.` 
+            : undefined,
         };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {

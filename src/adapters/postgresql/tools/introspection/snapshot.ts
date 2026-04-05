@@ -82,6 +82,9 @@ export function createSchemaSnapshotTool(
           schemaWhere = `AND n.nspname = $${String(schemaParams.length)}`;
         }
 
+        const limit = Math.min(Math.max(parsed.limit ?? 100, 1), 500);
+        const limitClause = `LIMIT ${String(limit)}`;
+
         // Build columns subquery for tables section
         const columnsSubquery = parsed.compact
           ? ""
@@ -133,7 +136,8 @@ export function createSchemaSnapshotTool(
               WHERE c.relkind IN ('r', 'p')
                 ${parsed.compact ? "AND c.relispartition = false" : ""}
                 ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-              ORDER BY n.nspname, c.relname`,
+              ORDER BY n.nspname, c.relname
+              ${limitClause}`,
                 qp,
               )
             : null,
@@ -149,7 +153,8 @@ export function createSchemaSnapshotTool(
               JOIN pg_namespace n ON n.oid = c.relnamespace
               WHERE c.relkind IN ('v', 'm')
                 ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-              ORDER BY n.nspname, c.relname`,
+              ORDER BY n.nspname, c.relname
+              ${limitClause}`,
                 qp,
               )
             : null,
@@ -170,7 +175,8 @@ export function createSchemaSnapshotTool(
               WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname !~ '^pg_toast'"}
                 ${parsed.compact ? "AND t.relispartition = false" : ""}
                 ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
-              ORDER BY n.nspname, t.relname, i.relname`,
+              ORDER BY n.nspname, t.relname, i.relname
+              ${limitClause}`,
                 qp,
               )
             : null,
@@ -189,7 +195,8 @@ export function createSchemaSnapshotTool(
               WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
                 ${parsed.compact ? "AND t.relispartition = false" : ""}
                 ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
-              ORDER BY n.nspname, t.relname, c.conname`,
+              ORDER BY n.nspname, t.relname, c.conname
+              ${limitClause}`,
                 qp,
               )
             : null,
@@ -207,7 +214,8 @@ export function createSchemaSnapshotTool(
               JOIN pg_language l ON l.oid = p.prolang
               WHERE ${parsed.includeSystem ? "true" : "n.nspname NOT IN ('pg_catalog', 'information_schema')"}
                 ${extensionSchemaExclude} ${extOwnedClause("p.oid")} ${schemaWhere}
-              ORDER BY n.nspname, p.proname`,
+              ORDER BY n.nspname, p.proname
+              ${limitClause}`,
                 qp,
               )
             : null,
@@ -232,7 +240,8 @@ export function createSchemaSnapshotTool(
               WHERE NOT t.tgisinternal
                 ${parsed.compact ? "AND c.relispartition = false" : ""}
                 ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-              ORDER BY n.nspname, c.relname, t.tgname`,
+              ORDER BY n.nspname, c.relname, t.tgname
+              ${limitClause}`,
                 qp,
               )
             : null,
@@ -252,7 +261,8 @@ export function createSchemaSnapshotTool(
               JOIN pg_namespace n ON n.oid = c.relnamespace
               WHERE c.relkind = 'S'
                 ${schemaExclude} ${extensionSchemaExclude} ${extOwnedClause("c.oid")} ${schemaWhere}
-              ORDER BY n.nspname, c.relname`,
+              ORDER BY n.nspname, c.relname
+              ${limitClause}`,
                 qp,
               )
             : null,
@@ -271,7 +281,8 @@ export function createSchemaSnapshotTool(
               WHERE t.typtype IN ('e', 'c', 'd', 'r')
                 AND n.nspname NOT IN ('pg_catalog', 'information_schema')
                 ${extensionSchemaExclude} ${extOwnedClause("t.oid")} ${schemaWhere}
-              ORDER BY n.nspname, t.typname`,
+              ORDER BY n.nspname, t.typname
+              ${limitClause}`,
                 qp,
               )
             : null,
@@ -283,7 +294,8 @@ export function createSchemaSnapshotTool(
                       n.nspname AS schema
                FROM pg_extension e
                JOIN pg_namespace n ON n.oid = e.extnamespace
-               ORDER BY e.extname`,
+               ORDER BY e.extname
+               ${limitClause}`,
               )
             : null,
         ]);
@@ -358,10 +370,15 @@ export function createSchemaSnapshotTool(
           if (v > 0) finalStats[k] = v;
         }
 
+        const finalHint = stats.tables >= limit || stats.views >= limit || stats.indexes >= limit || stats.constraints >= limit 
+          ? `Result truncated to ${String(limit)} objects per section. Use more specific schema filters or request fewer sections.`
+          : undefined;
+
         return {
           success: true,
           ...(Object.keys(snapshot).length > 0 ? { snapshot } : {}),
           ...(Object.keys(finalStats).length > 0 ? { stats: finalStats } : {}),
+          hint: finalHint,
           generatedAt: new Date().toISOString(),
         };
       } catch (error: unknown) {

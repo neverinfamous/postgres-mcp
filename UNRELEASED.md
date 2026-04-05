@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **BREAKING**: Core write tools require `write` scope; destructive tools require `admin`.
 - Modularized source files using strict `kebab-case` convention.
-- Optimized payload sizes (~30–41% reduction) by reducing default limits (10-20), capping max limits (50-100), and omitting null/empty sections across Performance, Stats, and Monitoring tools.
+- Optimized payload sizes (~30–41% reduction) by reducing default limits (10-20), capping max limits (50-100), and omitting null/empty sections across Performance, Stats, Monitoring, and Introspection tools.
+- Implemented configurable safety limits (default 100, max 500) for `pg_schema_snapshot` and `pg_dependency_graph` to prevent context window exhaustion in large database environments.
 - Applied `openWorldHint: false` to all tools.
 - Centralized default connection pool timeout to 30,000ms.
 - Switched to SWC compilation for Vitest and reduced npm package size by excluding test/source map artifacts.

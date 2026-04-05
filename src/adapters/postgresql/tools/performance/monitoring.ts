@@ -102,8 +102,8 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const parsed = BloatCheckSchema.parse(params);
         // Parse schema from table if it contains a dot (e.g., 'myschema.orders')
-        let tableName = typeof parsed.table === "string" || typeof parsed.table === "number" ? String(parsed.table) : undefined;
-        let schemaName = typeof parsed.schema === "string" || typeof parsed.schema === "number" ? String(parsed.schema) : undefined;
+        let tableName = parsed.table;
+        let schemaName = parsed.schema;
         if (tableName?.includes(".")) {
           const parts = tableName.split(".");
           schemaName = schemaName ?? parts[0];

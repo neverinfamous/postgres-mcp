@@ -33,6 +33,10 @@ export const DependencyGraphSchemaBase = z.object({
     .boolean()
     .optional()
     .describe("Omit detailed metadata to reduce payload size (default: false)"),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum tables to include in graph (default: 100, max: 500)"),
 });
 
 export const DependencyGraphSchema = z.object({
@@ -40,7 +44,8 @@ export const DependencyGraphSchema = z.object({
     includeRowCounts: z.boolean().optional(),
     excludeExtensionSchemas: z.boolean().optional(),
     compact: z.boolean().optional(),
-}).default({});
+    limit: z.preprocess(coerceNumber, z.number().optional().default(100)),
+}).default({ limit: 100 });
 
 /**
  * pg_topological_sort input
@@ -140,6 +145,10 @@ export const SchemaSnapshotSchemaBase = z.object({
     .describe(
       "Omit column details from tables section for reduced payload size (default: true). Set to false to include full column schemas.",
     ),
+  limit: z
+    .union([z.number(), z.string()])
+    .optional()
+    .describe("Maximum objects per section (default: 100, max: 500)"),
 });
 
 export const SchemaSnapshotSchema = z
@@ -163,8 +172,9 @@ export const SchemaSnapshotSchema = z
       )
       .optional(),
     compact: z.boolean().optional().default(true),
+    limit: z.preprocess(coerceNumber, z.number().optional().default(100)),
   })
-  .default({ compact: true });
+  .default({ compact: true, limit: 100 });
 
 /**
  * pg_constraint_analysis input
