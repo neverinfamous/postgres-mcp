@@ -122,6 +122,23 @@ RUN cd /usr/local/lib/node_modules/npm && \
     mv package node_modules/minimatch && \
     rm minimatch-10.2.5.tgz
 
+# Fix CVE-2026-33671, CVE-2026-33672: Manually update npm's bundled picomatch to 4.0.4
+RUN cd /usr/local/lib/node_modules/npm && \
+    npm pack picomatch@4.0.4 && \
+    rm -rf node_modules/picomatch && \
+    tar -xzf picomatch-4.0.4.tgz && \
+    mv package node_modules/picomatch && \
+    rm picomatch-4.0.4.tgz
+
+# Fix CVE-2026-33750: Manually update npm's bundled brace-expansion to 5.0.5
+RUN cd /usr/local/lib/node_modules/npm && \
+    npm pack brace-expansion@5.0.5 && \
+    rm -rf node_modules/brace-expansion && \
+    tar -xzf brace-expansion-5.0.5.tgz && \
+    mv package node_modules/brace-expansion && \
+    rm brace-expansion-5.0.5.tgz
+
+
 # Copy built artifacts and production dependencies
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
@@ -159,6 +176,6 @@ ENTRYPOINT ["node", "dist/cli.js"]
 # Labels for Docker Hub
 LABEL maintainer="Adamic.tech"
 LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 248 tools, 23 resources, 20 prompts"
-LABEL version="3.0.0"
+LABEL version="3.0.2"
 LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgres-mcp"
 LABEL io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp"
