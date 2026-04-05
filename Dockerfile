@@ -48,10 +48,13 @@ RUN cd /usr/local/lib/node_modules/npm && \
 # Fix CVE-2026-33671, CVE-2026-33672: Manually update npm's bundled picomatch to 4.0.4
 RUN cd /usr/local/lib/node_modules/npm && \
     npm pack picomatch@4.0.4 && \
-    rm -rf node_modules/tinyglobby/node_modules/picomatch && \
+    mkdir -p node_modules/picomatch && \
+    mkdir -p node_modules/tinyglobby/node_modules/picomatch && \
     tar -xzf picomatch-4.0.4.tgz && \
-    mv package node_modules/tinyglobby/node_modules/picomatch && \
-    rm picomatch-4.0.4.tgz
+    rm -rf node_modules/picomatch/* node_modules/tinyglobby/node_modules/picomatch/* && \
+    cp -r package/* node_modules/picomatch/ && \
+    cp -r package/* node_modules/tinyglobby/node_modules/picomatch/ && \
+    rm -rf package picomatch-4.0.4.tgz
 
 # Fix CVE-2026-33750: Manually update npm's bundled brace-expansion to 5.0.5
 RUN cd /usr/local/lib/node_modules/npm && \
@@ -125,10 +128,13 @@ RUN cd /usr/local/lib/node_modules/npm && \
 # Fix CVE-2026-33671, CVE-2026-33672: Manually update npm's bundled picomatch to 4.0.4
 RUN cd /usr/local/lib/node_modules/npm && \
     npm pack picomatch@4.0.4 && \
-    rm -rf node_modules/tinyglobby/node_modules/picomatch && \
+    mkdir -p node_modules/picomatch && \
+    mkdir -p node_modules/tinyglobby/node_modules/picomatch && \
     tar -xzf picomatch-4.0.4.tgz && \
-    mv package node_modules/tinyglobby/node_modules/picomatch && \
-    rm picomatch-4.0.4.tgz
+    rm -rf node_modules/picomatch/* node_modules/tinyglobby/node_modules/picomatch/* && \
+    cp -r package/* node_modules/picomatch/ && \
+    cp -r package/* node_modules/tinyglobby/node_modules/picomatch/ && \
+    rm -rf package picomatch-4.0.4.tgz
 
 # Fix CVE-2026-33750: Manually update npm's bundled brace-expansion to 5.0.5
 RUN cd /usr/local/lib/node_modules/npm && \
@@ -176,6 +182,6 @@ ENTRYPOINT ["node", "dist/cli.js"]
 # Labels for Docker Hub
 LABEL maintainer="Adamic.tech"
 LABEL description="PostgreSQL MCP Server - AI-native PostgreSQL operations with 248 tools, 23 resources, 20 prompts"
-LABEL version="3.0.3"
+LABEL version="3.0.4"
 LABEL org.opencontainers.image.source="https://github.com/neverinfamous/postgres-mcp"
 LABEL io.modelcontextprotocol.server.name="io.github.neverinfamous/postgres-mcp"
