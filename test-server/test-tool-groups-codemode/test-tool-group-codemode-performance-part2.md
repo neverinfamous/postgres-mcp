@@ -265,7 +265,7 @@ performance Tool Group (24 tools +1 code mode)
 14. `pg_detect_bloat_risk()` → verify `{tables, highRiskCount, totalAnalyzed, summary}` where `highRiskCount >= 0` and `totalAnalyzed >= 0`
 15. `pg_detect_bloat_risk({schema: "public"})` → verify only `public` schema tables in results
 16. `pg_detect_bloat_risk({minRows: 1})` → lower threshold should include more tables; verify `totalAnalyzed` >= default result's `totalAnalyzed`
-17. `pg_detect_bloat_risk({schema: "nonexistent_schema_xyz"})` → should return valid response with `totalAnalyzed: 0` and empty `tables` (filter produces no matches, not an error)
+17. 🔴 `pg_detect_bloat_risk({schema: "nonexistent_schema_xyz"})` → should return structured P154 error response natively (`Schema ... does not exist`)
 
 **Anomaly detection tools — pg_detect_connection_spike:**
 
