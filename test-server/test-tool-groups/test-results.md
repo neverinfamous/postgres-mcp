@@ -31,7 +31,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-transactions.md` | ~3,240 | |
 | `test-tool-group-vector-part1.md` | ~2,678 | |
 | `test-tool-group-vector-part2.md` | ~6,552| |
-| **Total Estimated Tokens** | **~172,537** | |
+| **Total Estimated Tokens** | **~163,675** | |
 
 **Safe to test in pairs**
 jsonb + vector

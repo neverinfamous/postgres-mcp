@@ -11,7 +11,6 @@ Last tested: April 4th, 2026
 | `test-tools-advanced-core-part1.md` | ~6,729 | |
 | `test-tools-advanced-core-part2.md` | ~39,638 | |
 | `test-tools-advanced-cron.md` | ~4,979 | |
-| `test-tools-advanced-cross-group.md` | ~93,229 | |
 | `test-tools-advanced-introspection.md` | ~5,948 | |
 | `test-tools-advanced-jsonb-part1.md` | ~3,021 | |
 | `test-tools-advanced-jsonb-part2.md` | ~4,814 | |
@@ -35,7 +34,7 @@ Last tested: April 4th, 2026
 | `test-tools-advanced-transactions.md` | ~5,328 | |
 | `test-tools-advanced-vector-part1.md` | ~3,930 | |
 | `test-tools-advanced-vector-part2.md` | ~60,158 | |
-| **Total Estimated Tokens** | **~343,914** | |
+| **Total Estimated Tokens** | **~248,053** | |
 
 **Safe to test in pairs**
 jsonb + vector
