@@ -12,57 +12,9 @@ RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/m
 # Upgrade npm globally to get fixed versions of bundled packages
 RUN npm install -g npm@latest --force && npm cache clean --force
 
-# Fix GHSA-73rr-hh4g-fpgx: Manually update npm's bundled diff to 8.0.4
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack diff@8.0.4 && \
-    rm -rf node_modules/diff && \
-    tar -xzf diff-8.0.4.tgz && \
-    mv package node_modules/diff && \
-    rm diff-8.0.4.tgz
-
-# Fix CVE-2026-25547: Manually update npm's bundled @isaacs/brace-expansion@5.0.0 to 5.0.1
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack @isaacs/brace-expansion@5.0.1 && \
-    rm -rf node_modules/@isaacs/brace-expansion && \
-    mkdir -p node_modules/@isaacs/brace-expansion && \
-    tar -xzf isaacs-brace-expansion-5.0.1.tgz && \
-    mv package/* node_modules/@isaacs/brace-expansion/ && \
-    rm -rf package isaacs-brace-expansion-5.0.1.tgz
-
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.13
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.13 && \
-    rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.13.tgz && \
-    mv package node_modules/tar && \
-    rm tar-7.5.13.tgz
-
-# Fix CVE-2026-27904, CVE-2026-27903: Manually update npm's bundled minimatch to 10.2.5
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack minimatch@10.2.5 && \
-    rm -rf node_modules/minimatch && \
-    tar -xzf minimatch-10.2.5.tgz && \
-    mv package node_modules/minimatch && \
-    rm minimatch-10.2.5.tgz
-
-# Fix CVE-2026-33671, CVE-2026-33672: Manually update npm's bundled picomatch to 4.0.4
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack picomatch@4.0.4 && \
-    rm -rf node_modules/picomatch && \
-    rm -rf node_modules/tinyglobby/node_modules/picomatch && \
-    tar -xzf picomatch-4.0.4.tgz && \
-    cp -a package node_modules/picomatch && \
-    mkdir -p node_modules/tinyglobby/node_modules && \
-    cp -a package node_modules/tinyglobby/node_modules/picomatch && \
-    rm -rf package picomatch-4.0.4.tgz
-
-# Fix CVE-2026-33750: Manually update npm's bundled brace-expansion to 5.0.5
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack brace-expansion@5.0.5 && \
-    rm -rf node_modules/brace-expansion && \
-    tar -xzf brace-expansion-5.0.5.tgz && \
-    mv package node_modules/brace-expansion && \
-    rm brace-expansion-5.0.5.tgz
+# Patch npm's bundled dependencies for known CVEs (shared script — single source of truth)
+COPY scripts/patch-npm-deps.sh ./scripts/
+RUN sh scripts/patch-npm-deps.sh
 
 
 # Copy package files first for better layer caching
@@ -92,58 +44,9 @@ RUN apk add --no-cache ca-certificates && \
     apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main 'zlib>=1.3.2-r0' && \
     npm install -g npm@latest --force && npm cache clean --force
 
-# Fix GHSA-73rr-hh4g-fpgx: Manually update npm's bundled diff to 8.0.4
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack diff@8.0.4 && \
-    rm -rf node_modules/diff && \
-    tar -xzf diff-8.0.4.tgz && \
-    mv package node_modules/diff && \
-    rm diff-8.0.4.tgz
-
-# Fix CVE-2026-25547: Manually update npm's bundled @isaacs/brace-expansion@5.0.0 to 5.0.1
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack @isaacs/brace-expansion@5.0.1 && \
-    rm -rf node_modules/@isaacs/brace-expansion && \
-    mkdir -p node_modules/@isaacs/brace-expansion && \
-    tar -xzf isaacs-brace-expansion-5.0.1.tgz && \
-    mv package/* node_modules/@isaacs/brace-expansion/ && \
-    rm -rf package isaacs-brace-expansion-5.0.1.tgz
-
-# Fix CVE-2026-23950, CVE-2026-24842: Manually update npm's bundled tar to 7.5.13
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack tar@7.5.13 && \
-    rm -rf node_modules/tar && \
-    tar -xzf tar-7.5.13.tgz && \
-    mv package node_modules/tar && \
-    rm tar-7.5.13.tgz
-
-# Fix CVE-2026-27904, CVE-2026-27903: Manually update npm's bundled minimatch to 10.2.5
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack minimatch@10.2.5 && \
-    rm -rf node_modules/minimatch && \
-    tar -xzf minimatch-10.2.5.tgz && \
-    mv package node_modules/minimatch && \
-    rm minimatch-10.2.5.tgz
-
-# Fix CVE-2026-33671, CVE-2026-33672: Manually update npm's bundled picomatch to 4.0.4
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack picomatch@4.0.4 && \
-    rm -rf node_modules/picomatch && \
-    rm -rf node_modules/tinyglobby/node_modules/picomatch && \
-    tar -xzf picomatch-4.0.4.tgz && \
-    cp -a package node_modules/picomatch && \
-    mkdir -p node_modules/tinyglobby/node_modules && \
-    cp -a package node_modules/tinyglobby/node_modules/picomatch && \
-    rm -rf package picomatch-4.0.4.tgz
-
-# Fix CVE-2026-33750: Manually update npm's bundled brace-expansion to 5.0.5
-RUN cd /usr/local/lib/node_modules/npm && \
-    npm pack brace-expansion@5.0.5 && \
-    rm -rf node_modules/brace-expansion && \
-    tar -xzf brace-expansion-5.0.5.tgz && \
-    mv package node_modules/brace-expansion && \
-    rm brace-expansion-5.0.5.tgz
-
+# Patch npm's bundled dependencies for known CVEs (with cache cleanup for lean image)
+COPY scripts/patch-npm-deps.sh ./scripts/
+RUN sh scripts/patch-npm-deps.sh --clean-cache
 
 # Copy built artifacts and production dependencies
 COPY --from=builder /app/dist ./dist

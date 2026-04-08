@@ -27,8 +27,6 @@ import {
   DetectQueryAnomaliesOutputSchema,
   DetectBloatRiskOutputSchema,
 } from "../../schemas/performance.js";
-import { validatePerformanceTableExists } from "./helpers.js";
-
 // =============================================================================
 // Shared Helpers (exported for connection-analysis.ts)
 // =============================================================================
@@ -269,9 +267,7 @@ export function createDetectBloatRiskTool(
         const minRows = parsed.data.minRows ?? 1000;
         const schema = parsed.data.schema;
 
-        if (schema !== undefined) {
-          await validatePerformanceTableExists(adapter, undefined, schema);
-        }
+
 
         if (minRows < 0 || minRows > 1000000) {
           return {

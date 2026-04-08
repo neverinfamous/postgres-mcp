@@ -83,6 +83,7 @@ playwright.config.ts
 playwright-report/
 test-results/
 scripts/
+!scripts/patch-npm-deps.sh
 
 # Logs
 *.log

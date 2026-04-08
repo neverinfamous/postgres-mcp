@@ -11,10 +11,13 @@
 /**
  * Default cache TTL in milliseconds (configurable via METADATA_CACHE_TTL_MS env var).
  */
-export const DEFAULT_CACHE_TTL_MS = parseInt(
+const parsedCacheTtlMs = parseInt(
   process.env["METADATA_CACHE_TTL_MS"] ?? "30000",
   10,
 );
+export const DEFAULT_CACHE_TTL_MS = Number.isFinite(parsedCacheTtlMs)
+  ? parsedCacheTtlMs
+  : 30000;
 
 /**
  * Metadata cache entry with TTL support.
