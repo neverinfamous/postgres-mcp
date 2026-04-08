@@ -45,10 +45,10 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
       try {
         const parsed = z
           .object({
-            limit: z.number().optional(),
+            limit: z.coerce.number().optional(),
             orderBy: z.string().optional(),
-            minCalls: z.number().optional(),
-            queryPreviewLength: z.number().optional(),
+            minCalls: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
             compact: z.boolean().optional(),
           })
           .parse(params ?? {});
@@ -208,8 +208,8 @@ in user CPU (application code) vs system CPU (kernel operations).`,
       try {
         const parsed = z
           .object({
-            limit: z.number().optional(),
-            queryPreviewLength: z.number().optional(),
+            limit: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
             compact: z.boolean().optional(),
           })
           .parse(params ?? {});
@@ -336,8 +336,8 @@ which represent actual disk access (not just shared buffer hits).`,
         const parsed = z
           .object({
             type: z.string().optional(),
-            limit: z.number().optional(),
-            queryPreviewLength: z.number().optional(),
+            limit: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
             compact: z.boolean().optional(),
           })
           .parse(preprocessed);

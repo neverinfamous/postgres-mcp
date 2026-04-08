@@ -23,10 +23,10 @@ rm diff-8.0.4.tgz
 cd "$NPM_DIR"
 npm pack @isaacs/brace-expansion@5.0.1
 rm -rf node_modules/@isaacs/brace-expansion
-mkdir -p node_modules/@isaacs/brace-expansion
+mkdir -p node_modules/@isaacs
 tar -xzf isaacs-brace-expansion-5.0.1.tgz
-mv package/* node_modules/@isaacs/brace-expansion/
-rm -rf package isaacs-brace-expansion-5.0.1.tgz
+mv package node_modules/@isaacs/brace-expansion
+rm isaacs-brace-expansion-5.0.1.tgz
 
 # Fix CVE-2026-23950, CVE-2026-24842: tar → 7.5.13
 cd "$NPM_DIR"

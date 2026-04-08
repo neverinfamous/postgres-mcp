@@ -15,9 +15,10 @@ const parsedCacheTtlMs = parseInt(
   process.env["METADATA_CACHE_TTL_MS"] ?? "30000",
   10,
 );
-export const DEFAULT_CACHE_TTL_MS = Number.isFinite(parsedCacheTtlMs)
-  ? parsedCacheTtlMs
-  : 30000;
+export const DEFAULT_CACHE_TTL_MS =
+  Number.isFinite(parsedCacheTtlMs) && parsedCacheTtlMs > 0
+    ? parsedCacheTtlMs
+    : 30000;
 
 /**
  * Metadata cache entry with TTL support.
