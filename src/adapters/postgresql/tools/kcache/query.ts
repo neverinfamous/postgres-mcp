@@ -125,9 +125,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const totalCount = Number(totalRaw) || 0;
 
         const isCompact = parsed.compact ?? true;
-        const previewCol = isCompact
-          ? ""
-          : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
+        // Always include query_preview for context, even in compact mode
+        const previewCol = `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
 
         const sql = `
                 SELECT
@@ -244,9 +243,8 @@ in user CPU (application code) vs system CPU (kernel operations).`,
         const totalCount = Number(totalRaw) || 0;
 
         const isCompact = parsed.compact ?? true;
-        const previewCol = isCompact
-          ? ""
-          : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
+        // Always include query_preview for context, even in compact mode
+        const previewCol = `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
 
         const sql = `
                 SELECT
@@ -401,9 +399,8 @@ which represent actual disk access (not just shared buffer hits).`,
         const totalCount = Number(totalRaw) || 0;
 
         const isCompact = parsed.compact ?? true;
-        const previewCol = isCompact
-          ? ""
-          : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
+        // Always include query_preview for context, even in compact mode
+        const previewCol = `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
 
         const sql = `
                 SELECT

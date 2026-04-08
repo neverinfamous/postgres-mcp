@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **kcache output optimization**: Ensured `query_preview` is preserved in the response even when `compact` mode is active across `pg_kcache_query_stats`, `pg_kcache_top_cpu`, `pg_kcache_top_io`, and `pg_kcache_resource_analysis` to maintain query debuggability while saving tokens
 - **Anomaly Detection Empty Filters**: `pg_detect_bloat_risk` now properly returns an empty array and `totalAnalyzed: 0` instead of throwing a validation error when queried with a nonexistent schema
 - **kcache schemas**: Apply `coerceNumber` preprocess to all numeric params (`limit`, `minCalls`, `queryPreviewLength`, `threshold`) — string inputs like `"5"` are now properly coerced instead of rejected
 - **partition preprocessing**: Escape embedded single quotes in `from`/`to`/`values[]` when building `forValues` DDL fragments — prevents broken SQL and potential injection

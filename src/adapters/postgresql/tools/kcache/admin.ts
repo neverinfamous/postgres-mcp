@@ -250,9 +250,8 @@ Helps identify the root cause of performance issues - is the query computation-h
         const totalCount = Number(totalRaw) || 0;
 
         const isCompact = parsed.compact ?? true;
-        const previewCol = isCompact
-          ? ""
-          : `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
+        // Always include query_preview for context, even in compact mode
+        const previewCol = `LEFT(s.query, ${String(previewLen)}) as query_preview,`;
 
         const sql = `
                 WITH query_metrics AS (
@@ -275,7 +274,7 @@ Helps identify the root cause of performance issues - is the query computation-h
                 )
                 SELECT
                     queryid,
-                    ${isCompact ? "" : "query_preview,"}
+                    query_preview,
                     calls,
                     total_time_ms,
                     cpu_time,
