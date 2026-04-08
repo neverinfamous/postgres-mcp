@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Anomaly Detection Empty Filters**: `pg_detect_bloat_risk` now properly returns an empty array and `totalAnalyzed: 0` instead of throwing a validation error when queried with a nonexistent schema
 - **kcache schemas**: Apply `coerceNumber` preprocess to all numeric params (`limit`, `minCalls`, `queryPreviewLength`, `threshold`) — string inputs like `"5"` are now properly coerced instead of rejected
 - **partition preprocessing**: Escape embedded single quotes in `from`/`to`/`values[]` when building `forValues` DDL fragments — prevents broken SQL and potential injection
 - **adapter-cache**: Validate `METADATA_CACHE_TTL_MS` env var with `Number.isFinite()` fallback — prevents `NaN` from silently disabling TTL expiry
