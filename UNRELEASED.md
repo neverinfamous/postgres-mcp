@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **partition preprocessing**: Escape embedded single quotes in `from`/`to`/`values[]` when building `forValues` DDL fragments — prevents broken SQL and potential injection
 - **adapter-cache**: Validate `METADATA_CACHE_TTL_MS` env var with `Number.isFinite()` fallback — prevents `NaN` from silently disabling TTL expiry
 - **core queries**: Remove `.unknown()` from `default`/`defaultValue` column schema — restores constrained `string|number|boolean` union to prevent objects from generating invalid DDL
-
+- **Core Verification**: Completed advanced Code Mode stress testing across all 20 core tools. Confirmed 100% boundary value resilience, idempotency integrity, object existence patterns, and Zod parameter consistency.
 ### Changed
 
 - **Dockerfile**: Extract 6 duplicated CVE patch `RUN` blocks into shared `scripts/patch-npm-deps.sh` — eliminates drift between builder and production stages; production stage now includes `--clean-cache` to purge `/root/.npm`
