@@ -343,12 +343,18 @@ which represent actual disk access (not just shared buffer hits).`,
           .parse(preprocessed);
 
         // Validate ioType inside handler for structured error response
-        const VALID_IO_TYPES = ["read", "write", "reads", "writes", "both"] as const;
+        const VALID_IO_TYPES = [
+          "read",
+          "write",
+          "reads",
+          "writes",
+          "both",
+        ] as const;
         let rawIoType = parsed.type ?? "both";
         // Normalize singular aliases strictly to their plural counterparts for DB column resolution
         if (rawIoType === "read") rawIoType = "reads";
         if (rawIoType === "write") rawIoType = "writes";
-        
+
         if (
           !VALID_IO_TYPES.includes(rawIoType as (typeof VALID_IO_TYPES)[number])
         ) {
