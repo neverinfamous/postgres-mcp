@@ -8,14 +8,14 @@
     {
       "registryType": "npm",
       "identifier": "@neverinfamous/postgres-mcp",
-      "version": "3.0.5",
+      "version": "3.0.6",
       "transport": {
         "type": "stdio"
       }
     },
     {
       "registryType": "oci",
-      "identifier": "docker.io/writenotenow/postgres-mcp:v3.0.5",
+      "identifier": "docker.io/writenotenow/postgres-mcp:v3.0.6",
       "transport": {
         "type": "stdio"
       }
