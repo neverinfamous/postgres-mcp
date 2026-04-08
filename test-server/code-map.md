@@ -308,7 +308,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 
 ## Resources (`src/adapters/postgresql/resources/`)
 
-22 data resources + 22 help resources providing read-only metadata and agent guidance:
+22 data resources + 21 help resources providing read-only metadata and agent guidance:
 
 ### Data Resources
 
@@ -344,7 +344,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `postgres://help`         | `server-instructions/overview.md` + `gotchas.md` | Gotchas, aliases, Code Mode API — always available     |
 | `postgres://help/{group}` | `server-instructions/{group}.md`                 | Per-group tool reference — filtered by `--tool-filter` |
 
-22 group-specific help resources (one per tool group). Only groups enabled by `--tool-filter` are registered.
+20 group-specific help resources. Only groups enabled by `--tool-filter` are registered. The `core` and `codemode` tools are covered by the global `postgres://help` resource.
 
 ---
 
