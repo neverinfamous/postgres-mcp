@@ -55,8 +55,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const limit = parsed.limit;
 
-        if (limit !== undefined && (limit < 1 || limit > 10)) {
-          throw new ValidationError("limit must be between 1 and 10");
+        if (limit !== undefined && (limit < 1 || limit > 100)) {
+          throw new ValidationError("limit must be between 1 and 100");
         }
 
         const orderBy = parsed.orderBy;
@@ -215,9 +215,9 @@ in user CPU (application code) vs system CPU (kernel operations).`,
           .parse(params ?? {});
         if (
           parsed.limit !== undefined &&
-          (parsed.limit < 1 || parsed.limit > 10)
+          (parsed.limit < 1 || parsed.limit > 100)
         ) {
-          throw new ValidationError("limit must be between 1 and 10");
+          throw new ValidationError("limit must be between 1 and 100");
         }
 
         const DEFAULT_LIMIT = 5;
@@ -343,8 +343,12 @@ which represent actual disk access (not just shared buffer hits).`,
           .parse(preprocessed);
 
         // Validate ioType inside handler for structured error response
-        const VALID_IO_TYPES = ["reads", "writes", "both"] as const;
-        const rawIoType = parsed.type ?? "both";
+        const VALID_IO_TYPES = ["read", "write", "reads", "writes", "both"] as const;
+        let rawIoType = parsed.type ?? "both";
+        // Normalize singular aliases strictly to their plural counterparts for DB column resolution
+        if (rawIoType === "read") rawIoType = "reads";
+        if (rawIoType === "write") rawIoType = "writes";
+        
         if (
           !VALID_IO_TYPES.includes(rawIoType as (typeof VALID_IO_TYPES)[number])
         ) {
@@ -356,9 +360,9 @@ which represent actual disk access (not just shared buffer hits).`,
         const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
         if (
           parsed.limit !== undefined &&
-          (parsed.limit < 1 || parsed.limit > 10)
+          (parsed.limit < 1 || parsed.limit > 100)
         ) {
-          throw new ValidationError("limit must be between 1 and 10");
+          throw new ValidationError("limit must be between 1 and 100");
         }
 
         const DEFAULT_LIMIT = 5;

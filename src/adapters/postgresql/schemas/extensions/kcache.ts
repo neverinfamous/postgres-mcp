@@ -20,7 +20,7 @@ export const KcacheQueryStatsSchemaBase = z.object({
   limit: z
     .preprocess(coerceNumber, z.number().optional())
     .describe(
-      "Maximum number of queries to return (default: 5, min: 1, max: 10).",
+      "Maximum number of queries to return (default: 5, min: 1, max: 100).",
     ),
   orderBy: z
     .string()
@@ -55,7 +55,7 @@ export const KcacheQueryStatsSchema = z.preprocess(
 export const KcacheTopCpuSchemaBase = z.object({
   limit: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Number of top queries to return (default: 5, min: 1, max: 10)."),
+    .describe("Number of top queries to return (default: 5, min: 1, max: 100)."),
   queryPreviewLength: z
     .preprocess(coerceNumber, z.number().optional())
     .describe(
@@ -77,7 +77,7 @@ export const KcacheTopIoSchemaBase = z.object({
   ioType: z.string().optional().describe("Alias for type"),
   limit: z
     .preprocess(coerceNumber, z.number().optional())
-    .describe("Number of top queries to return (default: 5, min: 1, max: 10)."),
+    .describe("Number of top queries to return (default: 5, min: 1, max: 100)."),
   queryPreviewLength: z
     .preprocess(coerceNumber, z.number().optional())
     .describe(
@@ -124,7 +124,7 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
   limit: z
     .preprocess(coerceNumber, z.number().optional())
     .describe(
-      "Maximum number of queries to return (default: 5, min: 1, max: 10).",
+      "Maximum number of queries to return (default: 5, min: 1, max: 100).",
     ),
   minCalls: z
     .preprocess(coerceNumber, z.number().optional())

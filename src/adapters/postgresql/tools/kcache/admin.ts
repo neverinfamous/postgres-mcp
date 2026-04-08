@@ -199,8 +199,8 @@ Helps identify the root cause of performance issues - is the query computation-h
         const threshold = parsed.threshold;
         const limit = parsed.limit;
 
-        if (limit !== undefined && (limit < 1 || limit > 10)) {
-          throw new ValidationError("limit must be between 1 and 10");
+        if (limit !== undefined && (limit < 1 || limit > 100)) {
+          throw new ValidationError("limit must be between 1 and 100");
         }
         const minCalls = parsed.minCalls;
         const queryPreviewLength = parsed.queryPreviewLength;

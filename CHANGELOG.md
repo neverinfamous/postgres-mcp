@@ -21,6 +21,7 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 - Playwright E2E test coverage for Code Mode, authentication, and backups.
 - Parameter extensions and aliases for core tools (e.g., `toType`, `indexName`).
 - Agent-optimized documentation and Code Mode integration guides.
+- **`pg_transaction_status` tool** — New read-only tool in the `transactions` group that checks the state of an active managed transaction without modifying it. Returns status (`"active"`, `"aborted"`, `"not_found"`). Exposed in Code Mode as `pg.transactions.status()`. Transaction tools: 7 → 8.
 
 ### Changed
 
@@ -31,6 +32,10 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 - Applied `openWorldHint: false` to all tools.
 - Centralized default connection pool timeout to 30,000ms.
 - Switched to SWC compilation for Vitest and reduced npm package size by excluding test/source map artifacts.
+- **Dependency Updates**
+  - `jose`: 6.2.0 → 6.2.1
+  - Dockerfile: bumped npm-bundled `tar` patch from 7.5.10 → 7.5.11 and `minimatch` to 10.2.4
+  - `package.json` overrides: exactly pinned `tar` to 7.5.11 and `minimatch` to 10.2.4
 
 ### Removed
 
@@ -51,29 +56,6 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 - Improved resilience in Admin and Monitoring tools when handling missing tables or extensions.
 - Bypassed Docker Hub rate-limit blocks in CI using authenticated pulls.
 - Resolved various logic regressions in cascade simulators, progress logging, and snake_case alias parsing.
-
-### Security
-
-- Patched prototype pollution vulnerabilities in `hono`.
-- Replaced raw exceptions with `PostgresMcpError` to prevent SQL syntax leaks.
-- Enforced SLSA Build L3 compliance via `--provenance` in publishing workflows.
-- Patched vulnerabilities in Docker builds.
-- Added `push` trigger to `secrets-scanning.yml` for early leak detection on feature branches.
-- Cleaned `.trivyignore` to contain only CVE IDs (removed inert path entries).
-
-### Added
-
-- **`pg_transaction_status` tool** — New read-only tool in the `transactions` group that checks the state of an active managed transaction without modifying it. Returns status (`"active"`, `"aborted"`, `"not_found"`). Exposed in Code Mode as `pg.transactions.status()`. Transaction tools: 7 → 8.
-
-### Changed
-
-- **Dependency Updates**
-  - `jose`: 6.2.0 → 6.2.1
-  - Dockerfile: bumped npm-bundled `tar` patch from 7.5.10 → 7.5.11 and `minimatch` to 10.2.4
-  - `package.json` overrides: exactly pinned `tar` to 7.5.11 and `minimatch` to 10.2.4
-
-### Fixed
-
 - **Introspection Tools Silent Empty Results** — `pg_dependency_graph`, `pg_topological_sort`, `pg_constraint_analysis`, and `pg_cascade_simulator` now explicitly return a structured error (`success: false`) when queried against nonexistent schemas or tables instead of silently returning empty findings.
 - **Migration Record Status** — `pg_migration_record` now inserts entries with `status: 'recorded'` instead of defaulting to `'applied'`, distinguishing metadata-only records from executed migrations.
 - **Anomaly Detection Tools Numeric Coercion** — `pg_detect_query_anomalies`, `pg_detect_bloat_risk`, and `pg_detect_connection_spike` now gracefully fall back to default values for non-numeric parameter inputs instead of producing raw framework output validation errors.
@@ -83,6 +65,12 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 
 ### Security
 
+- Patched prototype pollution vulnerabilities in `hono`.
+- Replaced raw exceptions with `PostgresMcpError` to prevent SQL syntax leaks.
+- Enforced SLSA Build L3 compliance via `--provenance` in publishing workflows.
+- Patched vulnerabilities in Docker builds.
+- Added `push` trigger to `secrets-scanning.yml` for early leak detection on feature branches.
+- Cleaned `.trivyignore` to contain only CVE IDs (removed inert path entries).
 - **Schema Validation** — Mitigated an SQL injection risk in diagnostics and anomaly-detection modules by replacing ad-hoc string escaping with `validateIdentifier()` schema validation.
 
 ## [2.2.0] - 2026-03-09

@@ -2,7 +2,9 @@
 
 <!-- mcp-name: io.github.neverinfamous/postgres-mcp -->
 
-**PostgreSQL MCP Server** enabling AI assistants to interact with PostgreSQL databases through the Model Context Protocol. Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a secure, true V8 isolate (`worker_threads`), eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
+**PostgreSQL MCP Server** binding the Model Context Protocol to a secure PostgreSQL sandbox.
+
+Features **Code Mode** — a revolutionary approach that provides access to all 248 tools through a secure, true V8 isolate (`worker_threads`), eliminating the massive token overhead of multi-step tool calls. Also includes schema introspection, migration tracking, smart tool filtering, deterministic error handling, connection pooling, HTTP/SSE Transport, OAuth 2.1 authentication, and extension support for citext, ltree, pgcrypto, pg_cron, pg_stat_kcache, pgvector, PostGIS, and HypoPG.
 
 **248 Specialized Tools** · **23 Resources** · **20 AI-Powered Prompts**
 

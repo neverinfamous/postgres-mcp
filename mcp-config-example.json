@@ -19,6 +19,10 @@
         "-e",
         "POSTGRES_URL",
         "-e",
+        "POSTGRES_TOOL_FILTER",
+        "-e",
+        "LOG_LEVEL",
+        "-e",
         "MCP_AUTH_TOKEN",
         "-e",
         "OAUTH_ENABLED",
@@ -26,6 +30,10 @@
         "OAUTH_ISSUER",
         "-e",
         "OAUTH_AUDIENCE",
+        "-e",
+        "AUDIT_BACKUP",
+        "-e",
+        "AUDIT_REDACT",
         "writenotenow/postgres-mcp:latest",
         "--tool-filter",
         "codemode",
@@ -39,10 +47,14 @@
         "POSTGRES_PASSWORD": "your_password",
         "POSTGRES_DATABASE": "your_database",
         "POSTGRES_URL": "postgres://user:pass@host.docker.internal:5432/db",
+        "POSTGRES_TOOL_FILTER": "",
+        "LOG_LEVEL": "info",
         "MCP_AUTH_TOKEN": "",
         "OAUTH_ENABLED": "false",
         "OAUTH_ISSUER": "",
-        "OAUTH_AUDIENCE": ""
+        "OAUTH_AUDIENCE": "",
+        "AUDIT_BACKUP": "false",
+        "AUDIT_REDACT": "false"
       }
     }
   }
