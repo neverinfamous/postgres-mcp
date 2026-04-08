@@ -98,7 +98,7 @@ export const KcacheDatabaseStatsSchemaBase = z.object({
   database: z
     .string()
     .optional()
-    .describe("Database name (current database if omitted)"),
+    .describe("Database name (all databases if omitted)"),
   compact: z
     .boolean()
     .optional()
