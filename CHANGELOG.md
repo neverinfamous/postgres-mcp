@@ -14,6 +14,8 @@ See [UNRELEASED.md](UNRELEASED.md) for all pending changes.
 ### Fixed
 
 - **kcache**: Updated `pg_kcache_database_stats` Zod schema description to clarify that omitting the `database` parameter queries all databases.
+- **kcache**: Added robust numeric coercion for internal calculation limits to prevent unhandled TypeErrors when parameters specify string numbers.
+- **core**: Hardened Validation logic to explicitly coerce and clamp cache TTL values.
 
 ## [3.0.6](https://github.com/neverinfamous/postgres-mcp/releases/tag/v3.0.6) - 2026-04-08
 

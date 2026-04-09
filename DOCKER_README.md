@@ -264,7 +264,7 @@ The `--tool-filter` argument accepts **groups** or **tool names** — mix and ma
 | `postgis`       | 16    | PostGIS (geospatial)                                                  |
 | `cron`          | 9     | pg_cron (job scheduling)                                              |
 | `partman`       | 11    | pg_partman (auto-partitioning)                                        |
-| `kcache`        | 8     | pg_stat_kcache (OS-level stats)                                       |
+| `kcache`        | 7     | pg_stat_kcache (OS-level stats)                                       |
 | `citext`        | 7     | citext (case-insensitive text)                                        |
 | `ltree`         | 9     | ltree (hierarchical data)                                             |
 | `pgcrypto`      | 10    | pgcrypto (encryption, UUIDs)                                          |
