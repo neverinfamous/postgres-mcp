@@ -196,7 +196,6 @@ export class AuditLogger {
     } catch {
       return [];
     }
-
   }
 
   /**

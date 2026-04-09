@@ -142,5 +142,4 @@ describe("Filter Summary", () => {
     },
     { iterations: 2000, warmupIterations: 20 },
   );
-
 });

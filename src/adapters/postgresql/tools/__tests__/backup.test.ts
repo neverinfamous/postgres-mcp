@@ -14,7 +14,6 @@ import {
   createMockRequestContext,
 } from "../../../../__tests__/mocks/index.js";
 
-
 describe("getBackupTools", () => {
   let adapter: PostgresAdapter;
   let tools: ReturnType<typeof getBackupTools>;

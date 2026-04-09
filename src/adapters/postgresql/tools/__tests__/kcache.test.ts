@@ -719,7 +719,7 @@ describe("Kcache Tools", () => {
         error: string;
       };
       expect(result.success).toBe(false);
-      expect(result.error).toContain("received string");
+      expect(result.error).toContain("NaN");
     });
 
     it("should throw ValidationError when numeric parameters are NaN in top_cpu", async () => {
@@ -729,7 +729,7 @@ describe("Kcache Tools", () => {
         error: string;
       };
       expect(result.success).toBe(false);
-      expect(result.error).toContain("received string");
+      expect(result.error).toContain("NaN");
     });
 
     it("should throw ValidationError when numeric parameters are NaN in top_io", async () => {
@@ -739,7 +739,7 @@ describe("Kcache Tools", () => {
         error: string;
       };
       expect(result.success).toBe(false);
-      expect(result.error).toContain("received string");
+      expect(result.error).toContain("NaN");
     });
 
     it("should throw ValidationError when numeric parameters are NaN in resource_analysis", async () => {
@@ -749,7 +749,7 @@ describe("Kcache Tools", () => {
         error: string;
       };
       expect(result.success).toBe(false);
-      expect(result.error).toContain("received string");
+      expect(result.error).toContain("NaN");
     });
   });
 });

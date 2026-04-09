@@ -267,8 +267,6 @@ export function createDetectBloatRiskTool(
         const minRows = parsed.data.minRows ?? 1000;
         const schema = parsed.data.schema;
 
-
-
         if (minRows < 0 || minRows > 1000000) {
           return {
             success: false,

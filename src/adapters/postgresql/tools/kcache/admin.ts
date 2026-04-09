@@ -187,10 +187,10 @@ Helps identify the root cause of performance issues - is the query computation-h
         const parsed = z
           .object({
             queryId: z.string().optional(),
-            threshold: z.number().optional(),
-            limit: z.number().optional(),
-            minCalls: z.number().optional(),
-            queryPreviewLength: z.number().optional(),
+            threshold: z.coerce.number().optional(),
+            limit: z.coerce.number().optional(),
+            minCalls: z.coerce.number().optional(),
+            queryPreviewLength: z.coerce.number().optional(),
             compact: z.boolean().optional(),
           })
           .parse(params ?? {});

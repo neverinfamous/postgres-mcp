@@ -278,7 +278,6 @@ export function setCorsHeaders(
 // Body Parsing
 // =============================================================================
 
-
 /**
  * Read and parse JSON body from an incoming request.
  * Returns undefined for GET/DELETE/OPTIONS (no body expected).
