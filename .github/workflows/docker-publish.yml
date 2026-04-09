@@ -233,7 +233,7 @@ jobs:
       deployments: write
 
     environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'production' || '' }}
+      name: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || '' }}
       url: https://hub.docker.com/r/writenotenow/postgres-mcp
 
     steps:
@@ -274,8 +274,8 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=v${{ steps.version.outputs.version }},enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=v${{ steps.version.outputs.version }},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=sha,prefix=sha-,format=short
 
       - name: Create and push manifest
@@ -290,7 +290,7 @@ jobs:
 
       # Update Docker Hub description
       - name: Update Docker Hub Description
-        if: github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5
         timeout-minutes: 5
         with:
@@ -301,7 +301,7 @@ jobs:
           short-description: "PostgreSQL MCP: 248 Tools in 1 Code Mode, Audit+Token Log, Tool Filtering, Pooling, HTTP/SSE, OAuth"
 
       - name: Deployment Summary
-        if: github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           echo "✅ Successfully published Docker images to production"
           echo "🐳 Registry: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
@@ -315,7 +315,7 @@ jobs:
   # - If Lint/Test fails → nothing publishes
   npm-publish:
     needs: [merge-and-push]
-    if: always() && needs.merge-and-push.result == 'success' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: always() && needs.merge-and-push.result == 'success' && startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/publish-npm.yml
     secrets:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
