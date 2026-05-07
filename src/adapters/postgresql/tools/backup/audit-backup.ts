@@ -125,7 +125,7 @@ export function createAuditListBackupsTool(
 
         return {
           success: true,
-          ...(resultSnapshots.length > 0 && { snapshots: resultSnapshots }),
+          snapshots: resultSnapshots,
           count,
           limit,
           ...(isCompact && { compact: true }),
