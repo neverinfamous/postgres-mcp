@@ -31,6 +31,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-transactions.md`      | ~2,893                  |       |
 | `test-tool-group-codemode-vector-part1.md`      | ~3,630                  |       |
 | `test-tool-group-codemode-vector-part2.md`      | ~6,931                  |       |
+| `test-tool-group-codemode-security.md`           | ~TBD                    |       |
 | **Total Estimated Tokens**                      | **~233,587**            |       |
 
 **Safe to test in pairs**
@@ -40,5 +41,6 @@ pgcrypto + citext
 text + cron
 partman + partitioning
 stats + backup
+security + monitoring
 
 **Token counts don't include tokens used by the testing prompts themselves.**
