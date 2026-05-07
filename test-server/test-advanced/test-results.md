@@ -35,6 +35,7 @@ Last tested: April 4th, 2026
 | `test-tools-advanced-vector-part1.md`      | ~3,930                  |       |
 | `test-tools-advanced-vector-part2.md`      | ~2,500                  |       |
 | `test-tools-advanced-security.md`          | ~TBD                    |       |
+| `test-tools-advanced-roles.md`             | ~TBD                    |       |
 | **Total Estimated Tokens**                 | **~190,395**            |       |
 
 **Safe to test in pairs**
@@ -44,6 +45,6 @@ pgcrypto + citext
 text + cron
 partman + partitioning
 stats + backup
-security + monitoring
+security + roles + monitoring
 
 **Token counts don't include tokens used by the testing prompts themselves.**

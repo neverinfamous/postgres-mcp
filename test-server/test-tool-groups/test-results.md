@@ -32,6 +32,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-vector-part1.md`      | ~2,678                  |       |
 | `test-tool-group-vector-part2.md`      | ~6,552                  |       |
 | `test-tool-group-security.md`          | ~TBD                    |       |
+| `test-tool-group-roles.md`             | ~TBD                    |       |
 | **Total Estimated Tokens**             | **~163,675**            |       |
 
 **Safe to test in pairs**
@@ -41,6 +42,6 @@ pgcrypto + citext
 text + cron
 partman + partitioning
 stats + backup
-security + monitoring
+security + roles + monitoring
 
 **Token counts don't include tokens used by the testing prompts themselves.**
