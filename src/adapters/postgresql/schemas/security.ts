@@ -80,7 +80,10 @@ export const MaskDataSchemaBase = z.object({
     .describe("Character to use for masking"),
 });
 
-export const MaskDataSchema = MaskDataSchemaBase;
+export const MaskDataSchema = z.preprocess(
+  defaultToEmpty,
+  MaskDataSchemaBase,
+);
 
 /**
  * pg_security_user_privileges — role/privilege report
@@ -175,12 +178,13 @@ export const EncryptionStatusSchema = z.preprocess(
  * pg_security_password_validate — password strength check (pure JS)
  */
 export const PasswordValidateSchemaBase = z.object({
-  password: z.string().optional().describe("Password to validate"),
+  password: z.string().describe("Password to validate"),
 });
 
-export const PasswordValidateSchema = z.object({
-  password: z.string().min(1, "Password cannot be empty"),
-});
+export const PasswordValidateSchema = z.preprocess(
+  defaultToEmpty,
+  PasswordValidateSchemaBase,
+);
 
 // =============================================================================
 // Output Schemas
