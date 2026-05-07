@@ -43,13 +43,13 @@ export const CreateCollectionSchemaBase = z.object({
   ifNotExists: z
     .boolean()
     .optional()
-    .describe("Skip without error if collection already exists (default: true)"),
+    .describe("Skip without error if collection already exists (default: false)"),
 });
 
 export const CreateCollectionSchema = z.object({
   name: z.string().describe("Collection name"),
   schema: z.string().optional(),
-  ifNotExists: z.boolean().default(true),
+  ifNotExists: z.boolean().default(false),
 });
 
 /**
@@ -61,13 +61,13 @@ export const DropCollectionSchemaBase = z.object({
   ifExists: z
     .boolean()
     .optional()
-    .describe("Skip without error if collection does not exist (default: true)"),
+    .describe("Skip without error if collection does not exist (default: false)"),
 });
 
 export const DropCollectionSchema = z.object({
   name: z.string(),
   schema: z.string().optional(),
-  ifExists: z.boolean().default(true),
+  ifExists: z.boolean().default(false),
 });
 
 /**

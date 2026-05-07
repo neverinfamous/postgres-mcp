@@ -390,9 +390,14 @@ export function parsePostgresError(
       );
     }
 
+    // Preserve manually formatted Collection error
+    if (/^Collection ['"][^'"]+['"] does not exist/i.test(msg)) {
+      throw error;
+    }
+
     // Generic "does not exist" fallback
     const match =
-      /(?:table|relation|object) ["']([^"']+)["']/i.exec(msg) ??
+      /(?:table|relation|object|collection) ["']([^"']+)["']/i.exec(msg) ??
       /["']([^"']+)["'] does not exist/i.exec(msg);
     const objectName = match?.[1] ?? context.table ?? "unknown";
     throw new Error(
