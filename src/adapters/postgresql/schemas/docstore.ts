@@ -1,0 +1,342 @@
+/**
+ * postgres-mcp - Document Store Tool Schemas
+ *
+ * Input validation and output schemas for document store tools.
+ * 9 tools: list_collections, create_collection, drop_collection,
+ * collection_info, find, add, modify, remove, create_index.
+ */
+
+import { z } from "zod";
+import { ErrorResponseFields } from "./error-response-fields.js";
+
+// Helper to handle undefined params (allows tools to be called without {})
+const defaultToEmpty = (val: unknown): unknown => val ?? {};
+
+// =============================================================================
+// Input Schemas (Split Schema pattern: Base for MCP, Preprocessed for handler)
+// =============================================================================
+
+/**
+ * pg_doc_list_collections — list JSONB document collections in a schema
+ */
+export const ListCollectionsSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema name (defaults to current_schema())"),
+});
+
+export const ListCollectionsSchema = z.preprocess(
+  defaultToEmpty,
+  ListCollectionsSchemaBase,
+);
+
+/**
+ * pg_doc_create_collection — create a new JSONB document collection
+ */
+export const CreateCollectionSchemaBase = z.object({
+  name: z.string().describe("Collection name"),
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema to create in (defaults to current_schema())"),
+  ifNotExists: z
+    .boolean()
+    .optional()
+    .describe("Skip without error if collection already exists (default: true)"),
+});
+
+export const CreateCollectionSchema = z.object({
+  name: z.string().describe("Collection name"),
+  schema: z.string().optional(),
+  ifNotExists: z.boolean().default(true),
+});
+
+/**
+ * pg_doc_drop_collection — drop a document collection
+ */
+export const DropCollectionSchemaBase = z.object({
+  name: z.string().describe("Collection name to drop"),
+  schema: z.string().optional(),
+  ifExists: z
+    .boolean()
+    .optional()
+    .describe("Skip without error if collection does not exist (default: true)"),
+});
+
+export const DropCollectionSchema = z.object({
+  name: z.string(),
+  schema: z.string().optional(),
+  ifExists: z.boolean().default(true),
+});
+
+/**
+ * pg_doc_collection_info — get collection statistics
+ */
+export const CollectionInfoSchemaBase = z.object({
+  collection: z.string().describe("Collection name"),
+  schema: z.string().optional(),
+});
+
+export const CollectionInfoSchema = CollectionInfoSchemaBase;
+
+/**
+ * pg_doc_find — query documents in a collection
+ */
+export const FindSchemaBase = z.object({
+  collection: z.string().describe("Collection name"),
+  schema: z.string().optional(),
+  filter: z
+    .string()
+    .optional()
+    .describe(
+      "Filter: _id value (32-char hex), field=value, or JSON path existence ($.field)",
+    ),
+  fields: z
+    .array(z.string())
+    .optional()
+    .describe("Fields to project (returns full doc if omitted)"),
+  limit: z
+    .number()
+    .optional()
+    .describe("Maximum documents to return (default: 100)"),
+  offset: z
+    .number()
+    .optional()
+    .describe("Number of documents to skip (default: 0)"),
+});
+
+export const FindSchema = z.object({
+  collection: z.string(),
+  schema: z.string().optional(),
+  filter: z.string().optional(),
+  fields: z.array(z.string()).optional(),
+  limit: z.number().default(100),
+  offset: z.number().default(0),
+});
+
+/**
+ * pg_doc_add — add documents to a collection
+ */
+export const AddDocSchemaBase = z.object({
+  collection: z.string().describe("Collection name"),
+  schema: z.string().optional(),
+  documents: z
+    .array(z.record(z.string(), z.unknown()))
+    .describe("Documents to add"),
+});
+
+export const AddDocSchema = AddDocSchemaBase;
+
+/**
+ * pg_doc_modify — update documents matching a filter
+ */
+export const ModifyDocSchemaBase = z.object({
+  collection: z.string().describe("Collection name"),
+  schema: z.string().optional(),
+  filter: z
+    .string()
+    .describe(
+      "Filter: _id value (32-char hex), field=value, or JSON path existence ($.field)",
+    ),
+  set: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe("Fields to set (key→value)"),
+  unset: z
+    .array(z.string())
+    .optional()
+    .describe("Field names to remove from documents"),
+});
+
+export const ModifyDocSchema = ModifyDocSchemaBase;
+
+/**
+ * pg_doc_remove — remove documents matching a filter
+ */
+export const RemoveDocSchemaBase = z.object({
+  collection: z.string().describe("Collection name"),
+  schema: z.string().optional(),
+  filter: z
+    .string()
+    .describe(
+      "Filter: _id value (32-char hex), field=value, or JSON path existence ($.field)",
+    ),
+});
+
+export const RemoveDocSchema = RemoveDocSchemaBase;
+
+/**
+ * pg_doc_create_index — create an index on document fields
+ */
+export const CreateDocIndexSchemaBase = z.object({
+  collection: z.string().describe("Collection name"),
+  schema: z.string().optional(),
+  name: z.string().describe("Index name"),
+  fields: z
+    .array(
+      z.object({
+        path: z.string().describe("JSON field path (e.g. 'name', 'address.city')"),
+        type: z
+          .enum(["TEXT", "INT", "DOUBLE", "DATE", "TIMESTAMP", "BOOLEAN"])
+          .optional()
+          .describe("Cast type for expression index (default: TEXT)"),
+      }),
+    )
+    .describe("Fields to index"),
+  unique: z
+    .boolean()
+    .optional()
+    .describe("Create a UNIQUE index (default: false)"),
+});
+
+export const CreateDocIndexSchema = z.object({
+  collection: z.string(),
+  schema: z.string().optional(),
+  name: z.string(),
+  fields: z.array(
+    z.object({
+      path: z.string(),
+      type: z
+        .enum(["TEXT", "INT", "DOUBLE", "DATE", "TIMESTAMP", "BOOLEAN"])
+        .default("TEXT"),
+    }),
+  ),
+  unique: z.boolean().default(false),
+});
+
+// =============================================================================
+// Output Schemas
+// =============================================================================
+
+/**
+ * pg_doc_list_collections output
+ */
+export const ListCollectionsOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    collections: z
+      .array(
+        z.object({
+          name: z.string().describe("Collection (table) name"),
+          rowCount: z.number().optional().describe("Estimated row count"),
+          size: z.string().optional().describe("Table size (pretty-printed)"),
+        }),
+      )
+      .optional()
+      .describe("Document collections found"),
+    count: z.number().optional().describe("Number of collections"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape);
+
+/**
+ * pg_doc_create_collection output
+ */
+export const CreateCollectionOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether collection was created"),
+    collection: z.string().optional().describe("Collection name"),
+    skipped: z
+      .boolean()
+      .optional()
+      .describe("True if collection already existed (with ifNotExists)"),
+    reason: z.string().optional().describe("Reason for skipping"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape);
+
+/**
+ * pg_doc_drop_collection output
+ */
+export const DropCollectionOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether collection was dropped"),
+    collection: z.string().optional().describe("Collection name"),
+    message: z.string().optional().describe("Status message"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape);
+
+/**
+ * pg_doc_collection_info output
+ */
+export const CollectionInfoOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    collection: z.string().optional().describe("Collection name"),
+    stats: z
+      .object({
+        rowCount: z.number().describe("Exact row count"),
+        totalSize: z.string().optional().describe("Total size (pretty-printed)"),
+        tableSize: z.string().optional().describe("Table data size"),
+        indexSize: z.string().optional().describe("Index size"),
+      })
+      .optional()
+      .describe("Collection statistics"),
+    indexes: z
+      .array(z.record(z.string(), z.unknown()))
+      .optional()
+      .describe("Indexes on the collection"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape);
+
+/**
+ * pg_doc_find output
+ */
+export const FindOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether operation succeeded"),
+    documents: z
+      .array(z.record(z.string(), z.unknown()))
+      .optional()
+      .describe("Matching documents"),
+    count: z.number().optional().describe("Number of documents returned"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape);
+
+/**
+ * pg_doc_add output
+ */
+export const AddDocOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether documents were added"),
+    inserted: z.number().optional().describe("Number of documents inserted"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape);
+
+/**
+ * pg_doc_modify output
+ */
+export const ModifyDocOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether documents were modified"),
+    modified: z.number().optional().describe("Number of documents modified"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape);
+
+/**
+ * pg_doc_remove output
+ */
+export const RemoveDocOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether documents were removed"),
+    removed: z.number().optional().describe("Number of documents removed"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape);
+
+/**
+ * pg_doc_create_index output
+ */
+export const CreateDocIndexOutputSchema = z
+  .object({
+    success: z.boolean().optional().describe("Whether index was created"),
+    index: z.string().optional().describe("Index name"),
+    error: z.string().optional().describe("Error message if failed"),
+  })
+  .extend(ErrorResponseFields.shape);

@@ -31,6 +31,7 @@ export type ToolGroup =
   | "migration" // Schema migration tracking & management
   | "roles" // Role management, grants, membership, RLS
   | "security" // Security auditing, SSL, privileges, data protection
+  | "docstore" // Document Store - JSONB document collections
   | "codemode"; // Code Mode - sandboxed code execution
 
 /**

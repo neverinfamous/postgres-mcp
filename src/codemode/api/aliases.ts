@@ -591,4 +591,34 @@ export const TOP_LEVEL_ALIASES: readonly {
     bindingName: "roleRlsPolicies",
     methodName: "rlsPolicies",
   },
+  // docstore
+  {
+    group: "docstore",
+    bindingName: "docListCollections",
+    methodName: "listCollections",
+  },
+  {
+    group: "docstore",
+    bindingName: "docCreateCollection",
+    methodName: "createCollection",
+  },
+  {
+    group: "docstore",
+    bindingName: "docDropCollection",
+    methodName: "dropCollection",
+  },
+  {
+    group: "docstore",
+    bindingName: "docCollectionInfo",
+    methodName: "collectionInfo",
+  },
+  { group: "docstore", bindingName: "docFind", methodName: "find" },
+  { group: "docstore", bindingName: "docAdd", methodName: "add" },
+  { group: "docstore", bindingName: "docModify", methodName: "modify" },
+  { group: "docstore", bindingName: "docRemove", methodName: "remove" },
+  {
+    group: "docstore",
+    bindingName: "docCreateIndex",
+    methodName: "createIndex",
+  },
 ];

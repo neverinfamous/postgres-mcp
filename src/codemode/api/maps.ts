@@ -312,6 +312,28 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     enableRls: "rlsEnable",
     policies: "rlsPolicies",
   },
+  // Docstore: shorthand aliases for document collection tools
+  docstore: {
+    docListCollections: "listCollections",
+    docCreateCollection: "createCollection",
+    docDropCollection: "dropCollection",
+    docCollectionInfo: "collectionInfo",
+    docFind: "find",
+    docAdd: "add",
+    docModify: "modify",
+    docRemove: "remove",
+    docCreateIndex: "createIndex",
+    // Intuitive aliases
+    create: "createCollection",
+    drop: "dropCollection",
+    list: "listCollections",
+    info: "collectionInfo",
+    search: "find",
+    insert: "add",
+    update: "modify",
+    delete: "remove",
+    index: "createIndex",
+  },
 };
 
 /**
@@ -492,6 +514,19 @@ export const GROUP_EXAMPLES: Record<string, string[]> = {
     'pg.roles.set({ role: "readonly" })',
     'pg.roles.rlsEnable({ table: "users" })',
     'pg.roles.rlsPolicies({ table: "users" })',
+  ],
+  docstore: [
+    "pg.docstore.createCollection({ name: 'products' })",
+    "pg.docstore.add({ collection: 'products', documents: [{ name: 'Widget', price: 9.99 }] })",
+    "pg.docstore.find({ collection: 'products' })",
+    "pg.docstore.find({ collection: 'products', filter: '$.name' })",
+    "pg.docstore.find({ collection: 'products', filter: 'name=Widget' })",
+    "pg.docstore.modify({ collection: 'products', filter: 'name=Widget', set: { price: 12.99 } })",
+    "pg.docstore.remove({ collection: 'products', filter: 'name=Widget' })",
+    "pg.docstore.createIndex({ collection: 'products', name: 'idx_name', fields: [{ path: 'name' }] })",
+    "pg.docstore.collectionInfo({ collection: 'products' })",
+    "pg.docstore.listCollections()",
+    "pg.docstore.dropCollection({ name: 'products' })",
   ],
 };
 
@@ -679,6 +714,16 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   userRoles: "user",
   rlsEnable: ["table", "schema"],
   rlsPolicies: "table",
+
+  // ============ DOCSTORE GROUP ============
+  listCollections: "schema",
+  createCollection: "name",
+  dropCollection: "name",
+  collectionInfo: "collection",
+  find: ["collection", "filter"],
+  add: ["collection", "documents"],
+  modify: ["collection", "filter"],
+  remove: ["collection", "filter"],
 };
 
 /**

@@ -2,7 +2,7 @@
  * PostgreSQL MCP Resources
  *
  * Provides structured data access via URI patterns.
- * 21 resources total.
+ * 22 resources total.
  */
 
 import type { PostgresAdapter } from "../postgres-adapter.js";
@@ -37,8 +37,11 @@ import { createCryptoResource } from "./crypto.js";
 // Utility resources
 import { createInsightsResource } from "./insights.js";
 
+// Data resources
+import { createDocstoreResource } from "./docstore.js";
+
 /**
- * Get all PostgreSQL resources (21 total)
+ * Get all PostgreSQL resources (22 total)
  *
  * Core (7):
  * - postgres://schema - Full database schema
@@ -99,5 +102,7 @@ export function getPostgresResources(
     createCryptoResource(adapter),
     // Utility resources
     createInsightsResource(),
+    // Data resources
+    createDocstoreResource(adapter),
   ];
 }

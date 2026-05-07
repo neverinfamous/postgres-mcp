@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference of all **269 tools** organized by their 24 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
+Complete reference of all **278 tools** organized by their 25 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
 
 > Use [Tool Filtering](Tool-Filtering) to select the groups you need. See [Code Mode](Code-Mode) for the `pg.*` API that exposes every tool below through sandboxed JavaScript.
 
@@ -8,7 +8,7 @@ Complete reference of all **269 tools** organized by their 24 tool groups. Each 
 
 ## codemode (1 tool)
 
-Sandboxed JavaScript execution that exposes all 24 tool groups through the `pg.*` API.
+Sandboxed JavaScript execution that exposes all 25 tool groups through the `pg.*` API.
 
 | Tool              | Description                                                                                                                                                                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -488,3 +488,21 @@ Role management, privilege control, membership assignment, session role switchin
 | `pg_role_set`            | Set the session's active role (SET ROLE) or reset to the original authenticated role. Useful for privilege testing.                            |
 | `pg_role_rls_enable`     | Enable or disable row-level security on a table. Supports FORCE option to apply RLS even to the table owner.                                  |
 | `pg_role_rls_policies`   | List RLS policies for a table including policy name, command type (SELECT/INSERT/UPDATE/DELETE/ALL), USING and WITH CHECK expressions.         |
+
+---
+
+## docstore (9 tools + Code Mode)
+
+NoSQL-style JSONB document collection management — create collections, CRUD documents, and build expression indexes.
+
+| Tool                       | Description                                                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pg_doc_list_collections`  | List JSONB document collections in a schema. Collections are tables with a `doc` JSONB column and `_id` text column.                        |
+| `pg_doc_create_collection` | Create a new JSONB document collection (table with doc JSONB + generated `_id` primary key).                                                |
+| `pg_doc_drop_collection`   | Drop a document collection (table).                                                                                                         |
+| `pg_doc_collection_info`   | Get document collection statistics: row count, size, and indexes.                                                                           |
+| `pg_doc_find`              | Query documents in a JSONB collection with optional filter, field projection, and pagination.                                                |
+| `pg_doc_add`               | Add one or more JSON documents to a collection.                                                                                             |
+| `pg_doc_modify`            | Update documents matching a filter. Set fields with `set` and remove fields with `unset`.                                                    |
+| `pg_doc_remove`            | Remove documents matching a filter from a collection.                                                                                        |
+| `pg_doc_create_index`      | Create an expression index on document fields for faster queries. Uses PostgreSQL expression indexes on JSONB paths.                         |

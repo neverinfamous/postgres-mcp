@@ -2,7 +2,7 @@
 
 > **Agent-optimized navigation reference.** Read this before searching the codebase. Covers directory layout, handler→tool mapping, type/schema locations, error hierarchy, and key constants.
 >
-> Last updated: March 31, 2026
+> Last updated: May 7, 2026
 
 ---
 
@@ -36,7 +36,7 @@ src/
 │
 ├── constants/
 │   ├── server-instructions.ts      # Generated: generateInstructions() + HELP_CONTENT map (composable, filter-aware)
-│   └── server-instructions/        # Source .md files for each help resource (22 files: overview, gotchas, jsonb, text, stats, etc.)
+│   └── server-instructions/        # Source .md files for each help resource (26 files: overview, gotchas, jsonb, text, stats, docstore, etc.)
 │
 ├── filtering/
 │   ├── tool-constants.ts           # TOOL_GROUPS arrays, group→tools map
@@ -130,7 +130,7 @@ src/
 
 ## Handler → Tool Mapping
 
-269 tools across 24 groups. Each handler file registers tools with `group` labels.
+278 tools across 25 groups. Each handler file registers tools with `group` labels.
 
 ### Tool Handlers (`src/adapters/postgresql/tools/`)
 
@@ -241,6 +241,10 @@ src/
 | **roles**         | `roles/management.ts`                | 4     | `pg_role_list`, `pg_role_create`, `pg_role_drop`, `pg_role_attributes`                                                                                                                                                           |
 |                   | `roles/privileges.ts`                | 4     | `pg_role_grants`, `pg_role_grant`, `pg_role_assign`, `pg_role_revoke`                                                                                                                                                            |
 |                   | `roles/session.ts`                   | 4     | `pg_user_roles`, `pg_role_set`, `pg_role_rls_enable`, `pg_role_rls_policies`                                                                                                                                                     |
+| **docstore**      | `docstore/collection.ts`             | 4     | `pg_doc_list_collections`, `pg_doc_create_collection`, `pg_doc_drop_collection`, `pg_doc_collection_info`                                                                                                                        |
+|                   | `docstore/documents.ts`              | 4     | `pg_doc_find`, `pg_doc_add`, `pg_doc_modify`, `pg_doc_remove`                                                                                                                                                                    |
+|                   | `docstore/indexes.ts`                | 1     | `pg_doc_create_index`                                                                                                                                                                                                            |
+|                   | `docstore/helpers.ts`                | —     | Shared docstore helpers (identifier regex, filter parser, collection existence checks, table ref escaping)                                                                                                                        |
 
 ---
 
@@ -288,13 +292,13 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `partman/output.ts`                                                                                             | Partman output schemas                                                            |
 | `vector/input.ts`                                                                                               | Vector input schemas                                                              |
 | `vector/output.ts`                                                                                              | Vector output schemas                                                             |
-| Plus: `admin.ts`, `backup.ts`, `cron.ts`, `monitoring.ts`, `performance.ts`, `roles.ts`, `schema-mgmt.ts`, `security.ts`, `text-search.ts` |
+| Plus: `admin.ts`, `backup.ts`, `cron.ts`, `docstore.ts`, `monitoring.ts`, `performance.ts`, `roles.ts`, `schema-mgmt.ts`, `security.ts`, `text-search.ts` |
 
 ---
 
 ## Prompts (`src/adapters/postgresql/prompts/`)
 
-20 prompt definitions:
+21 prompt definitions:
 
 | File                 | Prompts                                                                                                                                          |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -312,12 +316,13 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `pgvector.ts`        | `pg_setup_pgvector`                                                                                                                              |
 | `postgis.ts`         | `pg_setup_postgis`                                                                                                                               |
 | `safe-restore.ts`    | `pg_safe_restore_workflow`                                                                                                                       |
+| `docstore.ts`        | `pg_setup_docstore`                                                                                                                              |
 
 ---
 
 ## Resources (`src/adapters/postgresql/resources/`)
 
-22 data resources + 21 help resources providing read-only metadata and agent guidance:
+23 data resources + 22 help resources providing read-only metadata and agent guidance:
 
 ### Data Resources
 
@@ -345,6 +350,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `crypto.ts`       | `postgres://crypto/{info}`       |
 | `insights.ts`     | `postgres://insights`            |
 | `audit.ts`        | `postgres://audit`               |
+| `docstore.ts`     | `postgres://docstore`            |
 
 ### Help Resources (registered dynamically by McpServer)
 
@@ -353,7 +359,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `postgres://help`         | `server-instructions/overview.md` + `gotchas.md` | Gotchas, aliases, Code Mode API — always available     |
 | `postgres://help/{group}` | `server-instructions/{group}.md`                 | Per-group tool reference — filtered by `--tool-filter` |
 
-20 group-specific help resources. Only groups enabled by `--tool-filter` are registered. The `core` and `codemode` tools are covered by the global `postgres://help` resource.
+21 group-specific help resources. Only groups enabled by `--tool-filter` are registered. The `core` and `codemode` tools are covered by the global `postgres://help` resource.
 
 ---
 
@@ -403,7 +409,7 @@ throw new ExtensionNotAvailableError("pgvector");
 
 | What                               | Where                                  | Notes                                                                                                                                                                                                   |
 | ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server instructions (agent prompt) | `src/constants/server-instructions.ts` | Generated: `generateInstructions(enabledGroups, level, toolCount)` + `HELP_CONTENT` map. Composable segments gated by tool groups and `InstructionLevel`. Source: `server-instructions/*.md` (22 files) |
+| Server instructions (agent prompt) | `src/constants/server-instructions.ts` | Generated: `generateInstructions(enabledGroups, level, toolCount)` + `HELP_CONTENT` map. Composable segments gated by tool groups and `InstructionLevel`. Source: `server-instructions/*.md` (26 files) |
 | Tool group arrays                  | `src/filtering/tool-constants.ts`      | `TOOL_GROUPS` map                                                                                                                                                                                       |
 | Tool filter logic                  | `src/filtering/tool-filter.ts`         | `ToolFilter` class, `getEnabledGroups()` utility                                                                                                                                                        |
 | Connection pool                    | `src/pool/connection-pool.ts`          | pg-native pool wrapper                                                                                                                                                                                  |
@@ -453,8 +459,8 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/README.md`                    | Agent testing orchestration doc                                                                                         |
 | `test-server/test-database.sql`            | Core seed DDL+DML (16 tables, ~700+ rows)                                                                               |
 | `test-server/reset-database.ps1`           | Reset Docker container DB from seed data                                                                                |
-| `test-server/Tool-Reference.md`            | Complete 269-tool inventory with descriptions                                                                           |
-| `test-server/test-tool-groups/`            | Per-group deterministic direct MCP tool call checklists (24 groups)                                                     |
+| `test-server/Tool-Reference.md`            | Complete 278-tool inventory with descriptions                                                                           |
+| `test-server/test-tool-groups/`            | Per-group deterministic direct MCP tool call checklists (25 groups)                                                     |
 | `test-server/test-tool-groups-codemode/`   | Code Mode execution mappings for the standard groups                                                                    |
 | `test-server/test-advanced/`               | Advanced stress tests (boundary, edge cases, cross-group optimization) split into 22 granular parts                     |
 | `test-server/test-resources.md`            | Resource testing plan (20 resources)                                                                                    |

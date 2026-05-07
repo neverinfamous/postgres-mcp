@@ -412,3 +412,36 @@ export {
   RoleRlsPoliciesOutputSchema,
 } from "./roles.js";
 
+// Document Store schemas (collection-based JSONB document management)
+export {
+  // Input schemas
+  ListCollectionsSchemaBase,
+  ListCollectionsSchema,
+  CreateCollectionSchemaBase,
+  CreateCollectionSchema,
+  DropCollectionSchemaBase,
+  DropCollectionSchema,
+  CollectionInfoSchemaBase,
+  CollectionInfoSchema,
+  FindSchemaBase,
+  FindSchema,
+  AddDocSchemaBase,
+  AddDocSchema,
+  ModifyDocSchemaBase,
+  ModifyDocSchema,
+  RemoveDocSchemaBase,
+  RemoveDocSchema,
+  CreateDocIndexSchemaBase,
+  CreateDocIndexSchema,
+  // Output schemas
+  ListCollectionsOutputSchema,
+  CreateCollectionOutputSchema,
+  DropCollectionOutputSchema,
+  CollectionInfoOutputSchema,
+  FindOutputSchema,
+  AddDocOutputSchema,
+  ModifyDocOutputSchema,
+  RemoveDocOutputSchema,
+  CreateDocIndexOutputSchema,
+} from "./docstore.js";
+

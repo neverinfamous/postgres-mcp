@@ -104,6 +104,9 @@ export const TOOL_GROUP_SCOPES: Record<ToolGroup, StandardScope> = {
   // Role management (admin-level DBA operations)
   roles: SCOPES.ADMIN,
 
+  // Document Store (read base, write overrides for mutations)
+  docstore: SCOPES.READ,
+
   // Code Mode (requires admin - can execute arbitrary operations)
   codemode: SCOPES.ADMIN,
 };
@@ -148,6 +151,14 @@ export const TOOL_SCOPE_OVERRIDES: Partial<Record<string, StandardScope>> = {
   pg_role_attributes: SCOPES.READ,
   pg_user_roles: SCOPES.READ,
   pg_role_rls_policies: SCOPES.READ,
+
+  // Docstore group — write/destructive operations
+  pg_doc_create_collection: SCOPES.WRITE,
+  pg_doc_drop_collection: SCOPES.ADMIN,
+  pg_doc_add: SCOPES.WRITE,
+  pg_doc_modify: SCOPES.WRITE,
+  pg_doc_remove: SCOPES.WRITE,
+  pg_doc_create_index: SCOPES.WRITE,
 };
 
 // =============================================================================

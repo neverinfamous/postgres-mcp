@@ -5,7 +5,7 @@
  *
  * TOOL COUNT NOTES:
  *   Counts and shortcut capacities are validated by unit tests in tool-filter.test.ts.
- *   The 248 "Specialized Tools" total encompasses all tools defined below,
+ *   The 278 "Specialized Tools" total encompasses all tools defined below,
  *   including Code Mode and extension utilities.
  *
  *   When adding new tools: update the group array below.
@@ -333,6 +333,17 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_role_set",
     "pg_role_rls_enable",
     "pg_role_rls_policies",
+  ],
+  docstore: [
+    "pg_doc_list_collections",
+    "pg_doc_create_collection",
+    "pg_doc_drop_collection",
+    "pg_doc_collection_info",
+    "pg_doc_find",
+    "pg_doc_add",
+    "pg_doc_modify",
+    "pg_doc_remove",
+    "pg_doc_create_index",
   ],
   codemode: ["pg_execute_code"],
 };

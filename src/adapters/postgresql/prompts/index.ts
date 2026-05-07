@@ -2,7 +2,7 @@
  * PostgreSQL MCP Prompts
  *
  * AI-powered prompts for query building, schema design, and optimization.
- * 20 prompts total.
+ * 21 prompts total.
  */
 
 import type { PostgresAdapter } from "../postgres-adapter.js";
@@ -26,6 +26,7 @@ import { createSetupCitextPrompt } from "./citext.js";
 import { createSetupLtreePrompt } from "./ltree.js";
 import { createSetupPgcryptoPrompt } from "./pgcrypto.js";
 import { createSafeRestoreWorkflowPrompt } from "./safe-restore.js";
+import { createSetupDocstorePrompt } from "./docstore.js";
 
 /**
  * Get all PostgreSQL prompts
@@ -59,6 +60,8 @@ export function getPostgresPrompts(
     createSetupPgcryptoPrompt(),
     // Audit & restore prompts
     createSafeRestoreWorkflowPrompt(),
+    // Document Store
+    createSetupDocstorePrompt(),
   ];
 }
 
