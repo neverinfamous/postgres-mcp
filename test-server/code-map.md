@@ -66,7 +66,7 @@ src/
 │   └── resource-suggestions.ts     # Threshold-based actionable suggestions for resources (vacuum POC)
 │
 ├── pool/
-│   └── connection-pool.ts          # PostgreSQL connection pool manager (pg)
+│   └── connection-pool.ts          # PostgreSQL connection pool manager (pg), initializationSql support
 │
 ├── auth/                           # OAuth 2.1 implementation (11 files)
 │   ├── transport-agnostic.ts       # Transport-agnostic auth (createAuthenticatedContext, validateAuth, formatOAuthError)
@@ -233,8 +233,8 @@ src/
 | **introspection** | `introspection/graph.ts`             | 3     | `pg_dependency_graph`, `pg_topological_sort`, `pg_cascade_simulator`                                                                                                                                                             |
 |                   | `introspection/analysis.ts`          | 2     | `pg_constraint_analysis`, `pg_migration_risks`                                                                                                                                                                                   |
 |                   | `introspection/snapshot.ts`          | 1     | `pg_schema_snapshot`                                                                                                                                                                                                             |
-| **migration**     | `introspection/migration.ts`         | 3     | `pg_migration_init`, `pg_migration_record`, `pg_migration_apply`                                                                                                                                                                 |
-|                   | `introspection/migration-query.ts`   | 3     | `pg_migration_rollback`, `pg_migration_history`, `pg_migration_status`                                                                                                                                                           |
+| **migration**     | `migration/migration.ts`             | 3     | `pg_migration_init`, `pg_migration_record`, `pg_migration_apply`                                                                                                                                                                 |
+|                   | `migration/migration-query.ts`       | 3     | `pg_migration_rollback`, `pg_migration_history`, `pg_migration_status`                                                                                                                                                           |
 
 ---
 
@@ -268,6 +268,9 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `stats/advanced.ts`                                                                                             | Advanced analysis + outlier detection schemas                                     |
 | `introspection/input.ts`                                                                                        | Introspection input schemas                                                       |
 | `introspection/output.ts`                                                                                       | Introspection output schemas                                                      |
+| `migration/index.ts`                                                                                            | Migration tracking schema barrel exports                                          |
+| `migration/input.ts`                                                                                            | Migration tracking input schemas                                                  |
+| `migration/output.ts`                                                                                           | Migration tracking output schemas                                                 |
 | `partitioning/range.ts`                                                                                         | Range partitioning schemas                                                        |
 | `partitioning/list.ts`                                                                                          | List partitioning schemas                                                         |
 | `partitioning/preprocess.ts`                                                                                    | Alias resolution, bounds construction                                             |
@@ -415,7 +418,7 @@ throw new ExtensionNotAvailableError("pgvector");
 | **P154 Pattern**      | All tools verify object existence before operating. Returns structured error for missing tables/schemas.                                                                                                                                                                                                                                |
 | **Adapter Pattern**   | `DatabaseAdapter` (abstract) → `PostgresAdapter`. Single adapter (no WASM variant).                                                                                                                                                                                                                                                     |
 | **Schema Cache**      | Metadata caching via `schema-operations/` (describe + list).                                                                                                                                                                                                                                                                            |
-| **Connection Pool**   | `ConnectionPool` wraps `pg` module. Managed lifecycle with health checks and centralized 30,000ms default timeout.                                                                                                                                                                                                                      |
+| **Connection Pool**   | `ConnectionPool` wraps `pg` module. Managed lifecycle with health checks, centralized 30,000ms default timeout, and optional `initializationSql` for per-connection session setup.                                                                                                                                                                                                                      |
 | **Code Mode Bridge**  | `pg.*` API in sandbox. Dual-mode: VM (default, `sandbox.ts`) or Worker (`worker-sandbox.ts` + `worker-script.ts`). Factory in `sandbox-factory.ts`. Unique `api/` subdir with alias resolution + group-api generation. Security constants in `SecurityConfig`. Returns `metrics.tokenEstimate` for per-execution burn-rate feedback.    |
 | **Tool Aliases**      | postgres-mcp has a dedicated alias system (`codemode/api/aliases.ts`, 15KB) for Code Mode.                                                                                                                                                                                                                                              |
 | **Per-Group Schemas** | Zod schemas separated into `schemas/` subdir organized by group (vs mysql-mcp's monolithic file).                                                                                                                                                                                                                                       |
