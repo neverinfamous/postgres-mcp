@@ -335,9 +335,8 @@ export function createCollectionInfoTool(
         const countResult = await adapter.executeQuery(
           `SELECT COUNT(*) AS "rowCount" FROM ${tableRef}`,
         );
-        const rowCount =
-          (countResult.rows?.[0] as { rowCount: number } | undefined)
-            ?.rowCount ?? 0;
+        const countRow = countResult.rows?.[0] as { rowCount: string | number } | undefined;
+        const rowCount = typeof countRow?.rowCount === "string" ? parseInt(countRow.rowCount, 10) : (countRow?.rowCount ?? 0);
 
         // Get size info
         const sizeResult = await adapter.executeQuery(

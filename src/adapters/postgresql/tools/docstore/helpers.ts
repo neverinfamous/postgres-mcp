@@ -47,6 +47,36 @@ export function parseDocFilter(
         const field = keys[0];
         if (typeof field === "string" && IDENTIFIER_RE.test(field)) {
           const value = record[field];
+          
+          if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+            const opObj = value as Record<string, unknown>;
+            const opKeys = Object.keys(opObj);
+            if (opKeys.length === 1 && typeof opKeys[0] === "string" && opKeys[0].startsWith("$")) {
+              const op = opKeys[0];
+              const opVal = opObj[op];
+              let sqlOp = "=";
+              if (op === "$gt") sqlOp = ">";
+              else if (op === "$gte") sqlOp = ">=";
+              else if (op === "$lt") sqlOp = "<";
+              else if (op === "$lte") sqlOp = "<=";
+              else if (op === "$ne") sqlOp = "!=";
+              
+              if (sqlOp !== "=") {
+                if (typeof opVal === "number") {
+                  return {
+                    where: `(doc->>'${field}')::float ${sqlOp} $${String(paramOffset + 1)}::float`,
+                    params: [String(opVal)],
+                  };
+                } else {
+                  return {
+                    where: `doc->>'${field}' ${sqlOp} $${String(paramOffset + 1)}`,
+                    params: [String(opVal)],
+                  };
+                }
+              }
+            }
+          }
+          
           return {
             where: `doc->>'${field}' = $${String(paramOffset + 1)}`,
             params: [String(value)],

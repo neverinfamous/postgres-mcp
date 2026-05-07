@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security Fixes**: Bumped `hono` to `4.12.18` (Improperly Handles JSX Attribute Names Allows HTML Injection in hono/jsx SSR) and `ip-address` to `10.2.0` (XSS in Address6 HTML-emitting methods) in `package.json` overrides.
 ### Fixed
 
-- **Backup Tools**: Fixed `pg_audit_list_backups` omitting the `snapshots` array when empty; it now consistently returns `snapshots: []` to prevent consumer `.every()` iteration crashes.
+- **Docstore Tools**: Fixed `pg_doc_collection_info` returning string for `rowCount` causing type mismatches; updated logic to `parseInt` the result. Fixed `pg_doc_find` rejecting valid object filters by applying the Split Schema pattern (`z.preprocess`) to `filter` schemas in `schemas/docstore.ts`. Added support for MongoDB-style operators (`$gt`, `$lt`, `$gte`, `$lte`, `$ne`) in JSON filters in `helpers.ts` `parseDocFilter()`.
+
 ### Added
 
 - **Connection Pool**: `initializationSql` config to execute session setup queries once per connection checkout. Uses `WeakSet` for zero-GC-overhead deduplication. Applies to both `getConnection()` and `query()` paths.

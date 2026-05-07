@@ -87,10 +87,10 @@ export const FindSchemaBase = z.object({
   collection: z.string().describe("Collection name"),
   schema: z.string().optional(),
   filter: z
-    .string()
+    .union([z.string(), z.record(z.string(), z.unknown())])
     .optional()
     .describe(
-      "Filter: _id value (32-char hex), field=value, or JSON path existence ($.field)",
+      "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
     ),
   fields: z
     .array(z.string())
@@ -109,7 +109,7 @@ export const FindSchemaBase = z.object({
 export const FindSchema = z.object({
   collection: z.string(),
   schema: z.string().optional(),
-  filter: z.string().optional(),
+  filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string().optional()),
   fields: z.array(z.string()).optional(),
   limit: z.number().default(100),
   offset: z.number().default(0),
@@ -135,9 +135,9 @@ export const ModifyDocSchemaBase = z.object({
   collection: z.string().describe("Collection name"),
   schema: z.string().optional(),
   filter: z
-    .string()
+    .union([z.string(), z.record(z.string(), z.unknown())])
     .describe(
-      "Filter: _id value (32-char hex), field=value, or JSON path existence ($.field)",
+      "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
     ),
   set: z
     .record(z.string(), z.unknown())
@@ -149,7 +149,9 @@ export const ModifyDocSchemaBase = z.object({
     .describe("Field names to remove from documents"),
 });
 
-export const ModifyDocSchema = ModifyDocSchemaBase;
+export const ModifyDocSchema = ModifyDocSchemaBase.extend({
+  filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string()),
+});
 
 /**
  * pg_doc_remove — remove documents matching a filter
@@ -158,13 +160,15 @@ export const RemoveDocSchemaBase = z.object({
   collection: z.string().describe("Collection name"),
   schema: z.string().optional(),
   filter: z
-    .string()
+    .union([z.string(), z.record(z.string(), z.unknown())])
     .describe(
-      "Filter: _id value (32-char hex), field=value, or JSON path existence ($.field)",
+      "Filter: _id value (32-char hex), field=value, JSON object filter ({\"field\":\"value\"}), or JSON path existence ($.field)",
     ),
 });
 
-export const RemoveDocSchema = RemoveDocSchemaBase;
+export const RemoveDocSchema = RemoveDocSchemaBase.extend({
+  filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string()),
+});
 
 /**
  * pg_doc_create_index — create an index on document fields
