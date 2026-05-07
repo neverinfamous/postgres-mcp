@@ -303,6 +303,19 @@ export {
   ConstraintAnalysisSchema,
   MigrationRisksSchemaBase,
   MigrationRisksSchema,
+
+  // Output schemas
+  DependencyGraphOutputSchema,
+  TopologicalSortOutputSchema,
+  CascadeSimulatorOutputSchema,
+  SchemaSnapshotOutputSchema,
+  ConstraintAnalysisOutputSchema,
+  MigrationRisksOutputSchema,
+} from "./introspection/index.js";
+
+// Migration schemas (schema version tracking)
+export {
+  // Input schemas
   MigrationInitSchemaBase,
   MigrationInitSchema,
   MigrationRecordSchemaBase,
@@ -316,16 +329,10 @@ export {
   MigrationStatusSchemaBase,
   MigrationStatusSchema,
   // Output schemas
-  DependencyGraphOutputSchema,
-  TopologicalSortOutputSchema,
-  CascadeSimulatorOutputSchema,
-  SchemaSnapshotOutputSchema,
-  ConstraintAnalysisOutputSchema,
-  MigrationRisksOutputSchema,
   MigrationInitOutputSchema,
   MigrationRecordOutputSchema,
   MigrationApplyOutputSchema,
   MigrationRollbackOutputSchema,
   MigrationHistoryOutputSchema,
   MigrationStatusOutputSchema,
-} from "./introspection/index.js";
+} from "./migration/index.js";

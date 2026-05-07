@@ -31,7 +31,7 @@ import {
   TRACKING_TABLE,
   ensureTrackingTable,
   formatRecord,
-} from "./migration/helpers.js";
+} from "./helpers.js";
 
 // =============================================================================
 // pg_migration_rollback
