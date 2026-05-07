@@ -336,6 +336,10 @@ function createPgcryptoCryptTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { password, salt } = PgcryptoCryptSchema.parse(params);
+        if (typeof salt !== "string") {
+          throw new ValidationError("Salt is required");
+        }
+
         const result = await adapter.executeQuery(
           `SELECT crypt($1, $2) as hash`,
           [password, salt],

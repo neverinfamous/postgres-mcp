@@ -241,6 +241,7 @@ export const PgcryptoGenSaltSchema = z.object({
  */
 export const PgcryptoCryptSchemaBase = z.object({
   password: z.string().optional().describe("Password to hash or verify"),
+  data: z.string().optional().describe("Alias for password"),
   salt: z
     .string()
     .optional()
@@ -250,12 +251,20 @@ export const PgcryptoCryptSchemaBase = z.object({
 /**
  * Schema for password hashing with crypt().
  */
-export const PgcryptoCryptSchema = z.object({
-  password: z.string().describe("Password to hash or verify"),
-  salt: z
-    .string()
-    .describe("Salt from gen_salt() or stored hash for verification"),
-});
+export const PgcryptoCryptSchema = PgcryptoCryptSchemaBase.transform(
+  (payload) => {
+    return {
+      password: payload.password ?? payload.data,
+      salt: payload.salt,
+    };
+  },
+)
+  .refine((data) => data.password !== undefined, {
+    message: "password (or data alias) is required",
+  })
+  .refine((data) => data.salt !== undefined, {
+    message: "salt is required",
+  });
 
 // =============================================================================
 // Output Schemas
