@@ -98,6 +98,9 @@ export const TOOL_GROUP_SCOPES: Record<ToolGroup, StandardScope> = {
   // Migration tracking (write operations)
   migration: SCOPES.WRITE,
 
+  // Security auditing and monitoring
+  security: SCOPES.READ,
+
   // Code Mode (requires admin - can execute arbitrary operations)
   codemode: SCOPES.ADMIN,
 };
@@ -129,6 +132,12 @@ export const TOOL_SCOPE_OVERRIDES: Partial<Record<string, StandardScope>> = {
   // Backup group — read-only audit tools (group default is admin)
   pg_audit_list_backups: SCOPES.READ,
   pg_audit_diff_backup: SCOPES.READ,
+
+  // Security group — admin-level tools
+  pg_security_encryption_status: SCOPES.ADMIN,
+  pg_security_user_privileges: SCOPES.ADMIN,
+  pg_security_audit: SCOPES.ADMIN,
+  pg_security_firewall_rules: SCOPES.ADMIN,
 };
 
 // =============================================================================

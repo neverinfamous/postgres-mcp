@@ -520,4 +520,50 @@ export const TOP_LEVEL_ALIASES: readonly {
     bindingName: "cronCleanupHistory",
     methodName: "cleanupHistory",
   },
+  // security
+  {
+    group: "security",
+    bindingName: "securitySslStatus",
+    methodName: "sslStatus",
+  },
+  {
+    group: "security",
+    bindingName: "securityEncryptionStatus",
+    methodName: "encryptionStatus",
+  },
+  {
+    group: "security",
+    bindingName: "securityPasswordValidate",
+    methodName: "passwordValidate",
+  },
+  {
+    group: "security",
+    bindingName: "securityMaskData",
+    methodName: "maskData",
+  },
+  {
+    group: "security",
+    bindingName: "securityUserPrivileges",
+    methodName: "userPrivileges",
+  },
+  {
+    group: "security",
+    bindingName: "securitySensitiveTables",
+    methodName: "sensitiveTables",
+  },
+  {
+    group: "security",
+    bindingName: "securityAudit",
+    methodName: "audit",
+  },
+  {
+    group: "security",
+    bindingName: "securityFirewallStatus",
+    methodName: "firewallStatus",
+  },
+  {
+    group: "security",
+    bindingName: "securityFirewallRules",
+    methodName: "firewallRules",
+  },
 ];

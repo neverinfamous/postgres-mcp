@@ -269,6 +269,25 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     list: "history", // list() → history()
     dashboard: "status", // dashboard() → status()
   },
+  // Security: naming aliases for security tools
+  security: {
+    securitySslStatus: "sslStatus",
+    securityEncryptionStatus: "encryptionStatus",
+    securityPasswordValidate: "passwordValidate",
+    securityMaskData: "maskData",
+    securityUserPrivileges: "userPrivileges",
+    securitySensitiveTables: "sensitiveTables",
+    securityAudit: "audit",
+    securityFirewallStatus: "firewallStatus",
+    securityFirewallRules: "firewallRules",
+    // Intuitive aliases
+    ssl: "sslStatus",
+    privileges: "userPrivileges",
+    mask: "maskData",
+    sensitive: "sensitiveTables",
+    hba: "firewallStatus",
+    hbaRules: "firewallRules",
+  },
 };
 
 /**
@@ -424,6 +443,17 @@ export const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.migration.rollback({ version: '1.0.0', dryRun: true })",
     "pg.migration.history({ status: 'applied' })",
     "pg.migration.status()",
+  ],
+  security: [
+    "pg.security.sslStatus()",
+    "pg.security.encryptionStatus()",
+    "pg.security.userPrivileges({ user: 'myapp' })",
+    'pg.security.maskData({ value: "test@email.com", type: "email" })',
+    "pg.security.sensitiveTables({ schema: 'public' })",
+    "pg.security.audit()",
+    "pg.security.firewallStatus()",
+    "pg.security.firewallRules({ type: 'hostssl' })",
+    'pg.security.passwordValidate({ password: "MyP@ssw0rd!" })',
   ],
 };
 
@@ -595,6 +625,13 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   apply: ["version", "migrationSql"],
   // Explicitly skipping rollback and status to prevent TS1117 collisions with transactions group
   history: "status",
+
+  // ============ SECURITY GROUP ============
+  passwordValidate: "password",
+  maskData: ["value", "type"],
+  userPrivileges: "user",
+  sensitiveTables: "schema",
+  firewallRules: "user",
 };
 
 /**

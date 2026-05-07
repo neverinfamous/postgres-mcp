@@ -309,5 +309,16 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_pgcrypto_gen_salt",
     "pg_pgcrypto_crypt",
   ],
+  security: [
+    "pg_security_audit",
+    "pg_security_firewall_status",
+    "pg_security_firewall_rules",
+    "pg_security_mask_data",
+    "pg_security_user_privileges",
+    "pg_security_sensitive_tables",
+    "pg_security_ssl_status",
+    "pg_security_encryption_status",
+    "pg_security_password_validate",
+  ],
   codemode: ["pg_execute_code"],
 };

@@ -336,3 +336,36 @@ export {
   MigrationHistoryOutputSchema,
   MigrationStatusOutputSchema,
 } from "./migration/index.js";
+
+// Security schemas (auditing, SSL, privileges, data protection)
+export {
+  // Input schemas
+  SecurityAuditSchemaBase,
+  SecurityAuditSchema,
+  FirewallStatusSchemaBase,
+  FirewallStatusSchema,
+  FirewallRulesSchemaBase,
+  FirewallRulesSchema,
+  MaskDataSchemaBase,
+  MaskDataSchema,
+  UserPrivilegesSchemaBase,
+  UserPrivilegesSchema,
+  SensitiveTablesSchemaBase,
+  SensitiveTablesSchema,
+  SSLStatusSchemaBase,
+  SSLStatusSchema,
+  EncryptionStatusSchemaBase,
+  EncryptionStatusSchema,
+  PasswordValidateSchemaBase,
+  PasswordValidateSchema,
+  // Output schemas
+  SecurityAuditOutputSchema,
+  FirewallStatusOutputSchema,
+  FirewallRulesOutputSchema,
+  MaskDataOutputSchema,
+  UserPrivilegesOutputSchema,
+  SensitiveTablesOutputSchema,
+  SSLStatusOutputSchema,
+  EncryptionStatusOutputSchema,
+  PasswordValidateOutputSchema,
+} from "./security.js";

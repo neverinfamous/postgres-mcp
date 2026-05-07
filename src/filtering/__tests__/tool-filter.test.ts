@@ -29,7 +29,7 @@ function groupSum(...groups: string[]): number {
 }
 
 describe("TOOL_GROUPS", () => {
-  it("should contain all 22 tool groups", () => {
+  it("should contain all 23 tool groups", () => {
     const expectedGroups = [
       "core",
       "transactions",
@@ -51,11 +51,12 @@ describe("TOOL_GROUPS", () => {
       "ltree",
       "introspection",
       "migration",
+      "security",
       "pgcrypto",
       "codemode",
     ];
 
-    expect(Object.keys(TOOL_GROUPS)).toHaveLength(22);
+    expect(Object.keys(TOOL_GROUPS)).toHaveLength(23);
     for (const group of expectedGroups) {
       expect(TOOL_GROUPS).toHaveProperty(group);
     }

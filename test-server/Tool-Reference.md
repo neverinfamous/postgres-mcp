@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference of all **248 tools** organized by their 22 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
+Complete reference of all **257 tools** organized by their 23 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
 
 > Use [Tool Filtering](Tool-Filtering) to select the groups you need. See [Code Mode](Code-Mode) for the `pg.*` API that exposes every tool below through sandboxed JavaScript.
 
@@ -8,7 +8,7 @@ Complete reference of all **248 tools** organized by their 22 tool groups. Each 
 
 ## codemode (1 tool)
 
-Sandboxed JavaScript execution that exposes all 22 tool groups through the `pg.*` API.
+Sandboxed JavaScript execution that exposes all 23 tool groups through the `pg.*` API.
 
 | Tool              | Description                                                                                                                                                                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -449,3 +449,21 @@ pgcrypto extension — cryptographic hashing, encryption, UUIDs, and salt genera
 | `pg_pgcrypto_gen_random_bytes` | Generate cryptographically secure random bytes.                   |
 | `pg_pgcrypto_gen_salt`         | Generate a salt for use with `crypt()` password hashing.          |
 | `pg_pgcrypto_crypt`            | Hash a password using `crypt()` with a salt from `gen_salt()`.    |
+
+---
+
+## security (9 tools + Code Mode)
+
+Security auditing, SSL/TLS monitoring, HBA firewall management, data masking, privilege analysis, and sensitive data detection.
+
+| Tool                              | Description                                                                                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pg_security_audit`               | Comprehensive security audit analyzing authentication, SSL, password policies, superuser exposure, and pg_hba.conf rules. Returns risk-scored findings. |
+| `pg_security_firewall_status`     | Summarize pg_hba.conf rules by type and authentication method. Requires superuser for `pg_hba_file_rules` access.                                     |
+| `pg_security_firewall_rules`      | List detailed pg_hba.conf rules with optional filtering by type, database, or auth method. Requires superuser.                                         |
+| `pg_security_ssl_status`          | Check SSL/TLS connection status for active sessions including cipher, protocol version, and certificate details.                                       |
+| `pg_security_encryption_status`   | Analyze encryption-related PostgreSQL settings (ssl, password_encryption) and installed security extensions.                                           |
+| `pg_security_password_validate`   | Validate password strength using configurable rules (length, complexity, common patterns). Pure JS — no database query.                                |
+| `pg_security_mask_data`           | Mask sensitive data values (email, credit card, phone, SSN, custom patterns). Pure JS — no database query.                                             |
+| `pg_security_user_privileges`     | Analyze role privileges including superuser status, login capability, role memberships, and table-level grants.                                         |
+| `pg_security_sensitive_tables`    | Detect tables with potentially sensitive columns by matching column names against PII/credential patterns.                                              |
