@@ -369,3 +369,46 @@ export {
   EncryptionStatusOutputSchema,
   PasswordValidateOutputSchema,
 } from "./security.js";
+
+// Roles schemas (role management, grants, membership, RLS)
+export {
+  // Input schemas
+  RoleListSchemaBase,
+  RoleListSchema,
+  RoleCreateSchemaBase,
+  RoleCreateSchema,
+  RoleDropSchemaBase,
+  RoleDropSchema,
+  RoleAttributesSchemaBase,
+  RoleAttributesSchema,
+  RoleGrantsSchemaBase,
+  RoleGrantsSchema,
+  RoleGrantSchemaBase,
+  RoleGrantSchema,
+  RoleAssignSchemaBase,
+  RoleAssignSchema,
+  RoleRevokeSchemaBase,
+  RoleRevokeSchema,
+  UserRolesSchemaBase,
+  UserRolesSchema,
+  RoleSetSchemaBase,
+  RoleSetSchema,
+  RoleRlsEnableSchemaBase,
+  RoleRlsEnableSchema,
+  RoleRlsPoliciesSchemaBase,
+  RoleRlsPoliciesSchema,
+  // Output schemas
+  RoleListOutputSchema,
+  RoleCreateOutputSchema,
+  RoleDropOutputSchema,
+  RoleAttributesOutputSchema,
+  RoleGrantsOutputSchema,
+  RoleGrantOutputSchema,
+  RoleAssignOutputSchema,
+  RoleRevokeOutputSchema,
+  UserRolesOutputSchema,
+  RoleSetOutputSchema,
+  RoleRlsEnableOutputSchema,
+  RoleRlsPoliciesOutputSchema,
+} from "./roles.js";
+

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Connection Pool**: `initializationSql` config to execute session setup queries once per connection checkout. Uses `WeakSet` for zero-GC-overhead deduplication. Applies to both `getConnection()` and `query()` paths.
 - **Security tool group** (9 tools): `pg_security_audit`, `pg_security_firewall_status`, `pg_security_firewall_rules`, `pg_security_ssl_status`, `pg_security_encryption_status`, `pg_security_password_validate`, `pg_security_mask_data`, `pg_security_user_privileges`, `pg_security_sensitive_tables` — comprehensive security auditing, SSL/TLS monitoring, data masking, privilege analysis, and pg_hba.conf firewall management. Reverse-ported from mysql-mcp with PostgreSQL-native catalog queries. Full Code Mode support via `pg.security.*`.
+- **Roles tool group** (12 tools): `pg_role_list`, `pg_role_create`, `pg_role_drop`, `pg_role_attributes`, `pg_role_grants`, `pg_role_grant`, `pg_role_assign`, `pg_role_revoke`, `pg_user_roles`, `pg_role_set`, `pg_role_rls_enable`, `pg_role_rls_policies` — role CRUD, privilege management, membership assignment, session role switching, and row-level security management. Reverse-ported from mysql-mcp with PostgreSQL-native enhancements (role attributes, SET ROLE, RLS). Full Code Mode support via `pg.roles.*`.
 
 ### Changed
 

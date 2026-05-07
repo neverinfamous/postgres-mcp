@@ -566,4 +566,29 @@ export const TOP_LEVEL_ALIASES: readonly {
     bindingName: "securityFirewallRules",
     methodName: "firewallRules",
   },
+  // roles
+  { group: "roles", bindingName: "roleList", methodName: "list" },
+  { group: "roles", bindingName: "roleCreate", methodName: "create" },
+  { group: "roles", bindingName: "roleDrop", methodName: "drop" },
+  {
+    group: "roles",
+    bindingName: "roleAttributes",
+    methodName: "attributes",
+  },
+  { group: "roles", bindingName: "roleGrants", methodName: "grants" },
+  { group: "roles", bindingName: "roleGrant", methodName: "grant" },
+  { group: "roles", bindingName: "roleAssign", methodName: "assign" },
+  { group: "roles", bindingName: "roleRevoke", methodName: "revoke" },
+  { group: "roles", bindingName: "userRoles", methodName: "userRoles" },
+  { group: "roles", bindingName: "roleSet", methodName: "set" },
+  {
+    group: "roles",
+    bindingName: "roleRlsEnable",
+    methodName: "rlsEnable",
+  },
+  {
+    group: "roles",
+    bindingName: "roleRlsPolicies",
+    methodName: "rlsPolicies",
+  },
 ];

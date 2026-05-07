@@ -288,6 +288,30 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     hba: "firewallStatus",
     hbaRules: "firewallRules",
   },
+  // Roles: naming aliases for role management tools
+  roles: {
+    roleList: "list",
+    roleCreate: "create",
+    roleDrop: "drop",
+    roleAttributes: "attributes",
+    roleGrants: "grants",
+    roleGrant: "grant",
+    roleAssign: "assign",
+    roleRevoke: "revoke",
+    roleSet: "set",
+    roleRlsEnable: "rlsEnable",
+    roleRlsPolicies: "rlsPolicies",
+    // Intuitive aliases
+    members: "userRoles",
+    membership: "userRoles",
+    permissions: "grants",
+    addMember: "assign",
+    removeMember: "revoke",
+    switchRole: "set",
+    rls: "rlsPolicies",
+    enableRls: "rlsEnable",
+    policies: "rlsPolicies",
+  },
 };
 
 /**
@@ -454,6 +478,20 @@ export const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.security.firewallStatus()",
     "pg.security.firewallRules({ type: 'hostssl' })",
     'pg.security.passwordValidate({ password: "MyP@ssw0rd!" })',
+  ],
+  roles: [
+    "pg.roles.list()",
+    'pg.roles.create({ name: "readonly" })',
+    'pg.roles.create({ name: "webapp", login: true, password: "secure123" })',
+    'pg.roles.grant({ role: "readonly", privileges: ["SELECT"], schema: "public", table: "*" })',
+    'pg.roles.assign({ role: "readonly", user: "webapp" })',
+    'pg.roles.grants({ role: "readonly" })',
+    'pg.roles.userRoles({ user: "webapp" })',
+    'pg.roles.attributes({ role: "webapp" })',
+    'pg.roles.revoke({ role: "readonly", user: "webapp" })',
+    'pg.roles.set({ role: "readonly" })',
+    'pg.roles.rlsEnable({ table: "users" })',
+    'pg.roles.rlsPolicies({ table: "users" })',
   ],
 };
 
@@ -632,6 +670,15 @@ export const POSITIONAL_PARAM_MAP: Record<string, string | string[]> = {
   userPrivileges: "user",
   sensitiveTables: "schema",
   firewallRules: "user",
+
+  // ============ ROLES GROUP ============
+  attributes: "role",
+  grants: "role",
+  grant: ["role", "privileges"],
+  assign: ["role", "user"],
+  userRoles: "user",
+  rlsEnable: ["table", "schema"],
+  rlsPolicies: "table",
 };
 
 /**

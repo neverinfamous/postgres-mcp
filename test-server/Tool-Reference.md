@@ -1,6 +1,6 @@
 # Tool Reference
 
-Complete reference of all **257 tools** organized by their 23 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
+Complete reference of all **269 tools** organized by their 24 tool groups. Each group automatically includes Code Mode (`pg_execute_code`) for token-efficient operations.
 
 > Use [Tool Filtering](Tool-Filtering) to select the groups you need. See [Code Mode](Code-Mode) for the `pg.*` API that exposes every tool below through sandboxed JavaScript.
 
@@ -8,7 +8,7 @@ Complete reference of all **257 tools** organized by their 23 tool groups. Each 
 
 ## codemode (1 tool)
 
-Sandboxed JavaScript execution that exposes all 23 tool groups through the `pg.*` API.
+Sandboxed JavaScript execution that exposes all 24 tool groups through the `pg.*` API.
 
 | Tool              | Description                                                                                                                                                                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -467,3 +467,24 @@ Security auditing, SSL/TLS monitoring, HBA firewall management, data masking, pr
 | `pg_security_mask_data`           | Mask sensitive data values (email, credit card, phone, SSN, custom patterns). Pure JS — no database query.                                             |
 | `pg_security_user_privileges`     | Analyze role privileges including superuser status, login capability, role memberships, and table-level grants.                                         |
 | `pg_security_sensitive_tables`    | Detect tables with potentially sensitive columns by matching column names against PII/credential patterns.                                              |
+
+---
+
+## roles (12 tools + Code Mode)
+
+Role management, privilege control, membership assignment, session role switching, and row-level security.
+
+| Tool                     | Description                                                                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pg_role_list`           | List all roles with optional pattern filter and attributes (login, superuser, inherit, connection limit, expiration).                         |
+| `pg_role_create`         | Create a new role with optional attributes (LOGIN, PASSWORD, SUPERUSER, CREATEDB, CREATEROLE, REPLICATION, BYPASSRLS, CONNECTION LIMIT).      |
+| `pg_role_drop`           | Drop a role with IF EXISTS safety by default. Returns confirmation and notes about ownership reassignment.                                    |
+| `pg_role_attributes`     | Get detailed role attributes including OID, inherit status, connection limit, password expiration, and membership summary.                     |
+| `pg_role_grants`         | Show all privileges and memberships for a role — object grants, schema grants, and role memberships.                                          |
+| `pg_role_grant`          | Grant privileges (SELECT, INSERT, UPDATE, DELETE, ALL, etc.) on tables, schemas, or sequences to a role.                                      |
+| `pg_role_assign`         | Grant role membership to a user/role. Supports WITH ADMIN OPTION for delegation and SET option control.                                       |
+| `pg_role_revoke`         | Revoke role membership or object privileges from a user/role. Supports CASCADE for dependent privilege removal.                                |
+| `pg_user_roles`          | List all roles assigned to a user including admin option and SET option status.                                                                |
+| `pg_role_set`            | Set the session's active role (SET ROLE) or reset to the original authenticated role. Useful for privilege testing.                            |
+| `pg_role_rls_enable`     | Enable or disable row-level security on a table. Supports FORCE option to apply RLS even to the table owner.                                  |
+| `pg_role_rls_policies`   | List RLS policies for a table including policy name, command type (SELECT/INSERT/UPDATE/DELETE/ALL), USING and WITH CHECK expressions.         |

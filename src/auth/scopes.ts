@@ -101,6 +101,9 @@ export const TOOL_GROUP_SCOPES: Record<ToolGroup, StandardScope> = {
   // Security auditing and monitoring
   security: SCOPES.READ,
 
+  // Role management (admin-level DBA operations)
+  roles: SCOPES.ADMIN,
+
   // Code Mode (requires admin - can execute arbitrary operations)
   codemode: SCOPES.ADMIN,
 };
@@ -138,6 +141,13 @@ export const TOOL_SCOPE_OVERRIDES: Partial<Record<string, StandardScope>> = {
   pg_security_user_privileges: SCOPES.ADMIN,
   pg_security_audit: SCOPES.ADMIN,
   pg_security_firewall_rules: SCOPES.ADMIN,
+
+  // Roles group — read-only inspection tools
+  pg_role_list: SCOPES.READ,
+  pg_role_grants: SCOPES.READ,
+  pg_role_attributes: SCOPES.READ,
+  pg_user_roles: SCOPES.READ,
+  pg_role_rls_policies: SCOPES.READ,
 };
 
 // =============================================================================

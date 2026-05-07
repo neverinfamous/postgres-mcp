@@ -127,6 +127,11 @@ const CATEGORY_ICONS: Record<ToolGroup, { path: string; color: string }> = {
     path: '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>',
     color: "#D946EF",
   },
+  // Roles: Users/people
+  roles: {
+    path: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    color: "#F97316",
+  },
   // Security: Shield with checkmark
   security: {
     path: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',

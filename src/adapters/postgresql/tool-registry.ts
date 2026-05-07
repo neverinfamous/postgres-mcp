@@ -29,6 +29,7 @@ import { getPgcryptoTools } from "./tools/pgcrypto.js";
 import { getIntrospectionTools } from "./tools/introspection/index.js";
 import { getMigrationTools } from "./tools/migration/index.js";
 import { getSecurityTools } from "./tools/security/index.js";
+import { getRoleTools } from "./tools/roles/index.js";
 import { getCodeModeTools } from "./tools/codemode/index.js";
 import { getPostgresResources } from "./resources/index.js";
 import { getPostgresPrompts } from "./prompts/index.js";
@@ -57,6 +58,7 @@ export function getSupportedPostgresToolGroups(): ToolGroup[] {
     "introspection",
     "migration",
     "security",
+    "roles",
     "codemode",
   ];
 }
@@ -88,6 +90,7 @@ export function buildPostgresToolDefinitions(
     ...getIntrospectionTools(adapter),
     ...getMigrationTools(adapter),
     ...getSecurityTools(adapter),
+    ...getRoleTools(adapter),
     ...getCodeModeTools(adapter),
   ];
 }

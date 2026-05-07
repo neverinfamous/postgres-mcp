@@ -26,6 +26,7 @@ Some highlights include:
 - **Core Operations**: `core`, `transactions`, `migration`, `schema`
 - **Data Types**: `jsonb`, `text`, `vector`, `postgis`, `citext`, `ltree`
 - **Introspection/Health**: `introspection`, `monitoring`, `performance`, `kcache`
+- **Access Control**: `security`, `roles`
 - **Scale/Maintenance**: `partitioning`, `partman`, `cron`, `backup`, `admin`
 - **Analytics**: `stats`, `pgcrypto`
 

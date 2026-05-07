@@ -130,7 +130,7 @@ src/
 
 ## Handler → Tool Mapping
 
-257 tools across 23 groups. Each handler file registers tools with `group` labels.
+269 tools across 24 groups. Each handler file registers tools with `group` labels.
 
 ### Tool Handlers (`src/adapters/postgresql/tools/`)
 
@@ -238,6 +238,9 @@ src/
 | **security**      | `security/audit.ts`                  | 3     | `pg_security_audit`, `pg_security_firewall_status`, `pg_security_firewall_rules`                                                                                                                                                 |
 |                   | `security/encryption.ts`             | 3     | `pg_security_ssl_status`, `pg_security_encryption_status`, `pg_security_password_validate`                                                                                                                                        |
 |                   | `security/data-protection.ts`        | 3     | `pg_security_mask_data`, `pg_security_user_privileges`, `pg_security_sensitive_tables`                                                                                                                                            |
+| **roles**         | `roles/management.ts`                | 4     | `pg_role_list`, `pg_role_create`, `pg_role_drop`, `pg_role_attributes`                                                                                                                                                           |
+|                   | `roles/privileges.ts`                | 4     | `pg_role_grants`, `pg_role_grant`, `pg_role_assign`, `pg_role_revoke`                                                                                                                                                            |
+|                   | `roles/session.ts`                   | 4     | `pg_user_roles`, `pg_role_set`, `pg_role_rls_enable`, `pg_role_rls_policies`                                                                                                                                                     |
 
 ---
 
@@ -285,7 +288,7 @@ Per-group Zod schema files (unlike mysql-mcp's monolithic 72KB file):
 | `partman/output.ts`                                                                                             | Partman output schemas                                                            |
 | `vector/input.ts`                                                                                               | Vector input schemas                                                              |
 | `vector/output.ts`                                                                                              | Vector output schemas                                                             |
-| Plus: `admin.ts`, `backup.ts`, `cron.ts`, `monitoring.ts`, `performance.ts`, `schema-mgmt.ts`, `security.ts`, `text-search.ts` |
+| Plus: `admin.ts`, `backup.ts`, `cron.ts`, `monitoring.ts`, `performance.ts`, `roles.ts`, `schema-mgmt.ts`, `security.ts`, `text-search.ts` |
 
 ---
 
@@ -450,9 +453,8 @@ throw new ExtensionNotAvailableError("pgvector");
 | `test-server/README.md`                    | Agent testing orchestration doc                                                                                         |
 | `test-server/test-database.sql`            | Core seed DDL+DML (16 tables, ~700+ rows)                                                                               |
 | `test-server/reset-database.ps1`           | Reset Docker container DB from seed data                                                                                |
-| `test-server/Tool-Reference.md`            | Complete 257-tool inventory with descriptions                                                                           |
-| `test-server/tool-groups-list.md`          | Canonical tool inventory (23 groups)                                                                                    |
-| `test-server/test-tool-groups/`            | Per-group deterministic direct MCP tool call checklists (21 groups)                                                     |
+| `test-server/Tool-Reference.md`            | Complete 269-tool inventory with descriptions                                                                           |
+| `test-server/test-tool-groups/`            | Per-group deterministic direct MCP tool call checklists (24 groups)                                                     |
 | `test-server/test-tool-groups-codemode/`   | Code Mode execution mappings for the standard groups                                                                    |
 | `test-server/test-advanced/`               | Advanced stress tests (boundary, edge cases, cross-group optimization) split into 22 granular parts                     |
 | `test-server/test-resources.md`            | Resource testing plan (20 resources)                                                                                    |

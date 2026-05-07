@@ -214,9 +214,9 @@ export function createCapabilitiesResource(
       return {
         serverVersion: "0.3.0",
         postgresqlVersion: pgVersion,
-        totalTools: 146,
-        totalResources: 21,
-        totalPrompts: 7,
+        totalTools: 269,
+        totalResources: 23,
+        totalPrompts: 20,
         toolCategories,
         installedExtensions: extensions,
         criticalExtensions,
