@@ -45,17 +45,19 @@ export function getLtreeTools(adapter: PostgresAdapter): ToolDefinition[] {
 }
 
 function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
+  const schema = z.object({}).strict();
   return {
     name: "pg_ltree_create_extension",
     description:
       "Enable the ltree extension for hierarchical tree-structured labels.",
     group: "ltree",
-    inputSchema: z.object({}).strict(),
+    inputSchema: schema,
     outputSchema: LtreeCreateExtensionOutputSchema,
     annotations: write("Create Ltree Extension"),
     icons: getToolIcons("ltree", write("Create Ltree Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
       try {
+        schema.parse(_params);
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS ltree");
         return { success: true, message: "ltree extension enabled" };
       } catch (error: unknown) {
