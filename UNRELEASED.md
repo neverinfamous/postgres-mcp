@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Security Fixes**: Bumped `hono` to `4.12.18` (Improperly Handles JSX Attribute Names Allows HTML Injection in hono/jsx SSR) and `ip-address` to `10.2.0` (XSS in Address6 HTML-emitting methods) in `package.json` overrides.
 ### Fixed
 
-- **Ltree Tools**: Completed full Code Mode certification of all 8 ltree tools. Fixed `pg_ltree_create_extension` to explicitly call `z.object({}).strict().parse()` in its handler to correctly reject unexpected parameters and prevent Zod validation leaks, adhering strictly to the Split Schema and P154 structured error handling patterns.
+- **Ltree Tools**: Completed full Code Mode certification of all 8 ltree tools. Fixed `pg_ltree_create_extension` by explicitly exporting `LtreeCreateExtensionSchemaBase` and `LtreeCreateExtensionSchema` from the `schemas/extensions/ltree.ts` barrel, removing the inline schema definition to adhere strictly to the Split Schema and P154 structured error handling patterns.
 - **Docstore Tools**: Fixed `pg_doc_collection_info` returning string for `rowCount` causing type mismatches; updated logic to `parseInt` the result. Fixed `pg_doc_find` rejecting valid object filters by applying the Split Schema pattern (`z.preprocess`) to `filter` schemas in `schemas/docstore.ts`. Added support for MongoDB-style operators (`$gt`, `$lt`, `$gte`, `$lte`, `$ne`) in JSON filters in `helpers.ts` `parseDocFilter()`. Resolved Split Schema parameter alias violations by mapping `collection` to `name` in `CreateCollectionSchema` and `DropCollectionSchema`, and `field` to `fields` in `CreateDocIndexSchema`.
 
 ### Added

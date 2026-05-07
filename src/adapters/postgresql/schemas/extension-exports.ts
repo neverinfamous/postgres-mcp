@@ -300,6 +300,8 @@ export {
   CitextCompareOutputSchema,
   CitextSchemaAdvisorOutputSchema,
   // ltree
+  LtreeCreateExtensionSchemaBase,
+  LtreeCreateExtensionSchema,
   LtreeQuerySchema,
   LtreeQuerySchemaBase,
   LtreeSubpathSchema,

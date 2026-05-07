@@ -57,6 +57,13 @@ function preprocessLtreeTableParams(input: unknown): unknown {
 /**
  * Base schema for MCP visibility - shows all parameters including aliases.
  */
+export const LtreeCreateExtensionSchemaBase = z.object({}).strict();
+
+export const LtreeCreateExtensionSchema = z.object({}).strict();
+
+/**
+ * Base schema for MCP visibility - shows all parameters including aliases.
+ */
 export const LtreeQuerySchemaBase = z.object({
   table: z.string().optional().describe("Table name"),
   tableName: z.string().optional().describe("Alias for table"),

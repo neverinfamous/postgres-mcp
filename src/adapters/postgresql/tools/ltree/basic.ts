@@ -11,11 +11,13 @@ import {
   type RequestContext,
   ValidationError,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  LtreeCreateExtensionSchemaBase,
+  LtreeCreateExtensionSchema,
   LtreeQuerySchema,
   LtreeQuerySchemaBase,
   LtreeSubpathSchema,
@@ -45,19 +47,18 @@ export function getLtreeTools(adapter: PostgresAdapter): ToolDefinition[] {
 }
 
 function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
-  const schema = z.object({}).strict();
   return {
     name: "pg_ltree_create_extension",
     description:
       "Enable the ltree extension for hierarchical tree-structured labels.",
     group: "ltree",
-    inputSchema: schema,
+    inputSchema: LtreeCreateExtensionSchemaBase,
     outputSchema: LtreeCreateExtensionOutputSchema,
     annotations: write("Create Ltree Extension"),
     icons: getToolIcons("ltree", write("Create Ltree Extension")),
     handler: async (_params: unknown, _context: RequestContext) => {
       try {
-        schema.parse(_params);
+        LtreeCreateExtensionSchema.parse(_params);
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS ltree");
         return { success: true, message: "ltree extension enabled" };
       } catch (error: unknown) {

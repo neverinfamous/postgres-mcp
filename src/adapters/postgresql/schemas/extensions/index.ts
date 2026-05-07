@@ -55,6 +55,8 @@ export {
 
 // ltree schemas
 export {
+  LtreeCreateExtensionSchemaBase,
+  LtreeCreateExtensionSchema,
   LtreeQuerySchemaBase,
   LtreeQuerySchema,
   LtreeSubpathSchemaBase,
