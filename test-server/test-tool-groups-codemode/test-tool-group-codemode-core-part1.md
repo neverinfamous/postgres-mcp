@@ -245,7 +245,7 @@ All tools implement P154 structured error handling for nonexistent tables/schema
 **Read/Write/Schema tools (Happy Paths):**
 
 1. `pg_read_query({sql: "SELECT COUNT(*) AS n FROM test_orders"})` → `{rows: [{n: 20}], rowCount: 1}`
-2. `pg_write_query({sql: "INSERT INTO temp_lifecycle (name) VALUES ('Alice') RETURNING id"})` → `{rowCount: 1, rows: [...]}` (run this after creating temp table below)
+2. `pg_write_query({sql: "INSERT INTO temp_lifecycle (name) VALUES ('Alice') RETURNING id"})` → `{rowsAffected: 1, rows: [...]}` (run this after creating temp table below)
 3. `pg_list_tables({schema: "public", limit: 5})` → `{tables: [...], count: 5, truncated: true}`
 4. `pg_describe_table({table: "test_products"})` → verify `columns` includes `id`, `name`, `price`; `primaryKey` present
 5. `pg_list_objects({type: "view"})` → verify `test_order_summary` appears in results
@@ -271,7 +271,7 @@ All tools implement P154 structured error handling for nonexistent tables/schema
 19. 🔴 `pg_create_index({})` → `{success: false, error: "Validation error: ..."}` (missing required params)
 20. 🔴 `pg_drop_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table`)
 21. 🔴 `pg_drop_index({})` → `{success: false, error: "Validation error: ..."}` (missing required `name`)
-22. 🔴 `pg_list_objects({})` → `{success: false, error: "Validation error: ..."}` (missing required `type`)
+22. ✅ `pg_list_objects({})` → works without type (returns default objects)
 
 **Alias acceptance (verify aliases produce identical results to primary parameter name):**
 
