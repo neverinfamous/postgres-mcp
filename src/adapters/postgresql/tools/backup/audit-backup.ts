@@ -404,9 +404,9 @@ export function createAuditDiffBackupTool(
               let line = `    "${col.name}" ${col.type}`;
               if (col.defaultValue !== undefined && col.defaultValue !== null) {
                 const defVal =
-                  typeof col.defaultValue === "object"
-                    ? JSON.stringify(col.defaultValue)
-                    : String(col.defaultValue as string | number | boolean);
+                  typeof col.defaultValue === "string"
+                    ? col.defaultValue
+                    : JSON.stringify(col.defaultValue);
                 line += ` DEFAULT ${defVal}`;
               }
               if (!col.nullable) line += " NOT NULL";

@@ -45,7 +45,7 @@ export function preprocessPostgisParams(input: unknown): unknown {
     result["point"] === undefined ||
     (typeof result["point"] === "object" &&
       result["point"] !== null &&
-      Object.keys(result["point"] as Record<string, unknown>).length === 0)
+      Object.keys(result["point"]).length === 0)
   ) {
     const lat = result["lat"] ?? result["latitude"] ?? result["y"];
     const lng =

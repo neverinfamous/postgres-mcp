@@ -12,8 +12,6 @@ import type {
 import { MEDIUM_PRIORITY } from "../../../utils/resource-annotations.js";
 import {
   generateVacuumSuggestions,
-  type VacuumStatsRow,
-  type WraparoundStats,
 } from "../../../utils/resource-suggestions.js";
 
 interface VacuumWarning {
@@ -162,8 +160,8 @@ export function createVacuumResource(
 
       // §7: Generate actionable suggestions based on vacuum data
       const suggestions = generateVacuumSuggestions(
-        vacuumStats as unknown as VacuumStatsRow[],
-        wraparoundRow as WraparoundStats | null,
+        vacuumStats,
+        wraparoundRow,
       );
 
       return {

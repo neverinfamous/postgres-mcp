@@ -332,7 +332,7 @@ export function createObjectDetailsTool(
             if (viewDefResult.rows && viewDefResult.rows.length > 0) {
               details["definition"] = viewDefResult.rows[0]?.[
                 "definition"
-              ] as string;
+              ];
               details["hasDefinition"] = true;
             }
           }
@@ -358,7 +358,7 @@ export function createObjectDetailsTool(
               ...details,
               ...funcRow,
               // Add camelCase aliases
-              returnType: funcRow["return_type"] as string,
+              returnType: funcRow["return_type"],
             };
           }
         } else if (objectType === "sequence") {

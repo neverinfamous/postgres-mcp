@@ -166,7 +166,7 @@ export function createMockPostgresAdapter(): Partial<PostgresAdapter> & {
     rollbackToSavepoint: vi.fn().mockResolvedValue(undefined),
     getTransactionConnection: vi.fn().mockReturnValue({}),
     executeOnConnection: vi.fn().mockImplementation((_client, sql, params) => {
-      return executeQueryMock(sql, params) as unknown as Promise<unknown>;
+      return executeQueryMock(sql, params) as Promise<QueryResult>;
     }),
     invalidateSchemaCache: vi.fn(),
     invalidateTableCache: vi.fn(

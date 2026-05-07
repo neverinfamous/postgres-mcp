@@ -118,7 +118,7 @@ export function normalizeParams(methodName: string, args: unknown[]): unknown {
     typeof lastArg === "object" &&
     lastArg !== null &&
     !Array.isArray(lastArg) &&
-    Object.keys(lastArg as Record<string, unknown>).some((k) =>
+    Object.keys(lastArg).some((k) =>
       paramMapping.includes(k),
     );
 

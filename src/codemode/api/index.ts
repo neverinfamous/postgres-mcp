@@ -225,7 +225,7 @@ export class PgApi {
   getGroupMethods(groupName: string): string[] {
     const groupApi = this[groupName as keyof PgApi];
     if (typeof groupApi === "object" && groupApi !== null) {
-      return Object.keys(groupApi as Record<string, unknown>);
+      return Object.keys(groupApi);
     }
     return [];
   }
