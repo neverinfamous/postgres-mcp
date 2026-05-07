@@ -164,6 +164,66 @@ export const PhysicalBackupSchema = z.object({
   compress: z.preprocess(coerceNumber, z.number().optional()).optional(),
 });
 
+export const DumpTableSchemaBase = z.object({
+  table: z.string().optional().describe("Table or sequence name"),
+  schema: z.string().optional().describe("Schema name (default: public)"),
+  includeData: z
+    .boolean()
+    .optional()
+    .describe("Include INSERT statements for table data"),
+  limit: z
+    .number()
+    .optional()
+    .describe(
+      "Maximum rows to include when includeData is true (default: 500, use 0 for all rows)",
+    ),
+});
+
+export const DumpTableSchema = z.object({
+  table: z.string().optional(),
+  schema: z.string().optional(),
+  includeData: z.boolean().optional(),
+  limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+});
+
+export const CopyImportSchema = z.object({
+  table: z.string().optional(),
+  tableName: z.string().optional().describe("Alias for table"),
+  schema: z.string().optional(),
+  filePath: z
+    .string()
+    .optional()
+    .describe("Path to import file (default: /path/to/file.csv)"),
+  format: z.string().optional().describe("Format (csv, text, binary)"),
+  header: z.boolean().optional(),
+  delimiter: z.string().optional(),
+  columns: z.array(z.string()).optional(),
+});
+
+export const RestoreCommandSchema = z.object({
+  backupFile: z.string().optional(),
+  filename: z.string().optional().describe("Alias for backupFile"),
+  database: z
+    .string()
+    .optional()
+    .describe("Target database name (required for complete command)"),
+  schema: z.string().optional(),
+  table: z.string().optional(),
+  dataOnly: z.boolean().optional(),
+  schemaOnly: z.boolean().optional(),
+});
+
+export const RestoreValidateSchema = z.object({
+  backupFile: z.string().optional().describe("Path to backup file"),
+  filename: z.string().optional().describe("Alias for backupFile"),
+  backupType: z
+    .string()
+    .optional()
+    .describe("Backup type (pg_dump, pg_basebackup)"),
+});
+
+export const BackupScheduleOptimizeSchema = z.object({}).strict();
+
 // ============================================================================
 // Output Schemas
 // ============================================================================

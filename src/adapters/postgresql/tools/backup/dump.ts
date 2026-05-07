@@ -9,11 +9,13 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
   DumpSchemaSchema,
+  DumpTableSchemaBase,
+  DumpTableSchema,
   // Output schemas
   DumpTableOutputSchema,
   DumpSchemaOutputSchema,
@@ -23,7 +25,6 @@ import {
   sanitizeIdentifier,
   sanitizeTableName,
 } from "../../../../utils/identifiers.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
   return {
@@ -31,30 +32,13 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
     description:
       "Generate DDL for a table or sequence. Returns CREATE TABLE for tables, CREATE SEQUENCE for sequences.",
     group: "backup",
-    inputSchema: z.object({
-      table: z.string().optional().describe("Table or sequence name"),
-      schema: z.string().optional().describe("Schema name (default: public)"),
-      includeData: z
-        .boolean()
-        .optional()
-        .describe("Include INSERT statements for table data"),
-      limit: z
-        .preprocess(coerceNumber, z.number().optional())
-        .describe(
-          "Maximum rows to include when includeData is true (default: 500, use 0 for all rows)",
-        ),
-    }),
+    inputSchema: DumpTableSchemaBase,
     outputSchema: DumpTableOutputSchema,
     annotations: readOnly("Dump Table"),
     icons: getToolIcons("backup", readOnly("Dump Table")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = params as {
-          table: string;
-          schema?: string;
-          includeData?: boolean;
-          limit?: number;
-        };
+        const parsed = DumpTableSchema.parse(params);
 
         // Validate required table parameter
         if (!parsed.table || parsed.table.trim() === "") {

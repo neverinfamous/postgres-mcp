@@ -159,6 +159,12 @@ export {
   AuditListBackupsSchema,
   AuditRestoreBackupSchema,
   AuditDiffBackupSchema,
+  DumpTableSchemaBase,
+  DumpTableSchema,
+  CopyImportSchema,
+  RestoreCommandSchema,
+  RestoreValidateSchema,
+  BackupScheduleOptimizeSchema,
   // Output schemas
   DumpTableOutputSchema,
   DumpSchemaOutputSchema,

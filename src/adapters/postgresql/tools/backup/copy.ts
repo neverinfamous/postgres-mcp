@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import {
@@ -20,6 +20,7 @@ import {
 import {
   CopyExportSchema,
   CopyExportSchemaBase,
+  CopyImportSchema,
   // Output schemas
   CopyExportOutputSchema,
   CopyImportOutputSchema,
@@ -250,18 +251,7 @@ export function createCopyImportTool(
     name: "pg_copy_import",
     description: "Generate COPY FROM command for importing data.",
     group: "backup",
-    inputSchema: z.object({
-      table: z.string().optional(),
-      schema: z.string().optional(),
-      filePath: z
-        .string()
-        .optional()
-        .describe("Path to import file (default: /path/to/file.csv)"),
-      format: z.string().optional().describe("Format (csv, text, binary)"),
-      header: z.boolean().optional(),
-      delimiter: z.string().optional(),
-      columns: z.array(z.string()).optional(),
-    }),
+    inputSchema: CopyImportSchema,
     outputSchema: CopyImportOutputSchema,
     annotations: write("Copy Import"),
     icons: getToolIcons("backup", write("Copy Import")),
@@ -269,7 +259,7 @@ export function createCopyImportTool(
       try {
         return Promise.resolve()
           .then(() => {
-            const rawParams = params as {
+            const rawParams = CopyImportSchema.parse(params) as {
               table?: string;
               tableName?: string; // Alias for table
               schema?: string;

@@ -9,7 +9,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -23,6 +23,9 @@ import {
   CreateBackupPlanSchema,
   PhysicalBackupSchemaBase,
   PhysicalBackupSchema,
+  RestoreCommandSchema,
+  RestoreValidateSchema,
+  BackupScheduleOptimizeSchema,
 } from "../../schemas/index.js";
 
 export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
@@ -124,18 +127,7 @@ export function createRestoreCommandTool(
     name: "pg_restore_command",
     description: "Generate pg_restore command for restoring backups.",
     group: "backup",
-    inputSchema: z.object({
-      backupFile: z.string().optional(),
-      filename: z.string().optional().describe("Alias for backupFile"),
-      database: z
-        .string()
-        .optional()
-        .describe("Target database name (required for complete command)"),
-      schema: z.string().optional(),
-      table: z.string().optional(),
-      dataOnly: z.boolean().optional(),
-      schemaOnly: z.boolean().optional(),
-    }),
+    inputSchema: RestoreCommandSchema,
     outputSchema: RestoreCommandOutputSchema,
     annotations: readOnly("Restore Command"),
     icons: getToolIcons("backup", readOnly("Restore Command")),
@@ -143,7 +135,7 @@ export function createRestoreCommandTool(
       try {
         return Promise.resolve()
           .then(() => {
-            const parsed = params as {
+            const parsed = RestoreCommandSchema.parse(params) as {
               backupFile?: string;
               filename?: string;
               database?: string;
@@ -328,14 +320,7 @@ export function createRestoreValidateTool(
     description:
       "Generate commands to validate backup integrity and restorability.",
     group: "backup",
-    inputSchema: z.object({
-      backupFile: z.string().optional().describe("Path to backup file"),
-      filename: z.string().optional().describe("Alias for backupFile"),
-      backupType: z
-        .string()
-        .optional()
-        .describe("Backup type (pg_dump, pg_basebackup)"),
-    }),
+    inputSchema: RestoreValidateSchema,
     outputSchema: RestoreValidateOutputSchema,
     annotations: readOnly("Restore Validate"),
     icons: getToolIcons("backup", readOnly("Restore Validate")),
@@ -343,13 +328,7 @@ export function createRestoreValidateTool(
       try {
         return Promise.resolve()
           .then(() => {
-            // Parse params through schema to validate enum values
-            const schema = z.object({
-              backupFile: z.string().optional(),
-              filename: z.string().optional(),
-              backupType: z.string().optional(),
-            });
-            const parsed = schema.parse(params);
+            const parsed = RestoreValidateSchema.parse(params);
 
             if (
               parsed.backupType &&
@@ -459,7 +438,7 @@ export function createBackupScheduleOptimizeTool(
     description:
       "Analyze database activity patterns and recommend optimal backup schedule.",
     group: "backup",
-    inputSchema: z.object({}).strict(),
+    inputSchema: BackupScheduleOptimizeSchema,
     outputSchema: BackupScheduleOptimizeOutputSchema,
     annotations: readOnly("Backup Schedule Optimize"),
     icons: getToolIcons("backup", readOnly("Backup Schedule Optimize")),
