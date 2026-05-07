@@ -187,11 +187,12 @@ export function createSecurityUserPrivilegesTool(
     icons: getToolIcons("security", admin("User Privileges")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { user, includeRoles, summary } =
+        const { user, includeRoles, summary, includeGrants } =
           UserPrivilegesSchema.parse(params) as {
             user?: string;
             includeRoles: boolean;
             summary: boolean;
+            includeGrants: boolean;
           };
 
         // P154: Validate role existence when explicitly provided
@@ -295,26 +296,27 @@ export function createSecurityUserPrivilegesTool(
               roleCount: memberOf.length,
             });
           } else {
-            // Get object-level grants for full mode
             let tableGrants: Record<string, unknown>[] = [];
-            try {
-              const grantsResult = await adapter.executeQuery(
-                `
-                SELECT
-                  table_schema as schema,
-                  table_name,
-                  privilege_type,
-                  is_grantable
-                FROM information_schema.role_table_grants
-                WHERE grantee = $1
-                ORDER BY table_schema, table_name, privilege_type
-                LIMIT 100
-              `,
-                [roleName],
-              );
-              tableGrants = grantsResult.rows ?? [];
-            } catch {
-              // Grant info not accessible
+            if (includeGrants) {
+              try {
+                const grantsResult = await adapter.executeQuery(
+                  `
+                  SELECT
+                    table_schema as schema,
+                    table_name,
+                    privilege_type,
+                    is_grantable
+                  FROM information_schema.role_table_grants
+                  WHERE grantee = $1
+                  ORDER BY table_schema, table_name, privilege_type
+                  LIMIT 100
+                `,
+                  [roleName],
+                );
+                tableGrants = grantsResult.rows ?? [];
+              } catch {
+                // Grant info not accessible
+              }
             }
 
             userPrivileges.push({
@@ -331,7 +333,7 @@ export function createSecurityUserPrivilegesTool(
                 validUntil: r["valid_until"],
               },
               memberOf,
-              tableGrants,
+              ...(includeGrants ? { tableGrants } : {}),
             });
           }
         }

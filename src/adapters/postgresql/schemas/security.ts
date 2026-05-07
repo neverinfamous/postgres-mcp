@@ -97,6 +97,10 @@ export const UserPrivilegesSchemaBase = z.object({
     .describe(
       "Return condensed summary (privilege counts) instead of full details",
     ),
+  includeGrants: z
+    .boolean()
+    .default(false)
+    .describe("Include up to 100 object-level table grants per role"),
 });
 
 export const UserPrivilegesSchema = z.preprocess(
