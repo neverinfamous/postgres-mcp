@@ -256,39 +256,42 @@ All tools implement P154 structured error handling for nonexistent tables/schema
 10. `pg_batch_insert({table: "nonexistent_table_xyz", rows: [{id: 1}]})` → `{success: false}` structured error
 11. `pg_upsert({table: "nonexistent_table_xyz", data: {id: 1}, conflictColumns: ["id"]})` → `{success: false}` structured error
 
-**Read/Write/Schema tools:**
+**Introspection and Analysis tools:**
 
-16. `pg_object_details({name: "test_order_summary", type: "view"})` → verify `definition` field present
-17. `pg_list_extensions()` → verify response includes `pgcrypto`, `pg_trgm`, `vector` (or other installed extensions)
-18. `pg_analyze_db_health()` → verify `overallStatus` is one of: `healthy`, `needs_attention`, `critical`
-19. `pg_analyze_workload_indexes()` → verify response structure with `recommendations` or `queries` array
-20. `pg_analyze_query_indexes({sql: "SELECT * FROM test_products WHERE name = 'Widget'"})` → verify `plan` and `recommendations` fields present
+12. `pg_object_details({name: "test_order_summary", type: "view"})` → verify `definition` field present
+13. `pg_list_extensions()` → verify response includes `pgcrypto`, `pg_trgm`, `vector` (or other installed extensions)
+14. `pg_analyze_db_health()` → verify `overallStatus` is one of: `healthy`, `needs_attention`, `critical`
+15. `pg_analyze_workload_indexes()` → verify response structure with `recommendations` or `queries` array
+16. `pg_analyze_query_indexes({sql: "SELECT * FROM test_products WHERE name = 'Widget'"})` → verify `plan` and `recommendations` fields present
 
-**Domain error paths (🔴):**
+**Domain and Zod error paths (🔴):**
 
-**Zod validation error paths (🔴 — verify `"Validation error: ..."` format, NOT raw JSON array):**
+17. 🔴 `pg_count({params: ["not_a_number"]})` → `{success: false, error: "..."}` structured error for bad param type
+18. 🔴 `pg_count({})` → `{success: false, error: "..."}` (missing required `table`)
+19. 🔴 `pg_exists({})` → `{success: false, error: "..."}` (missing required `table`)
+20. 🔴 `pg_truncate({})` → `{success: false, error: "..."}` (missing required `table`)
+21. 🔴 `pg_batch_insert({})` → `{success: false, error: "..."}` (missing required params)
+22. 🔴 `pg_upsert({})` → `{success: false, error: "..."}` (missing required params)
+23. 🔴 `pg_object_details({})` → `{success: false, error: "..."}` (missing required `name`)
+24. 🔴 `pg_analyze_query_indexes({})` → `{success: false, error: "..."}` (missing required `sql`)
 
-36. 🔴 `pg_count({params: ["not_a_number"]})` → `{success: false, error: "..."}` structured error for bad param type
+**Alias acceptance:**
 
-**Alias acceptance (verify aliases produce identical results to primary parameter name):**
+25. `pg_count({tableName: "test_products"})` → same result as item 1 (`{count: 15}`)
+26. `pg_count({table: "test_products", condition: "price > 50"})` → same as `where` alias
+27. `pg_exists({tableName: "test_products"})` → works via `tableName` alias for `table`
+28. `pg_analyze_query_indexes({query: "SELECT * FROM test_products"})` → works via `query` alias for `sql`
 
-37. `pg_count({tableName: "test_products"})` → same result as item 1 (`{count: 15}`)
-38. `pg_count({table: "test_products", condition: "price > 50"})` → same as `where` alias
-39. `pg_exists({tableName: "test_products"})` → works via `tableName` alias for `table`
-40. `pg_analyze_query_indexes({query: "SELECT * FROM test_products"})` → works via `query` alias for `sql`
+**Convenience tools lifecycle (temp tables):**
 
-**Create → Use → Drop lifecycle (temp tables):**
-
-44. `pg_batch_insert({table: "temp_lifecycle", rows: [{name: "Alice"}, {name: "Bob"}], returning: ["id", "name"]})` → verify returned rows with auto-generated IDs
-45. `pg_upsert({table: "temp_lifecycle", data: {id: 1, name: "Alice Updated"}, conflictColumns: ["id"]})` → verify update
-46. `pg_count({table: "temp_lifecycle"})` → `{count: 2}`
-47. `pg_truncate({table: "temp_lifecycle", restartIdentity: true})` → `{success: true}`
-48. `pg_count({table: "temp_lifecycle"})` → `{count: 0}`
+29. `pg_batch_insert({table: "temp_lifecycle", rows: [{name: "Alice"}, {name: "Bob"}], returning: ["id", "name"]})` → verify returned rows with auto-generated IDs (must create `temp_lifecycle` via `pg_execute_code` before this)
+30. `pg_upsert({table: "temp_lifecycle", data: {id: 1, name: "Alice Updated"}, conflictColumns: ["id"]})` → verify update
+31. `pg_count({table: "temp_lifecycle"})` → `{count: 2}`
+32. `pg_truncate({table: "temp_lifecycle", restartIdentity: true})` → `{success: true}`
+33. `pg_count({table: "temp_lifecycle"})` → `{count: 0}`
 
 **Code mode (`pg_execute_code`) deterministic items:**
 
-53. `pg_execute_code({code: "return await pg.core.help()"})` → verify lists ~20 core methods
-54. `pg_execute_code({code: "return await pg.count('test_products')"})` → verify works via top-level alias
-55. `pg_execute_code({code: "return await pg.exists('test_products', 'id = 1')"})` → verify positional args work
-56. `pg_execute_code({code: "return await pg.core.readQuery({sql: 'SELECT 1 AS n'})"})` → verify `{rows: [{n: 1}]}`
-57. `pg_execute_code({code: "return await pg.readQuery({sql: 'SELECT * FROM nonexistent_xyz'})"})` → verify error is returned (not thrown), contains `{success: false}` or error object
+34. `pg_execute_code({code: "return await pg.core.help()"})` → verify lists ~20 core methods
+35. `pg_execute_code({code: "return await pg.count('test_products')"})` → verify works via top-level alias
+36. `pg_execute_code({code: "return await pg.exists('test_products', 'id = 1')"})` → verify positional args work

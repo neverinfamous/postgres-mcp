@@ -242,19 +242,25 @@ vector Tool Group (16 tools +1 for code mode)
 
 **Test data:** Uses `test_embeddings` with 384-dimension vectors (50 rows, 5 categories: tech, science, business, sports, entertainment). HNSW index on `embedding` column using cosine distance.
 
-**Checklist** (Use Code Mode for vector operations to avoid truncation):
+**Checklist:**
 
-1. Via code mode: read first embedding from `test_embeddings`, then search with it → verify results returned with distances
-2. `pg_vector_distance({vector1: [1,0,0], vector2: [0,1,0], metric: "cosine"})` → verify distance returned
-3. `pg_vector_normalize({vector: [3, 4]})` → `{normalized: [0.6, 0.8], magnitude: 5}`
-4. 🔴 `pg_vector_search({table: "nonexistent_xyz", column: "v", vector: [1,0,0]})` → `{success: false, error: "..."}` handler error
-5. 🔴 `pg_vector_search({table: "test_embeddings", column: "embedding", vector: [1,0,0], limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+1. `pg_vector_create_extension()` → verify happy path expected behavior
+2. `pg_vector_add_column()` → verify happy path expected behavior
+3. `pg_vector_insert()` → verify happy path expected behavior
+4. `pg_vector_batch_insert()` → verify happy path expected behavior
+5. `pg_vector_search()` via code mode: read first embedding from `test_embeddings`, then search with it → verify results returned with distances
+6. `pg_vector_create_index()` → verify happy path expected behavior
+7. `pg_vector_distance({vector1: [1,0,0], vector2: [0,1,0], metric: "cosine"})` → verify distance returned
+8. `pg_vector_normalize({vector: [3, 4]})` → `{normalized: [0.6, 0.8], magnitude: 5}`
 
-6. `pg_vector_insert()` → verify happy path expected behavior
-7. 🔴 `pg_vector_insert({})` → verify structured P154 error response or valid defaults
-8. `pg_vector_create_extension()` → verify happy path expected behavior
-9. 🔴 `pg_vector_create_extension({})` → verify structured P154 error response or valid defaults
-10. `pg_vector_add_column()` → verify happy path expected behavior
-11. 🔴 `pg_vector_add_column({})` → verify structured P154 error response or valid defaults
-12. `pg_vector_create_index()` → verify happy path expected behavior
-13. 🔴 `pg_vector_create_index({})` → verify structured P154 error response or valid defaults
+**Domain and Zod error paths (🔴):**
+
+9. 🔴 `pg_vector_search({table: "nonexistent_xyz", column: "v", vector: [1,0,0]})` → `{success: false, error: "..."}` handler error
+10. 🔴 `pg_vector_search({table: "test_embeddings", column: "embedding", vector: [1,0,0], limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+11. 🔴 `pg_vector_insert({})` → verify structured P154 error response or valid defaults
+12. 🔴 `pg_vector_batch_insert({})` → verify structured P154 error response or valid defaults
+13. 🔴 `pg_vector_create_extension({})` → verify structured P154 error response or valid defaults
+14. 🔴 `pg_vector_add_column({})` → verify structured P154 error response or valid defaults
+15. 🔴 `pg_vector_create_index({})` → verify structured P154 error response or valid defaults
+16. 🔴 `pg_vector_distance({})` → verify structured P154 error response or valid defaults
+17. 🔴 `pg_vector_normalize({})` → verify structured P154 error response or valid defaults

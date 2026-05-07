@@ -253,27 +253,27 @@ jsonb Tool Group (20 tools +1 for code mode):
 **Checklist:**
 
 1. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "author", where: "id = 1"})` → result contains `"Alice"`
-2. `pg_jsonb_extract({table: "test_jsonb_docs", column: "metadata", path: "nested.level1.level2", where: "id = 3"})` → result contains `"deep"`
-3. `pg_jsonb_keys({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → keys include `type`, `author`, `views`
-4. `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", contains: {"type": "article"}, where: "id = 1"})` → true
+2. `pg_jsonb_set({table: "test_jsonb_docs", column: "metadata", path: "author", value: "Alicia", where: "id = 1"})` → verify successful update
+3. `pg_jsonb_insert({table: "test_jsonb_docs", column: "metadata", path: "new_key", value: "new_val", where: "id = 1"})` → verify successful insert
+4. `pg_jsonb_delete({table: "test_jsonb_docs", column: "metadata", path: "new_key", where: "id = 1"})` → verify successful delete
+5. `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", contains: {"type": "article"}, where: "id = 1"})` → true
+6. `pg_jsonb_path_query({table: "test_jsonb_docs", column: "metadata", path: "$.author"})` → verify expected behavior
+7. `pg_jsonb_agg({table: "test_jsonb_docs", column: "metadata"})` → verify aggregated array
+8. `pg_jsonb_object({keys: ["a", "b"], values: ["1", "2"]})` → verify expected behavior
+9. `pg_jsonb_array({elements: ["a", "b", "c"]})` → verify expected behavior
+10. `pg_jsonb_keys({table: "test_jsonb_docs", column: "metadata", where: "id = 1"})` → keys include `type`, `author`, `views`
 
-**pg_jsonb_pretty:**
+**Domain and Zod error paths (🔴):**
 
-**Domain error paths (🔴):**
-
-13. 🔴 `pg_jsonb_extract({table: "nonexistent_xyz", column: "data", path: "key"})` → `{success: false, error: "..."}` handler error
-14. 🔴 `pg_jsonb_keys({})` → `{success: false, error: "..."}` (Zod validation)
-15. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", value: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` to 100 and return valid results (wrong-type numeric param coercion)
-
-16. `pg_jsonb_agg()` → verify happy path expected behavior
-17. 🔴 `pg_jsonb_agg({})` → verify structured P154 error response or valid defaults
-18. `pg_jsonb_path_query()` → verify happy path expected behavior
-19. 🔴 `pg_jsonb_path_query({})` → verify structured P154 error response or valid defaults
-20. `pg_jsonb_array()` → verify happy path expected behavior
-21. 🔴 `pg_jsonb_array({})` → verify structured P154 error response or valid defaults
-22. `pg_jsonb_set()` → verify happy path expected behavior
-23. 🔴 `pg_jsonb_set({})` → verify structured P154 error response or valid defaults
-24. `pg_jsonb_insert()` → verify happy path expected behavior
-25. 🔴 `pg_jsonb_insert({})` → verify structured P154 error response or valid defaults
-26. `pg_jsonb_delete()` → verify happy path expected behavior
-27. 🔴 `pg_jsonb_delete({})` → verify structured P154 error response or valid defaults
+11. 🔴 `pg_jsonb_extract({table: "nonexistent_xyz", column: "data", path: "key"})` → `{success: false, error: "..."}` handler error
+12. 🔴 `pg_jsonb_contains({table: "test_jsonb_docs", column: "metadata", contains: {"type": "article"}, limit: "abc"})` → must NOT return raw MCP `-32602` error — should silently default `limit` (wrong-type numeric param coercion)
+13. 🔴 `pg_jsonb_extract({})` → `{success: false, error: "..."}` (Zod validation)
+14. 🔴 `pg_jsonb_set({})` → `{success: false, error: "..."}` (Zod validation)
+15. 🔴 `pg_jsonb_insert({})` → `{success: false, error: "..."}` (Zod validation)
+16. 🔴 `pg_jsonb_delete({})` → `{success: false, error: "..."}` (Zod validation)
+17. 🔴 `pg_jsonb_contains({})` → `{success: false, error: "..."}` (Zod validation)
+18. 🔴 `pg_jsonb_path_query({})` → `{success: false, error: "..."}` (Zod validation)
+19. 🔴 `pg_jsonb_agg({})` → `{success: false, error: "..."}` (Zod validation)
+20. 🔴 `pg_jsonb_object({})` → `{success: false, error: "..."}` (Zod validation)
+21. 🔴 `pg_jsonb_array({})` → `{success: false, error: "..."}` (Zod validation)
+22. 🔴 `pg_jsonb_keys({})` → `{success: false, error: "..."}` (Zod validation)

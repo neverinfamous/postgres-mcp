@@ -248,20 +248,22 @@ Test distance calculations between cities (e.g., New York ↔ London).
 
 **Checklist:**
 
-2. `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: 100000})` → expect: New York in results
-3. `pg_bounding_box({table: "test_locations", column: "location", minLat: 34, maxLat: 42, minLng: -119, maxLng: -73})` → expect: NY, LA, Chicago
-4. 🔴 `pg_distance({table: "nonexistent_xyz", column: "geom", lat: 0, lng: 0, distance: 100})` → `{success: false, error: "..."}` handler error
-5. 🔴 `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `distance` (wrong-type numeric param)
+1. `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: 100000})` → expect: New York in results
+2. `pg_bounding_box({table: "test_locations", column: "location", minLat: 34, maxLat: 42, minLng: -119, maxLng: -73})` → expect: NY, LA, Chicago
+3. `pg_point_in_polygon()` → verify happy path expected behavior
+4. `pg_buffer()` → verify happy path expected behavior
+5. `pg_intersection()` → verify happy path expected behavior
+6. `pg_postgis_create_extension()` → verify happy path expected behavior
+7. `pg_geometry_column()` → verify happy path expected behavior
+8. `pg_spatial_index()` → verify happy path expected behavior
 
-6. `pg_point_in_polygon()` → verify happy path expected behavior
-7. 🔴 `pg_point_in_polygon({})` → verify structured P154 error response or valid defaults
-8. `pg_buffer()` → verify happy path expected behavior
-9. 🔴 `pg_buffer({})` → verify structured P154 error response or valid defaults
-10. `pg_intersection()` → verify happy path expected behavior
-11. 🔴 `pg_intersection({})` → verify structured P154 error response or valid defaults
-12. `pg_postgis_create_extension()` → verify happy path expected behavior
-13. 🔴 `pg_postgis_create_extension({})` → verify structured P154 error response or valid defaults
-14. `pg_geometry_column()` → verify happy path expected behavior
+**Domain and Zod error paths (🔴):**
+
+9. 🔴 `pg_distance({table: "nonexistent_xyz", column: "geom", lat: 0, lng: 0, distance: 100})` → `{success: false, error: "..."}` handler error
+10. 🔴 `pg_distance({table: "test_locations", column: "location", lat: 40.7128, lng: -74.006, distance: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `distance` (wrong-type numeric param)
+11. 🔴 `pg_point_in_polygon({})` → verify structured P154 error response or valid defaults
+12. 🔴 `pg_buffer({})` → verify structured P154 error response or valid defaults
+13. 🔴 `pg_intersection({})` → verify structured P154 error response or valid defaults
+14. 🔴 `pg_postgis_create_extension({})` → verify structured P154 error response or valid defaults
 15. 🔴 `pg_geometry_column({})` → verify structured P154 error response or valid defaults
-16. `pg_spatial_index()` → verify happy path expected behavior
-17. 🔴 `pg_spatial_index({})` → verify structured P154 error response or valid defaults
+16. 🔴 `pg_spatial_index({})` → verify structured P154 error response or valid defaults

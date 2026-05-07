@@ -14,9 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Ltree Tools**: Completed full Code Mode certification of all 8 ltree tools. Fixed `pg_ltree_create_extension` by explicitly exporting `LtreeCreateExtensionSchemaBase` and `LtreeCreateExtensionSchema` from the `schemas/extensions/ltree.ts` barrel, removing the inline schema definition to adhere strictly to the Split Schema and P154 structured error handling patterns.
 - **Docstore Tools**: Fixed `pg_doc_collection_info` returning string for `rowCount` causing type mismatches; updated logic to `parseInt` the result. Fixed `pg_doc_find` rejecting valid object filters by applying the Split Schema pattern (`z.preprocess`) to `filter` schemas in `schemas/docstore.ts`. Added support for MongoDB-style operators (`$gt`, `$lt`, `$gte`, `$lte`, `$ne`) in JSON filters in `helpers.ts` `parseDocFilter()`. Resolved Split Schema parameter alias violations by mapping `collection` to `name` in `CreateCollectionSchema` and `DropCollectionSchema`, and `field` to `fields` in `CreateDocIndexSchema`.
-- **Monitoring Tools**: Completed full Code Mode certification of all 11 monitoring tools. Validated 100% test coverage achieving complete adherence to P154 structured error handling and zero Split Schema violations. Verified payload limits correctly clamp return sets.
-- **Migration Tools**: Completed full Code Mode certification of all 6 migration tools. Validated 100% test coverage achieving complete adherence to P154 structured error handling and zero Split Schema violations. Verified atomic transactional rollback logic and token-efficient history payloads.
-
+- **Test Prompts**: Remediated structural fragmentation and non-sequential numbering across split Code Mode test prompts for the `postgis`, `stats`, and `vector` tool groups. Ensured all tools include missing P154 error path and Zod validation testing requirements.
 ### Added
 
 - **Connection Pool**: `initializationSql` config to execute session setup queries once per connection checkout. Uses `WeakSet` for zero-GC-overhead deduplication. Applies to both `getConnection()` and `query()` paths.
@@ -30,4 +28,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependency Updates**:
   - Updated `devDependencies` (`@types/node` 25.6.0, `@vitest/coverage-v8` 4.1.5, `eslint` 10.3.0, `globals` 17.6.0, `typescript` 6.0.3, `typescript-eslint` 8.59.2, `vitest` 4.1.5)
   - Updated `dependencies` (`jose` 6.2.3, `zod` 4.4.3)
+  - Updated GitHub Actions to latest tagged versions (`actions/github-script` v9.0.0, `github/gh-aw` v0.68.1, `trufflesecurity/trufflehog` v3.94.3, `actions/upload-artifact` v7.0.1, `docker/build-push-action` v7.1.0) with strict SHA pinning.
   - Updated GitHub Actions to latest tagged versions (`actions/github-script` v9.0.0, `github/gh-aw` v0.68.1, `trufflesecurity/trufflehog` v3.94.3, `actions/upload-artifact` v7.0.1, `docker/build-push-action` v7.1.0) with strict SHA pinning.

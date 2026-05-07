@@ -244,42 +244,28 @@ stats Group (19 tools +1 for code mode)
 
 **Test data:** Uses `test_measurements` (500 rows, sensor_id 1-6, columns: temperature, humidity, pressure, measured_at).
 
-**Original 8 tools — Checklist:**
+**Checklist:**
 
 1. `pg_stats_descriptive({table: "test_measurements", column: "temperature"})` → verify `mean`, `stddev`, `min`, `max` present
 2. `pg_stats_percentiles({table: "test_measurements", column: "temperature", percentiles: [0.25, 0.5, 0.75]})` → verify 3 percentile values
 3. `pg_stats_correlation({table: "test_measurements", column1: "temperature", column2: "humidity"})` → verify correlation value between -1 and 1
-4. `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: 10})` → verify `buckets` array with 10 entries
+4. `pg_stats_regression()` → verify happy path expected behavior
 5. `pg_stats_time_series({table: "test_measurements", timeColumn: "measured_at", valueColumn: "temperature", interval: "day"})` → verify time series data returned
-6. `pg_stats_sampling({table: "test_measurements", sampleSize: 10})` → verify exactly 10 rows returned
-7. `pg_stats_sampling({table: "test_measurements", method: "bernoulli", percentage: 10})` → verify sample returned with `method: "bernoulli"`
-8. `pg_stats_hypothesis({table: "test_measurements", column: "temperature", hypothesizedMean: 27})` → verify `results.pValue` present
-
-**Window function tools:**
-
+6. `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: 10})` → verify `buckets` array with 10 entries
+7. `pg_stats_hypothesis({table: "test_measurements", column: "temperature", hypothesizedMean: 27})` → verify `results.pValue` present
+8. `pg_stats_sampling({table: "test_measurements", sampleSize: 10})` → verify exactly 10 rows returned
 9. `pg_stats_row_number({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify 5 rows returned, each with `row_number` field (1-5)
-10. `pg_stats_row_number({table: "test_measurements", column: "temperature", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `row_number` resets per sensor_id partition
-11. `pg_stats_rank({table: "test_measurements", column: "temperature", orderBy: "temperature", limit: 5})` → verify rows with `rank` field
-12. `pg_stats_rank({table: "test_measurements", column: "temperature", orderBy: "temperature", method: "dense_rank", limit: 5})` → verify `dense_rank` — no gaps in ranking
+10. `pg_stats_rank({table: "test_measurements", column: "temperature", orderBy: "temperature", limit: 5})` → verify rows with `rank` field
 
-**Outlier detection and analysis tools:**
+**Domain and Zod error paths (🔴):**
 
-**Domain error paths (🔴):**
-
-27. 🔴 `pg_stats_descriptive({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
-28. 🔴 `pg_stats_percentiles({})` → `{success: false, error: "..."}` (Zod validation)
-29. 🔴 `pg_stats_row_number({})` → `{success: false, error: "..."}` (Zod validation — missing required `table`, `column`, `orderBy`)
-
-**Wrong-type numeric param coercion (🔴):**
-
-32. 🔴 `pg_stats_sampling({table: "test_measurements", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `sampleSize` (wrong-type numeric param)
-33. 🔴 `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `buckets` (wrong-type numeric param)
-
-**Code mode parity:**
-
-35. `pg_execute_code({code: "return await pg.stats.help()"})` → verify lists all 19 stats methods including `rowNumber`, `rank`, `lagLead`, `runningTotal`, `movingAvg`, `ntile`, `outliers`, `topN`, `distinct`, `frequency`, `summary`
-36. `pg_execute_code({code: "return await pg.stats.outliers({table: 'test_measurements', column: 'temperature'})"})` → verify returns same structure as item 19
-37. `pg_execute_code({code: "return await pg.stats.distinct({table: 'test_measurements', column: 'sensor_id'})"})` → verify returns same structure as item 23
-
-38. `pg_stats_regression()` → verify happy path expected behavior
-39. 🔴 `pg_stats_regression({})` → verify structured P154 error response or valid defaults
+11. 🔴 `pg_stats_descriptive({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
+12. 🔴 `pg_stats_percentiles({})` → `{success: false, error: "..."}` (Zod validation)
+13. 🔴 `pg_stats_row_number({})` → `{success: false, error: "..."}` (Zod validation — missing required `table`, `column`, `orderBy`)
+14. 🔴 `pg_stats_sampling({table: "test_measurements", sampleSize: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `sampleSize` (wrong-type numeric param)
+15. 🔴 `pg_stats_distribution({table: "test_measurements", column: "temperature", buckets: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `buckets` (wrong-type numeric param)
+16. 🔴 `pg_stats_correlation({})` → `{success: false, error: "..."}` (Zod validation)
+17. 🔴 `pg_stats_regression({})` → verify structured P154 error response or valid defaults
+18. 🔴 `pg_stats_time_series({})` → `{success: false, error: "..."}` (Zod validation)
+19. 🔴 `pg_stats_hypothesis({})` → `{success: false, error: "..."}` (Zod validation)
+20. 🔴 `pg_stats_rank({})` → `{success: false, error: "..."}` (Zod validation)

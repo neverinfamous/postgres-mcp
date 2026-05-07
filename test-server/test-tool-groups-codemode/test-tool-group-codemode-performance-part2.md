@@ -228,83 +228,92 @@ DROP TABLE IF EXISTS temp_my_test_table;
 
 performance Tool Group (24 tools +1 code mode)
 
-9. 'pg_bloat_check'
-10. 'pg_cache_hit_ratio'
-11. 'pg_seq_scan_tables'
-12. 'pg_index_recommendations'
-13. 'pg_query_plan_compare'
-14. 'pg_performance_baseline'
-15. 'pg_connection_pool_optimize'
-16. 'pg_partition_strategy_suggest'
-17. 'pg_unused_indexes'
-18. 'pg_duplicate_indexes'
-19. 'pg_vacuum_stats'
-20. 'pg_query_plan_stats'
-21. 'pg_diagnose_database_performance'
-22. 'pg_detect_query_anomalies'
-23. 'pg_detect_bloat_risk'
-24. 'pg_detect_connection_spike'
-25. 'pg_execute_code' (codemode, auto-added)
+1. 'pg_bloat_check'
+2. 'pg_cache_hit_ratio'
+3. 'pg_seq_scan_tables'
+4. 'pg_index_recommendations'
+5. 'pg_query_plan_compare'
+6. 'pg_performance_baseline'
+7. 'pg_connection_pool_optimize'
+8. 'pg_partition_strategy_suggest'
+9. 'pg_unused_indexes'
+10. 'pg_duplicate_indexes'
+11. 'pg_vacuum_stats'
+12. 'pg_query_plan_stats'
+13. 'pg_diagnose_database_performance'
+14. 'pg_detect_query_anomalies'
+15. 'pg_detect_bloat_risk'
+16. 'pg_detect_connection_spike'
+17. 'pg_execute_code' (codemode, auto-added)
 
 > **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
 **Existing performance tools:**
 
-5. `pg_cache_hit_ratio()` → verify `{heap_read, heap_hit, cache_hit_ratio}` where all are numbers or null
-6. `pg_bloat_check()` → verify returns `{tables, count}`
-7. `pg_seq_scan_tables({limit: 3, minScans: 1})` → verify `{tables, count: 3, truncated: true, totalCount: N}`
-8. `pg_unused_indexes({limit: 3})` → verify returns `{unusedIndexes, count}`
-9. `pg_duplicate_indexes()` → verify response structure
+1. `pg_cache_hit_ratio()` → verify `{heap_read, heap_hit, cache_hit_ratio}` where all are numbers or null
+2. `pg_bloat_check()` → verify returns `{tables, count}`
+3. `pg_seq_scan_tables({limit: 3, minScans: 1})` → verify `{tables, count: 3, truncated: true, totalCount: N}`
+4. `pg_unused_indexes({limit: 3})` → verify returns `{unusedIndexes, count}`
+5. `pg_duplicate_indexes()` → verify response structure
 
 **Diagnostics tool:**
 
-10. `pg_diagnose_database_performance()` → verify `{sections, overallScore, overallStatus, totalRecommendations, allRecommendations}` where `overallStatus` is one of `healthy`, `warning`, `critical`; `overallScore` is 0-100
+6. `pg_diagnose_database_performance()` → verify `{sections, overallScore, overallStatus, totalRecommendations, allRecommendations}` where `overallStatus` is one of `healthy`, `warning`, `critical`; `overallScore` is 0-100
 
 **Anomaly detection tools — pg_detect_query_anomalies:**
 
-11. `pg_detect_query_anomalies()` → verify `{anomalies, riskLevel, totalAnalyzed, anomalyCount, summary}` where `riskLevel` ∈ `{low, moderate, high, critical}`; `anomalyCount` matches `anomalies.length`
-12. `pg_detect_query_anomalies({threshold: 1.0})` → lower threshold may produce more anomalies; verify `anomalyCount >= 0`
-13. `pg_detect_query_anomalies({threshold: 5.0, minCalls: 100})` → higher threshold + minCalls should reduce noise; verify response structure
+7. `pg_detect_query_anomalies()` → verify `{anomalies, riskLevel, totalAnalyzed, anomalyCount, summary}` where `riskLevel` ∈ `{low, moderate, high, critical}`; `anomalyCount` matches `anomalies.length`
+8. `pg_detect_query_anomalies({threshold: 1.0})` → lower threshold may produce more anomalies; verify `anomalyCount >= 0`
+9. `pg_detect_query_anomalies({threshold: 5.0, minCalls: 100})` → higher threshold + minCalls should reduce noise; verify response structure
 
 **Anomaly detection tools — pg_detect_bloat_risk:**
 
-14. `pg_detect_bloat_risk()` → verify `{tables, highRiskCount, totalAnalyzed, summary}` where `highRiskCount >= 0` and `totalAnalyzed >= 0`
-15. `pg_detect_bloat_risk({schema: "public"})` → verify only `public` schema tables in results
-16. `pg_detect_bloat_risk({minRows: 1})` → lower threshold should include more tables; verify `totalAnalyzed` >= default result's `totalAnalyzed`
-17. 🔴 `pg_detect_bloat_risk({schema: "nonexistent_schema_xyz"})` → should return structured P154 error response natively (`Schema ... does not exist`)
+10. `pg_detect_bloat_risk()` → verify `{tables, highRiskCount, totalAnalyzed, summary}` where `highRiskCount >= 0` and `totalAnalyzed >= 0`
+11. `pg_detect_bloat_risk({schema: "public"})` → verify only `public` schema tables in results
+12. `pg_detect_bloat_risk({minRows: 1})` → lower threshold should include more tables; verify `totalAnalyzed` >= default result's `totalAnalyzed`
+13. 🔴 `pg_detect_bloat_risk({schema: "nonexistent_schema_xyz"})` → should return structured P154 error response natively (`Schema ... does not exist`)
 
 **Anomaly detection tools — pg_detect_connection_spike:**
 
-18. `pg_detect_connection_spike()` → verify `{totalConnections, maxConnections, usagePercent, byState, concentrations, warnings, riskLevel, summary}` where `totalConnections >= 1`, `maxConnections > 0`, `usagePercent` is 0-100, `riskLevel` ∈ `{low, moderate, high, critical}`
-19. `pg_detect_connection_spike({warningPercent: 10})` → lower threshold may produce more warnings; verify `warnings` is an array
-20. `pg_detect_connection_spike({warningPercent: 100})` → maximum threshold should produce fewer warnings; verify response structure
+14. `pg_detect_connection_spike()` → verify `{totalConnections, maxConnections, usagePercent, byState, concentrations, warnings, riskLevel, summary}` where `totalConnections >= 1`, `maxConnections > 0`, `usagePercent` is 0-100, `riskLevel` ∈ `{low, moderate, high, critical}`
+15. `pg_detect_connection_spike({warningPercent: 10})` → lower threshold may produce more warnings; verify `warnings` is an array
+16. `pg_detect_connection_spike({warningPercent: 100})` → maximum threshold should produce fewer warnings; verify response structure
 
 **Domain error paths (🔴):**
 
+17. 🔴 `pg_cache_hit_ratio({})` → verify returns handler error or valid defaults
+18. 🔴 `pg_bloat_check({})` → verify returns handler error or valid defaults
+19. 🔴 `pg_seq_scan_tables({})` → verify returns handler error or valid defaults
+20. 🔴 `pg_unused_indexes({})` → verify returns handler error or valid defaults
+21. 🔴 `pg_duplicate_indexes({})` → verify returns handler error or valid defaults
+22. 🔴 `pg_diagnose_database_performance({})` → verify returns handler error or valid defaults
+
 **Wrong-type numeric param coercion (🔴):**
 
-24. 🔴 `pg_detect_query_anomalies({threshold: "abc"})` → must NOT return raw MCP error; `threshold` should silently coerce to default 2.0 and return valid results
-25. 🔴 `pg_detect_query_anomalies({minCalls: "abc"})` → must NOT return raw MCP error; `minCalls` should silently coerce to default 10 and return valid results
-26. 🔴 `pg_detect_bloat_risk({minRows: "abc"})` → must NOT return raw MCP error; `minRows` should silently coerce to default 1000 and return valid results
-27. 🔴 `pg_detect_connection_spike({warningPercent: "abc"})` → must NOT return raw MCP error; `warningPercent` should silently coerce to default 70 and return valid results
+23. 🔴 `pg_detect_query_anomalies({threshold: "abc"})` → must NOT return raw MCP error; `threshold` should silently coerce to default 2.0 and return valid results
+24. 🔴 `pg_detect_query_anomalies({minCalls: "abc"})` → must NOT return raw MCP error; `minCalls` should silently coerce to default 10 and return valid results
+25. 🔴 `pg_detect_bloat_risk({minRows: "abc"})` → must NOT return raw MCP error; `minRows` should silently coerce to default 1000 and return valid results
+26. 🔴 `pg_detect_connection_spike({warningPercent: "abc"})` → must NOT return raw MCP error; `warningPercent` should silently coerce to default 70 and return valid results
 
 **Code mode parity (anomaly detection):**
 
-28. `pg_execute_code({code: "return await pg.performance.detectQueryAnomalies()"})` → verify returns same structure as item 11
-29. `pg_execute_code({code: "return await pg.performance.detectBloatRisk({schema: 'public'})"})` → verify returns same structure as item 15
-30. `pg_execute_code({code: "return await pg.performance.detectConnectionSpike()"})` → verify returns same structure as item 18
+27. `pg_execute_code({code: "return await pg.performance.detectQueryAnomalies()"})` → verify returns same structure as item 7
+28. `pg_execute_code({code: "return await pg.performance.detectBloatRisk({schema: 'public'})"})` → verify returns same structure as item 11
+29. `pg_execute_code({code: "return await pg.performance.detectConnectionSpike()"})` → verify returns same structure as item 14
 
-31. `pg_index_recommendations()` → verify happy path expected behavior
-32. 🔴 `pg_index_recommendations({})` → verify structured P154 error response or valid defaults
-33. `pg_vacuum_stats()` → verify happy path expected behavior
-34. 🔴 `pg_vacuum_stats({})` → verify structured P154 error response or valid defaults
-35. `pg_query_plan_compare()` → verify happy path expected behavior
-36. 🔴 `pg_query_plan_compare({})` → verify structured P154 error response or valid defaults
-37. `pg_performance_baseline()` → verify happy path expected behavior
-38. 🔴 `pg_performance_baseline({})` → verify structured P154 error response or valid defaults
-39. `pg_connection_pool_optimize()` → verify happy path expected behavior
-40. 🔴 `pg_connection_pool_optimize({})` → verify structured P154 error response or valid defaults
-41. `pg_partition_strategy_suggest()` → verify happy path expected behavior
-42. 🔴 `pg_partition_strategy_suggest({})` → verify structured P154 error response or valid defaults
-43. `pg_query_plan_stats()` → verify happy path expected behavior
-44. 🔴 `pg_query_plan_stats({})` → verify structured P154 error response or valid defaults
+**Remaining tools:**
+
+30. `pg_index_recommendations()` → verify happy path expected behavior
+31. 🔴 `pg_index_recommendations({})` → verify structured P154 error response or valid defaults
+32. `pg_vacuum_stats()` → verify happy path expected behavior
+33. 🔴 `pg_vacuum_stats({})` → verify structured P154 error response or valid defaults
+34. `pg_query_plan_compare()` → verify happy path expected behavior
+35. 🔴 `pg_query_plan_compare({})` → verify structured P154 error response or valid defaults
+36. `pg_performance_baseline()` → verify happy path expected behavior
+37. 🔴 `pg_performance_baseline({})` → verify structured P154 error response or valid defaults
+38. `pg_connection_pool_optimize()` → verify happy path expected behavior
+39. 🔴 `pg_connection_pool_optimize({})` → verify structured P154 error response or valid defaults
+40. `pg_partition_strategy_suggest()` → verify happy path expected behavior
+41. 🔴 `pg_partition_strategy_suggest({})` → verify structured P154 error response or valid defaults
+42. `pg_query_plan_stats()` → verify happy path expected behavior
+43. 🔴 `pg_query_plan_stats({})` → verify structured P154 error response or valid defaults

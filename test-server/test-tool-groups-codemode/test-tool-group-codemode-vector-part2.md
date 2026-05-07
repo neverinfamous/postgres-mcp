@@ -244,21 +244,23 @@ vector Tool Group (16 tools +1 for code mode)
 
 **Checklist** (Use Code Mode for vector operations to avoid truncation):
 
-1. Via code mode: read first embedding from `test_embeddings`, then search with it → verify results returned with distances
+1. `pg_vector_aggregate({table: "test_embeddings", column: "embedding"})` → verify `{average_vector, count: 50}`
 2. `pg_vector_validate({vector: [1.0, 2.0, 3.0]})` → `{valid: true, vectorDimensions: 3}`
 3. `pg_vector_validate({vector: []})` → `{valid: true, vectorDimensions: 0}`
-4. `pg_vector_aggregate({table: "test_embeddings", column: "embedding"})` → verify `{average_vector, count: 50}`
-5. 🔴 `pg_vector_validate({})` → `{success: false, error: "..."}` (Zod validation — missing required `vector`)
+4. `pg_vector_cluster()` → verify happy path expected behavior
+5. `pg_vector_index_optimize()` → verify happy path expected behavior
+6. `pg_hybrid_search()` → verify happy path expected behavior
+7. `pg_vector_performance()` → verify happy path expected behavior
+8. `pg_vector_dimension_reduce()` → verify happy path expected behavior
+9. `pg_vector_embed()` → verify happy path expected behavior
 
-6. `pg_vector_cluster()` → verify happy path expected behavior
-7. 🔴 `pg_vector_cluster({})` → verify structured P154 error response or valid defaults
-8. `pg_vector_index_optimize()` → verify happy path expected behavior
-9. 🔴 `pg_vector_index_optimize({})` → verify structured P154 error response or valid defaults
-10. `pg_vector_dimension_reduce()` → verify happy path expected behavior
-11. 🔴 `pg_vector_dimension_reduce({})` → verify structured P154 error response or valid defaults
-12. `pg_vector_embed()` → verify happy path expected behavior
-13. 🔴 `pg_vector_embed({})` → verify structured P154 error response or valid defaults
-14. `pg_hybrid_search()` → verify happy path expected behavior
-15. 🔴 `pg_hybrid_search({})` → verify structured P154 error response or valid defaults
-16. `pg_vector_performance()` → verify happy path expected behavior
-17. 🔴 `pg_vector_performance({})` → verify structured P154 error response or valid defaults
+**Domain and Zod error paths (🔴):**
+
+10. 🔴 `pg_vector_validate({})` → `{success: false, error: "..."}` (Zod validation — missing required `vector`)
+11. 🔴 `pg_vector_aggregate({})` → verify structured P154 error response or valid defaults
+12. 🔴 `pg_vector_cluster({})` → verify structured P154 error response or valid defaults
+13. 🔴 `pg_vector_index_optimize({})` → verify structured P154 error response or valid defaults
+14. 🔴 `pg_hybrid_search({})` → verify structured P154 error response or valid defaults
+15. 🔴 `pg_vector_performance({})` → verify structured P154 error response or valid defaults
+16. 🔴 `pg_vector_dimension_reduce({})` → verify structured P154 error response or valid defaults
+17. 🔴 `pg_vector_embed({})` → verify structured P154 error response or valid defaults

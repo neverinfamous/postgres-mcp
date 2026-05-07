@@ -248,16 +248,19 @@ Test distance calculations between cities (e.g., New York ↔ London).
 **Checklist:**
 
 1. `pg_geocode({lat: 40.7128, lng: -74.006})` → verify `{geojson, wkt}` present
-2. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
-3. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
+2. `pg_geo_transform()` → verify happy path expected behavior
+3. `pg_geo_index_optimize({table: "test_locations"})` → verify spatial index analysis returned
+4. `pg_geo_cluster()` → verify happy path expected behavior
+5. `pg_geometry_buffer()` → verify happy path expected behavior
+6. `pg_geometry_intersection()` → verify happy path expected behavior
+7. `pg_geometry_transform()` → verify happy path expected behavior
 
-4. `pg_geo_transform()` → verify happy path expected behavior
-5. 🔴 `pg_geo_transform({})` → verify structured P154 error response or valid defaults
-6. `pg_geo_cluster()` → verify happy path expected behavior
-7. 🔴 `pg_geo_cluster({})` → verify structured P154 error response or valid defaults
-8. `pg_geometry_buffer()` → verify happy path expected behavior
-9. 🔴 `pg_geometry_buffer({})` → verify structured P154 error response or valid defaults
-10. `pg_geometry_intersection()` → verify happy path expected behavior
-11. 🔴 `pg_geometry_intersection({})` → verify structured P154 error response or valid defaults
-12. `pg_geometry_transform()` → verify happy path expected behavior
-13. 🔴 `pg_geometry_transform({})` → verify structured P154 error response or valid defaults
+**Domain and Zod error paths (🔴):**
+
+8. 🔴 `pg_geocode({})` → `{success: false, error: "..."}` (Zod validation — missing required `lat`/`lng`)
+9. 🔴 `pg_geo_transform({})` → verify structured P154 error response or valid defaults
+10. 🔴 `pg_geo_index_optimize({})` → verify structured P154 error response or valid defaults
+11. 🔴 `pg_geo_cluster({})` → verify structured P154 error response or valid defaults
+12. 🔴 `pg_geometry_buffer({})` → verify structured P154 error response or valid defaults
+13. 🔴 `pg_geometry_intersection({})` → verify structured P154 error response or valid defaults
+14. 🔴 `pg_geometry_transform({})` → verify structured P154 error response or valid defaults

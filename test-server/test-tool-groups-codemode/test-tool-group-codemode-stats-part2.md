@@ -243,39 +243,40 @@ stats Group (19 tools +1 for code mode)
 
 **Test data:** Uses `test_measurements` (500 rows, sensor_id 1-6, columns: temperature, humidity, pressure, measured_at).
 
-**Original 8 tools — Checklist:**
+**Checklist:**
 
-**Window function tools:**
+1. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lag", limit: 5})` → verify rows with `lag_value` field; first row's `lag_value` should be null
+2. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lead", offset: 2, limit: 5})` → verify `lead_value` with offset 2
+3. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify rows with `running_total` field, monotonically increasing
+4. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `running_total` resets per sensor_id
+5. `pg_stats_moving_avg({table: "test_measurements", column: "temperature", orderBy: "measured_at", windowSize: 5, limit: 5})` → verify rows with `moving_avg` field
+6. `pg_stats_ntile({table: "test_measurements", column: "temperature", orderBy: "temperature", buckets: 4, limit: 10})` → verify rows with `ntile` field (values 1-4)
+7. `pg_stats_outliers({table: "test_measurements", column: "temperature"})` → verify `{outliers, outlierCount, method, stats}` where `method` is `"iqr"` (default)
+8. `pg_stats_outliers({table: "test_measurements", column: "temperature", method: "zscore", threshold: 2})` → verify same shape with `method: "zscore"`
+9. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3})` → verify exactly 3 rows, descending order by default
+10. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3, direction: "asc"})` → verify 3 rows in ascending order
+11. `pg_stats_distinct({table: "test_measurements", column: "sensor_id"})` → verify `{values, distinctCount}` with `distinctCount` of 6 (sensors 1-6)
+12. `pg_stats_frequency({table: "test_measurements", column: "sensor_id"})` → verify `{distribution}` array with value, count, and percentage for each sensor
+13. `pg_stats_summary({table: "test_measurements"})` → verify multi-column summary auto-detecting numeric columns (temperature, humidity, pressure)
+14. `pg_stats_summary({table: "test_measurements", columns: ["temperature", "humidity"]})` → verify summary for exactly 2 specified columns
 
-13. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lag", limit: 5})` → verify rows with `lag_value` field; first row's `lag_value` should be null
-14. `pg_stats_lag_lead({table: "test_measurements", column: "temperature", orderBy: "measured_at", direction: "lead", offset: 2, limit: 5})` → verify `lead_value` with offset 2
-15. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", limit: 5})` → verify rows with `running_total` field, monotonically increasing
-16. `pg_stats_running_total({table: "test_measurements", column: "temperature", orderBy: "measured_at", partitionBy: "sensor_id", limit: 10})` → verify `running_total` resets per sensor_id
-17. `pg_stats_moving_avg({table: "test_measurements", column: "temperature", orderBy: "measured_at", windowSize: 5, limit: 5})` → verify rows with `moving_avg` field
-18. `pg_stats_ntile({table: "test_measurements", column: "temperature", orderBy: "temperature", buckets: 4, limit: 10})` → verify rows with `ntile` field (values 1-4)
+**Domain and Zod error paths (🔴):**
 
-**Outlier detection and analysis tools:**
-
-19. `pg_stats_outliers({table: "test_measurements", column: "temperature"})` → verify `{outliers, outlierCount, method, stats}` where `method` is `"iqr"` (default)
-20. `pg_stats_outliers({table: "test_measurements", column: "temperature", method: "zscore", threshold: 2})` → verify same shape with `method: "zscore"`
-21. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3})` → verify exactly 3 rows, descending order by default
-22. `pg_stats_top_n({table: "test_measurements", column: "temperature", n: 3, direction: "asc"})` → verify 3 rows in ascending order
-23. `pg_stats_distinct({table: "test_measurements", column: "sensor_id"})` → verify `{values, distinctCount}` with `distinctCount` of 6 (sensors 1-6)
-24. `pg_stats_frequency({table: "test_measurements", column: "sensor_id"})` → verify `{distribution}` array with value, count, and percentage for each sensor
-25. `pg_stats_summary({table: "test_measurements"})` → verify multi-column summary auto-detecting numeric columns (temperature, humidity, pressure)
-26. `pg_stats_summary({table: "test_measurements", columns: ["temperature", "humidity"]})` → verify summary for exactly 2 specified columns
-
-**Domain error paths (🔴):**
-
-30. 🔴 `pg_stats_outliers({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
-31. 🔴 `pg_stats_frequency({table: "test_measurements", column: "nonexistent_col_xyz"})` → `{success: false, error: "..."}` handler error mentioning column
-
-**Wrong-type numeric param coercion (🔴):**
-
-34. 🔴 `pg_stats_top_n({table: "test_measurements", column: "temperature", n: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `n` (wrong-type numeric param)
+15. 🔴 `pg_stats_outliers({table: "nonexistent_xyz", column: "x"})` → `{success: false, error: "..."}` handler error
+16. 🔴 `pg_stats_frequency({table: "test_measurements", column: "nonexistent_col_xyz"})` → `{success: false, error: "..."}` handler error mentioning column
+17. 🔴 `pg_stats_top_n({table: "test_measurements", column: "temperature", n: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `n` (wrong-type numeric param)
+18. 🔴 `pg_stats_lag_lead({})` → `{success: false, error: "..."}` (Zod validation)
+19. 🔴 `pg_stats_running_total({})` → `{success: false, error: "..."}` (Zod validation)
+20. 🔴 `pg_stats_moving_avg({})` → `{success: false, error: "..."}` (Zod validation)
+21. 🔴 `pg_stats_ntile({})` → `{success: false, error: "..."}` (Zod validation)
+22. 🔴 `pg_stats_outliers({})` → `{success: false, error: "..."}` (Zod validation)
+23. 🔴 `pg_stats_top_n({})` → `{success: false, error: "..."}` (Zod validation)
+24. 🔴 `pg_stats_distinct({})` → `{success: false, error: "..."}` (Zod validation)
+25. 🔴 `pg_stats_frequency({})` → `{success: false, error: "..."}` (Zod validation)
+26. 🔴 `pg_stats_summary({})` → `{success: false, error: "..."}` (Zod validation)
 
 **Code mode parity:**
 
-35. `pg_execute_code({code: "return await pg.stats.help()"})` → verify lists all 19 stats methods including `rowNumber`, `rank`, `lagLead`, `runningTotal`, `movingAvg`, `ntile`, `outliers`, `topN`, `distinct`, `frequency`, `summary`
-36. `pg_execute_code({code: "return await pg.stats.outliers({table: 'test_measurements', column: 'temperature'})"})` → verify returns same structure as item 19
-37. `pg_execute_code({code: "return await pg.stats.distinct({table: 'test_measurements', column: 'sensor_id'})"})` → verify returns same structure as item 23
+27. `pg_execute_code({code: "return await pg.stats.help()"})` → verify lists all 19 stats methods including `rowNumber`, `rank`, `lagLead`, `runningTotal`, `movingAvg`, `ntile`, `outliers`, `topN`, `distinct`, `frequency`, `summary`
+28. `pg_execute_code({code: "return await pg.stats.outliers({table: 'test_measurements', column: 'temperature'})"})` → verify returns same structure as item 7
+29. `pg_execute_code({code: "return await pg.stats.distinct({table: 'test_measurements', column: 'sensor_id'})"})` → verify returns same structure as item 11

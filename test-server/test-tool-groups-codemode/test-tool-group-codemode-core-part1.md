@@ -242,53 +242,53 @@ All tools implement P154 structured error handling for nonexistent tables/schema
 
 > **Instructions**: Construct a single `pg_execute_code` script to execute the numbered checklist items below. Use the `pg.*` namespace to call the corresponding methods with the exact inputs shown. Compare responses against the expected results within your script, and push any deviations or errors to a `failures` array. Return the `failures` array at the end of the script. Report any issues logged.
 
-**Convenience tools (P154 canonical targets):**
+**Read/Write/Schema tools (Happy Paths):**
 
-**Read/Write/Schema tools:**
-
-12. `pg_read_query({sql: "SELECT COUNT(*) AS n FROM test_orders"})` → `{rows: [{n: 20}], rowCount: 1}`
-13. `pg_list_tables({schema: "public", limit: 5})` → `{tables: [...], count: 5, truncated: true}`
-14. `pg_describe_table({table: "test_products"})` → verify `columns` includes `id`, `name`, `price`; `primaryKey` present
-15. `pg_list_objects({type: "view"})` → verify `test_order_summary` appears in results
-16. `pg_get_indexes({table: "test_orders"})` → verify `idx_orders_status` and `idx_orders_date` in results
+1. `pg_read_query({sql: "SELECT COUNT(*) AS n FROM test_orders"})` → `{rows: [{n: 20}], rowCount: 1}`
+2. `pg_write_query({sql: "INSERT INTO temp_lifecycle (name) VALUES ('Alice') RETURNING id"})` → `{rowCount: 1, rows: [...]}` (run this after creating temp table below)
+3. `pg_list_tables({schema: "public", limit: 5})` → `{tables: [...], count: 5, truncated: true}`
+4. `pg_describe_table({table: "test_products"})` → verify `columns` includes `id`, `name`, `price`; `primaryKey` present
+5. `pg_list_objects({type: "view"})` → verify `test_order_summary` appears in results
+6. `pg_get_indexes({table: "test_orders"})` → verify `idx_orders_status` and `idx_orders_date` in results
 
 **Domain error paths (🔴):**
 
-22. 🔴 `pg_read_query({sql: "SELECT * FROM nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error, NOT MCP error
-23. 🔴 `pg_write_query({sql: "INSERT INTO nonexistent_xyz VALUES (1)"})` → `{success: false, error: "..."}` handler error
-24. 🔴 `pg_read_query({sql: "SELECT nonexistent_column FROM test_products"})` → `{success: false, error: "..."}` mentioning column name
-25. 🔴 `pg_list_tables({schema: "nonexistent_schema_xyz"})` → either empty results or `{success: false}` — not raw MCP error
-26. 🔴 `pg_describe_table({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` mentioning table name
-27. 🔴 `pg_describe_table({table: "test_schema.order_seq"})` → `{success: false, error: "..."}` mentioning "sequence" (not a table)
-28. 🔴 `pg_list_objects({type: "invalid_type"})` → `{success: false, error: "Validation error: ..."}` — NOT raw MCP `-32602` output validation error
-29. 🔴 `pg_drop_index({name: "nonexistent_index_xyz"})` → `{success: false, error: "..."}` handler error with hint
+7. 🔴 `pg_read_query({sql: "SELECT * FROM nonexistent_table_xyz"})` → `{success: false, error: "..."}` handler error, NOT MCP error
+8. 🔴 `pg_write_query({sql: "INSERT INTO nonexistent_xyz VALUES (1)"})` → `{success: false, error: "..."}` handler error
+9. 🔴 `pg_read_query({sql: "SELECT nonexistent_column FROM test_products"})` → `{success: false, error: "..."}` mentioning column name
+10. 🔴 `pg_list_tables({schema: "nonexistent_schema_xyz"})` → either empty results or `{success: false}` — not raw MCP error
+11. 🔴 `pg_describe_table({table: "nonexistent_table_xyz"})` → `{success: false, error: "..."}` mentioning table name
+12. 🔴 `pg_describe_table({table: "test_schema.order_seq"})` → `{success: false, error: "..."}` mentioning "sequence" (not a table)
+13. 🔴 `pg_list_objects({type: "invalid_type"})` → `{success: false, error: "Validation error: ..."}` — NOT raw MCP `-32602` output validation error
+14. 🔴 `pg_drop_index({name: "nonexistent_index_xyz"})` → `{success: false, error: "..."}` handler error with hint
 
 **Zod validation error paths (🔴 — verify `"Validation error: ..."` format, NOT raw JSON array):**
 
-30. 🔴 `pg_create_table({})` → `{success: false, error: "Validation error: name (or table alias) is required; Validation error: columns must not be empty"}` — NOT raw JSON array, NOT raw MCP error
-31. 🔴 `pg_describe_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table` param)
-32. 🔴 `pg_read_query({})` → `{success: false, error: "Validation error: ..."}` (missing required `sql`)
-33. 🔴 `pg_write_query({})` → `{success: false, error: "Validation error: ..."}` (missing required `sql`)
-34. 🔴 `pg_create_index({})` → `{success: false, error: "Validation error: ..."}` (missing required params)
-35. 🔴 `pg_drop_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table`)
+15. 🔴 `pg_create_table({})` → `{success: false, error: "Validation error: name (or table alias) is required; Validation error: columns must not be empty"}` — NOT raw JSON array, NOT raw MCP error
+16. 🔴 `pg_describe_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table` param)
+17. 🔴 `pg_read_query({})` → `{success: false, error: "Validation error: ..."}` (missing required `sql`)
+18. 🔴 `pg_write_query({})` → `{success: false, error: "Validation error: ..."}` (missing required `sql`)
+19. 🔴 `pg_create_index({})` → `{success: false, error: "Validation error: ..."}` (missing required params)
+20. 🔴 `pg_drop_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table`)
+21. 🔴 `pg_drop_index({})` → `{success: false, error: "Validation error: ..."}` (missing required `name`)
+22. 🔴 `pg_list_objects({})` → `{success: false, error: "Validation error: ..."}` (missing required `type`)
 
 **Alias acceptance (verify aliases produce identical results to primary parameter name):**
 
-39. `pg_read_query({query: "SELECT 1 AS test"})` → works via `query` alias for `sql`
-40. `pg_describe_table({name: "test_products"})` → works via `name` alias for `table`
+23. `pg_read_query({query: "SELECT 1 AS test"})` → works via `query` alias for `sql`
+24. `pg_describe_table({name: "test_products"})` → works via `name` alias for `table`
 
 **Create → Use → Drop lifecycle (temp tables):**
 
-43. `pg_create_table({name: "temp_lifecycle", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "name", type: "TEXT", notNull: true}]})` → `{success: true}`
-44. `pg_create_index({table: "temp_lifecycle", columns: ["name"], ifNotExists: true})` → `{success: true}`
-45. `pg_get_indexes({table: "temp_lifecycle"})` → verify the new index appears
-46. `pg_drop_table({table: "temp_lifecycle", ifExists: true})` → `{success: true, existed: true}`
-47. `pg_drop_table({table: "temp_lifecycle", ifExists: true})` → `{success: true, existed: false}` (already dropped)
+25. `pg_create_table({name: "temp_lifecycle", columns: [{name: "id", type: "SERIAL", primaryKey: true}, {name: "name", type: "TEXT", notNull: true}]})` → `{success: true}`
+26. `pg_create_index({table: "temp_lifecycle", columns: ["name"], ifNotExists: true})` → `{success: true}`
+27. `pg_get_indexes({table: "temp_lifecycle"})` → verify the new index appears
+28. `pg_drop_table({table: "temp_lifecycle", ifExists: true})` → `{success: true, existed: true}`
+29. `pg_drop_table({table: "temp_lifecycle", ifExists: true})` → `{success: true, existed: false}` (already dropped)
 
 **Code mode (`pg_execute_code`) deterministic items:**
 
-53. `pg_execute_code({code: "return await pg.core.help()"})` → verify lists ~20 core methods
-54. `pg_execute_code({code: "return await pg.count('test_products')"})` → verify works via top-level alias
-55. `pg_execute_code({code: "return await pg.exists('test_products', 'id = 1')"})` → verify positional args work
-56. `pg_execute_code({code: "return await pg.core.readQuery({sql: 'SELECT 1 AS n'})"})` → verify `{rows: [{n: 1}]}`
-57. `pg_execute_code({code: "return await pg.readQuery({sql: 'SELECT * FROM nonexistent_xyz'})"})` → verify error is returned (not thrown), contains `{success: false}` or error object
+30. `pg_execute_code({code: "return await pg.core.help()"})` → verify lists ~20 core methods
+31. `pg_execute_code({code: "return await pg.core.readQuery({sql: 'SELECT 1 AS n'})"})` → verify `{rows: [{n: 1}]}`
+32. `pg_execute_code({code: "return await pg.readQuery({sql: 'SELECT * FROM nonexistent_xyz'})"})` → verify error is returned (not thrown), contains `{success: false}` or error object
+

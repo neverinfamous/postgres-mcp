@@ -20,7 +20,7 @@
 
 ## Test Database Schema
 
-The test database (`postgres`) contains these tables:
+The test database (`postgres`) contains these tables:Please examine
 
 | Table               | Rows | Key Columns                                                                        | JSONB Columns            | Tool Groups           |
 | ------------------- | ---- | ---------------------------------------------------------------------------------- | ------------------------ | --------------------- |
@@ -247,36 +247,24 @@ performance Tool Group (24 tools +1 code mode)
 3. `pg_table_stats({limit: 3})` → verify `{tables: [...], count: 3, truncated: true, totalCount: N}`
 4. `pg_index_stats({limit: 3})` → verify `{indexes: [...], count: 3, truncated: true, totalCount: N}`
 
-**Diagnostics tool:**
-
-**Anomaly detection tools — pg_detect_query_anomalies:**
-
-**Anomaly detection tools — pg_detect_bloat_risk:**
-
-**Anomaly detection tools — pg_detect_connection_spike:**
-
 **Domain error paths (🔴):**
 
-21. 🔴 `pg_table_stats({})` → verify returns handler error (not MCP error) for empty params or returns valid results
-22. 🔴 `pg_explain({})` → `{success: false, error: "..."}` (Zod validation — missing required `sql`)
+5. 🔴 `pg_table_stats({})` → verify returns handler error (not MCP error) for empty params or returns valid results
+6. 🔴 `pg_explain({})` → `{success: false, error: "..."}` (Zod validation — missing required `sql`)
 
 **Wrong-type numeric param coercion (🔴):**
 
-23. 🔴 `pg_table_stats({limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
+7. 🔴 `pg_table_stats({limit: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `limit` (wrong-type numeric param)
 
-**Code mode parity (anomaly detection):**
+**Remaining tools:**
 
-28. `pg_execute_code({code: "return await pg.performance.detectQueryAnomalies()"})` → verify returns same structure as item 11
-29. `pg_execute_code({code: "return await pg.performance.detectBloatRisk({schema: 'public'})"})` → verify returns same structure as item 15
-30. `pg_execute_code({code: "return await pg.performance.detectConnectionSpike()"})` → verify returns same structure as item 18
-
-31. `pg_explain_analyze()` → verify happy path expected behavior
-32. 🔴 `pg_explain_analyze({})` → verify structured P154 error response or valid defaults
-33. `pg_explain_buffers()` → verify happy path expected behavior
-34. 🔴 `pg_explain_buffers({})` → verify structured P154 error response or valid defaults
-35. `pg_locks()` → verify happy path expected behavior
-36. 🔴 `pg_locks({})` → verify structured P154 error response or valid defaults
-37. `pg_stat_statements()` → verify happy path expected behavior
-38. 🔴 `pg_stat_statements({})` → verify structured P154 error response or valid defaults
-39. `pg_stat_activity()` → verify happy path expected behavior
-40. 🔴 `pg_stat_activity({})` → verify structured P154 error response or valid defaults
+8. `pg_explain_analyze()` → verify happy path expected behavior
+9. 🔴 `pg_explain_analyze({})` → verify structured P154 error response or valid defaults
+10. `pg_explain_buffers()` → verify happy path expected behavior
+11. 🔴 `pg_explain_buffers({})` → verify structured P154 error response or valid defaults
+12. `pg_locks()` → verify happy path expected behavior
+13. 🔴 `pg_locks({})` → verify structured P154 error response or valid defaults
+14. `pg_stat_statements()` → verify happy path expected behavior
+15. 🔴 `pg_stat_statements({})` → verify structured P154 error response or valid defaults
+16. `pg_stat_activity()` → verify happy path expected behavior
+17. 🔴 `pg_stat_activity({})` → verify structured P154 error response or valid defaults
