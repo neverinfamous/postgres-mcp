@@ -495,7 +495,7 @@ describe("JSONB Validation and Error Paths", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/value parameter/);
+      expect(result.error).toMatch(/undefined \(value\)/i);
     });
 
     it("should handle empty path - replace entire column", async () => {
