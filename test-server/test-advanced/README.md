@@ -11,7 +11,7 @@ This directory contains the "Second-Pass" advanced tests for the `postgres-mcp` 
 
 ## Execution Parts
 
-The original monolithic advanced stress testing suite was split into 30 granular parts to preserve agent attention spans and prevent LLM context window exhaustion. Each file strictly tests one major domain or cross-domain group.
+The original monolithic advanced stress testing suite was split into 31 granular parts to preserve agent attention spans and prevent LLM context window exhaustion. Each file strictly tests one major domain or cross-domain group.
 
 | File                                       | Primary Focus | Key Validations                                                                               |
 | ------------------------------------------ | ------------- | --------------------------------------------------------------------------------------------- |
@@ -45,6 +45,7 @@ The original monolithic advanced stress testing suite was split into 30 granular
 | `test-tools-advanced-partitioning.md`      | Partitioning  | Deep partition structures, edge limits for range/list boundaries, massive attach routines.    |
 | `test-tools-advanced-security.md`          | Security      | Boundary audit limits, idempotency, data masking matrices, SQL injection resilience, payload bounds. |
 | `test-tools-advanced-roles.md`             | Roles         | Duplicate role idempotency, full RBAC pipeline, RLS toggle, SQL injection resilience, payload bounds. |
+| `test-tools-advanced-docstore.md`          | Docstore      | JSONB collection boundaries, lifecycle pipelines, filter operator matrices, payload bounds.            |
 
 ### Test Results
 

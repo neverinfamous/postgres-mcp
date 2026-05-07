@@ -33,6 +33,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-vector-part2.md`      | ~6,931                  |       |
 | `test-tool-group-codemode-security.md`           | ~TBD                    |       |
 | `test-tool-group-codemode-roles.md`              | ~TBD                    |       |
+| `test-tool-group-codemode-docstore.md`           | ~TBD                    |       |
 | **Total Estimated Tokens**                      | **~233,587**            |       |
 
 **Safe to test in pairs**
@@ -42,6 +43,6 @@ pgcrypto + citext
 text + cron
 partman + partitioning
 stats + backup
-security + roles + monitoring
+security + roles + docstore
 
 **Token counts don't include tokens used by the testing prompts themselves.**

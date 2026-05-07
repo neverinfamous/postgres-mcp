@@ -272,3 +272,16 @@ INSERT INTO test_assignments (employee_id, project_id, role) VALUES
 
 INSERT INTO test_audit_log (entry_id, employee_id, action) VALUES
   (1, 1, 'login'), (2, 2, 'update_profile'), (3, 1, 'logout');
+
+-- Docstore test collection (JSONB document store)
+CREATE TABLE test_documents (
+  _id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  doc JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
+INSERT INTO test_documents (_id, doc) VALUES
+  ('doc-001', '{"name": "Alice", "age": 30, "tags": ["admin", "user"], "address": {"city": "NYC"}}'),
+  ('doc-002', '{"name": "Bob", "age": 25, "tags": ["user"], "address": {"city": "LA"}}'),
+  ('doc-003', '{"name": "Charlie", "age": 35, "tags": ["admin"], "address": {"city": "Chicago"}}'),
+  ('doc-004', '{"name": "Diana", "age": 28, "tags": ["user", "moderator"], "address": {"city": "London"}}'),
+  ('doc-005', '{"name": "Eve", "age": 32, "tags": ["admin", "user"], "address": {"city": "Tokyo"}}');

@@ -394,6 +394,7 @@ if (-not $SkipVerify) {
         "test_assignments" = 3
         "test_audit_log" = 3
         "test_lock_target" = 1
+        "test_documents" = 5
     }
 
     Write-Host "`n  Table verification:" -ForegroundColor Yellow
