@@ -115,7 +115,7 @@ export function createRoleGrantsTool(
         const exists = await roleExists(adapter, parsed.role);
         if (!exists) {
           return {
-            success: true,
+            success: false,
             exists: false,
             role: parsed.role,
             error: `Role '${parsed.role}' does not exist`,
@@ -286,6 +286,19 @@ export function createRoleGrantTool(
               { tool: "pg_role_grant" },
             );
           }
+
+          // P154: Check table exists
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+            [schema, parsed.table]
+          );
+          if ((tableCheck.rows?.length ?? 0) === 0) {
+            return formatHandlerErrorResponse(
+              new Error(`Table '${schema}.${parsed.table}' does not exist`),
+              { tool: "pg_role_grant" }
+            );
+          }
+
           target = `TABLE "${schema}"."${parsed.table}"`;
         } else {
           return formatHandlerErrorResponse(
@@ -512,6 +525,19 @@ export function createRoleRevokeTool(
                 { tool: "pg_role_revoke" },
               );
             }
+
+            // P154: Check table exists
+            const tableCheck = await adapter.executeQuery(
+              `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+              [schema, parsed.table]
+            );
+            if ((tableCheck.rows?.length ?? 0) === 0) {
+              return formatHandlerErrorResponse(
+                new Error(`Table '${schema}.${parsed.table}' does not exist`),
+                { tool: "pg_role_revoke" }
+              );
+            }
+
             target = `TABLE "${schema}"."${parsed.table}"`;
           } else {
             return formatHandlerErrorResponse(

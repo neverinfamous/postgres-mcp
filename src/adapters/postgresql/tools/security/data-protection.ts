@@ -59,14 +59,13 @@ export function createSecurityMaskDataTool(
           "partial",
         ] as const;
         if (!validTypes.includes(type as (typeof validTypes)[number])) {
-          return Promise.resolve(
-            formatHandlerErrorResponse(
-              new Error(
-                `Invalid type: '${type}' — expected one of: ${validTypes.join(", ")}`,
-              ),
-              { tool: "pg_security_mask_data" },
-            ),
-          );
+          return Promise.resolve({
+            success: false,
+            error: `Invalid type: '${type}' — expected one of: ${validTypes.join(", ")}`,
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false
+          });
         }
 
         let maskedValue: string;
@@ -202,10 +201,13 @@ export function createSecurityUserPrivilegesTool(
             [user],
           );
           if (!roleCheck.rows || roleCheck.rows.length === 0) {
-            return formatHandlerErrorResponse(
-              new Error(`Role '${user}' does not exist.`),
-              { tool: "pg_security_user_privileges" },
-            );
+            return {
+              success: false,
+              error: `Role '${user}' does not exist.`,
+              code: "OBJECT_NOT_FOUND",
+              category: "resource",
+              recoverable: false
+            };
           }
         }
 
@@ -388,12 +390,13 @@ export function createSecuritySensitiveTablesTool(
             [schema],
           );
           if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
-            return formatHandlerErrorResponse(
-              new Error(
-                `Schema '${schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-              ),
-              { tool: "pg_security_sensitive_tables" },
-            );
+            return {
+              success: false,
+              error: `Schema '${schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+              code: "OBJECT_NOT_FOUND",
+              category: "resource",
+              recoverable: false
+            };
           }
         }
 

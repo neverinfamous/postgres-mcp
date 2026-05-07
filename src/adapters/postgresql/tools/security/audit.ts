@@ -356,16 +356,10 @@ export function createSecurityFirewallStatusTool(
             hostsslEnforced,
           };
         } catch {
-          return {
-            success: true,
-            available: false,
-            totalRules: 0,
-            rulesByType: {},
-            authMethods: {},
-            hostsslEnforced: false,
-            message:
-              "pg_hba_file_rules not accessible. Requires superuser or pg_read_all_settings role.",
-          };
+          return formatHandlerErrorResponse(
+            new Error("pg_hba_file_rules not accessible. Requires superuser or pg_read_all_settings role."),
+            { tool: "pg_security_firewall_status" }
+          );
         }
       } catch (err) {
         if (err instanceof ZodError) {
@@ -472,13 +466,10 @@ export function createSecurityFirewallRulesTool(
             count: result.rows?.length ?? 0,
           };
         } catch {
-          return {
-            success: true,
-            rules: [],
-            count: 0,
-            error:
-              "pg_hba_file_rules not accessible. Requires superuser or pg_read_all_settings role.",
-          };
+          return formatHandlerErrorResponse(
+            new Error("pg_hba_file_rules not accessible. Requires superuser or pg_read_all_settings role."),
+            { tool: "pg_security_firewall_rules" }
+          );
         }
       } catch (err) {
         if (err instanceof ZodError) {

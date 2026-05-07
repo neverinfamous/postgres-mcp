@@ -382,7 +382,7 @@ export function createRoleAttributesTool(
 
         if ((result.rows?.length ?? 0) === 0) {
           return {
-            success: true,
+            success: false,
             exists: false,
             error: `Role '${parsed.role}' does not exist`,
           };
@@ -392,7 +392,7 @@ export function createRoleAttributesTool(
 
         if (!row) {
           return {
-            success: true,
+            success: false,
             exists: false,
             error: `Role '${parsed.role}' does not exist`,
           };

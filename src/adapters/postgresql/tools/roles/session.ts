@@ -79,7 +79,7 @@ export function createUserRolesTool(
         const exists = await roleExists(adapter, parsed.user);
         if (!exists) {
           return {
-            success: true,
+            success: false,
             exists: false,
             user: parsed.user,
             error: `User/role '${parsed.user}' does not exist`,
@@ -385,6 +385,23 @@ export function createRoleRlsPoliciesTool(
         };
 
         const schema = parsed.schema ?? "public";
+
+        if (parsed.table) {
+          // P154: Check table exists
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables
+            WHERE table_schema = $1 AND table_name = $2`,
+            [schema, parsed.table],
+          );
+          if ((tableCheck.rows?.length ?? 0) === 0) {
+            return formatHandlerErrorResponse(
+              new Error(
+                `Table '${schema}.${parsed.table}' does not exist`,
+              ),
+              { tool: "pg_role_rls_policies" },
+            );
+          }
+        }
 
         let query = `
           SELECT
