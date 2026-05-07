@@ -289,20 +289,20 @@ migration Tool Group (6 tools +1 for code mode)
 
 **Checklist:**
 
-1. `pg_migration_init()` → `{success: true, tableCreated: true}` on first call
-2. `pg_migration_init()` → `{success: true, tableCreated: false}` on second call (idempotent)
-3. `pg_migration_status()` → verify `{initialized: true, counts}` structure
-4. `pg_migration_apply({version: "test-apply-1.0", migrationSql: "CREATE TABLE temp_migration_test (id SERIAL PRIMARY KEY);", rollbackSql: "DROP TABLE IF EXISTS temp_migration_test;"})` → `{success: true, record: {status: "applied"}}`
-5. `pg_migration_history()` → verify entry from step 4 appears
-6. `pg_migration_rollback({version: "test-apply-1.0", dryRun: true})` → verify rollback SQL returned without execution
-7. 🔴 `pg_migration_apply({})` → `{success: false, error: "Validation error: ..."}` (Zod validation — missing required fields)
-8. 🔴 `pg_migration_apply({version: "v1"})` → `{success: false, error: "Validation error: ..."}` (missing `migrationSql`)
-9. 🔴 `pg_migration_history({offset: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `offset` (wrong-type numeric param)
+1. ✅ `pg_migration_init()` → `{success: true, tableCreated: true}` on first call
+2. ✅ `pg_migration_init()` → `{success: true, tableCreated: false}` on second call (idempotent)
+3. ✅ `pg_migration_status()` → verify `{initialized: true, counts}` structure
+4. ✅ `pg_migration_apply({version: "test-apply-1.0", migrationSql: "CREATE TABLE temp_migration_test (id SERIAL PRIMARY KEY);", rollbackSql: "DROP TABLE IF EXISTS temp_migration_test;"})` → `{success: true, record: {status: "applied"}}`
+5. ✅ `pg_migration_history()` → verify entry from step 4 appears
+6. ✅ `pg_migration_rollback({version: "test-apply-1.0", dryRun: true})` → verify rollback SQL returned without execution
+7. ✅ 🔴 `pg_migration_apply({})` → `{success: false, error: "Validation error: ..."}` (Zod validation — missing required fields)
+8. ✅ 🔴 `pg_migration_apply({version: "v1"})` → `{success: false, error: "Validation error: ..."}` (missing `migrationSql`)
+9. ✅ 🔴 `pg_migration_history({offset: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `offset` (wrong-type numeric param)
 
 **Code mode parity:**
 
-10. `pg_execute_code({code: "return await pg.migration.help()"})` → verify lists 6 migration methods
-11. `pg_execute_code({code: "return await pg.migration.status()"})` → verify same structure as item 3
+10. ✅ `pg_execute_code({code: "return await pg.migration.help()"})` → verify lists 6 migration methods
+11. ✅ `pg_execute_code({code: "return await pg.migration.status()"})` → verify same structure as item 3
 
-12. `pg_migration_record()` → verify happy path expected behavior
-13. 🔴 `pg_migration_record({})` → verify structured P154 error response or valid defaults
+12. ✅ `pg_migration_record()` → verify happy path expected behavior
+13. ✅ 🔴 `pg_migration_record({})` → verify structured P154 error response or valid defaults
