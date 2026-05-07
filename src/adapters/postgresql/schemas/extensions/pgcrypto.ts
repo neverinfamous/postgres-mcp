@@ -149,7 +149,7 @@ export const PgcryptoDecryptSchema = PgcryptoDecryptSchemaBase.transform(
  */
 export const PgcryptoGenRandomUuidSchemaBase = z.object({
   count: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
     .optional()
     .describe("Number of UUIDs to generate (default: 1, max: 100)"),
 });
@@ -178,7 +178,7 @@ export const PgcryptoGenRandomUuidSchema = z
  */
 export const PgcryptoRandomBytesSchemaBase = z.object({
   length: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
     .optional()
     .describe("Number of random bytes to generate (1-1024)"),
   encoding: z.string().optional().describe("Output encoding (default: hex)"),
@@ -219,7 +219,7 @@ export const PgcryptoGenSaltSchemaBase = z.object({
     .optional()
     .describe("Salt type: bf (bcrypt, recommended), md5, xdes, or des"),
   iterations: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
     .optional()
     .describe("Iteration count (for bf: 4-31, for xdes: odd 1-16777215)"),
 });
