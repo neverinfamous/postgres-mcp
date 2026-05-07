@@ -35,7 +35,8 @@ export const ListCollectionsSchema = z.preprocess(
  * pg_doc_create_collection — create a new JSONB document collection
  */
 export const CreateCollectionSchemaBase = z.object({
-  name: z.string().describe("Collection name"),
+  name: z.string().optional().describe("Collection name"),
+  collection: z.string().optional().describe("Alias for name"),
   schema: z
     .string()
     .optional()
@@ -46,17 +47,30 @@ export const CreateCollectionSchemaBase = z.object({
     .describe("Skip without error if collection already exists (default: false)"),
 });
 
-export const CreateCollectionSchema = z.object({
-  name: z.string().describe("Collection name"),
-  schema: z.string().optional(),
-  ifNotExists: z.boolean().default(false),
-});
+export const CreateCollectionSchema = z.preprocess(
+  (val: unknown) => {
+    if (typeof val === "object" && val !== null) {
+      const obj = val as Record<string, unknown>;
+      return {
+        ...obj,
+        name: obj["name"] ?? obj["collection"],
+      };
+    }
+    return val;
+  },
+  z.object({
+    name: z.string().describe("Collection name"),
+    schema: z.string().optional(),
+    ifNotExists: z.boolean().default(false),
+  })
+);
 
 /**
  * pg_doc_drop_collection — drop a document collection
  */
 export const DropCollectionSchemaBase = z.object({
-  name: z.string().describe("Collection name to drop"),
+  name: z.string().optional().describe("Collection name to drop"),
+  collection: z.string().optional().describe("Alias for name"),
   schema: z.string().optional(),
   ifExists: z
     .boolean()
@@ -64,11 +78,23 @@ export const DropCollectionSchemaBase = z.object({
     .describe("Skip without error if collection does not exist (default: false)"),
 });
 
-export const DropCollectionSchema = z.object({
-  name: z.string(),
-  schema: z.string().optional(),
-  ifExists: z.boolean().default(false),
-});
+export const DropCollectionSchema = z.preprocess(
+  (val: unknown) => {
+    if (typeof val === "object" && val !== null) {
+      const obj = val as Record<string, unknown>;
+      return {
+        ...obj,
+        name: obj["name"] ?? obj["collection"],
+      };
+    }
+    return val;
+  },
+  z.object({
+    name: z.string(),
+    schema: z.string().optional(),
+    ifExists: z.boolean().default(false),
+  })
+);
 
 /**
  * pg_doc_collection_info — get collection statistics
@@ -176,7 +202,7 @@ export const RemoveDocSchema = RemoveDocSchemaBase.extend({
 export const CreateDocIndexSchemaBase = z.object({
   collection: z.string().describe("Collection name"),
   schema: z.string().optional(),
-  name: z.string().describe("Index name"),
+  name: z.string().optional().describe("Index name (generated if omitted)"),
   fields: z
     .array(
       z.object({
@@ -187,27 +213,54 @@ export const CreateDocIndexSchemaBase = z.object({
           .describe("Cast type for expression index (default: TEXT)"),
       }),
     )
+    .optional()
     .describe("Fields to index"),
+  field: z.string().optional().describe("Alias for fields (single path string)"),
   unique: z
     .boolean()
     .optional()
     .describe("Create a UNIQUE index (default: false)"),
 });
 
-export const CreateDocIndexSchema = z.object({
-  collection: z.string(),
-  schema: z.string().optional(),
-  name: z.string(),
-  fields: z.array(
-    z.object({
-      path: z.string(),
-      type: z
-        .enum(["TEXT", "INT", "DOUBLE", "DATE", "TIMESTAMP", "BOOLEAN"])
-        .default("TEXT"),
-    }),
-  ),
-  unique: z.boolean().default(false),
-});
+export const CreateDocIndexSchema = z.preprocess(
+  (val: unknown) => {
+    if (typeof val === "object" && val !== null) {
+      const obj = val as Record<string, unknown>;
+      const processed: Record<string, unknown> = { ...obj };
+      // Map 'field' to 'fields' array if 'fields' is missing
+      if (processed["fields"] === undefined && typeof processed["field"] === "string") {
+        processed["fields"] = [{ path: processed["field"], type: "TEXT" }];
+      }
+      // Auto-generate name if missing, using collection and the first field
+      if (
+        processed["name"] === undefined &&
+        typeof processed["collection"] === "string" &&
+        Array.isArray(processed["fields"]) &&
+        processed["fields"].length > 0
+      ) {
+        const firstField = processed["fields"][0] as Record<string, unknown>;
+        const pathStr = typeof firstField["path"] === "string" ? firstField["path"] : "unknown";
+        processed["name"] = `idx_${processed["collection"]}_${pathStr.replace(/[^a-zA-Z0-9]/g, "_")}`;
+      }
+      return processed;
+    }
+    return val;
+  },
+  z.object({
+    collection: z.string(),
+    schema: z.string().optional(),
+    name: z.string(),
+    fields: z.array(
+      z.object({
+        path: z.string(),
+        type: z
+          .enum(["TEXT", "INT", "DOUBLE", "DATE", "TIMESTAMP", "BOOLEAN"])
+          .default("TEXT"),
+      }),
+    ).min(1, "fields array must not be empty"),
+    unique: z.boolean().default(false),
+  })
+);
 
 // =============================================================================
 // Output Schemas

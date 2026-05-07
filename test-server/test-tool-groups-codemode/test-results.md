@@ -12,7 +12,7 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-cron.md`              | ~4,930                  |       |
 | `test-tool-group-codemode-introspection.md`     | ~37,783                 |       |
 | `test-tool-group-codemode-jsonb-part1.md`       | ~31,891                 |       |
-| `test-tool-group-codemode-jsonb-part2.md`       | ~3,309                  |       |
+| `test-tool-group-codemode-jsonb-part2.md`       | ~3,683                  |       |
 | `test-tool-group-codemode-kcache.md`            | ~6,341                  |       |
 | `test-tool-group-codemode-ltree.md`             | ~7,569                  |       |
 | `test-tool-group-codemode-migration.md`         | ~3,930                  |       |
@@ -31,10 +31,10 @@ Last tested: April 4th, 2026
 | `test-tool-group-codemode-transactions.md`      | ~2,893                  |       |
 | `test-tool-group-codemode-vector-part1.md`      | ~3,630                  |       |
 | `test-tool-group-codemode-vector-part2.md`      | ~6,931                  |       |
-| `test-tool-group-codemode-security.md`           | ~TBD                    |       |
-| `test-tool-group-codemode-roles.md`              | ~TBD                    |       |
-| `test-tool-group-codemode-docstore.md`           | ~TBD                    |       |
-| **Total Estimated Tokens**                      | **~233,587**            |       |
+| `test-tool-group-codemode-security.md`          | ~TBD                    |       |
+| `test-tool-group-codemode-roles.md`             | ~TBD                    |       |
+| `test-tool-group-codemode-docstore.md`          | ~2,710                  |       |
+| **Total Estimated Tokens**                      | **TBD**                 |       |
 
 **Safe to test in pairs**
 jsonb + vector
