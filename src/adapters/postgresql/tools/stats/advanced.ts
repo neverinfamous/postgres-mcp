@@ -301,7 +301,7 @@ export function createStatsFrequencyTool(
         const sql = `
           SELECT
             "${column}" AS value,
-            COUNT(*) AS frequency,
+            COUNT(*) AS count,
             ROUND(COUNT(*)::numeric * 100.0 / SUM(COUNT(*)) OVER(), 2) AS percentage
           FROM ${schemaPrefix}"${table}"
           ${whereClause}
@@ -313,7 +313,7 @@ export function createStatsFrequencyTool(
         const result = await adapter.executeQuery(sql);
         const distribution = (result.rows ?? []).map((row) => ({
           value: row["value"],
-          frequency: Number(row["frequency"]),
+          count: Number(row["count"]),
           percentage: Number(row["percentage"]),
         }));
 
