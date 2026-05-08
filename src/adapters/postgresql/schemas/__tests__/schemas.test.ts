@@ -3010,13 +3010,12 @@ describe("GeometryTransformSchema (standalone)", () => {
     ).toThrow("geometry (or wkt/geojson alias) is required");
   });
 
-  it("should reject missing fromSrid", () => {
-    expect(() =>
-      GeometryTransformSchema.parse({
-        geometry: "POINT(0 0)",
-        toSrid: 3857,
-      }),
-    ).toThrow("fromSrid (or sourceSrid alias) is required");
+  it("should default fromSrid to 4326 if missing", () => {
+    const result = GeometryTransformSchema.parse({
+      geometry: "POINT(0 0)",
+      toSrid: 3857,
+    });
+    expect(result.fromSrid).toBe(4326);
   });
 });
 
