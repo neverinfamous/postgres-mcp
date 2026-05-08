@@ -3751,8 +3751,8 @@ describe("pg_stats_frequency", () => {
     // Mock frequency data
     mockAdapter.executeQuery.mockResolvedValueOnce({
       rows: [
-        { value: "active", frequency: "70", percentage: "70.00" },
-        { value: "inactive", frequency: "30", percentage: "30.00" },
+        { value: "active", count: "70", percentage: "70.00" },
+        { value: "inactive", count: "30", percentage: "30.00" },
       ],
     });
     // Mock distinct count
@@ -3770,7 +3770,7 @@ describe("pg_stats_frequency", () => {
       distinctValues: number;
       distribution: Array<{
         value: string;
-        frequency: number;
+        count: number;
         percentage: number;
       }>;
     };
@@ -3779,7 +3779,7 @@ describe("pg_stats_frequency", () => {
     expect(result.column).toBe("status");
     expect(result.distinctValues).toBe(2);
     expect(result.distribution).toHaveLength(2);
-    expect(result.distribution[0].frequency).toBe(70);
+    expect(result.distribution[0].count).toBe(70);
     expect(result.distribution[0].percentage).toBe(70);
   });
 });
