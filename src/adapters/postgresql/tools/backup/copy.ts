@@ -89,6 +89,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
           if (result.rows === undefined || result.rows.length === 0) {
             return {
+              success: true,
               data: lines.join("\n"),
               rowCount: 0,
               note: "Query returned no rows.",
@@ -143,6 +144,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
           await sendProgress(progress, 3, 3, "Export complete");
 
           return {
+            success: true,
             data: dataStr,
             rowCount: result.rows.length,
             ...(isPayloadTruncated
@@ -171,6 +173,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 
           if (result.rows === undefined || result.rows.length === 0) {
             return {
+              success: true,
               data: lines.join("\n"),
               rowCount: 0,
               note: "Query returned no rows.",
@@ -221,6 +224,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
           await sendProgress(progress, 3, 3, "Export complete");
 
           return {
+            success: true,
             data: dataStr,
             rowCount: result.rows.length,
             ...(isPayloadTruncated
@@ -326,6 +330,7 @@ export function createCopyImportTool(
             const filePath = parsed.filePath ?? `/path/to/file.${ext}`;
 
             return {
+              success: true,
               command: `COPY ${tableName}${columnClause} FROM '${filePath}' WITH (${options.join(", ")})`,
               stdinCommand: `COPY ${tableName}${columnClause} FROM STDIN WITH (${options.join(", ")})`,
               notes: "Use \\copy in psql for client-side files",

@@ -118,6 +118,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
               const cycle = seq["cycle"] === true ? " CYCLE" : "";
               const ddl = `CREATE SEQUENCE ${sanitizeTableName(tableName, schemaName)}${startValue}${increment}${minValue}${maxValue}${cycle};`;
               return {
+                success: true,
                 ddl,
                 type: "sequence",
                 note: "Use pg_list_sequences to see all sequences.",
@@ -132,6 +133,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
           }
           // Fallback if pg_sequence query fails
           return {
+            success: true,
             ddl: `CREATE SEQUENCE ${sanitizeTableName(tableName, schemaName)};`,
             type: "sequence",
             note: "Basic CREATE SEQUENCE. Use pg_list_sequences for details.",
@@ -157,6 +159,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
               const createType = relkind === "m" ? "MATERIALIZED VIEW" : "VIEW";
               const ddl = `CREATE ${createType} ${sanitizeTableName(tableName, schemaName)} AS\n${definition.trim()}`;
               return {
+                success: true,
                 ddl,
                 type: relkind === "m" ? "materialized_view" : "view",
                 note: `Use pg_list_views to see all views.`,
@@ -168,6 +171,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
           // Fallback for views
           const createType = relkind === "m" ? "MATERIALIZED VIEW" : "VIEW";
           return {
+            success: true,
             ddl: `-- Unable to retrieve ${createType.toLowerCase()} definition\nCREATE ${createType} ${sanitizeTableName(tableName, schemaName)} AS SELECT ...;`,
             type: relkind === "m" ? "materialized_view" : "view",
             note: "View definition could not be retrieved. Use pg_list_views for details.",
@@ -285,11 +289,13 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
         const createTable = `${sequenceDdls}CREATE TABLE ${sanitizeTableName(tableName, schemaName)} (\n${columns}\n)${partitionClause};`;
 
         const result: {
+          success: boolean;
           ddl: string;
           type?: string;
           insertStatements?: string;
           note: string;
         } = {
+          success: true,
           ddl: createTable,
           type: isPartitionedTable ? "partitioned_table" : "table",
           note: isPartitionedTable
@@ -399,6 +405,7 @@ export function createDumpSchemaTool(
         command += " $POSTGRES_CONNECTION_STRING";
 
         return Promise.resolve({
+          success: true,
           command,
           ...(schema !== undefined &&
             table !== undefined && {

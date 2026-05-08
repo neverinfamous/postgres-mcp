@@ -80,6 +80,7 @@ export function createBackupPlanTool(adapter: PostgresAdapter): ToolDefinition {
         const sizeGB = (sizeBytes / (1024 * 1024 * 1024)).toFixed(2);
 
         return {
+          success: true,
           strategy: {
             fullBackup: {
               // Use timestamp with hours/minutes for hourly backups to prevent overwrites
@@ -180,6 +181,7 @@ export function createRestoreCommandTool(
             command += ` "${backupFile}"`;
 
             return {
+              success: true,
               command,
               ...(warnings.length > 0 && { warnings }),
               notes: [
@@ -279,6 +281,7 @@ export function createPhysicalBackupTool(
               " -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-postgres}";
 
             return {
+              success: true,
               command,
               notes: [
                 "Set PGHOST, PGPORT, PGUSER environment variables or replace the placeholders directly",
@@ -352,6 +355,7 @@ export function createRestoreValidateTool(
 
             if (backupType === "pg_dump") {
               return {
+                success: true,
                 ...(defaultUsed && {
                   note: "No backupType specified - defaulting to pg_dump validation steps",
                 }),
@@ -385,6 +389,7 @@ export function createRestoreValidateTool(
               };
             } else {
               return {
+                success: true,
                 validationSteps: [
                   {
                     step: 1,
@@ -497,6 +502,7 @@ export function createBackupScheduleOptimizeTool(
         }
 
         return {
+          success: true,
           analysis: {
             databaseSize: dbSize.rows?.[0]?.["size"],
             totalChanges,
