@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage && node scripts/update-badges.ts",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test && node scripts/update-badges.ts",
     "bench": "vitest bench --run",
     "bench:verbose": "vitest bench --run --reporter=verbose",
     "check": "npm run lint && npm run typecheck",

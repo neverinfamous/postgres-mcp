@@ -16,47 +16,80 @@ function getBadgeColor(percentage: number): string {
 }
 
 function updateBadges() {
-    const summaryPath = path.join(ROOT_DIR, 'coverage/coverage-summary.json');
+    const summaryPath = path.join(ROOT_DIR, 'coverage/coverage-summary.json')
+    const playwrightPath = path.join(ROOT_DIR, 'playwright-results.json')
 
-    if (!fs.existsSync(summaryPath)) {
-        console.error(`Coverage summary not found at ${summaryPath}`);
-        console.error(
-            'Run "npm run test:coverage" first, and ensure "json-summary" is in your vitest coverage reporters.'
-        );
-        process.exit(1);
+    let linesPct = 0
+    let coverageColor = 'red'
+    let hasCoverage = false
+
+    if (fs.existsSync(summaryPath)) {
+        const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'))
+        linesPct = summary.total.lines.pct
+        coverageColor = getBadgeColor(linesPct)
+        hasCoverage = true
+    } else {
+        console.warn(`Coverage summary not found at ${summaryPath}`)
     }
 
-    const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf-8'));
+    let e2ePassing = 0
+    let e2eSkipped = 0
+    let hasE2e = false
 
-    // We use the "lines" coverage to match the badge
-    const linesPct = summary.total.lines.pct;
-    const color = getBadgeColor(linesPct);
+    if (fs.existsSync(playwrightPath)) {
+        const pw = JSON.parse(fs.readFileSync(playwrightPath, 'utf-8'))
+        e2ePassing = pw.stats.expected || 0
+        e2eSkipped = pw.stats.skipped || 0
+        hasE2e = true
+    } else {
+        console.warn(`Playwright results not found at ${playwrightPath}`)
+    }
 
-    // The exact regex depends on how the badge is formed, but generally:
     // ![Coverage](https://img.shields.io/badge/Coverage-96.7%25-brightgreen.svg)
-    const regex = /!\[Coverage\]\(https:\/\/img\.shields\.io\/badge\/Coverage-[0-9.]+.*?\.svg\)/g;
-    const newBadge = `![Coverage](https://img.shields.io/badge/Coverage-${linesPct}%25-${color}.svg)`;
+    const covRegex = /!\[Coverage\]\(https:\/\/img\.shields\.io\/badge\/Coverage-[0-9.]+.*?\.svg\)/g
+    const newCovBadge = `![Coverage](https://img.shields.io/badge/Coverage-${linesPct}%25-${coverageColor}.svg)`
 
-    const filesToUpdate = ['README.md', 'DOCKER_README.md'];
+    // ![E2E](https://img.shields.io/badge/E2E-179%20tests%20%C2%B7%20224%20tools-blue.svg)
+    const e2eRegex = /!\[E2E\]\(https:\/\/img\.shields\.io\/badge\/E2E-[a-zA-Z0-9%.-]+.*?\.svg\)/g
+    const newE2eBadge = `![E2E](https://img.shields.io/badge/E2E-${e2ePassing}%20passing%20%C2%B7%20${e2eSkipped}%20skipped-blue.svg)`
+
+    const filesToUpdate = ['README.md', 'DOCKER_README.md']
 
     for (const file of filesToUpdate) {
-        const filePath = path.join(ROOT_DIR, file);
-        if (fs.existsSync(filePath)) {
-            let content = fs.readFileSync(filePath, 'utf-8');
-            regex.lastIndex = 0;
-            if (regex.test(content)) {
-                regex.lastIndex = 0;
-                content = content.replace(regex, newBadge);
-                fs.writeFileSync(filePath, content, 'utf-8');
-                console.log(`Updated coverage badge in ${file} to ${linesPct}%`);
-            } else {
-                console.log(`No coverage badge found in ${file} to update.`);
-                if (process.env.CI || process.argv.includes('--strict')) {
-                    process.exit(1);
+        const filePath = path.join(ROOT_DIR, file)
+        try {
+            let content = fs.readFileSync(filePath, 'utf-8')
+            let changed = false
+
+            if (hasCoverage) {
+                covRegex.lastIndex = 0
+                if (covRegex.test(content)) {
+                    covRegex.lastIndex = 0
+                    content = content.replace(covRegex, newCovBadge)
+                    changed = true
+                    console.log(`Updated coverage badge in ${file} to ${linesPct}%`)
                 }
             }
+
+            if (hasE2e) {
+                e2eRegex.lastIndex = 0
+                if (e2eRegex.test(content)) {
+                    e2eRegex.lastIndex = 0
+                    content = content.replace(e2eRegex, newE2eBadge)
+                    changed = true
+                    console.log(`Updated E2E badge in ${file} to ${e2ePassing} passing, ${e2eSkipped} skipped`)
+                }
+            }
+
+            if (changed) {
+                fs.writeFileSync(filePath, content, 'utf-8')
+            } else {
+                console.log(`No badges found to update in ${file}.`)
+            }
+        } catch (err) {
+            console.warn(`Skipped updating ${file}: File not found or unreadable.`)
         }
     }
 }
 
-updateBadges();
+updateBadges()

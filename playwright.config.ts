@@ -8,7 +8,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 4 : undefined,
   globalSetup: "./tests/e2e/global-setup.ts",
-  reporter: "list",
+  reporter: [["list"], ["json", { outputFile: "playwright-results.json" }]],
   use: {
     trace: "on-first-retry",
   },
