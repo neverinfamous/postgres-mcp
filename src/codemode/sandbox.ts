@@ -129,10 +129,12 @@ export class CodeModeSandbox {
    * Execute code in the sandbox
    * @param code - TypeScript/JavaScript code to execute
    * @param apiBindings - Object with pg.* API methods to expose
+   * @param timeoutMs - Optional execution timeout in milliseconds
    */
   async execute(
     code: string,
     apiBindings: Record<string, unknown>,
+    timeoutMs?: number,
   ): Promise<SandboxResult> {
     if (this.disposed) {
       return {
@@ -142,6 +144,8 @@ export class CodeModeSandbox {
       };
     }
 
+    const effectiveTimeout = timeoutMs ?? this.options.timeoutMs;
+    console.log(`[CodeModeSandbox] execute called with timeoutMs=${timeoutMs}, effectiveTimeout=${effectiveTimeout}`);
     const startTime = performance.now();
     const startRss = process.memoryUsage.rss();
 
@@ -156,7 +160,7 @@ export class CodeModeSandbox {
       const script = this.getOrCompileScript(wrappedCode);
 
       const result = await (script.runInContext(this.context, {
-        timeout: this.options.timeoutMs,
+        timeout: effectiveTimeout,
         breakOnSigint: true,
       }) as Promise<unknown>);
 
@@ -178,9 +182,13 @@ export class CodeModeSandbox {
 
       // Check for specific error types
       if (errorMessage.includes("Script execution timed out")) {
+        // VM contexts get corrupted microtask queues after a hard timeout interrupt.
+        // We MUST dispose this sandbox so it isn't reused.
+        this.dispose();
+
         return {
           success: false,
-          error: `Execution timeout: exceeded ${String(this.options.timeoutMs)}ms limit`,
+          error: `Execution timeout: exceeded ${String(effectiveTimeout)}ms limit`,
           stack,
           metrics: this.calculateMetrics(startTime, endTime, startRss, endRss),
         };
@@ -381,10 +389,11 @@ export class SandboxPool {
   async execute(
     code: string,
     apiBindings: Record<string, unknown>,
+    timeoutMs?: number,
   ): Promise<SandboxResult> {
     const sandbox = this.acquire();
     try {
-      return await sandbox.execute(code, apiBindings);
+      return await sandbox.execute(code, apiBindings, timeoutMs);
     } finally {
       this.release(sandbox);
     }
