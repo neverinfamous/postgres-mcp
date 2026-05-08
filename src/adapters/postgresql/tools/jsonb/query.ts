@@ -102,17 +102,18 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
           const sql = `SELECT ${groupExpr} as group_key, jsonb_agg(${selectExpr}${aggOrderBy}) as items FROM ${qualifiedTable} t${whereClause}${groupClause}${limitClause}`;
           const result = await adapter.executeQuery(sql);
           const count = result.rows?.length ?? 0;
+          const rows = result.rows ?? [];
           const response: {
             success: boolean;
-            result?: unknown;
+            result: unknown;
             count: number;
             grouped: boolean;
           } = {
             success: true,
             count,
             grouped: true,
+            result: rows
           };
-          if (count > 0) response.result = result.rows;
           return response;
         } else {
           const innerSql = `SELECT * FROM ${qualifiedTable} t${whereClause}${orderByClause}${limitClause}`;
@@ -122,12 +123,11 @@ export function createJsonbAggTool(adapter: PostgresAdapter): ToolDefinition {
           const count = Array.isArray(arr) ? arr.length : 0;
           const response: {
             success: boolean;
-            result?: unknown;
+            result: unknown;
             count: number;
             grouped: boolean;
             hint?: string;
-          } = { success: true, count, grouped: false };
-          if (count > 0) response.result = arr;
+          } = { success: true, count, grouped: false, result: arr };
           if (count === 0) {
             response.hint = "No rows matched - returns empty array []";
           }
@@ -187,15 +187,15 @@ export function createJsonbKeysTool(adapter: PostgresAdapter): ToolDefinition {
 
         const response: {
           success: boolean;
-          keys?: string[];
+          keys: string[];
           count: number;
           hint: string;
         } = {
           success: true,
-          count: keys?.length ?? 0,
+          count: keys.length,
+          keys,
           hint: "Returns unique keys deduplicated across all matching rows",
         };
-        if (keys.length > 0) response.keys = keys;
         return response;
       } catch (error: unknown) {
         // Improve error for array columns
