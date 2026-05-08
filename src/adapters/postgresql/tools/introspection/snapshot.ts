@@ -43,8 +43,13 @@ export function createSchemaSnapshotTool(
         // Validate schema existence when filtering by schema
         await checkSchemaExists(adapter, parsed.schema);
 
-        const includeAll = !parsed.sections || parsed.sections.length === 0;
-        const sections = new Set(parsed.sections ?? []);
+        const includeAll = (!parsed.sections || parsed.sections.length === 0) && !parsed.compact;
+        const defaultCompactSections = ["tables", "views", "indexes"];
+        const sections = new Set(
+          parsed.sections && parsed.sections.length > 0
+            ? parsed.sections
+            : (parsed.compact ? defaultCompactSections : [])
+        );
 
         const snapshot: Record<string, unknown> = {};
         const stats = {
