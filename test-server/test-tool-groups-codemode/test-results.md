@@ -29,8 +29,8 @@
 | `test-tool-group-codemode-transactions.md`      | ~2,893                  |       |
 | `test-tool-group-codemode-vector-part1.md`      | ~3,630                  |       |
 | `test-tool-group-codemode-vector-part2.md`      | ~6,931                  |       |
-| `test-tool-group-codemode-security.md`          | ~TBD                    |       |
-| `test-tool-group-codemode-roles.md`             | ~TBD                    |       |
+| `test-tool-group-codemode-security.md`          | ~4,802                  |       |
+| `test-tool-group-codemode-roles.md`             | ~2,531                  |       |
 | `test-tool-group-codemode-docstore.md`          | ~2,710                  |       |
 | **Total Estimated Tokens**                      | **TBD**                 |       |
 

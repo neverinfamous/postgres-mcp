@@ -56,7 +56,9 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
   // Full schema with preprocess for handler parsing
   const LikeSearchSchema = z.preprocess(
     preprocessTextParams,
-    LikeSearchSchemaBase,
+    LikeSearchSchemaBase.extend({
+      limit: z.number().optional(),
+    })
   );
 
   return {
@@ -102,7 +104,7 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {

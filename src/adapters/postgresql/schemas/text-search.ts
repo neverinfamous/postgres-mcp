@@ -132,17 +132,24 @@ export const RegexpMatchSchemaBase = z.object({
 
 export const TextSearchSchema = z.preprocess(
   preprocessTextParams,
-  TextSearchSchemaBase,
+  TextSearchSchemaBase.extend({
+    limit: z.number().optional(),
+  })
 );
 
 export const TrigramSimilaritySchema = z.preprocess(
   preprocessTextParams,
-  TrigramSimilaritySchemaBase,
+  TrigramSimilaritySchemaBase.extend({
+    limit: z.number().optional(),
+    threshold: z.number().optional(),
+  })
 );
 
 export const RegexpMatchSchema = z.preprocess(
   preprocessTextParams,
-  RegexpMatchSchemaBase,
+  RegexpMatchSchemaBase.extend({
+    limit: z.number().optional(),
+  })
 );
 
 // =============================================================================

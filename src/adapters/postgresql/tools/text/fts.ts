@@ -98,7 +98,7 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const tsvector = sanitizedCols
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
@@ -170,7 +170,12 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
   });
 
   // Full schema with preprocess for handler parsing
-  const TextRankSchema = z.preprocess(preprocessTextParams, TextRankSchemaBase);
+  const TextRankSchema = z.preprocess(
+    preprocessTextParams,
+    TextRankSchemaBase.extend({
+      limit: z.number().optional(),
+    })
+  );
 
   return {
     name: "pg_text_rank",
@@ -217,7 +222,7 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         const tsvector = sanitizedCols
           .map((c) => `coalesce(${c}, '')`)
           .join(" || ' ' || ");
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
@@ -305,7 +310,12 @@ export function createTextHeadlineTool(
   });
 
   // Full schema with preprocess for handler parsing
-  const HeadlineSchema = z.preprocess(preprocessTextParams, HeadlineSchemaBase);
+  const HeadlineSchema = z.preprocess(
+    preprocessTextParams,
+    HeadlineSchemaBase.extend({
+      limit: z.number().optional(),
+    })
+  );
 
   return {
     name: "pg_text_headline",
@@ -366,7 +376,7 @@ export function createTextHeadlineTool(
           parsed.select !== undefined && parsed.select.length > 0
             ? sanitizeIdentifiers(parsed.select).join(", ") + ", "
             : "";
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {

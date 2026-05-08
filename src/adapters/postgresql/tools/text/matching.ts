@@ -62,7 +62,7 @@ export function createTrigramSimilarityTool(
             : isNaN(rawThresh)
               ? 0.3
               : rawThresh;
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
@@ -166,7 +166,10 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
   // Full schema with preprocess for handler parsing
   const FuzzyMatchSchema = z.preprocess(
     preprocessTextParams,
-    FuzzyMatchSchemaBase,
+    FuzzyMatchSchemaBase.extend({
+      limit: z.number().optional(),
+      maxDistance: z.number().optional(),
+    })
   );
 
   return {
@@ -203,7 +206,7 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
             : isNaN(rawMaxDist)
               ? 3
               : rawMaxDist;
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
@@ -315,7 +318,7 @@ export function createRegexpMatchTool(
         const additionalWhere = parsed.where
           ? ` AND (${sanitizeWhereClause(parsed.where)})`
           : "";
-        const safeLimit = parsed.limit as number | undefined;
+        const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
           if (safeLimit < 0) {
