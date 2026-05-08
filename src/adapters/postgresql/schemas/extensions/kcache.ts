@@ -41,9 +41,7 @@ export const KcacheQueryStatsSchema = z.object({
   compact: z
     .boolean()
     .optional()
-    .describe(
-      "If true, omits the query_preview text and 0/empty fields to save output tokens",
-    ),
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
 
@@ -66,9 +64,7 @@ export const KcacheTopCpuSchema = z.object({
   compact: z
     .boolean()
     .optional()
-    .describe(
-      "If true, omits the query_preview text and 0/empty fields to save output tokens",
-    ),
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
 
@@ -93,9 +89,7 @@ export const KcacheTopIoSchema = z.object({
   compact: z
     .boolean()
     .optional()
-    .describe(
-      "If true, omits the query_preview text and 0/empty fields to save output tokens",
-    ),
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
 
@@ -145,9 +139,7 @@ export const KcacheResourceAnalysisSchema = z.object({
   compact: z
     .boolean()
     .optional()
-    .describe(
-      "If true, omits the query_preview text and 0/empty fields to save output tokens",
-    ),
+    .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
 
