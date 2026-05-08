@@ -75,3 +75,6 @@ config/secrets/
 mcp-audit.jsonl
 *.txt
 task.md
+
+# Playwright
+playwright-results.json
