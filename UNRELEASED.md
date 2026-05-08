@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Vector Tools**: Fixed `pg_vector_dimension_reduce` to return `results` and `rowsProcessed` instead of `rows` and `processedCount` to match the declared output schema.
 - **Stats Tools**: Fixed field naming in `pg_stats_frequency` output to use `count` instead of `frequency` for consistency with prompt expectations and output schemas.
 - **Backup Tools**: Completed full Code Mode certification of all 12 backup tools. Fixed missing `success: true` property in successful responses for `pg_copy_export`, `pg_copy_import`, `pg_dump_table`, `pg_dump_schema`, `pg_create_backup_plan`, `pg_restore_command`, `pg_backup_physical`, `pg_restore_validate`, and `pg_backup_schedule_optimize` to strictly adhere to P154 structured error and payload standards. Fixed Split Schema metadata stripping violation in `AuditDiffBackupSchema` by extracting `AuditDiffBackupSchemaBase`.
+- **Kcache Tools**: Fixed Split Schema metadata stripping violations in `KcacheQueryStatsSchemaBase`, `KcacheTopCpuSchemaBase`, `KcacheTopIoSchemaBase`, and `KcacheResourceAnalysisSchemaBase` by removing `z.preprocess()` logic and establishing proper base schemas, ensuring correct MCP parameter visibility. Verified 100% P154 error handling and feature parity via deterministic Code Mode testing across all 7 tools.
 
 ### Added
 
