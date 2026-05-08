@@ -16,8 +16,8 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
-  KcacheDatabaseStatsSchemaBase,
-  KcacheResourceAnalysisSchemaBase,
+  KcacheDatabaseStatsSchema,
+  KcacheResourceAnalysisSchema,
   KcacheCreateExtensionOutputSchema,
   KcacheDatabaseStatsOutputSchema,
   KcacheResourceAnalysisOutputSchema,
@@ -85,15 +85,19 @@ export function createKcacheDatabaseStatsTool(
     description: `Get aggregated OS-level statistics for a database.
 Shows total CPU time, I/O, and page faults across all queries.`,
     group: "kcache",
-    inputSchema: KcacheDatabaseStatsSchemaBase,
+    inputSchema: KcacheDatabaseStatsSchema,
     outputSchema: KcacheDatabaseStatsOutputSchema,
     annotations: readOnly("Kcache Database Stats"),
     icons: getToolIcons("kcache", readOnly("Kcache Database Stats")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { database, compact } = KcacheDatabaseStatsSchemaBase.parse(
-          params ?? {},
-        );
+        const parsed = z
+          .object({
+            database: z.string().optional(),
+            compact: z.boolean().optional(),
+          })
+          .parse(params ?? {});
+        const { database, compact } = parsed;
         const cols = await getKcacheColumnNames(adapter);
 
         let sql: string;
@@ -155,6 +159,7 @@ Shows total CPU time, I/O, and page faults across all queries.`,
           : rawRows;
 
         return {
+          success: true,
           databaseStats: rows,
           count: rows.length,
         };
@@ -178,7 +183,7 @@ export function createKcacheResourceAnalysisTool(
     description: `Analyze queries to classify them as CPU-bound, I/O-bound, or balanced.
 Helps identify the root cause of performance issues - is the query computation-heavy or disk-heavy?`,
     group: "kcache",
-    inputSchema: KcacheResourceAnalysisSchemaBase,
+    inputSchema: KcacheResourceAnalysisSchema,
     outputSchema: KcacheResourceAnalysisOutputSchema,
     annotations: readOnly("Kcache Resource Analysis"),
     icons: getToolIcons("kcache", readOnly("Kcache Resource Analysis")),
@@ -331,6 +336,7 @@ Helps identify the root cause of performance issues - is the query computation-h
         ).length;
 
         const response: Record<string, unknown> = {
+          success: true,
           queries: rows,
           count: rows.length,
           summary: {

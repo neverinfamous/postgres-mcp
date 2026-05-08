@@ -15,9 +15,9 @@ import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
-  KcacheQueryStatsSchemaBase,
-  KcacheTopCpuSchemaBase,
-  KcacheTopIoSchemaBase,
+  KcacheQueryStatsSchema,
+  KcacheTopCpuSchema,
+  KcacheTopIoSchema,
   KcacheQueryStatsOutputSchema,
   KcacheTopCpuOutputSchema,
   KcacheTopIoOutputSchema,
@@ -37,7 +37,7 @@ Joins pg_stat_statements with pg_stat_kcache to show what SQL did AND what syste
 
 orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minCalls parameter to filter by call count.`,
     group: "kcache",
-    inputSchema: KcacheQueryStatsSchemaBase,
+    inputSchema: KcacheQueryStatsSchema,
     outputSchema: KcacheQueryStatsOutputSchema,
     annotations: readOnly("Kcache Query Stats"),
     icons: getToolIcons("kcache", readOnly("Kcache Query Stats")),
@@ -172,6 +172,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
           : rawQueries;
 
         const response: Record<string, unknown> = {
+          success: true,
           queries: finalQueries,
           count: rowCount,
           orderBy: orderBy ?? "total_time",
@@ -200,7 +201,7 @@ export function createKcacheTopCpuTool(
     description: `Get top CPU-consuming queries. Shows which queries spend the most time
 in user CPU (application code) vs system CPU (kernel operations).`,
     group: "kcache",
-    inputSchema: KcacheTopCpuSchemaBase,
+    inputSchema: KcacheTopCpuSchema,
     outputSchema: KcacheTopCpuOutputSchema,
     annotations: readOnly("Kcache Top CPU"),
     icons: getToolIcons("kcache", readOnly("Kcache Top CPU")),
@@ -293,6 +294,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
           : rawQueries;
 
         const response: Record<string, unknown> = {
+          success: true,
           topCpuQueries: finalQueries,
           count: rowCount,
           description: "Queries ranked by total CPU time (user + system)",
@@ -319,7 +321,7 @@ export function createKcacheTopIoTool(
     description: `Get top I/O-consuming queries. Shows filesystem-level reads and writes,
 which represent actual disk access (not just shared buffer hits).`,
     group: "kcache",
-    inputSchema: KcacheTopIoSchemaBase,
+    inputSchema: KcacheTopIoSchema,
     outputSchema: KcacheTopIoOutputSchema,
     annotations: readOnly("Kcache Top IO"),
     icons: getToolIcons("kcache", readOnly("Kcache Top IO")),
@@ -451,6 +453,7 @@ which represent actual disk access (not just shared buffer hits).`,
           : rawQueries;
 
         const response: Record<string, unknown> = {
+          success: true,
           topIoQueries: finalQueries,
           count: rowCount,
           ioType,

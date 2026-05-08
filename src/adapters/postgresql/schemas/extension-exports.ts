@@ -263,13 +263,10 @@ export {
 // Extension schemas (kcache, citext, ltree, pgcrypto)
 export {
   // pg_stat_kcache
-  KcacheQueryStatsSchemaBase,
   KcacheQueryStatsSchema,
-  KcacheTopCpuSchemaBase,
-  KcacheTopIoSchemaBase,
-  KcacheDatabaseStatsSchemaBase,
+  KcacheTopCpuSchema,
+  KcacheTopIoSchema,
   KcacheDatabaseStatsSchema,
-  KcacheResourceAnalysisSchemaBase,
   KcacheResourceAnalysisSchema,
   // Kcache output schemas
   KcacheCreateExtensionOutputSchema,

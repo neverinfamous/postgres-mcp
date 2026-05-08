@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { normalizeOptionalParams } from "./shared.js";
+
 
 // =============================================================================
 // Input Schemas
@@ -15,7 +15,7 @@ import { normalizeOptionalParams } from "./shared.js";
  * Schema for querying enhanced statistics with kcache data.
  * Joins pg_stat_statements with pg_stat_kcache for full picture.
  */
-export const KcacheQueryStatsSchemaBase = z.object({
+export const KcacheQueryStatsSchema = z.object({
   limit: z
     .number()
     .optional()
@@ -46,15 +46,11 @@ export const KcacheQueryStatsSchemaBase = z.object({
     ),
 });
 
-export const KcacheQueryStatsSchema = z.preprocess(
-  normalizeOptionalParams,
-  KcacheQueryStatsSchemaBase,
-);
 
 /**
  * Base schema for MCP visibility - pg_kcache_top_cpu parameters.
  */
-export const KcacheTopCpuSchemaBase = z.object({
+export const KcacheTopCpuSchema = z.object({
   limit: z
     .number()
     .optional()
@@ -75,15 +71,11 @@ export const KcacheTopCpuSchemaBase = z.object({
     ),
 });
 
-export const KcacheTopCpuSchema = z.preprocess(
-  normalizeOptionalParams,
-  KcacheTopCpuSchemaBase,
-);
 
 /**
  * Base schema for MCP visibility - pg_kcache_top_io parameters.
  */
-export const KcacheTopIoSchemaBase = z.object({
+export const KcacheTopIoSchema = z.object({
   type: z.string().optional().describe("I/O type to rank by (default: both)"),
   ioType: z.string().optional().describe("Alias for type"),
   limit: z
@@ -106,15 +98,11 @@ export const KcacheTopIoSchemaBase = z.object({
     ),
 });
 
-export const KcacheTopIoSchema = z.preprocess(
-  normalizeOptionalParams,
-  KcacheTopIoSchemaBase,
-);
 
 /**
  * Schema for database-level aggregation.
  */
-export const KcacheDatabaseStatsSchemaBase = z.object({
+export const KcacheDatabaseStatsSchema = z.object({
   database: z
     .string()
     .optional()
@@ -125,15 +113,11 @@ export const KcacheDatabaseStatsSchemaBase = z.object({
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
-export const KcacheDatabaseStatsSchema = z.preprocess(
-  normalizeOptionalParams,
-  KcacheDatabaseStatsSchemaBase,
-);
 
 /**
  * Schema for identifying resource-bound queries.
  */
-export const KcacheResourceAnalysisSchemaBase = z.object({
+export const KcacheResourceAnalysisSchema = z.object({
   queryId: z
     .string()
     .optional()
@@ -166,10 +150,6 @@ export const KcacheResourceAnalysisSchemaBase = z.object({
     ),
 });
 
-export const KcacheResourceAnalysisSchema = z.preprocess(
-  normalizeOptionalParams,
-  KcacheResourceAnalysisSchemaBase,
-);
 
 // =============================================================================
 // Output Schemas
