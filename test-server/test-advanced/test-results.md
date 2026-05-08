@@ -1,7 +1,5 @@
 # Token Consumption during Advanced Stress Testing of postgres-mcp
 
-Last tested: April 4th, 2026
-
 | Test Document                              | Approximate Token Usage | Notes |
 | :----------------------------------------- | :---------------------- | :---- |
 | `test-tools-advanced-admin.md`             | ~2,300                  |       |

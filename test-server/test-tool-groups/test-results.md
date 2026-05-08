@@ -1,7 +1,5 @@
 # Token Consumption during Direct Tool Testing of postgres-mcp
 
-Last tested: April 4th, 2026
-
 | Test Document                          | Approximate Token Usage | Notes |
 | :------------------------------------- | :---------------------- | :---- |
 | `test-tool-group-admin.md`             | ~3,405                  |       |

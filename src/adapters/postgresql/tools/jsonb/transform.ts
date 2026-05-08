@@ -183,8 +183,10 @@ function deepMergeObjects(
 
 // Schema for pg_jsonb_merge - direct schema for MCP visibility
 const JsonbMergeSchema = z.object({
-  base: z.unknown().describe("Base JSONB document (required)"),
-  overlay: z.unknown().describe("JSONB to merge on top (required)"),
+  base: z.unknown().optional().describe("Base JSONB document"),
+  json1: z.unknown().optional().describe("Alias for base document"),
+  overlay: z.unknown().optional().describe("JSONB to merge on top"),
+  json2: z.unknown().optional().describe("Alias for overlay document"),
   deep: z
     .boolean()
     .optional()
@@ -206,8 +208,8 @@ function parseMergeParams(params: unknown): {
 } {
   const parsed = JsonbMergeSchema.parse(params);
   // Parse JSON strings if needed
-  let base = parsed.base;
-  let overlay = parsed.overlay;
+  let base = parsed.base ?? parsed.json1;
+  let overlay = parsed.overlay ?? parsed.json2;
   if (typeof base === "string") {
     try {
       base = JSON.parse(base);
