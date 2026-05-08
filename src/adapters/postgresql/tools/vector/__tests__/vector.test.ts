@@ -2431,7 +2431,7 @@ describe("Coverage: Advanced Tool Edge Cases", () => {
         mockContext,
       )) as Record<string, unknown>;
       expect(result.mode).toBe("table");
-      expect(result.processedCount).toBe(2);
+      expect(result.rowsProcessed).toBe(2);
     });
 
     it("should handle empty table in table mode", async () => {
@@ -2457,7 +2457,7 @@ describe("Coverage: Advanced Tool Edge Cases", () => {
         { table: "t", column: "vec", targetDimensions: 5 },
         mockContext,
       )) as Record<string, unknown>;
-      expect(result.processedCount).toBe(0);
+      expect(result.rowsProcessed).toBe(0);
     });
 
     it("should return error when neither vector nor table provided", async () => {
