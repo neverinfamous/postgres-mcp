@@ -145,7 +145,6 @@ export class CodeModeSandbox {
     }
 
     const effectiveTimeout = timeoutMs ?? this.options.timeoutMs;
-    console.log(`[CodeModeSandbox] execute called with timeoutMs=${timeoutMs}, effectiveTimeout=${effectiveTimeout}`);
     const startTime = performance.now();
     const startRss = process.memoryUsage.rss();
 
