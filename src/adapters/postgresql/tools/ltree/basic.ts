@@ -56,11 +56,12 @@ function createLtreeExtensionTool(adapter: PostgresAdapter): ToolDefinition {
     outputSchema: LtreeCreateExtensionOutputSchema,
     annotations: write("Create Ltree Extension"),
     icons: getToolIcons("ltree", write("Create Ltree Extension")),
-    handler: async (_params: unknown, _context: RequestContext) => {
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
-        LtreeCreateExtensionSchema.parse(_params);
-        await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS ltree");
-        return { success: true, message: "ltree extension enabled" };
+        const { schema } = LtreeCreateExtensionSchema.parse(params);
+        const schemaName = schema ?? "public";
+        await adapter.executeQuery(`CREATE EXTENSION IF NOT EXISTS ltree SCHEMA "${schemaName}"`);
+        return { success: true, message: `ltree extension enabled in schema ${schemaName}` };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_ltree_create_extension",

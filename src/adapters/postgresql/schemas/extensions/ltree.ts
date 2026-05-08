@@ -57,9 +57,13 @@ function preprocessLtreeTableParams(input: unknown): unknown {
 /**
  * Base schema for MCP visibility - shows all parameters including aliases.
  */
-export const LtreeCreateExtensionSchemaBase = z.object({}).strict();
+export const LtreeCreateExtensionSchemaBase = z.object({
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
 
-export const LtreeCreateExtensionSchema = z.object({}).strict();
+export const LtreeCreateExtensionSchema = z.object({
+  schema: z.string().optional().describe("Schema name (default: public)"),
+});
 
 /**
  * Base schema for MCP visibility - shows all parameters including aliases.
