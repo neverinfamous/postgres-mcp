@@ -227,6 +227,10 @@ export const PointInPolygonSchemaBase = z.object({
     .preprocess(coerceNumber, z.number().optional())
     .optional()
     .describe("Y coordinate"),
+  limit: z
+    .preprocess(coerceNumber, z.number().optional())
+    .optional()
+    .describe("Maximum rows to return (default: 10 to prevent large payloads)"),
   schema: z.string().optional().describe("Schema name (default: public)"),
 });
 
@@ -239,6 +243,7 @@ export const PointInPolygonSchema = z
       column:
         data.column ?? data.geom ?? data.geometry ?? data.geometryColumn ?? "",
       point: point ?? { lat: 0, lng: 0 },
+      limit: data.limit,
       schema: data.schema,
     };
   })
@@ -427,7 +432,7 @@ export const IntersectionSchemaBase = z.object({
   limit: z
     .preprocess(coerceNumber, z.number().optional())
     .optional()
-    .describe("Max results"),
+    .describe("Maximum rows to return (default: 10 to prevent large payloads)"),
   select: z.array(z.string()).optional().describe("Columns to select"),
 });
 
@@ -489,7 +494,7 @@ export const BoundingBoxSchemaBase = z.object({
   limit: z
     .preprocess(coerceNumber, z.number().optional())
     .optional()
-    .describe("Max results"),
+    .describe("Maximum rows to return (default: 10 to prevent large payloads)"),
   select: z.array(z.string()).optional().describe("Columns to select"),
 });
 

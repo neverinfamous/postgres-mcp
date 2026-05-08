@@ -243,14 +243,16 @@ export const GeometryBufferSchema = GeometryBufferSchemaBase.transform(
 // pg_geometry_intersection
 export const GeometryIntersectionSchemaBase = z.object({
   geometry1: z.string().optional().describe("First WKT or GeoJSON geometry"),
+  geom1: z.string().optional().describe("Alias for geometry1"),
   geometry2: z.string().optional().describe("Second WKT or GeoJSON geometry"),
+  geom2: z.string().optional().describe("Alias for geometry2"),
 });
 
 export const GeometryIntersectionSchema =
   GeometryIntersectionSchemaBase.partial()
     .transform((data) => ({
-      geometry1: data.geometry1 ?? "",
-      geometry2: data.geometry2 ?? "",
+      geometry1: data.geometry1 ?? data.geom1 ?? "",
+      geometry2: data.geometry2 ?? data.geom2 ?? "",
     }))
     .refine((data) => data.geometry1 !== "", {
       message: "geometry1 is required",
@@ -285,15 +287,12 @@ export const GeometryTransformSchemaBase = z.object({
 export const GeometryTransformSchema = GeometryTransformSchemaBase.transform(
   (data) => ({
     geometry: data.geometry ?? data.wkt ?? data.geojson ?? "",
-    fromSrid: data.fromSrid ?? data.sourceSrid ?? 0,
+    fromSrid: data.fromSrid ?? data.sourceSrid ?? 4326,
     toSrid: data.toSrid ?? data.targetSrid ?? 0,
   }),
 )
   .refine((data) => data.geometry !== "", {
     message: "geometry (or wkt/geojson alias) is required",
-  })
-  .refine((data) => data.fromSrid > 0, {
-    message: "fromSrid (or sourceSrid alias) is required",
   })
   .refine((data) => data.toSrid > 0, {
     message: "toSrid (or targetSrid alias) is required",

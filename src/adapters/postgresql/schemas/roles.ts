@@ -179,7 +179,14 @@ export const RoleAssignSchemaBase = z.object({
     ),
 });
 
-export const RoleAssignSchema = RoleAssignSchemaBase;
+export const RoleAssignSchema = z.preprocess((val: unknown) => {
+  if (val === null || typeof val !== "object") return val;
+  const obj = val as Record<string, unknown>;
+  return {
+    ...obj,
+    user: obj['user'] ?? obj['member'],
+  };
+}, RoleAssignSchemaBase);
 
 /**
  * pg_role_revoke — revoke role or privileges from a user/role
@@ -218,7 +225,14 @@ export const RoleRevokeSchemaBase = z.object({
     ),
 });
 
-export const RoleRevokeSchema = RoleRevokeSchemaBase;
+export const RoleRevokeSchema = z.preprocess((val: unknown) => {
+  if (val === null || typeof val !== "object") return val;
+  const obj = val as Record<string, unknown>;
+  return {
+    ...obj,
+    user: obj['user'] ?? obj['member'],
+  };
+}, RoleRevokeSchemaBase);
 
 /**
  * pg_user_roles — list roles assigned to a user/role
@@ -227,7 +241,14 @@ export const UserRolesSchemaBase = z.object({
   user: z.string().describe("User/role name to inspect"),
 });
 
-export const UserRolesSchema = UserRolesSchemaBase;
+export const UserRolesSchema = z.preprocess((val: unknown) => {
+  if (val === null || typeof val !== "object") return val;
+  const obj = val as Record<string, unknown>;
+  return {
+    ...obj,
+    user: obj['user'] ?? obj['role'],
+  };
+}, UserRolesSchemaBase);
 
 /**
  * pg_role_set — set session's active role
