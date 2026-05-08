@@ -123,6 +123,7 @@ export function createStatsDescriptiveTool(
           min: number | null;
           max: number | null;
           avg: number | null;
+          mean: number | null;
           stddev: number | null;
           variance: number | null;
           sum: number | null;
@@ -132,6 +133,7 @@ export function createStatsDescriptiveTool(
           min: row["min"] !== null ? Number(row["min"]) : null,
           max: row["max"] !== null ? Number(row["max"]) : null,
           avg: row["avg"] !== null ? Number(row["avg"]) : null,
+          mean: row["avg"] !== null ? Number(row["avg"]) : null,
           stddev: row["stddev"] !== null ? Number(row["stddev"]) : null,
           variance: row["variance"] !== null ? Number(row["variance"]) : null,
           sum: row["sum"] !== null ? Number(row["sum"]) : null,

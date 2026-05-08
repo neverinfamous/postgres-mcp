@@ -196,6 +196,7 @@ export const StatisticsObjectSchema = z.object({
   min: z.number().nullable().describe("Minimum value"),
   max: z.number().nullable().describe("Maximum value"),
   avg: z.number().nullable().describe("Mean/average value"),
+  mean: z.number().nullable().optional().describe("Alias for avg"),
   stddev: z.number().nullable().describe("Standard deviation"),
   variance: z.number().nullable().describe("Variance"),
   sum: z.number().nullable().describe("Sum of all values"),
