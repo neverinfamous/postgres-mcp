@@ -516,7 +516,7 @@ export const AuditRestoreBackupSchema = z.object({
 /**
  * pg_audit_diff_backup input schema
  */
-export const AuditDiffBackupSchema = z.object({
+export const AuditDiffBackupSchemaBase = z.object({
   filename: z
     .string()
     .optional()
@@ -524,10 +524,14 @@ export const AuditDiffBackupSchema = z.object({
   compact: z
     .boolean()
     .optional()
-    .default(true)
     .describe(
       "If true, omits full DDL strings from response to save tokens (default: true)",
     ),
+});
+
+export const AuditDiffBackupSchema = z.object({
+  filename: z.string().optional(),
+  compact: z.boolean().optional().default(true),
 });
 
 /**

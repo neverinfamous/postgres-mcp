@@ -158,6 +158,7 @@ export {
   AuditListBackupsSchemaBase,
   AuditListBackupsSchema,
   AuditRestoreBackupSchema,
+  AuditDiffBackupSchemaBase,
   AuditDiffBackupSchema,
   DumpTableSchemaBase,
   DumpTableSchema,

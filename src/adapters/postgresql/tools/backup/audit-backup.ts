@@ -26,6 +26,7 @@ import {
   AuditListBackupsSchemaBase,
   AuditListBackupsSchema,
   AuditRestoreBackupSchema,
+  AuditDiffBackupSchemaBase,
   AuditDiffBackupSchema,
   AuditListBackupsOutputSchema,
   AuditRestoreBackupOutputSchema,
@@ -347,7 +348,7 @@ export function createAuditDiffBackupTool(
     description:
       "Compare a backup snapshot's DDL against the current live schema to show drift since the snapshot was taken.",
     group: "backup",
-    inputSchema: AuditDiffBackupSchema,
+    inputSchema: AuditDiffBackupSchemaBase,
     outputSchema: AuditDiffBackupOutputSchema,
     annotations: readOnly("Audit Diff Backup"),
     icons: getToolIcons("backup", readOnly("Audit Diff Backup")),
