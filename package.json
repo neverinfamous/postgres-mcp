@@ -21,7 +21,7 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage && node scripts/update-badges.ts",
     "test:e2e": "playwright test",
     "bench": "vitest bench --run",
     "bench:verbose": "vitest bench --run --reporter=verbose",
