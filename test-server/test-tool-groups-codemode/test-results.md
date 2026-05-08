@@ -8,8 +8,8 @@
 | `test-tool-group-codemode-core-part1.md`        | ~3,489                  |       |
 | `test-tool-group-codemode-core-part2.md`        | ~3,550                  |       |
 | `test-tool-group-codemode-cron.md`              | ~4,930                  |       |
-| `test-tool-group-codemode-introspection.md`     | ~37,783                 |       |
-| `test-tool-group-codemode-jsonb-part1.md`       | ~31,891                 |       |
+| `test-tool-group-codemode-introspection.md`     | ~4,910                  |       |
+| `test-tool-group-codemode-jsonb-part1.md`       | ~2,897                  |       |
 | `test-tool-group-codemode-jsonb-part2.md`       | ~3,309                  |       |
 | `test-tool-group-codemode-kcache.md`            | ~1,359                  |       |
 | `test-tool-group-codemode-ltree.md`             | ~7,569                  |       |

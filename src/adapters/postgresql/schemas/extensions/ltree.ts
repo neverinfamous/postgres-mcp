@@ -197,7 +197,6 @@ export const LtreeQuerySchema = z.preprocess(
     schema: z.string().optional().describe("Schema name (default: public)"),
     limit: z
       .number()
-      .min(1)
       .default(50)
       .describe("Maximum results (default: 50)"),
   }),
@@ -301,7 +300,6 @@ export const LtreeMatchSchema = z.preprocess(
     schema: z.string().optional().describe("Schema name (default: public)"),
     limit: z
       .number()
-      .min(1)
       .default(50)
       .describe("Maximum results (default: 50)"),
   }),

@@ -86,6 +86,13 @@ function createLtreeQueryTool(adapter: PostgresAdapter): ToolDefinition {
         const { table, column, path, mode, schema, limit } =
           LtreeQuerySchema.parse(params);
 
+        if (limit !== undefined && limit < 1) {
+          throw new ValidationError(
+            `Limit must be at least 1, received: ${String(limit)}`,
+            { limit },
+          );
+        }
+
         if (path === "") {
           throw new ValidationError(
             `Empty path "" is not allowed as it acts as an unconstrained match-all query. Please provide a specific path.`,
