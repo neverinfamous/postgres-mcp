@@ -142,6 +142,7 @@ export function createStatsCorrelationTool(
           }));
 
           return {
+            success: true,
             table: `${schema ?? "public"}.${table}`,
             columns: [column1, column2],
             groupBy,
@@ -172,6 +173,7 @@ export function createStatsCorrelationTool(
         if (!row) throw new ValidationError("No correlation data found");
 
         const response: Record<string, unknown> = {
+          success: true,
           table: `${schema ?? "public"}.${table}`,
           columns: [column1, column2],
           ...mapCorrelation(row),
@@ -302,6 +304,7 @@ export function createStatsRegressionTool(
           }));
 
           return {
+            success: true,
             table: `${schema ?? "public"}.${table}`,
             xColumn,
             yColumn,
@@ -338,6 +341,7 @@ export function createStatsRegressionTool(
         if (!row) throw new ValidationError("No regression data found");
 
         const response: Record<string, unknown> = {
+          success: true,
           table: `${schema ?? "public"}.${table}`,
           xColumn,
           yColumn,

@@ -298,6 +298,7 @@ export function createStatsTimeSeriesTool(
 
           // Build response with truncation indicators
           const response: Record<string, unknown> = {
+            success: true,
             table: `${schema ?? "public"}.${table}`,
             valueColumn,
             timeColumn,
@@ -368,6 +369,7 @@ export function createStatsTimeSeriesTool(
 
         // Build response
         const response: Record<string, unknown> = {
+          success: true,
           table: `${schema ?? "public"}.${table}`,
           valueColumn,
           timeColumn,

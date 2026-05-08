@@ -151,6 +151,7 @@ export function createStatsSamplingTool(
         }
 
         const response: {
+          success: boolean;
           table: string;
           method: string;
           sampleSize: number;
@@ -159,6 +160,7 @@ export function createStatsSamplingTool(
           totalSampled?: number;
           note?: string;
         } = {
+          success: true,
           table: `${schema ?? "public"}.${table}`,
           method: samplingMethod,
           sampleSize: rows.length,

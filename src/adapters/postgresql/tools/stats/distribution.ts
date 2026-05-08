@@ -263,6 +263,7 @@ export function createStatsDistributionTool(
 
           // Build response with truncation indicators
           const response: Record<string, unknown> = {
+            success: true,
             table: `${schema ?? "public"}.${table}`,
             column,
             groupBy,
@@ -294,6 +295,7 @@ export function createStatsDistributionTool(
         const histogram = await generateHistogram(minVal, maxVal);
 
         return {
+          success: true,
           table: `${schema ?? "public"}.${table}`,
           column,
           range: { min: minVal, max: maxVal },

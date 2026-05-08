@@ -202,6 +202,7 @@ export function createStatsHypothesisTool(
           });
 
           return {
+            success: true,
             table: `${schema ?? "public"}.${table}`,
             column,
             testType,
@@ -249,6 +250,7 @@ export function createStatsHypothesisTool(
         }
 
         return {
+          success: true,
           table: `${schema ?? "public"}.${table}`,
           column,
           testType,
