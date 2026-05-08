@@ -42,9 +42,7 @@ export function createListObjectsTool(
     outputSchema: ObjectListOutputSchema,
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        const { schema, types, limit } = ListObjectsSchema.parse(params);
-
-        // Validate types against allowed values (handler-side since Base schema uses z.string())
+        const { schema, types, limit, exclude } = ListObjectsSchema.parse(params);
         if (types) {
           const invalidTypes = types.filter(
             (t) => !(VALID_OBJECT_TYPES as readonly string[]).includes(t),
@@ -62,9 +60,14 @@ export function createListObjectsTool(
           }
         }
 
-        const schemaFilter = schema
+        let schemaFilter = schema
           ? `AND n.nspname = '${schema}'`
           : `AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')`;
+
+        if (exclude && exclude.length > 0) {
+          const excludeList = exclude.map((s) => `'${s}'`).join(", ");
+          schemaFilter += ` AND n.nspname NOT IN (${excludeList})`;
+        }
 
         const typeFilters: string[] = [];
         const selectedTypes = types ?? [
@@ -139,11 +142,7 @@ export function createListObjectsTool(
                       FROM pg_proc p
                       JOIN pg_namespace n ON n.oid = p.pronamespace
                       WHERE p.prokind IN (${kindFilter.join(", ")})
-                      ${
-                        schema
-                          ? `AND n.nspname = '${schema}'`
-                          : `AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
-                      }
+                      ${schemaFilter}
                       ORDER BY n.nspname, p.proname
                   `;
           const result = await adapter.executeQuery(sql);
@@ -187,10 +186,10 @@ export function createListObjectsTool(
           objects.push(...(result.rows as typeof objects));
         }
 
-        // Apply default limit of 100 if not specified
-        const effectiveLimit = limit ?? 100;
-        const truncated = objects.length > effectiveLimit;
-        const limitedObjects = truncated
+        // Apply default limit of 50 if not specified
+        const effectiveLimit = limit === 0 ? undefined : (limit ?? 50);
+        const truncated = effectiveLimit !== undefined && objects.length > effectiveLimit;
+        const limitedObjects = truncated && effectiveLimit !== undefined
           ? objects.slice(0, effectiveLimit)
           : objects;
 

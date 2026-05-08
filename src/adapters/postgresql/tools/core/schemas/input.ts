@@ -65,7 +65,11 @@ export const ListObjectsSchemaBase = z.object({
   limit: z
     .number()
     .optional()
-    .describe("Maximum number of objects to return (default: 100)"),
+    .describe("Maximum number of objects to return (default: 50)"),
+  exclude: z
+    .array(z.string())
+    .optional()
+    .describe("Schemas to exclude"),
 });
 
 // Transformed schema with preprocess for handler parsing

@@ -58,8 +58,8 @@ export function createListTablesTool(adapter: PostgresAdapter): ToolDefinition {
         // totalCount reflects filtered results (after schema/exclude), before limit
         const totalCount = tables.length;
 
-        // Apply default limit of 100 if not specified; limit: 0 means "no limit" (return all)
-        const effectiveLimit = limit === 0 ? undefined : (limit ?? 100);
+        // Apply default limit of 50 if not specified; limit: 0 means "no limit" (return all)
+        const effectiveLimit = limit === 0 ? undefined : (limit ?? 50);
         const truncated =
           effectiveLimit !== undefined && tables.length > effectiveLimit;
         if (truncated && effectiveLimit !== undefined) {
