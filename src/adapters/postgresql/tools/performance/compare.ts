@@ -66,6 +66,8 @@ export function createQueryPlanCompareTool(
     sql2: z.string().optional().describe("Alias for query2"),
     sqlA: z.string().optional().describe("Alias for query1"),
     sqlB: z.string().optional().describe("Alias for query2"),
+    queryA: z.string().optional().describe("Alias for query1"),
+    queryB: z.string().optional().describe("Alias for query2"),
     params1: z
       .array(z.unknown())
       .optional()
@@ -89,14 +91,16 @@ export function createQueryPlanCompareTool(
     if (typeof input !== "object" || input === null) return input;
     const obj = input as Record<string, unknown>;
     const result = { ...obj };
-    // Alias: sql1/sqlA → query1, sql2/sqlB → query2
+    // Alias: sql1/sqlA/queryA → query1, sql2/sqlB/queryB → query2
     if (result["query1"] === undefined) {
       if (result["sql1"] !== undefined) result["query1"] = result["sql1"];
       else if (result["sqlA"] !== undefined) result["query1"] = result["sqlA"];
+      else if (result["queryA"] !== undefined) result["query1"] = result["queryA"];
     }
     if (result["query2"] === undefined) {
       if (result["sql2"] !== undefined) result["query2"] = result["sql2"];
       else if (result["sqlB"] !== undefined) result["query2"] = result["sqlB"];
+      else if (result["queryB"] !== undefined) result["query2"] = result["queryB"];
     }
     return result;
   }, QueryPlanCompareSchemaBase);

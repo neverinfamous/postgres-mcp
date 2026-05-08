@@ -121,6 +121,9 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
         // P154: Validate table/schema existence before querying (throws ValidationError on failure)
         await validatePerformanceTableExists(adapter, tableName, schemaName);
 
+        const rawLimit = parsed.limit;
+        const limit = rawLimit === undefined ? 20 : rawLimit === 0 ? null : rawLimit;
+
         const sql = `SELECT schemaname, relname as table_name,
                         n_live_tup as live_tuples, n_dead_tup as dead_tuples,
                         CASE WHEN n_live_tup > 0 THEN round((100.0 * n_dead_tup / n_live_tup)::numeric, 2) ELSE 0 END as dead_pct,
@@ -128,7 +131,7 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
                         FROM pg_stat_user_tables
                         WHERE ${whereClause}
                         ORDER BY n_dead_tup DESC
-                        LIMIT 20`;
+                        ${limit !== null ? `LIMIT ${String(limit)}` : ""}`;
 
         const result = await adapter.executeQuery(sql, queryParams);
         // Coerce numeric fields to JavaScript numbers
@@ -140,11 +143,19 @@ export function createBloatCheckTool(adapter: PostgresAdapter): ToolDefinition {
             dead_pct: toNum(row["dead_pct"]),
           }),
         );
-        return {
+        const response: Record<string, unknown> = {
           success: true as const,
           tables,
           count: tables.length,
         };
+        // Add totalCount if results were limited
+        if (limit !== null && tables.length === limit) {
+          const countSql = `SELECT COUNT(*) as total FROM pg_stat_user_tables WHERE ${whereClause}`;
+          const countResult = await adapter.executeQuery(countSql, queryParams);
+          response["totalCount"] = toNum(countResult.rows?.[0]?.["total"]);
+          response["truncated"] = true;
+        }
+        return response;
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, { tool: "pg_bloat_check" });
       }

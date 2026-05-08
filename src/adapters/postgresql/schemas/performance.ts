@@ -222,6 +222,10 @@ export const BloatCheckSchemaBase = z.object({
     .optional()
     .describe("Table name to check (all tables if omitted)"),
   schema: z.string().optional().describe("Schema name to filter"),
+  limit: z
+    .unknown()
+    .optional()
+    .describe("Max rows to return (default: 20, use 0 for all)"),
 });
 
 export const BloatCheckSchema = z.preprocess(
@@ -229,6 +233,7 @@ export const BloatCheckSchema = z.preprocess(
   z.object({
     table: z.string().optional(),
     schema: z.string().optional(),
+    limit: z.preprocess(coerceNumber, z.number().optional()),
   }),
 );
 
@@ -419,6 +424,14 @@ export const BloatCheckOutputSchema = z
       .optional()
       .describe("Tables with bloat"),
     count: z.number().optional().describe("Number of tables with bloat"),
+    totalCount: z
+      .number()
+      .optional()
+      .describe("Total count if results truncated"),
+    truncated: z
+      .boolean()
+      .optional()
+      .describe("Whether results were truncated"),
     success: z.boolean().optional().describe("Whether operation succeeded"),
     error: z.string().optional().describe("Error message if failed"),
   })
