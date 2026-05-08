@@ -387,10 +387,10 @@ describe("Handler Execution", () => {
         hint?: string;
       };
 
-      expect(result.count).toBe(100); // Default limit
+      expect(result.count).toBe(50); // Default limit
       expect(result.totalCount).toBe(150);
       expect(result.truncated).toBe(true);
-      expect(result.hint).toContain("100 of 150");
+      expect(result.hint).toContain("50 of 150");
     });
 
     it("should respect custom limit", async () => {
