@@ -429,8 +429,8 @@ export function createVectorDimensionReduceTool(
             column: parsed.column,
             originalDimensions: originalDim,
             targetDimensions: targetDim,
-            processedCount: reducedRows.length,
-            rows: reducedRows,
+            rowsProcessed: reducedRows.length,
+            results: reducedRows,
             method: "random_projection",
             note: "For PCA or UMAP, use external libraries",
           };
