@@ -464,6 +464,7 @@ export function createPartmanShowConfigTool(
         }
 
         return {
+          success: true,
           configs: configsWithStatus,
           count: configsWithStatus.length,
           truncated,

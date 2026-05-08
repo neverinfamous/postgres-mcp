@@ -105,7 +105,7 @@ function preprocessPartmanParams(input: unknown): unknown {
   }
 
   // Auto-prefix public. for parentTable when no schema specified
-  if (result.parentTable && !result.parentTable.includes(".")) {
+  if (typeof result.parentTable === "string" && !result.parentTable.includes(".")) {
     result.parentTable = `public.${result.parentTable}`;
   }
 
