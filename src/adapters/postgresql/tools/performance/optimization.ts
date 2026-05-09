@@ -293,7 +293,7 @@ export function createPartitionStrategySuggestTool(
         if (!parsed.table) {
           return {
             success: false as const,
-            error: "Missing required parameter: table is required",
+            error: "Validation error: table is required",
             code: "VALIDATION_ERROR",
             category: "validation",
             recoverable: false,
