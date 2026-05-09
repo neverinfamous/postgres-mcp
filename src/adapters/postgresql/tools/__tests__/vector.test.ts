@@ -678,12 +678,12 @@ describe("Vector Tools", () => {
       )) as {
         originalDimensions: number;
         targetDimensions: number;
-        reduced: number[];
+        reducedVector: number[];
       };
 
       expect(result.originalDimensions).toBe(100);
       expect(result.targetDimensions).toBe(10);
-      expect(result.reduced).toHaveLength(10);
+      expect(result.reducedVector).toHaveLength(10);
       expect(mockAdapter.executeQuery).not.toHaveBeenCalled();
     });
 

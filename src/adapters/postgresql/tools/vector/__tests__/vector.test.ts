@@ -457,7 +457,7 @@ describe("Bug Fixes", () => {
       )) as Record<string, unknown>;
 
       expect(result.targetDimensions).toBe(2);
-      expect(result.reduced).toBeDefined();
+      expect(result.reducedVector).toBeDefined();
     });
 
     it("should work with targetDimensions directly", async () => {
@@ -471,7 +471,7 @@ describe("Bug Fixes", () => {
       )) as Record<string, unknown>;
 
       expect(result.targetDimensions).toBe(3);
-      expect((result.reduced as number[]).length).toBe(3);
+      expect((result.reducedVector as number[]).length).toBe(3);
     });
 
     it("should return structured error when neither targetDimensions nor dimensions provided", async () => {

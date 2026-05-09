@@ -340,7 +340,7 @@ export function createVectorDimensionReduceTool(
             success: true,
             originalDimensions: originalDim,
             targetDimensions: targetDim,
-            reduced: reduceVector(parsed.vector, targetDim, seed),
+            reducedVector: reduceVector(parsed.vector, targetDim, seed),
             method: "random_projection",
             note: "For PCA or UMAP, use external libraries",
           };
@@ -406,13 +406,9 @@ export function createVectorDimensionReduceTool(
           const reducedRows: {
             id: unknown;
             original_dimensions: number;
-            reduced:
-              | number[]
-              | {
-                  preview: number[] | null;
-                  dimensions: number;
-                  truncated: boolean;
-                };
+            preview: number[] | null;
+            dimensions: number;
+            truncated: boolean;
           }[] = [];
           let originalDim = 0;
 
@@ -432,12 +428,14 @@ export function createVectorDimensionReduceTool(
             const reducedVector = reduceVector(vector, targetDim, seed);
 
             // Apply summarization if requested
+            const outputObj = shouldSummarize
+              ? truncateVector(reducedVector)
+              : { preview: reducedVector, dimensions: reducedVector.length, truncated: false };
+
             reducedRows.push({
               id: row["id"],
               original_dimensions: vector.length,
-              reduced: shouldSummarize
-                ? truncateVector(reducedVector)
-                : reducedVector,
+              ...outputObj,
             });
           }
 
