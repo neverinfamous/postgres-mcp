@@ -109,6 +109,26 @@ export function createVectorClusterTool(
             suggestion: "Provide k >= 1, typically between 2 and 20",
           };
         }
+
+        if (parsed.table === "") {
+          return {
+            success: false,
+            error: "table (or tableName) parameter is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            requiredParams: ["table", "column"],
+          };
+        }
+        if (parsed.column === "") {
+          return {
+            success: false,
+            error: "column (or col) parameter is required",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            requiredParams: ["table", "column"],
+          };
+        }
+
         const maxIter = parsed.iterations ?? 10;
         const sample = parsed.sampleSize ?? 10000;
         const schemaName = parsed.schema ?? "public";

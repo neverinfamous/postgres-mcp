@@ -348,6 +348,25 @@ export function createVectorDimensionReduceTool(
 
         // Table-based mode
         if (parsed.table !== undefined && parsed.column !== undefined) {
+          if (parsed.table === "") {
+            return {
+              success: false,
+              error: "table (or tableName) parameter is required for table mode",
+              code: "VALIDATION_ERROR",
+              category: "validation",
+              requiredParams: ["table", "column"],
+            };
+          }
+          if (parsed.column === "") {
+            return {
+              success: false,
+              error: "column (or col) parameter is required for table mode",
+              code: "VALIDATION_ERROR",
+              category: "validation",
+              requiredParams: ["table", "column"],
+            };
+          }
+
           // P154: Verify table and column exist before querying
           const existenceError = await checkTableAndColumn(
             adapter,
