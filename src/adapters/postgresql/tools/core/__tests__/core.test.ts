@@ -581,7 +581,7 @@ describe("Handler Execution", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/not found/);
+      expect(result.error).toMatch(/does not exist/);
     });
 
     it("should return structured error for indexes", async () => {

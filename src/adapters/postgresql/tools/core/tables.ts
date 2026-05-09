@@ -114,9 +114,7 @@ export function createDescribeTableTool(
         );
 
         if (!typeCheck.rows || typeCheck.rows.length === 0) {
-          throw new Error(
-            `Object '${schemaName}.${table}' not found. Use pg_list_tables to see available tables.`,
-          );
+          throw new Error(`relation "${table}" does not exist`);
         }
 
         const relkind = typeCheck.rows[0]?.["relkind"] as string;
