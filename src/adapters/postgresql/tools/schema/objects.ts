@@ -218,13 +218,9 @@ export function createListSequencesTool(
             [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-              code: "VALIDATION_ERROR",
-              category: "validation",
-              recoverable: false,
-            };
+            throw new ValidationError(
+              `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+            );
           }
         }
 
@@ -363,10 +359,9 @@ export function createCreateSequenceTool(
           // Validate and sanitize ownedBy: table.column or schema.table.column
           const ownedByParts = ownedBy.split(".");
           if (ownedByParts.length < 2 || ownedByParts.length > 3) {
-            return {
-              success: false,
-              error: `Invalid ownedBy format: '${ownedBy}'. Expected 'table.column' or 'schema.table.column'.`,
-            };
+            throw new ValidationError(
+              `Invalid ownedBy format: '${ownedBy}'. Expected 'table.column' or 'schema.table.column'.`,
+            );
           }
           const sanitizedOwnedBy = ownedByParts
             .map((p) => sanitizeIdentifier(p))

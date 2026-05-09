@@ -14,6 +14,7 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { sanitizeIdentifier } from "../../../../utils/identifiers.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { ValidationError } from "../../../../types/errors.js";
 import {
   CreateViewSchemaBase,
   CreateViewSchema,
@@ -52,13 +53,9 @@ export function createListViewsTool(adapter: PostgresAdapter): ToolDefinition {
             [parsed.schema],
           );
           if ((schemaCheck.rows?.length ?? 0) === 0) {
-            return {
-              success: false,
-              error: `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
-              code: "QUERY_ERROR",
-              category: "query",
-              recoverable: false,
-            };
+            throw new ValidationError(
+              `Schema '${parsed.schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+            );
           }
         }
 
