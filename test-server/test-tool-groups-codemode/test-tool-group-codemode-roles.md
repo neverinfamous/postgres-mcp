@@ -255,36 +255,36 @@ roles Tool Group (12 tools +1 for code mode)
 
 **Checklist:**
 
-1. `pg.execute("CREATE TABLE IF NOT EXISTS temp_rls_demo (id SERIAL PRIMARY KEY, user_id TEXT, data TEXT)")` → setup temp table for RLS tests
-2. `pg.roles.list()` → verify `{success: true, roles: [...]}` with `postgres` present
-3. `pg.roles.list({pattern: "postgres"})` → verify filtered result
-4. `pg.roles.create({name: "temp_test_role_analyst"})` → verify `{success: true}`
-5. `pg.roles.create({name: "temp_test_role_writer", login: true, password: "testpass123"})` → verify with LOGIN attribute
-6. `pg.roles.attributes({role: "temp_test_role_analyst"})` → verify OID, inherit, login=false
-7. `pg.roles.attributes({role: "postgres"})` → verify `superuser: true`
-8. `pg.roles.grants({role: "temp_test_role_analyst"})` → verify empty grants
-9. `pg.roles.grant({role: "temp_test_role_analyst", privileges: ["SELECT"], table: "test_products"})` → verify success
-10. `pg.roles.grants({role: "temp_test_role_analyst"})` → verify SELECT on test_products appears
-11. `pg.roles.assign({role: "temp_test_role_analyst", member: "temp_test_role_writer"})` → verify membership
-12. `pg.roles.userRoles({role: "temp_test_role_writer"})` → verify `temp_test_role_analyst` in memberships
-13. `pg.roles.revoke({role: "temp_test_role_analyst", member: "temp_test_role_writer"})` → verify revoked
-14. `pg.roles.userRoles({role: "temp_test_role_writer"})` → verify membership removed
-15. `pg.roles.set({role: "temp_test_role_analyst"})` → verify SET ROLE
-16. `pg.roles.set({reset: true})` → verify RESET ROLE
-17. `pg.roles.rlsEnable({table: "temp_rls_demo", enable: true})` → verify RLS enabled
-18. `pg.roles.rlsPolicies({table: "temp_rls_demo"})` → verify empty policies array
-19. `pg.roles.rlsEnable({table: "temp_rls_demo", enable: false})` → verify RLS disabled
-20. `pg.roles.drop({name: "temp_test_role_writer"})` → verify dropped
+✅ 1. `pg.execute("CREATE TABLE IF NOT EXISTS temp_rls_demo (id SERIAL PRIMARY KEY, user_id TEXT, data TEXT)")` → setup temp table for RLS tests
+✅ 2. `pg.roles.list()` → verify `{success: true, roles: [...]}` with `postgres` present
+✅ 3. `pg.roles.list({pattern: "postgres"})` → verify filtered result
+✅ 4. `pg.roles.create({name: "temp_test_role_analyst"})` → verify `{success: true}`
+✅ 5. `pg.roles.create({name: "temp_test_role_writer", login: true, password: "testpass123"})` → verify with LOGIN attribute
+✅ 6. `pg.roles.attributes({role: "temp_test_role_analyst"})` → verify OID, inherit, login=false
+✅ 7. `pg.roles.attributes({role: "postgres"})` → verify `superuser: true`
+✅ 8. `pg.roles.grants({role: "temp_test_role_analyst"})` → verify empty grants
+✅ 9. `pg.roles.grant({role: "temp_test_role_analyst", privileges: ["SELECT"], table: "test_products"})` → verify success
+✅ 10. `pg.roles.grants({role: "temp_test_role_analyst"})` → verify SELECT on test_products appears
+✅ 11. `pg.roles.assign({role: "temp_test_role_analyst", member: "temp_test_role_writer"})` → verify membership
+✅ 12. `pg.roles.userRoles({role: "temp_test_role_writer"})` → verify `temp_test_role_analyst` in memberships
+✅ 13. `pg.roles.revoke({role: "temp_test_role_analyst", member: "temp_test_role_writer"})` → verify revoked
+✅ 14. `pg.roles.userRoles({role: "temp_test_role_writer"})` → verify membership removed
+✅ 15. `pg.roles.set({role: "temp_test_role_analyst"})` → verify SET ROLE
+✅ 16. `pg.roles.set({reset: true})` → verify RESET ROLE
+✅ 17. `pg.roles.rlsEnable({table: "temp_rls_demo", enable: true})` → verify RLS enabled
+✅ 18. `pg.roles.rlsPolicies({table: "temp_rls_demo"})` → verify empty policies array
+✅ 19. `pg.roles.rlsEnable({table: "temp_rls_demo", enable: false})` → verify RLS disabled
+✅ 20. `pg.roles.drop({name: "temp_test_role_writer"})` → verify dropped
 
-21. 🔴 `pg.roles.create({})` → `{success: false, error: "..."}` (missing name)
-22. 🔴 `pg.roles.drop({})` → `{success: false, error: "..."}` (missing name)
-23. 🔴 `pg.roles.attributes({role: "nonexistent_role_xyz"})` → `{success: false}` (P154)
-24. 🔴 `pg.roles.grants({role: "nonexistent_role_xyz"})` → `{success: false}` (P154)
-25. 🔴 `pg.roles.grant({role: "temp_test_role_analyst", privileges: ["SELECT"], table: "nonexistent_xyz"})` → `{success: false}` (P154 table)
-26. 🔴 `pg.roles.rlsEnable({table: "nonexistent_xyz"})` → `{success: false}` (P154 table)
-27. 🔴 `pg.roles.rlsPolicies({table: "nonexistent_xyz"})` → `{success: false}` (P154 table)
+✅ 21. 🔴 `pg.roles.create({})` → `{success: false, error: "..."}` (missing name)
+✅ 22. 🔴 `pg.roles.drop({})` → `{success: false, error: "..."}` (missing name)
+✅ 23. 🔴 `pg.roles.attributes({role: "nonexistent_role_xyz"})` → `{success: false}` (P154)
+✅ 24. 🔴 `pg.roles.grants({role: "nonexistent_role_xyz"})` → `{success: false}` (P154)
+✅ 25. 🔴 `pg.roles.grant({role: "temp_test_role_analyst", privileges: ["SELECT"], table: "nonexistent_xyz"})` → `{success: false}` (P154 table)
+✅ 26. 🔴 `pg.roles.rlsEnable({table: "nonexistent_xyz"})` → `{success: false}` (P154 table)
+✅ 27. 🔴 `pg.roles.rlsPolicies({table: "nonexistent_xyz"})` → `{success: false}` (P154 table)
 
 **Cleanup (inside the script):**
 
-28. `pg.roles.drop({name: "temp_test_role_analyst"})` (revoke grants first if needed)
-29. `pg.execute("DROP TABLE IF EXISTS temp_rls_demo")`
+✅ 28. `pg.roles.drop({name: "temp_test_role_analyst"})` (revoke grants first if needed)
+✅ 29. `pg.execute("DROP TABLE IF EXISTS temp_rls_demo")`
