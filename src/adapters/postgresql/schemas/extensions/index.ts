@@ -18,6 +18,8 @@ export {
   KcacheTopIoSchema,
   KcacheDatabaseStatsSchema,
   KcacheResourceAnalysisSchema,
+  KcacheCreateExtensionSchema,
+  KcacheResetSchema,
   KcacheCreateExtensionOutputSchema,
   KcacheQueryStatsOutputSchema,
   KcacheTopCpuOutputSchema,

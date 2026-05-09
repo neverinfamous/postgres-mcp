@@ -142,6 +142,15 @@ export const KcacheResourceAnalysisSchema = z.object({
     .describe("If true, omits 0/empty fields to save output tokens"),
 });
 
+/**
+ * Base schema for MCP visibility - pg_kcache_create_extension parameters.
+ */
+export const KcacheCreateExtensionSchema = z.object({});
+
+/**
+ * Base schema for MCP visibility - pg_kcache_reset parameters.
+ */
+export const KcacheResetSchema = z.object({});
 
 // =============================================================================
 // Output Schemas

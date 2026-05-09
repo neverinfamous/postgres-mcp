@@ -16,8 +16,10 @@ import { readOnly, write, destructive } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
 import {
+  KcacheCreateExtensionSchema,
   KcacheDatabaseStatsSchema,
   KcacheResourceAnalysisSchema,
+  KcacheResetSchema,
   KcacheCreateExtensionOutputSchema,
   KcacheDatabaseStatsOutputSchema,
   KcacheResourceAnalysisOutputSchema,
@@ -36,7 +38,7 @@ export function createKcacheExtensionTool(
     description: `Enable the pg_stat_kcache extension for OS-level performance metrics.
 Requires pg_stat_statements to be installed first. Both extensions must be in shared_preload_libraries.`,
     group: "kcache",
-    inputSchema: z.object({}),
+    inputSchema: KcacheCreateExtensionSchema,
     outputSchema: KcacheCreateExtensionOutputSchema,
     annotations: write("Create Kcache Extension"),
     icons: getToolIcons("kcache", write("Create Kcache Extension")),
@@ -377,7 +379,7 @@ export function createKcacheResetTool(
     description: `Reset pg_stat_kcache statistics. Use this to start fresh measurements.
 Note: This also resets pg_stat_statements statistics.`,
     group: "kcache",
-    inputSchema: z.object({}),
+    inputSchema: KcacheResetSchema,
     outputSchema: KcacheResetOutputSchema,
     annotations: destructive("Reset Kcache Stats"),
     icons: getToolIcons("kcache", destructive("Reset Kcache Stats")),
