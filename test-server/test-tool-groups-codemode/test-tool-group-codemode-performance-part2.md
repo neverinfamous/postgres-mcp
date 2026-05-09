@@ -303,17 +303,17 @@ performance Tool Group (24 tools +1 code mode)
 
 **Remaining tools:**
 
-30. `pg_index_recommendations()` → verify happy path expected behavior
-31. 🔴 `pg_index_recommendations({})` → verify structured P154 error response or valid defaults
-32. `pg_vacuum_stats()` → verify happy path expected behavior
-33. 🔴 `pg_vacuum_stats({})` → verify structured P154 error response or valid defaults
-34. `pg_query_plan_compare()` → verify happy path expected behavior
-35. 🔴 `pg_query_plan_compare({})` → verify structured P154 error response or valid defaults
-36. `pg_performance_baseline()` → verify happy path expected behavior
-37. 🔴 `pg_performance_baseline({})` → verify structured P154 error response or valid defaults
-38. `pg_connection_pool_optimize()` → verify happy path expected behavior
-39. 🔴 `pg_connection_pool_optimize({})` → verify structured P154 error response or valid defaults
-40. `pg_partition_strategy_suggest()` → verify happy path expected behavior
-41. 🔴 `pg_partition_strategy_suggest({})` → verify structured P154 error response or valid defaults
-42. `pg_query_plan_stats()` → verify happy path expected behavior
-43. 🔴 `pg_query_plan_stats({})` → verify structured P154 error response or valid defaults
+30. ✅ `pg_index_recommendations()` → verify happy path expected behavior
+31. ✅ 🔴 `pg_index_recommendations({})` → verify structured P154 error response or valid defaults
+32. ✅ `pg_vacuum_stats()` → verify happy path expected behavior
+33. ✅ 🔴 `pg_vacuum_stats({})` → verify structured P154 error response or valid defaults
+34. ✅ `pg_query_plan_compare()` → verify happy path expected behavior
+35. ✅ 🔴 `pg_query_plan_compare({})` → verify structured P154 error response or valid defaults
+36. ✅ `pg_performance_baseline()` → verify happy path expected behavior
+37. ✅ 🔴 `pg_performance_baseline({})` → verify structured P154 error response or valid defaults
+38. ✅ `pg_connection_pool_optimize()` → verify happy path expected behavior
+39. ✅ 🔴 `pg_connection_pool_optimize({})` → verify structured P154 error response or valid defaults
+40. ✅ `pg_partition_strategy_suggest()` → verify happy path expected behavior
+41. ✅ 🔴 `pg_partition_strategy_suggest({})` → verify structured P154 error response or valid defaults
+42. ✅ `pg_query_plan_stats()` → verify happy path expected behavior
+43. ✅ 🔴 `pg_query_plan_stats({})` → verify structured P154 error response or valid defaults
