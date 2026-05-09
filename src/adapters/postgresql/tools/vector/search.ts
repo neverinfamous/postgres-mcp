@@ -159,7 +159,7 @@ export function createVectorSearchTool(
 
           const response: Record<string, unknown> = {
             success: true,
-            results: finalRows,
+            rows: finalRows,
             count: finalRows.length,
             metric: metric ?? "l2",
           };

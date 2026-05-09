@@ -83,7 +83,7 @@ test.describe("Payload Contracts: Vector", () => {
     expect(payload.success).toBe(true);
   });
 
-  test("pg_vector_search returns { results, count }", async () => {
+  test("pg_vector_search returns { rows, count }", async () => {
     const payload = await callToolAndParse(client, "pg_vector_search", {
       table: testTable,
       column: "embedding",
@@ -91,7 +91,7 @@ test.describe("Payload Contracts: Vector", () => {
       limit: 3,
     });
     expectSuccess(payload);
-    expect(Array.isArray(payload.results)).toBe(true);
+    expect(Array.isArray(payload.rows)).toBe(true);
     expect(typeof payload.count).toBe("number");
   });
 
@@ -107,7 +107,7 @@ test.describe("Payload Contracts: Vector", () => {
     expect(response.error.toLowerCase()).toContain("validation");
   });
 
-  test("pg_hybrid_search returns { results, count }", async () => {
+  test("pg_hybrid_search returns { rows, count }", async () => {
     // Requires column for FTS and vector, might fail if table absent, but shape should be object
     const payload = await callToolAndParse(client, "pg_hybrid_search", {
       table: testTable,

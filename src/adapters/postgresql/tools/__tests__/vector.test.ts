@@ -130,9 +130,9 @@ describe("Vector Tools", () => {
           vector: [0.1, 0.2, 0.3],
         },
         mockContext,
-      )) as { results: unknown[]; metric: string };
+      )) as { rows: unknown[]; metric: string };
 
-      expect(result.results).toHaveLength(2);
+      expect(result.rows).toHaveLength(2);
       expect(result.metric).toBe("l2");
     });
 
@@ -503,9 +503,9 @@ describe("Vector Tools", () => {
           textQuery: "machine learning",
         },
         mockContext,
-      )) as { results: unknown[]; vectorWeight: number; textWeight: number };
+      )) as { rows: unknown[]; vectorWeight: number; textWeight: number };
 
-      expect(result.results).toHaveLength(1);
+      expect(result.rows).toHaveLength(1);
       expect(result.vectorWeight).toBe(0.5);
       expect(result.textWeight).toBe(0.5);
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(

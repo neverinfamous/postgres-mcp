@@ -279,7 +279,7 @@ export function createHybridSearchTool(
           const result = await adapter.executeQuery(sql, [parsed.textQuery]);
           return {
             success: true,
-            results: result.rows,
+            rows: result.rows,
             count: result.rows?.length ?? 0,
             vectorWeight,
             textWeight,
