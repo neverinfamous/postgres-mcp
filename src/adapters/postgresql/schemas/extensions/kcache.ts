@@ -193,7 +193,7 @@ export const KcacheQueryStatsOutputSchema = z
 export const KcacheTopCpuOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether query succeeded"),
-    topCpuQueries: z
+    queries: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Top CPU-consuming queries"),
@@ -211,7 +211,7 @@ export const KcacheTopCpuOutputSchema = z
 export const KcacheTopIoOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether query succeeded"),
-    topIoQueries: z
+    queries: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Top I/O-consuming queries"),
@@ -233,7 +233,7 @@ export const KcacheTopIoOutputSchema = z
 export const KcacheDatabaseStatsOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether query succeeded"),
-    databaseStats: z
+    stats: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Database-level statistics"),

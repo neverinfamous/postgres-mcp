@@ -162,7 +162,7 @@ Shows total CPU time, I/O, and page faults across all queries.`,
 
         return {
           success: true,
-          databaseStats: rows,
+          stats: rows,
           count: rows.length,
         };
       } catch (error: unknown) {

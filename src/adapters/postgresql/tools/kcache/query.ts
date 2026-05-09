@@ -295,7 +295,7 @@ in user CPU (application code) vs system CPU (kernel operations).`,
 
         const response: Record<string, unknown> = {
           success: true,
-          topCpuQueries: finalQueries,
+          queries: finalQueries,
           count: rowCount,
           description: "Queries ranked by total CPU time (user + system)",
           truncated,
@@ -454,7 +454,7 @@ which represent actual disk access (not just shared buffer hits).`,
 
         const response: Record<string, unknown> = {
           success: true,
-          topIoQueries: finalQueries,
+          queries: finalQueries,
           count: rowCount,
           ioType,
           description: `Queries ranked by ${ioType === "both" ? "total I/O" : ioType}`,
