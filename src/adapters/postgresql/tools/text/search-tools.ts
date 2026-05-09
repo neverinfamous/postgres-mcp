@@ -77,23 +77,15 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         // The preprocessor guarantees table is set (converts tableName → table)
         const resolvedTable = parsed.table ?? parsed.tableName;
         if (!resolvedTable) {
-          return {
-            success: false,
-            error: "Either 'table' or 'tableName' is required",
-            code: "VALIDATION_ERROR",
-            category: "validation",
-            recoverable: false,
-          };
+          throw new ValidationError(
+            "Either 'table' or 'tableName' is required"
+          );
         }
         const tableName = sanitizeTableName(resolvedTable, parsed.schema);
         if (!parsed.column || !parsed.pattern) {
-          return {
-            success: false,
-            error: "column and pattern are required",
-            code: "VALIDATION_ERROR",
-            category: "validation",
-            recoverable: false,
-          };
+          throw new ValidationError(
+            "column and pattern are required"
+          );
         }
         const columnName = sanitizeIdentifier(parsed.column);
         const selectCols =
@@ -170,7 +162,6 @@ export function createTextSentimentTool(
   const SentimentSchema = z.object({
     text: z
       .string()
-      .min(1, "Text must not be empty")
       .describe("Text to analyze"),
     returnWords: z
       .boolean()
@@ -190,6 +181,9 @@ export function createTextSentimentTool(
     handler: (params: unknown, _context: RequestContext) => {
       try {
         const parsed = SentimentSchema.parse(params ?? {});
+        if (!parsed.text || parsed.text.trim().length === 0) {
+          throw new ValidationError("Text must not be empty");
+        }
         const text = parsed.text.toLowerCase();
 
         const positiveWords = [
