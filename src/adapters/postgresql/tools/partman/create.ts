@@ -108,15 +108,13 @@ A startPartition far in the past (e.g., '2024-01-01' with daily intervals) creat
           if (!parentTable) missing.push("parentTable");
           if (!controlColumn) missing.push("controlColumn (or control)");
           if (!interval) missing.push("interval");
-          return {
-            success: false,
-            error: `Missing required parameters: ${missing.join(", ")}.`,
-            code: "VALIDATION_ERROR",
-            category: "validation",
-            recoverable: false,
-            hint: 'Example: pg_partman_create_parent({ parentTable: "public.events", controlColumn: "created_at", interval: "1 month" })',
-            aliases: { control: "controlColumn" },
-          };
+          throw new ValidationError(
+            `Validation error: Missing required parameters: ${missing.join(", ")}.`,
+            {
+              hint: 'Example: pg_partman_create_parent({ parentTable: "public.events", controlColumn: "created_at", interval: "1 month" })',
+              aliases: { control: "controlColumn" },
+            }
+          );
         }
 
         // Check for deprecated interval keywords and return structured error

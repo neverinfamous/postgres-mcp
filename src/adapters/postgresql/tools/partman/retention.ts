@@ -50,7 +50,7 @@ Partitions older than the retention period will be dropped or detached during ma
         // Validate required parentTable
         if (!parentTable) {
           throw new ValidationError(
-            "Missing required parameter: parentTable.",
+            "Validation error: Missing required parameter: parentTable.",
             {
               hint: 'Example: pg_partman_set_retention({ parentTable: "public.events", retention: "30 days" })',
             },
@@ -62,7 +62,7 @@ Partitions older than the retention period will be dropped or detached during ma
 
         // If retention is omitted (undefined), it's required
         if (retention === undefined) {
-          throw new ValidationError("Missing required parameter: retention.", {
+          throw new ValidationError("Validation error: Missing required parameter: retention.", {
             hint:
               'Provide a retention period (e.g., "30 days") or pass null to explicitly disable retention. ' +
               'Example: pg_partman_set_retention({ parentTable: "public.events", retention: "30 days" })',
@@ -229,7 +229,7 @@ Example: undoPartition({ parentTable: "public.events", targetTable: "public.even
           if (!parentTable) missing.push("parentTable");
           if (!targetTable) missing.push("targetTable (or target)");
           throw new ValidationError(
-            `Missing required parameters: ${missing.join(", ")}.`,
+            `Validation error: Missing required parameters: ${missing.join(", ")}.`,
             {
               hint: 'Example: pg_partman_undo_partition({ parentTable: "public.events", targetTable: "public.events_archive" }). Target table must exist first.',
               aliases: { target: "targetTable" },
