@@ -70,7 +70,7 @@ describe("Ltree Tools", () => {
           path: "root.child1",
         },
         mockContext,
-      )) as { mode: string; results: unknown[]; count: number };
+      )) as { mode: string; rows: unknown[]; count: number };
 
       expect(result.mode).toBe("descendants");
       expect(result.count).toBe(2);

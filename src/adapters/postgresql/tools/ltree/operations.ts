@@ -107,7 +107,7 @@ function createLtreeMatchTool(adapter: PostgresAdapter): ToolDefinition {
         };
 
         if (resultCount > 0) {
-          response["results"] = result.rows;
+          response["rows"] = result.rows;
         }
 
         // Add truncation indicators when limit is applied

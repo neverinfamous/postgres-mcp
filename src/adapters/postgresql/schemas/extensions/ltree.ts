@@ -373,7 +373,7 @@ export const LtreeQueryOutputSchema = z
     path: z.string().optional().describe("Query path"),
     mode: z.string().optional().describe("Query mode"),
     isPattern: z.boolean().optional().describe("Whether query uses patterns"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Query results"),
@@ -424,7 +424,7 @@ export const LtreeMatchOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether match succeeded"),
     pattern: z.string().optional().describe("Query pattern"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Matching results"),
