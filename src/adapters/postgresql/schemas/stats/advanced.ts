@@ -7,7 +7,6 @@
 import { z } from "zod";
 import { ErrorResponseFields } from "../error-response-fields.js";
 import { preprocessBasicStatsParams } from "./preprocessing.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Base Schemas (for MCP visibility)
@@ -28,10 +27,12 @@ export const StatsOutliersSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
+    .optional()
     .describe("Maximum rows to scan (default: 10000)"),
   maxOutliers: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
+    .optional()
     .describe(
       "Maximum outliers to return (default: 50). Reduces payload for large datasets.",
     ),
@@ -42,7 +43,8 @@ export const StatsTopNSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Column to rank by"),
   n: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
+    .optional()
     .describe("Number of top values (default: 10, max: 100)"),
   direction: z
     .enum(["asc", "desc"])
@@ -63,7 +65,8 @@ export const StatsDistinctSchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
+    .optional()
     .describe("Maximum values to return (default: 100, max: 1000)"),
 });
 
@@ -74,7 +77,8 @@ export const StatsFrequencySchemaBase = z.object({
   schema: z.string().optional().describe("Schema name (default: public)"),
   where: z.string().optional().describe("Filter condition"),
   limit: z
-    .preprocess(coerceNumber, z.number().optional())
+    .number()
+    .optional()
     .describe("Maximum frequency entries (default: 20, max: 1000)"),
 });
 

@@ -5,7 +5,7 @@
  * Handles tableName→table, col→column, schema.table parsing, percentile normalization, etc.
  */
 
-import { coerceNumber } from "../../../../utils/query-helpers.js";
+import { coerceNumber, coerceStrictNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Schema.Table Parsing
@@ -145,6 +145,17 @@ export function preprocessBasicStatsParams(input: unknown): unknown {
       // else: already in 0-1 format, no change needed
     }
   }
+  // Handle advanced stats parameters with strict coercion
+  if (result["n"] !== undefined) {
+    result["n"] = coerceStrictNumber(result["n"]);
+  }
+  if (result["limit"] !== undefined) {
+    result["limit"] = coerceStrictNumber(result["limit"]);
+  }
+  if (result["maxOutliers"] !== undefined) {
+    result["maxOutliers"] = coerceStrictNumber(result["maxOutliers"]);
+  }
+
   return result;
 }
 
