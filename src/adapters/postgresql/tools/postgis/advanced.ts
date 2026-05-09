@@ -108,7 +108,7 @@ export function createGeoTransformTool(
           if ((tableCheckResult.rows?.length ?? 0) === 0) {
             return {
               success: false as const,
-              error: `Table "${parsed.table}" does not exist in schema "${schemaName}". Use pg_list_tables to see available tables.`,
+              error: `Table "${schemaName}.${parsed.table}" does not exist. Use pg_list_tables to see available tables.`,
               code: "TABLE_NOT_FOUND",
               category: "resource",
               suggestion: "Use pg_list_tables to see available tables.",

@@ -140,7 +140,7 @@ export function createGeoIndexOptimizeTool(
         ) {
           return {
             success: false,
-            error: `Table "${parsed.table}" not found in schema "${schemaName}" or has no spatial columns/indexes.`,
+            error: `Table "${schemaName}.${parsed.table}" does not exist or has no spatial columns/indexes.`,
             code: "TABLE_NOT_FOUND",
             category: "query",
             recoverable: false,
