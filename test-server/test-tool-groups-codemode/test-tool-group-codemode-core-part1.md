@@ -271,7 +271,7 @@ All tools implement P154 structured error handling for nonexistent tables/schema
 19. 🔴 `pg_create_index({})` → `{success: false, error: "Validation error: ..."}` (missing required params)
 20. 🔴 `pg_drop_table({})` → `{success: false, error: "Validation error: ..."}` (missing required `table`)
 21. 🔴 `pg_drop_index({})` → `{success: false, error: "Validation error: ..."}` (missing required `name`)
-22. ✅ `pg_list_objects({})` → works without type (returns default objects)
+22. 🔴 `pg_list_objects({})` → works without type (returns default objects)
 
 **Alias acceptance (verify aliases produce identical results to primary parameter name):**
 
@@ -291,4 +291,3 @@ All tools implement P154 structured error handling for nonexistent tables/schema
 30. `pg_execute_code({code: "return await pg.core.help()"})` → verify lists ~20 core methods
 31. `pg_execute_code({code: "return await pg.core.readQuery({sql: 'SELECT 1 AS n'})"})` → verify `{rows: [{n: 1}]}`
 32. `pg_execute_code({code: "return await pg.readQuery({sql: 'SELECT * FROM nonexistent_xyz'})"})` → verify error is returned (not thrown), contains `{success: false}` or error object
-

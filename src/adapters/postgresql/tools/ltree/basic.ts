@@ -341,8 +341,14 @@ function createLtreeListColumnsTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, queryParams);
         const count = result.rows?.length ?? 0;
         const response: Record<string, unknown> = { success: true, count };
-        if (count > 0) {
-          response["columns"] = result.rows;
+        if (count > 0 && result.rows) {
+          response["columns"] = result.rows.map((row) => ({
+            schema: row["table_schema"],
+            table: row["table_name"],
+            column: row["column_name"],
+            isNullable: row["is_nullable"],
+            columnDefault: row["column_default"],
+          }));
         }
         return response;
       } catch (error: unknown) {
