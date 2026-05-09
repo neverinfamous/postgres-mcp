@@ -884,7 +884,7 @@ describe("PostGIS Advanced Tool Edge Cases", () => {
     )) as Record<string, unknown>;
 
     expect(result["success"]).toBe(false);
-    expect(result["error"]).toContain("not found");
+    expect(result["error"]).toContain("does not exist");
   });
 
   it("pg_geo_index_optimize should recommend GiST for large tables without spatial indexes", async () => {
