@@ -179,7 +179,7 @@ export function createGeoTransformTool(
         // Build response with truncation indicators if default limit was applied
         const response: Record<string, unknown> = {
           success: true,
-          results: result.rows,
+          rows: result.rows,
           count: result.rows?.length ?? 0,
           fromSrid: fromSrid,
           toSrid: parsed.toSrid,

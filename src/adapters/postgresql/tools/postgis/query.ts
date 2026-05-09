@@ -243,7 +243,7 @@ export function createDistanceTool(adapter: PostgresAdapter): ToolDefinition {
         const result = await adapter.executeQuery(sql, [point.lng, point.lat]);
         return {
           success: true,
-          results: result.rows,
+          rows: result.rows,
           count: result.rows?.length ?? 0,
         };
       } catch (error: unknown) {
@@ -326,7 +326,7 @@ export function createBufferTool(adapter: PostgresAdapter): ToolDefinition {
         // Build response with truncation indicators if default limit was applied
         const response: Record<string, unknown> = {
           success: true,
-          results: result.rows,
+          rows: result.rows,
         };
 
         // Check if results were truncated (works for both default and explicit limits)
@@ -576,7 +576,7 @@ export function createBoundingBoxTool(
 
         const response: Record<string, unknown> = {
           success: true,
-          results: result.rows,
+          rows: result.rows,
           count: result.rows?.length ?? 0,
         };
 

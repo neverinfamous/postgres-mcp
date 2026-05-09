@@ -62,7 +62,7 @@ export const PointInPolygonOutputSchema = z
 export const DistanceOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether operation succeeded"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Nearby geometries with distances"),
@@ -77,7 +77,7 @@ export const DistanceOutputSchema = z
 export const BufferOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether operation succeeded"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Buffer results"),
@@ -118,7 +118,7 @@ export const IntersectionOutputSchema = z
 export const BoundingBoxOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether operation succeeded"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Geometries in bounding box"),
@@ -164,7 +164,7 @@ export const GeocodeOutputSchema = z
 export const GeoTransformOutputSchema = z
   .object({
     success: z.boolean().optional().describe("Whether operation succeeded"),
-    results: z
+    rows: z
       .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe("Transformed geometries"),

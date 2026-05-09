@@ -246,21 +246,21 @@ partman Tool Group (10 tools +1 for code mode)
 
 **Checklist:**
 
-249. ✅ `pg_partman_create_parent({parentTable: "test_logs", controlColumn: "created_at", interval: "1 day", startPartition: "now"})` → verify success
-250. ✅ `pg_partman_show_config({table: "test_logs"})` → verify config is returned
-251. ✅ `pg_partman_show_partitions({parentTable: "test_logs"})` → verify partitions created
-252. ✅ `pg_partman_run_maintenance({parentTable: "test_logs"})` → verify success response
-253. ✅ `pg_partman_analyze_partition_health()` → verify `{summary}` with `overallHealth` field
-254. ✅ Cleanup: `pg_partman_undo_partition` if applicable, or note state for reset-database.ps1
-255. ✅ 🔴 `pg_partman_show_partitions({parentTable: "nonexistent_xyz"})` → `{success: false, error: "..."}` handler error
-256. ✅ 🔴 `pg_partman_create_parent({})` → `{success: false, error: "..."}` (Zod validation)
-257. ✅ 🔴 `pg_partman_partition_data({parentTable: "test_logs", batchSize: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `batchSize` (wrong-type numeric param)
+1. `pg_partman_create_parent({parentTable: "test_logs", controlColumn: "created_at", interval: "1 day", startPartition: "now"})` → verify success
+2. `pg_partman_show_config({table: "test_logs"})` → verify config is returned
+3. `pg_partman_show_partitions({parentTable: "test_logs"})` → verify partitions created
+4. `pg_partman_run_maintenance({parentTable: "test_logs"})` → verify success response
+5. `pg_partman_analyze_partition_health()` → verify `{summary}` with `overallHealth` field
+6. Cleanup: `pg_partman_undo_partition` if applicable, or note state for reset-database.ps1
+7. 🔴 `pg_partman_show_partitions({parentTable: "nonexistent_xyz"})` → `{success: false, error: "..."}` handler error
+8. 🔴 `pg_partman_create_parent({})` → `{success: false, error: "..."}` (Zod validation)
+9. 🔴 `pg_partman_partition_data({parentTable: "test_logs", batchSize: "abc"})` → must NOT return raw MCP `-32602` error — should return handler error or silently default `batchSize` (wrong-type numeric param)
 
-259. ✅ `pg_partman_create_extension()` → verify happy path expected behavior
-260. ✅ 🔴 `pg_partman_create_extension({})` → verify structured P154 error response or valid defaults
-261. ✅ `pg_partman_check_default()` → verify happy path expected behavior
-262. ✅ 🔴 `pg_partman_check_default({})` → verify structured P154 error response or valid defaults
-263. ✅ `pg_partman_set_retention()` → verify happy path expected behavior
-264. ✅ 🔴 `pg_partman_set_retention({})` → verify structured P154 error response or valid defaults
-265. ✅ `pg_partman_undo_partition()` → verify happy path expected behavior
-266. ✅ 🔴 `pg_partman_undo_partition({})` → verify structured P154 error response or valid defaults
+10. `pg_partman_create_extension()` → verify happy path expected behavior
+11. 🔴 `pg_partman_create_extension({})` → verify structured P154 error response or valid defaults
+12. `pg_partman_check_default()` → verify happy path expected behavior
+13. 🔴 `pg_partman_check_default({})` → verify structured P154 error response or valid defaults
+14. `pg_partman_set_retention()` → verify happy path expected behavior
+15. 🔴 `pg_partman_set_retention({})` → verify structured P154 error response or valid defaults
+16. `pg_partman_undo_partition()` → verify happy path expected behavior
+17. 🔴 `pg_partman_undo_partition({})` → verify structured P154 error response or valid defaults
