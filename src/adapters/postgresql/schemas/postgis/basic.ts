@@ -157,7 +157,7 @@ export const GeometryDistanceSchema = z
       limit: data.limit,
       maxDistance:
         rawDistance !== undefined
-          ? convertToMeters(rawDistance, data.unit)
+          ? (Number.isNaN(rawDistance) ? NaN : convertToMeters(rawDistance, data.unit))
           : undefined,
       unit: data.unit,
       schema: data.schema,
