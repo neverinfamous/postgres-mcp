@@ -186,8 +186,8 @@ export function createListObjectsTool(
           objects.push(...(result.rows as typeof objects));
         }
 
-        // Apply default limit of 50 if not specified
-        const effectiveLimit = limit === 0 ? undefined : (limit ?? 50);
+        // Apply default limit of 20 to reduce payload size if not specified
+        const effectiveLimit = limit === 0 ? undefined : (limit ?? 20);
         const truncated = effectiveLimit !== undefined && objects.length > effectiveLimit;
         const limitedObjects = truncated && effectiveLimit !== undefined
           ? objects.slice(0, effectiveLimit)

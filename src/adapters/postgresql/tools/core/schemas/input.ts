@@ -65,7 +65,7 @@ export const ListObjectsSchemaBase = z.object({
   limit: z
     .number()
     .optional()
-    .describe("Maximum number of objects to return (default: 50)"),
+    .describe("Maximum number of objects to return (default: 20)"),
   exclude: z
     .array(z.string())
     .optional()
