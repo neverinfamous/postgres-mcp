@@ -97,7 +97,7 @@ describe("Citext Tools", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("not found");
+      expect(result.error).toContain("does not exist");
     });
 
     it("should report already citext column", async () => {
@@ -156,14 +156,14 @@ describe("Citext Tools", () => {
         .mockResolvedValueOnce({
           rows: [
             {
-              table_schema: "public",
-              table_name: "users",
-              column_name: "email",
+              schema: "public",
+              tableName: "users",
+              columnName: "email",
             },
             {
-              table_schema: "public",
-              table_name: "users",
-              column_name: "username",
+              schema: "public",
+              tableName: "users",
+              columnName: "username",
             },
           ],
         });
@@ -274,16 +274,16 @@ describe("Citext Tools", () => {
         .mockResolvedValueOnce({
           rows: [
             {
-              table_schema: "public",
-              table_name: "users",
-              column_name: "email",
-              data_type: "text",
+              schema: "public",
+              tableName: "users",
+              columnName: "email",
+              dataType: "text",
             },
             {
-              table_schema: "public",
-              table_name: "users",
-              column_name: "username",
-              data_type: "character varying",
+              schema: "public",
+              tableName: "users",
+              columnName: "username",
+              dataType: "character varying",
             },
           ],
         });
@@ -305,7 +305,7 @@ describe("Citext Tools", () => {
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ total: 1 }] })
         .mockResolvedValueOnce({
-          rows: [{ column_name: "custom_field", data_type: "text" }],
+          rows: [{ columnName: "custom_field", dataType: "text" }],
         });
 
       const tool = findTool("pg_citext_analyze_candidates");
@@ -321,7 +321,7 @@ describe("Citext Tools", () => {
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ total: 1 }] })
         .mockResolvedValueOnce({
-          rows: [{ column_name: "email", data_type: "text" }],
+          rows: [{ columnName: "email", dataType: "text" }],
         });
 
       const tool = findTool("pg_citext_analyze_candidates");
@@ -515,9 +515,9 @@ describe("Citext Tools", () => {
         .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
         .mockResolvedValueOnce({
           rows: [
-            { column_name: "email", data_type: "text", udt_name: "text" },
-            { column_name: "username", data_type: "text", udt_name: "text" },
-            { column_name: "bio", data_type: "text", udt_name: "text" },
+            { columnName: "email", dataType: "text", udtName: "text" },
+            { columnName: "username", dataType: "text", udtName: "text" },
+            { columnName: "bio", dataType: "text", udtName: "text" },
           ],
         });
 
@@ -550,9 +550,9 @@ describe("Citext Tools", () => {
         .mockResolvedValueOnce({
           rows: [
             {
-              column_name: "email",
-              data_type: "USER-DEFINED",
-              udt_name: "citext",
+              columnName: "email",
+              dataType: "USER-DEFINED",
+              udtName: "citext",
             },
           ],
         });
@@ -576,7 +576,7 @@ describe("Citext Tools", () => {
       mockAdapter.executeQuery
         .mockResolvedValueOnce({ rows: [{ "?column?": 1 }] }) // table exists
         .mockResolvedValueOnce({
-          rows: [{ column_name: "email", data_type: "text", udt_name: "text" }],
+          rows: [{ columnName: "email", dataType: "text", udtName: "text" }],
         });
 
       const tool = findTool("pg_citext_schema_advisor");
@@ -606,7 +606,7 @@ describe("Citext Tools", () => {
       )) as { success: boolean; error: string };
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain("not found");
+      expect(result.error).toContain("does not exist");
     });
   });
 

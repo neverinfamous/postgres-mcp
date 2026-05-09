@@ -45,6 +45,17 @@ citext is ideal for emails, usernames, and other identifiers where case shouldn'
 
         let query = "CREATE EXTENSION IF NOT EXISTS citext";
         if (typeof schema === "string" && schema.length > 0) {
+          // Check if schema exists first
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.schemata WHERE schema_name = $1`,
+            [schema]
+          );
+          if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+            throw new ValidationError(
+              `Schema "${schema}" does not exist.`,
+              { code: "SCHEMA_NOT_FOUND" }
+            );
+          }
           query += ` SCHEMA "${schema}"`;
         }
 
@@ -131,7 +142,7 @@ Note: If views depend on this column, you must drop and recreate them manually b
 
         if (!colCheck.rows || colCheck.rows.length === 0) {
           throw new ValidationError(
-            `Column "${column}" not found in table ${qualifiedTable}. Verify the column name.`,
+            `Column "${column}" does not exist in table ${qualifiedTable}. Verify the column name.`,
             { code: "COLUMN_NOT_FOUND" },
           );
         }
