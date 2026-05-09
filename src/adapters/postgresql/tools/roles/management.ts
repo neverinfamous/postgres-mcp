@@ -7,6 +7,7 @@
 
 import { ZodError } from "zod";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { QueryError, ValidationError } from "../../../../types/errors.js";
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
@@ -179,7 +180,7 @@ export function createRoleCreateTool(adapter: PostgresAdapter): ToolDefinition {
 
         if (!validateIdentifier(parsed.name)) {
           return formatHandlerErrorResponse(
-            new Error(
+            new ValidationError(
               `Invalid role name: '${parsed.name}' — must start with a letter or underscore and contain only alphanumeric characters, underscores, or dollar signs`,
             ),
             { tool: "pg_role_create" },
@@ -198,7 +199,7 @@ export function createRoleCreateTool(adapter: PostgresAdapter): ToolDefinition {
             };
           }
           return formatHandlerErrorResponse(
-            new Error(`Role '${parsed.name}' already exists`),
+            new QueryError(`Role '${parsed.name}' already exists`),
             { tool: "pg_role_create" },
           );
         }
@@ -239,7 +240,7 @@ export function createRoleCreateTool(adapter: PostgresAdapter): ToolDefinition {
           for (const roleName of parsed.inRoles) {
             if (!validateIdentifier(roleName)) {
               return formatHandlerErrorResponse(
-                new Error(
+                new ValidationError(
                   `Invalid role name in inRoles: '${roleName}'`,
                 ),
                 { tool: "pg_role_create" },
@@ -299,7 +300,7 @@ export function createRoleDropTool(adapter: PostgresAdapter): ToolDefinition {
 
         if (!validateIdentifier(parsed.name)) {
           return formatHandlerErrorResponse(
-            new Error(
+            new ValidationError(
               `Invalid role name: '${parsed.name}'`,
             ),
             { tool: "pg_role_drop" },
@@ -318,7 +319,7 @@ export function createRoleDropTool(adapter: PostgresAdapter): ToolDefinition {
             };
           }
           return formatHandlerErrorResponse(
-            new Error(`Role '${parsed.name}' does not exist`),
+            new QueryError(`Role '${parsed.name}' does not exist`),
             { tool: "pg_role_drop" },
           );
         }
@@ -381,21 +382,19 @@ export function createRoleAttributesTool(
         );
 
         if ((result.rows?.length ?? 0) === 0) {
-          return {
-            success: false,
-            exists: false,
-            error: `Role '${parsed.role}' does not exist`,
-          };
+          return formatHandlerErrorResponse(
+            new QueryError(`Role '${parsed.role}' does not exist`),
+            { tool: "pg_role_attributes" },
+          );
         }
 
         const row = (result.rows ?? [])[0];
 
         if (!row) {
-          return {
-            success: false,
-            exists: false,
-            error: `Role '${parsed.role}' does not exist`,
-          };
+          return formatHandlerErrorResponse(
+            new QueryError(`Role '${parsed.role}' does not exist`),
+            { tool: "pg_role_attributes" },
+          );
         }
 
         return {

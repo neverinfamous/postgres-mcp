@@ -7,6 +7,7 @@
 
 import { ZodError } from "zod";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { QueryError, ValidationError } from "../../../../types/errors.js";
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
@@ -115,10 +116,12 @@ export function createRoleGrantsTool(
         const exists = await roleExists(adapter, parsed.role);
         if (!exists) {
           return {
-            success: false,
+            ...formatHandlerErrorResponse(
+              new QueryError(`Role '${parsed.role}' does not exist`),
+              { tool: "pg_role_grants" }
+            ),
             exists: false,
             role: parsed.role,
-            error: `Role '${parsed.role}' does not exist`,
           };
         }
 
@@ -211,7 +214,7 @@ export function createRoleGrantTool(
 
         if (!validateIdentifier(parsed.role)) {
           return formatHandlerErrorResponse(
-            new Error(`Invalid role name: '${parsed.role}'`),
+            new ValidationError(`Invalid role name: '${parsed.role}'`),
             { tool: "pg_role_grant" },
           );
         }
@@ -220,10 +223,12 @@ export function createRoleGrantTool(
         const exists = await roleExists(adapter, parsed.role);
         if (!exists) {
           return {
-            success: false,
+            ...formatHandlerErrorResponse(
+              new QueryError(`Role '${parsed.role}' does not exist`),
+              { tool: "pg_role_grant" }
+            ),
             exists: false,
             role: parsed.role,
-            error: `Role '${parsed.role}' does not exist`,
           };
         }
 
@@ -231,7 +236,7 @@ export function createRoleGrantTool(
         const privCheck = validatePrivileges(parsed.privileges);
         if (!privCheck.valid) {
           return formatHandlerErrorResponse(
-            new Error(
+            new ValidationError(
               `Invalid privilege(s): ${privCheck.invalid.join(", ")}. Valid: ${[...VALID_PRIVILEGES].join(", ")}`,
             ),
             { tool: "pg_role_grant" },
@@ -252,7 +257,7 @@ export function createRoleGrantTool(
         ) {
           if (!validateIdentifier(schema)) {
             return formatHandlerErrorResponse(
-              new Error(`Invalid schema name: '${schema}'`),
+              new ValidationError(`Invalid schema name: '${schema}'`),
               { tool: "pg_role_grant" },
             );
           }
@@ -260,7 +265,7 @@ export function createRoleGrantTool(
         } else if (objType === "ALL SEQUENCES IN SCHEMA") {
           if (!validateIdentifier(schema)) {
             return formatHandlerErrorResponse(
-              new Error(`Invalid schema name: '${schema}'`),
+              new ValidationError(`Invalid schema name: '${schema}'`),
               { tool: "pg_role_grant" },
             );
           }
@@ -268,7 +273,7 @@ export function createRoleGrantTool(
         } else if (objType === "SCHEMA") {
           if (!validateIdentifier(schema)) {
             return formatHandlerErrorResponse(
-              new Error(`Invalid schema name: '${schema}'`),
+              new ValidationError(`Invalid schema name: '${schema}'`),
               { tool: "pg_role_grant" },
             );
           }
@@ -276,13 +281,13 @@ export function createRoleGrantTool(
         } else if (parsed.table) {
           if (!validateIdentifier(parsed.table)) {
             return formatHandlerErrorResponse(
-              new Error(`Invalid table name: '${parsed.table}'`),
+              new ValidationError(`Invalid table name: '${parsed.table}'`),
               { tool: "pg_role_grant" },
             );
           }
           if (!validateIdentifier(schema)) {
             return formatHandlerErrorResponse(
-              new Error(`Invalid schema name: '${schema}'`),
+              new ValidationError(`Invalid schema name: '${schema}'`),
               { tool: "pg_role_grant" },
             );
           }
@@ -294,7 +299,7 @@ export function createRoleGrantTool(
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
             return formatHandlerErrorResponse(
-              new Error(`Table '${schema}.${parsed.table}' does not exist`),
+              new QueryError(`Table '${schema}.${parsed.table}' does not exist`),
               { tool: "pg_role_grant" }
             );
           }
@@ -302,7 +307,7 @@ export function createRoleGrantTool(
           target = `TABLE "${schema}"."${parsed.table}"`;
         } else {
           return formatHandlerErrorResponse(
-            new Error(
+            new ValidationError(
               "Either 'table' or 'objectType' of SCHEMA/ALL TABLES IN SCHEMA is required",
             ),
             { tool: "pg_role_grant" },
@@ -364,13 +369,13 @@ export function createRoleAssignTool(
 
         if (!validateIdentifier(parsed.role)) {
           return formatHandlerErrorResponse(
-            new Error(`Invalid role name: '${parsed.role}'`),
+            new ValidationError(`Invalid role name: '${parsed.role}'`),
             { tool: "pg_role_assign" },
           );
         }
         if (!validateIdentifier(parsed.user)) {
           return formatHandlerErrorResponse(
-            new Error(`Invalid user name: '${parsed.user}'`),
+            new ValidationError(`Invalid user name: '${parsed.user}'`),
             { tool: "pg_role_assign" },
           );
         }
@@ -379,20 +384,24 @@ export function createRoleAssignTool(
         const roleExistsVal = await roleExists(adapter, parsed.role);
         if (!roleExistsVal) {
           return {
-            success: false,
+            ...formatHandlerErrorResponse(
+              new QueryError(`Role '${parsed.role}' does not exist`),
+              { tool: "pg_role_assign" }
+            ),
             exists: false,
             role: parsed.role,
-            error: `Role '${parsed.role}' does not exist`,
           };
         }
 
         const userExistsVal = await roleExists(adapter, parsed.user);
         if (!userExistsVal) {
           return {
-            success: false,
+            ...formatHandlerErrorResponse(
+              new QueryError(`User/role '${parsed.user}' does not exist`),
+              { tool: "pg_role_assign" }
+            ),
             exists: false,
             user: parsed.user,
-            error: `User/role '${parsed.user}' does not exist`,
           };
         }
 
@@ -451,19 +460,20 @@ export function createRoleRevokeTool(
 
         if (!validateIdentifier(parsed.role)) {
           return formatHandlerErrorResponse(
-            new Error(`Invalid role name: '${parsed.role}'`),
+            new ValidationError(`Invalid role name: '${parsed.role}'`),
             { tool: "pg_role_revoke" },
           );
         }
 
-        // P154: Check role existence
         const roleExistsVal = await roleExists(adapter, parsed.role);
         if (!roleExistsVal) {
           return {
-            success: false,
+            ...formatHandlerErrorResponse(
+              new QueryError(`Role '${parsed.role}' does not exist`),
+              { tool: "pg_role_revoke" }
+            ),
             exists: false,
             role: parsed.role,
-            error: `Role '${parsed.role}' does not exist`,
           };
         }
 
@@ -473,7 +483,7 @@ export function createRoleRevokeTool(
           const privCheck = validatePrivileges(parsed.privileges);
           if (!privCheck.valid) {
             return formatHandlerErrorResponse(
-              new Error(
+              new ValidationError(
                 `Invalid privilege(s): ${privCheck.invalid.join(", ")}`,
               ),
               { tool: "pg_role_revoke" },
@@ -491,7 +501,7 @@ export function createRoleRevokeTool(
           if (objType === "ALL TABLES IN SCHEMA") {
             if (!validateIdentifier(schema)) {
               return formatHandlerErrorResponse(
-                new Error(`Invalid schema name: '${schema}'`),
+                new ValidationError(`Invalid schema name: '${schema}'`),
                 { tool: "pg_role_revoke" },
               );
             }
@@ -499,7 +509,7 @@ export function createRoleRevokeTool(
           } else if (objType === "ALL SEQUENCES IN SCHEMA") {
             if (!validateIdentifier(schema)) {
               return formatHandlerErrorResponse(
-                new Error(`Invalid schema name: '${schema}'`),
+                new ValidationError(`Invalid schema name: '${schema}'`),
                 { tool: "pg_role_revoke" },
               );
             }
@@ -507,7 +517,7 @@ export function createRoleRevokeTool(
           } else if (objType === "SCHEMA") {
             if (!validateIdentifier(schema)) {
               return formatHandlerErrorResponse(
-                new Error(`Invalid schema name: '${schema}'`),
+                new ValidationError(`Invalid schema name: '${schema}'`),
                 { tool: "pg_role_revoke" },
               );
             }
@@ -515,13 +525,13 @@ export function createRoleRevokeTool(
           } else if (parsed.table) {
             if (!validateIdentifier(parsed.table)) {
               return formatHandlerErrorResponse(
-                new Error(`Invalid table name: '${parsed.table}'`),
+                new ValidationError(`Invalid table name: '${parsed.table}'`),
                 { tool: "pg_role_revoke" },
               );
             }
             if (!validateIdentifier(schema)) {
               return formatHandlerErrorResponse(
-                new Error(`Invalid schema name: '${schema}'`),
+                new ValidationError(`Invalid schema name: '${schema}'`),
                 { tool: "pg_role_revoke" },
               );
             }
@@ -533,7 +543,7 @@ export function createRoleRevokeTool(
             );
             if ((tableCheck.rows?.length ?? 0) === 0) {
               return formatHandlerErrorResponse(
-                new Error(`Table '${schema}.${parsed.table}' does not exist`),
+                new QueryError(`Table '${schema}.${parsed.table}' does not exist`),
                 { tool: "pg_role_revoke" }
               );
             }
@@ -541,7 +551,7 @@ export function createRoleRevokeTool(
             target = `TABLE "${schema}"."${parsed.table}"`;
           } else {
             return formatHandlerErrorResponse(
-              new Error(
+              new ValidationError(
                 "Either 'table' or 'objectType' is required for privilege revocation",
               ),
               { tool: "pg_role_revoke" },
@@ -562,7 +572,7 @@ export function createRoleRevokeTool(
           // Role membership revocation
           if (!validateIdentifier(parsed.user)) {
             return formatHandlerErrorResponse(
-              new Error(`Invalid user name: '${parsed.user}'`),
+              new ValidationError(`Invalid user name: '${parsed.user}'`),
               { tool: "pg_role_revoke" },
             );
           }
@@ -571,10 +581,12 @@ export function createRoleRevokeTool(
           const userExistsVal = await roleExists(adapter, parsed.user);
           if (!userExistsVal) {
             return {
-              success: false,
+              ...formatHandlerErrorResponse(
+                new QueryError(`User/role '${parsed.user}' does not exist`),
+                { tool: "pg_role_revoke" }
+              ),
               exists: false,
               user: parsed.user,
-              error: `User/role '${parsed.user}' does not exist`,
             };
           }
 
@@ -590,10 +602,12 @@ export function createRoleRevokeTool(
 
           if ((memberCheck.rows?.length ?? 0) === 0) {
             return {
-              success: false,
+              ...formatHandlerErrorResponse(
+                new QueryError(`Role '${parsed.role}' is not currently assigned to '${parsed.user}'`),
+                { tool: "pg_role_revoke" }
+              ),
               role: parsed.role,
               user: parsed.user,
-              error: `Role '${parsed.role}' is not currently assigned to '${parsed.user}'`,
             };
           }
 
@@ -608,7 +622,7 @@ export function createRoleRevokeTool(
           };
         } else {
           return formatHandlerErrorResponse(
-            new Error(
+            new ValidationError(
               "Either 'user' (for membership revocation) or 'privileges' (for object privilege revocation) is required",
             ),
             { tool: "pg_role_revoke" },

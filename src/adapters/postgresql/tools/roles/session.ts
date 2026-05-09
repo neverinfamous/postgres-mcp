@@ -8,6 +8,7 @@
 
 import { ZodError } from "zod";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
+import { QueryError, ValidationError } from "../../../../types/errors.js";
 import type { PostgresAdapter } from "../../postgres-adapter.js";
 import type {
   ToolDefinition,
@@ -79,10 +80,12 @@ export function createUserRolesTool(
         const exists = await roleExists(adapter, parsed.user);
         if (!exists) {
           return {
-            success: false,
+            ...formatHandlerErrorResponse(
+              new QueryError(`User/role '${parsed.user}' does not exist`),
+              { tool: "pg_user_roles" }
+            ),
             exists: false,
             user: parsed.user,
-            error: `User/role '${parsed.user}' does not exist`,
           };
         }
 
@@ -204,7 +207,7 @@ export function createRoleSetTool(
         // SET ROLE
         if (!validateIdentifier(parsed.role)) {
           return formatHandlerErrorResponse(
-            new Error(`Invalid role name: '${parsed.role}'`),
+            new ValidationError(`Invalid role name: '${parsed.role}'`),
             { tool: "pg_role_set" },
           );
         }
@@ -213,8 +216,10 @@ export function createRoleSetTool(
         const exists = await roleExists(adapter, parsed.role);
         if (!exists) {
           return {
-            success: false,
-            error: `Role '${parsed.role}' does not exist`,
+            ...formatHandlerErrorResponse(
+              new QueryError(`Role '${parsed.role}' does not exist`),
+              { tool: "pg_role_set" }
+            ),
             previousRole,
           };
         }
@@ -277,13 +282,13 @@ export function createRoleRlsEnableTool(
 
         if (!validateIdentifier(parsed.table)) {
           return formatHandlerErrorResponse(
-            new Error(`Invalid table name: '${parsed.table}'`),
+            new ValidationError(`Invalid table name: '${parsed.table}'`),
             { tool: "pg_role_rls_enable" },
           );
         }
         if (!validateIdentifier(schema)) {
           return formatHandlerErrorResponse(
-            new Error(`Invalid schema name: '${schema}'`),
+            new ValidationError(`Invalid schema name: '${schema}'`),
             { tool: "pg_role_rls_enable" },
           );
         }
@@ -296,7 +301,7 @@ export function createRoleRlsEnableTool(
         );
         if ((tableCheck.rows?.length ?? 0) === 0) {
           return formatHandlerErrorResponse(
-            new Error(
+            new QueryError(
               `Table '${schema}.${parsed.table}' does not exist`,
             ),
             { tool: "pg_role_rls_enable" },
@@ -395,7 +400,7 @@ export function createRoleRlsPoliciesTool(
           );
           if ((tableCheck.rows?.length ?? 0) === 0) {
             return formatHandlerErrorResponse(
-              new Error(
+              new QueryError(
                 `Table '${schema}.${parsed.table}' does not exist`,
               ),
               { tool: "pg_role_rls_policies" },
