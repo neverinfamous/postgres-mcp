@@ -53,6 +53,12 @@ export function createDocIndexTool(adapter: PostgresAdapter): ToolDefinition {
       try {
         const { collection, schema, name, fields, unique } =
           CreateDocIndexSchema.parse(params);
+        if (fields.length === 0) {
+          return formatHandlerErrorResponse(
+            new Error("Validation error: fields array must not be empty"),
+            { tool: "pg_doc_create_index" },
+          );
+        }
         if (!IDENTIFIER_RE.test(collection)) {
           return formatHandlerErrorResponse(
             new Error("Invalid collection name"),

@@ -137,7 +137,7 @@ export const FindSchema = z.object({
   schema: z.string().optional(),
   filter: z.preprocess((val) => (typeof val === "object" && val !== null ? JSON.stringify(val) : val), z.string().optional()),
   fields: z.array(z.string()).optional(),
-  limit: z.number().default(100),
+  limit: z.number().default(50),
   offset: z.number().default(0),
 });
 
@@ -257,7 +257,7 @@ export const CreateDocIndexSchema = z.preprocess(
           .enum(["TEXT", "INT", "DOUBLE", "DATE", "TIMESTAMP", "BOOLEAN"])
           .default("TEXT"),
       }),
-    ).min(1, "fields array must not be empty"),
+    ),
     unique: z.boolean().default(false),
   })
 );
