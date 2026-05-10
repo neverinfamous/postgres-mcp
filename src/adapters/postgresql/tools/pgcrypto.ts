@@ -275,11 +275,13 @@ function createPgcryptoGenRandomBytesTool(
       try {
         const { length, encoding } = PgcryptoRandomBytesSchema.parse(params);
         const enc = encoding ?? "hex";
-        const encodeFormat = enc === "base64" ? "base64" : "hex";
+        
+        const encodeFormat = enc === "base64" ? "base64" : enc === "raw" ? "escape" : "hex";
         const result = await adapter.executeQuery(
           `SELECT encode(gen_random_bytes($1), $2) as random_bytes`,
           [length, encodeFormat],
         );
+        
         return {
           success: true,
           randomBytes: result.rows?.[0]?.["random_bytes"] as string,
@@ -373,6 +375,22 @@ function handlePgcryptoError(error: unknown, toolName: string): ErrorResponse {
       return formatHandlerErrorResponse(
         new ValidationError(
           "Cryptographic error: Unsupported or invalid algorithm",
+        ),
+        { tool: toolName },
+      );
+    }
+    if (
+      msg.includes("does not exist") &&
+      (msg.includes("function digest") ||
+        msg.includes("function hmac") ||
+        msg.includes("function pgp_") ||
+        msg.includes("function gen_random_") ||
+        msg.includes("function gen_salt") ||
+        msg.includes("function crypt"))
+    ) {
+      return formatHandlerErrorResponse(
+        new ValidationError(
+          "EXTENSION_MISSING: pgcrypto extension is not installed or available in the search path",
         ),
         { tool: toolName },
       );

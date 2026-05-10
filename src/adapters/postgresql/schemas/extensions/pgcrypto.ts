@@ -193,7 +193,7 @@ export const PgcryptoRandomBytesSchema = z
       .preprocess(coerceNumber, z.number().optional())
       .describe("Number of random bytes to generate (1-1024)"),
     encoding: z
-      .enum(["hex", "base64"])
+      .enum(["hex", "base64", "raw"])
       .optional()
       .describe("Output encoding (default: hex)"),
   })

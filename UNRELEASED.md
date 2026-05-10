@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JSONB Tools**: Refactored raw `json` parameter coercion to elegantly handle invalid parameter types.
 - **Backup Tools**: Fixed `pg_dump_schema` and `pg_copy_import` to strictly verify table and schema object existence prior to command generation, complying with P154 standards.
 - **Kcache Tools**: Fixed unhandled relation-not-found exceptions when the `pg_stat_kcache` extension is missing by mapping them to gracefully typed `EXTENSION_MISSING` structured errors.
+- **Pgcrypto Tools**: Fixed `gen_random_bytes` to support `raw` natively by returning postgres `escape` encoding. Also fixed unhandled exceptions when the `pgcrypto` extension is missing by mapping them to cleanly typed `EXTENSION_MISSING` structured errors.
 - **Test Prompts**: Consolidated and repaired structurally fragmented Code Mode test prompts.
 
 ### Security
