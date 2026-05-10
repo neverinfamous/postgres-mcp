@@ -92,9 +92,19 @@ export {
   // Base schemas for MCP visibility (Split Schema pattern)
   VectorSearchSchemaBase,
   VectorCreateIndexSchemaBase,
+  HybridSearchSchemaBase,
+  PerformanceSchemaBase,
+  IndexOptimizeSchemaBase,
+  VectorDimensionReduceSchemaBase,
+  EmbedSchemaBase,
   // Transformed schemas for handler validation
   VectorSearchSchema,
   VectorCreateIndexSchema,
+  HybridSearchSchema,
+  PerformanceSchema,
+  IndexOptimizeSchema,
+  VectorDimensionReduceSchema,
+  EmbedSchema,
   // Utilities
   FiniteNumberArray,
   // Output schemas

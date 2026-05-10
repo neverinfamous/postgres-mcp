@@ -10,7 +10,6 @@ import {
   type ToolDefinition,
   type RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -23,27 +22,16 @@ import {
   VectorIndexOptimizeOutputSchema,
   VectorDimensionReduceOutputSchema,
   VectorEmbedOutputSchema,
+  IndexOptimizeSchemaBase,
+  IndexOptimizeSchema,
+  VectorDimensionReduceSchemaBase,
+  VectorDimensionReduceSchema,
+  EmbedSchemaBase,
+  EmbedSchema,
 } from "../../schemas/index.js";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
-
 export function createVectorIndexOptimizeTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Schema with parameter smoothing
-  const IndexOptimizeSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Alias for table"),
-    column: z.string().optional().describe("Vector column"),
-    col: z.string().optional().describe("Alias for column"),
-    schema: z.string().optional().describe("Database schema (default: public)"),
-  });
-
-  const IndexOptimizeSchema = IndexOptimizeSchemaBase.transform((data) => ({
-    table: data.table ?? data.tableName ?? "",
-    column: data.column ?? data.col ?? "",
-    schema: data.schema,
-  }));
-
   return {
     name: "pg_vector_index_optimize",
     description:
@@ -203,65 +191,6 @@ export function createVectorIndexOptimizeTool(
 export function createVectorDimensionReduceTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Define base schema that exposes all properties correctly to MCP
-  const VectorDimensionReduceSchemaBase = z.object({
-    // Direct vector mode
-    vector: z
-      .array(z.number())
-      .optional()
-      .describe("Vector to reduce (for direct mode)"),
-    // Table-based mode - include aliases for Split Schema compliance
-    table: z.string().optional().describe("Table name (for table mode)"),
-    tableName: z.string().optional().describe("Alias for table"),
-    column: z
-      .string()
-      .optional()
-      .describe("Vector column name (for table mode)"),
-    col: z.string().optional().describe("Alias for column"),
-    idColumn: z
-      .string()
-      .optional()
-      .describe("ID column to include in results (default: id)"),
-    limit: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Max rows to process (default: 20, max: 100)"),
-    // Common parameters - targetDimensions is required
-    targetDimensions: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Target number of dimensions"),
-    dimensions: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Alias for targetDimensions"),
-    seed: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Random seed for reproducibility"),
-    summarize: z
-      .boolean()
-      .optional()
-      .describe(
-        "Summarize reduced vectors to preview format in table mode (default: true)",
-      ),
-  });
-
-  // Schema with alias resolution applied via refinement
-  const VectorDimensionReduceSchema = VectorDimensionReduceSchemaBase.transform(
-    (data) => {
-      // Handle aliases: dimensions -> targetDimensions, tableName -> table, col -> column
-      const rawTarget = (data.targetDimensions ?? data.dimensions) as unknown;
-      const rawLimit = data.limit as unknown;
-      const rawSeed = data.seed as unknown;
-      return {
-        ...data,
-        table: data.table ?? data.tableName,
-        column: data.column ?? data.col,
-        targetDimensions: rawTarget != null ? Number(rawTarget) : undefined,
-        limit: rawLimit != null ? Number(rawLimit) : undefined,
-        seed: rawSeed != null ? Number(rawSeed) : undefined,
-      };
-    },
-  ).refine((data) => data.targetDimensions !== undefined, {
-    message: "targetDimensions (or dimensions alias) is required",
-  });
 
   // Helper function for dimension reduction
   const reduceVector = (
@@ -480,18 +409,6 @@ export function createVectorDimensionReduceTool(
 }
 
 export function createVectorEmbedTool(): ToolDefinition {
-  // Base schema for MCP visibility — text optional to prevent MCP -32602 rejection
-  const EmbedSchemaBase = z.object({
-    text: z.string().optional().describe("Text to embed"),
-    dimensions: z
-      .preprocess(coerceNumber, z.number().optional())
-      .describe("Vector dimensions (default: 384)"),
-    summarize: z
-      .boolean()
-      .optional()
-      .describe("Truncate embedding for display (default: true)"),
-  });
-
   return {
     name: "pg_vector_embed",
     description:
@@ -503,7 +420,7 @@ export function createVectorEmbedTool(): ToolDefinition {
     icons: getToolIcons("vector", readOnly("Vector Embed")),
     handler: (params: unknown, _context: RequestContext) => {
       try {
-        const parsed = EmbedSchemaBase.parse(params ?? {});
+        const parsed = EmbedSchema.parse(params ?? {});
 
         // Validate required text parameter
         if (!parsed.text || parsed.text === "") {
