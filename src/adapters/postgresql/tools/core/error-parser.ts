@@ -118,6 +118,11 @@ export function parsePostgresError(
 
   // 42P07 — duplicate relation (table, index, sequence, or view already exists)
   if (pgCode === "42P07" || /already exists/i.test(msg)) {
+    // Preserve manually formatted Collection error
+    if (/^Collection ['"][^'"]+['"] already exists/i.test(msg)) {
+      throw error;
+    }
+
     const match = /relation "([^"]+)"/i.exec(msg);
     const objectName =
       match?.[1] ?? context.index ?? context.table ?? "unknown";
