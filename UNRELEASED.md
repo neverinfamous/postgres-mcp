@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Actions**: Updated CI workflows to the latest tagged versions with strict SHA pinning.
 - **Core Tools**: Lowered the default limit from 50 to 20 in `pg_list_objects` and `pg_list_tables` to improve LLM token efficiency.
 - **Introspection Tools**: Streamlined `pg_schema_snapshot` compact mode to default exclusively to tables, views, and indexes.
+- **Citext Tools**: Certified full functionality parity and strict P154 error boundary compliance via exhaustive Code Mode verification.
 
 ### Fixed
 
@@ -30,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stats Tools**: Fixed output field naming inconsistencies and verified zero-state boundary coercions for numeric parameters.
 - **Backup & Kcache Tools**: Ensured successful reads explicitly return `success: true` properties and corrected missing payload schemas.
 - **JSONB Tools**: Refactored raw `json` parameter coercion to elegantly handle invalid parameter types.
-- **Backup Tools**: Fixed `pg_dump_schema` and `pg_copy_import` to strictly verify table and schema object existence prior to command generation. Certified all 12 backup tools via Code Mode stress testing, validating P154 compliance, snapshot parity, and strict Zod error boundaries.
+- **Backup Tools**: Fixed `pg_dump_schema` and `pg_copy_import` to strictly verify table and schema object existence prior to command generation, complying with P154 standards.
 - **Test Prompts**: Consolidated and repaired structurally fragmented Code Mode test prompts.
 
 ### Security
