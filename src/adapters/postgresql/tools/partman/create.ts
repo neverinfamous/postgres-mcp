@@ -40,8 +40,9 @@ export function createPartmanExtensionTool(
     outputSchema: PartmanCreateExtensionOutputSchema,
     annotations: write("Create Partman Extension"),
     icons: getToolIcons("partman", write("Create Partman Extension")),
-    handler: async (_params: unknown, _context: RequestContext) => {
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
+        z.object({}).strict().parse(params);
         await adapter.executeQuery("CREATE EXTENSION IF NOT EXISTS pg_partman");
         return { success: true, message: "pg_partman extension enabled" };
       } catch (error: unknown) {

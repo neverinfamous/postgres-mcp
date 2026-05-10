@@ -304,7 +304,7 @@ test.describe("Code Mode: Multi-Step Workflows", () => {
       const p = await callToolAndParse(client, "pg_execute_code", {
         code: `
           // List tables
-          const tables = await pg.core.listTables({});
+          const tables = await pg.core.listTables({ limit: 1000 });
           const hasProducts = tables.tables.some(t => t.name === "test_products");
 
           // Describe
