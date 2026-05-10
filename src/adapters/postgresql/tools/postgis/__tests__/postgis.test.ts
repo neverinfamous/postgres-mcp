@@ -872,8 +872,9 @@ describe("PostGIS Advanced Tool Edge Cases", () => {
   });
 
   it("pg_geo_index_optimize should warn when table filter matches nothing", async () => {
-    // Both queries return empty rows
+    // Both queries return empty rows, and existence check returns empty
     mockAdapter.executeQuery
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] });
 

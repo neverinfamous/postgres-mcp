@@ -138,13 +138,28 @@ export function createGeoIndexOptimizeTool(
           (indexes.rows?.length ?? 0) === 0 &&
           (tableStats.rows?.length ?? 0) === 0
         ) {
+          // Check if table exists
+          const tableCheck = await adapter.executeQuery(
+            `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`,
+            [schemaName, parsed.table]
+          );
+          if ((tableCheck.rows?.length ?? 0) === 0) {
+            return {
+              success: false,
+              error: `Table "${schemaName}.${parsed.table}" does not exist.`,
+              code: "TABLE_NOT_FOUND",
+              category: "query",
+              recoverable: false,
+              suggestion: `Use pg_list_tables to see available tables.`,
+            };
+          }
           return {
             success: false,
-            error: `Table "${schemaName}.${parsed.table}" does not exist or has no spatial columns/indexes.`,
-            code: "TABLE_NOT_FOUND",
+            error: `Table "${schemaName}.${parsed.table}" has no spatial columns.`,
+            code: "COLUMN_NOT_FOUND",
             category: "query",
             recoverable: false,
-            suggestion: `Use pg_geo_index_optimize without a table filter to see all spatial tables in schema "${schemaName}".`,
+            suggestion: `Use pg_geometry_column to add a spatial column.`,
           };
         }
 
@@ -210,9 +225,10 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
           parsed.where !== undefined
             ? `WHERE ${sanitizeWhereClause(parsed.where)}`
             : "";
+        const effectiveLimit = parsed.limit ?? 50;
         const limitClause =
-          parsed.limit !== undefined && parsed.limit > 0
-            ? `LIMIT ${String(parsed.limit)}`
+          effectiveLimit > 0
+            ? `LIMIT ${String(effectiveLimit)}`
             : "";
 
         // Track warning if K > N
@@ -330,6 +346,12 @@ export function createGeoClusterTool(adapter: PostgresAdapter): ToolDefinition {
           summary: normalizedSummary,
           clusters: normalizedClusters,
         };
+
+        if (effectiveLimit > 0 && normalizedSummary.num_clusters > effectiveLimit) {
+          response["truncated"] = true;
+          response["limit"] = effectiveLimit;
+          response["totalClusters"] = normalizedSummary.num_clusters;
+        }
 
         // Add warning if K was clamped
         if (warning !== undefined) {
