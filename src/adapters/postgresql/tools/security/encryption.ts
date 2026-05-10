@@ -279,6 +279,16 @@ export function createSecurityPasswordValidateTool(
       try {
         const { password } = PasswordValidateSchema.parse(params);
 
+        if (password.length === 0) {
+          return Promise.resolve({
+            success: false,
+            error: "Validation error: Password cannot be empty",
+            code: "VALIDATION_ERROR",
+            category: "validation",
+            recoverable: false
+          });
+        }
+
         const policy = {
           minLength: 8,
           requireUppercase: true,
