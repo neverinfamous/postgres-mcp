@@ -32,8 +32,6 @@ import {
   TextRowsOutputSchema,
 } from "../../schemas/index.js";
 
-// Fuzzy match method type (validated by zod enum in schema)
-type FuzzyMethod = "levenshtein" | "soundex" | "metaphone";
 
 // =============================================================================
 // pg_trigram_similarity
@@ -146,7 +144,7 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
       .string()
       .optional()
       .describe(
-        "Fuzzy match method (default: levenshtein). Valid: soundex, levenshtein, metaphone",
+        "Fuzzy match method (default: levenshtein). Valid: soundex, levenshtein, damerau-levenshtein, metaphone",
       ),
     maxDistance: z
       .any()
@@ -186,18 +184,19 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         const parsed = FuzzyMatchSchema.parse(params);
 
         // Validate method (moved from z.enum to handler for structured error)
-        const VALID_METHODS: FuzzyMethod[] = [
+        const VALID_METHODS = [
           "levenshtein",
+          "damerau-levenshtein",
           "soundex",
           "metaphone",
         ];
         const rawMethod = parsed.method ?? "levenshtein";
-        if (!VALID_METHODS.includes(rawMethod as FuzzyMethod)) {
+        if (!VALID_METHODS.includes(rawMethod)) {
           throw new ValidationError(
             `Invalid method "${rawMethod}". Valid methods: ${VALID_METHODS.join(", ")}`,
           );
         }
-        const method: FuzzyMethod = rawMethod as FuzzyMethod;
+        const method = rawMethod;
 
         const rawMaxDist = Number(parsed.maxDistance);
         const maxDist =
@@ -253,6 +252,8 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
           sql = `SELECT ${selectCols}, soundex(${columnName}) as code FROM ${tableName} WHERE soundex(${columnName}) = soundex($1)${additionalWhere}${limitClause}`;
         } else if (method === "metaphone") {
           sql = `SELECT ${selectCols}, metaphone(${columnName}, 10) as code FROM ${tableName} WHERE metaphone(${columnName}, 10) = metaphone($1, 10)${additionalWhere}${limitClause}`;
+        } else if (method === "damerau-levenshtein") {
+          sql = `SELECT ${selectCols}, levenshtein_less_equal(${columnName}, $1, ${String(maxDist)}) as distance FROM ${tableName} WHERE levenshtein_less_equal(${columnName}, $1, ${String(maxDist)}) <= ${String(maxDist)}${additionalWhere} ORDER BY distance${limitClause}`;
         } else {
           sql = `SELECT ${selectCols}, levenshtein(${columnName}, $1) as distance FROM ${tableName} WHERE levenshtein(${columnName}, $1) <= ${String(maxDist)}${additionalWhere} ORDER BY distance${limitClause}`;
         }

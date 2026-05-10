@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pgcrypto Tools**: Fixed `gen_random_bytes` to support `raw` natively by returning postgres `escape` encoding. Also fixed unhandled exceptions when the `pgcrypto` extension is missing by mapping them to cleanly typed `EXTENSION_MISSING` structured errors.
 - **Test Prompts**: Consolidated and repaired structurally fragmented Code Mode test prompts.
 - **Security Tools**: Fixed a Zod validation leak in `pg_security_password_validate` where empty string inputs bypassed constraint checking by adding explicit handler-side validation.
-- **Text Tools**: Normalized parameter aliasing across all text tools by seamlessly mapping `query` and `value` to support polymorphic search parameters without failing validation.
+- **Text Tools**: Normalized parameter aliasing across all text tools, added native support for the `damerau-levenshtein` method alias in `pg_fuzzy_match`, and verified full P154 and structured error handling compliance across the entire 13-tool advanced testing matrix.
 
 ### Security
 
