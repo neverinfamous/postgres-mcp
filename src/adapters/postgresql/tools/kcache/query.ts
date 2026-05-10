@@ -55,8 +55,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
 
         const limit = parsed.limit;
 
-        if (limit !== undefined && (limit < 1 || limit > 100)) {
-          throw new ValidationError("limit must be between 1 and 100");
+        if (limit !== undefined && limit < 1) {
+          throw new ValidationError("limit must be greater than or equal to 1");
         }
 
         const orderBy = parsed.orderBy;
@@ -83,7 +83,7 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
         const cols = await getKcacheColumnNames(adapter);
 
         const DEFAULT_LIMIT = 5;
-        const effectiveLimit = limit ?? DEFAULT_LIMIT;
+        const effectiveLimit = Math.min(limit ?? DEFAULT_LIMIT, 100);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           queryPreviewLength === 0
@@ -138,8 +138,8 @@ orderBy options: 'total_time' (default), 'cpu_time', 'reads', 'writes'. Use minC
                     k.${cols.userTime} as user_time,
                     k.${cols.systemTime} as system_time,
                     (k.${cols.userTime} + k.${cols.systemTime}) as total_cpu_time,
-                    k.${cols.reads} as read_bytes,
-                    k.${cols.writes} as write_bytes,
+                    k.${cols.reads}::float8 as read_bytes,
+                    k.${cols.writes}::float8 as write_bytes,
                     pg_size_pretty(k.${cols.reads}::bigint) as reads_pretty,
                     pg_size_pretty(k.${cols.writes}::bigint) as writes_pretty,
                     k.${cols.minflts} as minor_page_faults,
@@ -214,15 +214,12 @@ in user CPU (application code) vs system CPU (kernel operations).`,
             compact: z.boolean().optional(),
           })
           .parse(params ?? {});
-        if (
-          parsed.limit !== undefined &&
-          (parsed.limit < 1 || parsed.limit > 100)
-        ) {
-          throw new ValidationError("limit must be between 1 and 100");
+        if (parsed.limit !== undefined && parsed.limit < 1) {
+          throw new ValidationError("limit must be greater than or equal to 1");
         }
 
         const DEFAULT_LIMIT = 5;
-        const effectiveLimit = parsed.limit ?? DEFAULT_LIMIT;
+        const effectiveLimit = Math.min(parsed.limit ?? DEFAULT_LIMIT, 100);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
@@ -257,13 +254,13 @@ in user CPU (application code) vs system CPU (kernel operations).`,
                     (k.${cols.userTime} + k.${cols.systemTime}) as total_cpu_time,
                     CASE
                         WHEN (k.${cols.userTime} + k.${cols.systemTime}) > 0
-                        THEN ROUND((k.${cols.userTime} / (k.${cols.userTime} + k.${cols.systemTime}) * 100)::numeric, 2)
+                        THEN ROUND((k.${cols.userTime} / (k.${cols.userTime} + k.${cols.systemTime}) * 100)::numeric, 2)::float8
                         ELSE 0
                     END as user_cpu_percent,
                     s.total_exec_time as total_time_ms,
                     CASE
                         WHEN s.total_exec_time > 0
-                        THEN ROUND(((k.${cols.userTime} + k.${cols.systemTime}) / s.total_exec_time * 100)::numeric, 2)
+                        THEN ROUND(((k.${cols.userTime} + k.${cols.systemTime}) / s.total_exec_time * 100)::numeric, 2)::float8
                         ELSE 0
                     END as cpu_time_percent
                 FROM pg_stat_statements s
@@ -366,15 +363,12 @@ which represent actual disk access (not just shared buffer hits).`,
           );
         }
         const ioType = rawIoType as (typeof VALID_IO_TYPES)[number];
-        if (
-          parsed.limit !== undefined &&
-          (parsed.limit < 1 || parsed.limit > 100)
-        ) {
-          throw new ValidationError("limit must be between 1 and 100");
+        if (parsed.limit !== undefined && parsed.limit < 1) {
+          throw new ValidationError("limit must be greater than or equal to 1");
         }
 
         const DEFAULT_LIMIT = 5;
-        const effectiveLimit = parsed.limit ?? DEFAULT_LIMIT;
+        const effectiveLimit = Math.min(parsed.limit ?? DEFAULT_LIMIT, 100);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           parsed.queryPreviewLength === 0
@@ -419,9 +413,9 @@ which represent actual disk access (not just shared buffer hits).`,
                     s.queryid,
                     ${previewCol}
                     s.calls,
-                    k.${cols.reads} as read_bytes,
-                    k.${cols.writes} as write_bytes,
-                    (k.${cols.reads} + k.${cols.writes}) as total_io_bytes,
+                    k.${cols.reads}::float8 as read_bytes,
+                    k.${cols.writes}::float8 as write_bytes,
+                    (k.${cols.reads} + k.${cols.writes})::float8 as total_io_bytes,
                     pg_size_pretty(k.${cols.reads}::bigint) as reads_pretty,
                     pg_size_pretty(k.${cols.writes}::bigint) as writes_pretty,
                     s.total_exec_time as total_time_ms

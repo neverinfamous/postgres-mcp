@@ -112,8 +112,8 @@ Shows total CPU time, I/O, and page faults across all queries.`,
                         SUM(k.${cols.userTime}) as total_user_time,
                         SUM(k.${cols.systemTime}) as total_system_time,
                         SUM(k.${cols.userTime} + k.${cols.systemTime}) as total_cpu_time,
-                        SUM(k.${cols.reads}) as total_read_bytes,
-                        SUM(k.${cols.writes}) as total_write_bytes,
+                        SUM(k.${cols.reads})::float8 as total_read_bytes,
+                        SUM(k.${cols.writes})::float8 as total_write_bytes,
                         pg_size_pretty(SUM(k.${cols.reads})::bigint) as total_reads_pretty,
                         pg_size_pretty(SUM(k.${cols.writes})::bigint) as total_writes_pretty,
                         SUM(k.${cols.minflts}) as total_minor_faults,
@@ -132,8 +132,8 @@ Shows total CPU time, I/O, and page faults across all queries.`,
                         SUM(${cols.userTime}) as total_user_time,
                         SUM(${cols.systemTime}) as total_system_time,
                         SUM(${cols.userTime} + ${cols.systemTime}) as total_cpu_time,
-                        SUM(${cols.reads}) as total_read_bytes,
-                        SUM(${cols.writes}) as total_write_bytes,
+                        SUM(${cols.reads})::float8 as total_read_bytes,
+                        SUM(${cols.writes})::float8 as total_write_bytes,
                         pg_size_pretty(SUM(${cols.reads})::bigint) as total_reads_pretty,
                         pg_size_pretty(SUM(${cols.writes})::bigint) as total_writes_pretty,
                         SUM(${cols.minflts}) as total_minor_faults,
@@ -206,15 +206,15 @@ Helps identify the root cause of performance issues - is the query computation-h
         const threshold = parsed.threshold;
         const limit = parsed.limit;
 
-        if (limit !== undefined && (limit < 1 || limit > 100)) {
-          throw new ValidationError("limit must be between 1 and 100");
+        if (limit !== undefined && limit < 1) {
+          throw new ValidationError("limit must be greater than or equal to 1");
         }
         const minCalls = parsed.minCalls;
         const queryPreviewLength = parsed.queryPreviewLength;
 
         const thresholdVal = threshold ?? 0.5;
         const DEFAULT_LIMIT = 5;
-        const effectiveLimit = limit ?? DEFAULT_LIMIT;
+        const effectiveLimit = Math.min(limit ?? DEFAULT_LIMIT, 100);
         // Bound queryPreviewLength: 0 = full query, default 100, max 500
         const previewLen =
           queryPreviewLength === 0
@@ -299,8 +299,8 @@ Helps identify the root cause of performance issues - is the query computation-h
                     END as resource_classification,
                     user_time,
                     system_time,
-                    reads,
-                    writes,
+                    reads::float8 as reads,
+                    writes::float8 as writes,
                     pg_size_pretty(io_bytes::bigint) as io_pretty
                 FROM query_metrics
                 ORDER BY total_time_ms DESC
