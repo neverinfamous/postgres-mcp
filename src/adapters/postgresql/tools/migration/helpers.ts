@@ -43,19 +43,22 @@ CREATE TABLE IF NOT EXISTS ${qualifiedTable} (
  */
 export async function ensureTrackingTable(
   adapter: PostgresAdapter,
+  targetSchema = "public",
 ): Promise<boolean> {
   const check = await adapter.executeQuery(
     `SELECT EXISTS (
       SELECT 1 FROM pg_tables
-      WHERE schemaname = 'public' AND tablename = $1
+      WHERE schemaname = $1 AND tablename = $2
     ) AS "table_exists"`,
-    [TRACKING_TABLE],
+    [targetSchema, TRACKING_TABLE],
   );
   const firstRow = (check.rows ?? [])[0];
   const existed = firstRow?.["table_exists"] === true;
 
   if (!existed) {
-    await adapter.executeQuery(buildCreateTrackingTableSql(TRACKING_TABLE));
+    const sanitizedSchema = targetSchema === "public" ? "public" : `"${targetSchema.replace(/"/g, '""')}"`;
+    const qualifiedTable = targetSchema === "public" ? TRACKING_TABLE : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+    await adapter.executeQuery(buildCreateTrackingTableSql(qualifiedTable));
   }
   return !existed;
 }
@@ -71,6 +74,7 @@ export function hashMigrationSql(sql: string): string {
 export async function checkDuplicateHash(
   adapter: PostgresAdapter,
   migrationSql: string,
+  qualifiedTable = TRACKING_TABLE,
 ): Promise<{
   migrationHash: string;
   duplicateError: null | {
@@ -83,7 +87,7 @@ export async function checkDuplicateHash(
 }> {
   const migrationHash = hashMigrationSql(migrationSql);
   const dupCheck = await adapter.executeQuery(
-    `SELECT id, version, status FROM ${TRACKING_TABLE}
+    `SELECT id, version, status FROM ${qualifiedTable}
      WHERE migration_hash = $1 AND status = 'applied'`,
     [migrationHash],
   );

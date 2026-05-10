@@ -130,16 +130,21 @@ export function createMigrationRecordTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationRecordSchema.parse(params);
-        await ensureTrackingTable(adapter);
+        const targetSchema = parsed.schema ?? "public";
+        const sanitizedSchema = sanitizeIdentifier(targetSchema);
+        const qualifiedTable = targetSchema === "public" ? TRACKING_TABLE : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+
+        await ensureTrackingTable(adapter, targetSchema);
 
         const { migrationHash, duplicateError } = await checkDuplicateHash(
           adapter,
           parsed.migrationSql,
+          qualifiedTable,
         );
         if (duplicateError) return duplicateError;
 
         const result = await adapter.executeQuery(
-          `INSERT INTO ${TRACKING_TABLE}
+          `INSERT INTO ${qualifiedTable}
          (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, 'recorded')
          RETURNING *`,
@@ -198,11 +203,16 @@ export function createMigrationApplyTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationApplySchema.parse(params);
-        await ensureTrackingTable(adapter);
+        const targetSchema = parsed.schema ?? "public";
+        const sanitizedSchema = sanitizeIdentifier(targetSchema);
+        const qualifiedTable = targetSchema === "public" ? TRACKING_TABLE : `${sanitizedSchema}."${TRACKING_TABLE}"`;
+
+        await ensureTrackingTable(adapter, targetSchema);
 
         const { migrationHash, duplicateError } = await checkDuplicateHash(
           adapter,
           parsed.migrationSql,
+          qualifiedTable,
         );
         if (duplicateError) return duplicateError;
 
@@ -219,7 +229,7 @@ export function createMigrationApplyTool(
           // Record in tracking table
           const result = await adapter.executeOnConnection(
             client,
-            `INSERT INTO ${TRACKING_TABLE}
+            `INSERT INTO ${qualifiedTable}
            (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql)
            VALUES ($1, $2, $3, $4, $5, $6, $7)
            RETURNING *`,
@@ -261,7 +271,7 @@ export function createMigrationApplyTool(
           // Record a 'failed' entry outside the rolled-back transaction
           try {
             await adapter.executeQuery(
-              `INSERT INTO ${TRACKING_TABLE}
+              `INSERT INTO ${qualifiedTable}
              (version, description, applied_by, migration_hash, migration_sql, source_system, rollback_sql, status, error_information)
              VALUES ($1, $2, $3, $4, $5, $6, $7, 'failed', $8)`,
               [

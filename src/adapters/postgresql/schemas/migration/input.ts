@@ -27,6 +27,10 @@ export const MigrationInitSchema = MigrationInitSchemaBase.default({});
  * pg_migration_record input
  */
 export const MigrationRecordSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema where the tracking table lives (default: public)"),
   version: z
     .string()
     .optional()
@@ -54,6 +58,7 @@ export const MigrationRecordSchemaBase = z.object({
 
 // Internal parse schema — version and migrationSql are required
 const MigrationRecordParseSchema = z.object({
+  schema: z.string().optional(),
   version: z
     .string()
     .describe("Version identifier (e.g., '1.0.0', '2024-01-15-add-users')"),
@@ -98,6 +103,10 @@ export const MigrationApplySchema = MigrationRecordSchema;
  * pg_migration_rollback input
  */
 export const MigrationRollbackSchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema where the tracking table lives (default: public)"),
   id: z
     .union([z.number(), z.string()])
     .optional()
@@ -115,6 +124,7 @@ export const MigrationRollbackSchemaBase = z.object({
 });
 
 export const MigrationRollbackSchema = z.object({
+  schema: z.string().optional(),
   id: z.preprocess(coerceNumber, z.number().optional()).optional(),
   version: z.string().optional(),
   dryRun: z.boolean().optional(),
@@ -124,6 +134,10 @@ export const MigrationRollbackSchema = z.object({
  * pg_migration_history input
  */
 export const MigrationHistorySchemaBase = z.object({
+  schema: z
+    .string()
+    .optional()
+    .describe("Schema where the tracking table lives (default: public)"),
   status: z.string().optional().describe("Filter by status"),
   sourceSystem: z.string().optional().describe("Filter by source system"),
   limit: z
@@ -139,6 +153,7 @@ export const MigrationHistorySchemaBase = z.object({
 // Internal parse schema — coerces limit/offset types to prevent Zod leaks
 export const MigrationHistorySchema = z
   .object({
+    schema: z.string().optional(),
     status: z.enum(["applied", "recorded", "rolled_back", "failed"]).optional(),
     sourceSystem: z.string().optional(),
     limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
