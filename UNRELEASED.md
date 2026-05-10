@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test Prompts**: Consolidated and repaired structurally fragmented Code Mode test prompts.
 - **Security Tools**: Fixed a Zod validation leak in `pg_security_password_validate` where empty string inputs bypassed constraint checking by adding explicit handler-side validation.
 - **Text Tools**: Normalized parameter aliasing across all text tools, added native support for the `damerau-levenshtein` method alias in `pg_fuzzy_match`, and verified full P154 and structured error handling compliance across the entire 13-tool advanced testing matrix.
+- **Core Tools**: Certified the 20-tool `core` group via the advanced strict coverage testing matrix, verifying split schema validation, P154 object existence handling, and parameter alias compatibility without exposing raw MCP errors.
 
 ### Security
 
