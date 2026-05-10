@@ -38,6 +38,14 @@ export function preprocessTextParams(input: unknown): unknown {
   if (result["text"] !== undefined && result["value"] === undefined) {
     result["value"] = result["text"];
   }
+  // Alias: query → value (cross-tool normalization)
+  if (result["query"] !== undefined && result["value"] === undefined) {
+    result["value"] = result["query"];
+  }
+  // Alias: value → query (cross-tool normalization)
+  if (result["value"] !== undefined && result["query"] === undefined) {
+    result["query"] = result["value"];
+  }
   // Alias: indexName → name (for FTS index tool)
   if (result["indexName"] !== undefined && result["name"] === undefined) {
     result["name"] = result["indexName"];
