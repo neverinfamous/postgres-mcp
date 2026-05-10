@@ -55,13 +55,16 @@ export function parseDocFilter(
               const op = opKeys[0];
               const opVal = opObj[op];
               let sqlOp = "=";
+              let isArrayOp = false;
               if (op === "$gt") sqlOp = ">";
               else if (op === "$gte") sqlOp = ">=";
               else if (op === "$lt") sqlOp = "<";
               else if (op === "$lte") sqlOp = "<=";
               else if (op === "$ne") sqlOp = "!=";
+              else if (op === "$in") { sqlOp = "IN"; isArrayOp = true; }
+              else if (op === "$nin") { sqlOp = "NOT IN"; isArrayOp = true; }
               
-              if (sqlOp !== "=") {
+              if (sqlOp !== "=" && !isArrayOp) {
                 if (typeof opVal === "number") {
                   return {
                     where: `(doc->>'${field}')::float ${sqlOp} $${String(paramOffset + 1)}::float`,
@@ -73,8 +76,26 @@ export function parseDocFilter(
                     params: [String(opVal)],
                   };
                 }
+              } else if (isArrayOp && Array.isArray(opVal) && opVal.length > 0) {
+                if (opVal.every(v => typeof v === "number")) {
+                  const placeholders = opVal.map((_, i) => `$${String(paramOffset + 1 + i)}::float`).join(", ");
+                  return {
+                    where: `(doc->>'${field}')::float ${sqlOp} (${placeholders})`,
+                    params: opVal.map(String)
+                  };
+                } else {
+                  const placeholders = opVal.map((_, i) => `$${String(paramOffset + 1 + i)}`).join(", ");
+                  return {
+                    where: `doc->>'${field}' ${sqlOp} (${placeholders})`,
+                    params: opVal.map(String)
+                  };
+                }
               }
             }
+            
+            // If it's a nested object that didn't match an operator, it might be a containment check
+            // or an unsupported nested operator. Throw a structured error.
+            throw new Error(`Unsupported filter structure for field "${field}". Nested path operators (e.g. {"address": {"city": {"$gt": "A"}}}) are not supported in JSON filter syntax. Use JSON containment or simple operator syntax.`);
           }
           
           return {

@@ -21,11 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Actions**: Updated CI workflows to the latest tagged versions with strict SHA pinning.
 - **Core Tools**: Lowered the default limit from 50 to 20 in `pg_list_objects` and `pg_list_tables` to improve LLM token efficiency.
 - **Introspection Tools**: Streamlined `pg_schema_snapshot` compact mode to default exclusively to tables, views, and indexes.
-- **Citext Tools**: Certified full functionality parity and strict P154 error boundary compliance via exhaustive Code Mode verification.
 
 ### Fixed
 
-- **Error Handling Standardization**: Enforced strict P154-compliant structured error payloads and schema validations across Partman, Core, Schema, Docstore, Citext, and Ltree tools.
+- **Error Handling Standardization**: Enforced strict P154-compliant structured error payloads and schema validations across Partman, Core, Schema, Citext, and Ltree tools.
+- **Docstore Tools**: Fixed missing `$in` and `$nin` operator support, added structured error handling for unsupported nested JSON path queries, and intercepted Zod validation errors on empty document arrays to prevent framework-level `-32602` leakage.
 - **PostGIS Tools**: Enforced pagination limits for queries returning large spatial datasets and standardized payload key names.
 - **Vector Tools**: Corrected inline schema definitions, parameter aliasing, and validation edge-cases to prevent silent processing errors.
 - **Stats Tools**: Fixed output field naming inconsistencies and verified zero-state boundary coercions for numeric parameters.

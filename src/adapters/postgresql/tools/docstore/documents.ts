@@ -172,6 +172,12 @@ export function createAddTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { collection, schema, documents } = AddDocSchema.parse(params);
+        if (documents.length === 0) {
+          return formatHandlerErrorResponse(
+            new Error("Validation error: documents array must not be empty"),
+            { tool: "pg_doc_add" },
+          );
+        }
         if (!IDENTIFIER_RE.test(collection)) {
           return formatHandlerErrorResponse(
             new Error("Invalid collection name"),
