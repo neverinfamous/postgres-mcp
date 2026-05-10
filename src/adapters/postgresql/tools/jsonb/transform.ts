@@ -642,6 +642,12 @@ export function createJsonbDiffTool(adapter: PostgresAdapter): ToolDefinition {
         let doc1 = parsed.doc1;
         let doc2 = parsed.doc2;
 
+        if (doc1 === undefined || doc2 === undefined) {
+          throw new ValidationError(
+            "pg_jsonb_diff requires doc1 and doc2 parameters.",
+          );
+        }
+
         if (typeof doc1 === "string") {
           try { doc1 = JSON.parse(doc1); } catch { /* ignore */ }
         }
