@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Error Handling Standardization**: Enforced strict P154-compliant structured error payloads and schema validations across Partman, Core, Schema, Citext, and Ltree tools.
-- **Docstore Tools**: Fixed missing `$in` and `$nin` operator support, added structured error handling for unsupported nested JSON path queries, and intercepted Zod validation errors on empty document arrays to prevent framework-level `-32602` leakage.
+- **Docstore Tools**: Fixed missing `$in` and `$nin` operator support, added structured error handling for unsupported nested JSON path queries, intercepted Zod validation errors on empty document arrays, and fixed `unknown` collection name leakage in `pg_doc_create_collection` and `pg_doc_drop_collection` when aliases are used.
 - **PostGIS Tools**: Enforced pagination limits for queries returning large spatial datasets and standardized payload key names.
 - **Vector Tools**: Corrected inline schema definitions, parameter aliasing, and validation edge-cases to prevent silent processing errors.
 - **Stats Tools**: Fixed output field naming inconsistencies and verified zero-state boundary coercions for numeric parameters.

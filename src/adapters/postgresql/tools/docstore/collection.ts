@@ -186,7 +186,7 @@ export function createCreateCollectionTool(
         if (message.toLowerCase().includes("already exists")) {
           return formatHandlerErrorResponse(
             new Error(
-              `Collection '${(params as { name?: string })?.name ?? "unknown"}' already exists`,
+              `Collection '${(params as { collection?: string })?.collection ?? (params as { name?: string })?.name ?? "unknown"}' already exists`,
             ),
             { tool: "pg_doc_create_collection" },
           );
@@ -272,7 +272,7 @@ export function createDropCollectionTool(
         if (message.toLowerCase().includes("does not exist")) {
           return formatHandlerErrorResponse(
             new Error(
-              `Collection '${(params as { name?: string })?.name ?? "unknown"}' does not exist`,
+              `Collection '${(params as { collection?: string })?.collection ?? (params as { name?: string })?.name ?? "unknown"}' does not exist`,
             ),
             { tool: "pg_doc_drop_collection" },
           );
