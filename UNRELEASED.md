@@ -5,3 +5,4 @@
 - Clamped `limit` parameter to 100 max internally in `kcache` group tools instead of throwing a validation error for values > 100.
 - Cast BIGINT fields (`reads`, `writes`, `read_bytes`) and NUMERIC percentages (`user_cpu_percent`, `cpu_time_percent`) to `float8` in `kcache` tools to ensure precise JS numerical formatting instead of returning string values.
 - Fixed a cross-schema scoping inconsistency in the `migration` tools by adding support for and passing down the optional `schema` parameter to all internal tracking table queries rather than implicitly defaulting to `public` during execution.
+- Fixed an internal handler error where Zod validation failures were leaking as raw JSON error strings instead of structured error responses (`isZodLikeError` function was failing `instanceof Error` checks across modules).
