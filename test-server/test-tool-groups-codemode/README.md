@@ -56,7 +56,3 @@ Never proceed to the final step until every tool in a given group has both colum
 22. `security`
 23. `roles`
 24. `docstore`
-
-## Test Results
-
-Token consumption metrics and final summaries from executing the above codemode tests are persisted in [`test-results.md`](./test-results.md).
