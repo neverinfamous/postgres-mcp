@@ -104,7 +104,10 @@ export function parseDocFilter(
           };
         }
       }
-    } catch {
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith("Unsupported filter structure")) {
+        throw e;
+      }
       // Ignore parse error and fall through
     }
   }
