@@ -75,6 +75,18 @@ export function parsePostgresError(
       );
     }
 
+    if (
+      context.tool?.startsWith("pg_kcache_") &&
+      /(?:relation|function) ["']?pg_stat_kcache(?:_.*)?(?:\(\))?["']? does not exist/i.test(
+        msg,
+      )
+    ) {
+      throw new Error(
+        `Extension "pg_stat_kcache" is not available. Ensure it is installed and enabled.`,
+        { cause: error },
+      );
+    }
+
     // pg_reindex with target=index: index-specific message
     if (context.tool === "pg_reindex" && context.target === "index") {
       const match =
@@ -487,6 +499,18 @@ export function parsePostgresError(
   if (pgCode === "22P02" || /invalid input syntax/i.test(msg)) {
     throw new Error(
       `Type mismatch: ${msg}. The provided value is not valid for the target column type.`,
+      { cause: error },
+    );
+  }
+
+  if (
+    context.tool?.startsWith("pg_kcache_") &&
+    /(?:relation|function) ["']?pg_stat_kcache(?:_.*)?(?:\(\))?["']? does not exist/i.test(
+      msg,
+    )
+  ) {
+    throw new Error(
+      `Extension "pg_stat_kcache" is not available. Ensure it is installed and enabled.`,
       { cause: error },
     );
   }
