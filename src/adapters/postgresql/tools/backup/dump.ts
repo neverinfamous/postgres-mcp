@@ -370,7 +370,7 @@ export function createDumpTableTool(adapter: PostgresAdapter): ToolDefinition {
 }
 
 export function createDumpSchemaTool(
-  _adapter: PostgresAdapter,
+  adapter: PostgresAdapter,
 ): ToolDefinition {
   return {
     name: "pg_dump_schema",
@@ -380,9 +380,42 @@ export function createDumpSchemaTool(
     outputSchema: DumpSchemaOutputSchema,
     annotations: readOnly("Dump Schema"),
     icons: getToolIcons("backup", readOnly("Dump Schema")),
-    handler: (params: unknown, _context: RequestContext) => {
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { table, schema, filename } = DumpSchemaSchema.parse(params);
+
+        if (schema) {
+          // Verify schema exists
+          const schemaResult = await adapter.executeQuery(
+            "SELECT 1 FROM pg_namespace WHERE nspname = $1",
+            [schema]
+          );
+          if (schemaResult.rows?.length === 0) {
+            throw new Error(`Schema "${schema}" does not exist`);
+          }
+        }
+
+        if (table) {
+          // Verify table exists
+          const checkSchema = schema ?? "public";
+          let tableNamePart = table;
+          let schemaNamePart = checkSchema;
+          
+          if (table.includes(".")) {
+             const parts = table.split(".");
+             if (parts.length === 2 && parts[0] && parts[1]) {
+                schemaNamePart = parts[0];
+                tableNamePart = parts[1];
+             }
+          }
+          const tableExists = await adapter.executeQuery(
+            "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = $1 AND n.nspname = $2",
+            [tableNamePart, schemaNamePart]
+          );
+          if (tableExists.rows === undefined || tableExists.rows.length === 0) {
+             throw new Error(`Table "public.${tableNamePart}" does not exist in schema "${schemaNamePart}". Use pg_list_tables to see available tables.`);
+          }
+        }
 
         let command = "pg_dump";
         command += " --format=custom";
@@ -404,7 +437,7 @@ export function createDumpSchemaTool(
         command += ` --file="${outputFilename}"`;
         command += " $POSTGRES_CONNECTION_STRING";
 
-        return Promise.resolve({
+        return {
           success: true,
           command,
           ...(schema !== undefined &&
@@ -419,11 +452,9 @@ export function createDumpSchemaTool(
             "Add --data-only to exclude schema",
             "Add --schema-only to exclude data",
           ],
-        });
+        };
       } catch (error: unknown) {
-        return Promise.resolve(
-          formatHandlerErrorResponse(error, { tool: "pg_dump_schema" }),
-        );
+        return formatHandlerErrorResponse(error, { tool: "pg_dump_schema" });
       }
     },
   };

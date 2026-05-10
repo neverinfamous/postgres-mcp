@@ -249,7 +249,7 @@ export function createCopyExportTool(adapter: PostgresAdapter): ToolDefinition {
 }
 
 export function createCopyImportTool(
-  _adapter: PostgresAdapter,
+  adapter: PostgresAdapter,
 ): ToolDefinition {
   return {
     name: "pg_copy_import",
@@ -262,7 +262,7 @@ export function createCopyImportTool(
     handler: (params: unknown, _context: RequestContext) => {
       try {
         return Promise.resolve()
-          .then(() => {
+          .then(async () => {
             const rawParams = CopyImportSchema.parse(params) as {
               table?: string;
               tableName?: string; // Alias for table
@@ -305,6 +305,16 @@ export function createCopyImportTool(
                 schemaNamePart = parts[0];
                 tableNamePart = parts[1];
               }
+            }
+
+            // Verify table exists (P154 compliance)
+            const checkSchema = schemaNamePart ?? "public";
+            const tableExists = await adapter.executeQuery(
+              "SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relname = $1 AND n.nspname = $2",
+              [tableNamePart, checkSchema]
+            );
+            if (tableExists.rows === undefined || tableExists.rows.length === 0) {
+               throw new Error(`Table "public.${tableNamePart}" does not exist in schema "${checkSchema}". Use pg_list_tables to see available tables.`);
             }
 
             const tableName = sanitizeTableName(tableNamePart, schemaNamePart);

@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stats Tools**: Fixed output field naming inconsistencies and verified zero-state boundary coercions for numeric parameters.
 - **Backup & Kcache Tools**: Ensured successful reads explicitly return `success: true` properties and corrected missing payload schemas.
 - **JSONB Tools**: Refactored raw `json` parameter coercion to elegantly handle invalid parameter types.
+- **Backup Tools**: Fixed `pg_dump_schema` and `pg_copy_import` to strictly verify table and schema object existence prior to command generation, complying with P154 standards.
 - **Test Prompts**: Consolidated and repaired structurally fragmented Code Mode test prompts.
 
 ### Security
