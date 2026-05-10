@@ -314,7 +314,7 @@ export function createCopyImportTool(
               [tableNamePart, checkSchema]
             );
             if (tableExists.rows === undefined || tableExists.rows.length === 0) {
-               throw new Error(`Table "public.${tableNamePart}" does not exist in schema "${checkSchema}". Use pg_list_tables to see available tables.`);
+               throw new Error(`relation "${tableNamePart}" does not exist`);
             }
 
             const tableName = sanitizeTableName(tableNamePart, schemaNamePart);
