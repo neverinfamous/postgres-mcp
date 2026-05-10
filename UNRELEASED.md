@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Partman Tools**: Fixed missing handler-side Zod strict parsing in `pg_partman_create_extension` to prevent parameter leaks.
 - **Error Handling Standardization**: Enforced strict P154-compliant structured error payloads and schema validations across Partman, Core, Schema, Citext, and Ltree tools.
 - **Docstore Tools**: Fixed missing `$in` and `$nin` operator support, added structured error handling for unsupported nested JSON path queries, intercepted Zod validation errors on empty document arrays, fixed `unknown` collection name leakage in `pg_doc_create_collection` and `pg_doc_drop_collection` when aliases are used, and prevented raw MCP error leaks by moving `.min(1)` constraints from `pg_doc_create_index` schema to handler-side validation.
-- **PostGIS Tools**: Enforced pagination limits for queries returning large spatial datasets and standardized payload key names.
+- **PostGIS Tools**: Enforced pagination limits for queries returning large spatial datasets, standardized payload key names, and fixed missing point payload fallback logic in `pg_distance` and `pg_point_in_polygon` schemas that caused queries to silently default to `(0,0)` if `lat`/`lng` were passed at the root rather than within a `point` object.
 - **Vector Tools**: Corrected inline schema definitions, parameter aliasing, and validation edge-cases to prevent silent processing errors.
 - **Stats Tools**: Fixed output field naming inconsistencies and verified zero-state boundary coercions for numeric parameters.
 - **Backup & Kcache Tools**: Ensured successful reads explicitly return `success: true` properties and corrected missing payload schemas.

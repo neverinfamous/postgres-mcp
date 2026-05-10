@@ -147,13 +147,20 @@ export const GeometryDistanceSchemaBase = z.object({
 export const GeometryDistanceSchema = z
   .preprocess(preprocessPostgisParams, GeometryDistanceSchemaBase)
   .transform((data) => {
-    const point = preprocessPoint(data.point);
+    let point = preprocessPoint(data.point);
+    if (!point) {
+      const lat = data.lat ?? data.latitude ?? data.y;
+      const lng = data.lng ?? data.lon ?? data.longitude ?? data.x;
+      if (lat !== undefined && lng !== undefined) {
+        point = { lat, lng };
+      }
+    }
     const rawDistance = data.maxDistance ?? data.radius ?? data.distance;
     return {
       table: data.table ?? data.tableName ?? "",
       column:
         data.column ?? data.geom ?? data.geometry ?? data.geometryColumn ?? "",
-      point: point ?? { lat: 0, lng: 0 },
+      point: point ?? { lat: NaN, lng: NaN },
       limit: data.limit,
       maxDistance:
         rawDistance !== undefined
@@ -166,7 +173,9 @@ export const GeometryDistanceSchema = z
   .refine((data) => data.table !== "", {
     message: "table (or tableName alias) is required",
   })
-
+  .refine((data) => !Number.isNaN(data.point.lat) && !Number.isNaN(data.point.lng), {
+    message: "point (or lat/lng) is required",
+  })
   .refine((data) => data.maxDistance === undefined || data.maxDistance >= 0, {
     message: "distance must be a non-negative number",
   })
@@ -179,10 +188,10 @@ export const GeometryDistanceSchema = z
         "unit must be a valid distance unit (meters, m, kilometers, km, miles, mi)",
     },
   )
-  .refine((data) => data.point.lat >= -90 && data.point.lat <= 90, {
+  .refine((data) => Number.isNaN(data.point.lat) || (data.point.lat >= -90 && data.point.lat <= 90), {
     message: "lat must be between -90 and 90 degrees",
   })
-  .refine((data) => data.point.lng >= -180 && data.point.lng <= 180, {
+  .refine((data) => Number.isNaN(data.point.lng) || (data.point.lng >= -180 && data.point.lng <= 180), {
     message: "lng must be between -180 and 180 degrees",
   });
 
@@ -237,12 +246,19 @@ export const PointInPolygonSchemaBase = z.object({
 export const PointInPolygonSchema = z
   .preprocess(preprocessPostgisParams, PointInPolygonSchemaBase)
   .transform((data) => {
-    const point = preprocessPoint(data.point);
+    let point = preprocessPoint(data.point);
+    if (!point) {
+      const lat = data.lat ?? data.latitude ?? data.y;
+      const lng = data.lng ?? data.lon ?? data.longitude ?? data.x;
+      if (lat !== undefined && lng !== undefined) {
+        point = { lat, lng };
+      }
+    }
     return {
       table: data.table ?? data.tableName ?? "",
       column:
         data.column ?? data.geom ?? data.geometry ?? data.geometryColumn ?? "",
-      point: point ?? { lat: 0, lng: 0 },
+      point: point ?? { lat: NaN, lng: NaN },
       limit: data.limit,
       schema: data.schema,
     };
@@ -253,10 +269,13 @@ export const PointInPolygonSchema = z
   .refine((data) => data.column !== "", {
     message: "column (or geom/geometry/geometryColumn alias) is required",
   })
-  .refine((data) => data.point.lat >= -90 && data.point.lat <= 90, {
+  .refine((data) => !Number.isNaN(data.point.lat) && !Number.isNaN(data.point.lng), {
+    message: "point (or lat/lng) is required",
+  })
+  .refine((data) => Number.isNaN(data.point.lat) || (data.point.lat >= -90 && data.point.lat <= 90), {
     message: "lat must be between -90 and 90 degrees",
   })
-  .refine((data) => data.point.lng >= -180 && data.point.lng <= 180, {
+  .refine((data) => Number.isNaN(data.point.lng) || (data.point.lng >= -180 && data.point.lng <= 180), {
     message: "lng must be between -180 and 180 degrees",
   });
 
