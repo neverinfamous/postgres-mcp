@@ -361,9 +361,9 @@ export const BufferSchema = z
   .refine((data) => data.column !== "", {
     message: "column (or geom/geometryColumn alias) is required",
   })
-  .refine((data) => data.distance > 0, {
+  .refine((data) => data.distance !== 0, {
     message:
-      "distance (or radius/meters alias) is required and must be positive",
+      "distance (or radius/meters alias) is required and cannot be zero",
   })
   .refine((data) => data.simplify === undefined || data.simplify >= 0, {
     message:

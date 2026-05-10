@@ -417,7 +417,7 @@ describe("BufferSchema", () => {
         distance: 0,
       }),
     ).toThrow(
-      "distance (or radius/meters alias) is required and must be positive",
+      "distance (or radius/meters alias) is required and cannot be zero",
     );
   });
 
@@ -2946,7 +2946,7 @@ describe("BufferSchema", () => {
         column: "geom",
         distance: 0,
       }),
-    ).toThrow("must be positive");
+    ).toThrow("cannot be zero");
   });
 });
 
@@ -3048,7 +3048,7 @@ describe("GeometryBufferSchema (standalone)", () => {
         geometry: "POINT(0 0)",
         distance: 0,
       }),
-    ).toThrow("must be positive");
+    ).toThrow("cannot be zero");
   });
 });
 
