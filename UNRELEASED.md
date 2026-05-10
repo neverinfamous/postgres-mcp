@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **Security Fixes**: Bumped `hono` to `4.12.18` (Improperly Handles JSX Attribute Names Allows HTML Injection in hono/jsx SSR) and `ip-address` to `10.2.0` (XSS in Address6 HTML-emitting methods) in `package.json` overrides.
+- **Security Fixes**: Bumped `hono` to `4.12.18` (Improperly Handles JSX Attribute Names Allows HTML Injection in hono/jsx SSR), `ip-address` to `10.2.0` (XSS in Address6 HTML-emitting methods), and `fast-uri` to `3.1.2` (Path traversal vulnerabilities) in `package.json` overrides.
 ### Fixed
 
 - **PostGIS Tools**: Fixed `GeometryDistanceSchema` to explicitly reject `NaN` inputs and throw a structured P154 `VALIDATION_ERROR` instead of evaluating to `undefined` and silently defaulting during extraction.
@@ -48,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Dependency Updates**:
-  - Updated `devDependencies` (`@types/node` 25.6.0, `@vitest/coverage-v8` 4.1.5, `eslint` 10.3.0, `globals` 17.6.0, `typescript` 6.0.3, `typescript-eslint` 8.59.2, `vitest` 4.1.5)
+  - Updated `devDependencies` (`@types/node` 25.6.2, `@vitest/coverage-v8` 4.1.5, `eslint` 10.3.0, `globals` 17.6.0, `typescript` 6.0.3, `typescript-eslint` 8.59.2, `vitest` 4.1.5)
   - Updated `dependencies` (`jose` 6.2.3, `zod` 4.4.3)
   - Updated GitHub Actions to latest tagged versions (`actions/github-script` v9.0.0, `github/gh-aw` v0.68.1, `trufflesecurity/trufflehog` v3.94.3, `actions/upload-artifact` v7.0.1, `docker/build-push-action` v7.1.0) with strict SHA pinning.
   - Updated GitHub Actions to latest tagged versions (`actions/github-script` v9.0.0, `github/gh-aw` v0.68.1, `trufflesecurity/trufflehog` v3.94.3, `actions/upload-artifact` v7.0.1, `docker/build-push-action` v7.1.0) with strict SHA pinning.
