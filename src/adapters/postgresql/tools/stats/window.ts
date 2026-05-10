@@ -77,8 +77,8 @@ function resolveLimit(limit?: number): number {
   if (limit <= 0) {
     throw new ValidationError("Parameter 'limit' must be greater than 0.");
   }
-  if (limit > 100) {
-    throw new ValidationError("Parameter 'limit' cannot exceed 100.");
+  if (limit > 1000) {
+    throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
   }
   return limit;
 }
