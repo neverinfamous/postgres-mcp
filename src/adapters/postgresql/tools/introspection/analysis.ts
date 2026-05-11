@@ -6,9 +6,10 @@
  */
 
 import type { PostgresAdapter } from "../../postgres-adapter.js";
-import type {
-  ToolDefinition,
-  RequestContext,
+import {
+  type ToolDefinition,
+  type RequestContext,
+  ValidationError,
 } from "../../../../types/index.js";
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
@@ -397,6 +398,10 @@ export function createMigrationRisksTool(
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const parsed = MigrationRisksSchema.parse(params);
+
+        if (parsed.statements.length === 0) {
+          throw new ValidationError("At least one statement is required");
+        }
 
         if (parsed.schema) {
           await checkSchemaExists(adapter, parsed.schema);
