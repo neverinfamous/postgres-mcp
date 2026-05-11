@@ -110,6 +110,13 @@ export function parsePostgresError(
       );
     }
 
+    if (context.objectType === "view" || /view/i.test(msg)) {
+      throw new Error(
+        `View "${objectName}" does not exist in schema "${schemaName}". Use pg_list_views to see available views.`,
+        { cause: error },
+      );
+    }
+
     throw new Error(
       `Table "${objectName}" does not exist in schema "${schemaName}". Use pg_list_tables to see available tables.`,
       { cause: error },

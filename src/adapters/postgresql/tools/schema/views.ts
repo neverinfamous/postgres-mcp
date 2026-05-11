@@ -304,6 +304,7 @@ export function createDropViewTool(adapter: PostgresAdapter): ToolDefinition {
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
             tool: "pg_drop_view",
+            objectType: "view",
             ...(schema !== undefined && { schema }),
           });
         }

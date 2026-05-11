@@ -443,6 +443,7 @@ export function createDropSequenceTool(
         } catch (error: unknown) {
           return formatHandlerErrorResponse(error, {
             tool: "pg_drop_sequence",
+            objectType: "sequence",
             ...(schema !== undefined && { schema }),
           });
         }
