@@ -60,6 +60,14 @@ const ERROR_SUGGESTIONS: {
     code: "INVALID_IDENTIFIER",
   },
   {
+    pattern: /has reached its limit/i,
+    suggestion:
+      "Sequence limit reached. Alter the sequence to change limits or enable cycle.",
+    category: ErrorCategory.VALIDATION,
+    code: "VALIDATION_ERROR",
+  },
+
+  {
     pattern: /numeric field overflow/i,
     suggestion:
       "A statistical calculation overflowed, often due to an undefined algebraic operation (e.g., executing regression on a single row).",

@@ -249,6 +249,16 @@ export function parsePostgresError(
     );
   }
 
+  // 2200H — sequence generator limit exceeded
+  if (pgCode === "2200H" || /reached (maximum|minimum) value of sequence/i.test(msg)) {
+    const match = /sequence "([^"]+)"/i.exec(msg);
+    const seqName = match?.[1] ?? context.target ?? "unknown";
+    throw new Error(
+      `Sequence '${seqName}' has reached its limit. Alter the sequence to change limits or enable cycle.`,
+      { cause: error },
+    );
+  }
+
   // 25P02 — current transaction is aborted (checked before 42704 whose broad regex would match)
   if (pgCode === "25P02" || /current transaction is aborted/i.test(msg)) {
     throw new Error(

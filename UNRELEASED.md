@@ -7,3 +7,4 @@
 - Fixed a cross-schema scoping inconsistency in the `migration` tools by adding support for and passing down the optional `schema` parameter to all internal tracking table queries rather than implicitly defaulting to `public` during execution.
 - Fixed an internal handler error where Zod validation failures were leaking as raw JSON error strings instead of structured error responses (`isZodLikeError` function was failing `instanceof Error` checks across modules).
 - Fixed a parameter alias resolution bug in the `schema` tools where the `sequence` alias was not natively mapping through Zod preprocessing on the backend, leading to incorrect validation failures during `pg_create_sequence` and `pg_drop_sequence` operations.
+- Fixed a PostgreSQL error parsing miss where sequence boundary breaches (error code 2200H) were returned as unhandled `QUERY_ERROR` exceptions instead of mapping into structured `VALIDATION_ERROR` responses with correct user suggestions.
