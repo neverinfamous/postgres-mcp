@@ -81,6 +81,7 @@ export const VectorSearchOutputSchema = z
       .describe("Search results with distance"),
     count: z.number().optional().describe("Number of results"),
     metric: z.string().optional().describe("Distance metric used"),
+    truncated: z.boolean().optional().describe("Whether results were truncated"),
     hint: z.string().optional().describe("Helpful hint"),
     note: z.string().optional().describe("Additional note"),
     error: z.string().optional().describe("Error message"),

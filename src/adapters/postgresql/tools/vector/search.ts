@@ -103,7 +103,20 @@ export function createVectorSearchTool(
           };
         }
         const vectorStr = `[${vector.join(",")}]`;
-        const limitVal = limit ?? 10;
+        let requestedLimit = limit ?? 10;
+        if (requestedLimit === 0) {
+          throw new ValidationError(
+            "limit: 0 is not permitted. Please specify a reasonable limit (max 100) or omit for the default limit.",
+          );
+        }
+        
+        let limitVal = requestedLimit;
+        let isTruncated = false;
+        if (limitVal > 100) {
+          limitVal = 100;
+          isTruncated = true;
+        }
+
         const selectCols =
           select !== undefined && select.length > 0
             ? select.map((c) => sanitizeIdentifier(c)).join(", ") + ", "
@@ -125,14 +138,25 @@ export function createVectorSearchTool(
             distanceExpr = `${columnName} <-> '${vectorStr}'`;
         }
 
+        // Query limitVal + 1 to detect if there are more rows than requested
         const sql = `SELECT ${selectCols}${distanceExpr} as distance
                         FROM ${tableName}
                         WHERE TRUE${nullFilter}${whereClause}
                         ORDER BY ${distanceExpr}
-                        LIMIT ${String(limitVal)} `;
+                        LIMIT ${String(limitVal + 1)} `;
 
         try {
           const result = await adapter.executeQuery(sql);
+
+          let hasMore = false;
+          if (result.rows && result.rows.length > limitVal) {
+            hasMore = true;
+            result.rows.pop(); // Remove the extra row
+          }
+          
+          if (hasMore || isTruncated) {
+             isTruncated = true;
+          }
 
           // Check for NULL distance values (from NULL vectors)
           const nullCount = (result.rows ?? []).filter(
@@ -163,6 +187,11 @@ export function createVectorSearchTool(
             count: finalRows.length,
             metric: metric ?? "l2",
           };
+          
+          if (isTruncated) {
+            response["truncated"] = true;
+            response["hint"] = `Results truncated to ${limitVal} rows.`;
+          }
 
           // Add hint when no select columns specified
           if (select === undefined || select.length === 0) {

@@ -203,8 +203,8 @@ export async function startServer(
 
   serverProcesses.set(port, proc);
 
-  // Wait for server readiness
-  const maxAttempts = 60;
+  // Wait for server readiness (bumped to 60s to prevent flakes under heavy parallel load)
+  const maxAttempts = 120;
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const res = await fetch(`http://127.0.0.1:${port}/health`);
