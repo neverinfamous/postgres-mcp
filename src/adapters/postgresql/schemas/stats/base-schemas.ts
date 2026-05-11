@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { coerceNumber } from "../../../../utils/query-helpers.js";
+import { coerceNumber, coerceStrictNumber } from "../../../../utils/query-helpers.js";
 
 // =============================================================================
 // Base Schemas (for MCP visibility)
@@ -123,7 +123,7 @@ export const StatsDistributionSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column"),
   buckets: z
-    .preprocess(coerceNumber, z.number().optional())
+    .preprocess(coerceStrictNumber, z.number().optional())
     .describe("Number of histogram buckets (default: 10)"),
   schema: z.string().optional().describe("Schema name"),
   where: z.string().optional().describe("Filter condition"),
@@ -144,10 +144,10 @@ export const StatsHypothesisSchemaBase = z.object({
   tableName: z.string().optional().describe("Alias for table"),
   column: z.string().describe("Numeric column"),
   hypothesizedMean: z
-    .preprocess(coerceNumber, z.number().optional())
+    .preprocess(coerceStrictNumber, z.number().optional())
     .describe("Hypothesized population mean (default: 0)"),
   populationStdDev: z
-    .preprocess(coerceNumber, z.number().optional())
+    .preprocess(coerceStrictNumber, z.number().optional())
     .describe(
       "Known population standard deviation (if provided, uses z-test; otherwise uses t-test)",
     ),
@@ -170,10 +170,10 @@ export const StatsSamplingSchemaBase = z.object({
       "Sampling method (default: random). Note: system uses page-level sampling and may return 0 rows on small tables",
     ),
   sampleSize: z
-    .preprocess(coerceNumber, z.number().optional())
+    .preprocess(coerceStrictNumber, z.number().optional())
     .describe("Number of rows for random sampling (default: 20)"),
   percentage: z
-    .preprocess(coerceNumber, z.number().optional())
+    .preprocess(coerceStrictNumber, z.number().optional())
     .describe("Percentage for bernoulli/system sampling (0-100)"),
   schema: z.string().optional().describe("Schema name"),
   select: z.array(z.string()).optional().describe("Columns to select"),
