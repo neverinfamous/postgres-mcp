@@ -89,9 +89,7 @@ export function createStatsTopNTool(adapter: PostgresAdapter): ToolDefinition {
         if (n <= 0) {
           throw new ValidationError("Parameter 'n' must be greater than 0.");
         }
-        if (n > 100) {
-          throw new ValidationError("Parameter 'n' cannot exceed 100.");
-        }
+        const finalN = Math.min(n, 100);
         const direction = parsed.direction ?? "desc";
         const schemaName = schema ?? "public";
         const schemaPrefix = schema ? `"${schema}".` : "";
@@ -146,7 +144,7 @@ export function createStatsTopNTool(adapter: PostgresAdapter): ToolDefinition {
           FROM ${schemaPrefix}"${table}"
           ${whereClause}
           ORDER BY "${column}" ${direction.toUpperCase()}
-          LIMIT ${String(n)}
+          LIMIT ${String(finalN)}
         `;
 
         const result = await adapter.executeQuery(sql);
@@ -211,9 +209,7 @@ export function createStatsDistinctTool(
             "Parameter 'limit' must be greater than 0.",
           );
         }
-        if (limit > 1000) {
-          throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
-        }
+        const finalLimit = Math.min(limit, 1000);
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
@@ -222,7 +218,7 @@ export function createStatsDistinctTool(
           FROM ${schemaPrefix}"${table}"
           ${whereClause}
           ORDER BY "${column}"
-          LIMIT ${String(limit)}
+          LIMIT ${String(finalLimit)}
         `;
 
         const result = await adapter.executeQuery(sql);
@@ -292,9 +288,7 @@ export function createStatsFrequencyTool(
             "Parameter 'limit' must be greater than 0.",
           );
         }
-        if (limit > 1000) {
-          throw new ValidationError("Parameter 'limit' cannot exceed 1000.");
-        }
+        const finalLimit = Math.min(limit, 1000);
         const schemaPrefix = schema ? `"${schema}".` : "";
         const whereClause = where ? `WHERE ${sanitizeWhereClause(where)}` : "";
 
@@ -307,7 +301,7 @@ export function createStatsFrequencyTool(
           ${whereClause}
           GROUP BY "${column}"
           ORDER BY COUNT(*) DESC
-          LIMIT ${String(limit)}
+          LIMIT ${String(finalLimit)}
         `;
 
         const result = await adapter.executeQuery(sql);

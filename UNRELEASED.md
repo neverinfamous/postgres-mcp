@@ -9,3 +9,4 @@
 - Fixed a parameter alias resolution bug in the `schema` tools where the `sequence` alias was not natively mapping through Zod preprocessing on the backend, leading to incorrect validation failures during `pg_create_sequence` and `pg_drop_sequence` operations.
 - Fixed a PostgreSQL error parsing miss where sequence boundary breaches (error code 2200H) were returned as unhandled `QUERY_ERROR` exceptions instead of mapping into structured `VALIDATION_ERROR` responses with correct user suggestions.
 - Fixed a sequence bounds alias resolution bug in the `schema` tools where the `maxvalue` and `minvalue` lowercased SQL-native aliases were ignored during `pg_create_sequence` preprocessing.
+- Clamped `limit` and `n` parameters in `stats` group tools (`pg_stats_top_n`, `pg_stats_distinct`, `pg_stats_frequency`) to their maximum allowed values instead of throwing validation errors.
