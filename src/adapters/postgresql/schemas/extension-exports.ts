@@ -22,6 +22,8 @@ export {
   JsonbStatsSchemaBase,
   JsonbIndexSuggestSchemaBase,
   JsonbSecurityScanSchemaBase,
+  JsonbMergeSchemaBase,
+  JsonbDiffSchemaBase,
   // Full schemas (with preprocess - for handler parsing)
   JsonbExtractSchema,
   JsonbSetSchema,
@@ -37,6 +39,8 @@ export {
   JsonbStatsSchema,
   JsonbIndexSuggestSchema,
   JsonbSecurityScanSchema,
+  JsonbMergeSchema,
+  JsonbDiffSchema,
   // Preprocess function for handlers
   preprocessJsonbParams,
   // Path normalization functions (for handler use)

@@ -30,6 +30,8 @@ import {
   JsonbDiffOutputSchema,
   // Base schemas for MCP visibility (Split Schema pattern)
   JsonbNormalizeSchemaBase,
+  JsonbMergeSchema,
+  JsonbDiffSchemaBase,
   // Full schemas (with preprocess - for handler parsing)
   JsonbNormalizeSchema,
 } from "../../schemas/index.js";
@@ -181,21 +183,7 @@ function deepMergeObjects(
   return result;
 }
 
-// Schema for pg_jsonb_merge - direct schema for MCP visibility
-const JsonbMergeSchema = z.object({
-  base: z.unknown().optional().describe("Base JSONB document"),
-  json1: z.unknown().optional().describe("Alias for base document"),
-  overlay: z.unknown().optional().describe("JSONB to merge on top"),
-  json2: z.unknown().optional().describe("Alias for overlay document"),
-  deep: z
-    .boolean()
-    .optional()
-    .describe("Deep merge nested objects (default: true)"),
-  mergeArrays: z
-    .boolean()
-    .optional()
-    .describe("Concatenate arrays instead of replacing (default: false)"),
-});
+
 
 /**
  * Preprocess merge params to parse JSON strings and validate objects
@@ -607,13 +595,7 @@ export function createJsonbNormalizeTool(
  * Diff two JSONB documents
  * Note: Uses jsonb_each() which requires object inputs, not arrays or primitives
  */
-// Schema for pg_jsonb_diff - requires objects (not arrays or primitives)
-// Base schema for MCP visibility — z.unknown() to avoid SDK-level Zod rejection
-// of non-object types (arrays, primitives). Handler validates internally.
-const JsonbDiffSchemaBase = z.object({
-  doc1: z.unknown().optional().describe("First JSONB object to compare"),
-  doc2: z.unknown().optional().describe("Second JSONB object to compare"),
-});
+
 
 // Internal schema for handler validation is no longer needed since we
 // handle validation and parsing of doc1 and doc2 manually below.
