@@ -358,7 +358,11 @@ describe("Kcache Tools", () => {
     it("should filter by specific database", async () => {
       // First call: column detection
       mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
-      // Second call: actual query
+      // Second call: existence check
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ exists: true }],
+      });
+      // Third call: actual query
       mockAdapter.executeQuery.mockResolvedValueOnce({
         rows: [{ database: "testdb", total_cpu_time: 100.5 }],
       });
@@ -370,6 +374,27 @@ describe("Kcache Tools", () => {
         expect.stringContaining("d.datname = $1"),
         ["testdb"],
       );
+    });
+
+    it("should return ValidationError if specified database does not exist", async () => {
+      // First call: column detection
+      mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+      // Second call: existence check returns false
+      mockAdapter.executeQuery.mockResolvedValueOnce({
+        rows: [{ exists: false }],
+      });
+
+      const tool = findTool("pg_kcache_database_stats");
+      const result = (await tool!.handler(
+        { database: "non_existent_db" },
+        mockContext,
+      )) as {
+        success: boolean;
+        error: string;
+      };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("does not exist");
     });
   });
 
