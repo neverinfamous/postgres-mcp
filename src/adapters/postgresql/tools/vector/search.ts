@@ -103,7 +103,7 @@ export function createVectorSearchTool(
           };
         }
         const vectorStr = `[${vector.join(",")}]`;
-        let requestedLimit = limit ?? 10;
+        const requestedLimit = limit ?? 10;
         if (requestedLimit === 0) {
           throw new ValidationError(
             "limit: 0 is not permitted. Please specify a reasonable limit (max 100) or omit for the default limit.",
@@ -190,7 +190,7 @@ export function createVectorSearchTool(
           
           if (isTruncated) {
             response["truncated"] = true;
-            response["hint"] = `Results truncated to ${limitVal} rows.`;
+            response["hint"] = `Results truncated to ${String(limitVal)} rows.`;
           }
 
           // Add hint when no select columns specified

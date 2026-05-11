@@ -199,7 +199,7 @@ describe("Vector Tools", () => {
       );
 
       expect(mockAdapter.executeQuery).toHaveBeenCalledWith(
-        expect.stringMatching(/category = 'tech'.*LIMIT 5/s),
+        expect.stringMatching(/category = 'tech'.*LIMIT 6/s),
       );
     });
   });
