@@ -40,9 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test Prompts**: Consolidated and repaired structurally fragmented Code Mode test prompts.
 - **Security Tools**: Fixed a Zod validation leak in `pg_security_password_validate` where empty string inputs bypassed constraint checking by adding explicit handler-side validation.
 - **Text Tools**: Normalized parameter aliasing across all text tools, added native support for the `damerau-levenshtein` method alias in `pg_fuzzy_match`, verified full P154 and structured error handling compliance across the entire 13-tool advanced testing matrix, fixed a parameter boundary enforcement bug in `pg_trigram_similarity` where explicitly negative or out-of-bounds `threshold` values were passed directly to PostgreSQL instead of throwing a structured `VALIDATION_ERROR`, and fixed a validation bypass in `pg_text_search_config` where the handler ignored parameters instead of strictly parsing the input schema.
-- **Core Tools**: Certified the 20-tool `core` group via the advanced strict coverage testing matrix, verifying split schema validation, P154 object existence handling, and parameter alias compatibility without exposing raw MCP errors. Added a P154 object existence check for schemas in `pg_list_tables` to correctly return a structured error when filtering by a nonexistent schema.
+- **Core Tools**: Added a P154 object existence check for schemas in `pg_list_tables` to correctly return a structured error when filtering by a nonexistent schema.
 - **Core Tools**: Fixed an error propagation issue in the core convenience tools (`pg_upsert`, `pg_batch_insert`, `pg_count`, `pg_exists`, `pg_truncate`) where `validateTableExists` returned raw string messages, resulting in missing `code`, `category`, and `recoverable` fields in the final structured error response.
-- **Docstore Tools**: Certified the 9-tool `docstore` group via the advanced strict coverage testing matrix, verifying split schema validation, P154 object existence handling, deep JSON path safety, and large payload limit truncation without exposing raw MCP errors.
 - Fixed an error parsing inconsistency in `pg_jsonb_diff` where providing missing parameters yielded a confusing validation error about arrays and primitive values instead of accurately reporting missing parameters.
 - Clamped `limit` parameter to 100 max internally in `kcache` group tools instead of throwing a validation error for values > 100.
 - Cast BIGINT fields (`reads`, `writes`, `read_bytes`) and NUMERIC percentages (`user_cpu_percent`, `cpu_time_percent`) to `float8` in `kcache` tools to ensure precise JS numerical formatting instead of returning string values.
@@ -52,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a PostgreSQL error parsing miss where sequence boundary breaches (error code 2200H) were returned as unhandled `QUERY_ERROR` exceptions instead of mapping into structured `VALIDATION_ERROR` responses with correct user suggestions.
 - Fixed a sequence bounds alias resolution bug in the `schema` tools where the `maxvalue` and `minvalue` lowercased SQL-native aliases were ignored during `pg_create_sequence` preprocessing.
 - Clamped `limit` and `n` parameters in `stats` group tools (`pg_stats_top_n`, `pg_stats_distinct`, `pg_stats_frequency`) to their maximum allowed values instead of throwing validation errors.
+- Fixed a validation bypass in the `introspection` tools where `pg_migration_risks` accepted an empty `statements` array and returned success without raising a structured validation error.
 
 ### Security
 
