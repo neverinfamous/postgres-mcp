@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a sequence bounds alias resolution bug in the `schema` tools where the `maxvalue` and `minvalue` lowercased SQL-native aliases were ignored during `pg_create_sequence` preprocessing.
 - Clamped `limit` and `n` parameters in `stats` group tools (`pg_stats_top_n`, `pg_stats_distinct`, `pg_stats_frequency`) to their maximum allowed values instead of throwing validation errors.
 - Fixed a validation bypass in the `introspection` tools where `pg_migration_risks` accepted an empty `statements` array and returned success without raising a structured validation error.
+- **Introspection Tools**: Certified the full 8-category advanced testing matrix. Verified P154-compliant existence validation, topological sort completeness, structural constraints for dependency graphs and cascade simulators, cross-schema snapshot inclusion, and ensured all handlers properly map exceptions to structured errors without leaking raw MCP errors.
 
 ### Security
 
