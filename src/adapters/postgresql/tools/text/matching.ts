@@ -118,6 +118,7 @@ export function createTrigramSimilarityTool(
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated
@@ -269,6 +270,7 @@ export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated
@@ -353,6 +355,7 @@ export function createRegexpMatchTool(
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated

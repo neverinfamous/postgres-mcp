@@ -129,6 +129,7 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated
@@ -253,6 +254,7 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated
@@ -406,6 +408,7 @@ export function createTextHeadlineTool(
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated

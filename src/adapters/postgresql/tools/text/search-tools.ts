@@ -123,6 +123,7 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
         const count = result.rows?.length ?? 0;
         const truncated = limitVal !== null && count === limitVal;
         return {
+          success: true,
           rows: result.rows,
           count,
           ...(truncated
@@ -283,7 +284,7 @@ export function createTextSentimentTool(
           result.matchedNegative = matchedNegative;
         }
 
-        return Promise.resolve(result);
+        return Promise.resolve({ success: true, ...result });
       } catch (error: unknown) {
         return Promise.resolve(
           formatHandlerErrorResponse(error, {

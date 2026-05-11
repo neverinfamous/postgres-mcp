@@ -46,6 +46,10 @@ export function preprocessTextParams(input: unknown): unknown {
   if (result["value"] !== undefined && result["query"] === undefined) {
     result["query"] = result["value"];
   }
+  // Alias: value → pattern (for like search)
+  if (result["value"] !== undefined && result["pattern"] === undefined) {
+    result["pattern"] = result["value"];
+  }
   // Alias: indexName → name (for FTS index tool)
   if (result["indexName"] !== undefined && result["name"] === undefined) {
     result["name"] = result["indexName"];

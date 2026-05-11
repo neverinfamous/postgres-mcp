@@ -57,7 +57,7 @@ export function createTextNormalizeTool(
           `SELECT unaccent($1) as normalized`,
           [parsed.text],
         );
-        return { normalized: result.rows?.[0]?.["normalized"] };
+        return { success: true, normalized: result.rows?.[0]?.["normalized"] };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_text_normalize",
@@ -108,7 +108,7 @@ export function createTextToVectorTool(
           `SELECT to_tsvector($1, $2) as vector`,
           [cfg, parsed.text],
         );
-        return { vector: result.rows?.[0]?.["vector"] };
+        return { success: true, vector: result.rows?.[0]?.["vector"] };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_text_to_vector",
@@ -184,7 +184,7 @@ export function createTextToQueryTool(
           `SELECT ${fn}($1, $2) as query`,
           [cfg, parsed.text],
         );
-        return { query: result.rows?.[0]?.["query"], mode };
+        return { success: true, query: result.rows?.[0]?.["query"], mode };
       } catch (error: unknown) {
         return formatHandlerErrorResponse(error, {
           tool: "pg_text_to_query",
@@ -223,6 +223,7 @@ export function createTextSearchConfigTool(
                 ORDER BY c.cfgname
             `);
         return {
+          success: true,
           configs: result.rows ?? [],
           count: result.rows?.length ?? 0,
         };
