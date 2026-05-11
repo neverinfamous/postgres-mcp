@@ -395,8 +395,24 @@ function handlePgcryptoError(error: unknown, toolName: string): ErrorResponse {
         { tool: toolName },
       );
     }
+    if (msg.includes("invalid symbol") || msg.includes("invalid base64")) {
+      return formatHandlerErrorResponse(
+        new ValidationError("Decryption failed: Invalid base64 encoding in encrypted data"),
+        { tool: toolName }
+      );
+    }
+    if (msg.includes("Illegal argument to function") && toolName.includes("encrypt")) {
+      return formatHandlerErrorResponse(
+        new ValidationError("Encryption failed: Password must not be empty"),
+        { tool: toolName }
+      );
+    }
+    if (msg.includes("Wrong key or corrupt data")) {
+      return formatHandlerErrorResponse(
+        new ValidationError("Decryption failed: Wrong key or corrupt data"),
+        { tool: toolName }
+      );
+    }
   }
-  // Let formatHandlerErrorResponse handle DECRYPTION_FAILED and INVALID_BASE64
-  // using the P154 error-suggestions.ts mappings.
   return formatHandlerErrorResponse(error, { tool: toolName });
 }
