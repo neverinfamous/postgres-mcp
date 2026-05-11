@@ -59,7 +59,7 @@ export const DropSchemaSchemaBase = z.object({
 export const DropSchemaSchema = z
   .preprocess(preprocessCreateSchemaParams, DropSchemaSchemaBase)
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
-    message: "name is required",
+    message: "name (or schema alias) is required",
   });
 
 // Base schema for MCP visibility (shows both name and sequenceName)
@@ -283,7 +283,7 @@ function preprocessDropSequenceParams(input: unknown): unknown {
 export const DropSequenceSchema = z
   .preprocess(preprocessDropSequenceParams, DropSequenceSchemaBase)
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
-    message: "name is required",
+    message: "name (or sequenceName/sequence alias) is required",
   });
 
 /**
@@ -327,7 +327,7 @@ function preprocessDropViewParams(input: unknown): unknown {
 export const DropViewSchema = z
   .preprocess(preprocessDropViewParams, DropViewSchemaBase)
   .refine((data) => typeof data.name === "string" && data.name.length > 0, {
-    message: "name is required",
+    message: "name (or viewName/view alias) is required",
   });
 
 // =============================================================================
