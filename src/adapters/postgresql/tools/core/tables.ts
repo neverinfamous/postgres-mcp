@@ -44,6 +44,17 @@ export function createListTablesTool(adapter: PostgresAdapter): ToolDefinition {
     handler: async (params: unknown, _context: RequestContext) => {
       try {
         const { schema, limit, exclude } = ListTablesSchema.parse(params);
+
+        if (schema) {
+          const schemaCheck = await adapter.executeQuery(
+            `SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = $1`,
+            [schema]
+          );
+          if (!schemaCheck.rows || schemaCheck.rows.length === 0) {
+            throw new Error(`schema "${schema}" does not exist`);
+          }
+        }
+
         let tables = await adapter.listTables();
 
         if (schema) {
