@@ -111,10 +111,10 @@ export function createVectorSearchTool(
         }
         
         let limitVal = requestedLimit;
-        let isTruncated = false;
+        let limitWasLowered = false;
         if (limitVal > 100) {
           limitVal = 100;
-          isTruncated = true;
+          limitWasLowered = true;
         }
 
         const selectCols =
@@ -154,9 +154,7 @@ export function createVectorSearchTool(
             result.rows.pop(); // Remove the extra row
           }
           
-          if (hasMore || isTruncated) {
-             isTruncated = true;
-          }
+          const isTruncated = hasMore;
 
           // Check for NULL distance values (from NULL vectors)
           const nullCount = (result.rows ?? []).filter(
@@ -188,15 +186,24 @@ export function createVectorSearchTool(
             metric: metric ?? "l2",
           };
           
+          const hints: string[] = [];
+
           if (isTruncated) {
             response["truncated"] = true;
-            response["hint"] = `Results truncated to ${String(limitVal)} rows.`;
+            if (limitWasLowered) {
+              hints.push(`Results truncated to max limit of ${String(limitVal)} rows.`);
+            } else {
+              hints.push(`Results truncated to requested limit of ${String(limitVal)} rows.`);
+            }
           }
 
           // Add hint when no select columns specified
           if (select === undefined || select.length === 0) {
-            response["hint"] =
-              'Results only contain distance. Use select param (e.g., select: ["id", "name"]) to include identifying columns.';
+            hints.push('Results only contain distance. Use select param (e.g., select: ["id", "name"]) to include identifying columns.');
+          }
+
+          if (hints.length > 0) {
+            response["hint"] = hints.join(" ");
           }
 
           // Note about NULL vectors
