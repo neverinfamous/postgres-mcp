@@ -62,7 +62,7 @@ export function createCountTool(adapter: PostgresAdapter): ToolDefinition {
           schemaName,
         );
         if (validationError) {
-          return { success: false, error: validationError };
+          return validationError;
         }
         const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
@@ -118,7 +118,7 @@ export function createExistsTool(adapter: PostgresAdapter): ToolDefinition {
           schemaName,
         );
         if (validationError) {
-          return { success: false, error: validationError };
+          return validationError;
         }
         const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
@@ -173,7 +173,7 @@ export function createTruncateTool(adapter: PostgresAdapter): ToolDefinition {
           schemaName,
         );
         if (validationError) {
-          return { success: false, error: validationError };
+          return validationError;
         }
         const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 

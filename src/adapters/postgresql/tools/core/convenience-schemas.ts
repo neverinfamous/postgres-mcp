@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import type { PostgresAdapter } from "../../postgres-adapter.js";
+import { ErrorCategory, type ErrorResponse } from "../../../../types/error-types.js";
 
 // =============================================================================
 // Table Existence Validation (P154 Pattern)
@@ -22,7 +23,7 @@ export async function validateTableExists(
   table: string,
   schema: string,
   transactionId?: string,
-): Promise<string | null> {
+): Promise<ErrorResponse | null> {
   const client = transactionId
     ? adapter.getTransactionConnection(transactionId)
     : undefined;
@@ -34,7 +35,15 @@ export async function validateTableExists(
     : await adapter.executeQuery(schemaSql, [schema]);
 
   if (!schemaResult.rows || schemaResult.rows.length === 0) {
-    return `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`;
+    return {
+      success: false,
+      error: `Schema '${schema}' does not exist. Use pg_list_objects with type 'table' to see available schemas.`,
+      code: "SCHEMA_NOT_FOUND",
+      category: ErrorCategory.RESOURCE,
+      suggestion: "Schema not found. Use pg_list_schemas to see available schemas.",
+      recoverable: false,
+      details: undefined
+    };
   }
 
   const tableSql = `SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2`;
@@ -43,7 +52,15 @@ export async function validateTableExists(
     : await adapter.executeQuery(tableSql, [schema, table]);
 
   if (!result.rows || result.rows.length === 0) {
-    return `Table '${schema}.${table}' not found. Use pg_list_tables to see available tables.`;
+    return {
+      success: false,
+      error: `Table '${schema}.${table}' not found. Use pg_list_tables to see available tables.`,
+      code: "TABLE_NOT_FOUND",
+      category: ErrorCategory.RESOURCE,
+      suggestion: "Table or view does not exist. Run pg_list_tables to see available tables.",
+      recoverable: false,
+      details: undefined
+    };
   }
   return null;
 }

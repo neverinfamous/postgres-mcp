@@ -72,7 +72,7 @@ export function createUpsertTool(adapter: PostgresAdapter): ToolDefinition {
             | undefined,
         );
         if (validationError) {
-          return { success: false, error: validationError };
+          return validationError;
         }
         const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
@@ -234,7 +234,7 @@ export function createBatchInsertTool(
           | undefined,
       );
       if (validationError) {
-        return { success: false, error: validationError };
+        return validationError;
       }
       const qualifiedTable = `"${schemaName}"."${parsed.table}"`;
 
