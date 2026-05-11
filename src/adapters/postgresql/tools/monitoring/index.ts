@@ -22,7 +22,7 @@ import {
 
 // Advanced analysis tools
 import { createCapacityPlanningTool } from "./capacity-planning.js";
-import { createResourceUsageAnalyzeTool } from "./resource-usage.js";
+import { createSystemHealthTool } from "./resource-usage.js";
 import { createAlertThresholdSetTool } from "./alert-thresholds.js";
 
 /**
@@ -39,7 +39,7 @@ export function getMonitoringTools(adapter: PostgresAdapter): ToolDefinition[] {
     createUptimeTool(adapter),
     createRecoveryStatusTool(adapter),
     createCapacityPlanningTool(adapter),
-    createResourceUsageAnalyzeTool(adapter),
+    createSystemHealthTool(adapter),
     createAlertThresholdSetTool(adapter),
   ];
 }
@@ -55,6 +55,6 @@ export {
   createUptimeTool,
   createRecoveryStatusTool,
   createCapacityPlanningTool,
-  createResourceUsageAnalyzeTool,
+  createSystemHealthTool,
   createAlertThresholdSetTool,
 };

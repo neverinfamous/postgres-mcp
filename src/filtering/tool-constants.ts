@@ -138,7 +138,7 @@ export const TOOL_GROUPS: Record<ToolGroup, string[]> = {
     "pg_uptime",
     "pg_recovery_status",
     "pg_capacity_planning",
-    "pg_resource_usage_analyze",
+    "pg_system_health",
     "pg_alert_threshold_set",
   ],
   backup: [

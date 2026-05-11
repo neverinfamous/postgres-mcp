@@ -174,10 +174,10 @@ test.describe("Payload Contracts: Admin + Monitoring", () => {
     expect(typeof payload).toBe("object");
   });
 
-  test("pg_resource_usage_analyze returns shape", async () => {
+  test("pg_system_health returns shape", async () => {
     const payload = await callToolAndParse(
       client,
-      "pg_resource_usage_analyze",
+      "pg_system_health",
       {},
     );
     expectSuccess(payload);

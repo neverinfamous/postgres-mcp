@@ -155,6 +155,13 @@ export const CapacityPlanningSchema = z.preprocess(
     })),
 );
 
+export const SystemHealthSchemaBase = z.object({});
+
+export const SystemHealthSchema = z.preprocess(
+  defaultToEmpty,
+  SystemHealthSchemaBase,
+);
+
 // ============================================================================
 // Output Schemas
 // ============================================================================
@@ -392,9 +399,9 @@ export const CapacityPlanningOutputSchema = z
   .extend(ErrorResponseFields.shape);
 
 /**
- * pg_resource_usage_analyze output
+ * pg_system_health output
  */
-export const ResourceUsageAnalyzeOutputSchema = z
+export const SystemHealthOutputSchema = z
   .object({
     backgroundWriter: z
       .object({

@@ -108,8 +108,8 @@ export const METHOD_ALIASES: Record<string, Record<string, string>> = {
     config: "showSettings", // config() → showSettings()
     alerts: "alertThresholdSet", // alerts() → alertThresholdSet()
     thresholds: "alertThresholdSet", // thresholds() → alertThresholdSet()
-    activeConnections: "connectionStats",
-    systemHealth: "resourceUsageAnalyze",
+    systemHealth: "systemHealth",
+    resourceUsageAnalyze: "systemHealth",
   },
   // Transactions: shorter aliases
   transactions: {

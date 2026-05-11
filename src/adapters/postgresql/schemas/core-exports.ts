@@ -142,7 +142,9 @@ export {
   UptimeOutputSchema,
   RecoveryStatusOutputSchema,
   CapacityPlanningOutputSchema,
-  ResourceUsageAnalyzeOutputSchema,
+  SystemHealthSchemaBase,
+  SystemHealthSchema,
+  SystemHealthOutputSchema,
   AlertThresholdOutputSchema,
 } from "./monitoring.js";
 
