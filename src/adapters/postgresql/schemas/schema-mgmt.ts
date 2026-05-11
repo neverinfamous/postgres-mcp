@@ -135,6 +135,14 @@ function preprocessCreateSequenceParams(input: unknown): unknown {
     }
   }
 
+  // Handle case-insensitive aliases for Postgres defaults
+  if (result["maxValue"] === undefined && result["maxvalue"] !== undefined) {
+    result["maxValue"] = result["maxvalue"];
+  }
+  if (result["minValue"] === undefined && result["minvalue"] !== undefined) {
+    result["minValue"] = result["minvalue"];
+  }
+
   return extractSchemaFromDottedName(result);
 }
 
