@@ -60,6 +60,13 @@ export function createTrigramSimilarityTool(
             : isNaN(rawThresh)
               ? 0.3
               : rawThresh;
+
+        if (thresh < 0 || thresh > 1) {
+          throw new ValidationError(
+            "threshold must be between 0 and 1",
+            { code: "VALIDATION_ERROR" }
+          );
+        }
         const safeLimit = parsed.limit;
         let limitVal = 100;
         if (safeLimit !== undefined) {
