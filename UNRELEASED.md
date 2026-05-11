@@ -52,8 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed a sequence bounds alias resolution bug in the `schema` tools where the `maxvalue` and `minvalue` lowercased SQL-native aliases were ignored during `pg_create_sequence` preprocessing.
 - Clamped `limit` and `n` parameters in `stats` group tools (`pg_stats_top_n`, `pg_stats_distinct`, `pg_stats_frequency`) to their maximum allowed values instead of throwing validation errors.
 - Fixed a validation bypass in the `introspection` tools where `pg_migration_risks` accepted an empty `statements` array and returned success without raising a structured validation error.
-- **Introspection Tools**: Certified the full 8-category advanced testing matrix. Verified P154-compliant existence validation, topological sort completeness, structural constraints for dependency graphs and cascade simulators, cross-schema snapshot inclusion, and ensured all handlers properly map exceptions to structured errors without leaking raw MCP errors.
-
+- Fixed a parameter coercion bypass in the `monitoring` tools where the `coerceNumber` helper silently converted invalid strings into `undefined`, allowing `.optional()` fields like `limit` and `days` to skip type validation. Replaced `coerceNumber` with `coerceStrictNumber` in `schemas/monitoring.ts` to ensure invalid inputs surface cleanly as structured `VALIDATION_ERROR` responses.
+- Fixed an error parsing regex mismatch in the core error parser where `pg_connection_stats` formatting of "does not exist" using single quotes bypassed the native `3D000` database check. Updated the base error string to use double quotes to successfully trigger standard `OBJECT_NOT_FOUND` resolution.
 ### Security
 
 - **Dependencies**: Bumped `hono` to `4.12.18` (HTML Injection), `ip-address` to `10.2.0` (XSS), and `fast-uri` to `3.1.2` (Path Traversal) via package overrides.

@@ -119,7 +119,7 @@ export function createTableSizesTool(adapter: PostgresAdapter): ToolDefinition {
           );
           if (schemaCheck.rows?.length === 0) {
             throw new Error(
-              `Schema '${schema}' does not exist. Use pg_list_schemas to see available schemas.`,
+              `Schema "${schema}" does not exist. Use pg_list_schemas to see available schemas.`,
             );
           }
         }
@@ -238,7 +238,7 @@ export function createConnectionStatsTool(
             [database],
           );
           if (dbCheck.rows?.length === 0) {
-            throw new Error(`Database '${database}' does not exist.`);
+            throw new Error(`Database "${database}" does not exist.`);
           }
         }
 

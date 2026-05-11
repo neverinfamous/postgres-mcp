@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { ErrorResponseFields } from "./error-response-fields.js";
-import { coerceNumber } from "../../../utils/query-helpers.js";
+import { coerceStrictNumber } from "../../../utils/query-helpers.js";
 
 // Helper to handle undefined params (allows tools to be called without {})
 const defaultToEmpty = (val: unknown): unknown => val ?? {};
@@ -47,7 +47,7 @@ export const TableSizesSchemaBase = z.object({
 export const TableSizesSchema = z.preprocess(
   defaultToEmpty,
   TableSizesSchemaBase.extend({
-    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
   }).transform((data) => ({
     schema: data.schema,
     pattern: data.pattern ?? data.table ?? data.name,
@@ -81,7 +81,7 @@ export const ShowSettingsSchemaBase = z.object({
 export const ShowSettingsSchema = z.preprocess(
   defaultToEmpty,
   ShowSettingsSchemaBase.extend({
-    limit: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    limit: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
   }).transform((data) => {
     // Resolve alias: like, setting or name → pattern
     const pattern = data.pattern ?? data.like ?? data.setting ?? data.name;
@@ -135,9 +135,9 @@ export const CapacityPlanningSchema = z.preprocess(
   defaultToEmpty,
   CapacityPlanningSchemaBase.extend({
     projectionDays: z
-      .preprocess(coerceNumber, z.number().optional())
+      .preprocess(coerceStrictNumber, z.number().optional())
       .optional(),
-    days: z.preprocess(coerceNumber, z.number().optional()).optional(),
+    days: z.preprocess(coerceStrictNumber, z.number().optional()).optional(),
   })
     .refine(
       (data) => {
