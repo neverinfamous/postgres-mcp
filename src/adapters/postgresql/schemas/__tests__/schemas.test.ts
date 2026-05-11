@@ -538,7 +538,7 @@ describe("CreateSequenceSchema", () => {
 
   it("should require name", () => {
     expect(() => CreateSequenceSchema.parse({})).toThrow(
-      "name (or sequenceName alias) is required",
+      "name (or sequenceName/sequence alias) is required",
     );
   });
 
@@ -3741,7 +3741,7 @@ describe("CreateSequenceSchema", () => {
 
   it("should reject missing name", () => {
     expect(() => CreateSequenceSchema.parse({})).toThrow(
-      "name (or sequenceName alias) is required",
+      "name (or sequenceName/sequence alias) is required",
     );
   });
 
