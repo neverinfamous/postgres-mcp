@@ -210,8 +210,9 @@ export function createTextSearchConfigTool(
     outputSchema: TextSearchConfigOutputSchema,
     annotations: readOnly("Search Configurations"),
     icons: getToolIcons("text", readOnly("Search Configurations")),
-    handler: async (_params: unknown, _context: RequestContext) => {
+    handler: async (params: unknown, _context: RequestContext) => {
       try {
+        z.object({}).strict().parse(params ?? {});
         const result = await adapter.executeQuery(`
                 SELECT
                     c.cfgname as name,
