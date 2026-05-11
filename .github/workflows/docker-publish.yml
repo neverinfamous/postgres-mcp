@@ -106,7 +106,7 @@ jobs:
           echo "✅ Docker Scout security gate passed"
 
       - name: Trivy security scan
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # master
         with:
           image-ref: local-scan:latest
           format: table
@@ -117,7 +117,7 @@ jobs:
 
       - name: Trivy SARIF upload
         if: always()
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # master
         with:
           image-ref: local-scan:latest
           format: sarif
