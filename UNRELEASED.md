@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed an error parsing regex mismatch in the core error parser where `pg_connection_stats` formatting of "does not exist" using single quotes bypassed the native `3D000` database check. Updated the base error string to use double quotes to successfully trigger standard `OBJECT_NOT_FOUND` resolution.
 - Fixed a parameter coercion bypass in the `stats` tools where `coerceNumber` silently converted invalid strings into `undefined`, allowing statistical parameters like `hypothesizedMean`, `populationStdDev`, `buckets`, `sampleSize`, and `percentage` to bypass type validation and default silently. Replaced `coerceNumber` with `coerceStrictNumber` in `schemas/stats/base-schemas.ts` and `schemas/stats/preprocessing.ts` to ensure invalid inputs surface cleanly as structured `VALIDATION_ERROR` responses instead of skewing analytical results.
 - Fixed an error formatting issue in `pg_drop_view` and `pg_drop_sequence` tools where relation-not-found errors were resolving to generic `"Table ... does not exist"` messages by properly passing `objectType` context to the upstream handler, and added explicit view handling to the core error parser.
+- Fixed a silent payload omission bug in the `cron` tools where `pg_cron_job_run_details` and `pg_cron_list_jobs` completely omitted the `runs` and `jobs` arrays from the result payload when returning empty datasets, violating standard API array mapping expectations. Updated handlers to consistently return empty arrays.
 
 ### Security
 
