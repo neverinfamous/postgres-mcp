@@ -80,8 +80,15 @@ export function createDetectConnectionSpikeTool(
           };
         }
 
-        const rawPercent = parsed.data.warningPercent ?? 70;
-        const warningPercent = Math.max(10, Math.min(100, rawPercent));
+        const warningPercent = parsed.data.warningPercent ?? 70;
+
+        if (warningPercent < 10 || warningPercent > 100) {
+          return {
+            success: false,
+            error: "Validation error: warningPercent must be between 10 and 100",
+            code: "VALIDATION_ERROR",
+          };
+        }
 
         // Gather connection data in parallel
         const [stateResult, userResult, appResult, maxResult, idleTxResult] =
