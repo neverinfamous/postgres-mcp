@@ -93,9 +93,20 @@ export function parseDocFilter(
               }
             }
             
-            // If it's a nested object that didn't match an operator, it might be a containment check
-            // or an unsupported nested operator. Throw a structured error.
-            throw new Error(`Unsupported filter structure for field "${field}". Nested path operators (e.g. {"address": {"city": {"$gt": "A"}}}) are not supported in JSON filter syntax. Use JSON containment or simple operator syntax.`);
+            // Nested object without a matching operator -> containment check
+            return {
+              where: `doc @> $${String(paramOffset + 1)}::jsonb`,
+              params: [JSON.stringify(record)],
+            };
+          }
+          
+          // Support multiple keys if present using containment check,
+          // otherwise use simple equality for the single field
+          if (keys.length > 1) {
+            return {
+              where: `doc @> $${String(paramOffset + 1)}::jsonb`,
+              params: [JSON.stringify(record)],
+            };
           }
           
           return {
