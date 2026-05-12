@@ -140,24 +140,29 @@ describe("pg_detect_query_anomalies", () => {
     expect(mainQuery).toContain("3");
   });
 
-  it("should reject out-of-range threshold and minCalls with validation errors", async () => {
+  it("should clamp out-of-range threshold and minCalls to internal bounds", async () => {
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ 1: 1 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({
+      rows: [{ total: 10 }],
+    });
+    mockAdapter.executeQuery.mockResolvedValueOnce({ rows: [] });
+
     const tool = findTool(tools, "pg_detect_query_anomalies");
 
-    // threshold below minimum (0.5) should return a structured error
-    const resultLowThreshold = (await tool.handler(
-      { threshold: 0.1, minCalls: 10 },
+    const result = (await tool.handler(
+      { threshold: 0.001, minCalls: -5 },
       mockContext,
-    )) as { success: boolean; error: string };
-    expect(resultLowThreshold.success).toBe(false);
-    expect(resultLowThreshold.error).toContain("threshold");
+    )) as { success: boolean };
+    
+    expect(result.success).toBe(true);
 
-    // minCalls below minimum (1) should return a structured error
-    const resultLowMinCalls = (await tool.handler(
-      { threshold: 2.0, minCalls: -5 },
-      mockContext,
-    )) as { success: boolean; error: string };
-    expect(resultLowMinCalls.success).toBe(false);
-    expect(resultLowMinCalls.error).toContain("minCalls");
+    const countQuery = mockAdapter.executeQuery.mock.calls[1]?.[0] as string;
+    expect(countQuery).toContain(">= 1");
+
+    const mainQuery = mockAdapter.executeQuery.mock.calls[2]?.[0] as string;
+    expect(mainQuery).toContain("* 0.01)");
   });
 
   it("should calculate critical risk for many anomalies with high z-scores", async () => {

@@ -105,24 +105,11 @@ export function createDetectQueryAnomaliesTool(
           };
         }
 
-        const threshold = parsed.data.threshold ?? 2.0;
-        const minCalls = parsed.data.minCalls ?? 10;
+        let threshold = parsed.data.threshold ?? 2.0;
+        let minCalls = parsed.data.minCalls ?? 10;
 
-        if (threshold < 0.5 || threshold > 10) {
-          return {
-            success: false,
-            error: "Validation error: threshold must be between 0.5 and 10",
-            code: "VALIDATION_ERROR",
-          };
-        }
-
-        if (minCalls < 1 || minCalls > 10000) {
-          return {
-            success: false,
-            error: "Validation error: minCalls must be between 1 and 10000",
-            code: "VALIDATION_ERROR",
-          };
-        }
+        threshold = Math.max(0.01, Math.min(100, threshold));
+        minCalls = Math.max(1, Math.min(1000000, minCalls));
 
         // Check if pg_stat_statements is available
         const extCheck = await adapter.executeQuery(
