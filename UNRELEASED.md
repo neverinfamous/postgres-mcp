@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Actions**: Updated CI workflows to the latest tagged versions with strict SHA pinning.
 - **Core Tools**: Lowered the default limit from 50 to 20 in `pg_list_objects` and `pg_list_tables` to improve LLM token efficiency.
 - **Introspection Tools**: Streamlined `pg_schema_snapshot` compact mode to default exclusively to tables, views, and indexes.
+- **Monitoring Tools**: Reduced the default limit from 50 to 15 in `pg_show_settings` to prevent unmanageable token payload bloat.
 - **Docstore Tools**: Reduced the default limit from 100 to 50 in `pg_doc_find` to prevent large payload bloat.
 - **Stats Tools**: Increased the maximum `limit` allowed in window function tools from 100 to 1000 to better support data analysis pipelines on larger datasets.
 

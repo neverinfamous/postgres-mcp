@@ -75,7 +75,7 @@ export const ShowSettingsSchemaBase = z.object({
   limit: z
     .unknown()
     .optional()
-    .describe("Max settings to return (default: 50 when no pattern specified)"),
+    .describe("Max settings to return (default: 15 when no pattern specified)"),
 });
 
 export const ShowSettingsSchema = z.preprocess(
@@ -85,8 +85,8 @@ export const ShowSettingsSchema = z.preprocess(
   }).transform((data) => {
     // Resolve alias: like, setting or name → pattern
     const pattern = data.pattern ?? data.like ?? data.setting ?? data.name;
-    // Default limit to 50 only when NO filter is specified (to avoid 415+ results)
-    const limit = data.limit ?? (pattern === undefined ? 50 : undefined);
+    // Default limit to 15 only when NO filter is specified (to avoid payload explosion)
+    const limit = data.limit ?? (pattern === undefined ? 15 : undefined);
     return { pattern, limit };
   }),
 );
