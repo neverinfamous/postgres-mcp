@@ -400,6 +400,16 @@ export function createSecuritySensitiveTablesTool(
           }
         }
 
+        if (patterns.length === 0) {
+          return {
+            success: true,
+            sensitiveTables: [],
+            tableCount: 0,
+            totalSensitiveColumns: 0,
+            patternsUsed: [],
+          };
+        }
+
         // Build pattern conditions using parameterized queries
         const schemaTarget = schema ?? "public";
         const patternConditions = patterns
