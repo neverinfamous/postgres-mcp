@@ -430,7 +430,7 @@ export const GROUP_EXAMPLES: Record<string, string[]> = {
     "pg.stats.percentiles({ table: 'orders', column: 'amount', percentiles: [0.5, 0.95, 0.99] })",
     "pg.stats.timeSeries({ table: 'metrics', timeColumn: 'ts', valueColumn: 'value', interval: '1 hour' })",
     "pg.stats.rowNumber({ table: 'orders', orderBy: 'created_at' })",
-    "pg.stats.rank({ table: 'sales', orderBy: 'revenue', rankType: 'dense_rank' })",
+    "pg.stats.rank({ table: 'sales', orderBy: 'revenue', method: 'dense_rank' })",
     "pg.stats.runningTotal({ table: 'orders', column: 'amount', orderBy: 'created_at' })",
     "pg.stats.movingAvg({ table: 'metrics', column: 'value', orderBy: 'ts', windowSize: 7 })",
     "pg.stats.outliers({ table: 'orders', column: 'amount', method: 'iqr' })",
