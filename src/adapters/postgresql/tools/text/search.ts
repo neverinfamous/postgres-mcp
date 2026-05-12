@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -20,6 +20,13 @@ import {
   TextToVectorOutputSchema,
   TextToQueryOutputSchema,
   TextSearchConfigOutputSchema,
+  NormalizeSchema,
+  NormalizeSchemaBase,
+  ToVectorSchema,
+  ToVectorSchemaBase,
+  ToQuerySchema,
+  ToQuerySchemaBase,
+  TextSearchConfigSchemaBase,
 } from "../../schemas/index.js";
 
 // =============================================================================
@@ -29,14 +36,6 @@ import {
 export function createTextNormalizeTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const NormalizeSchemaBase = z.object({
-    text: z.string().optional().describe("Text to remove accent marks from"),
-  });
-
-  const NormalizeSchema = z.object({
-    text: z.string().describe("Text to remove accent marks from"),
-  });
-
   return {
     name: "pg_text_normalize",
     description:
@@ -74,22 +73,6 @@ export function createTextNormalizeTool(
 export function createTextToVectorTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const ToVectorSchemaBase = z.object({
-    text: z.string().optional().describe("Text to convert to tsvector"),
-    config: z
-      .string()
-      .optional()
-      .describe("Text search configuration (default: english)"),
-  });
-
-  const ToVectorSchema = z.object({
-    text: z.string().describe("Text to convert to tsvector"),
-    config: z
-      .string()
-      .optional()
-      .describe("Text search configuration (default: english)"),
-  });
-
   return {
     name: "pg_text_to_vector",
     description:
@@ -125,34 +108,6 @@ export function createTextToVectorTool(
 export function createTextToQueryTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  const ToQuerySchemaBase = z.object({
-    text: z.string().optional().describe("Text to convert to tsquery"),
-    config: z
-      .string()
-      .optional()
-      .describe("Text search configuration (default: english)"),
-    mode: z
-      .string()
-      .optional()
-      .describe(
-        "Query parsing mode: plain (default), phrase (proximity), websearch (Google-like)",
-      ),
-  });
-
-  const ToQuerySchema = z.object({
-    text: z.string().describe("Text to convert to tsquery"),
-    config: z
-      .string()
-      .optional()
-      .describe("Text search configuration (default: english)"),
-    mode: z
-      .enum(["plain", "phrase", "websearch"])
-      .optional()
-      .describe(
-        "Query parsing mode: plain (default), phrase (proximity), websearch (Google-like)",
-      ),
-  });
-
   return {
     name: "pg_text_to_query",
     description:
@@ -206,13 +161,13 @@ export function createTextSearchConfigTool(
     description:
       "List available full-text search configurations (e.g., english, german, simple).",
     group: "text",
-    inputSchema: z.object({}).strict().default({}),
+    inputSchema: TextSearchConfigSchemaBase,
     outputSchema: TextSearchConfigOutputSchema,
     annotations: readOnly("Search Configurations"),
     icons: getToolIcons("text", readOnly("Search Configurations")),
     handler: async (params: unknown, _context: RequestContext) => {
       try {
-        z.object({}).strict().parse(params ?? {});
+        TextSearchConfigSchemaBase.parse(params ?? {});
         const result = await adapter.executeQuery(`
                 SELECT
                     c.cfgname as name,

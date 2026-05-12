@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -27,7 +27,8 @@ import {
   TrigramSimilaritySchemaBase,
   RegexpMatchSchema,
   RegexpMatchSchemaBase,
-  preprocessTextParams,
+  FuzzyMatchSchema,
+  FuzzyMatchSchemaBase,
   // Output schemas
   TextRowsOutputSchema,
 } from "../../schemas/index.js";
@@ -142,42 +143,6 @@ export function createTrigramSimilarityTool(
 // =============================================================================
 
 export function createFuzzyMatchTool(adapter: PostgresAdapter): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const FuzzyMatchSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional(),
-    value: z.string().optional(),
-    method: z
-      .string()
-      .optional()
-      .describe(
-        "Fuzzy match method (default: levenshtein). Valid: soundex, levenshtein, damerau-levenshtein, metaphone",
-      ),
-    maxDistance: z
-      .any()
-      .optional()
-      .describe(
-        "Max Levenshtein distance (default: 3, use 5+ for longer strings)",
-      ),
-    select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z
-      .any()
-      .optional()
-      .describe("Max results (default: 100 to prevent large payloads)"),
-    where: z.string().optional().describe("Additional WHERE clause filter"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  });
-
-  // Full schema with preprocess for handler parsing
-  const FuzzyMatchSchema = z.preprocess(
-    preprocessTextParams,
-    FuzzyMatchSchemaBase.extend({
-      limit: z.number().optional(),
-      maxDistance: z.number().optional(),
-    })
-  );
-
   return {
     name: "pg_fuzzy_match",
     description:

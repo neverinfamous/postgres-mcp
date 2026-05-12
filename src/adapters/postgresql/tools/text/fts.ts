@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly, write } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -26,7 +26,12 @@ import { buildLimitClause } from "../../../../utils/query-helpers.js";
 import {
   TextSearchSchema,
   TextSearchSchemaBase,
-  preprocessTextParams,
+  TextRankSchema,
+  TextRankSchemaBase,
+  HeadlineSchema,
+  HeadlineSchemaBase,
+  FtsIndexSchema,
+  FtsIndexSchemaBase,
   // Output schemas
   TextRowsOutputSchema,
   FtsIndexOutputSchema,
@@ -153,31 +158,6 @@ export function createTextSearchTool(adapter: PostgresAdapter): ToolDefinition {
 // =============================================================================
 
 export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const TextRankSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional().describe("Single column to search"),
-    columns: z
-      .array(z.string())
-      .optional()
-      .describe("Multiple columns to search (alternative to column)"),
-    query: z.string().optional(),
-    config: z.string().optional(),
-    normalization: z.any().optional(),
-    select: z.array(z.string()).optional().describe("Columns to return"),
-    limit: z.any().optional().describe("Max results"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  });
-
-  // Full schema with preprocess for handler parsing
-  const TextRankSchema = z.preprocess(
-    preprocessTextParams,
-    TextRankSchemaBase.extend({
-      limit: z.number().optional(),
-    })
-  );
-
   return {
     name: "pg_text_rank",
     description:
@@ -280,45 +260,6 @@ export function createTextRankTool(adapter: PostgresAdapter): ToolDefinition {
 export function createTextHeadlineTool(
   adapter: PostgresAdapter,
 ): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const HeadlineSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional(),
-    query: z.string().optional(),
-    config: z.string().optional(),
-    options: z
-      .string()
-      .optional()
-      .describe(
-        'Headline options (e.g., "MaxWords=20, MinWords=5"). Note: MinWords must be < MaxWords.',
-      ),
-    startSel: z
-      .string()
-      .optional()
-      .describe("Start selection marker (default: <b>)"),
-    stopSel: z
-      .string()
-      .optional()
-      .describe("Stop selection marker (default: </b>)"),
-    maxWords: z.any().optional().describe("Maximum words in headline"),
-    minWords: z.any().optional().describe("Minimum words in headline"),
-    select: z
-      .array(z.string())
-      .optional()
-      .describe('Columns to return for row identification (e.g., ["id"])'),
-    limit: z.any().optional().describe("Max results"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  });
-
-  // Full schema with preprocess for handler parsing
-  const HeadlineSchema = z.preprocess(
-    preprocessTextParams,
-    HeadlineSchemaBase.extend({
-      limit: z.number().optional(),
-    })
-  );
-
   return {
     name: "pg_text_headline",
     description:
@@ -432,23 +373,6 @@ export function createTextHeadlineTool(
 // =============================================================================
 
 export function createFtsIndexTool(adapter: PostgresAdapter): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const FtsIndexSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional(),
-    name: z.string().optional(),
-    config: z.string().optional(),
-    ifNotExists: z
-      .boolean()
-      .optional()
-      .describe("Skip if index already exists (default: true)"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  });
-
-  // Full schema with preprocess for handler parsing
-  const FtsIndexSchema = z.preprocess(preprocessTextParams, FtsIndexSchemaBase);
-
   return {
     name: "pg_create_fts_index",
     description: "Create a GIN index for full-text search on a column.",

@@ -10,7 +10,7 @@ import type {
   ToolDefinition,
   RequestContext,
 } from "../../../../types/index.js";
-import { z } from "zod";
+
 import { readOnly } from "../../../../utils/annotations.js";
 import { getToolIcons } from "../../../../utils/icons.js";
 import { formatHandlerErrorResponse } from "../core/error-helpers.js";
@@ -23,7 +23,10 @@ import {
 import { sanitizeWhereClause } from "../../../../utils/where-clause.js";
 import { buildLimitClause } from "../../../../utils/query-helpers.js";
 import {
-  preprocessTextParams,
+  LikeSearchSchema,
+  LikeSearchSchemaBase,
+  SentimentSchema,
+  SentimentSchemaBase,
   // Output schemas
   TextRowsOutputSchema,
   TextSentimentOutputSchema,
@@ -34,33 +37,6 @@ import {
 // =============================================================================
 
 export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
-  // Base schema for MCP visibility (no preprocess)
-  const LikeSearchSchemaBase = z.object({
-    table: z.string().optional().describe("Table name"),
-    tableName: z.string().optional().describe("Table name (alias for table)"),
-    column: z.string().optional(),
-    pattern: z.string().optional(),
-    caseSensitive: z
-      .boolean()
-      .optional()
-      .describe("Use case-sensitive LIKE (default: false, uses ILIKE)"),
-    select: z.array(z.string()).optional(),
-    limit: z
-      .any()
-      .optional()
-      .describe("Max results (default: 100 to prevent large payloads)"),
-    where: z.string().optional().describe("Additional WHERE clause filter"),
-    schema: z.string().optional().describe("Schema name (default: public)"),
-  });
-
-  // Full schema with preprocess for handler parsing
-  const LikeSearchSchema = z.preprocess(
-    preprocessTextParams,
-    LikeSearchSchemaBase.extend({
-      limit: z.number().optional(),
-    })
-  );
-
   return {
     name: "pg_like_search",
     description:
@@ -152,24 +128,6 @@ export function createLikeSearchTool(adapter: PostgresAdapter): ToolDefinition {
 export function createTextSentimentTool(
   _adapter: PostgresAdapter,
 ): ToolDefinition {
-  const SentimentSchemaBase = z.object({
-    text: z.string().optional().describe("Text to analyze"),
-    returnWords: z
-      .boolean()
-      .optional()
-      .describe("Return matched sentiment words"),
-  });
-
-  const SentimentSchema = z.object({
-    text: z
-      .string()
-      .describe("Text to analyze"),
-    returnWords: z
-      .boolean()
-      .optional()
-      .describe("Return matched sentiment words"),
-  });
-
   return {
     name: "pg_text_sentiment",
     description:
